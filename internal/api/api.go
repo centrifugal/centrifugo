@@ -79,7 +79,7 @@ func (h *Executor) Publish(_ context.Context, cmd *PublishRequest) *PublishRespo
 		return resp
 	}
 
-	_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -157,7 +157,7 @@ func (h *Executor) Broadcast(_ context.Context, cmd *BroadcastRequest) *Broadcas
 				return
 			}
 
-			_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+			_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 			if err != nil {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error getting options for channel", map[string]interface{}{"channel": ch, "error": err.Error()}))
 				responses[i] = &PublishResponse{Error: ErrorInternal}
@@ -215,7 +215,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 		return resp
 	}
 
-	_, chOpts, found, err := h.ruleContainer.ChannelOptions(channel)
+	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(channel)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -233,11 +233,11 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 	if cmd.Override != nil && cmd.Override.JoinLeave != nil {
 		joinLeave = cmd.Override.JoinLeave.Value
 	}
-	useRecover := chOpts.Recover
+	useRecover := chOpts.ForceRecovery
 	if cmd.Override != nil && cmd.Override.Recover != nil {
 		useRecover = cmd.Override.Recover.Value
 	}
-	position := chOpts.Position
+	position := chOpts.ForcePositioning
 	if cmd.Override != nil && cmd.Override.Position != nil {
 		position = cmd.Override.Position.Value
 	}
@@ -271,7 +271,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 }
 
 // Unsubscribe unsubscribes user from channel and sends unsubscribe
-// control message to other nodes so they could also unsubscribe user.
+// control message to other nodes, so they could also unsubscribe user.
 func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *UnsubscribeResponse {
 	defer observe(time.Now(), h.protocol, "unsubscribe")
 
@@ -281,7 +281,7 @@ func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *Unsu
 	channel := cmd.Channel
 
 	if channel != "" {
-		_, _, found, err := h.ruleContainer.ChannelOptions(channel)
+		_, _, _, found, err := h.ruleContainer.ChannelOptions(channel)
 		if err != nil {
 			resp.Error = ErrorInternal
 			return resp
@@ -369,7 +369,7 @@ func (h *Executor) Presence(_ context.Context, cmd *PresenceRequest) *PresenceRe
 		return resp
 	}
 
-	_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -420,7 +420,7 @@ func (h *Executor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest) *
 		return resp
 	}
 
-	_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -463,7 +463,7 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 		return resp
 	}
 
-	_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -542,7 +542,7 @@ func (h *Executor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest) *
 		return resp
 	}
 
-	_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp

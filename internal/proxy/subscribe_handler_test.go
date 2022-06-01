@@ -99,10 +99,10 @@ func TestHandleSubscribeWithResult(t *testing.T) {
 	customData := "test"
 	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
 	chOpts := rule.ChannelOptions{
-		Presence:  true,
-		JoinLeave: true,
-		Recover:   true,
-		Position:  true,
+		Presence:         true,
+		JoinLeave:        true,
+		ForceRecovery:    true,
+		ForcePositioning: true,
 	}
 	opts := proxyGRPCTestServerOptions{
 		B64Data: customDataB64,
@@ -139,10 +139,10 @@ func TestHandleSubscribeWithOverride(t *testing.T) {
 	customData := "test"
 	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
 	chOpts := rule.ChannelOptions{
-		Presence:  false,
-		JoinLeave: true,
-		Recover:   false,
-		Position:  false,
+		Presence:         false,
+		JoinLeave:        true,
+		ForceRecovery:    false,
+		ForcePositioning: false,
 	}
 	opts := proxyGRPCTestServerOptions{
 		B64Data: customDataB64,

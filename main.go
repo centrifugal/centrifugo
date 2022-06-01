@@ -108,7 +108,7 @@ func bindCentrifugoConfig() {
 
 		"node_info_metrics_aggregate_interval": 60 * time.Second,
 
-		"client_anonymous":                    false,
+		"client_connect_without_token":        false,
 		"client_expired_close_delay":          25 * time.Second,
 		"client_expired_sub_close_delay":      25 * time.Second,
 		"client_stale_close_delay":            25 * time.Second,
@@ -167,8 +167,9 @@ func bindCentrifugoConfig() {
 		"uni_websocket_message_size_limit":    65536, // 64KB
 
 		"uni_http_stream_max_request_body_size": 65536, // 64KB
-
-		"uni_sse_max_request_body_size": 65536, // 64KB
+		"uni_sse_max_request_body_size":         65536, // 64KB
+		"http_stream_max_request_body_size":     65536, // 64KB
+		"sse_max_request_body_size":             65536, // 64KB
 
 		"tls_autocert":                false,
 		"tls_autocert_host_whitelist": "",
@@ -238,7 +239,8 @@ func bindCentrifugoConfig() {
 		"client_history_max_publication_limit":  300,
 		"client_recovery_max_publication_limit": 300,
 
-		"usage_stats_disable": false,
+		"usage_stats_disable":               false,
+		"use_client_protocol_v1_by_default": false,
 	}
 
 	for k, v := range defaults {
@@ -302,15 +304,6 @@ func main() {
 				log.Fatal().Msgf("error writing PID: %v", err)
 			}
 
-			if viper.IsSet("v3_use_offset") {
-				log.Fatal().Msg("v3_use_offset option is set which was removed in Centrifugo v3. " +
-					"Make sure to adapt your configuration file to fit Centrifugo v3 changes. Refer to the " +
-					"https://centrifugal.dev/docs/getting-started/migration_v3. If you had no intention to " +
-					"update Centrifugo to v3 then this error may be caused by using `latest` tag for " +
-					"Centrifugo Docker image in your deployment pipeline – pin to the specific Centrifugo " +
-					"image tag in this case (at least to centrifugo/centrifugo:v2).")
-			}
-
 			if os.Getenv("GOMAXPROCS") == "" {
 				if viper.IsSet("gomaxprocs") && viper.GetInt("gomaxprocs") > 0 {
 					runtime.GOMAXPROCS(viper.GetInt("gomaxprocs"))
@@ -325,7 +318,7 @@ func main() {
 				Str("version", build.Version).
 				Str("runtime", runtime.Version()).
 				Int("pid", os.Getpid()).
-				Str("engine", strings.Title(engineName)).
+				Str("engine", engineName).
 				Int("gomaxprocs", runtime.GOMAXPROCS(0)).Msg("starting Centrifugo")
 
 			log.Info().Str("path", absConfPath).Msg("using config file")
@@ -379,10 +372,6 @@ func main() {
 
 			tokenVerifier := jwtverify.NewTokenVerifierJWT(jwtVerifierConfig(), ruleContainer)
 
-			if viper.GetBool("use_unlimited_history_by_default") {
-				// See detailed comment about this by falling through to var definition.
-				client.UseUnlimitedHistoryByDefault = true
-			}
 			clientHandler := client.NewHandler(node, ruleContainer, tokenVerifier, proxyMap, granularProxyMode)
 			err = clientHandler.Setup()
 			if err != nil {
@@ -577,9 +566,6 @@ func main() {
 					ClickhouseAnalytics: false,
 					UserStatus:          false,
 					Throttling:          false,
-					UserBlocking:        false,
-					TokenRevoking:       false,
-					TokenInvalidation:   false,
 					Singleflight:        false,
 				})
 				go statsSender.Start(context.Background())
@@ -813,6 +799,7 @@ func configureConsoleWriter() {
 }
 
 func isTerminalAttached() bool {
+	//goland:noinspection GoBoolExpressions – Goland is not smart enough here.
 	return isatty.IsTerminal(os.Stdout.Fd()) && runtime.GOOS != "windows"
 }
 
@@ -1199,20 +1186,31 @@ func ruleConfig() rule.Config {
 	v := viper.GetViper()
 	cfg := rule.Config{}
 
-	cfg.Publish = v.GetBool("publish")
-	cfg.SubscribeToPublish = v.GetBool("subscribe_to_publish")
-	cfg.Anonymous = v.GetBool("anonymous")
 	cfg.Presence = v.GetBool("presence")
-	cfg.PresenceDisableForClient = v.GetBool("presence_disable_for_client")
 	cfg.JoinLeave = v.GetBool("join_leave")
 	cfg.HistorySize = v.GetInt("history_size")
 	cfg.HistoryTTL = tools.Duration(GetDuration("history_ttl", true))
-	cfg.Position = v.GetBool("position")
-	cfg.Recover = v.GetBool("recover")
-	cfg.HistoryDisableForClient = v.GetBool("history_disable_for_client")
-	cfg.Protected = v.GetBool("protected")
+
+	cfg.ForcePositioning = v.GetBool("force_positioning")
+	cfg.AllowRecovery = v.GetBool("allow_recovery")
+	cfg.ForceRecovery = v.GetBool("force_recovery")
+	cfg.AllowRecovery = v.GetBool("allow_recovery")
+	cfg.SubscribeForAnonymous = v.GetBool("allow_subscribe_for_anonymous")
+	cfg.SubscribeForClient = v.GetBool("allow_subscribe_for_client")
+	cfg.PublishForAnonymous = v.GetBool("allow_publish_for_anonymous")
+	cfg.PublishForClient = v.GetBool("allow_publish_for_client")
+	cfg.PublishForSubscriber = v.GetBool("allow_publish_for_subscriber")
+	cfg.PresenceForAnonymous = v.GetBool("allow_presence_for_anonymous")
+	cfg.PresenceForClient = v.GetBool("allow_presence_for_client")
+	cfg.PresenceForSubscriber = v.GetBool("allow_presence_for_subscriber")
+	cfg.HistoryForAnonymous = v.GetBool("allow_history_for_anonymous")
+	cfg.HistoryForClient = v.GetBool("allow_history_for_client")
+	cfg.HistoryForSubscriber = v.GetBool("allow_history_for_subscriber")
+	cfg.ChannelRegex = v.GetString("channel_regex")
 	cfg.ProxySubscribe = v.GetBool("proxy_subscribe")
 	cfg.ProxyPublish = v.GetBool("proxy_publish")
+	cfg.SubscribeProxyName = v.GetString("subscribe_proxy_name")
+	cfg.PublishProxyName = v.GetString("publish_proxy_name")
 	cfg.Namespaces = namespacesFromConfig(v)
 	cfg.ChannelPrivatePrefix = v.GetString("channel_private_prefix")
 	cfg.ChannelNamespaceBoundary = v.GetString("channel_namespace_boundary")
@@ -1222,7 +1220,7 @@ func ruleConfig() rule.Config {
 	cfg.UserPersonalSingleConnection = v.GetBool("user_personal_single_connection")
 	cfg.UserPersonalChannelNamespace = v.GetString("user_personal_channel_namespace")
 	cfg.ClientInsecure = v.GetBool("client_insecure")
-	cfg.ClientAnonymous = v.GetBool("client_anonymous")
+	cfg.ClientConnectWithoutToken = v.GetBool("client_connect_without_token")
 	cfg.ClientConcurrency = v.GetInt("client_concurrency")
 	cfg.RpcNamespaceBoundary = v.GetString("rpc_namespace_boundary")
 	cfg.RpcProxyName = v.GetString("rpc_proxy_name")
@@ -1658,6 +1656,10 @@ func rpcNamespacesFromConfig(v *viper.Viper) []rule.RpcNamespace {
 func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	v := viper.GetViper()
 	cfg := centrifuge.WebsocketConfig{}
+	cfg.ProtocolVersion = centrifuge.ProtocolVersion2
+	if v.GetBool("use_client_protocol_v1_by_default") {
+		cfg.ProtocolVersion = centrifuge.ProtocolVersion1
+	}
 	cfg.Compression = v.GetBool("websocket_compression")
 	cfg.CompressionLevel = v.GetInt("websocket_compression_level")
 	cfg.CompressionMinSize = v.GetInt("websocket_compression_min_size")
@@ -1672,11 +1674,15 @@ func websocketHandlerConfig() centrifuge.WebsocketConfig {
 }
 
 func httpStreamHandlerConfig() centrifuge.HTTPStreamConfig {
-	return centrifuge.HTTPStreamConfig{}
+	return centrifuge.HTTPStreamConfig{
+		MaxRequestBodySize: viper.GetInt("http_stream_max_request_body_size"),
+	}
 }
 
 func sseHandlerConfig() centrifuge.SSEConfig {
-	return centrifuge.SSEConfig{}
+	return centrifuge.SSEConfig{
+		MaxRequestBodySize: viper.GetInt("sse_max_request_body_size"),
+	}
 }
 
 func emulationHandlerConfig() centrifuge.EmulationConfig {
@@ -1739,24 +1745,44 @@ func uniWebsocketHandlerConfig() uniws.Config {
 }
 
 func uniSSEHandlerConfig() unisse.Config {
+	protocolVersion := centrifuge.ProtocolVersion2
+	if viper.GetBool("use_client_protocol_v1_by_default") {
+		protocolVersion = centrifuge.ProtocolVersion1
+	}
 	return unisse.Config{
+		ProtocolVersion:    protocolVersion,
 		MaxRequestBodySize: viper.GetInt("uni_sse_max_request_body_size"),
 	}
 }
 
 func uniStreamHandlerConfig() unihttpstream.Config {
+	protocolVersion := centrifuge.ProtocolVersion2
+	if viper.GetBool("use_client_protocol_v1_by_default") {
+		protocolVersion = centrifuge.ProtocolVersion1
+	}
 	return unihttpstream.Config{
+		ProtocolVersion:    protocolVersion,
 		MaxRequestBodySize: viper.GetInt("uni_http_stream_max_request_body_size"),
 	}
 }
 
 func uniGRPCHandlerConfig() unigrpc.Config {
-	return unigrpc.Config{}
+	protocolVersion := centrifuge.ProtocolVersion2
+	if viper.GetBool("use_client_protocol_v1_by_default") {
+		protocolVersion = centrifuge.ProtocolVersion1
+	}
+	return unigrpc.Config{
+		ProtocolVersion: protocolVersion,
+	}
 }
 
 func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	v := viper.GetViper()
 	cfg := centrifuge.SockjsConfig{}
+	cfg.ProtocolVersion = centrifuge.ProtocolVersion2
+	if v.GetBool("use_client_protocol_v1_by_default") {
+		cfg.ProtocolVersion = centrifuge.ProtocolVersion1
+	}
 	cfg.URL = v.GetString("sockjs_url")
 	cfg.HeartbeatDelay = GetDuration("sockjs_heartbeat_delay")
 	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")

@@ -40,7 +40,7 @@ type Config struct {
 	// channels, anonymous users are ignored.
 	UserSubscribeToPersonal bool
 	// UserPersonalChannelPrefix defines prefix to be added to user personal channel.
-	// This should match one of configured namespace names. By default no namespace
+	// This should match one of configured namespace names. By default, no namespace
 	// used for personal channel.
 	UserPersonalChannelNamespace string
 	// UserPersonalSingleConnection turns on a mode in which Centrifugo will try to
@@ -55,13 +55,12 @@ type Config struct {
 	// anonymous access and publish allowed for all channels, no connection expire
 	// performed. This can be suitable for demonstration or personal usage.
 	ClientInsecure bool
-	// ClientAnonymous when set to true, allows connect requests without specifying
-	// a token or setting Credentials in authentication middleware. The resulting
-	// user will have empty string for user ID, meaning user can only subscribe
-	// to anonymous channels.
-	ClientAnonymous bool
+	// ClientConnectWithoutToken when set to true, allows connecting without specifying
+	// a connection token or setting Credentials in authentication middleware. The resulting
+	// user will have empty string for user ID (i.e. user is treated as anonymous).
+	ClientConnectWithoutToken bool
 	// ClientConcurrency when set allows processing client commands concurrently
-	// with provided concurrency level. By default commands processed sequentially
+	// with provided concurrency level. By default, commands processed sequentially
 	// one after another.
 	ClientConcurrency int
 }
@@ -115,8 +114,13 @@ func ValidateChannelOptions(c ChannelOptions) error {
 	if (c.HistorySize != 0 && c.HistoryTTL == 0) || (c.HistorySize == 0 && c.HistoryTTL != 0) {
 		return errors.New("both history size and history ttl required for history")
 	}
-	if c.Recover && (c.HistorySize == 0 || c.HistoryTTL == 0) {
+	if c.ForceRecovery && (c.HistorySize == 0 || c.HistoryTTL == 0) {
 		return errors.New("both history size and history ttl required for recovery")
+	}
+	if c.ChannelRegex != "" {
+		if _, err := regexp.Compile(c.ChannelRegex); err != nil {
+			return fmt.Errorf("invalid channel regex %s: %w", c.ChannelRegex, err)
+		}
 	}
 	return nil
 }
@@ -182,15 +186,48 @@ func (c *Config) Validate() error {
 
 // Container ...
 type Container struct {
-	mu     sync.RWMutex
-	config Config
+	mu              sync.RWMutex
+	config          Config
+	compiledRegexes map[string]*regexp.Regexp
 }
 
 // NewContainer ...
 func NewContainer(config Config) *Container {
-	return &Container{
+	container := &Container{
 		config: config,
 	}
+	compiledRegexes, err := container.buildCompiledRegexes()
+	if err != nil {
+		// Should never happen since we validate expressions.
+		panic(err)
+	}
+	container.compiledRegexes = compiledRegexes
+	return container
+}
+
+func (n *Container) buildCompiledRegexes() (map[string]*regexp.Regexp, error) {
+	regexes := map[string]*regexp.Regexp{}
+
+	if n.config.ChannelRegex != "" {
+		p, err := regexp.Compile(n.config.ChannelRegex)
+		if err != nil {
+			return nil, err
+		}
+		regexes[""] = p
+	}
+
+	for _, ns := range n.config.Namespaces {
+		if ns.ChannelRegex == "" {
+			continue
+		}
+		p, err := regexp.Compile(ns.ChannelRegex)
+		if err != nil {
+			return nil, err
+		}
+		regexes[ns.Name] = p
+	}
+
+	return regexes, nil
 }
 
 // Reload node config.
@@ -198,29 +235,34 @@ func (n *Container) Reload(c Config) error {
 	if err := c.Validate(); err != nil {
 		return err
 	}
+	compiledRegexes, err := n.buildCompiledRegexes()
+	if err != nil {
+		return err
+	}
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	n.config = c
+	n.compiledRegexes = compiledRegexes
 	return nil
 }
 
 // namespaceName returns namespace name from channel if exists.
-func (n *Container) namespaceName(ch string) string {
+func (n *Container) namespaceName(ch string) (string, string) {
 	cTrim := strings.TrimPrefix(ch, n.config.ChannelPrivatePrefix)
 	if n.config.ChannelNamespaceBoundary != "" && strings.Contains(cTrim, n.config.ChannelNamespaceBoundary) {
 		parts := strings.SplitN(cTrim, n.config.ChannelNamespaceBoundary, 2)
-		return parts[0]
+		return parts[0], parts[1]
 	}
-	return ""
+	return "", ch
 }
 
 // ChannelOptions returns channel options for channel using current channel config.
-func (n *Container) ChannelOptions(ch string) (string, ChannelOptions, bool, error) {
+func (n *Container) ChannelOptions(ch string) (string, string, ChannelOptions, bool, error) {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
-	nsName := n.namespaceName(ch)
+	nsName, rest := n.namespaceName(ch)
 	chOpts, ok, err := n.config.channelOpts(nsName)
-	return nsName, chOpts, ok, err
+	return nsName, rest, chOpts, ok, err
 }
 
 // NumNamespaces returns number of configured namespaces.
@@ -258,6 +300,14 @@ func (n *Container) Config() Config {
 	c := n.config
 	n.mu.RUnlock()
 	return c
+}
+
+// CompiledRegex returns compiled regex for namespace.
+func (n *Container) CompiledRegex(nsName string) (*regexp.Regexp, bool) {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	p, ok := n.compiledRegexes[nsName]
+	return p, ok
 }
 
 // IsPrivateChannel checks if channel requires token to subscribe. In case of

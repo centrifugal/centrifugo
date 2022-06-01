@@ -55,6 +55,13 @@ message ConnectResult {
   repeated string channels = 7;
   map<string, SubscribeOptions> subs = 8;
   bytes meta = 9;
+  repeated ChannelsCapability caps = 10;
+}
+
+message ChannelsCapability {
+  repeated string channels = 1;
+  repeated string allow = 2;
+  string match = 3;
 }
 
 message ConnectResponse {
@@ -78,6 +85,7 @@ message RefreshResult {
   int64 expire_at = 2;
   bytes info = 3;
   string b64info = 4;
+  repeated ChannelsCapability caps = 5;
 }
 
 message RefreshResponse {
@@ -122,6 +130,7 @@ message SubscribeResult {
   bytes data = 4;
   string b64data = 5;
   SubscribeOptionOverride override = 6;
+  repeated string allow = 7;
 }
 
 message SubscribeResponse {

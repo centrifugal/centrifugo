@@ -31,7 +31,7 @@ type CentrifugoApiClient interface {
 	RPC(ctx context.Context, in *RPCRequest, opts ...grpc.CallOption) (*RPCResponse, error)
 	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error)
 	Channels(ctx context.Context, in *ChannelsRequest, opts ...grpc.CallOption) (*ChannelsResponse, error)
-	UserConnections(ctx context.Context, in *UserConnectionsRequest, opts ...grpc.CallOption) (*UserConnectionsResponse, error)
+	Connections(ctx context.Context, in *ConnectionsRequest, opts ...grpc.CallOption) (*ConnectionsResponse, error)
 	UpdateUserStatus(ctx context.Context, in *UpdateUserStatusRequest, opts ...grpc.CallOption) (*UpdateUserStatusResponse, error)
 	GetUserStatus(ctx context.Context, in *GetUserStatusRequest, opts ...grpc.CallOption) (*GetUserStatusResponse, error)
 	DeleteUserStatus(ctx context.Context, in *DeleteUserStatusRequest, opts ...grpc.CallOption) (*DeleteUserStatusResponse, error)
@@ -166,9 +166,9 @@ func (c *centrifugoApiClient) Channels(ctx context.Context, in *ChannelsRequest,
 	return out, nil
 }
 
-func (c *centrifugoApiClient) UserConnections(ctx context.Context, in *UserConnectionsRequest, opts ...grpc.CallOption) (*UserConnectionsResponse, error) {
-	out := new(UserConnectionsResponse)
-	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/UserConnections", in, out, opts...)
+func (c *centrifugoApiClient) Connections(ctx context.Context, in *ConnectionsRequest, opts ...grpc.CallOption) (*ConnectionsResponse, error) {
+	out := new(ConnectionsResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/Connections", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +255,7 @@ type CentrifugoApiServer interface {
 	RPC(context.Context, *RPCRequest) (*RPCResponse, error)
 	Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error)
 	Channels(context.Context, *ChannelsRequest) (*ChannelsResponse, error)
-	UserConnections(context.Context, *UserConnectionsRequest) (*UserConnectionsResponse, error)
+	Connections(context.Context, *ConnectionsRequest) (*ConnectionsResponse, error)
 	UpdateUserStatus(context.Context, *UpdateUserStatusRequest) (*UpdateUserStatusResponse, error)
 	GetUserStatus(context.Context, *GetUserStatusRequest) (*GetUserStatusResponse, error)
 	DeleteUserStatus(context.Context, *DeleteUserStatusRequest) (*DeleteUserStatusResponse, error)
@@ -309,8 +309,8 @@ func (UnimplementedCentrifugoApiServer) Refresh(context.Context, *RefreshRequest
 func (UnimplementedCentrifugoApiServer) Channels(context.Context, *ChannelsRequest) (*ChannelsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Channels not implemented")
 }
-func (UnimplementedCentrifugoApiServer) UserConnections(context.Context, *UserConnectionsRequest) (*UserConnectionsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UserConnections not implemented")
+func (UnimplementedCentrifugoApiServer) Connections(context.Context, *ConnectionsRequest) (*ConnectionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Connections not implemented")
 }
 func (UnimplementedCentrifugoApiServer) UpdateUserStatus(context.Context, *UpdateUserStatusRequest) (*UpdateUserStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserStatus not implemented")
@@ -580,20 +580,20 @@ func _CentrifugoApi_Channels_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CentrifugoApi_UserConnections_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UserConnectionsRequest)
+func _CentrifugoApi_Connections_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConnectionsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CentrifugoApiServer).UserConnections(ctx, in)
+		return srv.(CentrifugoApiServer).Connections(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/UserConnections",
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/Connections",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugoApiServer).UserConnections(ctx, req.(*UserConnectionsRequest))
+		return srv.(CentrifugoApiServer).Connections(ctx, req.(*ConnectionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -784,8 +784,8 @@ var CentrifugoApi_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CentrifugoApi_Channels_Handler,
 		},
 		{
-			MethodName: "UserConnections",
-			Handler:    _CentrifugoApi_UserConnections_Handler,
+			MethodName: "Connections",
+			Handler:    _CentrifugoApi_Connections_Handler,
 		},
 		{
 			MethodName: "UpdateUserStatus",

@@ -34,12 +34,15 @@ func NewRefreshHandler(c RefreshHandlerConfig) *RefreshHandler {
 	}
 }
 
+type RefreshExtra struct {
+}
+
 // RefreshHandlerFunc ...
-type RefreshHandlerFunc func(*centrifuge.Client, centrifuge.RefreshEvent) (centrifuge.RefreshReply, error)
+type RefreshHandlerFunc func(*centrifuge.Client, centrifuge.RefreshEvent) (centrifuge.RefreshReply, RefreshExtra, error)
 
 // Handle refresh.
 func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
-	return func(client *centrifuge.Client, e centrifuge.RefreshEvent) (centrifuge.RefreshReply, error) {
+	return func(client *centrifuge.Client, e centrifuge.RefreshEvent) (centrifuge.RefreshReply, RefreshExtra, error) {
 		started := time.Now()
 		req := &proxyproto.RefreshRequest{
 			Client:    client.ID(),
@@ -60,7 +63,7 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 			select {
 			case <-client.Context().Done():
 				// Client connection already closed.
-				return centrifuge.RefreshReply{}, centrifuge.DisconnectConnectionClosed
+				return centrifuge.RefreshReply{}, RefreshExtra{}, centrifuge.DisconnectConnectionClosed
 			default:
 			}
 			h.summary.Observe(duration)
@@ -74,41 +77,41 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 			// like a reasonable value.
 			return centrifuge.RefreshReply{
 				ExpireAt: time.Now().Unix() + 60,
-			}, nil
+			}, RefreshExtra{}, nil
 		}
 		h.summary.Observe(duration)
 		h.histogram.Observe(duration)
 
-		credentials := refreshRep.Result
-		if credentials == nil {
+		result := refreshRep.Result
+		if result == nil {
 			// User will be disconnected.
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "no refresh credentials found", map[string]interface{}{}))
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "no refresh result found", map[string]interface{}{}))
 			return centrifuge.RefreshReply{
 				Expired: true,
-			}, nil
+			}, RefreshExtra{}, nil
 		}
 
-		if credentials.Expired {
+		if result.Expired {
 			return centrifuge.RefreshReply{
 				Expired: true,
-			}, nil
+			}, RefreshExtra{}, nil
 		}
 
 		var info []byte
-		if credentials.B64Info != "" {
-			decodedInfo, err := base64.StdEncoding.DecodeString(credentials.B64Info)
+		if result.B64Info != "" {
+			decodedInfo, err := base64.StdEncoding.DecodeString(result.B64Info)
 			if err != nil {
 				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": client.ID(), "error": err.Error()}))
-				return centrifuge.RefreshReply{}, centrifuge.ErrorInternal
+				return centrifuge.RefreshReply{}, RefreshExtra{}, centrifuge.ErrorInternal
 			}
 			info = decodedInfo
 		} else {
-			info = credentials.Info
+			info = result.Info
 		}
 
 		return centrifuge.RefreshReply{
-			ExpireAt: credentials.ExpireAt,
+			ExpireAt: result.ExpireAt,
 			Info:     info,
-		}, nil
+		}, RefreshExtra{}, nil
 	}
 }

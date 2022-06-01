@@ -39,9 +39,14 @@ func NewConnectHandler(c ConnectHandlerConfig, ruleContainer *rule.Container) *C
 	}
 }
 
+type ConnectExtra struct {
+}
+
+type ConnectingHandlerFunc func(context.Context, centrifuge.ConnectEvent) (centrifuge.ConnectReply, ConnectExtra, error)
+
 // Handle returns connecting handler func.
-func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHandler {
-	return func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
+	return func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, ConnectExtra, error) {
 		started := time.Now()
 		req := &proxyproto.ConnectRequest{
 			Client:    e.ClientID,
@@ -64,27 +69,27 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHand
 			select {
 			case <-ctx.Done():
 				// Client connection already closed.
-				return centrifuge.ConnectReply{}, centrifuge.DisconnectConnectionClosed
+				return centrifuge.ConnectReply{}, ConnectExtra{}, centrifuge.DisconnectConnectionClosed
 			default:
 			}
 			h.summary.Observe(duration)
 			h.histogram.Observe(duration)
 			h.errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying connect", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
-			return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
+			return centrifuge.ConnectReply{}, ConnectExtra{}, centrifuge.ErrorInternal
 		}
 		h.summary.Observe(duration)
 		h.histogram.Observe(duration)
 		if connectRep.Disconnect != nil {
-			return centrifuge.ConnectReply{}, proxyproto.DisconnectFromProto(connectRep.Disconnect)
+			return centrifuge.ConnectReply{}, ConnectExtra{}, proxyproto.DisconnectFromProto(connectRep.Disconnect)
 		}
 		if connectRep.Error != nil {
-			return centrifuge.ConnectReply{}, proxyproto.ErrorFromProto(connectRep.Error)
+			return centrifuge.ConnectReply{}, ConnectExtra{}, proxyproto.ErrorFromProto(connectRep.Error)
 		}
 
 		result := connectRep.Result
 		if result == nil {
-			return centrifuge.ConnectReply{Credentials: nil}, nil
+			return centrifuge.ConnectReply{Credentials: nil}, ConnectExtra{}, nil
 		}
 
 		var info []byte
@@ -92,7 +97,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHand
 			decodedInfo, err := base64.StdEncoding.DecodeString(result.B64Info)
 			if err != nil {
 				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
-				return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
+				return centrifuge.ConnectReply{}, ConnectExtra{}, centrifuge.ErrorInternal
 			}
 			info = decodedInfo
 		} else {
@@ -104,7 +109,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHand
 			decodedData, err := base64.StdEncoding.DecodeString(result.B64Data)
 			if err != nil {
 				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
-				return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
+				return centrifuge.ConnectReply{}, ConnectExtra{}, centrifuge.ErrorInternal
 			}
 			data = decodedData
 		} else {
@@ -124,17 +129,17 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHand
 		if len(result.Channels) > 0 {
 			subscriptions := make(map[string]centrifuge.SubscribeOptions, len(result.Channels))
 			for _, ch := range result.Channels {
-				_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+				_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 				if err != nil {
-					return centrifuge.ConnectReply{}, err
+					return centrifuge.ConnectReply{}, ConnectExtra{}, err
 				}
 				if !found {
-					return centrifuge.ConnectReply{}, centrifuge.ErrorUnknownChannel
+					return centrifuge.ConnectReply{}, ConnectExtra{}, centrifuge.ErrorUnknownChannel
 				}
 				subscriptions[ch] = centrifuge.SubscribeOptions{
 					Presence:  chOpts.Presence,
 					JoinLeave: chOpts.JoinLeave,
-					Recover:   chOpts.Recover,
+					Recover:   chOpts.ForceRecovery,
 				}
 			}
 			reply.Subscriptions = subscriptions
@@ -146,6 +151,6 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHand
 			reply.Context = newCtx
 		}
 
-		return reply, nil
+		return reply, ConnectExtra{}, nil
 	}
 }

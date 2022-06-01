@@ -2,7 +2,7 @@ package rule
 
 import "github.com/centrifugal/centrifugo/v3/internal/tools"
 
-// ChannelNamespace allows to create channels with different channel options.
+// ChannelNamespace allows creating channels with different channel options.
 type ChannelNamespace struct {
 	// Name is a unique namespace name.
 	Name string `mapstructure:"name" json:"name"`
@@ -41,48 +41,62 @@ type ChannelOptions struct {
 	// grows it's important to remove history for inactive channels.
 	HistoryTTL tools.Duration `mapstructure:"history_ttl" json:"history_ttl"`
 
-	// Recover enables recovery mechanism for channels. This means that
+	// ForcePositioning enables client positioning. This means that StreamPosition
+	// will be exposed to the client and server will look that no messages from
+	// PUB/SUB layer lost. In the loss found – client is disconnected (or unsubscribed)
+	// with reconnect (resubscribe) code.
+	ForcePositioning bool `mapstructure:"force_positioning" json:"force_positioning"`
+
+	// AllowPositioning allows positioning when client asks about it.
+	AllowPositioning bool `mapstructure:"allow_positioning" json:"allow_positioning"`
+
+	// ForceRecovery enables recovery mechanism for channels. This means that
 	// server will try to recover missed messages for resubscribing client.
 	// This option uses publications from history and must be used with reasonable
 	// HistorySize and HistoryTTL configuration.
-	Recover bool `mapstructure:"recover" json:"recover"`
+	ForceRecovery bool `mapstructure:"force_recovery" json:"force_recovery"`
 
-	// Position enables client positioning.
-	Position bool `mapstructure:"position" json:"position"`
+	// AllowRecovery allows recovery when client asks about it.
+	AllowRecovery bool `mapstructure:"allow_recovery" json:"allow_recovery"`
 
-	// Protected when on will prevent a client to subscribe to arbitrary channels in a
-	// namespace. In this case Centrifugo will only allow client to subscribe on user-limited
-	// channels, on channels returned by proxy response or channels listed inside JWT.
-	// Client-side subscriptions to arbitrary channels will be rejected with PermissionDenied
-	// error. Server-side channels belonging to protected namespace passed by client itself during
-	// connect will be ignored.
-	Protected bool `mapstructure:"protected" json:"protected"`
+	// SubscribeForAnonymous ...
+	SubscribeForAnonymous bool `mapstructure:"allow_subscribe_for_anonymous" json:"allow_subscribe_for_anonymous"`
 
-	// Publish enables possibility for clients to publish messages into channels.
-	// Once enabled client can publish into channel and that publication will be
-	// sent to all current channel subscribers.
-	Publish bool `mapstructure:"publish" json:"publish"`
+	// SubscribeForClient ...
+	SubscribeForClient bool `mapstructure:"allow_subscribe_for_client" json:"allow_subscribe_for_client"`
 
-	// SubscribeToPublish turns on an automatic check that client subscribed
-	// on a channel before allow publishing.
-	SubscribeToPublish bool `mapstructure:"subscribe_to_publish" json:"subscribe_to_publish"`
+	// PublishForAnonymous ...
+	PublishForAnonymous bool `mapstructure:"allow_publish_for_anonymous" json:"allow_publish_for_anonymous"`
 
-	// Anonymous enables anonymous access (with empty user ID) to channel.
-	// In most situations your application works with authenticated users so
-	// every user has its own unique user ID. But if you provide real-time
-	// features for public access you may need unauthenticated access to channels.
-	// Turn on this option and use empty string as user ID.
-	Anonymous bool `mapstructure:"anonymous" json:"anonymous"`
+	// PublishForSubscriber ...
+	PublishForSubscriber bool `mapstructure:"allow_publish_for_subscriber" json:"allow_publish_for_subscriber"`
 
-	// PresenceDisableForClient prevents presence to be asked by clients.
-	// In this case it's available only over server-side presence call.
-	PresenceDisableForClient bool `mapstructure:"presence_disable_for_client" json:"presence_disable_for_client"`
+	// PublishForClient ...
+	PublishForClient bool `mapstructure:"allow_publish_for_client" json:"allow_publish_for_client"`
 
-	// HistoryDisableForClient prevents history to be asked by clients.
-	// In this case it's available only over server-side history call.
-	// History recover mechanism if enabled will continue to work for
-	// clients anyway.
-	HistoryDisableForClient bool `mapstructure:"history_disable_for_client" json:"history_disable_for_client"`
+	// PresenceForAnonymous ...
+	PresenceForAnonymous bool `mapstructure:"allow_presence_for_anonymous" json:"allow_presence_for_anonymous"`
+
+	// PresenceForSubscriber ...
+	PresenceForSubscriber bool `mapstructure:"allow_presence_for_subscriber" json:"allow_presence_for_subscriber"`
+
+	// PresenceForClient ...
+	PresenceForClient bool `mapstructure:"allow_presence_for_client" json:"allow_presence_for_client"`
+
+	// HistoryForAnonymous ...
+	HistoryForAnonymous bool `mapstructure:"allow_history_for_anonymous" json:"allow_history_for_anonymous"`
+
+	// HistoryForSubscriber ...
+	HistoryForSubscriber bool `mapstructure:"allow_history_for_subscriber" json:"allow_history_for_subscriber"`
+
+	// HistoryForClient ...
+	HistoryForClient bool `mapstructure:"allow_history_for_client" json:"allow_history_for_client"`
+
+	// UserLimitedChannels ...
+	UserLimitedChannels bool `mapstructure:"enable_user_limited_channels" json:"enable_user_limited_channels"`
+
+	// ChannelRegex ...
+	ChannelRegex string `mapstructure:"channel_regex" json:"channel_regex"`
 
 	// ProxySubscribe turns on proxying subscribe decision for channels.
 	ProxySubscribe bool `mapstructure:"proxy_subscribe" json:"proxy_subscribe"`

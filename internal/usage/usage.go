@@ -99,9 +99,6 @@ type Features struct {
 	ClickhouseAnalytics bool
 	UserStatus          bool
 	Throttling          bool
-	UserBlocking        bool
-	TokenRevoking       bool
-	TokenInvalidation   bool
 	Singleflight        bool
 }
 
@@ -399,15 +396,6 @@ func (s *Sender) prepareMetrics() []*metric {
 	}
 	if s.features.Throttling {
 		metrics = append(metrics, createPoint("features_enabled.throttling"))
-	}
-	if s.features.UserBlocking {
-		metrics = append(metrics, createPoint("features_enabled.user_blocking"))
-	}
-	if s.features.TokenRevoking {
-		metrics = append(metrics, createPoint("features_enabled.token_revoking"))
-	}
-	if s.features.TokenInvalidation {
-		metrics = append(metrics, createPoint("features_enabled.user_token_invalidation"))
 	}
 	if s.features.Singleflight {
 		metrics = append(metrics, createPoint("features_enabled.singleflight"))

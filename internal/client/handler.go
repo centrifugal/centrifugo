@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"time"
+	"unicode"
 
 	"github.com/centrifugal/centrifugo/v3/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v3/internal/jwtverify"
@@ -12,12 +13,6 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 )
-
-// UseUnlimitedHistoryByDefault enables mode when requests without limit set
-// will cause calling history with unlimited option on. This is done to help
-// migrating clients before switching to new history API entirely. This toggle
-// should be removed at some point during Centrifugo v3 life cycle.
-var UseUnlimitedHistoryByDefault bool
 
 // RPCExtensionFunc ...
 type RPCExtensionFunc func(c *centrifuge.Client, e centrifuge.RPCEvent) (centrifuge.RPCReply, error)
@@ -67,7 +62,7 @@ func (h *Handler) SetRPCExtension(method string, handler RPCExtensionFunc) {
 
 // Setup event handlers.
 func (h *Handler) Setup() error {
-	var connectProxyHandler centrifuge.ConnectingHandler
+	var connectProxyHandler proxy.ConnectingHandlerFunc
 	if h.proxyMap.ConnectProxy != nil {
 		connectProxyHandler = proxy.NewConnectHandler(proxy.ConnectHandlerConfig{
 			Proxy: h.proxyMap.ConnectProxy,
@@ -120,7 +115,6 @@ func (h *Handler) Setup() error {
 
 	h.node.OnConnect(func(client *centrifuge.Client) {
 		userID := client.UserID()
-
 		if usePersonalChannel && singleConnection && userID != "" {
 			personalChannel := h.ruleContainer.PersonalChannel(userID)
 			presenceStats, err := h.node.PresenceStats(personalChannel)
@@ -150,7 +144,7 @@ func (h *Handler) Setup() error {
 
 		client.OnRefresh(func(event centrifuge.RefreshEvent, cb centrifuge.RefreshCallback) {
 			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
-				reply, err := h.OnRefresh(client, event, refreshProxyHandler)
+				reply, _, err := h.OnRefresh(client, event, refreshProxyHandler)
 				cb(reply, err)
 			})
 		})
@@ -166,14 +160,14 @@ func (h *Handler) Setup() error {
 
 		client.OnSubscribe(func(event centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
 			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
-				reply, err := h.OnSubscribe(client, event, subscribeProxyHandler)
+				reply, _, err := h.OnSubscribe(client, event, subscribeProxyHandler)
 				cb(reply, err)
 			})
 		})
 
 		client.OnSubRefresh(func(event centrifuge.SubRefreshEvent, cb centrifuge.SubRefreshCallback) {
 			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
-				reply, err := h.OnSubRefresh(client, event)
+				reply, _, err := h.OnSubRefresh(client, event)
 				cb(reply, err)
 			})
 		})
@@ -225,7 +219,7 @@ func (h *Handler) runConcurrentlyIfNeeded(concurrency int, semaphore chan struct
 func (h *Handler) OnClientConnecting(
 	ctx context.Context,
 	e centrifuge.ConnectEvent,
-	connectProxyHandler centrifuge.ConnectingHandler,
+	connectProxyHandler proxy.ConnectingHandlerFunc,
 	refreshProxyEnabled bool,
 ) (centrifuge.ConnectReply, error) {
 	var (
@@ -274,7 +268,7 @@ func (h *Handler) OnClientConnecting(
 
 		processClientChannels = true
 	} else if connectProxyHandler != nil {
-		connectReply, err := connectProxyHandler(ctx, e)
+		connectReply, _, err := connectProxyHandler(ctx, e)
 		if err != nil {
 			return centrifuge.ConnectReply{}, err
 		}
@@ -287,7 +281,7 @@ func (h *Handler) OnClientConnecting(
 	}
 
 	// Proceed with Credentials with empty user ID in case anonymous or insecure options on.
-	if credentials == nil && (ruleConfig.ClientAnonymous || ruleConfig.ClientInsecure) {
+	if credentials == nil && (ruleConfig.ClientConnectWithoutToken || ruleConfig.ClientInsecure) {
 		credentials = &centrifuge.Credentials{
 			UserID: "",
 		}
@@ -296,7 +290,7 @@ func (h *Handler) OnClientConnecting(
 	// Automatically subscribe on personal server-side channel.
 	if credentials != nil && ruleConfig.UserSubscribeToPersonal && credentials.UserID != "" {
 		personalChannel := h.ruleContainer.PersonalChannel(credentials.UserID)
-		_, chOpts, found, err := h.ruleContainer.ChannelOptions(personalChannel)
+		_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(personalChannel)
 		if err != nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "subscribe channel options error", map[string]interface{}{"error": err.Error(), "channel": personalChannel}))
 			return centrifuge.ConnectReply{}, err
@@ -308,16 +302,16 @@ func (h *Handler) OnClientConnecting(
 		subscriptions[personalChannel] = centrifuge.SubscribeOptions{
 			Presence:  chOpts.Presence,
 			JoinLeave: chOpts.JoinLeave,
-			Recover:   chOpts.Recover,
+			Recover:   chOpts.ForceRecovery,
 		}
 	}
 
 	if processClientChannels {
 		// Try to satisfy client request regarding desired server-side subscriptions.
-		// Subscribe only on allowed user-limited channels, ignore private channels,
-		// ignore channels from protected namespaces.
+		// Subscribe only on public channels, allowed user-limited channels. Ignore private
+		// channels, ignore channels from namespaces with subscribe proxy.
 		for _, ch := range e.Channels {
-			_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+			nsName, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 			if err != nil {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "channel options error", map[string]interface{}{"error": err.Error(), "channel": ch}))
 				return centrifuge.ConnectReply{}, err
@@ -337,12 +331,17 @@ func (h *Handler) OnClientConnecting(
 				userID = credentials.UserID
 			}
 
-			if isUserLimited {
-				if userID != "" && h.ruleContainer.UserAllowed(ch, userID) {
+			validChannelName, err := h.validChannelName(nsName, rest, chOpts, ch)
+			if err != nil {
+				return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
+			}
+
+			if !isPrivate && !chOpts.ProxySubscribe && chOpts.SubscribeProxyName == "" && validChannelName {
+				if isUserLimited && chOpts.UserLimitedChannels && (userID != "" && h.ruleContainer.UserAllowed(ch, userID)) {
+					channelOk = true
+				} else if chOpts.SubscribeForClient && (userID != "" || chOpts.SubscribeForAnonymous) {
 					channelOk = true
 				}
-			} else if !isPrivate && !chOpts.Protected {
-				channelOk = true
 			}
 
 			if channelOk {
@@ -350,7 +349,7 @@ func (h *Handler) OnClientConnecting(
 					subscriptions[ch] = centrifuge.SubscribeOptions{
 						Presence:  chOpts.Presence,
 						JoinLeave: chOpts.JoinLeave,
-						Recover:   chOpts.Recover,
+						Recover:   chOpts.ForceRecovery,
 					}
 				}
 			} else {
@@ -373,31 +372,35 @@ func (h *Handler) OnClientConnecting(
 	return finalReply, nil
 }
 
+type RefreshExtra struct {
+}
+
 // OnRefresh ...
-func (h *Handler) OnRefresh(c *centrifuge.Client, e centrifuge.RefreshEvent, refreshProxyHandler proxy.RefreshHandlerFunc) (centrifuge.RefreshReply, error) {
+func (h *Handler) OnRefresh(c *centrifuge.Client, e centrifuge.RefreshEvent, refreshProxyHandler proxy.RefreshHandlerFunc) (centrifuge.RefreshReply, RefreshExtra, error) {
 	if refreshProxyHandler != nil {
-		return refreshProxyHandler(c, e)
+		r, _, err := refreshProxyHandler(c, e)
+		return r, RefreshExtra{}, err
 	}
 	token, err := h.tokenVerifier.VerifyConnectToken(e.Token)
 	if err != nil {
 		if err == jwtverify.ErrTokenExpired {
-			return centrifuge.RefreshReply{Expired: true}, nil
+			return centrifuge.RefreshReply{Expired: true}, RefreshExtra{}, nil
 		}
 		if errors.Is(err, jwtverify.ErrInvalidToken) {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "invalid refresh token", map[string]interface{}{"error": err.Error(), "user": c.UserID(), "client": c.ID()}))
-			return centrifuge.RefreshReply{}, centrifuge.DisconnectInvalidToken
+			return centrifuge.RefreshReply{}, RefreshExtra{}, centrifuge.DisconnectInvalidToken
 		}
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error verifying refresh token", map[string]interface{}{"error": err.Error(), "user": c.UserID(), "client": c.ID()}))
-		return centrifuge.RefreshReply{}, err
+		return centrifuge.RefreshReply{}, RefreshExtra{}, err
 	}
 	if token.UserID != c.UserID() {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "refresh token has different user", map[string]interface{}{"tokenUser": token.UserID, "user": c.UserID(), "client": c.ID()}))
-		return centrifuge.RefreshReply{}, centrifuge.DisconnectInvalidToken
+		return centrifuge.RefreshReply{}, RefreshExtra{}, centrifuge.DisconnectInvalidToken
 	}
 	return centrifuge.RefreshReply{
 		ExpireAt: token.ExpireAt,
 		Info:     token.Info,
-	}, nil
+	}, RefreshExtra{}, nil
 }
 
 // OnRPC ...
@@ -411,109 +414,162 @@ func (h *Handler) OnRPC(c *centrifuge.Client, e centrifuge.RPCEvent, rpcProxyHan
 	return centrifuge.RPCReply{}, centrifuge.ErrorMethodNotFound
 }
 
+type SubRefreshExtra struct {
+}
+
 // OnSubRefresh ...
-func (h *Handler) OnSubRefresh(c *centrifuge.Client, e centrifuge.SubRefreshEvent) (centrifuge.SubRefreshReply, error) {
+func (h *Handler) OnSubRefresh(c *centrifuge.Client, e centrifuge.SubRefreshEvent) (centrifuge.SubRefreshReply, SubRefreshExtra, error) {
 	token, err := h.tokenVerifier.VerifySubscribeToken(e.Token)
 	if err != nil {
 		if err == jwtverify.ErrTokenExpired {
-			return centrifuge.SubRefreshReply{Expired: true}, nil
+			return centrifuge.SubRefreshReply{Expired: true}, SubRefreshExtra{}, nil
 		}
 		if errors.Is(err, jwtverify.ErrInvalidToken) {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "invalid subscription refresh token", map[string]interface{}{"error": err.Error(), "client": c.ID(), "user": c.UserID()}))
-			return centrifuge.SubRefreshReply{}, centrifuge.DisconnectInvalidToken
+			return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, centrifuge.DisconnectInvalidToken
 		}
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error verifying subscription refresh token", map[string]interface{}{"error": err.Error(), "client": c.ID(), "user": c.UserID()}))
-		return centrifuge.SubRefreshReply{}, err
+		return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, err
 	}
-	if e.Channel != token.Channel || (token.Client != "" && c.ID() != token.Client) {
-		return centrifuge.SubRefreshReply{}, centrifuge.DisconnectInvalidToken
+	if e.Channel != token.Channel {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "sub refresh token channel mismatch", map[string]interface{}{"channel": e.Channel, "tokenChannel": token.Channel, "client": c.ID(), "user": c.UserID()}))
+		return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, centrifuge.DisconnectInvalidToken
 	}
 	return centrifuge.SubRefreshReply{
 		ExpireAt: token.Options.ExpireAt,
 		Info:     token.Options.ChannelInfo,
-	}, nil
+	}, SubRefreshExtra{}, nil
+}
+
+func isASCII(s string) bool {
+	for _, c := range s {
+		if c > unicode.MaxASCII {
+			return false
+		}
+	}
+	return true
+}
+
+func (h *Handler) validChannelName(nsName string, rest string, chOpts rule.ChannelOptions, channel string) (bool, error) {
+	if chOpts.ChannelRegex != "" {
+		regex, ok := h.ruleContainer.CompiledRegex(nsName)
+		if !ok {
+			// May happen due to channel options reload.
+			return false, errors.New("no compiled regex found")
+		}
+		if !regex.MatchString(rest) {
+			return false, nil
+		}
+	} else if !isASCII(channel) {
+		return false, nil
+	}
+	return true, nil
+}
+
+func (h *Handler) validateChannelName(c *centrifuge.Client, nsName string, rest string, chOpts rule.ChannelOptions, channel string) error {
+	ok, err := h.validChannelName(nsName, rest, chOpts, channel)
+	if err != nil {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "error checking channel name", map[string]interface{}{"channel": channel, "error": err.Error(), "client": c.ID(), "user": c.UserID()}))
+		return centrifuge.ErrorInternal
+	}
+	if !ok {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "channel name is not allowed", map[string]interface{}{"channel": channel, "client": c.ID(), "user": c.UserID()}))
+		return centrifuge.ErrorUnknownChannel
+	}
+	return nil
+}
+
+type SubscribeExtra struct {
 }
 
 // OnSubscribe ...
-func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent, subscribeProxyHandler proxy.SubscribeHandlerFunc) (centrifuge.SubscribeReply, error) {
+func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent, subscribeProxyHandler proxy.SubscribeHandlerFunc) (centrifuge.SubscribeReply, SubscribeExtra, error) {
 	ruleConfig := h.ruleContainer.Config()
 
-	_, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	nsName, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "subscribe channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
-		return centrifuge.SubscribeReply{}, err
+		return centrifuge.SubscribeReply{}, SubscribeExtra{}, err
 	}
 	if !found {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe unknown channel", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
-		return centrifuge.SubscribeReply{}, centrifuge.ErrorUnknownChannel
+		return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorUnknownChannel
+	}
+	if err = h.validateChannelName(c, nsName, rest, chOpts, e.Channel); err != nil {
+		return centrifuge.SubscribeReply{}, SubscribeExtra{}, err
 	}
 
-	if !chOpts.Anonymous && c.UserID() == "" && !ruleConfig.ClientInsecure {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "anonymous user is not allowed to subscribe on channel", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
-		return centrifuge.SubscribeReply{}, centrifuge.ErrorPermissionDenied
-	}
-
-	isUserLimited := h.ruleContainer.IsUserLimited(e.Channel)
-
-	if isUserLimited && !h.ruleContainer.UserAllowed(e.Channel, c.UserID()) {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "user is not allowed to subscribe on channel", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
-		return centrifuge.SubscribeReply{}, centrifuge.ErrorPermissionDenied
-	}
+	var allowed bool
 
 	var options centrifuge.SubscribeOptions
 
-	isPrivateChannel := h.ruleContainer.IsPrivateChannel(e.Channel)
+	options.Position = chOpts.ForcePositioning
+	options.Recover = chOpts.ForceRecovery
+	options.Presence = chOpts.Presence
+	options.JoinLeave = chOpts.JoinLeave
 
-	if isPrivateChannel {
-		if e.Token == "" {
-			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscription token required", map[string]interface{}{"client": c.ID(), "user": c.UserID()}))
-			return centrifuge.SubscribeReply{}, centrifuge.ErrorPermissionDenied
-		}
+	if h.ruleContainer.IsPrivateChannel(e.Channel) && e.Token == "" {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "attempt to subscribe on private channel without token", map[string]interface{}{"channel": e.Channel, "client": c.ID(), "user": c.UserID()}))
+		return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorPermissionDenied
+	}
+
+	if e.Token != "" {
 		token, err := h.tokenVerifier.VerifySubscribeToken(e.Token)
 		if err != nil {
 			if err == jwtverify.ErrTokenExpired {
-				return centrifuge.SubscribeReply{}, centrifuge.ErrorTokenExpired
+				return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorTokenExpired
 			}
 			if errors.Is(err, jwtverify.ErrInvalidToken) {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "invalid subscription token", map[string]interface{}{"error": err.Error(), "client": c.ID(), "user": c.UserID()}))
-				return centrifuge.SubscribeReply{}, centrifuge.ErrorPermissionDenied
+				return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorPermissionDenied
 			}
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error verifying subscription token", map[string]interface{}{"error": err.Error(), "client": c.ID(), "user": c.UserID()}))
-			return centrifuge.SubscribeReply{}, err
+			return centrifuge.SubscribeReply{}, SubscribeExtra{}, err
 		}
-		if e.Channel != token.Channel || (token.Client != "" && c.ID() != token.Client) {
-			return centrifuge.SubscribeReply{}, centrifuge.ErrorPermissionDenied
+		if e.Channel != token.Channel {
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "token channel mismatch", map[string]interface{}{"channel": e.Channel, "tokenChannel": token.Channel, "client": c.ID(), "user": c.UserID()}))
+			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorPermissionDenied
 		}
 		options = token.Options
-	} else if (chOpts.ProxySubscribe || chOpts.SubscribeProxyName != "") && !h.ruleContainer.IsUserLimited(e.Channel) {
+		allowed = true
+	} else if chOpts.ProxySubscribe || chOpts.SubscribeProxyName != "" {
 		if subscribeProxyHandler == nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe proxy not enabled", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
-			return centrifuge.SubscribeReply{}, centrifuge.ErrorNotAvailable
+			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
 		}
-		return subscribeProxyHandler(c, e, chOpts)
-	} else {
-		options.Position = chOpts.Position
-		options.Recover = chOpts.Recover
-		options.Presence = chOpts.Presence
-		options.JoinLeave = chOpts.JoinLeave
+		r, _, err := subscribeProxyHandler(c, e, chOpts)
+		return r, SubscribeExtra{}, err
+	} else if chOpts.UserLimitedChannels && h.ruleContainer.IsUserLimited(e.Channel) && h.ruleContainer.UserAllowed(e.Channel, c.UserID()) {
+		allowed = true
+	} else if chOpts.SubscribeForClient && (c.UserID() != "" || chOpts.SubscribeForAnonymous) {
+		allowed = true
+	} else if ruleConfig.ClientInsecure {
+		allowed = true
 	}
 
-	if chOpts.Protected && !isPrivateChannel && !isUserLimited {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "attempt to subscribe on protected namespace channel", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
-		return centrifuge.SubscribeReply{}, centrifuge.ErrorPermissionDenied
+	if e.Positioned && (chOpts.AllowPositioning) {
+		options.Position = true
+	}
+	if e.Recoverable && (chOpts.AllowRecovery) {
+		options.Recover = true
+	}
+
+	if !allowed {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "attempt to subscribe without sufficient permission", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
+		return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorPermissionDenied
 	}
 
 	return centrifuge.SubscribeReply{
 		Options:           options,
 		ClientSideRefresh: true,
-	}, nil
+	}, SubscribeExtra{}, nil
 }
 
 // OnPublish ...
 func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, publishProxyHandler proxy.PublishHandlerFunc) (centrifuge.PublishReply, error) {
 	ruleConfig := h.ruleContainer.Config()
 
-	_, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	nsName, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "publish channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PublishReply{}, err
@@ -522,16 +578,11 @@ func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, pub
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "publish to unknown channel", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PublishReply{}, centrifuge.ErrorUnknownChannel
 	}
-
-	if !chOpts.Publish && !ruleConfig.ClientInsecure {
-		return centrifuge.PublishReply{}, centrifuge.ErrorPermissionDenied
+	if err = h.validateChannelName(c, nsName, rest, chOpts, e.Channel); err != nil {
+		return centrifuge.PublishReply{}, err
 	}
 
-	if chOpts.SubscribeToPublish {
-		if !c.IsSubscribed(e.Channel) {
-			return centrifuge.PublishReply{}, centrifuge.ErrorPermissionDenied
-		}
-	}
+	var allowed bool
 
 	if chOpts.ProxyPublish || chOpts.PublishProxyName != "" {
 		if publishProxyHandler == nil {
@@ -539,6 +590,17 @@ func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, pub
 			return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
 		}
 		return publishProxyHandler(c, e, chOpts)
+	} else if chOpts.PublishForClient && (c.UserID() != "" || chOpts.PublishForAnonymous) {
+		allowed = true
+	} else if chOpts.PublishForSubscriber && c.IsSubscribed(e.Channel) && (c.UserID() != "" || chOpts.PublishForAnonymous) {
+		allowed = true
+	} else if ruleConfig.ClientInsecure {
+		allowed = true
+	}
+
+	if !allowed {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "attempt to publish without sufficient permission", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
+		return centrifuge.PublishReply{}, centrifuge.ErrorPermissionDenied
 	}
 
 	result, err := h.node.Publish(
@@ -554,7 +616,9 @@ func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, pub
 
 // OnPresence ...
 func (h *Handler) OnPresence(c *centrifuge.Client, e centrifuge.PresenceEvent) (centrifuge.PresenceReply, error) {
-	_, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	ruleConfig := h.ruleContainer.Config()
+
+	nsName, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "presence channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PresenceReply{}, err
@@ -563,18 +627,36 @@ func (h *Handler) OnPresence(c *centrifuge.Client, e centrifuge.PresenceEvent) (
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "presence for unknown channel", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PresenceReply{}, centrifuge.ErrorUnknownChannel
 	}
-	if !chOpts.Presence || chOpts.PresenceDisableForClient {
+	if err = h.validateChannelName(c, nsName, rest, chOpts, e.Channel); err != nil {
+		return centrifuge.PresenceReply{}, err
+	}
+	if !chOpts.Presence {
 		return centrifuge.PresenceReply{}, centrifuge.ErrorNotAvailable
 	}
-	if !c.IsSubscribed(e.Channel) {
+
+	var allowed bool
+
+	if chOpts.PresenceForClient && (c.UserID() != "" || chOpts.PresenceForAnonymous) {
+		allowed = true
+	} else if chOpts.PresenceForSubscriber && c.IsSubscribed(e.Channel) && (c.UserID() != "" || chOpts.PresenceForAnonymous) {
+		allowed = true
+	} else if ruleConfig.ClientInsecure {
+		allowed = true
+	}
+
+	if !allowed {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "attempt to call presence without sufficient permission", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PresenceReply{}, centrifuge.ErrorPermissionDenied
 	}
+
 	return centrifuge.PresenceReply{}, nil
 }
 
 // OnPresenceStats ...
 func (h *Handler) OnPresenceStats(c *centrifuge.Client, e centrifuge.PresenceStatsEvent) (centrifuge.PresenceStatsReply, error) {
-	_, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	ruleConfig := h.ruleContainer.Config()
+
+	nsName, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "presence stats channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PresenceStatsReply{}, err
@@ -583,18 +665,36 @@ func (h *Handler) OnPresenceStats(c *centrifuge.Client, e centrifuge.PresenceSta
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "presence stats for unknown channel", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PresenceStatsReply{}, centrifuge.ErrorUnknownChannel
 	}
-	if !chOpts.Presence || chOpts.PresenceDisableForClient {
+	if err = h.validateChannelName(c, nsName, rest, chOpts, e.Channel); err != nil {
+		return centrifuge.PresenceStatsReply{}, err
+	}
+	if !chOpts.Presence {
 		return centrifuge.PresenceStatsReply{}, centrifuge.ErrorNotAvailable
 	}
-	if !c.IsSubscribed(e.Channel) {
+
+	var allowed bool
+
+	if chOpts.PresenceForClient && (c.UserID() != "" || chOpts.PresenceForAnonymous) {
+		allowed = true
+	} else if chOpts.PresenceForSubscriber && c.IsSubscribed(e.Channel) && (c.UserID() != "" || chOpts.PresenceForAnonymous) {
+		allowed = true
+	} else if ruleConfig.ClientInsecure {
+		allowed = true
+	}
+
+	if !allowed {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "attempt to call presence stats without sufficient permission", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PresenceStatsReply{}, centrifuge.ErrorPermissionDenied
 	}
+
 	return centrifuge.PresenceStatsReply{}, nil
 }
 
 // OnHistory ...
 func (h *Handler) OnHistory(c *centrifuge.Client, e centrifuge.HistoryEvent) (centrifuge.HistoryReply, error) {
-	_, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	ruleConfig := h.ruleContainer.Config()
+
+	nsName, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "history channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.HistoryReply{}, err
@@ -603,21 +703,26 @@ func (h *Handler) OnHistory(c *centrifuge.Client, e centrifuge.HistoryEvent) (ce
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "history for unknown channel", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.HistoryReply{}, centrifuge.ErrorUnknownChannel
 	}
-	if chOpts.HistorySize <= 0 || chOpts.HistoryTTL <= 0 || chOpts.HistoryDisableForClient {
+	if err = h.validateChannelName(c, nsName, rest, chOpts, e.Channel); err != nil {
+		return centrifuge.HistoryReply{}, err
+	}
+	if chOpts.HistorySize <= 0 || chOpts.HistoryTTL <= 0 {
 		return centrifuge.HistoryReply{}, centrifuge.ErrorNotAvailable
 	}
-	if !c.IsSubscribed(e.Channel) {
-		return centrifuge.HistoryReply{}, centrifuge.ErrorPermissionDenied
+
+	var allowed bool
+
+	if chOpts.HistoryForClient && (c.UserID() != "" || chOpts.HistoryForAnonymous) {
+		allowed = true
+	} else if chOpts.HistoryForSubscriber && c.IsSubscribed(e.Channel) && (c.UserID() != "" || chOpts.HistoryForAnonymous) {
+		allowed = true
+	} else if ruleConfig.ClientInsecure {
+		allowed = true
 	}
 
-	if UseUnlimitedHistoryByDefault && e.Filter.Limit == 0 {
-		result, err := h.node.History(e.Channel, centrifuge.WithSince(e.Filter.Since), centrifuge.WithLimit(centrifuge.NoLimit))
-		if err != nil {
-			return centrifuge.HistoryReply{}, err
-		}
-		return centrifuge.HistoryReply{
-			Result: &result,
-		}, nil
+	if !allowed {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "attempt to call history without sufficient permission", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
+		return centrifuge.HistoryReply{}, centrifuge.ErrorPermissionDenied
 	}
 
 	return centrifuge.HistoryReply{}, nil

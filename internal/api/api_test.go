@@ -30,7 +30,7 @@ func (t testSurveyCaller) Channels(_ context.Context, _ *ChannelsRequest) (map[s
 	return nil, nil
 }
 
-func (t testSurveyCaller) UserConnections(_ context.Context, _ *UserConnectionsRequest) (map[string]*UserConnectionInfo, error) {
+func (t testSurveyCaller) Connections(_ context.Context, _ *ConnectionsRequest) (map[string]*ConnectionInfo, error) {
 	return nil, nil
 }
 

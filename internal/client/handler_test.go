@@ -56,14 +56,13 @@ func getConnToken(user string, exp int64, rsaPrivateKey *rsa.PrivateKey) string 
 	return token.String()
 }
 
-func getSubscribeToken(channel string, client string, exp int64, rsaPrivateKey *rsa.PrivateKey) string {
+func getSubscribeToken(channel string, exp int64, rsaPrivateKey *rsa.PrivateKey) string {
 	builder := getTokenBuilder(rsaPrivateKey)
 	claims := &jwtverify.SubscribeTokenClaims{
 		SubscribeOptions: jwtverify.SubscribeOptions{
 			Base64Info: "e30=",
 		},
 		Channel:          channel,
-		Client:           client,
 		RegisteredClaims: jwt.RegisteredClaims{},
 	}
 	if exp > 0 {
@@ -80,8 +79,8 @@ func getConnTokenHS(user string, exp int64) string {
 	return getConnToken(user, exp, nil)
 }
 
-func getSubscribeTokenHS(channel string, client string, exp int64) string {
-	return getSubscribeToken(channel, client, exp, nil)
+func getSubscribeTokenHS(channel string, exp int64) string {
+	return getSubscribeToken(channel, exp, nil)
 }
 
 func TestClientHandlerSetup(t *testing.T) {
@@ -146,7 +145,7 @@ func TestClientConnectNoCredentialsNoTokenAnonymous(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleConfig.ClientAnonymous = true
+	ruleConfig.ClientConnectWithoutToken = true
 	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}, ruleContainer), &ProxyMap{}, false)
 
@@ -251,7 +250,7 @@ func TestClientConnectWithExpiringToken(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleConfig.ClientAnonymous = true
+	ruleConfig.ClientConnectWithoutToken = true
 	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
@@ -272,7 +271,7 @@ func TestClientConnectWithExpiredToken(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleConfig.ClientAnonymous = true
+	ruleConfig.ClientConnectWithoutToken = true
 	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
@@ -289,7 +288,7 @@ func TestClientSideRefresh(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleConfig.ClientAnonymous = true
+	ruleConfig.ClientConnectWithoutToken = true
 	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
@@ -319,7 +318,7 @@ func TestClientSideRefreshDifferentUser(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleConfig.ClientAnonymous = true
+	ruleConfig.ClientConnectWithoutToken = true
 	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
@@ -521,18 +520,6 @@ func TestClientSubscribePrivateChannelWithToken(t *testing.T) {
 
 	_, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
-		Token:   getSubscribeTokenHS("$wrong_channel", "wrong client", 0),
-	}, nil)
-	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
-
-	_, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
-		Channel: "$test1",
-		Token:   getSubscribeTokenHS("$test1", "wrong client", 0),
-	}, nil)
-	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
-
-	_, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
-		Channel: "$test1",
 		Token:   "",
 	}, nil)
 	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
@@ -545,13 +532,13 @@ func TestClientSubscribePrivateChannelWithToken(t *testing.T) {
 
 	_, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
-		Token:   getSubscribeTokenHS("$test1", client.ID(), 123),
+		Token:   getSubscribeTokenHS("$test1", 123),
 	}, nil)
 	require.Equal(t, centrifuge.ErrorTokenExpired, err)
 
 	reply, err := h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
-		Token:   getSubscribeTokenHS("$test1", client.ID(), 0),
+		Token:   getSubscribeTokenHS("$test1", 0),
 	}, nil)
 	require.NoError(t, err)
 	require.Zero(t, reply.Options.ExpireAt)
@@ -591,7 +578,7 @@ func TestClientSubscribePrivateChannelWithTokenAnonymous(t *testing.T) {
 
 	_, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
-		Token:   getSubscribeTokenHS("$test1", client.ID(), 0),
+		Token:   getSubscribeTokenHS("$test1", 0),
 	}, nil)
 	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
@@ -601,7 +588,7 @@ func TestClientSideSubRefresh(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleConfig.ClientAnonymous = true
+	ruleConfig.ClientConnectWithoutToken = true
 	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
@@ -631,14 +618,14 @@ func TestClientSideSubRefresh(t *testing.T) {
 
 	reply, err := h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
-		Token:   getSubscribeTokenHS("$test1", client.ID(), time.Now().Unix()+10),
+		Token:   getSubscribeTokenHS("$test1", time.Now().Unix()+10),
 	}, nil)
 	require.NoError(t, err)
 	require.True(t, reply.Options.ExpireAt > 0)
 
 	subRefreshReply, err := h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
 		Channel: "$test2",
-		Token:   getSubscribeTokenHS("$test1", client.ID(), 123),
+		Token:   getSubscribeTokenHS("$test1", 123),
 	})
 	require.NoError(t, err)
 	require.True(t, subRefreshReply.Expired)
@@ -651,13 +638,13 @@ func TestClientSideSubRefresh(t *testing.T) {
 
 	subRefreshReply, err = h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
 		Channel: "$test2",
-		Token:   getSubscribeTokenHS("$test1", client.ID(), 2525637058),
+		Token:   getSubscribeTokenHS("$test1", 2525637058),
 	})
 	require.Equal(t, centrifuge.DisconnectInvalidToken, err)
 
 	subRefreshReply, err = h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
 		Channel: "$test1",
-		Token:   getSubscribeTokenHS("$test1", client.ID(), 2525637058),
+		Token:   getSubscribeTokenHS("$test1", 2525637058),
 	})
 	require.NoError(t, err)
 	require.False(t, subRefreshReply.Expired)
@@ -698,7 +685,7 @@ func TestClientSubscribePrivateChannelWithTokenAnonymousNotAllowed(t *testing.T)
 
 	_, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
-		Token:   getSubscribeTokenHS("$test1", client.ID(), 0),
+		Token:   getSubscribeTokenHS("$test1", 0),
 	}, nil)
 	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
@@ -738,7 +725,7 @@ func TestClientSubscribePrivateChannelWithTokenAnonymousAllowed(t *testing.T) {
 
 	reply, err := h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
-		Token:   getSubscribeTokenHS("$test1", client.ID(), 0),
+		Token:   getSubscribeTokenHS("$test1", 0),
 	}, nil)
 	require.NoError(t, err)
 	require.Zero(t, reply.Options.ExpireAt)
@@ -757,7 +744,7 @@ func TestClientSubscribePrivateChannelWithExpiringToken(t *testing.T) {
 
 	_, err := h.OnSubscribe(&centrifuge.Client{}, centrifuge.SubscribeEvent{
 		Channel: "$test1",
-		Token:   getSubscribeTokenHS("$test1", "id", 10),
+		Token:   getSubscribeTokenHS("$test1", 10),
 	}, nil)
 	require.Equal(t, centrifuge.ErrorTokenExpired, err)
 }

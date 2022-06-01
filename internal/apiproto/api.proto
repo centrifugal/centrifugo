@@ -18,7 +18,7 @@ service CentrifugoApi {
     rpc RPC (RPCRequest) returns (RPCResponse) {}
     rpc Refresh (RefreshRequest) returns (RefreshResponse) {}
     rpc Channels (ChannelsRequest) returns (ChannelsResponse) {}
-    rpc UserConnections (UserConnectionsRequest) returns (UserConnectionsResponse) {}
+    rpc Connections (ConnectionsRequest) returns (ConnectionsResponse) {}
     rpc UpdateUserStatus (UpdateUserStatusRequest) returns (UpdateUserStatusResponse) {}
     rpc GetUserStatus (GetUserStatusRequest) returns (GetUserStatusResponse) {}
     rpc DeleteUserStatus (DeleteUserStatusRequest) returns (DeleteUserStatusResponse) {}
@@ -43,7 +43,7 @@ message Command {
         RPC = 10;
         SUBSCRIBE = 11;
         REFRESH = 12;
-        USER_CONNECTIONS = 14;
+        CONNECTIONS = 14;
         UPDATE_USER_STATUS = 15;
         GET_USER_STATUS = 16;
         DELETE_USER_STATUS = 17;
@@ -331,27 +331,45 @@ message ChannelInfo {
     uint32 num_clients = 1;
 }
 
-message UserConnectionsRequest {
+message ConnectionsRequest {
     string user = 1;
+    string expression = 2;
 }
 
-message UserConnectionsResponse {
+message ConnectionsResponse {
     Error error = 1;
-    UserConnectionsResult result = 2;
+    ConnectionsResult result = 2;
 }
 
-message UserConnectionsResult {
-    map<string, UserConnectionInfo> connections = 1;
+message ConnectionsResult {
+    map<string, ConnectionInfo> connections = 1;
 }
 
-message UserConnectionInfo {
+message ConnectionInfo {
     string app_name = 1;
     string app_version = 2;
     string transport = 3;
     string protocol = 4;
     bytes meta = 5;
-    string token_uid = 6;
-    int64 token_issued_at = 7;
+    // 6-7 dropped for backwards compatibility.
+    string user = 8;
+    ConnectionState state = 9;
+}
+
+message ConnectionState {
+    repeated string channels = 1;
+    ConnectionToken connection_token = 2;
+    map<string, ChannelToken> channel_tokens = 3;
+}
+
+message ConnectionToken {
+    string uid = 1;
+    int64 issued_at = 2;
+}
+
+message ChannelToken {
+    string uid = 1;
+    int64 issued_at = 2;
 }
 
 message UpdateUserStatusRequest {

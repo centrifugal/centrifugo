@@ -102,7 +102,7 @@ func TestConfigValidatePersonalSingleConnectionNamespacedOK(t *testing.T) {
 
 func TestConfigValidateMalformedReceiverTopLevel(t *testing.T) {
 	c := DefaultConfig
-	c.Recover = true
+	c.ForceRecovery = true
 	err := c.Validate()
 	require.Error(t, err)
 }
@@ -113,7 +113,7 @@ func TestConfigValidateMalformedReceiverInNamespace(t *testing.T) {
 		{
 			Name: "name",
 			ChannelOptions: ChannelOptions{
-				Recover: true,
+				ForceRecovery: true,
 			},
 		},
 	}

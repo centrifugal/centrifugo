@@ -139,7 +139,6 @@ type ConnectTokenClaims struct {
 type SubscribeTokenClaims struct {
 	jwt.RegisteredClaims
 	SubscribeOptions
-	Client   string `json:"client,omitempty"`
 	Channel  string `json:"channel,omitempty"`
 	ExpireAt *int64 `json:"expire_at,omitempty"`
 }
@@ -358,7 +357,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 
 	if len(claims.Subs) > 0 {
 		for ch, v := range claims.Subs {
-			_, chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
+			_, _, chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
 			if err != nil {
 				return ConnectToken{}, err
 			}
@@ -393,11 +392,11 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 			if v.Override != nil && v.Override.JoinLeave != nil {
 				joinLeave = v.Override.JoinLeave.Value
 			}
-			useRecover := chOpts.Recover
+			useRecover := chOpts.ForceRecovery
 			if v.Override != nil && v.Override.Recover != nil {
 				useRecover = v.Override.Recover.Value
 			}
-			position := chOpts.Position
+			position := chOpts.ForcePositioning
 			if v.Override != nil && v.Override.Position != nil {
 				position = v.Override.Position.Value
 			}
@@ -412,7 +411,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		}
 	} else if len(claims.Channels) > 0 {
 		for _, ch := range claims.Channels {
-			_, chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
+			_, _, chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
 			if err != nil {
 				return ConnectToken{}, err
 			}
@@ -422,8 +421,8 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 			subs[ch] = centrifuge.SubscribeOptions{
 				Presence:  chOpts.Presence,
 				JoinLeave: chOpts.JoinLeave,
-				Recover:   chOpts.Recover,
-				Position:  chOpts.Position,
+				Recover:   chOpts.ForceRecovery,
+				Position:  chOpts.ForcePositioning,
 			}
 		}
 	}
@@ -494,7 +493,7 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 		return SubscribeToken{}, ErrInvalidToken
 	}
 
-	_, chOpts, found, err := verifier.ruleContainer.ChannelOptions(claims.Channel)
+	_, _, chOpts, found, err := verifier.ruleContainer.ChannelOptions(claims.Channel)
 	if err != nil {
 		return SubscribeToken{}, err
 	}
@@ -529,11 +528,11 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 	if claims.Override != nil && claims.Override.JoinLeave != nil {
 		joinLeave = claims.Override.JoinLeave.Value
 	}
-	useRecover := chOpts.Recover
+	useRecover := chOpts.ForceRecovery
 	if claims.Override != nil && claims.Override.Recover != nil {
 		useRecover = claims.Override.Recover.Value
 	}
-	position := chOpts.Position
+	position := chOpts.ForcePositioning
 	if claims.Override != nil && claims.Override.Position != nil {
 		position = claims.Override.Position.Value
 	}
@@ -550,7 +549,7 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 	}
 
 	st := SubscribeToken{
-		Client:  claims.Client,
+		UserID:  claims.RegisteredClaims.Subject,
 		Channel: claims.Channel,
 		Options: centrifuge.SubscribeOptions{
 			ExpireAt:    expireAt,
