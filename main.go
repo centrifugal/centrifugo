@@ -577,9 +577,6 @@ func main() {
 					ClickhouseAnalytics: false,
 					UserStatus:          false,
 					Throttling:          false,
-					UserBlocking:        false,
-					TokenRevoking:       false,
-					TokenInvalidation:   false,
 					Singleflight:        false,
 				})
 				go statsSender.Start(context.Background())
