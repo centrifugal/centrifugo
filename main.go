@@ -1213,6 +1213,8 @@ func ruleConfig() rule.Config {
 	cfg.Protected = v.GetBool("protected")
 	cfg.ProxySubscribe = v.GetBool("proxy_subscribe")
 	cfg.ProxyPublish = v.GetBool("proxy_publish")
+	cfg.SubscribeProxyName = v.GetString("subscribe_proxy_name")
+	cfg.PublishProxyName = v.GetString("publish_proxy_name")
 	cfg.Namespaces = namespacesFromConfig(v)
 	cfg.ChannelPrivatePrefix = v.GetString("channel_private_prefix")
 	cfg.ChannelNamespaceBoundary = v.GetString("channel_namespace_boundary")
