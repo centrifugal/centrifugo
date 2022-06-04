@@ -143,7 +143,7 @@ func (h *Handler) Setup() error {
 		}
 
 		client.OnRefresh(func(event centrifuge.RefreshEvent, cb centrifuge.RefreshCallback) {
-			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
+			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
 				reply, _, err := h.OnRefresh(client, event, refreshProxyHandler)
 				cb(reply, err)
 			})
@@ -151,7 +151,7 @@ func (h *Handler) Setup() error {
 
 		if rpcProxyHandler != nil || len(h.rpcExtension) > 0 {
 			client.OnRPC(func(event centrifuge.RPCEvent, cb centrifuge.RPCCallback) {
-				h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
+				h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
 					reply, err := h.OnRPC(client, event, rpcProxyHandler)
 					cb(reply, err)
 				})
@@ -159,42 +159,42 @@ func (h *Handler) Setup() error {
 		}
 
 		client.OnSubscribe(func(event centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
-			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
+			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
 				reply, _, err := h.OnSubscribe(client, event, subscribeProxyHandler)
 				cb(reply, err)
 			})
 		})
 
 		client.OnSubRefresh(func(event centrifuge.SubRefreshEvent, cb centrifuge.SubRefreshCallback) {
-			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
+			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
 				reply, _, err := h.OnSubRefresh(client, event)
 				cb(reply, err)
 			})
 		})
 
 		client.OnPublish(func(event centrifuge.PublishEvent, cb centrifuge.PublishCallback) {
-			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
+			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
 				reply, err := h.OnPublish(client, event, publishProxyHandler)
 				cb(reply, err)
 			})
 		})
 
 		client.OnPresence(func(event centrifuge.PresenceEvent, cb centrifuge.PresenceCallback) {
-			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
+			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
 				reply, err := h.OnPresence(client, event)
 				cb(reply, err)
 			})
 		})
 
 		client.OnPresenceStats(func(event centrifuge.PresenceStatsEvent, cb centrifuge.PresenceStatsCallback) {
-			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
+			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
 				reply, err := h.OnPresenceStats(client, event)
 				cb(reply, err)
 			})
 		})
 
 		client.OnHistory(func(event centrifuge.HistoryEvent, cb centrifuge.HistoryCallback) {
-			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
+			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
 				reply, err := h.OnHistory(client, event)
 				cb(reply, err)
 			})
@@ -203,9 +203,13 @@ func (h *Handler) Setup() error {
 	return nil
 }
 
-func (h *Handler) runConcurrentlyIfNeeded(concurrency int, semaphore chan struct{}, fn func()) {
+func (h *Handler) runConcurrentlyIfNeeded(ctx context.Context, concurrency int, semaphore chan struct{}, fn func()) {
 	if concurrency > 1 {
-		semaphore <- struct{}{}
+		select {
+		case <-ctx.Done():
+			return
+		case semaphore <- struct{}{}:
+		}
 		go func() {
 			defer func() { <-semaphore }()
 			fn()
