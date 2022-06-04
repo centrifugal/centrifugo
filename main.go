@@ -372,6 +372,11 @@ func main() {
 
 			tokenVerifier := jwtverify.NewTokenVerifierJWT(jwtVerifierConfig(), ruleContainer)
 
+			if viper.GetBool("skip_user_check_in_subscription_token") {
+				// See detailed comment about this by falling through to
+				// client.SkipUserCheckInSubscriptionToken definition.
+				client.SkipUserCheckInSubscriptionToken = true
+			}
 			clientHandler := client.NewHandler(node, ruleContainer, tokenVerifier, proxyMap, granularProxyMode)
 			err = clientHandler.Setup()
 			if err != nil {

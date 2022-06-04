@@ -14,6 +14,13 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
+// SkipUserCheckInSubscriptionToken enables mode when user id check is skipped
+// while validating Subscription tokens. This flag exists for those who use
+// Centrifugo v3 and want to migrate on Centrifugo v4. Eventually this flag
+// should be removed – all tokens must be issued for users who initiate
+// connection.
+var SkipUserCheckInSubscriptionToken bool
+
 // RPCExtensionFunc ...
 type RPCExtensionFunc func(c *centrifuge.Client, e centrifuge.RPCEvent) (centrifuge.RPCReply, error)
 
@@ -439,6 +446,14 @@ func (h *Handler) OnSubRefresh(c *centrifuge.Client, e centrifuge.SubRefreshEven
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "sub refresh token channel mismatch", map[string]interface{}{"channel": e.Channel, "tokenChannel": token.Channel, "client": c.ID(), "user": c.UserID()}))
 		return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, centrifuge.DisconnectInvalidToken
 	}
+	if !SkipUserCheckInSubscriptionToken && token.UserID != c.UserID() {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "sub refresh token user mismatch", map[string]interface{}{"channel": e.Channel, "tokenUser": token.UserID, "client": c.ID(), "user": c.UserID()}))
+		return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, centrifuge.DisconnectInvalidToken
+	}
+	if token.Client != "" && c.ID() != token.Client {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "token client mismatch", map[string]interface{}{"channel": e.Channel, "client": c.ID(), "user": c.UserID()}))
+		return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, centrifuge.DisconnectInvalidToken
+	}
 	return centrifuge.SubRefreshReply{
 		ExpireAt: token.Options.ExpireAt,
 		Info:     token.Options.ChannelInfo,
@@ -532,7 +547,15 @@ func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent,
 		}
 		if e.Channel != token.Channel {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "token channel mismatch", map[string]interface{}{"channel": e.Channel, "tokenChannel": token.Channel, "client": c.ID(), "user": c.UserID()}))
-			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorPermissionDenied
+			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.DisconnectInvalidToken
+		}
+		if !SkipUserCheckInSubscriptionToken && token.UserID != c.UserID() {
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "token user mismatch", map[string]interface{}{"channel": e.Channel, "tokenUser": token.UserID, "client": c.ID(), "user": c.UserID()}))
+			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.DisconnectInvalidToken
+		}
+		if token.Client != "" && c.ID() != token.Client {
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "token client mismatch", map[string]interface{}{"channel": e.Channel, "client": c.ID(), "user": c.UserID()}))
+			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.DisconnectInvalidToken
 		}
 		options = token.Options
 		allowed = true

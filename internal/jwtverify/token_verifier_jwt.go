@@ -140,6 +140,7 @@ type SubscribeTokenClaims struct {
 	jwt.RegisteredClaims
 	SubscribeOptions
 	Channel  string `json:"channel,omitempty"`
+	Client   string `json:"client,omitempty"`
 	ExpireAt *int64 `json:"expire_at,omitempty"`
 }
 
@@ -551,6 +552,7 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 	st := SubscribeToken{
 		UserID:  claims.RegisteredClaims.Subject,
 		Channel: claims.Channel,
+		Client:  claims.Client,
 		Options: centrifuge.SubscribeOptions{
 			ExpireAt:    expireAt,
 			ChannelInfo: info,

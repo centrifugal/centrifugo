@@ -38,6 +38,8 @@ type SubscribeToken struct {
 	// Channel client wants to subscribe. Will be compared with channel in
 	// subscribe command.
 	Channel string
+	// Client is a deprecated claim for compatibility with Centrifugo v3.
+	Client string
 	// Options for subscription.
 	Options centrifuge.SubscribeOptions
 }
