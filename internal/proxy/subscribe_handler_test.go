@@ -71,7 +71,7 @@ type subscribeHandleTestCase struct {
 
 func (c subscribeHandleTestCase) invokeHandle() (reply centrifuge.SubscribeReply, err error) {
 	subscribeHandler := c.subscribeProxyHandler.Handle(c.node)
-	reply, err = subscribeHandler(c.client, centrifuge.SubscribeEvent{}, c.channelOpts)
+	reply, _, err = subscribeHandler(c.client, centrifuge.SubscribeEvent{}, c.channelOpts)
 
 	return reply, err
 }
