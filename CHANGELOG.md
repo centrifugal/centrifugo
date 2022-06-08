@@ -1,3 +1,16 @@
+v3.2.2
+======
+
+No backwards incompatible changes here.
+
+### Fixes
+
+* Fix top-level granular subscribe and publish proxies [#517](https://github.com/centrifugal/centrifugo/issues/517).
+
+### Misc
+
+* This release is built with Go 1.17.11.
+
 v3.2.1
 ======
 
