@@ -133,6 +133,8 @@ type ConnectTokenClaims struct {
 	Channels   []string                    `json:"channels,omitempty"`
 	Subs       map[string]SubscribeOptions `json:"subs,omitempty"`
 	Meta       json.RawMessage             `json:"meta,omitempty"`
+	// Channel must never be set in connection tokens. We check this on verifying.
+	Channel string `json:"channel,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -339,6 +341,10 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 	claims, err := claimsDecoder.DecodeConnectClaims(token.Claims())
 	if err != nil {
 		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+	}
+
+	if claims.Channel != "" {
+		return ConnectToken{}, ErrInvalidToken
 	}
 
 	now := time.Now()

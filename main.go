@@ -700,7 +700,7 @@ func main() {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
-			var user = fmt.Sprintf("user %s", genTokenUser)
+			var user = fmt.Sprintf("user \"%s\"", genTokenUser)
 			if genTokenUser == "" {
 				user = "anonymous user"
 			}
@@ -710,6 +710,40 @@ func main() {
 	genTokenCmd.Flags().StringVarP(&genTokenConfigFile, "config", "c", "config.json", "path to config file")
 	genTokenCmd.Flags().StringVarP(&genTokenUser, "user", "u", "", "user ID")
 	genTokenCmd.Flags().Int64VarP(&genTokenTTL, "ttl", "t", 3600*24*7, "token TTL in seconds")
+
+	var genSubTokenConfigFile string
+	var genSubTokenUser string
+	var genSubTokenChannel string
+	var genSubTokenTTL int64
+
+	var genSubTokenCmd = &cobra.Command{
+		Use:   "gensubtoken",
+		Short: "Generate sample subscription JWT for user",
+		Long:  `Generate sample subscription JWT for user`,
+		Run: func(cmd *cobra.Command, args []string) {
+			bindCentrifugoConfig()
+			err := readConfig(genSubTokenConfigFile)
+			if err != nil && err != errConfigFileNotFound {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			jwtVerifierConfig := jwtVerifierConfig()
+			token, err := cli.GenerateSubToken(jwtVerifierConfig, genSubTokenUser, genSubTokenChannel, genSubTokenTTL)
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			var user = fmt.Sprintf("user \"%s\"", genSubTokenUser)
+			if genSubTokenUser == "" {
+				user = "anonymous user"
+			}
+			fmt.Printf("HMAC SHA-256 JWT for %s and channel \"%s\" with expiration TTL %s:\n%s\n", user, genSubTokenChannel, time.Duration(genSubTokenTTL)*time.Second, token)
+		},
+	}
+	genSubTokenCmd.Flags().StringVarP(&genSubTokenConfigFile, "config", "c", "config.json", "path to config file")
+	genSubTokenCmd.Flags().StringVarP(&genSubTokenUser, "user", "u", "", "user ID")
+	genSubTokenCmd.Flags().StringVarP(&genSubTokenChannel, "channel", "s", "", "channel")
+	genSubTokenCmd.Flags().Int64VarP(&genSubTokenTTL, "ttl", "t", 3600*24*7, "token TTL in seconds")
 
 	var checkTokenConfigFile string
 
@@ -743,6 +777,38 @@ func main() {
 	}
 	checkTokenCmd.Flags().StringVarP(&checkTokenConfigFile, "config", "c", "config.json", "path to config file")
 
+	var checkSubTokenConfigFile string
+
+	var checkSubTokenCmd = &cobra.Command{
+		Use:   "checksubtoken [TOKEN]",
+		Short: "Check subscription JWT",
+		Long:  `Check subscription JWT`,
+		Run: func(cmd *cobra.Command, args []string) {
+			bindCentrifugoConfig()
+			err := readConfig(checkSubTokenConfigFile)
+			if err != nil && err != errConfigFileNotFound {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			jwtVerifierConfig := jwtVerifierConfig()
+			if len(args) != 1 {
+				fmt.Printf("error: provide token to check [centrifugo checksubtoken <TOKEN>]\n")
+				os.Exit(1)
+			}
+			subject, channel, claims, err := cli.CheckSubToken(jwtVerifierConfig, ruleConfig(), args[0])
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			var user = fmt.Sprintf("user \"%s\"", subject)
+			if subject == "" {
+				user = "anonymous user"
+			}
+			fmt.Printf("valid subscription token for %s and channel \"%s\"\npayload: %s\n", user, channel, string(claims))
+		},
+	}
+	checkSubTokenCmd.Flags().StringVarP(&checkSubTokenConfigFile, "config", "c", "config.json", "path to config file")
+
 	var serveDir string
 	var servePort int
 	var serveAddr string
@@ -769,7 +835,9 @@ func main() {
 	rootCmd.AddCommand(checkConfigCmd)
 	rootCmd.AddCommand(genConfigCmd)
 	rootCmd.AddCommand(genTokenCmd)
+	rootCmd.AddCommand(genSubTokenCmd)
 	rootCmd.AddCommand(checkTokenCmd)
+	rootCmd.AddCommand(checkSubTokenCmd)
 	_ = rootCmd.Execute()
 }
 
