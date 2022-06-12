@@ -84,6 +84,7 @@ message Leave {
 message Unsubscribe {
   // Field 1 removed (bool resubscribe).
   uint32 code = 2;
+  string reason = 3;
 }
 
 message Subscribe {
