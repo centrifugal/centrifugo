@@ -1,6 +1,6 @@
 package rule
 
-import "github.com/centrifugal/centrifugo/v3/internal/tools"
+import "github.com/centrifugal/centrifugo/v4/internal/tools"
 
 // ChannelNamespace allows creating channels with different channel options.
 type ChannelNamespace struct {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/jwtverify"
-	"github.com/centrifugal/centrifugo/v3/internal/rule"
+	"github.com/centrifugal/centrifugo/v4/internal/jwtverify"
+	"github.com/centrifugal/centrifugo/v4/internal/rule"
 	"github.com/cristalhq/jwt/v4"
 )
 

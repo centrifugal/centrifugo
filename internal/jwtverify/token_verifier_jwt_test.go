@@ -15,9 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifuge"
-	"github.com/centrifugal/centrifugo/v3/internal/rule"
+	"github.com/centrifugal/centrifugo/v4/internal/rule"
 
+	"github.com/centrifugal/centrifuge"
 	"github.com/cristalhq/jwt/v4"
 	"github.com/stretchr/testify/require"
 )

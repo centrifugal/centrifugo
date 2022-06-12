@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
 )
 
 type baseRequestHTTP struct {

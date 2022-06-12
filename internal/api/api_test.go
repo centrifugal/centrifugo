@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifuge"
-	. "github.com/centrifugal/centrifugo/v3/internal/apiproto"
-	"github.com/centrifugal/centrifugo/v3/internal/rule"
-	"github.com/centrifugal/centrifugo/v3/internal/tools"
+	. "github.com/centrifugal/centrifugo/v4/internal/apiproto"
+	"github.com/centrifugal/centrifugo/v4/internal/rule"
+	"github.com/centrifugal/centrifugo/v4/internal/tools"
 	"github.com/stretchr/testify/require"
 )
 

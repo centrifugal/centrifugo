@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/jwks"
-	"github.com/centrifugal/centrifugo/v3/internal/rule"
+	"github.com/centrifugal/centrifugo/v4/internal/jwks"
+	"github.com/centrifugal/centrifugo/v4/internal/rule"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/cristalhq/jwt/v4"

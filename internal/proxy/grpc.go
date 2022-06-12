@@ -7,13 +7,12 @@ import (
 	"net/url"
 	"strings"
 
-	"google.golang.org/grpc/credentials/insecure"
-
-	"github.com/centrifugal/centrifugo/v3/internal/middleware"
-	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/v4/internal/middleware"
+	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 )
 

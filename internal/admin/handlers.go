@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/centrifugal/centrifugo/v3/internal/api"
-	"github.com/centrifugal/centrifugo/v3/internal/middleware"
+	"github.com/centrifugal/centrifugo/v4/internal/api"
+	"github.com/centrifugal/centrifugo/v4/internal/middleware"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/gorilla/securecookie"

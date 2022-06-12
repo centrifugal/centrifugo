@@ -6,10 +6,10 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/centrifugal/centrifugo/v3/internal/clientcontext"
-	"github.com/centrifugal/centrifugo/v3/internal/jwtverify"
-	"github.com/centrifugal/centrifugo/v3/internal/proxy"
-	"github.com/centrifugal/centrifugo/v3/internal/rule"
+	"github.com/centrifugal/centrifugo/v4/internal/clientcontext"
+	"github.com/centrifugal/centrifugo/v4/internal/jwtverify"
+	"github.com/centrifugal/centrifugo/v4/internal/proxy"
+	"github.com/centrifugal/centrifugo/v4/internal/rule"
 
 	"github.com/centrifugal/centrifuge"
 )
