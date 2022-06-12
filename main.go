@@ -92,19 +92,31 @@ func bindCentrifugoConfig() {
 		"token_audience":             "",
 		"token_issuer":               "",
 
-		"protected":                   false,
-		"publish":                     false,
-		"subscribe_to_publish":        false,
-		"anonymous":                   false,
-		"presence":                    false,
-		"presence_disable_for_client": false,
-		"history_size":                0,
-		"history_ttl":                 0,
-		"history_disable_for_client":  false,
-		"recover":                     false,
-		"position":                    false,
-		"proxy_subscribe":             false,
-		"proxy_publish":               false,
+		"presence":                      false,
+		"join_leave":                    false,
+		"history_size":                  0,
+		"history_ttl":                   0,
+		"force_positioning":             false,
+		"allow_positioning":             false,
+		"force_recovery":                false,
+		"allow_recovery":                false,
+		"allow_subscribe_for_anonymous": false,
+		"allow_subscribe_for_client":    false,
+		"allow_publish_for_anonymous":   false,
+		"allow_publish_for_client":      false,
+		"allow_publish_for_subscriber":  false,
+		"allow_presence_for_anonymous":  false,
+		"allow_presence_for_client":     false,
+		"allow_presence_for_subscriber": false,
+		"allow_history_for_anonymous":   false,
+		"allow_history_for_client":      false,
+		"allow_history_for_subscriber":  false,
+		"allow_user_limited_channels":   false,
+		"channel_regex":                 "",
+		"proxy_subscribe":               false,
+		"proxy_publish":                 false,
+		"subscribe_proxy_name":          "",
+		"publish_proxy_name":            "",
 
 		"node_info_metrics_aggregate_interval": 60 * time.Second,
 
@@ -1263,7 +1275,6 @@ func ruleConfig() rule.Config {
 	cfg.JoinLeave = v.GetBool("join_leave")
 	cfg.HistorySize = v.GetInt("history_size")
 	cfg.HistoryTTL = tools.Duration(GetDuration("history_ttl", true))
-
 	cfg.ForcePositioning = v.GetBool("force_positioning")
 	cfg.AllowRecovery = v.GetBool("allow_recovery")
 	cfg.ForceRecovery = v.GetBool("force_recovery")
@@ -1279,6 +1290,7 @@ func ruleConfig() rule.Config {
 	cfg.HistoryForAnonymous = v.GetBool("allow_history_for_anonymous")
 	cfg.HistoryForClient = v.GetBool("allow_history_for_client")
 	cfg.HistoryForSubscriber = v.GetBool("allow_history_for_subscriber")
+	cfg.UserLimitedChannels = v.GetBool("allow_user_limited_channels")
 	cfg.ChannelRegex = v.GetString("channel_regex")
 	cfg.ProxySubscribe = v.GetBool("proxy_subscribe")
 	cfg.ProxyPublish = v.GetBool("proxy_publish")
