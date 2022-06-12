@@ -93,7 +93,7 @@ type ChannelOptions struct {
 	HistoryForClient bool `mapstructure:"allow_history_for_client" json:"allow_history_for_client"`
 
 	// UserLimitedChannels ...
-	UserLimitedChannels bool `mapstructure:"enable_user_limited_channels" json:"enable_user_limited_channels"`
+	UserLimitedChannels bool `mapstructure:"allow_user_limited_channels" json:"allow_user_limited_channels"`
 
 	// ChannelRegex ...
 	ChannelRegex string `mapstructure:"channel_regex" json:"channel_regex"`
