@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -13,9 +14,12 @@ import (
 // GenerateToken generates sample JWT for user.
 func GenerateToken(config jwtverify.VerifierConfig, user string, ttlSeconds int64) (string, error) {
 	if config.HMACSecretKey == "" {
-		return "", fmt.Errorf("no HMAC secret key set")
+		return "", errors.New("no HMAC secret key set")
 	}
-	signer, _ := jwt.NewSignerHS(jwt.HS256, []byte(config.HMACSecretKey))
+	signer, err := jwt.NewSignerHS(jwt.HS256, []byte(config.HMACSecretKey))
+	if err != nil {
+		return "", fmt.Errorf("error creating HMAC signer: %w", err)
+	}
 	builder := jwt.NewBuilder(signer)
 	token, err := builder.Build(jwt.RegisteredClaims{
 		Subject:   user,
@@ -30,9 +34,12 @@ func GenerateToken(config jwtverify.VerifierConfig, user string, ttlSeconds int6
 // GenerateSubToken generates sample subscription JWT for user.
 func GenerateSubToken(config jwtverify.VerifierConfig, user string, channel string, ttlSeconds int64) (string, error) {
 	if config.HMACSecretKey == "" {
-		return "", fmt.Errorf("no HMAC secret key set")
+		return "", errors.New("no HMAC secret key set")
 	}
-	signer, _ := jwt.NewSignerHS(jwt.HS256, []byte(config.HMACSecretKey))
+	signer, err := jwt.NewSignerHS(jwt.HS256, []byte(config.HMACSecretKey))
+	if err != nil {
+		return "", fmt.Errorf("error creating HMAC signer: %w", err)
+	}
 	builder := jwt.NewBuilder(signer)
 	token, err := builder.Build(
 		jwtverify.SubscribeTokenClaims{
