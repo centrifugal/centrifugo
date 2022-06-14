@@ -500,6 +500,10 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 		return SubscribeToken{}, ErrInvalidToken
 	}
 
+	if claims.Channel == "" {
+		return SubscribeToken{}, ErrInvalidToken
+	}
+
 	_, _, chOpts, found, err := verifier.ruleContainer.ChannelOptions(claims.Channel)
 	if err != nil {
 		return SubscribeToken{}, err

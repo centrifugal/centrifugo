@@ -235,7 +235,8 @@ func bindCentrifugoConfig() {
 		"uni_grpc_port":                     11000,
 		"uni_grpc_max_receive_message_size": 65536,
 
-		"emulation_handler_prefix": "/emulation",
+		"emulation_handler_prefix":        "/emulation",
+		"emulation_max_request_body_size": 65536, // 64KB
 
 		"admin_handler_prefix":      "",
 		"api_handler_prefix":        "/api",
@@ -251,7 +252,10 @@ func bindCentrifugoConfig() {
 		"client_history_max_publication_limit":  300,
 		"client_recovery_max_publication_limit": 300,
 
-		"usage_stats_disable":               false,
+		"usage_stats_disable": false,
+
+		// This option allows smooth migration to Centrifugo v4,
+		// should be removed at some point in the future.
 		"use_client_protocol_v1_by_default": false,
 	}
 
@@ -739,6 +743,10 @@ func main() {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
+			if genSubTokenChannel == "" {
+				fmt.Println("channel is required")
+				os.Exit(1)
+			}
 			jwtVerifierConfig := jwtVerifierConfig()
 			token, err := cli.GenerateSubToken(jwtVerifierConfig, genSubTokenUser, genSubTokenChannel, genSubTokenTTL)
 			if err != nil {
@@ -827,8 +835,8 @@ func main() {
 
 	var serveCmd = &cobra.Command{
 		Use:   "serve",
-		Short: "Run static file server",
-		Long:  `Run static file server`,
+		Short: "Run static file server (for development only)",
+		Long:  `Run static file server (for development only)`,
 		Run: func(cmd *cobra.Command, args []string) {
 			address := net.JoinHostPort(serveAddr, strconv.Itoa(servePort))
 			fmt.Printf("start serving %s on %s\n", serveDir, address)
@@ -1771,7 +1779,9 @@ func sseHandlerConfig() centrifuge.SSEConfig {
 }
 
 func emulationHandlerConfig() centrifuge.EmulationConfig {
-	return centrifuge.EmulationConfig{}
+	return centrifuge.EmulationConfig{
+		MaxRequestBodySize: viper.GetInt("emulation_max_request_body_size"),
+	}
 }
 
 var warnAllowedOriginsOnce sync.Once

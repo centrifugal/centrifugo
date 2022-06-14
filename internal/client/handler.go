@@ -405,7 +405,7 @@ func (h *Handler) OnRefresh(c *centrifuge.Client, e centrifuge.RefreshEvent, ref
 		return centrifuge.RefreshReply{}, RefreshExtra{}, err
 	}
 	if token.UserID != c.UserID() {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "refresh token has different user", map[string]interface{}{"tokenUser": token.UserID, "user": c.UserID(), "client": c.ID()}))
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "refresh token user mismatch", map[string]interface{}{"tokenUser": token.UserID, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.RefreshReply{}, RefreshExtra{}, centrifuge.DisconnectInvalidToken
 	}
 	return centrifuge.RefreshReply{
@@ -496,8 +496,8 @@ func (h *Handler) validateChannelName(c *centrifuge.Client, nsName string, rest 
 		return centrifuge.ErrorInternal
 	}
 	if !ok {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "channel name is not allowed", map[string]interface{}{"channel": channel, "client": c.ID(), "user": c.UserID()}))
-		return centrifuge.ErrorUnknownChannel
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "invalid channel name", map[string]interface{}{"channel": channel, "client": c.ID(), "user": c.UserID()}))
+		return centrifuge.ErrorBadRequest
 	}
 	return nil
 }
