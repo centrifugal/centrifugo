@@ -34,10 +34,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/lucas-clemente/quic-go/http3"
-
-	"github.com/FZambia/viper-lite"
-	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/centrifugo/v4/internal/admin"
 	"github.com/centrifugal/centrifugo/v4/internal/api"
 	"github.com/centrifugal/centrifugo/v4/internal/build"
@@ -63,6 +59,10 @@ import (
 	"github.com/centrifugal/centrifugo/v4/internal/uniws"
 	"github.com/centrifugal/centrifugo/v4/internal/usage"
 	"github.com/centrifugal/centrifugo/v4/internal/webui"
+
+	"github.com/FZambia/viper-lite"
+	"github.com/centrifugal/centrifuge"
+	"github.com/lucas-clemente/quic-go/http3"
 	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/mapstructure"
 	"github.com/prometheus/client_golang/prometheus"
@@ -1241,7 +1241,56 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled 
 				if viper.GetBool("tls_autocert") {
 					log.Fatal().Msgf("can not use HTTP/3 with autocert")
 				}
-				if err := http3.ListenAndServe(addr, viper.GetString("tls_cert"), viper.GetString("tls_key"), mux); err != nil {
+
+				udpAddr, err := net.ResolveUDPAddr("udp", addr)
+				if err != nil {
+					log.Fatal().Msgf("can not start HTTP/3, resolve UDP: %v", err)
+				}
+				udpConn, err := net.ListenUDP("udp", udpAddr)
+				if err != nil {
+					log.Fatal().Msgf("can not start HTTP/3, listen UDP: %v", err)
+				}
+				defer func() { _ = udpConn.Close() }()
+
+				tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
+				if err != nil {
+					log.Fatal().Msgf("can not start HTTP/3, resolve TCP: %v", err)
+				}
+				tcpConn, err := net.ListenTCP("tcp", tcpAddr)
+				if err != nil {
+					log.Fatal().Msgf("can not start HTTP/3, listen TCP: %v", err)
+				}
+				defer func() { _ = tcpConn.Close() }()
+
+				tlsConn := tls.NewListener(tcpConn, addrTLSConfig)
+				defer func() { _ = tlsConn.Close() }()
+
+				quicServer := &http3.Server{
+					Server: server,
+				}
+
+				server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					_ = quicServer.SetQuicHeaders(w.Header())
+					mux.ServeHTTP(w, r)
+				})
+
+				hErr := make(chan error)
+				qErr := make(chan error)
+				go func() {
+					hErr <- server.Serve(tlsConn)
+				}()
+				go func() {
+					qErr <- quicServer.Serve(udpConn)
+				}()
+
+				select {
+				case err := <-hErr:
+					_ = quicServer.Close()
+					if err != http.ErrServerClosed {
+						log.Fatal().Msgf("ListenAndServe: %v", err)
+					}
+				case err := <-qErr:
+					// Cannot close the HTTP server or wait for requests to complete properly.
 					log.Fatal().Msgf("ListenAndServe HTTP/3: %v", err)
 				}
 			} else {
