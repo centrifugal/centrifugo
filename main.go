@@ -34,6 +34,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/lucas-clemente/quic-go/http3"
+
+	"github.com/FZambia/viper-lite"
+	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/centrifugo/v4/internal/admin"
 	"github.com/centrifugal/centrifugo/v4/internal/api"
 	"github.com/centrifugal/centrifugo/v4/internal/build"
@@ -59,9 +63,6 @@ import (
 	"github.com/centrifugal/centrifugo/v4/internal/uniws"
 	"github.com/centrifugal/centrifugo/v4/internal/usage"
 	"github.com/centrifugal/centrifugo/v4/internal/webui"
-
-	"github.com/FZambia/viper-lite"
-	"github.com/centrifugal/centrifuge"
 	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/mapstructure"
 	"github.com/prometheus/client_golang/prometheus"
@@ -1202,20 +1203,27 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled 
 		log.Fatal().Msgf("can not get TLS config: %v", err)
 	}
 
-	// Iterate over port to flags mapping and start HTTP servers
+	// Iterate over port-to-flags mapping and start HTTP servers
 	// on separate ports serving handlers specified in flags.
 	for addr, handlerFlags := range addrToHandlerFlags {
+		addr := addr
 		if handlerFlags == 0 {
 			continue
 		}
 		mux := Mux(n, apiExecutor, handlerFlags, proxyEnabled)
 
-		log.Info().Msgf("serving %s endpoints on %s", handlerFlags, addr)
+		useHTTP3 := viper.GetBool("http3") && addr == externalAddr
+		var protoSuffix string
+		if useHTTP3 {
+			protoSuffix = " with http3"
+		}
+		log.Info().Msgf("serving %s endpoints on %s%s", handlerFlags, addr, protoSuffix)
 
 		var addrTLSConfig *tls.Config
 		if !viper.GetBool("tls_external") || addr == externalAddr {
 			addrTLSConfig = tlsConfig
 		}
+
 		server := &http.Server{
 			Addr:      addr,
 			Handler:   mux,
@@ -1226,16 +1234,28 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled 
 		servers = append(servers, server)
 
 		go func() {
-			if addrTLSConfig != nil {
-				if err := server.ListenAndServeTLS("", ""); err != nil {
-					if err != http.ErrServerClosed {
-						log.Fatal().Msgf("ListenAndServe: %v", err)
-					}
+			if useHTTP3 {
+				if addrTLSConfig == nil {
+					log.Fatal().Msgf("HTTP/3 requires TLS configured")
+				}
+				if viper.GetBool("tls_autocert") {
+					log.Fatal().Msgf("can not use HTTP/3 with autocert")
+				}
+				if err := http3.ListenAndServe(addr, viper.GetString("tls_cert"), viper.GetString("tls_key"), mux); err != nil {
+					log.Fatal().Msgf("ListenAndServe HTTP/3: %v", err)
 				}
 			} else {
-				if err := server.ListenAndServe(); err != nil {
-					if err != http.ErrServerClosed {
-						log.Fatal().Msgf("ListenAndServe: %v", err)
+				if addrTLSConfig != nil {
+					if err := server.ListenAndServeTLS("", ""); err != nil {
+						if err != http.ErrServerClosed {
+							log.Fatal().Msgf("ListenAndServe: %v", err)
+						}
+					}
+				} else {
+					if err := server.ListenAndServe(); err != nil {
+						if err != http.ErrServerClosed {
+							log.Fatal().Msgf("ListenAndServe: %v", err)
+						}
 					}
 				}
 			}
