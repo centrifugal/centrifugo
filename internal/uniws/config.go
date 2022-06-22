@@ -28,7 +28,7 @@ type Config struct {
 
 	// CompressionMinSize allows to set minimal limit in bytes for
 	// message to use compression when writing it into client connection.
-	// By default it's 0 - i.e. all messages will be compressed when
+	// By default, it's 0 - i.e. all messages will be compressed when
 	// WebsocketCompression enabled and compression negotiated with client.
 	CompressionMinSize int
 
@@ -41,7 +41,7 @@ type Config struct {
 	WriteBufferSize int
 
 	// MessageSizeLimit sets the maximum size in bytes of allowed message from client.
-	// By default DefaultWebsocketMaxMessageSize will be used.
+	// By default, DefaultWebsocketMaxMessageSize will be used.
 	MessageSizeLimit int
 
 	// CheckOrigin func to provide custom origin check logic.
@@ -54,7 +54,7 @@ type Config struct {
 
 	// WriteTimeout is maximum time of write message operation.
 	// Slow client will be disconnected.
-	// By default DefaultWebsocketWriteTimeout will be used.
+	// By default, DefaultWebsocketWriteTimeout will be used.
 	WriteTimeout time.Duration
 
 	// Compression allows to enable websocket permessage-deflate

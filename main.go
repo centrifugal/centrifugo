@@ -1894,7 +1894,12 @@ func getCheckOrigin() func(r *http.Request) bool {
 
 func uniWebsocketHandlerConfig() uniws.Config {
 	v := viper.GetViper()
+	protocolVersion := centrifuge.ProtocolVersion2
+	if viper.GetBool("use_client_protocol_v1_by_default") {
+		protocolVersion = centrifuge.ProtocolVersion1
+	}
 	return uniws.Config{
+		ProtocolVersion:    protocolVersion,
 		Compression:        v.GetBool("uni_websocket_compression"),
 		CompressionLevel:   v.GetInt("uni_websocket_compression_level"),
 		CompressionMinSize: v.GetInt("uni_websocket_compression_min_size"),
