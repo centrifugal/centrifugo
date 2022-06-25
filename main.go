@@ -121,16 +121,16 @@ func bindCentrifugoConfig() {
 
 		"node_info_metrics_aggregate_interval": 60 * time.Second,
 
-		"client_connect_without_token":        false,
-		"client_expired_close_delay":          25 * time.Second,
-		"client_expired_sub_close_delay":      25 * time.Second,
-		"client_stale_close_delay":            25 * time.Second,
-		"client_channel_limit":                128,
-		"client_queue_max_size":               1048576, // 1 MB
-		"client_presence_update_interval":     27 * time.Second,
-		"client_user_connection_limit":        0,
-		"client_concurrency":                  0,
-		"client_channel_position_check_delay": 40 * time.Second,
+		"allow_anonymous_connect_without_token": false,
+		"client_expired_close_delay":            25 * time.Second,
+		"client_expired_sub_close_delay":        25 * time.Second,
+		"client_stale_close_delay":              25 * time.Second,
+		"client_channel_limit":                  128,
+		"client_queue_max_size":                 1048576, // 1 MB
+		"client_presence_update_interval":       27 * time.Second,
+		"client_user_connection_limit":          0,
+		"client_concurrency":                    0,
+		"client_channel_position_check_delay":   40 * time.Second,
 
 		"channel_max_length":         255,
 		"channel_private_prefix":     "$",
@@ -1382,7 +1382,7 @@ func ruleConfig() rule.Config {
 	cfg.UserPersonalSingleConnection = v.GetBool("user_personal_single_connection")
 	cfg.UserPersonalChannelNamespace = v.GetString("user_personal_channel_namespace")
 	cfg.ClientInsecure = v.GetBool("client_insecure")
-	cfg.ClientConnectWithoutToken = v.GetBool("client_connect_without_token")
+	cfg.AnonymousConnectWithoutToken = v.GetBool("allow_anonymous_connect_without_token")
 	cfg.ClientConcurrency = v.GetInt("client_concurrency")
 	cfg.RpcNamespaceBoundary = v.GetString("rpc_namespace_boundary")
 	cfg.RpcProxyName = v.GetString("rpc_proxy_name")

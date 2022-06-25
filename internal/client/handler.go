@@ -292,7 +292,7 @@ func (h *Handler) OnClientConnecting(
 	}
 
 	// Proceed with Credentials with empty user ID in case anonymous or insecure options on.
-	if credentials == nil && (ruleConfig.ClientConnectWithoutToken || ruleConfig.ClientInsecure) {
+	if credentials == nil && (ruleConfig.AnonymousConnectWithoutToken || ruleConfig.ClientInsecure) {
 		credentials = &centrifuge.Credentials{
 			UserID: "",
 		}

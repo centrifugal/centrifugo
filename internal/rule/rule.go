@@ -55,10 +55,10 @@ type Config struct {
 	// anonymous access and publish allowed for all channels, no connection expire
 	// performed. This can be suitable for demonstration or personal usage.
 	ClientInsecure bool
-	// ClientConnectWithoutToken when set to true, allows connecting without specifying
+	// AnonymousConnectWithoutToken when set to true, allows connecting without specifying
 	// a connection token or setting Credentials in authentication middleware. The resulting
 	// user will have empty string for user ID (i.e. user is treated as anonymous).
-	ClientConnectWithoutToken bool
+	AnonymousConnectWithoutToken bool
 	// ClientConcurrency when set allows processing client commands concurrently
 	// with provided concurrency level. By default, commands processed sequentially
 	// one after another.

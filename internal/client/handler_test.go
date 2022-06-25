@@ -148,7 +148,7 @@ func TestClientConnectNoCredentialsNoTokenAnonymous(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleConfig.ClientConnectWithoutToken = true
+	ruleConfig.AnonymousConnectWithoutToken = true
 	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}, ruleContainer), &ProxyMap{}, false)
 
@@ -253,7 +253,7 @@ func TestClientConnectWithExpiringToken(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleConfig.ClientConnectWithoutToken = true
+	ruleConfig.AnonymousConnectWithoutToken = true
 	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
@@ -274,7 +274,7 @@ func TestClientConnectWithExpiredToken(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleConfig.ClientConnectWithoutToken = true
+	ruleConfig.AnonymousConnectWithoutToken = true
 	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
@@ -291,7 +291,7 @@ func TestClientSideRefresh(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleConfig.ClientConnectWithoutToken = true
+	ruleConfig.AnonymousConnectWithoutToken = true
 	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
@@ -321,7 +321,7 @@ func TestClientSideRefreshDifferentUser(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleConfig.ClientConnectWithoutToken = true
+	ruleConfig.AnonymousConnectWithoutToken = true
 	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
@@ -630,7 +630,7 @@ func TestClientSideSubRefresh(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleConfig.ClientConnectWithoutToken = true
+	ruleConfig.AnonymousConnectWithoutToken = true
 	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
