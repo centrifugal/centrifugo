@@ -21,6 +21,7 @@ message Disconnect {
 message Error {
   uint32 code = 1;
   string message = 2;
+  bool temporary =3;
 }
 
 message ConnectRequest {

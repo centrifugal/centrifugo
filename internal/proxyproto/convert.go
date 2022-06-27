@@ -12,7 +12,8 @@ func DisconnectFromProto(s *Disconnect) *centrifuge.Disconnect {
 
 func ErrorFromProto(s *Error) *centrifuge.Error {
 	return &centrifuge.Error{
-		Code:    s.Code,
-		Message: s.Message,
+		Code:      s.Code,
+		Message:   s.Message,
+		Temporary: s.Temporary,
 	}
 }
