@@ -9,8 +9,8 @@ require (
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/tarantool v0.3.1
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
-	github.com/centrifugal/centrifuge v0.22.3-0.20220528054326-4cb1c3bf6088
-	github.com/centrifugal/protocol v0.8.7
+	github.com/centrifugal/centrifuge v0.23.1
+	github.com/centrifugal/protocol v0.8.8
 	github.com/cristalhq/jwt/v4 v4.0.0
 	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.3.0
@@ -53,7 +53,7 @@ require (
 	github.com/prometheus/common v0.34.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/segmentio/asm v1.1.4 // indirect
-	github.com/segmentio/encoding v0.3.4 // indirect
+	github.com/segmentio/encoding v0.3.5 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
