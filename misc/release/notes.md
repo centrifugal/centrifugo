@@ -10,10 +10,10 @@ See [centrifugal.dev](https://centrifugal.dev/) for more information.
 
 No backwards incompatible changes here.
 
+### Improvements
+
+* Support Debian bullseye DEB package release, drop Debian jessie, [#520](https://github.com/centrifugal/centrifugo/issues/520)
+
 ### Fixes
 
-* Fix top-level granular subscribe and publish proxies [#517](https://github.com/centrifugal/centrifugo/issues/517).
-
-### Misc
-
-* This release is built with Go 1.17.11.
+* Fix emitting Join message in dynamic server subscribe case (when calling subscribe server API), [centrifugal/centrifuge#231](https://github.com/centrifugal/centrifuge/issues/231).
