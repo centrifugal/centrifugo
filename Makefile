@@ -32,9 +32,9 @@ packagecloud:
 
 packagecloud-deb:
 	# PACKAGECLOUD_TOKEN env must be set
-	package_cloud push FZambia/centrifugo/debian/jessie PACKAGES/*.deb
 	package_cloud push FZambia/centrifugo/debian/stretch PACKAGES/*.deb
 	package_cloud push FZambia/centrifugo/debian/buster PACKAGES/*.deb
+	package_cloud push FZambia/centrifugo/debian/bullseye PACKAGES/*.deb
 
 	package_cloud push FZambia/centrifugo/ubuntu/xenial PACKAGES/*.deb
 	package_cloud push FZambia/centrifugo/ubuntu/bionic PACKAGES/*.deb
