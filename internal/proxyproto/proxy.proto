@@ -120,8 +120,9 @@ message Int32Value {
 message SubscribeOptionOverride {
   BoolValue presence = 1;
   BoolValue join_leave = 2;
-  BoolValue recover = 3;
-  BoolValue position = 4;
+  BoolValue force_recovery = 3;
+  BoolValue force_positioning = 4;
+  BoolValue force_push_join_leave = 5;
 }
 
 message SubscribeResult {

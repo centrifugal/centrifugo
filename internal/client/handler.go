@@ -311,9 +311,11 @@ func (h *Handler) OnClientConnecting(
 			return centrifuge.ConnectReply{}, centrifuge.ErrorUnknownChannel
 		}
 		subscriptions[personalChannel] = centrifuge.SubscribeOptions{
-			Presence:  chOpts.Presence,
-			JoinLeave: chOpts.JoinLeave,
-			Recover:   chOpts.ForceRecovery,
+			EmitPresence:      chOpts.Presence,
+			EmitJoinLeave:     chOpts.JoinLeave,
+			PushJoinLeave:     chOpts.ForcePushJoinLeave,
+			EnableRecovery:    chOpts.ForceRecovery,
+			EnablePositioning: chOpts.ForcePositioning,
 		}
 	}
 
@@ -358,9 +360,11 @@ func (h *Handler) OnClientConnecting(
 			if channelOk {
 				if _, ok := subscriptions[ch]; !ok {
 					subscriptions[ch] = centrifuge.SubscribeOptions{
-						Presence:  chOpts.Presence,
-						JoinLeave: chOpts.JoinLeave,
-						Recover:   chOpts.ForceRecovery,
+						EmitPresence:      chOpts.Presence,
+						EmitJoinLeave:     chOpts.JoinLeave,
+						PushJoinLeave:     chOpts.ForcePushJoinLeave,
+						EnableRecovery:    chOpts.ForceRecovery,
+						EnablePositioning: chOpts.ForcePositioning,
 					}
 				}
 			} else {
@@ -531,10 +535,11 @@ func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent,
 
 	var options centrifuge.SubscribeOptions
 
-	options.Position = chOpts.ForcePositioning
-	options.Recover = chOpts.ForceRecovery
-	options.Presence = chOpts.Presence
-	options.JoinLeave = chOpts.JoinLeave
+	options.EmitPresence = chOpts.Presence
+	options.EmitJoinLeave = chOpts.JoinLeave
+	options.PushJoinLeave = chOpts.ForcePushJoinLeave
+	options.EnablePositioning = chOpts.ForcePositioning
+	options.EnableRecovery = chOpts.ForceRecovery
 
 	if h.ruleContainer.IsPrivateChannel(e.Channel) && e.Token == "" {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "attempt to subscribe on private channel without token", map[string]interface{}{"channel": e.Channel, "client": c.ID(), "user": c.UserID()}))
@@ -583,11 +588,14 @@ func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent,
 		allowed = true
 	}
 
-	if e.Positioned && (chOpts.AllowPositioning) {
-		options.Position = true
+	if e.Positioned && (chOpts.AllowPositioning || h.hasAccessToHistory(c, e.Channel, chOpts)) {
+		options.EnablePositioning = true
 	}
-	if e.Recoverable && (chOpts.AllowRecovery) {
-		options.Recover = true
+	if e.Recoverable && (chOpts.AllowRecovery || h.hasAccessToHistory(c, e.Channel, chOpts)) {
+		options.EnableRecovery = true
+	}
+	if e.JoinLeave && chOpts.JoinLeave && h.hasAccessToPresence(c, e.Channel, chOpts) {
+		options.PushJoinLeave = true
 	}
 
 	if !allowed {
@@ -650,10 +658,19 @@ func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, pub
 	return centrifuge.PublishReply{Result: &result}, err
 }
 
+func (h *Handler) hasAccessToPresence(c *centrifuge.Client, channel string, chOpts rule.ChannelOptions) bool {
+	if chOpts.PresenceForClient && (c.UserID() != "" || chOpts.PresenceForAnonymous) {
+		return true
+	} else if chOpts.PresenceForSubscriber && c.IsSubscribed(channel) && (c.UserID() != "" || chOpts.PresenceForAnonymous) {
+		return true
+	} else if h.ruleContainer.Config().ClientInsecure {
+		return true
+	}
+	return false
+}
+
 // OnPresence ...
 func (h *Handler) OnPresence(c *centrifuge.Client, e centrifuge.PresenceEvent) (centrifuge.PresenceReply, error) {
-	ruleConfig := h.ruleContainer.Config()
-
 	nsName, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "presence channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
@@ -670,15 +687,7 @@ func (h *Handler) OnPresence(c *centrifuge.Client, e centrifuge.PresenceEvent) (
 		return centrifuge.PresenceReply{}, centrifuge.ErrorNotAvailable
 	}
 
-	var allowed bool
-
-	if chOpts.PresenceForClient && (c.UserID() != "" || chOpts.PresenceForAnonymous) {
-		allowed = true
-	} else if chOpts.PresenceForSubscriber && c.IsSubscribed(e.Channel) && (c.UserID() != "" || chOpts.PresenceForAnonymous) {
-		allowed = true
-	} else if ruleConfig.ClientInsecure {
-		allowed = true
-	}
+	allowed := h.hasAccessToPresence(c, e.Channel, chOpts)
 
 	if !allowed {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "attempt to call presence without sufficient permission", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
@@ -690,8 +699,6 @@ func (h *Handler) OnPresence(c *centrifuge.Client, e centrifuge.PresenceEvent) (
 
 // OnPresenceStats ...
 func (h *Handler) OnPresenceStats(c *centrifuge.Client, e centrifuge.PresenceStatsEvent) (centrifuge.PresenceStatsReply, error) {
-	ruleConfig := h.ruleContainer.Config()
-
 	nsName, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "presence stats channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
@@ -708,15 +715,7 @@ func (h *Handler) OnPresenceStats(c *centrifuge.Client, e centrifuge.PresenceSta
 		return centrifuge.PresenceStatsReply{}, centrifuge.ErrorNotAvailable
 	}
 
-	var allowed bool
-
-	if chOpts.PresenceForClient && (c.UserID() != "" || chOpts.PresenceForAnonymous) {
-		allowed = true
-	} else if chOpts.PresenceForSubscriber && c.IsSubscribed(e.Channel) && (c.UserID() != "" || chOpts.PresenceForAnonymous) {
-		allowed = true
-	} else if ruleConfig.ClientInsecure {
-		allowed = true
-	}
+	allowed := h.hasAccessToPresence(c, e.Channel, chOpts)
 
 	if !allowed {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "attempt to call presence stats without sufficient permission", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
@@ -726,10 +725,19 @@ func (h *Handler) OnPresenceStats(c *centrifuge.Client, e centrifuge.PresenceSta
 	return centrifuge.PresenceStatsReply{}, nil
 }
 
+func (h *Handler) hasAccessToHistory(c *centrifuge.Client, channel string, chOpts rule.ChannelOptions) bool {
+	if chOpts.HistoryForClient && (c.UserID() != "" || chOpts.HistoryForAnonymous) {
+		return true
+	} else if chOpts.HistoryForSubscriber && c.IsSubscribed(channel) && (c.UserID() != "" || chOpts.HistoryForAnonymous) {
+		return true
+	} else if h.ruleContainer.Config().ClientInsecure {
+		return true
+	}
+	return false
+}
+
 // OnHistory ...
 func (h *Handler) OnHistory(c *centrifuge.Client, e centrifuge.HistoryEvent) (centrifuge.HistoryReply, error) {
-	ruleConfig := h.ruleContainer.Config()
-
 	nsName, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "history channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
@@ -746,15 +754,7 @@ func (h *Handler) OnHistory(c *centrifuge.Client, e centrifuge.HistoryEvent) (ce
 		return centrifuge.HistoryReply{}, centrifuge.ErrorNotAvailable
 	}
 
-	var allowed bool
-
-	if chOpts.HistoryForClient && (c.UserID() != "" || chOpts.HistoryForAnonymous) {
-		allowed = true
-	} else if chOpts.HistoryForSubscriber && c.IsSubscribed(e.Channel) && (c.UserID() != "" || chOpts.HistoryForAnonymous) {
-		allowed = true
-	} else if ruleConfig.ClientInsecure {
-		allowed = true
-	}
+	allowed := h.hasAccessToHistory(c, e.Channel, chOpts)
 
 	if !allowed {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "attempt to call history without sufficient permission", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))

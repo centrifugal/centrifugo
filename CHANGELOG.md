@@ -22,7 +22,7 @@ Several important documents we have at this point can help you get started with 
 * Private channel and subscription JWT concepts revised
 * Avoid sending JSON in WebSocket Close frame reason
 * Temporary flag for errors, allows resilient behavior of Subscriptions
-* Possibility to enable recovery and positioning from the client-side
+* Possibility to enable recovery, positioning, join/leave from the client-side
 * Experimental HTTP/3 support
 * `gensubtoken` and `checksubtoken` cli commands
 * Legacy options removed, some options renamed, see [migration guide](https://centrifugal.dev/docs/getting-started/migration_v4) for details.

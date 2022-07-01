@@ -233,13 +233,17 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 	if cmd.Override != nil && cmd.Override.JoinLeave != nil {
 		joinLeave = cmd.Override.JoinLeave.Value
 	}
+	pushJoinLeave := chOpts.ForcePushJoinLeave
+	if cmd.Override != nil && cmd.Override.ForcePushJoinLeave != nil {
+		pushJoinLeave = cmd.Override.ForcePushJoinLeave.Value
+	}
 	useRecover := chOpts.ForceRecovery
-	if cmd.Override != nil && cmd.Override.Recover != nil {
-		useRecover = cmd.Override.Recover.Value
+	if cmd.Override != nil && cmd.Override.ForceRecovery != nil {
+		useRecover = cmd.Override.ForceRecovery.Value
 	}
 	position := chOpts.ForcePositioning
-	if cmd.Override != nil && cmd.Override.Position != nil {
-		position = cmd.Override.Position.Value
+	if cmd.Override != nil && cmd.Override.ForcePositioning != nil {
+		position = cmd.Override.ForcePositioning.Value
 	}
 
 	var recoverSince *centrifuge.StreamPosition
@@ -256,10 +260,11 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 		centrifuge.WithSubscribeSession(cmd.Session),
 		centrifuge.WithChannelInfo(cmd.Info),
 		centrifuge.WithExpireAt(cmd.ExpireAt),
-		centrifuge.WithJoinLeave(joinLeave),
-		centrifuge.WithRecover(useRecover),
-		centrifuge.WithPosition(position),
-		centrifuge.WithPresence(presence),
+		centrifuge.WithEmitJoinLeave(joinLeave),
+		centrifuge.WithPushJoinLeave(pushJoinLeave),
+		centrifuge.WithRecovery(useRecover),
+		centrifuge.WithPositioning(position),
+		centrifuge.WithEmitPresence(presence),
 		centrifuge.WithRecoverSince(recoverSince),
 	)
 	if err != nil {

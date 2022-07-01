@@ -137,9 +137,11 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 					return centrifuge.ConnectReply{}, ConnectExtra{}, centrifuge.ErrorUnknownChannel
 				}
 				subscriptions[ch] = centrifuge.SubscribeOptions{
-					Presence:  chOpts.Presence,
-					JoinLeave: chOpts.JoinLeave,
-					Recover:   chOpts.ForceRecovery,
+					EmitPresence:      chOpts.Presence,
+					EmitJoinLeave:     chOpts.JoinLeave,
+					PushJoinLeave:     chOpts.ForcePushJoinLeave,
+					EnableRecovery:    chOpts.ForceRecovery,
+					EnablePositioning: chOpts.ForcePositioning,
 				}
 			}
 			reply.Subscriptions = subscriptions

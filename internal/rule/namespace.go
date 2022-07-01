@@ -30,6 +30,9 @@ type ChannelOptions struct {
 	// subscribers.
 	JoinLeave bool `mapstructure:"join_leave" json:"join_leave"`
 
+	// ForcePushJoinLeave forces sending join/leave messages towards subscribers.
+	ForcePushJoinLeave bool `mapstructure:"force_push_join_leave" json:"force_push_join_leave"`
+
 	// HistorySize determines max amount of history messages for a channel,
 	// Zero value means no history for channel. Centrifuge history has an
 	// auxiliary role with current Engines – it can not replace your backend

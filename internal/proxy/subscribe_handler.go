@@ -138,8 +138,9 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 
 		presence := chOpts.Presence
 		joinLeave := chOpts.JoinLeave
-		useRecover := chOpts.ForceRecovery
-		position := chOpts.ForcePositioning
+		pushJoinLeave := chOpts.ForcePushJoinLeave
+		recovery := chOpts.ForceRecovery
+		positioning := chOpts.ForcePositioning
 
 		var info []byte
 		var data []byte
@@ -174,22 +175,26 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 			if result.Override != nil && result.Override.JoinLeave != nil {
 				joinLeave = result.Override.JoinLeave.Value
 			}
-			if result.Override != nil && result.Override.Recover != nil {
-				useRecover = result.Override.Recover.Value
+			if result.Override != nil && result.Override.ForcePushJoinLeave != nil {
+				pushJoinLeave = result.Override.ForcePushJoinLeave.Value
 			}
-			if result.Override != nil && result.Override.Position != nil {
-				position = result.Override.Position.Value
+			if result.Override != nil && result.Override.ForceRecovery != nil {
+				recovery = result.Override.ForceRecovery.Value
+			}
+			if result.Override != nil && result.Override.ForcePositioning != nil {
+				positioning = result.Override.ForcePositioning.Value
 			}
 		}
 
 		return centrifuge.SubscribeReply{
 			Options: centrifuge.SubscribeOptions{
-				ChannelInfo: info,
-				Presence:    presence,
-				JoinLeave:   joinLeave,
-				Recover:     useRecover,
-				Position:    position,
-				Data:        data,
+				ChannelInfo:       info,
+				EmitPresence:      presence,
+				EmitJoinLeave:     joinLeave,
+				PushJoinLeave:     pushJoinLeave,
+				EnableRecovery:    recovery,
+				EnablePositioning: positioning,
+				Data:              data,
 			},
 			ClientSideRefresh: true,
 		}, extra, nil

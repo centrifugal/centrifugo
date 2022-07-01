@@ -98,18 +98,20 @@ type SubscribeOptionOverride struct {
 	Presence *BoolValue `json:"presence,omitempty"`
 	// JoinLeave enables sending Join and Leave messages for this client in channel.
 	JoinLeave *BoolValue `json:"join_leave,omitempty"`
-	// Position on says that client will additionally sync its position inside
-	// a stream to prevent message loss. Make sure you are enabling Position in channels
-	// that maintain Publication history stream. When Position is on  Centrifuge will
+	// ForcePushJoinLeave ...
+	ForcePushJoinLeave *BoolValue
+	// ForcePositioning on says that client will additionally sync its position inside
+	// a stream to prevent message loss. Make sure you are enabling ForcePositioning in channels
+	// that maintain Publication history stream. When ForcePositioning is on  Centrifuge will
 	// include StreamPosition information to subscribe response - for a client to be able
 	// to manually track its position inside a stream.
-	Position *BoolValue `json:"position,omitempty"`
-	// Recover turns on recovery option for a channel. In this case client will try to
+	ForcePositioning *BoolValue `json:"force_positioning,omitempty"`
+	// ForceRecovery turns on recovery option for a channel. In this case client will try to
 	// recover missed messages automatically upon resubscribe to a channel after reconnect
 	// to a server. This option also enables client position tracking inside a stream
-	// (like Position option) to prevent occasional message loss. Make sure you are using
-	// Recover in channels that maintain Publication history stream.
-	Recover *BoolValue `json:"recover,omitempty"`
+	// (like ForcePositioning option) to prevent occasional message loss. Make sure you are using
+	// ForceRecovery in channels that maintain Publication history stream.
+	ForceRecovery *BoolValue `json:"force_recovery,omitempty"`
 }
 
 // SubscribeOptions define per-subscription options.
@@ -399,21 +401,26 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 			if v.Override != nil && v.Override.JoinLeave != nil {
 				joinLeave = v.Override.JoinLeave.Value
 			}
-			useRecover := chOpts.ForceRecovery
-			if v.Override != nil && v.Override.Recover != nil {
-				useRecover = v.Override.Recover.Value
+			pushJoinLeave := chOpts.ForcePushJoinLeave
+			if v.Override != nil && v.Override.ForcePushJoinLeave != nil {
+				pushJoinLeave = v.Override.ForcePushJoinLeave.Value
 			}
-			position := chOpts.ForcePositioning
-			if v.Override != nil && v.Override.Position != nil {
-				position = v.Override.Position.Value
+			recovery := chOpts.ForceRecovery
+			if v.Override != nil && v.Override.ForceRecovery != nil {
+				recovery = v.Override.ForceRecovery.Value
+			}
+			positioning := chOpts.ForcePositioning
+			if v.Override != nil && v.Override.ForcePositioning != nil {
+				positioning = v.Override.ForcePositioning.Value
 			}
 			subs[ch] = centrifuge.SubscribeOptions{
-				ChannelInfo: info,
-				Presence:    presence,
-				JoinLeave:   joinLeave,
-				Recover:     useRecover,
-				Position:    position,
-				Data:        data,
+				ChannelInfo:       info,
+				EmitPresence:      presence,
+				EmitJoinLeave:     joinLeave,
+				PushJoinLeave:     pushJoinLeave,
+				EnableRecovery:    recovery,
+				EnablePositioning: positioning,
+				Data:              data,
 			}
 		}
 	} else if len(claims.Channels) > 0 {
@@ -426,10 +433,11 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 				return ConnectToken{}, centrifuge.ErrorUnknownChannel
 			}
 			subs[ch] = centrifuge.SubscribeOptions{
-				Presence:  chOpts.Presence,
-				JoinLeave: chOpts.JoinLeave,
-				Recover:   chOpts.ForceRecovery,
-				Position:  chOpts.ForcePositioning,
+				EmitPresence:      chOpts.Presence,
+				EmitJoinLeave:     chOpts.JoinLeave,
+				PushJoinLeave:     chOpts.ForcePushJoinLeave,
+				EnableRecovery:    chOpts.ForceRecovery,
+				EnablePositioning: chOpts.ForcePositioning,
 			}
 		}
 	}
@@ -539,13 +547,17 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 	if claims.Override != nil && claims.Override.JoinLeave != nil {
 		joinLeave = claims.Override.JoinLeave.Value
 	}
-	useRecover := chOpts.ForceRecovery
-	if claims.Override != nil && claims.Override.Recover != nil {
-		useRecover = claims.Override.Recover.Value
+	pushJoinLeave := chOpts.ForcePushJoinLeave
+	if claims.Override != nil && claims.Override.ForcePushJoinLeave != nil {
+		pushJoinLeave = claims.Override.ForcePushJoinLeave.Value
 	}
-	position := chOpts.ForcePositioning
-	if claims.Override != nil && claims.Override.Position != nil {
-		position = claims.Override.Position.Value
+	recovery := chOpts.ForceRecovery
+	if claims.Override != nil && claims.Override.ForceRecovery != nil {
+		recovery = claims.Override.ForceRecovery.Value
+	}
+	positioning := chOpts.ForcePositioning
+	if claims.Override != nil && claims.Override.ForcePositioning != nil {
+		positioning = claims.Override.ForcePositioning.Value
 	}
 
 	var expireAt int64
@@ -564,13 +576,14 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 		Channel: claims.Channel,
 		Client:  claims.Client,
 		Options: centrifuge.SubscribeOptions{
-			ExpireAt:    expireAt,
-			ChannelInfo: info,
-			Presence:    presence,
-			JoinLeave:   joinLeave,
-			Recover:     useRecover,
-			Position:    position,
-			Data:        data,
+			ExpireAt:          expireAt,
+			ChannelInfo:       info,
+			EmitPresence:      presence,
+			EmitJoinLeave:     joinLeave,
+			PushJoinLeave:     pushJoinLeave,
+			EnableRecovery:    recovery,
+			EnablePositioning: positioning,
+			Data:              data,
 		},
 	}
 	return st, nil
