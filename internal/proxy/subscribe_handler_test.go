@@ -99,10 +99,11 @@ func TestHandleSubscribeWithResult(t *testing.T) {
 	customData := "test"
 	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
 	chOpts := rule.ChannelOptions{
-		Presence:         true,
-		JoinLeave:        true,
-		ForceRecovery:    true,
-		ForcePositioning: true,
+		Presence:           true,
+		JoinLeave:          true,
+		ForcePushJoinLeave: true,
+		ForceRecovery:      true,
+		ForcePositioning:   true,
 	}
 	opts := proxyGRPCTestServerOptions{
 		B64Data: customDataB64,
@@ -154,7 +155,7 @@ func TestHandleSubscribeWithOverride(t *testing.T) {
 
 	httpTestCase := newSubscribeHandleHTTPTestCase(context.Background(), "/subscribe", chOpts)
 	httpTestCase.Mux.HandleFunc("/subscribe", func(w http.ResponseWriter, req *http.Request) {
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"b64info": "%s", "override": {"join_leave": {"value": false}, "presence": {"value": true}, "position": {"value": true}, "recover": {"value": true}}}}`, customDataB64)))
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"b64info": "%s", "override": {"join_leave": {"value": false}, "presence": {"value": true}, "force_positioning": {"value": true}, "force_recovery": {"value": true}}}}`, customDataB64)))
 	})
 	defer httpTestCase.Teardown()
 
