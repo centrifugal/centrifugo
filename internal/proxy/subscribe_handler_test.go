@@ -118,12 +118,13 @@ func TestHandleSubscribeWithResult(t *testing.T) {
 	defer httpTestCase.Teardown()
 
 	expectedSubscribeOpts := centrifuge.SubscribeOptions{
-		ChannelInfo: []byte(customData),
-		Data:        []byte(customData),
-		Presence:    true,
-		JoinLeave:   true,
-		Recover:     true,
-		Position:    true,
+		ChannelInfo:       []byte(customData),
+		Data:              []byte(customData),
+		EmitPresence:      true,
+		EmitJoinLeave:     true,
+		PushJoinLeave:     true,
+		EnableRecovery:    true,
+		EnablePositioning: true,
 	}
 
 	cases := newSubscribeHandleTestCases(httpTestCase, grpcTestCase)
@@ -158,11 +159,12 @@ func TestHandleSubscribeWithOverride(t *testing.T) {
 	defer httpTestCase.Teardown()
 
 	expectedSubscribeOpts := centrifuge.SubscribeOptions{
-		ChannelInfo: []byte(customData),
-		Presence:    true,
-		JoinLeave:   false,
-		Position:    true,
-		Recover:     true,
+		ChannelInfo:       []byte(customData),
+		EmitPresence:      true,
+		EmitJoinLeave:     false,
+		PushJoinLeave:     false,
+		EnablePositioning: true,
+		EnableRecovery:    true,
 	}
 
 	cases := newSubscribeHandleTestCases(httpTestCase, grpcTestCase)
