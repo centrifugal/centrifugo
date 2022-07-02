@@ -86,7 +86,8 @@ message RefreshResult {
   int64 expire_at = 2;
   bytes info = 3;
   string b64info = 4;
-  repeated ChannelsCapability caps = 5;
+  bytes meta = 5;
+  repeated ChannelsCapability caps = 6;
 }
 
 message RefreshResponse {

@@ -351,8 +351,7 @@ message ConnectionInfo {
     string app_version = 2;
     string transport = 3;
     string protocol = 4;
-    bytes meta = 5;
-    // 6-7 dropped for backwards compatibility.
+    // 5-7 dropped for backwards compatibility.
     string user = 8;
     ConnectionState state = 9;
 }
@@ -361,6 +360,7 @@ message ConnectionState {
     repeated string channels = 1;
     ConnectionToken connection_token = 2;
     map<string, ChannelToken> channel_tokens = 3;
+    bytes meta = 4;
 }
 
 message ConnectionToken {

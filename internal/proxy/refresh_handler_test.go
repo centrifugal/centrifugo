@@ -64,7 +64,7 @@ type refreshHandleTestCase struct {
 
 func (c refreshHandleTestCase) invokeHandle() (reply centrifuge.RefreshReply, err error) {
 	refreshHandler := c.refreshProxyHandler.Handle(c.node)
-	reply, _, err = refreshHandler(c.client, centrifuge.RefreshEvent{})
+	reply, _, err = refreshHandler(c.client, centrifuge.RefreshEvent{}, PerCallData{})
 
 	return reply, err
 }

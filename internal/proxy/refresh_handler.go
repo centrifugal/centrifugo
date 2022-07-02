@@ -2,9 +2,9 @@ package proxy
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v4/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
 
 	"github.com/centrifugal/centrifuge"
@@ -35,14 +35,15 @@ func NewRefreshHandler(c RefreshHandlerConfig) *RefreshHandler {
 }
 
 type RefreshExtra struct {
+	Meta json.RawMessage
 }
 
 // RefreshHandlerFunc ...
-type RefreshHandlerFunc func(*centrifuge.Client, centrifuge.RefreshEvent) (centrifuge.RefreshReply, RefreshExtra, error)
+type RefreshHandlerFunc func(*centrifuge.Client, centrifuge.RefreshEvent, PerCallData) (centrifuge.RefreshReply, RefreshExtra, error)
 
 // Handle refresh.
 func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
-	return func(client *centrifuge.Client, e centrifuge.RefreshEvent) (centrifuge.RefreshReply, RefreshExtra, error) {
+	return func(client *centrifuge.Client, e centrifuge.RefreshEvent, pcd PerCallData) (centrifuge.RefreshReply, RefreshExtra, error) {
 		started := time.Now()
 		req := &proxyproto.RefreshRequest{
 			Client:    client.ID(),
@@ -52,10 +53,8 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 
 			User: client.UserID(),
 		}
-		if h.config.Proxy.IncludeMeta() {
-			if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
-				req.Meta = proxyproto.Raw(connMeta.Meta)
-			}
+		if h.config.Proxy.IncludeMeta() && pcd.Meta != nil {
+			req.Meta = proxyproto.Raw(pcd.Meta)
 		}
 		refreshRep, err := h.config.Proxy.ProxyRefresh(client.Context(), req)
 		duration := time.Since(started).Seconds()
@@ -109,9 +108,14 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 			info = result.Info
 		}
 
+		extra := RefreshExtra{}
+		if result.Meta != nil {
+			extra.Meta = json.RawMessage(result.Meta)
+		}
+
 		return centrifuge.RefreshReply{
 			ExpireAt: result.ExpireAt,
 			Info:     info,
-		}, RefreshExtra{}, nil
+		}, extra, nil
 	}
 }

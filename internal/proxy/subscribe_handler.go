@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v4/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
 
@@ -62,11 +61,11 @@ type SubscribeExtra struct {
 }
 
 // SubscribeHandlerFunc ...
-type SubscribeHandlerFunc func(*centrifuge.Client, centrifuge.SubscribeEvent, rule.ChannelOptions) (centrifuge.SubscribeReply, SubscribeExtra, error)
+type SubscribeHandlerFunc func(*centrifuge.Client, centrifuge.SubscribeEvent, rule.ChannelOptions, PerCallData) (centrifuge.SubscribeReply, SubscribeExtra, error)
 
 // Handle Subscribe.
 func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
-	return func(client *centrifuge.Client, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions) (centrifuge.SubscribeReply, SubscribeExtra, error) {
+	return func(client *centrifuge.Client, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions, pcd PerCallData) (centrifuge.SubscribeReply, SubscribeExtra, error) {
 		started := time.Now()
 
 		var p SubscribeProxy
@@ -106,10 +105,8 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 		} else {
 			req.B64Data = base64.StdEncoding.EncodeToString(e.Data)
 		}
-		if p.IncludeMeta() {
-			if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
-				req.Meta = proxyproto.Raw(connMeta.Meta)
-			}
+		if p.IncludeMeta() && pcd.Meta != nil {
+			req.Meta = proxyproto.Raw(pcd.Meta)
 		}
 		subscribeRep, err := p.ProxySubscribe(client.Context(), req)
 		duration := time.Since(started).Seconds()

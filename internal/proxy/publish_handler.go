@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v4/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
 
@@ -59,11 +58,11 @@ func NewPublishHandler(c PublishHandlerConfig) *PublishHandler {
 }
 
 // PublishHandlerFunc ...
-type PublishHandlerFunc func(*centrifuge.Client, centrifuge.PublishEvent, rule.ChannelOptions) (centrifuge.PublishReply, error)
+type PublishHandlerFunc func(*centrifuge.Client, centrifuge.PublishEvent, rule.ChannelOptions, PerCallData) (centrifuge.PublishReply, error)
 
 // Handle Publish.
 func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
-	return func(client *centrifuge.Client, e centrifuge.PublishEvent, chOpts rule.ChannelOptions) (centrifuge.PublishReply, error) {
+	return func(client *centrifuge.Client, e centrifuge.PublishEvent, chOpts rule.ChannelOptions, pcd PerCallData) (centrifuge.PublishReply, error) {
 		started := time.Now()
 
 		var p PublishProxy
@@ -97,10 +96,8 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 			User:    client.UserID(),
 			Channel: e.Channel,
 		}
-		if p.IncludeMeta() {
-			if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
-				req.Meta = proxyproto.Raw(connMeta.Meta)
-			}
+		if p.IncludeMeta() && pcd.Meta != nil {
+			req.Meta = proxyproto.Raw(pcd.Meta)
 		}
 		if !p.UseBase64() {
 			req.Data = e.Data

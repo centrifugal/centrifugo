@@ -299,18 +299,18 @@ func TestClientSideRefresh(t *testing.T) {
 
 	reply, _, err := h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
 		Token: getConnTokenHS("", 123),
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.NoError(t, err)
 	require.True(t, reply.Expired)
 
 	_, _, err = h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
 		Token: "invalid",
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.Error(t, err)
 
 	reply, _, err = h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
 		Token: getConnTokenHS("", 2525637058),
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.NoError(t, err)
 	require.False(t, reply.Expired)
 	require.Equal(t, int64(2525637058), reply.ExpireAt)
@@ -329,7 +329,7 @@ func TestClientSideRefreshDifferentUser(t *testing.T) {
 
 	_, _, err := h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
 		Token: getConnTokenHS("42", 2525637058),
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.ErrorIs(t, err, centrifuge.DisconnectInvalidToken)
 }
 
@@ -408,7 +408,7 @@ func TestClientSubscribeChannel(t *testing.T) {
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "non_existing_namespace:test1",
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.Equal(t, centrifuge.ErrorUnknownChannel, err)
 }
 
@@ -446,7 +446,7 @@ func TestClientSubscribeChannelNoPermission(t *testing.T) {
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "test1",
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
 
@@ -485,7 +485,7 @@ func TestClientSubscribeChannelUserLimitedError(t *testing.T) {
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "test#13",
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
 
@@ -524,7 +524,7 @@ func TestClientSubscribeChannelUserLimitedOK(t *testing.T) {
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "test#12",
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.NoError(t, err)
 }
 
@@ -563,25 +563,25 @@ func TestClientSubscribeWithToken(t *testing.T) {
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   "",
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   "invalid",
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("12", "$test1", 123),
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.Equal(t, centrifuge.ErrorTokenExpired, err)
 
 	reply, _, err := h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("12", "$test1", 0),
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.NoError(t, err)
 	require.Zero(t, reply.Options.ExpireAt)
 }
@@ -621,7 +621,7 @@ func TestClientSubscribeWithTokenAnonymous(t *testing.T) {
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("", "$test1", 0),
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.NoError(t, err)
 }
 
@@ -661,7 +661,7 @@ func TestClientSideSubRefresh(t *testing.T) {
 	reply, _, err := h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("12", "$test1", time.Now().Unix()+10),
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.NoError(t, err)
 	require.True(t, reply.Options.ExpireAt > 0)
 
@@ -706,7 +706,7 @@ func TestClientSubscribePrivateChannelWithExpiringToken(t *testing.T) {
 	_, _, err := h.OnSubscribe(&centrifuge.Client{}, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("", "$test1", 10),
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.Equal(t, centrifuge.ErrorTokenExpired, err)
 }
 
@@ -723,7 +723,7 @@ func TestClientSubscribePermissionDeniedForAnonymous(t *testing.T) {
 
 	_, _, err := h.OnSubscribe(&centrifuge.Client{}, centrifuge.SubscribeEvent{
 		Channel: "test1",
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
 
@@ -740,13 +740,13 @@ func TestClientPublishNotAllowed(t *testing.T) {
 	_, err := h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
 		Channel: "non_existing_namespace:test1",
 		Data:    []byte(`{}`),
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.Equal(t, centrifuge.ErrorUnknownChannel, err)
 
 	_, err = h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
 		Channel: "test1",
 		Data:    []byte(`{}`),
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
 
@@ -765,7 +765,7 @@ func TestClientPublishAllowed(t *testing.T) {
 	_, err := h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
 		Channel: "test1",
 		Data:    []byte(`{}`),
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.NoError(t, err)
 }
 
@@ -784,7 +784,7 @@ func TestClientPublishForSubscriber(t *testing.T) {
 	_, err := h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
 		Channel: "test1",
 		Data:    []byte(`{}`),
-	}, nil)
+	}, nil, proxy.PerCallData{})
 	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
 

@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"strings"
 
@@ -84,4 +85,8 @@ func GetSubscribeProxy(p Proxy) (SubscribeProxy, error) {
 		return NewHTTPSubscribeProxy(p)
 	}
 	return NewGRPCSubscribeProxy(p)
+}
+
+type PerCallData struct {
+	Meta json.RawMessage
 }

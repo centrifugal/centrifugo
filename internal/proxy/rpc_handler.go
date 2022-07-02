@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v4/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
 
@@ -59,11 +58,11 @@ func NewRPCHandler(c RPCHandlerConfig) *RPCHandler {
 }
 
 // RPCHandlerFunc ...
-type RPCHandlerFunc func(*centrifuge.Client, centrifuge.RPCEvent, *rule.Container) (centrifuge.RPCReply, error)
+type RPCHandlerFunc func(*centrifuge.Client, centrifuge.RPCEvent, *rule.Container, PerCallData) (centrifuge.RPCReply, error)
 
 // Handle RPC.
 func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
-	return func(client *centrifuge.Client, e centrifuge.RPCEvent, ruleContainer *rule.Container) (centrifuge.RPCReply, error) {
+	return func(client *centrifuge.Client, e centrifuge.RPCEvent, ruleContainer *rule.Container, pcd PerCallData) (centrifuge.RPCReply, error) {
 		started := time.Now()
 
 		var p RPCProxy
@@ -106,10 +105,8 @@ func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
 			User:   client.UserID(),
 			Method: e.Method,
 		}
-		if p.IncludeMeta() {
-			if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
-				req.Meta = proxyproto.Raw(connMeta.Meta)
-			}
+		if p.IncludeMeta() && pcd.Meta != nil {
+			req.Meta = proxyproto.Raw(pcd.Meta)
 		}
 		if !p.UseBase64() {
 			req.Data = e.Data
