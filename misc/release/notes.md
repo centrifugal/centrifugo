@@ -10,10 +10,10 @@ Several important documents we have at this point can help you get started with 
 ### Highlights
 
 * New client protocol iteration and unified client SDK API
-* All SDKs now support all the core features of Centrifugo protocol
-* Our own WebSocket bidirectional emulation layer based on HTTP-streaming and SSE (EventSource). Without sticky session requirement for distributed case.
+* All SDKs now support all the core features of Centrifugo
+* Our own WebSocket bidirectional emulation layer based on HTTP-streaming and SSE (EventSource). Without sticky session requirement for a distributed case.
 * SockJS is still supported but DEPRECATED
-* Redesigned PING-PONG
+* Redesigned, more efficient PING-PONG
 * Optimistic subscriptions support (implemented in `centrifuge-js` only at this point)
 * Secure by default channel namespaces
 * Private channel and subscription JWT concepts revised

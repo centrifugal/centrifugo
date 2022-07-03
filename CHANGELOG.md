@@ -31,6 +31,19 @@ Several important documents we have at this point can help you get started with 
 
 * This release is built with Go 1.18.3
 
+v3.2.3
+======
+
+No backwards incompatible changes here.
+
+### Improvements
+
+* Support Debian bullseye DEB package release, drop Debian jessie, [#520](https://github.com/centrifugal/centrifugo/issues/520)
+
+### Fixes
+
+* Fix emitting Join message in dynamic server subscribe case (when calling subscribe server API), [centrifugal/centrifuge#231](https://github.com/centrifugal/centrifuge/issues/231).
+
 v3.2.2
 ======
 
