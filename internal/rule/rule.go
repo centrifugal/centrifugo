@@ -186,64 +186,66 @@ func (c *Config) Validate() error {
 
 // Container ...
 type Container struct {
-	mu              sync.RWMutex
-	config          Config
-	compiledRegexes map[string]*regexp.Regexp
+	mu     sync.RWMutex
+	config Config
 }
 
 // NewContainer ...
-func NewContainer(config Config) *Container {
-	container := &Container{
-		config: config,
-	}
-	compiledRegexes, err := container.buildCompiledRegexes()
+func NewContainer(config Config) (*Container, error) {
+	preparedConfig, err := getPreparedConfig(config)
 	if err != nil {
-		// Should never happen since we validate expressions.
-		panic(err)
+		return nil, err
 	}
-	container.compiledRegexes = compiledRegexes
-	return container
+	return &Container{
+		config: *preparedConfig,
+	}, nil
 }
 
-func (n *Container) buildCompiledRegexes() (map[string]*regexp.Regexp, error) {
-	regexes := map[string]*regexp.Regexp{}
-
-	if n.config.ChannelRegex != "" {
-		p, err := regexp.Compile(n.config.ChannelRegex)
-		if err != nil {
-			return nil, err
-		}
-		regexes[""] = p
+func getPreparedConfig(config Config) (*Config, error) {
+	if err := config.Validate(); err != nil {
+		return &config, err
 	}
-
-	for _, ns := range n.config.Namespaces {
-		if ns.ChannelRegex == "" {
-			continue
-		}
-		p, err := regexp.Compile(ns.ChannelRegex)
-		if err != nil {
-			return nil, err
-		}
-		regexes[ns.Name] = p
+	config, err := buildCompiledRegexes(config)
+	if err != nil {
+		return &config, err
 	}
-
-	return regexes, nil
+	return &config, nil
 }
 
 // Reload node config.
 func (n *Container) Reload(c Config) error {
-	if err := c.Validate(); err != nil {
-		return err
-	}
-	compiledRegexes, err := n.buildCompiledRegexes()
+	preparedConfig, err := getPreparedConfig(c)
 	if err != nil {
 		return err
 	}
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	n.config = c
-	n.compiledRegexes = compiledRegexes
+	n.config = *preparedConfig
 	return nil
+}
+
+func buildCompiledRegexes(config Config) (Config, error) {
+
+	if config.ChannelRegex != "" {
+		p, err := regexp.Compile(config.ChannelRegex)
+		if err != nil {
+			return config, err
+		}
+		config.Compiled.CompiledChannelRegex = p
+	}
+
+	for _, ns := range config.Namespaces {
+		if ns.ChannelRegex == "" {
+			continue
+		}
+		p, err := regexp.Compile(ns.ChannelRegex)
+		if err != nil {
+			return config, err
+		}
+		ns.Compiled.CompiledChannelRegex = p
+	}
+
+	return config, nil
 }
 
 // namespaceName returns namespace name from channel if exists.
@@ -300,14 +302,6 @@ func (n *Container) Config() Config {
 	c := n.config
 	n.mu.RUnlock()
 	return c
-}
-
-// CompiledRegex returns compiled regex for namespace.
-func (n *Container) CompiledRegex(nsName string) (*regexp.Regexp, bool) {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-	p, ok := n.compiledRegexes[nsName]
-	return p, ok
 }
 
 // IsPrivateChannel checks if channel requires token to subscribe. In case of

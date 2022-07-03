@@ -92,9 +92,10 @@ func TestClientHandlerSetup(t *testing.T) {
 
 	ruleConfig := rule.DefaultConfig
 	ruleConfig.ClientInsecure = true
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}, ruleContainer), &ProxyMap{}, false)
-	err := h.Setup()
+	err = h.Setup()
 	require.NoError(t, err)
 
 	transport := tools.NewTestTransport()
@@ -117,7 +118,8 @@ func TestClientConnectingNoCredentialsNoToken(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}, ruleContainer), &ProxyMap{}, false)
 
 	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
@@ -133,7 +135,8 @@ func TestClientConnectingNoCredentialsNoTokenInsecure(t *testing.T) {
 
 	ruleConfig := rule.DefaultConfig
 	ruleConfig.ClientInsecure = true
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}, ruleContainer), &ProxyMap{}, false)
 
 	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, nil, false)
@@ -149,7 +152,8 @@ func TestClientConnectNoCredentialsNoTokenAnonymous(t *testing.T) {
 
 	ruleConfig := rule.DefaultConfig
 	ruleConfig.AnonymousConnectWithoutToken = true
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}, ruleContainer), &ProxyMap{}, false)
 
 	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, nil, false)
@@ -164,12 +168,13 @@ func TestClientConnectWithMalformedToken(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
 
-	_, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
+	_, err = h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Token: "bad bad token",
 	}, nil, false)
 	require.Error(t, err)
@@ -180,7 +185,8 @@ func TestClientConnectWithValidTokenHMAC(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
@@ -200,7 +206,8 @@ func TestClientConnectWithProxy(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
@@ -233,7 +240,8 @@ func TestClientConnectWithValidTokenRSA(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		RSAPublicKey: pubKey,
 	}, ruleContainer), &ProxyMap{}, false)
@@ -254,7 +262,8 @@ func TestClientConnectWithExpiringToken(t *testing.T) {
 
 	ruleConfig := rule.DefaultConfig
 	ruleConfig.AnonymousConnectWithoutToken = true
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
@@ -275,12 +284,13 @@ func TestClientConnectWithExpiredToken(t *testing.T) {
 
 	ruleConfig := rule.DefaultConfig
 	ruleConfig.AnonymousConnectWithoutToken = true
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
 
-	_, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
+	_, err = h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Token: getConnTokenHS("42", 1525541722),
 	}, nil, false)
 	require.Equal(t, centrifuge.ErrorTokenExpired, err)
@@ -292,7 +302,8 @@ func TestClientSideRefresh(t *testing.T) {
 
 	ruleConfig := rule.DefaultConfig
 	ruleConfig.AnonymousConnectWithoutToken = true
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
@@ -322,12 +333,13 @@ func TestClientSideRefreshDifferentUser(t *testing.T) {
 
 	ruleConfig := rule.DefaultConfig
 	ruleConfig.AnonymousConnectWithoutToken = true
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
 
-	_, _, err := h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
+	_, _, err = h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
 		Token: getConnTokenHS("42", 2525637058),
 	}, nil, proxy.PerCallData{})
 	require.ErrorIs(t, err, centrifuge.DisconnectInvalidToken)
@@ -345,7 +357,8 @@ func TestClientUserPersonalChannel(t *testing.T) {
 			ChannelOptions: rule.ChannelOptions{},
 		},
 	}
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
@@ -379,7 +392,8 @@ func TestClientSubscribeChannel(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
@@ -417,7 +431,8 @@ func TestClientSubscribeChannelNoPermission(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
@@ -456,7 +471,8 @@ func TestClientSubscribeChannelUserLimitedError(t *testing.T) {
 
 	ruleConfig := rule.DefaultConfig
 	ruleConfig.UserLimitedChannels = true
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
@@ -495,7 +511,8 @@ func TestClientSubscribeChannelUserLimitedOK(t *testing.T) {
 
 	ruleConfig := rule.DefaultConfig
 	ruleConfig.UserLimitedChannels = true
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
@@ -533,7 +550,8 @@ func TestClientSubscribeWithToken(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
@@ -591,7 +609,8 @@ func TestClientSubscribeWithTokenAnonymous(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
@@ -631,7 +650,8 @@ func TestClientSideSubRefresh(t *testing.T) {
 
 	ruleConfig := rule.DefaultConfig
 	ruleConfig.AnonymousConnectWithoutToken = true
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
@@ -698,12 +718,13 @@ func TestClientSubscribePrivateChannelWithExpiringToken(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
 
-	_, _, err := h.OnSubscribe(&centrifuge.Client{}, centrifuge.SubscribeEvent{
+	_, _, err = h.OnSubscribe(&centrifuge.Client{}, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("", "$test1", 10),
 	}, nil, proxy.PerCallData{})
@@ -715,13 +736,15 @@ func TestClientSubscribePermissionDeniedForAnonymous(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
 	ruleConfig.SubscribeForClient = true
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
+
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
 
-	_, _, err := h.OnSubscribe(&centrifuge.Client{}, centrifuge.SubscribeEvent{
+	_, _, err = h.OnSubscribe(&centrifuge.Client{}, centrifuge.SubscribeEvent{
 		Channel: "test1",
 	}, nil, proxy.PerCallData{})
 	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
@@ -732,12 +755,13 @@ func TestClientPublishNotAllowed(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
 
-	_, err := h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
+	_, err = h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
 		Channel: "non_existing_namespace:test1",
 		Data:    []byte(`{}`),
 	}, nil, proxy.PerCallData{})
@@ -757,12 +781,13 @@ func TestClientPublishAllowed(t *testing.T) {
 	ruleConfig := rule.DefaultConfig
 	ruleConfig.PublishForClient = true
 	ruleConfig.PublishForAnonymous = true
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
 
-	_, err := h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
+	_, err = h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
 		Channel: "test1",
 		Data:    []byte(`{}`),
 	}, nil, proxy.PerCallData{})
@@ -776,12 +801,13 @@ func TestClientPublishForSubscriber(t *testing.T) {
 	ruleConfig := rule.DefaultConfig
 	ruleConfig.PublishForSubscriber = true
 	ruleConfig.PublishForAnonymous = true
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
 
-	_, err := h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
+	_, err = h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
 		Channel: "test1",
 		Data:    []byte(`{}`),
 	}, nil, proxy.PerCallData{})
@@ -797,7 +823,8 @@ func TestClientHistory(t *testing.T) {
 	ruleConfig.HistoryTTL = tools.Duration(300 * time.Second)
 	ruleConfig.HistoryForClient = true
 	ruleConfig.HistoryForAnonymous = true
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
@@ -819,12 +846,13 @@ func TestClientHistoryError(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
 
-	_, err := h.OnHistory(&centrifuge.Client{}, centrifuge.HistoryEvent{
+	_, err = h.OnHistory(&centrifuge.Client{}, centrifuge.HistoryEvent{
 		Channel: "non_existing_namespace:test1",
 	})
 	require.Equal(t, centrifuge.ErrorUnknownChannel, err)
@@ -853,7 +881,8 @@ func TestClientPresence(t *testing.T) {
 	ruleConfig.Presence = true
 	ruleConfig.PresenceForClient = true
 	ruleConfig.PresenceForAnonymous = true
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
@@ -875,10 +904,11 @@ func TestClientPresenceError(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}, ruleContainer), &ProxyMap{}, false)
 
-	_, err := h.OnPresence(&centrifuge.Client{}, centrifuge.PresenceEvent{
+	_, err = h.OnPresence(&centrifuge.Client{}, centrifuge.PresenceEvent{
 		Channel: "non_existing_namespace:test1",
 	})
 	require.Equal(t, centrifuge.ErrorUnknownChannel, err)
@@ -906,7 +936,8 @@ func TestClientPresenceStats(t *testing.T) {
 	ruleConfig.Presence = true
 	ruleConfig.PresenceForClient = true
 	ruleConfig.PresenceForAnonymous = true
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}, ruleContainer), &ProxyMap{}, false)
@@ -928,10 +959,11 @@ func TestClientPresenceStatsError(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}, ruleContainer), &ProxyMap{}, false)
 
-	_, err := h.OnPresenceStats(&centrifuge.Client{}, centrifuge.PresenceStatsEvent{
+	_, err = h.OnPresenceStats(&centrifuge.Client{}, centrifuge.PresenceStatsEvent{
 		Channel: "non_existing_namespace:test1",
 	})
 	require.Equal(t, centrifuge.ErrorUnknownChannel, err)

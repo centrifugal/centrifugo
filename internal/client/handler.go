@@ -523,13 +523,9 @@ func isASCII(s string) bool {
 	return true
 }
 
-func (h *Handler) validChannelName(nsName string, rest string, chOpts rule.ChannelOptions, channel string) (bool, error) {
+func (h *Handler) validChannelName(_ string, rest string, chOpts rule.ChannelOptions, channel string) (bool, error) {
 	if chOpts.ChannelRegex != "" {
-		regex, ok := h.ruleContainer.CompiledRegex(nsName)
-		if !ok {
-			// May happen due to channel options reload.
-			return false, errors.New("no compiled regex found")
-		}
+		regex := chOpts.Compiled.CompiledChannelRegex
 		if !regex.MatchString(rest) {
 			return false, nil
 		}

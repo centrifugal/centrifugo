@@ -46,9 +46,15 @@ func newConnHandleGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTes
 	if err != nil {
 		log.Fatalln("could not create grpc connect proxy: ", err)
 	}
+
+	ruleContainer, err := rule.NewContainer(rule.DefaultConfig)
+	if err != nil {
+		panic(err)
+	}
+
 	connectProxyHandler := NewConnectHandler(ConnectHandlerConfig{
 		Proxy: connectProxy,
-	}, rule.NewContainer(rule.DefaultConfig))
+	}, ruleContainer)
 
 	return grpcConnHandleTestCase{commonProxyTestCase, connectProxyHandler}
 }
@@ -66,9 +72,14 @@ func newConnHandleHTTPTestCase(ctx context.Context, endpoint string) httpConnHan
 		log.Fatalln("could not create http connect proxy: ", err)
 	}
 
+	ruleContainer, err := rule.NewContainer(rule.DefaultConfig)
+	if err != nil {
+		panic(err)
+	}
+
 	connectProxyHandler := NewConnectHandler(ConnectHandlerConfig{
 		Proxy: connectProxy,
-	}, rule.NewContainer(rule.DefaultConfig))
+	}, ruleContainer)
 
 	return httpConnHandleTestCase{commonProxyTestCase, connectProxyHandler}
 }

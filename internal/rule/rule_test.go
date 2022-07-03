@@ -122,7 +122,8 @@ func TestConfigValidateMalformedReceiverInNamespace(t *testing.T) {
 }
 
 func TestUserAllowed(t *testing.T) {
-	rules := NewContainer(DefaultConfig)
+	rules, err := NewContainer(DefaultConfig)
+	require.NoError(t, err)
 	require.True(t, rules.UserAllowed("channel#1", "1"))
 	require.True(t, rules.UserAllowed("channel", "1"))
 	require.False(t, rules.UserAllowed("channel#1", "2"))
@@ -132,7 +133,8 @@ func TestUserAllowed(t *testing.T) {
 }
 
 func TestIsUserLimited(t *testing.T) {
-	rules := NewContainer(DefaultConfig)
+	rules, err := NewContainer(DefaultConfig)
+	require.NoError(t, err)
 	require.True(t, rules.IsUserLimited("#12"))
 	require.True(t, rules.IsUserLimited("test#12"))
 	rules.config.ChannelUserBoundary = ""

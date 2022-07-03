@@ -1,6 +1,10 @@
 package rule
 
-import "github.com/centrifugal/centrifugo/v4/internal/tools"
+import (
+	"regexp"
+
+	"github.com/centrifugal/centrifugo/v4/internal/tools"
+)
 
 // ChannelNamespace allows creating channels with different channel options.
 type ChannelNamespace struct {
@@ -10,6 +14,10 @@ type ChannelNamespace struct {
 	// Options for namespace determine channel options for channels
 	// belonging to this namespace.
 	ChannelOptions `mapstructure:",squash"`
+}
+
+type Compiled struct {
+	CompiledChannelRegex *regexp.Regexp
 }
 
 // ChannelOptions represent channel specific configuration for namespace
@@ -112,4 +120,6 @@ type ChannelOptions struct {
 
 	// PublishProxyName of proxy to use for publish operations in namespace.
 	PublishProxyName string `mapstructure:"publish_proxy_name" json:"publish_proxy_name"`
+
+	Compiled
 }

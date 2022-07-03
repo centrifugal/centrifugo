@@ -38,7 +38,8 @@ func TestPublishAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
 
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 
 	api := NewExecutor(node, ruleContainer, &testSurveyCaller{}, "test")
 	resp := api.Publish(context.Background(), &PublishRequest{})
@@ -57,7 +58,8 @@ func TestPublishAPI(t *testing.T) {
 func TestBroadcastAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 
 	api := NewExecutor(node, ruleContainer, &testSurveyCaller{}, "test")
 	resp := api.Broadcast(context.Background(), &BroadcastRequest{})
@@ -81,7 +83,8 @@ func TestBroadcastAPI(t *testing.T) {
 func TestHistoryAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 
 	api := NewExecutor(node, ruleContainer, &testSurveyCaller{}, "test")
 	resp := api.History(context.Background(), &HistoryRequest{})
@@ -101,7 +104,8 @@ func TestHistoryAPI(t *testing.T) {
 func TestHistoryRemoveAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 
 	api := NewExecutor(node, ruleContainer, &testSurveyCaller{}, "test")
 	resp := api.HistoryRemove(context.Background(), &HistoryRemoveRequest{})
@@ -121,7 +125,8 @@ func TestHistoryRemoveAPI(t *testing.T) {
 func TestPresenceAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 
 	api := NewExecutor(node, ruleContainer, &testSurveyCaller{}, "test")
 	resp := api.Presence(context.Background(), &PresenceRequest{})
@@ -141,7 +146,8 @@ func TestPresenceAPI(t *testing.T) {
 func TestPresenceStatsAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 
 	api := NewExecutor(node, ruleContainer, &testSurveyCaller{}, "test")
 	resp := api.PresenceStats(context.Background(), &PresenceStatsRequest{})
@@ -160,7 +166,8 @@ func TestPresenceStatsAPI(t *testing.T) {
 func TestDisconnectAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 
 	api := NewExecutor(node, ruleContainer, &testSurveyCaller{}, "test")
 	resp := api.Disconnect(context.Background(), &DisconnectRequest{
@@ -172,7 +179,8 @@ func TestDisconnectAPI(t *testing.T) {
 func TestUnsubscribeAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 
 	api := NewExecutor(node, ruleContainer, &testSurveyCaller{}, "test")
 	resp := api.Unsubscribe(context.Background(), &UnsubscribeRequest{
@@ -185,7 +193,8 @@ func TestUnsubscribeAPI(t *testing.T) {
 func TestRefreshAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 
 	api := NewExecutor(node, ruleContainer, &testSurveyCaller{}, "test")
 	resp := api.Refresh(context.Background(), &RefreshRequest{
@@ -197,7 +206,8 @@ func TestRefreshAPI(t *testing.T) {
 func TestSubscribeAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 
 	api := NewExecutor(node, ruleContainer, &testSurveyCaller{}, "test")
 	resp := api.Subscribe(context.Background(), &SubscribeRequest{
@@ -210,7 +220,8 @@ func TestSubscribeAPI(t *testing.T) {
 func TestInfoAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 
 	api := NewExecutor(node, ruleContainer, &testSurveyCaller{}, "test")
 	resp := api.Info(context.Background(), &InfoRequest{})

@@ -57,13 +57,19 @@ func GenerateSubToken(config jwtverify.VerifierConfig, user string, channel stri
 }
 
 func verify(config jwtverify.VerifierConfig, ruleConfig rule.Config, token string) (jwtverify.ConnectToken, error) {
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	if err != nil {
+		return jwtverify.ConnectToken{}, err
+	}
 	verifier := jwtverify.NewTokenVerifierJWT(config, ruleContainer)
 	return verifier.VerifyConnectToken(token)
 }
 
 func verifySub(config jwtverify.VerifierConfig, ruleConfig rule.Config, token string) (jwtverify.SubscribeToken, error) {
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	if err != nil {
+		return jwtverify.SubscribeToken{}, err
+	}
 	verifier := jwtverify.NewTokenVerifierJWT(config, ruleContainer)
 	return verifier.VerifySubscribeToken(token)
 }

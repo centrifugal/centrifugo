@@ -345,7 +345,10 @@ func main() {
 			if err != nil {
 				log.Fatal().Msgf("error validating config: %v", err)
 			}
-			ruleContainer := rule.NewContainer(ruleConfig)
+			ruleContainer, err := rule.NewContainer(ruleConfig)
+			if err != nil {
+				log.Fatal().Msgf("error creating config: %v", err)
+			}
 
 			granularProxyMode := viper.GetBool("granular_proxy_mode")
 			var proxyMap *client.ProxyMap
