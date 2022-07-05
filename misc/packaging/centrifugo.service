@@ -2,7 +2,7 @@
 Description=Centrifugo real-time messaging server
 Documentation=https://github.com/centrifugal/centrifugo
 # start once the network and logging subsystems available
-After=network.target syslog.target
+After=network.target
 
 [Service]
 User=centrifugo
@@ -18,9 +18,6 @@ TimeoutStopSec=10
 KillMode=control-group
 RestartSec=1
 Restart=on-failure
-StandardOutput=syslog
-StandardError=syslog
-SyslogIdentifier=centrifugo
 
 [Install]
 WantedBy=multi-user.target
