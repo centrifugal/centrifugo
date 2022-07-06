@@ -358,17 +358,17 @@ message ConnectionInfo {
 
 message ConnectionState {
     repeated string channels = 1;
-    ConnectionToken connection_token = 2;
-    map<string, ChannelToken> channel_tokens = 3;
+    ConnectionTokenInfo connection_token = 2;
+    map<string, SubscriptionTokenInfo> subscription_tokens = 3;
     bytes meta = 4;
 }
 
-message ConnectionToken {
+message ConnectionTokenInfo {
     string uid = 1;
     int64 issued_at = 2;
 }
 
-message ChannelToken {
+message SubscriptionTokenInfo {
     string uid = 1;
     int64 issued_at = 2;
 }
