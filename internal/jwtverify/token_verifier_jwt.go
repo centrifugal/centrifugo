@@ -98,8 +98,8 @@ type SubscribeOptionOverride struct {
 	Presence *BoolValue `json:"presence,omitempty"`
 	// JoinLeave enables sending Join and Leave messages for this client in channel.
 	JoinLeave *BoolValue `json:"join_leave,omitempty"`
-	// ForcePushJoinLeave ...
-	ForcePushJoinLeave *BoolValue
+	// ForcePushJoinLeave forces sending join/leave for this client.
+	ForcePushJoinLeave *BoolValue `json:"force_push_join_leave,omitempty"`
 	// ForcePositioning on says that client will additionally sync its position inside
 	// a stream to prevent message loss. Make sure you are enabling ForcePositioning in channels
 	// that maintain Publication history stream. When ForcePositioning is on  Centrifuge will

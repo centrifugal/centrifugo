@@ -13,19 +13,22 @@ Several important documents we have at this point can help you get started with 
 ### Highlights
 
 * New client protocol iteration and unified client SDK API
-* All SDKs now support all the core features of Centrifugo protocol 
-* Our own WebSocket bidirectional emulation layer based on HTTP-streaming and SSE (EventSource). Without sticky session requirement for distributed case.
+* All SDKs now support all the core features of Centrifugo
+* Our own WebSocket bidirectional emulation layer based on HTTP-streaming and SSE (EventSource). Without sticky session requirement for a distributed case.
 * SockJS is still supported but DEPRECATED
-* Redesigned PING-PONG
+* Redesigned, more efficient PING-PONG
 * Optimistic subscriptions support (implemented in `centrifuge-js` only at this point)
 * Secure by default channel namespaces
 * Private channel and subscription JWT concepts revised
 * Avoid sending JSON in WebSocket Close frame reason
 * Temporary flag for errors, allows resilient behavior of Subscriptions
-* Possibility to enable recovery, positioning, join/leave from the client-side
+* Possibility to enable recovery and positioning from the client-side
 * Experimental HTTP/3 support
 * `gensubtoken` and `checksubtoken` cli commands
 * Legacy options removed, some options renamed, see [migration guide](https://centrifugal.dev/docs/getting-started/migration_v4) for details.
+* `meta` attached to a connection now updated upon connection refresh
+* `centrifuge-js` migrated to Typescript
+* The docs on [centrifugal.dev](https://centrifugal.dev/) were updated for v4, docs for v3 are still there but under version switch widget.
 
 ### Misc
 

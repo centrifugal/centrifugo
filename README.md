@@ -1,10 +1,8 @@
 [![Join the chat at https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ](https://img.shields.io/badge/Telegram-Group-orange?style=flat&logo=telegram)](https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ) &nbsp;&nbsp;[![Join the chat at https://discord.gg/tYgADKx](https://img.shields.io/discord/719186998686122046?style=flat&label=Discord&logo=discord)](https://discord.gg/tYgADKx)
 
-Centrifugo is a scalable real-time messaging server in a language-agnostic way.
+Centrifugo is a scalable soft **real-time messaging** server written in Go language. Centrifugo can instantly deliver messages to application online users connected over a **variety of real-time transports** (like WebSocket, HTTP-streaming, SSE/EventSource, GRPC, SockJS). Centrifugo has channel concept – so it's actually a **user-facing PUB/SUB server**. Centrifugo is **language-agnostic** and can be used to implement chat applications, live comments, multiplayer games, streaming metrics, etc. in conjunction with any backend. It's especially useful when the application backend does not have built-in concurrency support, or dealing with many persistent connections is a challenge you are not going to take part in. Several official client SDKs for **browser and mobile development** wrap bidirectional protocol, also Centrifugo supports unidirectional approach for simple zero-sdk-dependency use cases.
 
-Centrifugo works in conjunction with application backend written in any programming language. It runs as a separate service and keeps persistent connections from application clients established over several supported types of transport (WebSocket, SockJS, EventSource, GRPC, HTTP-streaming). When you need to deliver an event to your clients in real-time, you publish it to Centrifugo server API – and Centrifugo then broadcasts the event to all connected clients interested in this event (clients subscribed to the event channel). In other words – Centrifugo is a user-facing PUB/SUB server.
-
-For more information follow to [Centrifugo documentation site](https://centrifugal.dev).
+For the detailed information follow to [Centrifugo documentation site](https://centrifugal.dev).
 
 ![scheme](https://raw.githubusercontent.com/centrifugal/centrifugo/v2/docs/content/images/scheme_sketch.png)
 
