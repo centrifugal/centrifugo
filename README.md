@@ -1,6 +1,10 @@
 [![Join the chat at https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ](https://img.shields.io/badge/Telegram-Group-orange?style=flat&logo=telegram)](https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ) &nbsp;&nbsp;[![Join the chat at https://discord.gg/tYgADKx](https://img.shields.io/discord/719186998686122046?style=flat&label=Discord&logo=discord)](https://discord.gg/tYgADKx)
 
-Centrifugo is a scalable soft **real-time messaging** server written in Go language. Centrifugo can instantly deliver messages to application online users connected over a **variety of real-time transports** (like WebSocket, HTTP-streaming, SSE/EventSource, GRPC, SockJS). Centrifugo has channel concept – so it's actually a **user-facing PUB/SUB server**. Centrifugo is **language-agnostic** and can be used to implement chat applications, live comments, multiplayer games, streaming metrics, etc. in conjunction with any backend. It's especially useful when the application backend does not have built-in concurrency support, or dealing with many persistent connections is a challenge you are not going to take part in. Several official client SDKs for **browser and mobile development** wrap bidirectional protocol, also Centrifugo supports unidirectional approach for simple zero-sdk-dependency use cases.
+Centrifugo is a scalable real-time messaging server written in Go language. Centrifugo can instantly deliver messages to application online users connected over supported real-time transports (WebSocket, HTTP-streaming, SSE/EventSource, GRPC, SockJS). Centrifugo has a channel concept – so it's a user-facing PUB/SUB server.
+
+Centrifugo is language-agnostic and can be used to build chat applications, live comments, multiplayer games, streaming metrics, etc., in conjunction with any backend. It fits well modern architectures and allows decoupling business logic from the real-time transport layer.
+
+Several official client SDKs for browser and mobile development wrap bidirectional protocol. Also, Centrifugo supports a unidirectional approach for simple zero-SDK-dependency use cases.
 
 For the detailed information follow to [Centrifugo documentation site](https://centrifugal.dev).
 
