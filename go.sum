@@ -66,10 +66,10 @@ github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6r
 github.com/bradfitz/go-smtpd v0.0.0-20170404230938-deb6d6237625/go.mod h1:HYsPBTaaSFSlLx/70C2HPIMNZpVV8+vt/A+FMnYP11g=
 github.com/buger/jsonparser v0.0.0-20181115193947-bf1c66bbce23/go.mod h1:bbYlZJ7hK1yFx9hf58LP0zeX7UjIGs20ufpu3evjr+s=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
-github.com/centrifugal/centrifuge v0.23.2-0.20220702160148-d07146f063a2 h1:BpSPAPdHse30XP80+ho+c8RUDfL0h8Z5WuE6Bgb3D00=
-github.com/centrifugal/centrifuge v0.23.2-0.20220702160148-d07146f063a2/go.mod h1:8lUzxkMj19ysBE5olu3pOh1BYDt7WhdC7Rthr9Ra6Aw=
-github.com/centrifugal/protocol v0.8.9-0.20220701061726-8935a0d0ba99 h1:Jq9rChR7qiHK8U8qC490bmwumzauUwzdmnCZFDfstAA=
-github.com/centrifugal/protocol v0.8.9-0.20220701061726-8935a0d0ba99/go.mod h1:dlHBjKakr0r+f1pkfwSMfZ+cnpvidN7pQe1ZrsKfhtE=
+github.com/centrifugal/centrifuge v0.23.2-0.20220705071446-5d7ca5184786 h1:COcXD6HivgIA0ByWV0xlp09fWeEK/08V9ePTgua68Mg=
+github.com/centrifugal/centrifuge v0.23.2-0.20220705071446-5d7ca5184786/go.mod h1:QTRNM1npFrl/5ucbAOfXvPQMCTdgQyamF0+pcOHO7qc=
+github.com/centrifugal/protocol v0.8.9 h1:aQTtHYlh0q0J4/u4LV5LwSc051FGz/sjGKCbcQiDSLA=
+github.com/centrifugal/protocol v0.8.9/go.mod h1:dlHBjKakr0r+f1pkfwSMfZ+cnpvidN7pQe1ZrsKfhtE=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/cespare/xxhash/v2 v2.1.1/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cespare/xxhash/v2 v2.1.2 h1:YRXhKfTDauu4ajMg1TPgFO5jnlC2HCbmLXMcTG5cbYE=
