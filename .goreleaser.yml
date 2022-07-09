@@ -4,6 +4,7 @@ release:
     owner: centrifugal
     name: centrifugo
   name_template: '{{.Tag}}'
+  prerelease: auto
   draft: true
   extra_files:
     - glob: ./PACKAGES/*.deb
