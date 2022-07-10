@@ -1,10 +1,10 @@
-Centrifugo is a scalable real-time messaging server written in Go language. Centrifugo can instantly deliver messages to application online users connected over supported real-time transports (WebSocket, HTTP-streaming, SSE/EventSource, GRPC, SockJS). Centrifugo has a channel concept – so it's a user-facing PUB/SUB server.
+Centrifugo is a scalable real-time messaging server written in the Go language. Centrifugo can instantly deliver messages to application online users connected over supported real-time transports (WebSocket, HTTP-streaming, SSE/EventSource, GRPC, SockJS). Centrifugo has the concept of a channel – so it's a user-facing PUB/SUB server.
 
-Centrifugo is language-agnostic and can be used to build chat applications, live comments, multiplayer games, streaming metrics, etc., in conjunction with any backend. It fits well modern architectures and allows decoupling business logic from the real-time transport layer.
+Centrifugo is language-agnostic and can be used to build chat apps, live comments, multiplayer games, streaming metrics, collaborative tools, etc. in combination with any backend. It is well suited for modern architectures and allows decoupling the business logic from the real-time transport layer.
 
-Several official client SDKs for browser and mobile development wrap bidirectional protocol. Also, Centrifugo supports a unidirectional approach for simple zero-SDK-dependency use cases.
+Several official client SDKs for browser and mobile development wrap the bidirectional protocol. In addition, Centrifugo supports a unidirectional approach for simple use cases with no SDK dependency.
 
-Proceed to [centrifugal.dev](https://centrifugal.dev/) for a more detailed description.
+For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 New v4 release puts Centrifugo to the next level in terms of client protocol performance, WebSocket fallback simplicity, SDK ecosystem and channel security model. This is a major release with breaking changes according to our [Centrifugo v4 roadmap](https://github.com/centrifugal/centrifugo/issues/500).
 

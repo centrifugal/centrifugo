@@ -1,12 +1,12 @@
 [![Join the chat at https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ](https://img.shields.io/badge/Telegram-Group-orange?style=flat&logo=telegram)](https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ) &nbsp;&nbsp;[![Join the chat at https://discord.gg/tYgADKx](https://img.shields.io/discord/719186998686122046?style=flat&label=Discord&logo=discord)](https://discord.gg/tYgADKx)
 
-Centrifugo is a scalable real-time messaging server written in Go language. Centrifugo can instantly deliver messages to application online users connected over supported real-time transports (WebSocket, HTTP-streaming, SSE/EventSource, GRPC, SockJS). Centrifugo has a channel concept – so it's a user-facing PUB/SUB server.
+Centrifugo is a scalable real-time messaging server written in the Go language. Centrifugo can instantly deliver messages to application online users connected over supported real-time transports (WebSocket, HTTP-streaming, SSE/EventSource, GRPC, SockJS). Centrifugo has the concept of a channel – so it's a user-facing PUB/SUB server.
 
-Centrifugo is language-agnostic and can be used to build chat applications, live comments, multiplayer games, streaming metrics, etc., in conjunction with any backend. It fits well modern architectures and allows decoupling business logic from the real-time transport layer.
+Centrifugo is language-agnostic and can be used to build chat apps, live comments, multiplayer games, streaming metrics, collaborative tools, etc. in combination with any backend. It is well suited for modern architectures and allows decoupling the business logic from the real-time transport layer.
 
-Several official client SDKs for browser and mobile development wrap bidirectional protocol. Also, Centrifugo supports a unidirectional approach for simple zero-SDK-dependency use cases.
+Several official client SDKs for browser and mobile development wrap the bidirectional protocol. In addition, Centrifugo supports a unidirectional approach for simple use cases with no SDK dependency.
 
-For the detailed information follow to [Centrifugo documentation site](https://centrifugal.dev).
+For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ![scheme](https://raw.githubusercontent.com/centrifugal/centrifugo/v2/docs/content/images/scheme_sketch.png)
 
@@ -38,7 +38,7 @@ Try our [demo instance](https://centrifugo3.herokuapp.com/) on Heroku (admin pas
 * Join/leave events for channels (client subscribed/unsubscribed)
 * Automatic recovery of missed messages between reconnects over configured retention period
 * Built-in administrative web panel
-* Cross platform – works on Linux, macOS and Windows
+* Cross-platform – works on Linux, macOS and Windows
 * Ready to deploy (Docker, RPM/DEB packages, automatic TLS certificates, Prometheus instrumentation, Grafana dashboard)
 * Open-source license
 
