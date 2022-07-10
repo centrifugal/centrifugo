@@ -1,8 +1,8 @@
 [![Join the chat at https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ](https://img.shields.io/badge/Telegram-Group-orange?style=flat&logo=telegram)](https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ) &nbsp;&nbsp;[![Join the chat at https://discord.gg/tYgADKx](https://img.shields.io/discord/719186998686122046?style=flat&label=Discord&logo=discord)](https://discord.gg/tYgADKx)
 
-Centrifugo is a scalable real-time messaging server written in the Go language. Centrifugo can instantly deliver messages to application online users connected over supported real-time transports (WebSocket, HTTP-streaming, SSE/EventSource, GRPC, SockJS). Centrifugo has the concept of a channel – so it's a user-facing PUB/SUB server.
+Centrifugo is a scalable real-time messaging server written in the Go language. Centrifugo can instantly deliver messages to application online users connected over supported transports (WebSocket, HTTP-streaming, SSE/EventSource, GRPC, SockJS). Centrifugo has the concept of a channel – so it's a user-facing PUB/SUB server.
 
-Centrifugo is language-agnostic and can be used to build chat apps, live comments, multiplayer games, streaming metrics, collaborative tools, etc. in combination with any backend. It is well suited for modern architectures and allows decoupling the business logic from the real-time transport layer.
+Centrifugo is language-agnostic and can be used to build chat apps, live comments, multiplayer games, real-time data visualizations, collaborative tools, etc. in combination with any backend. It is well suited for modern architectures and allows decoupling the business logic from the real-time transport layer.
 
 Several official client SDKs for browser and mobile development wrap the bidirectional protocol. In addition, Centrifugo supports a unidirectional approach for simple use cases with no SDK dependency.
 
@@ -23,16 +23,15 @@ Try our [demo instance](https://centrifugo3.herokuapp.com/) on Heroku (admin pas
 ### Highlights
 
 * Centrifugo is fast and capable to scale to millions of simultaneous connections
-* Simple integration with any application – works as separate service, provides HTTP and GRPC API
-* Client connectors for popular frontend environments – for both web and mobile development
-* Strict client protocol based on Protobuf schema
+* Simple integration with any application – Centrifugo works as a separate service, provides HTTP and GRPC API
+* Client real-time SDKs for popular frontend environments – for both web and mobile development
+* Strict client protocol based on Protobuf schema, with JSON and binary data transfer support
 * Bidirectional transport support (WebSocket and SockJS) for full-featured communication
-* Unidirectional transport support without need in client connectors - use native APIs (SSE, Fetch, WebSocket, GRPC)
-* User authentication with a JWT or over connection request proxy to configured HTTP/GRPC endpoint
+* Unidirectional transport support for simple use cases with zero SDK dependency - use native APIs (SSE, Fetch, WebSocket, GRPC)
+* User authentication with JWT or over connection request proxy to the configured HTTP/GRPC endpoint
 * Proper connection management and expiration control
-* Various types of channels: anonymous, authenticated, private, user-limited
-* Various types of subscriptions: client-side or server-side
-* Transform RPC calls over WebSocket/SockJS to configured HTTP or GRPC endpoint call
+* Various types of channel subscriptions: client-side or server-side
+* Transform RPC calls sent over real-time transport to the configured HTTP or GRPC endpoint calls
 * Presence information for channels (show all active clients in a channel)
 * History information for channels (last messages published into a channel)
 * Join/leave events for channels (client subscribed/unsubscribed)
