@@ -1269,7 +1269,9 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled 
 				defer func() { _ = tlsConn.Close() }()
 
 				quicServer := &http3.Server{
-					Server: server,
+					Addr:      addr,
+					Handler:   mux,
+					TLSConfig: addrTLSConfig,
 				}
 
 				server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
