@@ -9,14 +9,15 @@ require (
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/tarantool v0.3.1
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
-	github.com/centrifugal/centrifuge v0.23.2-0.20220705071446-5d7ca5184786
-	github.com/centrifugal/protocol v0.8.9
+	github.com/centrifugal/centrifuge v0.23.2-0.20220713062126-a1e45cd3c321
+	github.com/centrifugal/protocol v0.8.10
 	github.com/cristalhq/jwt/v4 v4.0.0
 	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/websocket v1.5.0
 	github.com/lucas-clemente/quic-go v0.28.0
+	github.com/marten-seemann/webtransport-go v0.0.0-20220709212913-0bb1f0a11a30
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/nats-io/nats.go v1.16.0
@@ -24,7 +25,7 @@ require (
 	github.com/rakutentech/jwk-go v1.0.1
 	github.com/rs/zerolog v1.21.0
 	github.com/spf13/cobra v0.0.7
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.8.0
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
@@ -79,5 +80,5 @@ require (
 	google.golang.org/genproto v0.0.0-20220422154200-b37d22cd5731 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

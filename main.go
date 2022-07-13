@@ -34,6 +34,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/marten-seemann/webtransport-go"
+
+	"github.com/centrifugal/centrifugo/v4/internal/wt"
+
 	"github.com/centrifugal/centrifugo/v4/internal/admin"
 	"github.com/centrifugal/centrifugo/v4/internal/api"
 	"github.com/centrifugal/centrifugo/v4/internal/build"
@@ -223,10 +227,11 @@ func bindCentrifugoConfig() {
 		"websocket_disable": false,
 		"api_disable":       false,
 
-		"websocket_handler_prefix":   "/connection/websocket",
-		"sockjs_handler_prefix":      "/connection/sockjs",
-		"http_stream_handler_prefix": "/connection/http_stream",
-		"sse_handler_prefix":         "/connection/sse",
+		"websocket_handler_prefix":    "/connection/websocket",
+		"webtransport_handler_prefix": "/connection/webtransport",
+		"sockjs_handler_prefix":       "/connection/sockjs",
+		"http_stream_handler_prefix":  "/connection/http_stream",
+		"sse_handler_prefix":          "/connection/sse",
 
 		"uni_websocket_handler_prefix":      "/connection/uni_websocket",
 		"uni_sse_handler_prefix":            "/connection/uni_sse",
@@ -1153,6 +1158,9 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled 
 	if !viper.GetBool("websocket_disable") {
 		portFlags |= HandlerWebsocket
 	}
+	if viper.GetBool("webtransport") {
+		portFlags |= HandlerWebtransport
+	}
 	if viper.GetBool("sockjs") {
 		portFlags |= HandlerSockJS
 	}
@@ -1213,25 +1221,48 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled 
 		if handlerFlags == 0 {
 			continue
 		}
-		mux := Mux(n, apiExecutor, handlerFlags, proxyEnabled)
+		var addrTLSConfig *tls.Config
+		if !viper.GetBool("tls_external") || addr == externalAddr {
+			addrTLSConfig = tlsConfig
+		}
 
 		useHTTP3 := viper.GetBool("http3") && addr == externalAddr
+
+		var wtServer *webtransport.Server
+		if useHTTP3 {
+			wtServer = &webtransport.Server{
+				CheckOrigin: getCheckOrigin(),
+			}
+		}
+
+		mux := Mux(n, apiExecutor, handlerFlags, proxyEnabled, wtServer)
+
+		if useHTTP3 {
+			wtServer.H3 = http3.Server{
+				Addr:      addr,
+				TLSConfig: addrTLSConfig,
+				Handler:   mux,
+			}
+		}
+
 		var protoSuffix string
 		if useHTTP3 {
 			protoSuffix = " with http3"
 		}
 		log.Info().Msgf("serving %s endpoints on %s%s", handlerFlags, addr, protoSuffix)
 
-		var addrTLSConfig *tls.Config
-		if !viper.GetBool("tls_external") || addr == externalAddr {
-			addrTLSConfig = tlsConfig
-		}
-
 		server := &http.Server{
 			Addr:      addr,
 			Handler:   mux,
 			TLSConfig: addrTLSConfig,
 			ErrorLog:  stdlog.New(&httpErrorLogWriter{log.Logger}, "", 0),
+		}
+
+		if useHTTP3 {
+			server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				_ = wtServer.H3.SetQuicHeaders(w.Header())
+				mux.ServeHTTP(w, r)
+			})
 		}
 
 		servers = append(servers, server)
@@ -1268,29 +1299,18 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled 
 				tlsConn := tls.NewListener(tcpConn, addrTLSConfig)
 				defer func() { _ = tlsConn.Close() }()
 
-				quicServer := &http3.Server{
-					Addr:      addr,
-					Handler:   mux,
-					TLSConfig: addrTLSConfig,
-				}
-
-				server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					_ = quicServer.SetQuicHeaders(w.Header())
-					mux.ServeHTTP(w, r)
-				})
-
 				hErr := make(chan error)
 				qErr := make(chan error)
 				go func() {
 					hErr <- server.Serve(tlsConn)
 				}()
 				go func() {
-					qErr <- quicServer.Serve(udpConn)
+					qErr <- wtServer.Serve(udpConn)
 				}()
 
 				select {
 				case err := <-hErr:
-					_ = quicServer.Close()
+					_ = wtServer.Close()
 					if err != http.ErrServerClosed {
 						log.Fatal().Msgf("ListenAndServe: %v", err)
 					}
@@ -1968,6 +1988,10 @@ func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	return cfg
 }
 
+func webTransportHandlerConfig() wt.Config {
+	return wt.Config{}
+}
+
 func adminHandlerConfig() admin.Config {
 	v := viper.GetViper()
 	cfg := admin.Config{}
@@ -2275,6 +2299,8 @@ const (
 	HandlerWebsocket HandlerFlag = 1 << iota
 	// HandlerSockJS enables SockJS handler.
 	HandlerSockJS
+	// HandlerWebtransport enables Webtransport handler (requires HTTP/3)
+	HandlerWebtransport
 	// HandlerAPI enables API handler.
 	HandlerAPI
 	// HandlerAdmin enables admin web interface.
@@ -2302,6 +2328,7 @@ const (
 var handlerText = map[HandlerFlag]string{
 	HandlerWebsocket:     "websocket",
 	HandlerSockJS:        "SockJS",
+	HandlerWebtransport:  "webtransport",
 	HandlerAPI:           "API",
 	HandlerAdmin:         "admin",
 	HandlerDebug:         "debug",
@@ -2316,7 +2343,7 @@ var handlerText = map[HandlerFlag]string{
 }
 
 func (flags HandlerFlag) String() string {
-	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerHTTPStream, HandlerSSE, HandlerEmulation, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniHTTPStream}
+	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerWebtransport, HandlerHTTPStream, HandlerSSE, HandlerEmulation, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniHTTPStream}
 	var endpoints []string
 	for _, flag := range flagsOrdered {
 		text, ok := handlerText[flag]
@@ -2331,7 +2358,7 @@ func (flags HandlerFlag) String() string {
 }
 
 // Mux returns a mux including set of default handlers for Centrifugo server.
-func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxyEnabled bool) *http.ServeMux {
+func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxyEnabled bool, wtServer *webtransport.Server) *http.ServeMux {
 	mux := http.NewServeMux()
 	v := viper.GetViper()
 
@@ -2350,6 +2377,15 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxy
 			wsPrefix = "/"
 		}
 		mux.Handle(wsPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, centrifuge.NewWebsocketHandler(n, websocketHandlerConfig()))))
+	}
+
+	if flags&HandlerWebtransport != 0 {
+		// register WebTransport connection endpoint.
+		wtPrefix := strings.TrimRight(v.GetString("webtransport_handler_prefix"), "/")
+		if wtPrefix == "" {
+			wtPrefix = "/"
+		}
+		mux.Handle(wtPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, wt.NewHandler(n, wtServer, webTransportHandlerConfig()))))
 	}
 
 	if flags&HandlerHTTPStream != 0 {
