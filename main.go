@@ -34,10 +34,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/marten-seemann/webtransport-go"
-
-	"github.com/centrifugal/centrifugo/v4/internal/wt"
-
 	"github.com/centrifugal/centrifugo/v4/internal/admin"
 	"github.com/centrifugal/centrifugo/v4/internal/api"
 	"github.com/centrifugal/centrifugo/v4/internal/build"
@@ -63,10 +59,12 @@ import (
 	"github.com/centrifugal/centrifugo/v4/internal/uniws"
 	"github.com/centrifugal/centrifugo/v4/internal/usage"
 	"github.com/centrifugal/centrifugo/v4/internal/webui"
+	"github.com/centrifugal/centrifugo/v4/internal/wt"
 
 	"github.com/FZambia/viper-lite"
 	"github.com/centrifugal/centrifuge"
 	"github.com/lucas-clemente/quic-go/http3"
+	"github.com/marten-seemann/webtransport-go"
 	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/mapstructure"
 	"github.com/prometheus/client_golang/prometheus"
