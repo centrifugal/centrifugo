@@ -200,7 +200,7 @@ func bindCentrifugoConfig() {
 		"redis_write_timeout":   time.Second,
 		"redis_idle_timeout":    0,
 
-		"history_meta_ttl": 0,
+		"history_meta_ttl": 90 * 24 * time.Hour,
 		"presence_ttl":     60 * time.Second,
 
 		"grpc_api":         false,
