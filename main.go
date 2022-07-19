@@ -1157,6 +1157,9 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled 
 		portFlags |= HandlerWebsocket
 	}
 	if viper.GetBool("webtransport") {
+		if !viper.GetBool("http3") {
+			log.Fatal().Msg("can not enable webtransport without experimental HTTP/3")
+		}
 		portFlags |= HandlerWebtransport
 	}
 	if viper.GetBool("sockjs") {
@@ -1245,7 +1248,7 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled 
 
 		var protoSuffix string
 		if useHTTP3 {
-			protoSuffix = " with http3"
+			protoSuffix = " with HTTP/3 (experimental)"
 		}
 		log.Info().Msgf("serving %s endpoints on %s%s", handlerFlags, addr, protoSuffix)
 
