@@ -10,18 +10,18 @@ release:
     - glob: ./PACKAGES/*.deb
     - glob: ./PACKAGES/*.rpm
     - glob: ./PACKAGES/*.txt
-#brews:
-#  -
-#    tap:
-#      owner: centrifugal
-#      name: homebrew-centrifugo
-#    folder: Formula
-#    description: "Scalable real-time messaging server in a language-agnostic way"
-#    commit_author:
-#      name: Alexander Emelin
-#      email: frvzmb@gmail.com
-#    install: bin.install "centrifugo"
-#    homepage: "https://github.com/centrifugal/centrifugo"
+brews:
+  -
+    tap:
+      owner: centrifugal
+      name: homebrew-centrifugo
+    folder: Formula
+    description: "Scalable real-time messaging server in a language-agnostic way"
+    commit_author:
+      name: Alexander Emelin
+      email: frvzmb@gmail.com
+    install: bin.install "centrifugo"
+    homepage: "https://github.com/centrifugal/centrifugo"
 builds:
 - goos:
   - linux
@@ -89,7 +89,7 @@ dockers:
     - "centrifugo/centrifugo:{{ .Tag }}-amd64"
     - "centrifugo/centrifugo:v{{ .Major }}-amd64"
     - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-amd64"
-#    - "centrifugo/centrifugo:latest-amd64"
+    - "centrifugo/centrifugo:latest-amd64"
     use: buildx
     build_flag_templates:
     - "--pull"
@@ -107,7 +107,7 @@ dockers:
     - "centrifugo/centrifugo:{{ .Tag }}-arm64v8"
     - "centrifugo/centrifugo:v{{ .Major }}-arm64v8"
     - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-arm64v8"
-#    - "centrifugo/centrifugo:latest-arm64v8"
+    - "centrifugo/centrifugo:latest-arm64v8"
     use: buildx
     build_flag_templates:
     - "--pull"
@@ -130,7 +130,7 @@ docker_manifests:
     image_templates:
       - centrifugo/centrifugo:{{ .Tag }}-arm64v8
       - centrifugo/centrifugo:{{ .Tag }}-amd64
-#  - name_template: centrifugo/centrifugo:latest
-#    image_templates:
-#      - centrifugo/centrifugo:{{ .Tag }}-arm64v8
-#      - centrifugo/centrifugo:{{ .Tag }}-amd64
+  - name_template: centrifugo/centrifugo:latest
+    image_templates:
+      - centrifugo/centrifugo:{{ .Tag }}-arm64v8
+      - centrifugo/centrifugo:{{ .Tag }}-amd64

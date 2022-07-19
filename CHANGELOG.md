@@ -32,7 +32,7 @@ Several important documents we have at this point can help you get started with 
 
 ### Misc
 
-* This release is built with Go 1.18.3
+* This release is built with Go 1.18.4
 
 v3.2.3
 ======
