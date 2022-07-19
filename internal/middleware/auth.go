@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/centrifugal/centrifugo/v3/internal/tools"
+
 	"github.com/rs/zerolog/log"
 )
 
@@ -22,11 +24,15 @@ func APIKeyAuth(key string, h http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader != "" {
 			parts := strings.Fields(authHeader)
-			authValid = len(parts) == 2 && strings.ToLower(parts[0]) == "apikey" && parts[1] == key
+			if len(parts) == 2 && strings.ToLower(parts[0]) == "apikey" && tools.SecureCompareString(key, parts[1]) {
+				authValid = true
+			}
 		}
 		if !authValid && r.URL.RawQuery != "" {
 			// Check URL param.
-			authValid = r.URL.Query().Get("api_key") == key
+			if tools.SecureCompareString(key, r.URL.Query().Get("api_key")) {
+				authValid = true
+			}
 		}
 		if !authValid {
 			w.WriteHeader(http.StatusUnauthorized)

@@ -7,6 +7,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/v3/internal/api"
 	"github.com/centrifugal/centrifugo/v3/internal/middleware"
+	"github.com/centrifugal/centrifugo/v3/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/gorilla/securecookie"
@@ -125,10 +126,8 @@ func (s *Handler) authHandler(w http.ResponseWriter, r *http.Request) {
 
 	if insecure {
 		w.Header().Set("Content-Type", "application/json")
-		resp := struct {
-			Token string `json:"token"`
-		}{
-			Token: "insecure",
+		resp := map[string]string{
+			"token": "insecure",
 		}
 		_ = json.NewEncoder(w).Encode(resp)
 		return
@@ -140,7 +139,7 @@ func (s *Handler) authHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if formPassword == password {
+	if tools.SecureCompareString(formPassword, password) {
 		w.Header().Set("Content-Type", "application/json")
 		token, err := generateSecureAdminToken(secret)
 		if err != nil {
