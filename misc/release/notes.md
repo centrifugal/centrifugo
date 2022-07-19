@@ -17,19 +17,20 @@ Several important documents we have at this point can help you get started with 
 
 ### Highlights
 
-* New client protocol iteration and unified client SDK API
-* All SDKs now support all the core features of Centrifugo
-* Our own WebSocket bidirectional emulation layer based on HTTP-streaming and SSE (EventSource). Without sticky session requirement for a distributed case.
+* New client protocol iteration and unified client SDK API. See client SDK API [specification](https://centrifugal.dev/docs/transports/client_api).
+* All SDKs now support all the core features of Centrifugo - see [feature matrix](https://centrifugal.dev/docs/transports/client_sdk#sdk-feature-matrix)
+* Our own WebSocket bidirectional emulation layer based on HTTP-streaming and SSE (EventSource). Without sticky session requirement for a distributed case. See details in release post and [centrifuge-js README](https://github.com/centrifugal/centrifuge-js/tree/master#bidirectional-emulation)
 * SockJS is still supported but DEPRECATED
-* Redesigned, more efficient PING-PONG
-* Optimistic subscriptions support (implemented in `centrifuge-js` only at this point)
-* Secure by default channel namespaces
-* Private channel and subscription JWT concepts revised
+* Redesigned, more efficient PING-PONG – see details in release post
+* Optimistic subscriptions support (implemented in `centrifuge-js` only at this point) – see details in release post
+* Secure by default channel namespaces – see details in release post
+* Private channel and subscription JWT concepts revised – see details in release post
+* Possibility to enable join/leave, recovery and positioning from the client-side
+* Experimental HTTP/3 support - see details in release post
+* Experimental WebTransport support - see details in release post
 * Avoid sending JSON in WebSocket Close frame reason
 * Temporary flag for errors, allows resilient behavior of Subscriptions
-* Possibility to enable recovery and positioning from the client-side
-* Experimental HTTP/3 support
-* `gensubtoken` and `checksubtoken` cli commands
+* `gensubtoken` and `checksubtoken` helper cli commands as subscription JWT now behaves similar to connection JWT
 * Legacy options removed, some options renamed, see [migration guide](https://centrifugal.dev/docs/getting-started/migration_v4) for details.
 * `meta` attached to a connection now updated upon connection refresh
 * `centrifuge-js` migrated to Typescript
