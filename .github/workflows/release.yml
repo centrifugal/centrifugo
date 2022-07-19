@@ -12,9 +12,6 @@ jobs:
       matrix:
         go-version: [1.18.4]
     steps:
-      - name: Install rpm
-        run: sudo apt-get install rpm
-
       - name: Install Go
         uses: actions/setup-go@v3
         with:
