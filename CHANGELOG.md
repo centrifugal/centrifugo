@@ -30,6 +30,7 @@ Several important documents we have at this point can help you get started with 
 * `meta` attached to a connection now updated upon connection refresh
 * `centrifuge-js` migrated to Typescript
 * The docs on [centrifugal.dev](https://centrifugal.dev/) were updated for v4, docs for v3 are still there but under version switch widget.
+* Use constant time compare function to compare admin_password and api_key [#527](https://github.com/centrifugal/centrifugo/pull/527)
 
 ### Misc
 
