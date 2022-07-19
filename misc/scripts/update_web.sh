@@ -13,8 +13,7 @@ cleanup_exit() {
     exit $1
 }
 
-git clone https://github.com/centrifugal/web.git $TMP_WORK_DIR
-
-statik -src=$TMP_WORK_DIR/dist -dest ./internal/ -package=webui
+git clone --depth 1 https://github.com/centrifugal/web.git $TMP_WORK_DIR
+rsync -av --delete "$TMP_WORK_DIR"/dist ./internal/webui/web
 
 cleanup_exit 0
