@@ -14,12 +14,6 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 See [installation instructions](https://centrifugal.dev/docs/getting-started/installation) in Centrifugo documentation.
 
-### Demo
-
-Try our [demo instance](https://centrifugo3.herokuapp.com/) on Heroku (admin password is `password`, token_hmac_secret_key is `secret`, API key is `api_key`). Or deploy your own Centrifugo instance in one click:
-
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/centrifugal/centrifugo)
-
 ### Highlights
 
 * Centrifugo is fast and capable to scale to millions of simultaneous connections
