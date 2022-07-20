@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/centrifugal/centrifugo/v3/internal/rule"
-	"github.com/centrifugal/centrifugo/v3/internal/tools"
+	"github.com/centrifugal/centrifugo/v4/internal/rule"
+	"github.com/centrifugal/centrifugo/v4/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"
@@ -71,7 +71,7 @@ type subscribeHandleTestCase struct {
 
 func (c subscribeHandleTestCase) invokeHandle() (reply centrifuge.SubscribeReply, err error) {
 	subscribeHandler := c.subscribeProxyHandler.Handle(c.node)
-	reply, err = subscribeHandler(c.client, centrifuge.SubscribeEvent{}, c.channelOpts)
+	reply, _, err = subscribeHandler(c.client, centrifuge.SubscribeEvent{}, c.channelOpts, PerCallData{})
 
 	return reply, err
 }
@@ -99,10 +99,11 @@ func TestHandleSubscribeWithResult(t *testing.T) {
 	customData := "test"
 	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
 	chOpts := rule.ChannelOptions{
-		Presence:  true,
-		JoinLeave: true,
-		Recover:   true,
-		Position:  true,
+		Presence:           true,
+		JoinLeave:          true,
+		ForcePushJoinLeave: true,
+		ForceRecovery:      true,
+		ForcePositioning:   true,
 	}
 	opts := proxyGRPCTestServerOptions{
 		B64Data: customDataB64,
@@ -118,12 +119,13 @@ func TestHandleSubscribeWithResult(t *testing.T) {
 	defer httpTestCase.Teardown()
 
 	expectedSubscribeOpts := centrifuge.SubscribeOptions{
-		ChannelInfo: []byte(customData),
-		Data:        []byte(customData),
-		Presence:    true,
-		JoinLeave:   true,
-		Recover:     true,
-		Position:    true,
+		ChannelInfo:       []byte(customData),
+		Data:              []byte(customData),
+		EmitPresence:      true,
+		EmitJoinLeave:     true,
+		PushJoinLeave:     true,
+		EnableRecovery:    true,
+		EnablePositioning: true,
 	}
 
 	cases := newSubscribeHandleTestCases(httpTestCase, grpcTestCase)
@@ -139,10 +141,10 @@ func TestHandleSubscribeWithOverride(t *testing.T) {
 	customData := "test"
 	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
 	chOpts := rule.ChannelOptions{
-		Presence:  false,
-		JoinLeave: true,
-		Recover:   false,
-		Position:  false,
+		Presence:         false,
+		JoinLeave:        true,
+		ForceRecovery:    false,
+		ForcePositioning: false,
 	}
 	opts := proxyGRPCTestServerOptions{
 		B64Data: customDataB64,
@@ -153,16 +155,17 @@ func TestHandleSubscribeWithOverride(t *testing.T) {
 
 	httpTestCase := newSubscribeHandleHTTPTestCase(context.Background(), "/subscribe", chOpts)
 	httpTestCase.Mux.HandleFunc("/subscribe", func(w http.ResponseWriter, req *http.Request) {
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"b64info": "%s", "override": {"join_leave": {"value": false}, "presence": {"value": true}, "position": {"value": true}, "recover": {"value": true}}}}`, customDataB64)))
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"b64info": "%s", "override": {"join_leave": {"value": false}, "presence": {"value": true}, "force_positioning": {"value": true}, "force_recovery": {"value": true}}}}`, customDataB64)))
 	})
 	defer httpTestCase.Teardown()
 
 	expectedSubscribeOpts := centrifuge.SubscribeOptions{
-		ChannelInfo: []byte(customData),
-		Presence:    true,
-		JoinLeave:   false,
-		Position:    true,
-		Recover:     true,
+		ChannelInfo:       []byte(customData),
+		EmitPresence:      true,
+		EmitJoinLeave:     false,
+		PushJoinLeave:     false,
+		EnablePositioning: true,
+		EnableRecovery:    true,
 	}
 
 	cases := newSubscribeHandleTestCases(httpTestCase, grpcTestCase)

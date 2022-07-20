@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
 
 	"google.golang.org/grpc"
 )

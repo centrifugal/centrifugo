@@ -60,8 +60,9 @@ func (c *MultiConnection) NewLeaderConn(opts tarantool.Opts) (*tarantool.Connect
 		c.leaderMu.RUnlock()
 		return nil, ErrNoLeader
 	}
+	leaderAddr := c.leaderAddr
 	c.leaderMu.RUnlock()
-	return tarantool.Connect(c.leaderAddr, opts)
+	return tarantool.Connect(leaderAddr, opts)
 }
 
 func (c *MultiConnection) LeaderChanged() {

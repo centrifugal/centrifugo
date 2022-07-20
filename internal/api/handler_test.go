@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/centrifugal/centrifugo/v3/internal/rule"
+	"github.com/centrifugal/centrifugo/v4/internal/rule"
 
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +18,8 @@ func TestAPIHandler(t *testing.T) {
 	defer func() { _ = n.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
 	apiExecutor := NewExecutor(n, ruleContainer, &testSurveyCaller{}, "test")
 
 	mux := http.NewServeMux()
@@ -61,7 +62,8 @@ func BenchmarkAPIHandler(b *testing.B) {
 
 	ruleConfig := rule.DefaultConfig
 	ruleConfig.ClientInsecure = true
-	ruleContainer := rule.NewContainer(ruleConfig)
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(b, err)
 
 	handler := NewHandler(n, NewExecutor(n, ruleContainer, nil, "http"), Config{})
 

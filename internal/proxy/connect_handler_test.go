@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/rule"
-	"github.com/centrifugal/centrifugo/v3/internal/tools"
+	"github.com/centrifugal/centrifugo/v4/internal/rule"
+	"github.com/centrifugal/centrifugo/v4/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"
@@ -46,9 +46,15 @@ func newConnHandleGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTes
 	if err != nil {
 		log.Fatalln("could not create grpc connect proxy: ", err)
 	}
+
+	ruleContainer, err := rule.NewContainer(rule.DefaultConfig)
+	if err != nil {
+		panic(err)
+	}
+
 	connectProxyHandler := NewConnectHandler(ConnectHandlerConfig{
 		Proxy: connectProxy,
-	}, rule.NewContainer(rule.DefaultConfig))
+	}, ruleContainer)
 
 	return grpcConnHandleTestCase{commonProxyTestCase, connectProxyHandler}
 }
@@ -66,9 +72,14 @@ func newConnHandleHTTPTestCase(ctx context.Context, endpoint string) httpConnHan
 		log.Fatalln("could not create http connect proxy: ", err)
 	}
 
+	ruleContainer, err := rule.NewContainer(rule.DefaultConfig)
+	if err != nil {
+		panic(err)
+	}
+
 	connectProxyHandler := NewConnectHandler(ConnectHandlerConfig{
 		Proxy: connectProxy,
-	}, rule.NewContainer(rule.DefaultConfig))
+	}, ruleContainer)
 
 	return httpConnHandleTestCase{commonProxyTestCase, connectProxyHandler}
 }
@@ -85,7 +96,7 @@ func (c connHandleTestCase) invokeHandle(ctx context.Context) (reply centrifuge.
 	}
 
 	connHandler := c.connectProxyHandler.Handle(c.node)
-	reply, err = connHandler(ctx, connectEvent)
+	reply, _, err = connHandler(ctx, connectEvent)
 
 	return reply, err
 }

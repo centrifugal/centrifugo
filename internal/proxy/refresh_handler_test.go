@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/tools"
+	"github.com/centrifugal/centrifugo/v4/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"
@@ -64,7 +64,7 @@ type refreshHandleTestCase struct {
 
 func (c refreshHandleTestCase) invokeHandle() (reply centrifuge.RefreshReply, err error) {
 	refreshHandler := c.refreshProxyHandler.Handle(c.node)
-	reply, err = refreshHandler(c.client, centrifuge.RefreshEvent{})
+	reply, _, err = refreshHandler(c.client, centrifuge.RefreshEvent{}, PerCallData{})
 
 	return reply, err
 }

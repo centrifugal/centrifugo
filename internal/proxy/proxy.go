@@ -2,10 +2,11 @@ package proxy
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"strings"
 
-	"github.com/centrifugal/centrifugo/v3/internal/tools"
+	"github.com/centrifugal/centrifugo/v4/internal/tools"
 )
 
 // Proxy model.
@@ -84,4 +85,8 @@ func GetSubscribeProxy(p Proxy) (SubscribeProxy, error) {
 		return NewHTTPSubscribeProxy(p)
 	}
 	return NewGRPCSubscribeProxy(p)
+}
+
+type PerCallData struct {
+	Meta json.RawMessage
 }

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
 )
 
 // PublishRequestHTTP ...

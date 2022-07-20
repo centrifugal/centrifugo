@@ -2,10 +2,10 @@ package proxy
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/clientcontext"
-	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
@@ -34,12 +34,16 @@ func NewRefreshHandler(c RefreshHandlerConfig) *RefreshHandler {
 	}
 }
 
+type RefreshExtra struct {
+	Meta json.RawMessage
+}
+
 // RefreshHandlerFunc ...
-type RefreshHandlerFunc func(*centrifuge.Client, centrifuge.RefreshEvent) (centrifuge.RefreshReply, error)
+type RefreshHandlerFunc func(*centrifuge.Client, centrifuge.RefreshEvent, PerCallData) (centrifuge.RefreshReply, RefreshExtra, error)
 
 // Handle refresh.
 func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
-	return func(client *centrifuge.Client, e centrifuge.RefreshEvent) (centrifuge.RefreshReply, error) {
+	return func(client *centrifuge.Client, e centrifuge.RefreshEvent, pcd PerCallData) (centrifuge.RefreshReply, RefreshExtra, error) {
 		started := time.Now()
 		req := &proxyproto.RefreshRequest{
 			Client:    client.ID(),
@@ -49,10 +53,8 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 
 			User: client.UserID(),
 		}
-		if h.config.Proxy.IncludeMeta() {
-			if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
-				req.Meta = proxyproto.Raw(connMeta.Meta)
-			}
+		if h.config.Proxy.IncludeMeta() && pcd.Meta != nil {
+			req.Meta = proxyproto.Raw(pcd.Meta)
 		}
 		refreshRep, err := h.config.Proxy.ProxyRefresh(client.Context(), req)
 		duration := time.Since(started).Seconds()
@@ -60,7 +62,7 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 			select {
 			case <-client.Context().Done():
 				// Client connection already closed.
-				return centrifuge.RefreshReply{}, centrifuge.DisconnectConnectionClosed
+				return centrifuge.RefreshReply{}, RefreshExtra{}, centrifuge.DisconnectConnectionClosed
 			default:
 			}
 			h.summary.Observe(duration)
@@ -74,41 +76,46 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 			// like a reasonable value.
 			return centrifuge.RefreshReply{
 				ExpireAt: time.Now().Unix() + 60,
-			}, nil
+			}, RefreshExtra{}, nil
 		}
 		h.summary.Observe(duration)
 		h.histogram.Observe(duration)
 
-		credentials := refreshRep.Result
-		if credentials == nil {
+		result := refreshRep.Result
+		if result == nil {
 			// User will be disconnected.
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "no refresh credentials found", map[string]interface{}{}))
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "no refresh result found", map[string]interface{}{}))
 			return centrifuge.RefreshReply{
 				Expired: true,
-			}, nil
+			}, RefreshExtra{}, nil
 		}
 
-		if credentials.Expired {
+		if result.Expired {
 			return centrifuge.RefreshReply{
 				Expired: true,
-			}, nil
+			}, RefreshExtra{}, nil
 		}
 
 		var info []byte
-		if credentials.B64Info != "" {
-			decodedInfo, err := base64.StdEncoding.DecodeString(credentials.B64Info)
+		if result.B64Info != "" {
+			decodedInfo, err := base64.StdEncoding.DecodeString(result.B64Info)
 			if err != nil {
 				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": client.ID(), "error": err.Error()}))
-				return centrifuge.RefreshReply{}, centrifuge.ErrorInternal
+				return centrifuge.RefreshReply{}, RefreshExtra{}, centrifuge.ErrorInternal
 			}
 			info = decodedInfo
 		} else {
-			info = credentials.Info
+			info = result.Info
+		}
+
+		extra := RefreshExtra{}
+		if result.Meta != nil {
+			extra.Meta = json.RawMessage(result.Meta)
 		}
 
 		return centrifuge.RefreshReply{
-			ExpireAt: credentials.ExpireAt,
+			ExpireAt: result.ExpireAt,
 			Info:     info,
-		}, nil
+		}, extra, nil
 	}
 }

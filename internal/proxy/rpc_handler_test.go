@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/centrifugal/centrifugo/v3/internal/tools"
+	"github.com/centrifugal/centrifugo/v4/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"
@@ -67,7 +67,7 @@ type rpcHandleTestCase struct {
 
 func (c rpcHandleTestCase) invokeHandle() (reply centrifuge.RPCReply, err error) {
 	rpcHandler := c.rpcProxyHandler.Handle(c.node)
-	reply, err = rpcHandler(c.client, centrifuge.RPCEvent{}, nil)
+	reply, err = rpcHandler(c.client, centrifuge.RPCEvent{}, nil, PerCallData{})
 
 	return reply, err
 }

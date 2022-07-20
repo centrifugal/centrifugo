@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/tools"
+	"github.com/centrifugal/centrifugo/v4/internal/tools"
 
 	"github.com/FZambia/tarantool"
 )

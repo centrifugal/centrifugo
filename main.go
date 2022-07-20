@@ -34,34 +34,37 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/admin"
-	"github.com/centrifugal/centrifugo/v3/internal/api"
-	"github.com/centrifugal/centrifugo/v3/internal/build"
-	"github.com/centrifugal/centrifugo/v3/internal/cli"
-	"github.com/centrifugal/centrifugo/v3/internal/client"
-	"github.com/centrifugal/centrifugo/v3/internal/health"
-	"github.com/centrifugal/centrifugo/v3/internal/jwtutils"
-	"github.com/centrifugal/centrifugo/v3/internal/jwtverify"
-	"github.com/centrifugal/centrifugo/v3/internal/logutils"
-	"github.com/centrifugal/centrifugo/v3/internal/metrics/graphite"
-	"github.com/centrifugal/centrifugo/v3/internal/middleware"
-	"github.com/centrifugal/centrifugo/v3/internal/natsbroker"
-	"github.com/centrifugal/centrifugo/v3/internal/notify"
-	"github.com/centrifugal/centrifugo/v3/internal/origin"
-	"github.com/centrifugal/centrifugo/v3/internal/proxy"
-	"github.com/centrifugal/centrifugo/v3/internal/rule"
-	"github.com/centrifugal/centrifugo/v3/internal/survey"
-	"github.com/centrifugal/centrifugo/v3/internal/tntengine"
-	"github.com/centrifugal/centrifugo/v3/internal/tools"
-	"github.com/centrifugal/centrifugo/v3/internal/unigrpc"
-	"github.com/centrifugal/centrifugo/v3/internal/unihttpstream"
-	"github.com/centrifugal/centrifugo/v3/internal/unisse"
-	"github.com/centrifugal/centrifugo/v3/internal/uniws"
-	"github.com/centrifugal/centrifugo/v3/internal/usage"
-	"github.com/centrifugal/centrifugo/v3/internal/webui"
+	"github.com/centrifugal/centrifugo/v4/internal/admin"
+	"github.com/centrifugal/centrifugo/v4/internal/api"
+	"github.com/centrifugal/centrifugo/v4/internal/build"
+	"github.com/centrifugal/centrifugo/v4/internal/cli"
+	"github.com/centrifugal/centrifugo/v4/internal/client"
+	"github.com/centrifugal/centrifugo/v4/internal/health"
+	"github.com/centrifugal/centrifugo/v4/internal/jwtutils"
+	"github.com/centrifugal/centrifugo/v4/internal/jwtverify"
+	"github.com/centrifugal/centrifugo/v4/internal/logutils"
+	"github.com/centrifugal/centrifugo/v4/internal/metrics/graphite"
+	"github.com/centrifugal/centrifugo/v4/internal/middleware"
+	"github.com/centrifugal/centrifugo/v4/internal/natsbroker"
+	"github.com/centrifugal/centrifugo/v4/internal/notify"
+	"github.com/centrifugal/centrifugo/v4/internal/origin"
+	"github.com/centrifugal/centrifugo/v4/internal/proxy"
+	"github.com/centrifugal/centrifugo/v4/internal/rule"
+	"github.com/centrifugal/centrifugo/v4/internal/survey"
+	"github.com/centrifugal/centrifugo/v4/internal/tntengine"
+	"github.com/centrifugal/centrifugo/v4/internal/tools"
+	"github.com/centrifugal/centrifugo/v4/internal/unigrpc"
+	"github.com/centrifugal/centrifugo/v4/internal/unihttpstream"
+	"github.com/centrifugal/centrifugo/v4/internal/unisse"
+	"github.com/centrifugal/centrifugo/v4/internal/uniws"
+	"github.com/centrifugal/centrifugo/v4/internal/usage"
+	"github.com/centrifugal/centrifugo/v4/internal/webui"
+	"github.com/centrifugal/centrifugo/v4/internal/wt"
 
 	"github.com/FZambia/viper-lite"
 	"github.com/centrifugal/centrifuge"
+	"github.com/lucas-clemente/quic-go/http3"
+	"github.com/marten-seemann/webtransport-go"
 	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/mapstructure"
 	"github.com/prometheus/client_golang/prometheus"
@@ -92,32 +95,44 @@ func bindCentrifugoConfig() {
 		"token_audience":             "",
 		"token_issuer":               "",
 
-		"protected":                   false,
-		"publish":                     false,
-		"subscribe_to_publish":        false,
-		"anonymous":                   false,
-		"presence":                    false,
-		"presence_disable_for_client": false,
-		"history_size":                0,
-		"history_ttl":                 0,
-		"history_disable_for_client":  false,
-		"recover":                     false,
-		"position":                    false,
-		"proxy_subscribe":             false,
-		"proxy_publish":               false,
+		"presence":                      false,
+		"join_leave":                    false,
+		"history_size":                  0,
+		"history_ttl":                   0,
+		"force_positioning":             false,
+		"allow_positioning":             false,
+		"force_recovery":                false,
+		"allow_recovery":                false,
+		"allow_subscribe_for_anonymous": false,
+		"allow_subscribe_for_client":    false,
+		"allow_publish_for_anonymous":   false,
+		"allow_publish_for_client":      false,
+		"allow_publish_for_subscriber":  false,
+		"allow_presence_for_anonymous":  false,
+		"allow_presence_for_client":     false,
+		"allow_presence_for_subscriber": false,
+		"allow_history_for_anonymous":   false,
+		"allow_history_for_client":      false,
+		"allow_history_for_subscriber":  false,
+		"allow_user_limited_channels":   false,
+		"channel_regex":                 "",
+		"proxy_subscribe":               false,
+		"proxy_publish":                 false,
+		"subscribe_proxy_name":          "",
+		"publish_proxy_name":            "",
 
 		"node_info_metrics_aggregate_interval": 60 * time.Second,
 
-		"client_anonymous":                    false,
-		"client_expired_close_delay":          25 * time.Second,
-		"client_expired_sub_close_delay":      25 * time.Second,
-		"client_stale_close_delay":            25 * time.Second,
-		"client_channel_limit":                128,
-		"client_queue_max_size":               1048576, // 1 MB
-		"client_presence_update_interval":     27 * time.Second,
-		"client_user_connection_limit":        0,
-		"client_concurrency":                  0,
-		"client_channel_position_check_delay": 40 * time.Second,
+		"allow_anonymous_connect_without_token": false,
+		"client_expired_close_delay":            25 * time.Second,
+		"client_expired_sub_close_delay":        25 * time.Second,
+		"client_stale_close_delay":              25 * time.Second,
+		"client_channel_limit":                  128,
+		"client_queue_max_size":                 1048576, // 1 MB
+		"client_presence_update_interval":       27 * time.Second,
+		"client_user_connection_limit":          0,
+		"client_concurrency":                    0,
+		"client_channel_position_check_delay":   40 * time.Second,
 
 		"channel_max_length":         255,
 		"channel_private_prefix":     "$",
@@ -167,8 +182,9 @@ func bindCentrifugoConfig() {
 		"uni_websocket_message_size_limit":    65536, // 64KB
 
 		"uni_http_stream_max_request_body_size": 65536, // 64KB
-
-		"uni_sse_max_request_body_size": 65536, // 64KB
+		"uni_sse_max_request_body_size":         65536, // 64KB
+		"http_stream_max_request_body_size":     65536, // 64KB
+		"sse_max_request_body_size":             65536, // 64KB
 
 		"tls_autocert":                false,
 		"tls_autocert_host_whitelist": "",
@@ -184,7 +200,7 @@ func bindCentrifugoConfig() {
 		"redis_write_timeout":   time.Second,
 		"redis_idle_timeout":    0,
 
-		"history_meta_ttl": 0,
+		"history_meta_ttl": 90 * 24 * time.Hour,
 		"presence_ttl":     60 * time.Second,
 
 		"grpc_api":         false,
@@ -209,10 +225,11 @@ func bindCentrifugoConfig() {
 		"websocket_disable": false,
 		"api_disable":       false,
 
-		"websocket_handler_prefix":   "/connection/websocket",
-		"sockjs_handler_prefix":      "/connection/sockjs",
-		"http_stream_handler_prefix": "/connection/http_stream",
-		"sse_handler_prefix":         "/connection/sse",
+		"websocket_handler_prefix":    "/connection/websocket",
+		"webtransport_handler_prefix": "/connection/webtransport",
+		"sockjs_handler_prefix":       "/connection/sockjs",
+		"http_stream_handler_prefix":  "/connection/http_stream",
+		"sse_handler_prefix":          "/connection/sse",
 
 		"uni_websocket_handler_prefix":      "/connection/uni_websocket",
 		"uni_sse_handler_prefix":            "/connection/uni_sse",
@@ -222,7 +239,8 @@ func bindCentrifugoConfig() {
 		"uni_grpc_port":                     11000,
 		"uni_grpc_max_receive_message_size": 65536,
 
-		"emulation_handler_prefix": "/emulation",
+		"emulation_handler_prefix":        "/emulation",
+		"emulation_max_request_body_size": 65536, // 64KB
 
 		"admin_handler_prefix":      "",
 		"api_handler_prefix":        "/api",
@@ -239,6 +257,10 @@ func bindCentrifugoConfig() {
 		"client_recovery_max_publication_limit": 300,
 
 		"usage_stats_disable": false,
+
+		// This option allows smooth migration to Centrifugo v4,
+		// should be removed at some point in the future.
+		"use_client_protocol_v1_by_default": false,
 	}
 
 	for k, v := range defaults {
@@ -302,15 +324,6 @@ func main() {
 				log.Fatal().Msgf("error writing PID: %v", err)
 			}
 
-			if viper.IsSet("v3_use_offset") {
-				log.Fatal().Msg("v3_use_offset option is set which was removed in Centrifugo v3. " +
-					"Make sure to adapt your configuration file to fit Centrifugo v3 changes. Refer to the " +
-					"https://centrifugal.dev/docs/getting-started/migration_v3. If you had no intention to " +
-					"update Centrifugo to v3 then this error may be caused by using `latest` tag for " +
-					"Centrifugo Docker image in your deployment pipeline – pin to the specific Centrifugo " +
-					"image tag in this case (at least to centrifugo/centrifugo:v2).")
-			}
-
 			if os.Getenv("GOMAXPROCS") == "" {
 				if viper.IsSet("gomaxprocs") && viper.GetInt("gomaxprocs") > 0 {
 					runtime.GOMAXPROCS(viper.GetInt("gomaxprocs"))
@@ -325,7 +338,7 @@ func main() {
 				Str("version", build.Version).
 				Str("runtime", runtime.Version()).
 				Int("pid", os.Getpid()).
-				Str("engine", strings.Title(engineName)).
+				Str("engine", engineName).
 				Int("gomaxprocs", runtime.GOMAXPROCS(0)).Msg("starting Centrifugo")
 
 			log.Info().Str("path", absConfPath).Msg("using config file")
@@ -335,7 +348,10 @@ func main() {
 			if err != nil {
 				log.Fatal().Msgf("error validating config: %v", err)
 			}
-			ruleContainer := rule.NewContainer(ruleConfig)
+			ruleContainer, err := rule.NewContainer(ruleConfig)
+			if err != nil {
+				log.Fatal().Msgf("error creating config: %v", err)
+			}
 
 			granularProxyMode := viper.GetBool("granular_proxy_mode")
 			var proxyMap *client.ProxyMap
@@ -379,9 +395,10 @@ func main() {
 
 			tokenVerifier := jwtverify.NewTokenVerifierJWT(jwtVerifierConfig(), ruleContainer)
 
-			if viper.GetBool("use_unlimited_history_by_default") {
-				// See detailed comment about this by falling through to var definition.
-				client.UseUnlimitedHistoryByDefault = true
+			if viper.GetBool("skip_user_check_in_subscription_token") {
+				// See detailed comment about this by falling through to
+				// client.SkipUserCheckInSubscriptionToken definition.
+				client.SkipUserCheckInSubscriptionToken = true
 			}
 			clientHandler := client.NewHandler(node, ruleContainer, tokenVerifier, proxyMap, granularProxyMode)
 			err = clientHandler.Setup()
@@ -706,7 +723,7 @@ func main() {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
-			var user = fmt.Sprintf("user %s", genTokenUser)
+			var user = fmt.Sprintf("user \"%s\"", genTokenUser)
 			if genTokenUser == "" {
 				user = "anonymous user"
 			}
@@ -716,6 +733,44 @@ func main() {
 	genTokenCmd.Flags().StringVarP(&genTokenConfigFile, "config", "c", "config.json", "path to config file")
 	genTokenCmd.Flags().StringVarP(&genTokenUser, "user", "u", "", "user ID")
 	genTokenCmd.Flags().Int64VarP(&genTokenTTL, "ttl", "t", 3600*24*7, "token TTL in seconds")
+
+	var genSubTokenConfigFile string
+	var genSubTokenUser string
+	var genSubTokenChannel string
+	var genSubTokenTTL int64
+
+	var genSubTokenCmd = &cobra.Command{
+		Use:   "gensubtoken",
+		Short: "Generate sample subscription JWT for user",
+		Long:  `Generate sample subscription JWT for user`,
+		Run: func(cmd *cobra.Command, args []string) {
+			bindCentrifugoConfig()
+			err := readConfig(genSubTokenConfigFile)
+			if err != nil && err != errConfigFileNotFound {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			if genSubTokenChannel == "" {
+				fmt.Println("channel is required")
+				os.Exit(1)
+			}
+			jwtVerifierConfig := jwtVerifierConfig()
+			token, err := cli.GenerateSubToken(jwtVerifierConfig, genSubTokenUser, genSubTokenChannel, genSubTokenTTL)
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			var user = fmt.Sprintf("user \"%s\"", genSubTokenUser)
+			if genSubTokenUser == "" {
+				user = "anonymous user"
+			}
+			fmt.Printf("HMAC SHA-256 JWT for %s and channel \"%s\" with expiration TTL %s:\n%s\n", user, genSubTokenChannel, time.Duration(genSubTokenTTL)*time.Second, token)
+		},
+	}
+	genSubTokenCmd.Flags().StringVarP(&genSubTokenConfigFile, "config", "c", "config.json", "path to config file")
+	genSubTokenCmd.Flags().StringVarP(&genSubTokenUser, "user", "u", "", "user ID")
+	genSubTokenCmd.Flags().StringVarP(&genSubTokenChannel, "channel", "s", "", "channel")
+	genSubTokenCmd.Flags().Int64VarP(&genSubTokenTTL, "ttl", "t", 3600*24*7, "token TTL in seconds")
 
 	var checkTokenConfigFile string
 
@@ -749,14 +804,46 @@ func main() {
 	}
 	checkTokenCmd.Flags().StringVarP(&checkTokenConfigFile, "config", "c", "config.json", "path to config file")
 
+	var checkSubTokenConfigFile string
+
+	var checkSubTokenCmd = &cobra.Command{
+		Use:   "checksubtoken [TOKEN]",
+		Short: "Check subscription JWT",
+		Long:  `Check subscription JWT`,
+		Run: func(cmd *cobra.Command, args []string) {
+			bindCentrifugoConfig()
+			err := readConfig(checkSubTokenConfigFile)
+			if err != nil && err != errConfigFileNotFound {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			jwtVerifierConfig := jwtVerifierConfig()
+			if len(args) != 1 {
+				fmt.Printf("error: provide token to check [centrifugo checksubtoken <TOKEN>]\n")
+				os.Exit(1)
+			}
+			subject, channel, claims, err := cli.CheckSubToken(jwtVerifierConfig, ruleConfig(), args[0])
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			var user = fmt.Sprintf("user \"%s\"", subject)
+			if subject == "" {
+				user = "anonymous user"
+			}
+			fmt.Printf("valid subscription token for %s and channel \"%s\"\npayload: %s\n", user, channel, string(claims))
+		},
+	}
+	checkSubTokenCmd.Flags().StringVarP(&checkSubTokenConfigFile, "config", "c", "config.json", "path to config file")
+
 	var serveDir string
 	var servePort int
 	var serveAddr string
 
 	var serveCmd = &cobra.Command{
 		Use:   "serve",
-		Short: "Run static file server",
-		Long:  `Run static file server`,
+		Short: "Run static file server (for development only)",
+		Long:  `Run static file server (for development only)`,
 		Run: func(cmd *cobra.Command, args []string) {
 			address := net.JoinHostPort(serveAddr, strconv.Itoa(servePort))
 			fmt.Printf("start serving %s on %s\n", serveDir, address)
@@ -775,7 +862,9 @@ func main() {
 	rootCmd.AddCommand(checkConfigCmd)
 	rootCmd.AddCommand(genConfigCmd)
 	rootCmd.AddCommand(genTokenCmd)
+	rootCmd.AddCommand(genSubTokenCmd)
 	rootCmd.AddCommand(checkTokenCmd)
+	rootCmd.AddCommand(checkSubTokenCmd)
 	_ = rootCmd.Execute()
 }
 
@@ -810,6 +899,7 @@ func configureConsoleWriter() {
 }
 
 func isTerminalAttached() bool {
+	//goland:noinspection GoBoolExpressions – Goland is not smart enough here.
 	return isatty.IsTerminal(os.Stdout.Fd()) && runtime.GOOS != "windows"
 }
 
@@ -1066,6 +1156,12 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled 
 	if !viper.GetBool("websocket_disable") {
 		portFlags |= HandlerWebsocket
 	}
+	if viper.GetBool("webtransport") {
+		if !viper.GetBool("http3") {
+			log.Fatal().Msg("can not enable webtransport without experimental HTTP/3")
+		}
+		portFlags |= HandlerWebtransport
+	}
 	if viper.GetBool("sockjs") {
 		portFlags |= HandlerSockJS
 	}
@@ -1119,20 +1215,43 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled 
 		log.Fatal().Msgf("can not get TLS config: %v", err)
 	}
 
-	// Iterate over port to flags mapping and start HTTP servers
+	// Iterate over port-to-flags mapping and start HTTP servers
 	// on separate ports serving handlers specified in flags.
 	for addr, handlerFlags := range addrToHandlerFlags {
+		addr := addr
 		if handlerFlags == 0 {
 			continue
 		}
-		mux := Mux(n, apiExecutor, handlerFlags, proxyEnabled)
-
-		log.Info().Msgf("serving %s endpoints on %s", handlerFlags, addr)
-
 		var addrTLSConfig *tls.Config
 		if !viper.GetBool("tls_external") || addr == externalAddr {
 			addrTLSConfig = tlsConfig
 		}
+
+		useHTTP3 := viper.GetBool("http3") && addr == externalAddr
+
+		var wtServer *webtransport.Server
+		if useHTTP3 {
+			wtServer = &webtransport.Server{
+				CheckOrigin: getCheckOrigin(),
+			}
+		}
+
+		mux := Mux(n, apiExecutor, handlerFlags, proxyEnabled, wtServer)
+
+		if useHTTP3 {
+			wtServer.H3 = http3.Server{
+				Addr:      addr,
+				TLSConfig: addrTLSConfig,
+				Handler:   mux,
+			}
+		}
+
+		var protoSuffix string
+		if useHTTP3 {
+			protoSuffix = " with HTTP/3 (experimental)"
+		}
+		log.Info().Msgf("serving %s endpoints on %s%s", handlerFlags, addr, protoSuffix)
+
 		server := &http.Server{
 			Addr:      addr,
 			Handler:   mux,
@@ -1140,19 +1259,78 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled 
 			ErrorLog:  stdlog.New(&httpErrorLogWriter{log.Logger}, "", 0),
 		}
 
+		if useHTTP3 {
+			server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				_ = wtServer.H3.SetQuicHeaders(w.Header())
+				mux.ServeHTTP(w, r)
+			})
+		}
+
 		servers = append(servers, server)
 
 		go func() {
-			if addrTLSConfig != nil {
-				if err := server.ListenAndServeTLS("", ""); err != nil {
+			if useHTTP3 {
+				if addrTLSConfig == nil {
+					log.Fatal().Msgf("HTTP/3 requires TLS configured")
+				}
+				if viper.GetBool("tls_autocert") {
+					log.Fatal().Msgf("can not use HTTP/3 with autocert")
+				}
+
+				udpAddr, err := net.ResolveUDPAddr("udp", addr)
+				if err != nil {
+					log.Fatal().Msgf("can not start HTTP/3, resolve UDP: %v", err)
+				}
+				udpConn, err := net.ListenUDP("udp", udpAddr)
+				if err != nil {
+					log.Fatal().Msgf("can not start HTTP/3, listen UDP: %v", err)
+				}
+				defer func() { _ = udpConn.Close() }()
+
+				tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
+				if err != nil {
+					log.Fatal().Msgf("can not start HTTP/3, resolve TCP: %v", err)
+				}
+				tcpConn, err := net.ListenTCP("tcp", tcpAddr)
+				if err != nil {
+					log.Fatal().Msgf("can not start HTTP/3, listen TCP: %v", err)
+				}
+				defer func() { _ = tcpConn.Close() }()
+
+				tlsConn := tls.NewListener(tcpConn, addrTLSConfig)
+				defer func() { _ = tlsConn.Close() }()
+
+				hErr := make(chan error)
+				qErr := make(chan error)
+				go func() {
+					hErr <- server.Serve(tlsConn)
+				}()
+				go func() {
+					qErr <- wtServer.Serve(udpConn)
+				}()
+
+				select {
+				case err := <-hErr:
+					_ = wtServer.Close()
 					if err != http.ErrServerClosed {
 						log.Fatal().Msgf("ListenAndServe: %v", err)
 					}
+				case err := <-qErr:
+					// Cannot close the HTTP server or wait for requests to complete properly.
+					log.Fatal().Msgf("ListenAndServe HTTP/3: %v", err)
 				}
 			} else {
-				if err := server.ListenAndServe(); err != nil {
-					if err != http.ErrServerClosed {
-						log.Fatal().Msgf("ListenAndServe: %v", err)
+				if addrTLSConfig != nil {
+					if err := server.ListenAndServeTLS("", ""); err != nil {
+						if err != http.ErrServerClosed {
+							log.Fatal().Msgf("ListenAndServe: %v", err)
+						}
+					}
+				} else {
+					if err := server.ListenAndServe(); err != nil {
+						if err != http.ErrServerClosed {
+							log.Fatal().Msgf("ListenAndServe: %v", err)
+						}
 					}
 				}
 			}
@@ -1196,18 +1374,27 @@ func ruleConfig() rule.Config {
 	v := viper.GetViper()
 	cfg := rule.Config{}
 
-	cfg.Publish = v.GetBool("publish")
-	cfg.SubscribeToPublish = v.GetBool("subscribe_to_publish")
-	cfg.Anonymous = v.GetBool("anonymous")
 	cfg.Presence = v.GetBool("presence")
-	cfg.PresenceDisableForClient = v.GetBool("presence_disable_for_client")
 	cfg.JoinLeave = v.GetBool("join_leave")
 	cfg.HistorySize = v.GetInt("history_size")
 	cfg.HistoryTTL = tools.Duration(GetDuration("history_ttl", true))
-	cfg.Position = v.GetBool("position")
-	cfg.Recover = v.GetBool("recover")
-	cfg.HistoryDisableForClient = v.GetBool("history_disable_for_client")
-	cfg.Protected = v.GetBool("protected")
+	cfg.ForcePositioning = v.GetBool("force_positioning")
+	cfg.AllowRecovery = v.GetBool("allow_recovery")
+	cfg.ForceRecovery = v.GetBool("force_recovery")
+	cfg.AllowRecovery = v.GetBool("allow_recovery")
+	cfg.SubscribeForAnonymous = v.GetBool("allow_subscribe_for_anonymous")
+	cfg.SubscribeForClient = v.GetBool("allow_subscribe_for_client")
+	cfg.PublishForAnonymous = v.GetBool("allow_publish_for_anonymous")
+	cfg.PublishForClient = v.GetBool("allow_publish_for_client")
+	cfg.PublishForSubscriber = v.GetBool("allow_publish_for_subscriber")
+	cfg.PresenceForAnonymous = v.GetBool("allow_presence_for_anonymous")
+	cfg.PresenceForClient = v.GetBool("allow_presence_for_client")
+	cfg.PresenceForSubscriber = v.GetBool("allow_presence_for_subscriber")
+	cfg.HistoryForAnonymous = v.GetBool("allow_history_for_anonymous")
+	cfg.HistoryForClient = v.GetBool("allow_history_for_client")
+	cfg.HistoryForSubscriber = v.GetBool("allow_history_for_subscriber")
+	cfg.UserLimitedChannels = v.GetBool("allow_user_limited_channels")
+	cfg.ChannelRegex = v.GetString("channel_regex")
 	cfg.ProxySubscribe = v.GetBool("proxy_subscribe")
 	cfg.ProxyPublish = v.GetBool("proxy_publish")
 	cfg.SubscribeProxyName = v.GetString("subscribe_proxy_name")
@@ -1221,7 +1408,7 @@ func ruleConfig() rule.Config {
 	cfg.UserPersonalSingleConnection = v.GetBool("user_personal_single_connection")
 	cfg.UserPersonalChannelNamespace = v.GetString("user_personal_channel_namespace")
 	cfg.ClientInsecure = v.GetBool("client_insecure")
-	cfg.ClientAnonymous = v.GetBool("client_anonymous")
+	cfg.AnonymousConnectWithoutToken = v.GetBool("allow_anonymous_connect_without_token")
 	cfg.ClientConcurrency = v.GetInt("client_concurrency")
 	cfg.RpcNamespaceBoundary = v.GetString("rpc_namespace_boundary")
 	cfg.RpcProxyName = v.GetString("rpc_proxy_name")
@@ -1657,6 +1844,10 @@ func rpcNamespacesFromConfig(v *viper.Viper) []rule.RpcNamespace {
 func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	v := viper.GetViper()
 	cfg := centrifuge.WebsocketConfig{}
+	cfg.ProtocolVersion = centrifuge.ProtocolVersion2
+	if v.GetBool("use_client_protocol_v1_by_default") {
+		cfg.ProtocolVersion = centrifuge.ProtocolVersion1
+	}
 	cfg.Compression = v.GetBool("websocket_compression")
 	cfg.CompressionLevel = v.GetInt("websocket_compression_level")
 	cfg.CompressionMinSize = v.GetInt("websocket_compression_min_size")
@@ -1671,15 +1862,21 @@ func websocketHandlerConfig() centrifuge.WebsocketConfig {
 }
 
 func httpStreamHandlerConfig() centrifuge.HTTPStreamConfig {
-	return centrifuge.HTTPStreamConfig{}
+	return centrifuge.HTTPStreamConfig{
+		MaxRequestBodySize: viper.GetInt("http_stream_max_request_body_size"),
+	}
 }
 
 func sseHandlerConfig() centrifuge.SSEConfig {
-	return centrifuge.SSEConfig{}
+	return centrifuge.SSEConfig{
+		MaxRequestBodySize: viper.GetInt("sse_max_request_body_size"),
+	}
 }
 
 func emulationHandlerConfig() centrifuge.EmulationConfig {
-	return centrifuge.EmulationConfig{}
+	return centrifuge.EmulationConfig{
+		MaxRequestBodySize: viper.GetInt("emulation_max_request_body_size"),
+	}
 }
 
 var warnAllowedOriginsOnce sync.Once
@@ -1723,7 +1920,12 @@ func getCheckOrigin() func(r *http.Request) bool {
 
 func uniWebsocketHandlerConfig() uniws.Config {
 	v := viper.GetViper()
+	protocolVersion := centrifuge.ProtocolVersion2
+	if viper.GetBool("use_client_protocol_v1_by_default") {
+		protocolVersion = centrifuge.ProtocolVersion1
+	}
 	return uniws.Config{
+		ProtocolVersion:    protocolVersion,
 		Compression:        v.GetBool("uni_websocket_compression"),
 		CompressionLevel:   v.GetInt("uni_websocket_compression_level"),
 		CompressionMinSize: v.GetInt("uni_websocket_compression_min_size"),
@@ -1738,24 +1940,44 @@ func uniWebsocketHandlerConfig() uniws.Config {
 }
 
 func uniSSEHandlerConfig() unisse.Config {
+	protocolVersion := centrifuge.ProtocolVersion2
+	if viper.GetBool("use_client_protocol_v1_by_default") {
+		protocolVersion = centrifuge.ProtocolVersion1
+	}
 	return unisse.Config{
+		ProtocolVersion:    protocolVersion,
 		MaxRequestBodySize: viper.GetInt("uni_sse_max_request_body_size"),
 	}
 }
 
 func uniStreamHandlerConfig() unihttpstream.Config {
+	protocolVersion := centrifuge.ProtocolVersion2
+	if viper.GetBool("use_client_protocol_v1_by_default") {
+		protocolVersion = centrifuge.ProtocolVersion1
+	}
 	return unihttpstream.Config{
+		ProtocolVersion:    protocolVersion,
 		MaxRequestBodySize: viper.GetInt("uni_http_stream_max_request_body_size"),
 	}
 }
 
 func uniGRPCHandlerConfig() unigrpc.Config {
-	return unigrpc.Config{}
+	protocolVersion := centrifuge.ProtocolVersion2
+	if viper.GetBool("use_client_protocol_v1_by_default") {
+		protocolVersion = centrifuge.ProtocolVersion1
+	}
+	return unigrpc.Config{
+		ProtocolVersion: protocolVersion,
+	}
 }
 
 func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	v := viper.GetViper()
 	cfg := centrifuge.SockjsConfig{}
+	cfg.ProtocolVersion = centrifuge.ProtocolVersion2
+	if v.GetBool("use_client_protocol_v1_by_default") {
+		cfg.ProtocolVersion = centrifuge.ProtocolVersion1
+	}
 	cfg.URL = v.GetString("sockjs_url")
 	cfg.HeartbeatDelay = GetDuration("sockjs_heartbeat_delay")
 	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
@@ -1765,6 +1987,10 @@ func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	cfg.CheckOrigin = getCheckOrigin()
 	cfg.WebsocketCheckOrigin = getCheckOrigin()
 	return cfg
+}
+
+func webTransportHandlerConfig() wt.Config {
+	return wt.Config{}
 }
 
 func adminHandlerConfig() admin.Config {
@@ -2074,6 +2300,8 @@ const (
 	HandlerWebsocket HandlerFlag = 1 << iota
 	// HandlerSockJS enables SockJS handler.
 	HandlerSockJS
+	// HandlerWebtransport enables Webtransport handler (requires HTTP/3)
+	HandlerWebtransport
 	// HandlerAPI enables API handler.
 	HandlerAPI
 	// HandlerAdmin enables admin web interface.
@@ -2101,6 +2329,7 @@ const (
 var handlerText = map[HandlerFlag]string{
 	HandlerWebsocket:     "websocket",
 	HandlerSockJS:        "SockJS",
+	HandlerWebtransport:  "webtransport",
 	HandlerAPI:           "API",
 	HandlerAdmin:         "admin",
 	HandlerDebug:         "debug",
@@ -2115,7 +2344,7 @@ var handlerText = map[HandlerFlag]string{
 }
 
 func (flags HandlerFlag) String() string {
-	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerHTTPStream, HandlerSSE, HandlerEmulation, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniHTTPStream}
+	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerWebtransport, HandlerHTTPStream, HandlerSSE, HandlerEmulation, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniHTTPStream}
 	var endpoints []string
 	for _, flag := range flagsOrdered {
 		text, ok := handlerText[flag]
@@ -2130,7 +2359,7 @@ func (flags HandlerFlag) String() string {
 }
 
 // Mux returns a mux including set of default handlers for Centrifugo server.
-func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxyEnabled bool) *http.ServeMux {
+func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxyEnabled bool, wtServer *webtransport.Server) *http.ServeMux {
 	mux := http.NewServeMux()
 	v := viper.GetViper()
 
@@ -2149,6 +2378,15 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxy
 			wsPrefix = "/"
 		}
 		mux.Handle(wsPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, centrifuge.NewWebsocketHandler(n, websocketHandlerConfig()))))
+	}
+
+	if flags&HandlerWebtransport != 0 {
+		// register WebTransport connection endpoint.
+		wtPrefix := strings.TrimRight(v.GetString("webtransport_handler_prefix"), "/")
+		if wtPrefix == "" {
+			wtPrefix = "/"
+		}
+		mux.Handle(wtPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, wt.NewHandler(n, wtServer, webTransportHandlerConfig()))))
 	}
 
 	if flags&HandlerHTTPStream != 0 {

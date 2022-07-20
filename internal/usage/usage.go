@@ -16,8 +16,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/build"
-	"github.com/centrifugal/centrifugo/v3/internal/rule"
+	"github.com/centrifugal/centrifugo/v4/internal/build"
+	"github.com/centrifugal/centrifugo/v4/internal/rule"
 
 	"github.com/centrifugal/centrifuge"
 )

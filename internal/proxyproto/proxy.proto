@@ -21,6 +21,7 @@ message Disconnect {
 message Error {
   uint32 code = 1;
   string message = 2;
+  bool temporary = 3;
 }
 
 message ConnectRequest {
@@ -55,6 +56,13 @@ message ConnectResult {
   repeated string channels = 7;
   map<string, SubscribeOptions> subs = 8;
   bytes meta = 9;
+  repeated ChannelsCapability caps = 10;
+}
+
+message ChannelsCapability {
+  repeated string channels = 1;
+  repeated string allow = 2;
+  string match = 3;
 }
 
 message ConnectResponse {
@@ -78,6 +86,8 @@ message RefreshResult {
   int64 expire_at = 2;
   bytes info = 3;
   string b64info = 4;
+  bytes meta = 5;
+  repeated ChannelsCapability caps = 6;
 }
 
 message RefreshResponse {
@@ -111,8 +121,9 @@ message Int32Value {
 message SubscribeOptionOverride {
   BoolValue presence = 1;
   BoolValue join_leave = 2;
-  BoolValue recover = 3;
-  BoolValue position = 4;
+  BoolValue force_recovery = 3;
+  BoolValue force_positioning = 4;
+  BoolValue force_push_join_leave = 5;
 }
 
 message SubscribeResult {
@@ -122,6 +133,7 @@ message SubscribeResult {
   bytes data = 4;
   string b64data = 5;
   SubscribeOptionOverride override = 6;
+  repeated string allow = 7;
 }
 
 message SubscribeResponse {

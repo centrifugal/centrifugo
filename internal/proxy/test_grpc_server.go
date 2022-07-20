@@ -3,7 +3,7 @@ package proxy
 import (
 	"context"
 
-	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
 )
 
 type proxyGRPCTestServer struct {
@@ -99,10 +99,11 @@ func (p proxyGRPCTestServer) Subscribe(_ context.Context, _ *proxyproto.Subscrib
 			Result: &proxyproto.SubscribeResult{
 				B64Info: p.opts.B64Data,
 				Override: &proxyproto.SubscribeOptionOverride{
-					Presence:  &proxyproto.BoolValue{Value: true},
-					JoinLeave: &proxyproto.BoolValue{Value: false},
-					Position:  &proxyproto.BoolValue{Value: true},
-					Recover:   &proxyproto.BoolValue{Value: true},
+					Presence:           &proxyproto.BoolValue{Value: true},
+					JoinLeave:          &proxyproto.BoolValue{Value: false},
+					ForcePushJoinLeave: &proxyproto.BoolValue{Value: false},
+					ForcePositioning:   &proxyproto.BoolValue{Value: true},
+					ForceRecovery:      &proxyproto.BoolValue{Value: true},
 				},
 			},
 		}, nil

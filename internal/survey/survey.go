@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/centrifugal/centrifugo/v3/internal/apiproto"
+	"github.com/centrifugal/centrifugo/v4/internal/apiproto"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/gobwas/glob"

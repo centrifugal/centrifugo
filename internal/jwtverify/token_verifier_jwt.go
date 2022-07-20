@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/jwks"
-	"github.com/centrifugal/centrifugo/v3/internal/rule"
+	"github.com/centrifugal/centrifugo/v4/internal/jwks"
+	"github.com/centrifugal/centrifugo/v4/internal/rule"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/cristalhq/jwt/v4"
@@ -98,18 +98,20 @@ type SubscribeOptionOverride struct {
 	Presence *BoolValue `json:"presence,omitempty"`
 	// JoinLeave enables sending Join and Leave messages for this client in channel.
 	JoinLeave *BoolValue `json:"join_leave,omitempty"`
-	// Position on says that client will additionally sync its position inside
-	// a stream to prevent message loss. Make sure you are enabling Position in channels
-	// that maintain Publication history stream. When Position is on  Centrifuge will
+	// ForcePushJoinLeave forces sending join/leave for this client.
+	ForcePushJoinLeave *BoolValue `json:"force_push_join_leave,omitempty"`
+	// ForcePositioning on says that client will additionally sync its position inside
+	// a stream to prevent message loss. Make sure you are enabling ForcePositioning in channels
+	// that maintain Publication history stream. When ForcePositioning is on  Centrifuge will
 	// include StreamPosition information to subscribe response - for a client to be able
 	// to manually track its position inside a stream.
-	Position *BoolValue `json:"position,omitempty"`
-	// Recover turns on recovery option for a channel. In this case client will try to
+	ForcePositioning *BoolValue `json:"force_positioning,omitempty"`
+	// ForceRecovery turns on recovery option for a channel. In this case client will try to
 	// recover missed messages automatically upon resubscribe to a channel after reconnect
 	// to a server. This option also enables client position tracking inside a stream
-	// (like Position option) to prevent occasional message loss. Make sure you are using
-	// Recover in channels that maintain Publication history stream.
-	Recover *BoolValue `json:"recover,omitempty"`
+	// (like ForcePositioning option) to prevent occasional message loss. Make sure you are using
+	// ForceRecovery in channels that maintain Publication history stream.
+	ForceRecovery *BoolValue `json:"force_recovery,omitempty"`
 }
 
 // SubscribeOptions define per-subscription options.
@@ -133,14 +135,16 @@ type ConnectTokenClaims struct {
 	Channels   []string                    `json:"channels,omitempty"`
 	Subs       map[string]SubscribeOptions `json:"subs,omitempty"`
 	Meta       json.RawMessage             `json:"meta,omitempty"`
+	// Channel must never be set in connection tokens. We check this on verifying.
+	Channel string `json:"channel,omitempty"`
 	jwt.RegisteredClaims
 }
 
 type SubscribeTokenClaims struct {
 	jwt.RegisteredClaims
 	SubscribeOptions
-	Client   string `json:"client,omitempty"`
 	Channel  string `json:"channel,omitempty"`
+	Client   string `json:"client,omitempty"`
 	ExpireAt *int64 `json:"expire_at,omitempty"`
 }
 
@@ -341,6 +345,10 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
+	if claims.Channel != "" {
+		return ConnectToken{}, ErrInvalidToken
+	}
+
 	now := time.Now()
 	if !claims.IsValidExpiresAt(now) || !claims.IsValidNotBefore(now) {
 		return ConnectToken{}, ErrTokenExpired
@@ -358,7 +366,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 
 	if len(claims.Subs) > 0 {
 		for ch, v := range claims.Subs {
-			_, chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
+			_, _, chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
 			if err != nil {
 				return ConnectToken{}, err
 			}
@@ -393,26 +401,31 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 			if v.Override != nil && v.Override.JoinLeave != nil {
 				joinLeave = v.Override.JoinLeave.Value
 			}
-			useRecover := chOpts.Recover
-			if v.Override != nil && v.Override.Recover != nil {
-				useRecover = v.Override.Recover.Value
+			pushJoinLeave := chOpts.ForcePushJoinLeave
+			if v.Override != nil && v.Override.ForcePushJoinLeave != nil {
+				pushJoinLeave = v.Override.ForcePushJoinLeave.Value
 			}
-			position := chOpts.Position
-			if v.Override != nil && v.Override.Position != nil {
-				position = v.Override.Position.Value
+			recovery := chOpts.ForceRecovery
+			if v.Override != nil && v.Override.ForceRecovery != nil {
+				recovery = v.Override.ForceRecovery.Value
+			}
+			positioning := chOpts.ForcePositioning
+			if v.Override != nil && v.Override.ForcePositioning != nil {
+				positioning = v.Override.ForcePositioning.Value
 			}
 			subs[ch] = centrifuge.SubscribeOptions{
-				ChannelInfo: info,
-				Presence:    presence,
-				JoinLeave:   joinLeave,
-				Recover:     useRecover,
-				Position:    position,
-				Data:        data,
+				ChannelInfo:       info,
+				EmitPresence:      presence,
+				EmitJoinLeave:     joinLeave,
+				PushJoinLeave:     pushJoinLeave,
+				EnableRecovery:    recovery,
+				EnablePositioning: positioning,
+				Data:              data,
 			}
 		}
 	} else if len(claims.Channels) > 0 {
 		for _, ch := range claims.Channels {
-			_, chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
+			_, _, chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
 			if err != nil {
 				return ConnectToken{}, err
 			}
@@ -420,10 +433,11 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 				return ConnectToken{}, centrifuge.ErrorUnknownChannel
 			}
 			subs[ch] = centrifuge.SubscribeOptions{
-				Presence:  chOpts.Presence,
-				JoinLeave: chOpts.JoinLeave,
-				Recover:   chOpts.Recover,
-				Position:  chOpts.Position,
+				EmitPresence:      chOpts.Presence,
+				EmitJoinLeave:     chOpts.JoinLeave,
+				PushJoinLeave:     chOpts.ForcePushJoinLeave,
+				EnableRecovery:    chOpts.ForceRecovery,
+				EnablePositioning: chOpts.ForcePositioning,
 			}
 		}
 	}
@@ -494,7 +508,11 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 		return SubscribeToken{}, ErrInvalidToken
 	}
 
-	_, chOpts, found, err := verifier.ruleContainer.ChannelOptions(claims.Channel)
+	if claims.Channel == "" {
+		return SubscribeToken{}, ErrInvalidToken
+	}
+
+	_, _, chOpts, found, err := verifier.ruleContainer.ChannelOptions(claims.Channel)
 	if err != nil {
 		return SubscribeToken{}, err
 	}
@@ -529,13 +547,17 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 	if claims.Override != nil && claims.Override.JoinLeave != nil {
 		joinLeave = claims.Override.JoinLeave.Value
 	}
-	useRecover := chOpts.Recover
-	if claims.Override != nil && claims.Override.Recover != nil {
-		useRecover = claims.Override.Recover.Value
+	pushJoinLeave := chOpts.ForcePushJoinLeave
+	if claims.Override != nil && claims.Override.ForcePushJoinLeave != nil {
+		pushJoinLeave = claims.Override.ForcePushJoinLeave.Value
 	}
-	position := chOpts.Position
-	if claims.Override != nil && claims.Override.Position != nil {
-		position = claims.Override.Position.Value
+	recovery := chOpts.ForceRecovery
+	if claims.Override != nil && claims.Override.ForceRecovery != nil {
+		recovery = claims.Override.ForceRecovery.Value
+	}
+	positioning := chOpts.ForcePositioning
+	if claims.Override != nil && claims.Override.ForcePositioning != nil {
+		positioning = claims.Override.ForcePositioning.Value
 	}
 
 	var expireAt int64
@@ -550,16 +572,18 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 	}
 
 	st := SubscribeToken{
-		Client:  claims.Client,
+		UserID:  claims.RegisteredClaims.Subject,
 		Channel: claims.Channel,
+		Client:  claims.Client,
 		Options: centrifuge.SubscribeOptions{
-			ExpireAt:    expireAt,
-			ChannelInfo: info,
-			Presence:    presence,
-			JoinLeave:   joinLeave,
-			Recover:     useRecover,
-			Position:    position,
-			Data:        data,
+			ExpireAt:          expireAt,
+			ChannelInfo:       info,
+			EmitPresence:      presence,
+			EmitJoinLeave:     joinLeave,
+			PushJoinLeave:     pushJoinLeave,
+			EnableRecovery:    recovery,
+			EnablePositioning: positioning,
+			Data:              data,
 		},
 	}
 	return st, nil

@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/rule"
-	"github.com/centrifugal/centrifugo/v3/internal/tools"
+	"github.com/centrifugal/centrifugo/v4/internal/rule"
+	"github.com/centrifugal/centrifugo/v4/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"
@@ -72,7 +72,7 @@ type publishHandleTestCase struct {
 
 func (c publishHandleTestCase) invokeHandle() (reply centrifuge.PublishReply, err error) {
 	publishHandler := c.publishProxyHandler.Handle(c.node)
-	reply, err = publishHandler(c.client, centrifuge.PublishEvent{}, c.channelOpts)
+	reply, err = publishHandler(c.client, centrifuge.PublishEvent{}, c.channelOpts, PerCallData{})
 
 	return reply, err
 }

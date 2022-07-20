@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"sync"
 
-	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
 
 	"github.com/centrifugal/centrifuge"
 	"google.golang.org/grpc"

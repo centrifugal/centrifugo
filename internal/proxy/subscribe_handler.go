@@ -4,9 +4,8 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/clientcontext"
-	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
-	"github.com/centrifugal/centrifugo/v3/internal/rule"
+	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/v4/internal/rule"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
@@ -58,12 +57,15 @@ func NewSubscribeHandler(c SubscribeHandlerConfig) *SubscribeHandler {
 	return h
 }
 
+type SubscribeExtra struct {
+}
+
 // SubscribeHandlerFunc ...
-type SubscribeHandlerFunc func(*centrifuge.Client, centrifuge.SubscribeEvent, rule.ChannelOptions) (centrifuge.SubscribeReply, error)
+type SubscribeHandlerFunc func(*centrifuge.Client, centrifuge.SubscribeEvent, rule.ChannelOptions, PerCallData) (centrifuge.SubscribeReply, SubscribeExtra, error)
 
 // Handle Subscribe.
 func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
-	return func(client *centrifuge.Client, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions) (centrifuge.SubscribeReply, error) {
+	return func(client *centrifuge.Client, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions, pcd PerCallData) (centrifuge.SubscribeReply, SubscribeExtra, error) {
 		started := time.Now()
 
 		var p SubscribeProxy
@@ -75,7 +77,7 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 			proxyName := chOpts.SubscribeProxyName
 			if proxyName == "" {
 				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe proxy not configured for a channel", map[string]interface{}{"channel": e.Channel}))
-				return centrifuge.SubscribeReply{}, centrifuge.ErrorNotAvailable
+				return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
 			}
 			p = h.config.Proxies[proxyName]
 			summary = h.granularSummary[proxyName]
@@ -103,10 +105,8 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 		} else {
 			req.B64Data = base64.StdEncoding.EncodeToString(e.Data)
 		}
-		if p.IncludeMeta() {
-			if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
-				req.Meta = proxyproto.Raw(connMeta.Meta)
-			}
+		if p.IncludeMeta() && pcd.Meta != nil {
+			req.Meta = proxyproto.Raw(pcd.Meta)
 		}
 		subscribeRep, err := p.ProxySubscribe(client.Context(), req)
 		duration := time.Since(started).Seconds()
@@ -114,38 +114,40 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 			select {
 			case <-client.Context().Done():
 				// Client connection already closed.
-				return centrifuge.SubscribeReply{}, centrifuge.DisconnectConnectionClosed
+				return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.DisconnectConnectionClosed
 			default:
 			}
 			summary.Observe(duration)
 			histogram.Observe(duration)
 			errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying subscribe", map[string]interface{}{"error": err.Error()}))
-			return centrifuge.SubscribeReply{}, centrifuge.ErrorInternal
+			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorInternal
 		}
 		summary.Observe(duration)
 		histogram.Observe(duration)
 
 		if subscribeRep.Disconnect != nil {
-			return centrifuge.SubscribeReply{}, proxyproto.DisconnectFromProto(subscribeRep.Disconnect)
+			return centrifuge.SubscribeReply{}, SubscribeExtra{}, proxyproto.DisconnectFromProto(subscribeRep.Disconnect)
 		}
 		if subscribeRep.Error != nil {
-			return centrifuge.SubscribeReply{}, proxyproto.ErrorFromProto(subscribeRep.Error)
+			return centrifuge.SubscribeReply{}, SubscribeExtra{}, proxyproto.ErrorFromProto(subscribeRep.Error)
 		}
 
 		presence := chOpts.Presence
 		joinLeave := chOpts.JoinLeave
-		useRecover := chOpts.Recover
-		position := chOpts.Position
+		pushJoinLeave := chOpts.ForcePushJoinLeave
+		recovery := chOpts.ForceRecovery
+		positioning := chOpts.ForcePositioning
 
 		var info []byte
 		var data []byte
+		var extra SubscribeExtra
 		if subscribeRep.Result != nil {
 			if subscribeRep.Result.B64Info != "" {
 				decodedInfo, err := base64.StdEncoding.DecodeString(subscribeRep.Result.B64Info)
 				if err != nil {
 					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": client.ID(), "error": err.Error()}))
-					return centrifuge.SubscribeReply{}, centrifuge.ErrorInternal
+					return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorInternal
 				}
 				info = decodedInfo
 			} else {
@@ -155,7 +157,7 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 				decodedData, err := base64.StdEncoding.DecodeString(subscribeRep.Result.B64Data)
 				if err != nil {
 					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]interface{}{"client": client.ID(), "error": err.Error()}))
-					return centrifuge.SubscribeReply{}, centrifuge.ErrorInternal
+					return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorInternal
 				}
 				data = decodedData
 			} else {
@@ -170,24 +172,28 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 			if result.Override != nil && result.Override.JoinLeave != nil {
 				joinLeave = result.Override.JoinLeave.Value
 			}
-			if result.Override != nil && result.Override.Recover != nil {
-				useRecover = result.Override.Recover.Value
+			if result.Override != nil && result.Override.ForcePushJoinLeave != nil {
+				pushJoinLeave = result.Override.ForcePushJoinLeave.Value
 			}
-			if result.Override != nil && result.Override.Position != nil {
-				position = result.Override.Position.Value
+			if result.Override != nil && result.Override.ForceRecovery != nil {
+				recovery = result.Override.ForceRecovery.Value
+			}
+			if result.Override != nil && result.Override.ForcePositioning != nil {
+				positioning = result.Override.ForcePositioning.Value
 			}
 		}
 
 		return centrifuge.SubscribeReply{
 			Options: centrifuge.SubscribeOptions{
-				ChannelInfo: info,
-				Presence:    presence,
-				JoinLeave:   joinLeave,
-				Recover:     useRecover,
-				Position:    position,
-				Data:        data,
+				ChannelInfo:       info,
+				EmitPresence:      presence,
+				EmitJoinLeave:     joinLeave,
+				PushJoinLeave:     pushJoinLeave,
+				EnableRecovery:    recovery,
+				EnablePositioning: positioning,
+				Data:              data,
 			},
 			ClientSideRefresh: true,
-		}, nil
+		}, extra, nil
 	}
 }

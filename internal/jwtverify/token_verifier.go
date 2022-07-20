@@ -12,7 +12,7 @@ type Verifier interface {
 }
 
 type ConnectToken struct {
-	// UserID tells library an ID of connecting user.
+	// UserID tells an ID of connecting user.
 	UserID string
 	// ExpireAt allows setting time in future when connection must be validated.
 	// Validation can be server-side using On().Refresh callback or client-side
@@ -33,12 +33,13 @@ type ConnectToken struct {
 }
 
 type SubscribeToken struct {
-	// Client is a unique client ID string set to each connection on server.
-	// Will be compared with actual client ID.
-	Client string
+	// UserID tells an ID of subscribing user.
+	UserID string
 	// Channel client wants to subscribe. Will be compared with channel in
 	// subscribe command.
 	Channel string
+	// Client is a deprecated claim for compatibility with Centrifugo v3.
+	Client string
 	// Options for subscription.
 	Options centrifuge.SubscribeOptions
 }
