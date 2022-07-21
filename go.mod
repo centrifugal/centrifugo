@@ -11,7 +11,7 @@ require (
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
 	github.com/centrifugal/centrifuge v0.24.1-0.20220720055803-b368c0a61024
 	github.com/centrifugal/protocol v0.8.10
-	github.com/cristalhq/jwt/v4 v4.0.0
+	github.com/cristalhq/jwt/v4 v4.0.2
 	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/securecookie v1.1.1
