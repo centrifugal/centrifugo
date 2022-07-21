@@ -329,7 +329,7 @@ func main() {
 				if viper.IsSet("gomaxprocs") && viper.GetInt("gomaxprocs") > 0 {
 					runtime.GOMAXPROCS(viper.GetInt("gomaxprocs"))
 				} else {
-					_, _ = maxprocs.Set(maxprocs.Logger(log.Printf))
+					_, _ = maxprocs.Set()
 				}
 			}
 
