@@ -21,7 +21,7 @@ require (
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/nats-io/nats.go v1.16.0
-	github.com/prometheus/client_golang v1.12.1
+	github.com/prometheus/client_golang v1.12.2
 	github.com/rakutentech/jwk-go v1.0.1
 	github.com/rs/zerolog v1.21.0
 	github.com/spf13/cobra v0.0.7
