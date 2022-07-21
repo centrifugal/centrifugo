@@ -72,6 +72,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"go.uber.org/automaxprocs/maxprocs"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 	"google.golang.org/grpc"
@@ -328,7 +329,7 @@ func main() {
 				if viper.IsSet("gomaxprocs") && viper.GetInt("gomaxprocs") > 0 {
 					runtime.GOMAXPROCS(viper.GetInt("gomaxprocs"))
 				} else {
-					runtime.GOMAXPROCS(runtime.NumCPU())
+					_, _ = maxprocs.Set()
 				}
 			}
 
