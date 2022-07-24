@@ -24,6 +24,7 @@ func GenerateToken(config jwtverify.VerifierConfig, user string, ttlSeconds int6
 	token, err := builder.Build(jwt.RegisteredClaims{
 		Subject:   user,
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(ttlSeconds) * time.Second)),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
 	})
 	if err != nil {
 		return "", err
@@ -46,6 +47,7 @@ func GenerateSubToken(config jwtverify.VerifierConfig, user string, channel stri
 			RegisteredClaims: jwt.RegisteredClaims{
 				Subject:   user,
 				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(ttlSeconds) * time.Second)),
+				IssuedAt:  jwt.NewNumericDate(time.Now()),
 			},
 			Channel: channel,
 		},
