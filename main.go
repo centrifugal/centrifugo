@@ -1128,6 +1128,9 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled 
 	useHealth := viper.GetBool("health")
 
 	adminExternal := viper.GetBool("admin_external")
+	apiExternal := viper.GetBool("api_external")
+
+	apiDisabled := viper.GetBool("api_disable")
 
 	httpAddress := viper.GetString("address")
 	httpPort := viper.GetString("port")
@@ -1178,6 +1181,9 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled 
 	if useAdmin && adminExternal {
 		portFlags |= HandlerAdmin
 	}
+	if !apiDisabled && apiExternal {
+		portFlags |= HandlerAPI
+	}
 	if viper.GetBool("uni_websocket") {
 		portFlags |= HandlerUniWebsocket
 	}
@@ -1191,7 +1197,7 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled 
 
 	internalAddr := net.JoinHostPort(httpInternalAddress, httpInternalPort)
 	portFlags = addrToHandlerFlags[internalAddr]
-	if !viper.GetBool("api_disable") {
+	if !apiDisabled && !apiExternal {
 		portFlags |= HandlerAPI
 	}
 
