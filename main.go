@@ -287,7 +287,7 @@ func main() {
 
 			bindPFlags := []string{
 				"engine", "log_level", "log_file", "pid_file", "debug", "name", "admin",
-				"admin_external", "client_insecure", "admin_insecure", "api_insecure",
+				"admin_external", "client_insecure", "admin_insecure", "api_insecure", "api_external",
 				"port", "address", "tls", "tls_cert", "tls_key", "tls_external", "internal_port",
 				"internal_address", "prometheus", "health", "redis_address", "tarantool_address",
 				"broker", "nats_url", "grpc_api", "grpc_api_tls", "grpc_api_tls_disable",
@@ -616,7 +616,7 @@ func main() {
 
 	rootCmd.Flags().BoolP("debug", "", false, "enable debug endpoints")
 	rootCmd.Flags().BoolP("admin", "", false, "enable admin web interface")
-	rootCmd.Flags().BoolP("admin_external", "", false, "enable admin web interface on external port")
+	rootCmd.Flags().BoolP("admin_external", "", false, "expose admin web interface on external port")
 	rootCmd.Flags().BoolP("prometheus", "", false, "enable Prometheus metrics endpoint")
 	rootCmd.Flags().BoolP("health", "", false, "enable health check endpoint")
 	rootCmd.Flags().BoolP("sockjs", "", false, "enable SockJS endpoint")
@@ -628,6 +628,7 @@ func main() {
 
 	rootCmd.Flags().BoolP("client_insecure", "", false, "start in insecure client mode")
 	rootCmd.Flags().BoolP("api_insecure", "", false, "use insecure API mode")
+	rootCmd.Flags().BoolP("api_external", "", false, "expose API handler on external port")
 	rootCmd.Flags().BoolP("admin_insecure", "", false, "use insecure admin mode – no auth required for admin socket")
 
 	rootCmd.Flags().StringP("address", "a", "", "interface address to listen on")
