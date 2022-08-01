@@ -18,12 +18,12 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/lucas-clemente/quic-go v0.28.0
 	github.com/marten-seemann/webtransport-go v0.0.0-20220709212913-0bb1f0a11a30
-	github.com/mattn/go-isatty v0.0.12
+	github.com/mattn/go-isatty v0.0.14
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nats-io/nats.go v1.16.0
 	github.com/prometheus/client_golang v1.12.2
 	github.com/rakutentech/jwk-go v1.0.1
-	github.com/rs/zerolog v1.21.0
+	github.com/rs/zerolog v1.27.0
 	github.com/spf13/cobra v0.0.7
 	github.com/stretchr/testify v1.8.0
 	github.com/vmihailenco/msgpack/v5 v5.3.5
@@ -53,6 +53,7 @@ require (
 	github.com/marten-seemann/qtls-go1-17 v0.1.2 // indirect
 	github.com/marten-seemann/qtls-go1-18 v0.1.2 // indirect
 	github.com/marten-seemann/qtls-go1-19 v0.1.0-beta.1 // indirect
+	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mna/redisc v1.3.2 // indirect
 	github.com/nats-io/nats-server/v2 v2.8.1 // indirect
