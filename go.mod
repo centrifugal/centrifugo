@@ -16,7 +16,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/websocket v1.5.0
-	github.com/lucas-clemente/quic-go v0.28.0
+	github.com/lucas-clemente/quic-go v0.28.1
 	github.com/marten-seemann/webtransport-go v0.0.0-20220709212913-0bb1f0a11a30
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mitchellh/mapstructure v1.5.0
