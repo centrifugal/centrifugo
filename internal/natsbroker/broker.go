@@ -106,19 +106,13 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 		// Do not support wildcard subscriptions.
 		return centrifuge.StreamPosition{}, centrifuge.ErrorBadRequest
 	}
-	protoPub := &protocol.Publication{
-		Data: data,
-		Info: infoToProto(opts.ClientInfo),
-		Tags: opts.Tags,
-	}
-	data, err := protoPub.MarshalVT()
-	if err != nil {
-		return centrifuge.StreamPosition{}, err
-	}
 	push := &protocol.Push{
-		Type:    protocol.Push_PUBLICATION,
 		Channel: ch,
-		Data:    data,
+		Pub: &protocol.Publication{
+			Data: data,
+			Info: infoToProto(opts.ClientInfo),
+			Tags: opts.Tags,
+		},
 	}
 	byteMessage, err := push.MarshalVT()
 	if err != nil {
@@ -129,14 +123,11 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 
 // PublishJoin - see Broker interface description.
 func (b *NatsBroker) PublishJoin(ch string, info *centrifuge.ClientInfo) error {
-	data, err := infoToProto(info).MarshalVT()
-	if err != nil {
-		return err
-	}
 	push := &protocol.Push{
-		Type:    protocol.Push_JOIN,
 		Channel: ch,
-		Data:    data,
+		Join: &protocol.Join{
+			Info: infoToProto(info),
+		},
 	}
 	byteMessage, err := push.MarshalVT()
 	if err != nil {
@@ -147,14 +138,11 @@ func (b *NatsBroker) PublishJoin(ch string, info *centrifuge.ClientInfo) error {
 
 // PublishLeave - see Broker interface description.
 func (b *NatsBroker) PublishLeave(ch string, info *centrifuge.ClientInfo) error {
-	data, err := infoToProto(info).MarshalVT()
-	if err != nil {
-		return err
-	}
 	push := &protocol.Push{
-		Type:    protocol.Push_LEAVE,
 		Channel: ch,
-		Data:    data,
+		Leave: &protocol.Leave{
+			Info: infoToProto(info),
+		},
 	}
 	byteMessage, err := push.MarshalVT()
 	if err != nil {
@@ -184,41 +172,26 @@ func (b *NatsBroker) RemoveHistory(_ string) error {
 	return centrifuge.ErrorNotAvailable
 }
 
-func (b *NatsBroker) handleClientMessage(data []byte) error {
+func (b *NatsBroker) handleClientMessage(data []byte) {
 	var push protocol.Push
 	err := push.UnmarshalVT(data)
 	if err != nil {
-		return err
+		b.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "can't unmarshal push from Nats", map[string]interface{}{"error": err.Error()}))
+		return
 	}
-	switch push.Type {
-	case protocol.Push_PUBLICATION:
-		var pub protocol.Publication
-		err := pub.UnmarshalVT(push.Data)
-		if err != nil {
-			return err
-		}
-		_ = b.eventHandler.HandlePublication(push.Channel, pubFromProto(&pub), centrifuge.StreamPosition{})
-	case protocol.Push_JOIN:
-		var info protocol.ClientInfo
-		err := info.UnmarshalVT(push.Data)
-		if err != nil {
-			return err
-		}
-		_ = b.eventHandler.HandleJoin(push.Channel, infoFromProto(&info))
-	case protocol.Push_LEAVE:
-		var info protocol.ClientInfo
-		err := info.UnmarshalVT(push.Data)
-		if err != nil {
-			return err
-		}
-		_ = b.eventHandler.HandleLeave(push.Channel, infoFromProto(&info))
-	default:
+	if push.Pub != nil {
+		_ = b.eventHandler.HandlePublication(push.Channel, pubFromProto(push.Pub), centrifuge.StreamPosition{})
+	} else if push.Join != nil {
+		_ = b.eventHandler.HandleJoin(push.Channel, infoFromProto(push.Join.Info))
+	} else if push.Leave != nil {
+		_ = b.eventHandler.HandleLeave(push.Channel, infoFromProto(push.Leave.Info))
+	} else {
+		b.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "unknown push from Nats", map[string]interface{}{"push": fmt.Sprintf("%v", &push)}))
 	}
-	return nil
 }
 
 func (b *NatsBroker) handleClient(m *nats.Msg) {
-	_ = b.handleClientMessage(m.Data)
+	b.handleClientMessage(m.Data)
 }
 
 func (b *NatsBroker) handleControl(m *nats.Msg) {
