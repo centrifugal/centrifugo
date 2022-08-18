@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/centrifugal/centrifugo/v4/internal/subsource"
+
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
 	"github.com/centrifugal/centrifugo/v4/internal/tools"
 
@@ -126,6 +128,7 @@ func TestHandleSubscribeWithResult(t *testing.T) {
 		PushJoinLeave:     true,
 		EnableRecovery:    true,
 		EnablePositioning: true,
+		Source:            subsource.SubscribeProxy,
 	}
 
 	cases := newSubscribeHandleTestCases(httpTestCase, grpcTestCase)
@@ -166,6 +169,7 @@ func TestHandleSubscribeWithOverride(t *testing.T) {
 		PushJoinLeave:     false,
 		EnablePositioning: true,
 		EnableRecovery:    true,
+		Source:            subsource.SubscribeProxy,
 	}
 
 	cases := newSubscribeHandleTestCases(httpTestCase, grpcTestCase)

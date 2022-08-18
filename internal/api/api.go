@@ -7,10 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v4/internal/subsource"
-
 	. "github.com/centrifugal/centrifugo/v4/internal/apiproto"
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
+	"github.com/centrifugal/centrifugo/v4/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
 )
