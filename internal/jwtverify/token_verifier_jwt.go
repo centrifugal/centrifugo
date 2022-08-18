@@ -14,6 +14,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/v4/internal/jwks"
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
+	"github.com/centrifugal/centrifugo/v4/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/cristalhq/jwt/v4"
@@ -421,6 +422,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 				EnableRecovery:    recovery,
 				EnablePositioning: positioning,
 				Data:              data,
+				Source:            subsource.ConnectionToken,
 			}
 		}
 	} else if len(claims.Channels) > 0 {
@@ -438,6 +440,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 				PushJoinLeave:     chOpts.ForcePushJoinLeave,
 				EnableRecovery:    chOpts.ForceRecovery,
 				EnablePositioning: chOpts.ForcePositioning,
+				Source:            subsource.ConnectionToken,
 			}
 		}
 	}

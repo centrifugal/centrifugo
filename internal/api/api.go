@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v4/internal/subsource"
+
 	. "github.com/centrifugal/centrifugo/v4/internal/apiproto"
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
 
@@ -266,6 +268,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 		centrifuge.WithPositioning(position),
 		centrifuge.WithEmitPresence(presence),
 		centrifuge.WithRecoverSince(recoverSince),
+		centrifuge.WithSubscribeSource(subsource.ServerAPI),
 	)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error subscribing user to a channel", map[string]interface{}{"channel": channel, "user": user, "error": err.Error()}))

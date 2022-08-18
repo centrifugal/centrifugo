@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v4/internal/subsource"
+
 	"github.com/centrifugal/centrifugo/v4/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
@@ -142,6 +144,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 					PushJoinLeave:     chOpts.ForcePushJoinLeave,
 					EnableRecovery:    chOpts.ForceRecovery,
 					EnablePositioning: chOpts.ForcePositioning,
+					Source:            subsource.ConnectProxy,
 				}
 			}
 			reply.Subscriptions = subscriptions
