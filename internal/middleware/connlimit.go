@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"net/http"
+	"sync/atomic"
+	"time"
 
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
 
@@ -10,8 +12,11 @@ import (
 )
 
 var (
-	connLimitReached prometheus.Counter
+	connLimitReached         prometheus.Counter
+	connLimitReachedLoggedAt int64
 )
+
+const connLimitReachedLogThrottle = int64(3 * time.Second)
 
 func init() {
 	connLimitReached = prometheus.NewCounter(prometheus.CounterOpts{
@@ -28,7 +33,13 @@ func ConnLimit(node *centrifuge.Node, ruleContainer *rule.Container, h http.Hand
 		connLimit := ruleContainer.Config().ClientConnectionLimit
 		if connLimit > 0 && node.Hub().NumClients() >= connLimit {
 			connLimitReached.Inc()
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "node connection limit reached", map[string]interface{}{"limit": connLimit}))
+			now := time.Now().UnixNano()
+			prevLoggedAt := atomic.LoadInt64(&connLimitReachedLoggedAt)
+			if prevLoggedAt == 0 || now-prevLoggedAt > connLimitReachedLogThrottle {
+				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "node connection limit reached", map[string]interface{}{"limit": connLimit}))
+				atomic.StoreInt64(&connLimitReachedLoggedAt, now)
+			}
+			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
 		h.ServeHTTP(w, r)
