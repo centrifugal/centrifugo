@@ -86,6 +86,11 @@ func (h *Handler) Setup() error {
 	}
 
 	h.node.OnConnecting(func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+		connLimit := h.ruleContainer.Config().ClientConnectionLimit
+		if connLimit > 0 && h.node.Hub().NumClients() >= connLimit {
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "node connection limit reached", map[string]interface{}{"limit": connLimit}))
+			return centrifuge.ConnectReply{}, centrifuge.DisconnectForceReconnect
+		}
 		reply, err := h.OnClientConnecting(ctx, e, connectProxyHandler, refreshProxyHandler != nil)
 		if err != nil {
 			return centrifuge.ConnectReply{}, err

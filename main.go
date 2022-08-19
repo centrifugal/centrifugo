@@ -1421,6 +1421,7 @@ func ruleConfig() rule.Config {
 	cfg.RpcNamespaceBoundary = v.GetString("rpc_namespace_boundary")
 	cfg.RpcProxyName = v.GetString("rpc_proxy_name")
 	cfg.RpcNamespaces = rpcNamespacesFromConfig(v)
+	cfg.ClientConnectionLimit = v.GetInt("client_connection_limit")
 	return cfg
 }
 
