@@ -63,6 +63,9 @@ type Config struct {
 	// with provided concurrency level. By default, commands processed sequentially
 	// one after another.
 	ClientConcurrency int
+	// ClientConnectionLimit sets the maximum number of concurrent clients a single Centrifugo
+	// node will accept.
+	ClientConnectionLimit int
 }
 
 // DefaultConfig has default config options.
