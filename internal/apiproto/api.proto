@@ -357,10 +357,14 @@ message ConnectionInfo {
 }
 
 message ConnectionState {
-    repeated string channels = 1;
+    map<string, ChannelContext> channels = 1;
     ConnectionTokenInfo connection_token = 2;
     map<string, SubscriptionTokenInfo> subscription_tokens = 3;
     bytes meta = 4;
+}
+
+message ChannelContext {
+    uint32 source = 1;
 }
 
 message ConnectionTokenInfo {

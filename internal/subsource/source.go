@@ -1,16 +1,18 @@
 package subsource
 
+// Known sources of subscriptions in Centrifugo.
+// Note: not using iota here intentionally.
 const (
-	Unknown = iota
-	ConnectionToken
-	ConnectionTokenCap
-	ConnectProxy
-	SubscriptionToken
-	UserLimited
-	ClientAllowed
-	ClientInsecure
-	SubscribeProxy
-	UniConnect
-	UserPersonal
-	ServerAPI
+	Unknown           = 0
+	ConnectionToken   = 1
+	ConnectionCap     = 2
+	ConnectProxy      = 3
+	SubscriptionToken = 4
+	UserLimited       = 5
+	ClientAllowed     = 6
+	ClientInsecure    = 7
+	SubscribeProxy    = 8
+	UniConnect        = 9
+	UserPersonal      = 10
+	ServerAPI         = 11
 )
