@@ -583,7 +583,10 @@ func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent,
 	options.EnablePositioning = chOpts.ForcePositioning
 	options.EnableRecovery = chOpts.ForceRecovery
 
-	if h.ruleContainer.IsPrivateChannel(e.Channel) && e.Token == "" {
+	isPrivateChannel := h.ruleContainer.IsPrivateChannel(e.Channel)
+	isUserLimitedChannel := chOpts.UserLimitedChannels && h.ruleContainer.IsUserLimited(e.Channel)
+
+	if isPrivateChannel && e.Token == "" {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "attempt to subscribe on private channel without token", map[string]interface{}{"channel": e.Channel, "client": c.ID(), "user": c.UserID()}))
 		return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorPermissionDenied
 	}
@@ -615,19 +618,24 @@ func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent,
 		}
 		options = token.Options
 		allowed = true
-	} else if chOpts.ProxySubscribe || chOpts.SubscribeProxyName != "" {
+	} else if isUserLimitedChannel && h.ruleContainer.UserAllowed(e.Channel, c.UserID()) {
+		allowed = true
+	} else if (chOpts.ProxySubscribe || chOpts.SubscribeProxyName != "") && !isUserLimitedChannel {
 		if subscribeProxyHandler == nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe proxy not enabled", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
 		}
 		r, _, err := subscribeProxyHandler(c, e, chOpts, d)
 		return r, SubscribeExtra{}, err
-	} else if chOpts.UserLimitedChannels && h.ruleContainer.IsUserLimited(e.Channel) && h.ruleContainer.UserAllowed(e.Channel, c.UserID()) {
-		allowed = true
-	} else if chOpts.SubscribeForClient && (c.UserID() != "" || chOpts.SubscribeForAnonymous) {
+	} else if chOpts.SubscribeForClient && (c.UserID() != "" || chOpts.SubscribeForAnonymous) && !isUserLimitedChannel {
 		allowed = true
 	} else if ruleConfig.ClientInsecure {
 		allowed = true
+	}
+
+	if !allowed {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "attempt to subscribe without sufficient permission", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
+		return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorPermissionDenied
 	}
 
 	if e.Positioned && (chOpts.AllowPositioning || h.hasAccessToHistory(c, e.Channel, chOpts)) {
@@ -638,11 +646,6 @@ func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent,
 	}
 	if e.JoinLeave && chOpts.JoinLeave && h.hasAccessToPresence(c, e.Channel, chOpts) {
 		options.PushJoinLeave = true
-	}
-
-	if !allowed {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "attempt to subscribe without sufficient permission", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
-		return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorPermissionDenied
 	}
 
 	return centrifuge.SubscribeReply{
