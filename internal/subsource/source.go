@@ -5,14 +5,14 @@ package subsource
 const (
 	Unknown           = 0
 	ConnectionToken   = 1
-	ConnectionCap     = 2
-	ConnectProxy      = 3
-	SubscriptionToken = 4
+	ConnectProxy      = 2
+	SubscriptionToken = 3
+	SubscribeProxy    = 4
 	UserLimited       = 5
 	ClientAllowed     = 6
 	ClientInsecure    = 7
-	SubscribeProxy    = 8
-	UniConnect        = 9
-	UserPersonal      = 10
-	ServerAPI         = 11
+	UniConnect        = 8
+	UserPersonal      = 9
+	ServerAPI         = 10
+	ConnectionCap     = 11
 )
