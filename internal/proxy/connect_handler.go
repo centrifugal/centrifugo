@@ -6,11 +6,10 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v4/internal/subsource"
-
 	"github.com/centrifugal/centrifugo/v4/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
+	"github.com/centrifugal/centrifugo/v4/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
