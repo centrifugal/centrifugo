@@ -206,3 +206,46 @@ func (c *CommonGRPCProxyTestCase) Teardown() {
 	defer func() { _ = c.ClientCloseFunc() }()
 	c.Server.Stop()
 }
+
+type TestClientMock struct {
+	IDFunc           func() string
+	UserIDFunc       func() string
+	IsSubscribedFunc func(string) bool
+	ContextFunc      func() context.Context
+	TransportFunc    func() centrifuge.TransportInfo
+}
+
+func (m TestClientMock) ID() string {
+	if m.IDFunc != nil {
+		return m.IDFunc()
+	}
+	panic("not implemented")
+}
+
+func (m TestClientMock) UserID() string {
+	if m.UserIDFunc != nil {
+		return m.UserIDFunc()
+	}
+	panic("not implemented")
+}
+
+func (m TestClientMock) IsSubscribed(s string) bool {
+	if m.IsSubscribedFunc != nil {
+		return m.IsSubscribedFunc(s)
+	}
+	panic("not implemented")
+}
+
+func (m TestClientMock) Context() context.Context {
+	if m.ContextFunc != nil {
+		return m.ContextFunc()
+	}
+	panic("not implemented")
+}
+
+func (m TestClientMock) Transport() centrifuge.TransportInfo {
+	if m.TransportFunc != nil {
+		return m.TransportFunc()
+	}
+	panic("not implemented")
+}

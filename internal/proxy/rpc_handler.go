@@ -58,11 +58,11 @@ func NewRPCHandler(c RPCHandlerConfig) *RPCHandler {
 }
 
 // RPCHandlerFunc ...
-type RPCHandlerFunc func(*centrifuge.Client, centrifuge.RPCEvent, *rule.Container, PerCallData) (centrifuge.RPCReply, error)
+type RPCHandlerFunc func(Client, centrifuge.RPCEvent, *rule.Container, PerCallData) (centrifuge.RPCReply, error)
 
 // Handle RPC.
 func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
-	return func(client *centrifuge.Client, e centrifuge.RPCEvent, ruleContainer *rule.Container, pcd PerCallData) (centrifuge.RPCReply, error) {
+	return func(client Client, e centrifuge.RPCEvent, ruleContainer *rule.Container, pcd PerCallData) (centrifuge.RPCReply, error) {
 		started := time.Now()
 
 		var p RPCProxy

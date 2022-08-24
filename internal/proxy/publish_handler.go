@@ -58,11 +58,11 @@ func NewPublishHandler(c PublishHandlerConfig) *PublishHandler {
 }
 
 // PublishHandlerFunc ...
-type PublishHandlerFunc func(*centrifuge.Client, centrifuge.PublishEvent, rule.ChannelOptions, PerCallData) (centrifuge.PublishReply, error)
+type PublishHandlerFunc func(Client, centrifuge.PublishEvent, rule.ChannelOptions, PerCallData) (centrifuge.PublishReply, error)
 
 // Handle Publish.
 func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
-	return func(client *centrifuge.Client, e centrifuge.PublishEvent, chOpts rule.ChannelOptions, pcd PerCallData) (centrifuge.PublishReply, error) {
+	return func(client Client, e centrifuge.PublishEvent, chOpts rule.ChannelOptions, pcd PerCallData) (centrifuge.PublishReply, error) {
 		started := time.Now()
 
 		var p PublishProxy
