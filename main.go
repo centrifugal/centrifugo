@@ -264,6 +264,7 @@ func bindCentrifugoConfig() {
 		"use_client_protocol_v1_by_default": false,
 
 		"ping_interval": 25 * time.Second,
+		"pong_timeout":  8 * time.Second,
 	}
 
 	for k, v := range defaults {
@@ -1854,10 +1855,7 @@ func rpcNamespacesFromConfig(v *viper.Viper) []rule.RpcNamespace {
 
 func getPingPongConfig() centrifuge.PingPongConfig {
 	pingInterval := GetDuration("ping_interval")
-	pongTimeout := pingInterval / 3
-	if viper.IsSet("pong_timeout") {
-		pongTimeout = GetDuration("pong_timeout")
-	}
+	pongTimeout := GetDuration("pong_timeout")
 	if pingInterval <= pongTimeout {
 		log.Fatal().Msgf("ping_interval (%s) must be greater than pong_timeout (%s)", pingInterval, pongTimeout)
 	}
