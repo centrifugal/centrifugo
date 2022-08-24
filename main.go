@@ -547,7 +547,7 @@ func main() {
 				log.Info().Msgf("serving unidirectional GRPC on %s", grpcUniAddr)
 			}
 
-			servers, err := runHTTPServers(node, httpAPIExecutor, proxyEnabled)
+			servers, err := runHTTPServers(node, ruleContainer, httpAPIExecutor, proxyEnabled)
 			if err != nil {
 				log.Fatal().Msgf("error running HTTP server: %v", err)
 			}
@@ -1122,7 +1122,7 @@ func (w *httpErrorLogWriter) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled bool) ([]*http.Server, error) {
+func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Executor, proxyEnabled bool) ([]*http.Server, error) {
 	debug := viper.GetBool("debug")
 	useAdmin := viper.GetBool("admin")
 	usePrometheus := viper.GetBool("prometheus")
@@ -1244,7 +1244,7 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled 
 			}
 		}
 
-		mux := Mux(n, apiExecutor, handlerFlags, proxyEnabled, wtServer)
+		mux := Mux(n, ruleContainer, apiExecutor, handlerFlags, proxyEnabled, wtServer)
 
 		if useHTTP3 {
 			wtServer.H3 = http3.Server{
@@ -1421,6 +1421,7 @@ func ruleConfig() rule.Config {
 	cfg.RpcNamespaceBoundary = v.GetString("rpc_namespace_boundary")
 	cfg.RpcProxyName = v.GetString("rpc_proxy_name")
 	cfg.RpcNamespaces = rpcNamespacesFromConfig(v)
+	cfg.ClientConnectionLimit = v.GetInt("client_connection_limit")
 	return cfg
 }
 
@@ -2367,7 +2368,7 @@ func (flags HandlerFlag) String() string {
 }
 
 // Mux returns a mux including set of default handlers for Centrifugo server.
-func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxyEnabled bool, wtServer *webtransport.Server) *http.ServeMux {
+func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Executor, flags HandlerFlag, proxyEnabled bool, wtServer *webtransport.Server) *http.ServeMux {
 	mux := http.NewServeMux()
 	v := viper.GetViper()
 
@@ -2385,7 +2386,7 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxy
 		if wsPrefix == "" {
 			wsPrefix = "/"
 		}
-		mux.Handle(wsPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, centrifuge.NewWebsocketHandler(n, websocketHandlerConfig()))))
+		mux.Handle(wsPrefix, middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, centrifuge.NewWebsocketHandler(n, websocketHandlerConfig())))))
 	}
 
 	if flags&HandlerWebtransport != 0 {
@@ -2394,7 +2395,7 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxy
 		if wtPrefix == "" {
 			wtPrefix = "/"
 		}
-		mux.Handle(wtPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, wt.NewHandler(n, wtServer, webTransportHandlerConfig()))))
+		mux.Handle(wtPrefix, middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, wt.NewHandler(n, wtServer, webTransportHandlerConfig())))))
 	}
 
 	if flags&HandlerHTTPStream != 0 {
@@ -2403,7 +2404,7 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxy
 		if streamPrefix == "" {
 			streamPrefix = "/"
 		}
-		mux.Handle(streamPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), centrifuge.NewHTTPStreamHandler(n, httpStreamHandlerConfig())))))
+		mux.Handle(streamPrefix, middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), centrifuge.NewHTTPStreamHandler(n, httpStreamHandlerConfig()))))))
 	}
 	if flags&HandlerSSE != 0 {
 		// register bidirectional SSE connection endpoint.
@@ -2411,7 +2412,7 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxy
 		if ssePrefix == "" {
 			ssePrefix = "/"
 		}
-		mux.Handle(ssePrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), centrifuge.NewSSEHandler(n, sseHandlerConfig())))))
+		mux.Handle(ssePrefix, middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), centrifuge.NewSSEHandler(n, sseHandlerConfig()))))))
 	}
 	if flags&HandlerEmulation != 0 {
 		// register bidirectional SSE connection endpoint.
@@ -2419,7 +2420,7 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxy
 		if emulationPrefix == "" {
 			emulationPrefix = "/"
 		}
-		mux.Handle(emulationPrefix, middleware.LogRequest(middleware.CORS(getCheckOrigin(), centrifuge.NewEmulationHandler(n, emulationHandlerConfig()))))
+		mux.Handle(emulationPrefix, middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.CORS(getCheckOrigin(), centrifuge.NewEmulationHandler(n, emulationHandlerConfig())))))
 	}
 
 	if flags&HandlerSockJS != 0 {
@@ -2427,7 +2428,7 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxy
 		sockjsConfig := sockjsHandlerConfig()
 		sockjsPrefix := strings.TrimRight(v.GetString("sockjs_handler_prefix"), "/")
 		sockjsConfig.HandlerPrefix = sockjsPrefix
-		mux.Handle(sockjsPrefix+"/", middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, centrifuge.NewSockjsHandler(n, sockjsConfig))))
+		mux.Handle(sockjsPrefix+"/", middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, centrifuge.NewSockjsHandler(n, sockjsConfig)))))
 	}
 
 	if flags&HandlerUniWebsocket != 0 {
@@ -2436,7 +2437,7 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxy
 		if wsPrefix == "" {
 			wsPrefix = "/"
 		}
-		mux.Handle(wsPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, uniws.NewHandler(n, uniWebsocketHandlerConfig()))))
+		mux.Handle(wsPrefix, middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, uniws.NewHandler(n, uniWebsocketHandlerConfig())))))
 	}
 
 	if flags&HandlerUniSSE != 0 {
@@ -2445,7 +2446,7 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxy
 		if ssePrefix == "" {
 			ssePrefix = "/"
 		}
-		mux.Handle(ssePrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), unisse.NewHandler(n, uniSSEHandlerConfig())))))
+		mux.Handle(ssePrefix, middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), unisse.NewHandler(n, uniSSEHandlerConfig()))))))
 	}
 
 	if flags&HandlerUniHTTPStream != 0 {
@@ -2454,7 +2455,7 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxy
 		if streamPrefix == "" {
 			streamPrefix = "/"
 		}
-		mux.Handle(streamPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), unihttpstream.NewHandler(n, uniStreamHandlerConfig())))))
+		mux.Handle(streamPrefix, middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), unihttpstream.NewHandler(n, uniStreamHandlerConfig()))))))
 	}
 
 	if flags&HandlerAPI != 0 {
