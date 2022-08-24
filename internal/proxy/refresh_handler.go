@@ -39,11 +39,11 @@ type RefreshExtra struct {
 }
 
 // RefreshHandlerFunc ...
-type RefreshHandlerFunc func(*centrifuge.Client, centrifuge.RefreshEvent, PerCallData) (centrifuge.RefreshReply, RefreshExtra, error)
+type RefreshHandlerFunc func(Client, centrifuge.RefreshEvent, PerCallData) (centrifuge.RefreshReply, RefreshExtra, error)
 
 // Handle refresh.
 func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
-	return func(client *centrifuge.Client, e centrifuge.RefreshEvent, pcd PerCallData) (centrifuge.RefreshReply, RefreshExtra, error) {
+	return func(client Client, e centrifuge.RefreshEvent, pcd PerCallData) (centrifuge.RefreshReply, RefreshExtra, error) {
 		started := time.Now()
 		req := &proxyproto.RefreshRequest{
 			Client:    client.ID(),

@@ -61,11 +61,11 @@ type SubscribeExtra struct {
 }
 
 // SubscribeHandlerFunc ...
-type SubscribeHandlerFunc func(*centrifuge.Client, centrifuge.SubscribeEvent, rule.ChannelOptions, PerCallData) (centrifuge.SubscribeReply, SubscribeExtra, error)
+type SubscribeHandlerFunc func(Client, centrifuge.SubscribeEvent, rule.ChannelOptions, PerCallData) (centrifuge.SubscribeReply, SubscribeExtra, error)
 
 // Handle Subscribe.
 func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
-	return func(client *centrifuge.Client, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions, pcd PerCallData) (centrifuge.SubscribeReply, SubscribeExtra, error) {
+	return func(client Client, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions, pcd PerCallData) (centrifuge.SubscribeReply, SubscribeExtra, error) {
 		started := time.Now()
 
 		var p SubscribeProxy

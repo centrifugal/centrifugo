@@ -982,3 +982,87 @@ func TestClientPresenceStatsError(t *testing.T) {
 	})
 	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
+
+func TestClientOnSubscribe_UserLimitedChannelDoesNotCallProxy(t *testing.T) {
+	node := tools.NodeWithMemoryEngineNoHandlers()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	ruleConfig := rule.DefaultConfig
+	ruleConfig.UserLimitedChannels = true
+	ruleConfig.ProxySubscribe = true
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
+
+	h := NewHandler(node, ruleContainer, nil, &ProxyMap{}, false)
+
+	numProxyCalls := 0
+
+	proxyFunc := func(c proxy.Client, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions, pcd proxy.PerCallData) (centrifuge.SubscribeReply, proxy.SubscribeExtra, error) {
+		numProxyCalls++
+		return centrifuge.SubscribeReply{}, proxy.SubscribeExtra{}, nil
+	}
+
+	_, _, err = h.OnSubscribe(tools.TestClientMock{
+		UserIDFunc: func() string {
+			return "42"
+		},
+	}, centrifuge.SubscribeEvent{
+		Channel: "user#42",
+	}, proxyFunc, proxy.PerCallData{})
+	require.NoError(t, err)
+	require.Equal(t, 0, numProxyCalls)
+
+	_, _, err = h.OnSubscribe(tools.TestClientMock{
+		UserIDFunc: func() string {
+			return "42"
+		},
+	}, centrifuge.SubscribeEvent{
+		Channel: "user",
+	}, proxyFunc, proxy.PerCallData{})
+	require.NoError(t, err)
+	require.Equal(t, 1, numProxyCalls)
+}
+
+func TestClientOnSubscribe_UserLimitedChannelNotAllowedForAnotherUser(t *testing.T) {
+	node := tools.NodeWithMemoryEngineNoHandlers()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	ruleConfig := rule.DefaultConfig
+	ruleConfig.UserLimitedChannels = true
+	ruleConfig.SubscribeForClient = true
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
+
+	h := NewHandler(node, ruleContainer, nil, &ProxyMap{}, false)
+
+	numProxyCalls := 0
+
+	proxyFunc := func(c proxy.Client, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions, pcd proxy.PerCallData) (centrifuge.SubscribeReply, proxy.SubscribeExtra, error) {
+		numProxyCalls++
+		return centrifuge.SubscribeReply{}, proxy.SubscribeExtra{}, nil
+	}
+
+	_, _, err = h.OnSubscribe(tools.TestClientMock{
+		IDFunc: func() string {
+			return "1"
+		},
+		UserIDFunc: func() string {
+			return "42"
+		},
+	}, centrifuge.SubscribeEvent{
+		Channel: "user#42",
+	}, proxyFunc, proxy.PerCallData{})
+	require.NoError(t, err)
+
+	_, _, err = h.OnSubscribe(tools.TestClientMock{
+		IDFunc: func() string {
+			return "2"
+		},
+		UserIDFunc: func() string {
+			return "43"
+		},
+	}, centrifuge.SubscribeEvent{
+		Channel: "user#42",
+	}, proxyFunc, proxy.PerCallData{})
+	require.ErrorIs(t, err, centrifuge.ErrorPermissionDenied)
+}
