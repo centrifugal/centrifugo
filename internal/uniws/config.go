@@ -65,6 +65,8 @@ type Config struct {
 
 	// UseWriteBufferPool enables using buffer pool for writes.
 	UseWriteBufferPool bool
+
+	centrifuge.PingPongConfig
 }
 
 func sameHostOriginCheck() func(r *http.Request) bool {

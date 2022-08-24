@@ -12,34 +12,22 @@ import (
 const transportName = "webtransport"
 
 type webtransportTransport struct {
-	mu           sync.RWMutex
-	closeCh      chan struct{}
-	protoType    centrifuge.ProtocolType
-	session      *webtransport.Session
-	stream       webtransport.Stream
-	pingInterval time.Duration
-	pongTimeout  time.Duration
-	closed       bool
+	mu             sync.RWMutex
+	closeCh        chan struct{}
+	protoType      centrifuge.ProtocolType
+	session        *webtransport.Session
+	stream         webtransport.Stream
+	pingPongConfig centrifuge.PingPongConfig
+	closed         bool
 }
 
-func newWebtransportTransport(protoType centrifuge.ProtocolType, session *webtransport.Session, stream webtransport.Stream, pingInterval, pongTimeout time.Duration) *webtransportTransport {
-	if pingInterval == 0 {
-		pingInterval = 25 * time.Second
-	} else if pingInterval == -1 {
-		pingInterval = 0
-	}
-	if pongTimeout == 0 {
-		pongTimeout = pingInterval / 3
-	} else if pongTimeout == -1 {
-		pongTimeout = 0
-	}
+func newWebtransportTransport(protoType centrifuge.ProtocolType, session *webtransport.Session, stream webtransport.Stream, pingPongConfig centrifuge.PingPongConfig) *webtransportTransport {
 	return &webtransportTransport{
-		protoType:    protoType,
-		closeCh:      make(chan struct{}),
-		session:      session,
-		stream:       stream,
-		pingInterval: pingInterval,
-		pongTimeout:  pongTimeout,
+		protoType:      protoType,
+		closeCh:        make(chan struct{}),
+		session:        session,
+		stream:         stream,
+		pingPongConfig: pingPongConfig,
 	}
 }
 
@@ -76,8 +64,8 @@ func (t *webtransportTransport) Emulation() bool {
 // AppLevelPing ...
 func (t *webtransportTransport) AppLevelPing() centrifuge.AppLevelPing {
 	return centrifuge.AppLevelPing{
-		PingInterval: t.pingInterval,
-		PongTimeout:  t.pongTimeout,
+		PingInterval: t.pingPongConfig.PingInterval,
+		PongTimeout:  t.pingPongConfig.PongTimeout,
 	}
 }
 
