@@ -12,6 +12,7 @@ import (
 	"github.com/centrifugal/centrifugo/v4/internal/jwtverify"
 	"github.com/centrifugal/centrifugo/v4/internal/proxy"
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
+	"github.com/centrifugal/centrifugo/v4/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
 )
@@ -168,12 +169,25 @@ func (h *Handler) Setup() error {
 				}
 				stateMu.RUnlock()
 				reply, extra, err := h.OnRefresh(client, event, refreshProxyHandler, pcd)
+				if err != nil {
+					cb(reply, err)
+					return
+				}
 				if extra.Meta != nil {
 					stateMu.Lock()
 					meta = extra.Meta
 					stateMu.Unlock()
 				}
-				cb(reply, err)
+				if extra.CheckSubs && tokenChannelsChanged(client, extra.Subs) {
+					// Check whether server-side subscriptions changed. If yes – disconnect
+					// the client to make its token-based server-side subscriptions actual.
+					// Theoretically we could avoid disconnection here using Subscribe/Unsubscribe
+					// methods, but disconnection seems the good first step for the scenario which
+					// should be pretty rare given the stable nature of server-side subscriptions.
+					cb(reply, centrifuge.DisconnectInsufficientState)
+					return
+				}
+				cb(reply, nil)
 			})
 		})
 
@@ -253,6 +267,24 @@ func (h *Handler) Setup() error {
 		})
 	})
 	return nil
+}
+
+func tokenChannelsChanged(client *centrifuge.Client, subs map[string]centrifuge.SubscribeOptions) bool {
+	// Check new channels.
+	for ch := range subs {
+		if !client.IsSubscribed(ch) {
+			return true
+		}
+	}
+	// Check channels not actual anymore.
+	for ch, chCtx := range client.Channels() {
+		if chCtx.Source == subsource.ConnectionToken {
+			if _, ok := subs[ch]; !ok {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (h *Handler) runConcurrentlyIfNeeded(ctx context.Context, concurrency int, semaphore chan struct{}, fn func()) {
@@ -361,6 +393,7 @@ func (h *Handler) OnClientConnecting(
 			PushJoinLeave:     chOpts.ForcePushJoinLeave,
 			EnableRecovery:    chOpts.ForceRecovery,
 			EnablePositioning: chOpts.ForcePositioning,
+			Source:            subsource.UserPersonal,
 		}
 	}
 
@@ -410,6 +443,7 @@ func (h *Handler) OnClientConnecting(
 						PushJoinLeave:     chOpts.ForcePushJoinLeave,
 						EnableRecovery:    chOpts.ForceRecovery,
 						EnablePositioning: chOpts.ForcePositioning,
+						Source:            subsource.UniConnect,
 					}
 				}
 			} else {
@@ -433,7 +467,9 @@ func (h *Handler) OnClientConnecting(
 }
 
 type RefreshExtra struct {
-	Meta json.RawMessage
+	Meta      json.RawMessage
+	Subs      map[string]centrifuge.SubscribeOptions
+	CheckSubs bool
 }
 
 // OnRefresh ...
@@ -461,7 +497,7 @@ func (h *Handler) OnRefresh(c Client, e centrifuge.RefreshEvent, refreshProxyHan
 	return centrifuge.RefreshReply{
 		ExpireAt: token.ExpireAt,
 		Info:     token.Info,
-	}, RefreshExtra{Meta: token.Meta}, nil
+	}, RefreshExtra{Meta: token.Meta, Subs: token.Subs, CheckSubs: true}, nil
 }
 
 // OnRPC ...
@@ -618,8 +654,10 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		}
 		options = token.Options
 		allowed = true
+		options.Source = subsource.SubscriptionToken
 	} else if isUserLimitedChannel && h.ruleContainer.UserAllowed(e.Channel, c.UserID()) {
 		allowed = true
+		options.Source = subsource.UserLimited
 	} else if (chOpts.ProxySubscribe || chOpts.SubscribeProxyName != "") && !isUserLimitedChannel {
 		if subscribeProxyHandler == nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe proxy not enabled", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
@@ -629,8 +667,10 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		return r, SubscribeExtra{}, err
 	} else if chOpts.SubscribeForClient && (c.UserID() != "" || chOpts.SubscribeForAnonymous) && !isUserLimitedChannel {
 		allowed = true
+		options.Source = subsource.ClientAllowed
 	} else if ruleConfig.ClientInsecure {
 		allowed = true
+		options.Source = subsource.ClientInsecure
 	}
 
 	if !allowed {
