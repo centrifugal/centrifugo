@@ -3,28 +3,29 @@ package unisse
 import (
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/centrifugal/centrifuge"
 )
 
 type eventsourceTransport struct {
-	mu           sync.Mutex
-	req          *http.Request
-	messages     chan []byte
-	disconnectCh chan *centrifuge.Disconnect
-	closedCh     chan struct{}
-	closed       bool
-	protoVersion centrifuge.ProtocolVersion
+	mu             sync.Mutex
+	req            *http.Request
+	messages       chan []byte
+	disconnectCh   chan *centrifuge.Disconnect
+	closedCh       chan struct{}
+	closed         bool
+	protoVersion   centrifuge.ProtocolVersion
+	pingPongConfig centrifuge.PingPongConfig
 }
 
-func newEventsourceTransport(req *http.Request, protoVersion centrifuge.ProtocolVersion) *eventsourceTransport {
+func newEventsourceTransport(req *http.Request, protoVersion centrifuge.ProtocolVersion, pingPongConfig centrifuge.PingPongConfig) *eventsourceTransport {
 	return &eventsourceTransport{
-		messages:     make(chan []byte),
-		disconnectCh: make(chan *centrifuge.Disconnect),
-		closedCh:     make(chan struct{}),
-		req:          req,
-		protoVersion: protoVersion,
+		messages:       make(chan []byte),
+		disconnectCh:   make(chan *centrifuge.Disconnect),
+		closedCh:       make(chan struct{}),
+		req:            req,
+		protoVersion:   protoVersion,
+		pingPongConfig: pingPongConfig,
 	}
 }
 
@@ -56,7 +57,7 @@ func (t *eventsourceTransport) DisabledPushFlags() uint64 {
 // AppLevelPing ...
 func (t *eventsourceTransport) AppLevelPing() centrifuge.AppLevelPing {
 	return centrifuge.AppLevelPing{
-		PingInterval: 25 * time.Second,
+		PingInterval: t.pingPongConfig.PingInterval,
 	}
 }
 

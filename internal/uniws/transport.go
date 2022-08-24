@@ -26,6 +26,7 @@ type websocketTransportOptions struct {
 	writeTimeout       time.Duration
 	compressionMinSize int
 	protoVersion       centrifuge.ProtocolVersion
+	pingPongConfig     centrifuge.PingPongConfig
 }
 
 func newWebsocketTransport(conn *websocket.Conn, opts websocketTransportOptions, graceCh chan struct{}) *websocketTransport {
@@ -103,7 +104,7 @@ func (t *websocketTransport) DisabledPushFlags() uint64 {
 // AppLevelPing ...
 func (t *websocketTransport) AppLevelPing() centrifuge.AppLevelPing {
 	return centrifuge.AppLevelPing{
-		PingInterval: 25 * time.Second,
+		PingInterval: t.opts.pingPongConfig.PingInterval,
 	}
 }
 

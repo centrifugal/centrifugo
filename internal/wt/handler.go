@@ -50,7 +50,7 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		protoType = centrifuge.ProtocolTypeProtobuf
 	}
 
-	transport := newWebtransportTransport(protoType, conn, stream, s.config.AppLevelPingInterval, s.config.AppLevelPongTimeout)
+	transport := newWebtransportTransport(protoType, conn, stream, s.config.PingPongConfig)
 	c, closeFn, err := centrifuge.NewClient(r.Context(), s.node, transport)
 	if err != nil {
 		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error creating client", map[string]interface{}{"transport": transportName}))

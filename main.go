@@ -262,6 +262,8 @@ func bindCentrifugoConfig() {
 		// This option allows smooth migration to Centrifugo v4,
 		// should be removed at some point in the future.
 		"use_client_protocol_v1_by_default": false,
+
+		"ping_interval": 25 * time.Second,
 	}
 
 	for k, v := range defaults {
@@ -1850,6 +1852,21 @@ func rpcNamespacesFromConfig(v *viper.Viper) []rule.RpcNamespace {
 	return ns
 }
 
+func getPingPongConfig() centrifuge.PingPongConfig {
+	pingInterval := GetDuration("ping_interval")
+	pongTimeout := pingInterval / 3
+	if viper.IsSet("pong_timeout") {
+		pongTimeout = GetDuration("pong_timeout")
+	}
+	if pingInterval <= pongTimeout {
+		log.Fatal().Msgf("ping_interval (%s) must be greater than pong_timeout (%s)", pingInterval, pongTimeout)
+	}
+	return centrifuge.PingPongConfig{
+		PingInterval: pingInterval,
+		PongTimeout:  pongTimeout,
+	}
+}
+
 func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	v := viper.GetViper()
 	cfg := centrifuge.WebsocketConfig{}
@@ -1867,18 +1884,21 @@ func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	cfg.WriteTimeout = GetDuration("websocket_write_timeout")
 	cfg.MessageSizeLimit = v.GetInt("websocket_message_size_limit")
 	cfg.CheckOrigin = getCheckOrigin()
+	cfg.PingPongConfig = getPingPongConfig()
 	return cfg
 }
 
 func httpStreamHandlerConfig() centrifuge.HTTPStreamConfig {
 	return centrifuge.HTTPStreamConfig{
 		MaxRequestBodySize: viper.GetInt("http_stream_max_request_body_size"),
+		PingPongConfig:     getPingPongConfig(),
 	}
 }
 
 func sseHandlerConfig() centrifuge.SSEConfig {
 	return centrifuge.SSEConfig{
 		MaxRequestBodySize: viper.GetInt("sse_max_request_body_size"),
+		PingPongConfig:     getPingPongConfig(),
 	}
 }
 
@@ -1945,6 +1965,7 @@ func uniWebsocketHandlerConfig() uniws.Config {
 		WriteTimeout:       GetDuration("uni_websocket_write_timeout"),
 		MessageSizeLimit:   v.GetInt("uni_websocket_message_size_limit"),
 		CheckOrigin:        getCheckOrigin(),
+		PingPongConfig:     getPingPongConfig(),
 	}
 }
 
@@ -1956,6 +1977,7 @@ func uniSSEHandlerConfig() unisse.Config {
 	return unisse.Config{
 		ProtocolVersion:    protocolVersion,
 		MaxRequestBodySize: viper.GetInt("uni_sse_max_request_body_size"),
+		PingPongConfig:     getPingPongConfig(),
 	}
 }
 
@@ -1967,6 +1989,7 @@ func uniStreamHandlerConfig() unihttpstream.Config {
 	return unihttpstream.Config{
 		ProtocolVersion:    protocolVersion,
 		MaxRequestBodySize: viper.GetInt("uni_http_stream_max_request_body_size"),
+		PingPongConfig:     getPingPongConfig(),
 	}
 }
 
@@ -1995,11 +2018,14 @@ func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	cfg.WebsocketWriteTimeout = GetDuration("websocket_write_timeout")
 	cfg.CheckOrigin = getCheckOrigin()
 	cfg.WebsocketCheckOrigin = getCheckOrigin()
+	cfg.PingPongConfig = getPingPongConfig()
 	return cfg
 }
 
 func webTransportHandlerConfig() wt.Config {
-	return wt.Config{}
+	return wt.Config{
+		PingPongConfig: getPingPongConfig(),
+	}
 }
 
 func adminHandlerConfig() admin.Config {

@@ -7,4 +7,6 @@ type Config struct {
 	ProtocolVersion centrifuge.ProtocolVersion
 	// MaxRequestBodySize limits request body size.
 	MaxRequestBodySize int
+
+	centrifuge.PingPongConfig
 }
