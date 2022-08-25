@@ -17,8 +17,8 @@ This release contains an important fix of v4 degradation (proxying user limited 
 
 ### Improvements
 
-* Configure server-to-client ping/pong intervals [#551](https://github.com/centrifugal/centrifugo/pull/551)
-* Option `client_connection_limit` to set client connection limit for a single Centrifugo node [#546](https://github.com/centrifugal/centrifugo/pull/546)
+* Configure server-to-client ping/pong intervals [#551](https://github.com/centrifugal/centrifugo/pull/551), [docs](https://centrifugal.dev/docs/transports/overview#pingpong-behavior)
+* Option `client_connection_limit` to set client connection limit for a single Centrifugo node [#546](https://github.com/centrifugal/centrifugo/pull/546), [docs](https://centrifugal.dev/docs/server/configuration#client_connection_limit)
 * Option `api_external` to expose API handler on external port [#536](https://github.com/centrifugal/centrifugo/issues/536)
 * Use `go.uber.org/automaxprocs` to set GOMAXPROCS [#528](https://github.com/centrifugal/centrifugo/pull/528), this may help to automatically improve Centrifugo performance when it's running in an environment with cgroup-restricted CPU resources (Docker, Kubernetes).
 * Nats broker: use push format from client protocol v2 [#542](https://github.com/centrifugal/centrifugo/pull/542)
