@@ -1,3 +1,26 @@
+v4.0.1
+======
+
+This release contains an important fix of v4 degradation (proxying user limited channel) and comes with several nice improvements.
+
+### Fixes
+
+* Avoid proxying user limited channel [#550](https://github.com/centrifugal/centrifugo/pull/550)
+* Look at subscription source to handle token subs change [#545](https://github.com/centrifugal/centrifugo/pull/545)
+
+### Improvements
+
+* Configure server-to-client ping/pong intervals [#551](https://github.com/centrifugal/centrifugo/pull/551)
+* Option `client_connection_limit` to set client connection limit for a single Centrifugo node [#546](https://github.com/centrifugal/centrifugo/pull/546)
+* Option `api_external` to expose API handler on external port [#536](https://github.com/centrifugal/centrifugo/issues/536)
+* Use `go.uber.org/automaxprocs` to set GOMAXPROCS [#528](https://github.com/centrifugal/centrifugo/pull/528), this may help to automatically improve Centrifugo performance when it's running in an environment with cgroup-restricted CPU resources (Docker, Kubernetes).
+* Nats broker: use push format from client protocol v2 [#542](https://github.com/centrifugal/centrifugo/pull/542)
+
+### Misc
+
+* While working on [Centrifuge](https://github.com/centrifugal/centrifuge) lib [@j178](https://github.com/j178) found a scenario where connection to Redis could leak, this was not observed and reported in Centrifugo outside the test suite, but it seems that theoretically connections to Redis from Centrifugo could leak with time if the network between Centrifugo and Redis is unstable. This release contains an updated Redis engine which eliminates this.
+* This release is built with Go 1.18.5
+
 v4.0.0
 ======
 
