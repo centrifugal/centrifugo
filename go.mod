@@ -23,7 +23,7 @@ require (
 	github.com/nats-io/nats.go v1.16.0
 	github.com/prometheus/client_golang v1.13.0
 	github.com/rakutentech/jwk-go v1.0.1
-	github.com/rs/zerolog v1.27.0
+	github.com/rs/zerolog v1.28.0
 	github.com/spf13/cobra v0.0.7
 	github.com/stretchr/testify v1.8.0
 	github.com/vmihailenco/msgpack/v5 v5.3.5
