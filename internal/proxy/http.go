@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
@@ -88,7 +89,7 @@ func getProxyHeader(allHeader http.Header, extraHeaders []string) http.Header {
 
 func copyHeader(dst, src http.Header, extraHeaders []string) {
 	for k, vv := range src {
-		if !stringInSlice(k, extraHeaders) {
+		if !stringInSlice(strings.ToLower(k), extraHeaders) {
 			continue
 		}
 		dst[k] = vv

@@ -86,7 +86,7 @@ func requestMetadata(ctx context.Context, allowedHeaders []string, allowedMetaKe
 	requestMD := metadata.MD{}
 	if headers, ok := middleware.GetHeadersFromContext(ctx); ok {
 		for k, vv := range headers {
-			if stringInSlice(k, allowedHeaders) {
+			if stringInSlice(strings.ToLower(k), allowedHeaders) {
 				requestMD.Set(k, vv...)
 			}
 		}
