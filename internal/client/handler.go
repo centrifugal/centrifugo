@@ -277,7 +277,7 @@ func tokenChannelsChanged(client *centrifuge.Client, subs map[string]centrifuge.
 		}
 	}
 	// Check channels not actual anymore.
-	for ch, chCtx := range client.Channels() {
+	for ch, chCtx := range client.ChannelsWithContext() {
 		if chCtx.Source == subsource.ConnectionToken {
 			if _, ok := subs[ch]; !ok {
 				return true
