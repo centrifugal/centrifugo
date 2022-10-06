@@ -2036,6 +2036,7 @@ func adminHandlerConfig() admin.Config {
 	cfg := admin.Config{}
 	cfg.WebFS = webui.FS
 	cfg.WebPath = v.GetString("admin_web_path")
+	cfg.WebProxyAddress = v.GetString("admin_web_proxy_address")
 	cfg.Password = v.GetString("admin_password")
 	cfg.Secret = v.GetString("admin_secret")
 	cfg.Insecure = v.GetBool("admin_insecure")

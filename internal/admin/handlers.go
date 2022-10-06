@@ -7,6 +7,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/v4/internal/api"
 	"github.com/centrifugal/centrifugo/v4/internal/middleware"
+	"github.com/centrifugal/centrifugo/v4/internal/reverseproxy"
 	"github.com/centrifugal/centrifugo/v4/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
@@ -21,6 +22,11 @@ type Config struct {
 
 	// WebPath is path to admin web application to serve.
 	WebPath string
+
+	// WebProxyAddress is an address for proxying to the running admin web application app.
+	// So it's possible to run web app in dev mode and point Centrifugo to its address for
+	// development purposes.
+	WebProxyAddress string
 
 	// WebFS is custom filesystem to serve as admin web application.
 	// In our case we pass embedded web interface which implements
@@ -59,7 +65,14 @@ func NewHandler(n *centrifuge.Node, apiExecutor *api.Executor, c Config) *Handle
 	mux.Handle(prefix+"/admin/auth", middleware.Post(http.HandlerFunc(h.authHandler)))
 	mux.Handle(prefix+"/admin/api", middleware.Post(h.adminSecureTokenAuth(api.NewHandler(n, apiExecutor, api.Config{}))))
 	webPrefix := prefix + "/"
-	if c.WebPath != "" {
+	if c.WebProxyAddress != "" {
+		log.Info().Str("address", c.WebProxyAddress).Msg("using admin web reverse proxy")
+		proxy, err := reverseproxy.New(c.WebProxyAddress)
+		if err != nil {
+			log.Fatal().Err(err).Msg("error creating admin web reverse proxy")
+		}
+		mux.HandleFunc(webPrefix, reverseproxy.ProxyRequestHandler(proxy))
+	} else if c.WebPath != "" {
 		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(c.WebPath))))
 	} else if c.WebFS != nil {
 		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(c.WebFS)))
