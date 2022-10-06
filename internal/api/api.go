@@ -274,6 +274,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 		resp.Error = ErrorInternal
 		return resp
 	}
+	resp.Result = &SubscribeResult{}
 	return resp
 }
 
@@ -305,6 +306,7 @@ func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *Unsu
 		resp.Error = ErrorInternal
 		return resp
 	}
+	resp.Result = &UnsubscribeResult{}
 	return resp
 }
 
@@ -337,6 +339,7 @@ func (h *Executor) Disconnect(_ context.Context, cmd *DisconnectRequest) *Discon
 		resp.Error = ErrorInternal
 		return resp
 	}
+	resp.Result = &DisconnectResult{}
 	return resp
 }
 
@@ -360,6 +363,7 @@ func (h *Executor) Refresh(_ context.Context, cmd *RefreshRequest) *RefreshRespo
 		resp.Error = ErrorInternal
 		return resp
 	}
+	resp.Result = &RefreshResult{}
 	return resp
 }
 
@@ -570,7 +574,7 @@ func (h *Executor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest) *
 		resp.Error = ErrorInternal
 		return resp
 	}
-
+	resp.Result = &HistoryRemoveResult{}
 	return resp
 }
 
