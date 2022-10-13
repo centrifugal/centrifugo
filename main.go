@@ -98,6 +98,7 @@ func bindCentrifugoConfig() {
 
 		"presence":                      false,
 		"join_leave":                    false,
+		"force_push_join_leave":         false,
 		"history_size":                  0,
 		"history_ttl":                   0,
 		"force_positioning":             false,
@@ -1388,6 +1389,7 @@ func ruleConfig() rule.Config {
 
 	cfg.Presence = v.GetBool("presence")
 	cfg.JoinLeave = v.GetBool("join_leave")
+	cfg.ForcePushJoinLeave = v.GetBool("force_push_join_leave")
 	cfg.HistorySize = v.GetInt("history_size")
 	cfg.HistoryTTL = tools.Duration(GetDuration("history_ttl", true))
 	cfg.ForcePositioning = v.GetBool("force_positioning")
