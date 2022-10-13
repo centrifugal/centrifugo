@@ -8,22 +8,20 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## Release notes
 
-This release contains an important fix of v4 degradation (proxying user limited channel) and comes with several nice improvements.
+This release contains one more fix of v4 degradation (not respecting `force_push_join_leave` option for top-level namespace), comes with updated admin web UI and other improvements.
 
 ### Fixes
 
-* Avoid proxying user limited channel [#550](https://github.com/centrifugal/centrifugo/pull/550)
-* Look at subscription source to handle token subs change [#545](https://github.com/centrifugal/centrifugo/pull/545)
+* Handle `force_push_join_leave` option set for top-level namespace – it was ignored so join/leave messages were not delivered to clients, [commit](https://github.com/centrifugal/centrifugo/commit/a2409fb7465e348275d87a9d94db5bea5bae357d)
 
 ### Improvements
 
-* Configure server-to-client ping/pong intervals [#551](https://github.com/centrifugal/centrifugo/pull/551), [docs](https://centrifugal.dev/docs/transports/overview#pingpong-behavior)
-* Option `client_connection_limit` to set client connection limit for a single Centrifugo node [#546](https://github.com/centrifugal/centrifugo/pull/546), [docs](https://centrifugal.dev/docs/server/configuration#client_connection_limit)
-* Option `api_external` to expose API handler on external port [#536](https://github.com/centrifugal/centrifugo/issues/536)
-* Use `go.uber.org/automaxprocs` to set GOMAXPROCS [#528](https://github.com/centrifugal/centrifugo/pull/528), this may help to automatically improve Centrifugo performance when it's running in an environment with cgroup-restricted CPU resources (Docker, Kubernetes).
-* Nats broker: use push format from client protocol v2 [#542](https://github.com/centrifugal/centrifugo/pull/542)
+* Updated admin web UI. It now uses modern React stack, fresh look based on Material UI and several other small improvements. See [#566](https://github.com/centrifugal/centrifugo/pull/566) for more details
+* Case-insensitive http proxy header configuration [#558](https://github.com/centrifugal/centrifugo/pull/558)
+* Use Alpine 3.16 instead of 3.13 for Docker builds, [commit](https://github.com/centrifugal/centrifugo/commit/0c1332ffb335266ce4ff88750985c27263b13de2)
+* Add missing empty object results to API command responses, [commit](https://github.com/centrifugal/centrifugo/commit/bdfdc1eeadd99eb4e30162c70accb02b1b1e32d2)
+* Disconnect clients in case of inappropriate protocol [centrifugal/centrifuge#256](https://github.com/centrifugal/centrifuge/pull/256)
 
 ### Misc
 
-* While working on [Centrifuge](https://github.com/centrifugal/centrifuge) lib [@j178](https://github.com/j178) found a scenario where connection to Redis could leak, this was not observed and reported in Centrifugo outside the test suite, but it seems that theoretically connections to Redis from Centrifugo could leak with time if the network between Centrifugo and Redis is unstable. This release contains an updated Redis engine which eliminates this.
-* This release is built with Go 1.18.5
+* This release is built with Go 1.19.2
