@@ -44,7 +44,7 @@ func NewExecutor(n *centrifuge.Node, ruleContainer *rule.Container, surveyCaller
 }
 
 // SetRPCExtension ...
-func (h Executor) SetRPCExtension(method string, handler RPCHandler) {
+func (h *Executor) SetRPCExtension(method string, handler RPCHandler) {
 	h.rpcExtension[method] = handler
 }
 
@@ -201,7 +201,7 @@ func (h *Executor) Broadcast(_ context.Context, cmd *BroadcastRequest) *Broadcas
 }
 
 // Subscribe subscribes user to a channel and sends subscribe
-// control message to other nodes so they could also subscribe user.
+// control message to other nodes, so they could also subscribe user.
 func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *SubscribeResponse {
 	defer observe(time.Now(), h.protocol, "subscribe")
 
