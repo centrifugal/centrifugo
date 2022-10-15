@@ -202,8 +202,8 @@ func bindCentrifugoConfig() {
 		"redis_write_timeout":   time.Second,
 		"redis_idle_timeout":    0,
 
-		"history_meta_ttl": 90 * 24 * time.Hour,
-		"presence_ttl":     60 * time.Second,
+		"default_history_meta_ttl": 90 * 24 * time.Hour,
+		"presence_ttl":             60 * time.Second,
 
 		"grpc_api":         false,
 		"grpc_api_address": "",
@@ -1392,6 +1392,7 @@ func ruleConfig() rule.Config {
 	cfg.ForcePushJoinLeave = v.GetBool("force_push_join_leave")
 	cfg.HistorySize = v.GetInt("history_size")
 	cfg.HistoryTTL = tools.Duration(GetDuration("history_ttl", true))
+	cfg.HistoryMetaTTL = tools.Duration(GetDuration("history_meta_ttl", true))
 	cfg.ForcePositioning = v.GetBool("force_positioning")
 	cfg.AllowRecovery = v.GetBool("allow_recovery")
 	cfg.ForceRecovery = v.GetBool("force_recovery")
@@ -1768,6 +1769,7 @@ func nodeConfig(version string) centrifuge.Config {
 	cfg.NodeInfoMetricsAggregateInterval = GetDuration("node_info_metrics_aggregate_interval")
 	cfg.HistoryMaxPublicationLimit = v.GetInt("client_history_max_publication_limit")
 	cfg.RecoveryMaxPublicationLimit = v.GetInt("client_recovery_max_publication_limit")
+	cfg.DefaultHistoryMetaTTL = GetDuration("default_history_meta_ttl", true)
 
 	level, ok := logStringToLevel[strings.ToLower(v.GetString("log_level"))]
 	if !ok {
@@ -2068,9 +2070,7 @@ func memoryEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMan
 }
 
 func memoryBrokerConfig() (*centrifuge.MemoryBrokerConfig, error) {
-	return &centrifuge.MemoryBrokerConfig{
-		HistoryMetaTTL: GetDuration("history_meta_ttl", true),
-	}, nil
+	return &centrifuge.MemoryBrokerConfig{}, nil
 }
 
 func memoryPresenceManagerConfig() (*centrifuge.MemoryPresenceManagerConfig, error) {
@@ -2188,10 +2188,9 @@ func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMana
 	}
 
 	broker, err := centrifuge.NewRedisBroker(n, centrifuge.RedisBrokerConfig{
-		Shards:         redisShards,
-		Prefix:         viper.GetString("redis_prefix"),
-		UseLists:       viper.GetBool("redis_use_lists"),
-		HistoryMetaTTL: GetDuration("history_meta_ttl", true),
+		Shards:   redisShards,
+		Prefix:   viper.GetString("redis_prefix"),
+		UseLists: viper.GetBool("redis_use_lists"),
 	})
 	if err != nil {
 		return nil, nil, "", err
@@ -2273,8 +2272,7 @@ func tarantoolEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.Presence
 		return nil, nil, "", err
 	}
 	broker, err := tntengine.NewBroker(n, tntengine.BrokerConfig{
-		Shards:         tarantoolShards,
-		HistoryMetaTTL: GetDuration("history_meta_ttl", true),
+		Shards: tarantoolShards,
 	})
 	if err != nil {
 		return nil, nil, "", err

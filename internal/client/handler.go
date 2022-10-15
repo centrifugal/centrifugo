@@ -618,6 +618,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	options.PushJoinLeave = chOpts.ForcePushJoinLeave
 	options.EnablePositioning = chOpts.ForcePositioning
 	options.EnableRecovery = chOpts.ForceRecovery
+	options.HistoryMetaTTL = time.Duration(chOpts.HistoryMetaTTL)
 
 	isPrivateChannel := h.ruleContainer.IsPrivateChannel(e.Channel)
 	isUserLimitedChannel := chOpts.UserLimitedChannels && h.ruleContainer.IsUserLimited(e.Channel)
@@ -735,7 +736,7 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 	result, err := h.node.Publish(
 		e.Channel, e.Data,
 		centrifuge.WithClientInfo(e.ClientInfo),
-		centrifuge.WithHistory(chOpts.HistorySize, time.Duration(chOpts.HistoryTTL)),
+		centrifuge.WithHistory(chOpts.HistorySize, time.Duration(chOpts.HistoryTTL), time.Duration(chOpts.HistoryMetaTTL)),
 	)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "publish error", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID(), "error": err.Error()}))

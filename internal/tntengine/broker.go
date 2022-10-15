@@ -42,11 +42,6 @@ var _ centrifuge.Broker = (*Broker)(nil)
 
 // BrokerConfig is a config for Tarantool Broker.
 type BrokerConfig struct {
-	// HistoryMetaTTL sets a time of stream meta key expiration in Tarantool. Stream
-	// meta key is a Tarantool HASH that contains top offset in channel and epoch value.
-	// By default stream meta keys do not expire.
-	HistoryMetaTTL time.Duration
-
 	// UsePolling allows to turn on polling mode instead of push.
 	UsePolling bool
 
@@ -155,13 +150,20 @@ func (b *Broker) Publish(ch string, data []byte, opts centrifuge.PublishOptions)
 	if err != nil {
 		return centrifuge.StreamPosition{}, err
 	}
+
+	historyMetaTTL := opts.HistoryMetaTTL
+	if historyMetaTTL == 0 {
+		historyMetaTTL = b.node.Config().DefaultHistoryMetaTTL
+	}
+	historyMetaTTLSeconds := int(historyMetaTTL.Seconds())
+
 	pr := &pubRequest{
 		MsgType:        "p",
 		Channel:        ch,
 		Data:           string(byteMessage),
 		HistoryTTL:     int(opts.HistoryTTL.Seconds()),
 		HistorySize:    opts.HistorySize,
-		HistoryMetaTTL: int(b.config.HistoryMetaTTL.Seconds()),
+		HistoryMetaTTL: historyMetaTTLSeconds,
 	}
 	var resp pubResponse
 	err = s.ExecTyped(tarantool.Call("centrifuge.publish", pr), &resp)
@@ -363,9 +365,10 @@ func pubFromProto(pub *protocol.Publication) *centrifuge.Publication {
 }
 
 // History - see centrifuge.Broker interface description.
-func (b *Broker) History(ch string, filter centrifuge.HistoryFilter) ([]*centrifuge.Publication, centrifuge.StreamPosition, error) {
+func (b *Broker) History(ch string, opts centrifuge.HistoryOptions) ([]*centrifuge.Publication, centrifuge.StreamPosition, error) {
 	var includePubs = true
 	var offset uint64
+	filter := opts.Filter
 	if filter.Since != nil {
 		if filter.Reverse {
 			offset = filter.Since.Offset - 1
@@ -383,7 +386,13 @@ func (b *Broker) History(ch string, filter centrifuge.HistoryFilter) ([]*centrif
 	if filter.Limit > 0 {
 		limit = filter.Limit
 	}
-	historyMetaTTLSeconds := int(b.config.HistoryMetaTTL.Seconds())
+
+	historyMetaTTL := opts.MetaTTL
+	if historyMetaTTL == 0 {
+		historyMetaTTL = b.node.Config().DefaultHistoryMetaTTL
+	}
+	historyMetaTTLSeconds := int(historyMetaTTL.Seconds())
+
 	s := consistentShard(ch, b.shards)
 	req := historyRequest{
 		Channel:        ch,

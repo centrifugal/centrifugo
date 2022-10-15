@@ -99,7 +99,7 @@ func (h *Executor) Publish(_ context.Context, cmd *PublishRequest) *PublishRespo
 
 	result, err := h.node.Publish(
 		cmd.Channel, cmd.Data,
-		centrifuge.WithHistory(historySize, time.Duration(historyTTL)),
+		centrifuge.WithHistory(historySize, time.Duration(historyTTL), time.Duration(chOpts.HistoryMetaTTL)),
 		centrifuge.WithTags(cmd.GetTags()),
 	)
 	if err != nil {
@@ -179,7 +179,7 @@ func (h *Executor) Broadcast(_ context.Context, cmd *BroadcastRequest) *Broadcas
 
 			result, err := h.node.Publish(
 				ch, data,
-				centrifuge.WithHistory(historySize, time.Duration(historyTTL)),
+				centrifuge.WithHistory(historySize, time.Duration(historyTTL), time.Duration(chOpts.HistoryMetaTTL)),
 				centrifuge.WithTags(cmd.GetTags()),
 			)
 			resp := &PublishResponse{}
@@ -499,9 +499,12 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 
 	history, err := h.node.History(
 		ch,
-		centrifuge.WithLimit(int(cmd.Limit)),
-		centrifuge.WithSince(sp),
-		centrifuge.WithReverse(cmd.Reverse),
+		centrifuge.WithHistoryFilter(centrifuge.HistoryFilter{
+			Limit:   int(cmd.Limit),
+			Since:   sp,
+			Reverse: cmd.Reverse,
+		}),
+		centrifuge.WithHistoryMetaTTL(time.Duration(chOpts.HistoryMetaTTL)),
 	)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error calling history", map[string]interface{}{"error": err.Error()}))

@@ -194,6 +194,7 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 				EnablePositioning: positioning,
 				Data:              data,
 				Source:            subsource.SubscribeProxy,
+				HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
 			},
 			ClientSideRefresh: true,
 		}, extra, nil

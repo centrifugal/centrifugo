@@ -4,6 +4,10 @@ module github.com/centrifugal/centrifugo/v4
 
 go 1.18
 
+replace (
+	github.com/centrifugal/centrifuge => ../centrifuge
+)
+
 require (
 	github.com/FZambia/eagle v0.0.2
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
