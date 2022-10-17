@@ -98,7 +98,7 @@ func (h *Executor) Publish(_ context.Context, cmd *PublishRequest) *PublishRespo
 	}
 
 	result, err := h.node.Publish(
-		cmd.Channel, cmd.Data,
+		cmd.Channel, data,
 		centrifuge.WithHistory(historySize, time.Duration(historyTTL)),
 		centrifuge.WithTags(cmd.GetTags()),
 	)
