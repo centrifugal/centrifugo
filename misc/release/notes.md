@@ -13,6 +13,7 @@ This release contains one more fix of v4 degradation (not respecting `force_push
 ### Fixes
 
 * Handle `force_push_join_leave` option set for top-level namespace – it was ignored so join/leave messages were not delivered to clients, [commit](https://github.com/centrifugal/centrifugo/commit/a2409fb7465e348275d87a9d94db5bea5bae357d)
+* Properly handle `b64data` in server publish API, [commit](https://github.com/centrifugal/centrifugo/commit/e205bca549c6104b608273e2a9c8a777f0083d92)
 
 ### Improvements
 
