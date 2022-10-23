@@ -1489,12 +1489,12 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	}
 	p := proxy.Proxy{}
 	p.GrpcMetadata = v.GetStringSlice("proxy_grpc_metadata")
+
 	p.HttpHeaders = v.GetStringSlice("proxy_http_headers")
-	if len(p.HttpHeaders) > 0 {
-		for i, header := range p.HttpHeaders {
-			p.HttpHeaders[i] = strings.ToLower(header)
-		}
+	for i, header := range p.HttpHeaders {
+		p.HttpHeaders[i] = strings.ToLower(header)
 	}
+
 	p.BinaryEncoding = v.GetBool("proxy_binary_encoding")
 	p.IncludeConnectionMeta = v.GetBool("proxy_include_connection_meta")
 	p.GrpcCertFile = v.GetString("proxy_grpc_cert_file")
@@ -1582,6 +1582,9 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 	proxyList := granularProxiesFromConfig(viper.GetViper())
 	proxies := make(map[string]proxy.Proxy)
 	for _, p := range proxyList {
+		for i, header := range p.HttpHeaders {
+			p.HttpHeaders[i] = strings.ToLower(header)
+		}
 		proxies[p.Name] = p
 	}
 
