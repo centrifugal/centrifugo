@@ -1,3 +1,10 @@
+v4.0.3
+======
+
+### Fixes
+
+* Fix insensitive case match for granular proxy headers, [#572](https://github.com/centrifugal/centrifugo/issues/572)
+
 v4.0.2
 ======
 
