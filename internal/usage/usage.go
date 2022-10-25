@@ -465,6 +465,22 @@ func (s *Sender) prepareMetrics() []*metric {
 		},
 		"num_channels.",
 	)
+
+	clientsPerNode := s.maxNumClients / s.maxNumNodes
+	if clientsPerNode >= 1000 {
+		// Insights about how many client connections per node users have.
+		// We are not interested in too low numbers here.
+		numClientsPerNodeMetric := getHistogramMetric(
+			clientsPerNode,
+			[]int{
+				1000, 5000, 10000, 20000, 50000,
+				100000, 200000, 500000, 1000000, 5000000,
+				10000000,
+			},
+			"num_clients_per_node.",
+		)
+		metrics = append(metrics, createPoint(numClientsPerNodeMetric))
+	}
 	s.mu.RUnlock()
 
 	metrics = append(metrics, createPoint(numNodesMetric))
