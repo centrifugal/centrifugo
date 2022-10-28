@@ -2,6 +2,7 @@ package tntengine
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"runtime"
@@ -44,11 +45,18 @@ var _ centrifuge.Broker = (*Broker)(nil)
 type BrokerConfig struct {
 	// HistoryMetaTTL sets a time of stream meta key expiration in Tarantool. Stream
 	// meta key is a Tarantool HASH that contains top offset in channel and epoch value.
-	// By default stream meta keys do not expire.
+	// By default, stream meta keys do not expire.
 	HistoryMetaTTL time.Duration
 
 	// UsePolling allows to turn on polling mode instead of push.
 	UsePolling bool
+
+	// UseJSON tells Broker to use JSON encoding instead of Protobuf for messages.
+	// When UseJSON is on Broker can only work with JSON data. Note that you can't
+	// change this option on the fly - Centrifugo does not support re-encoding
+	// existing data to newly set format, you must reset Centrifuge Lua spaces
+	// if you need to change this option.
+	UseJSON bool
 
 	// Shards is a list of Tarantool instances to shard data by channel.
 	Shards []*Shard
@@ -151,7 +159,13 @@ func (b *Broker) Publish(ch string, data []byte, opts centrifuge.PublishOptions)
 		Info: infoToProto(opts.ClientInfo),
 		Tags: opts.Tags,
 	}
-	byteMessage, err := protoPub.MarshalVT()
+	var byteMessage []byte
+	var err error
+	if b.config.UseJSON {
+		byteMessage, err = json.Marshal(protoPub)
+	} else {
+		byteMessage, err = protoPub.MarshalVT()
+	}
 	if err != nil {
 		return centrifuge.StreamPosition{}, err
 	}
@@ -198,7 +212,13 @@ func (b *Broker) PublishLeave(ch string, info *centrifuge.ClientInfo) error {
 func (b *Broker) clientInfoString(clientInfo *centrifuge.ClientInfo) string {
 	var info string
 	if clientInfo != nil {
-		byteMessage, err := infoToProto(clientInfo).MarshalVT()
+		var byteMessage []byte
+		var err error
+		if b.config.UseJSON {
+			byteMessage, err = json.Marshal(infoToProto(clientInfo))
+		} else {
+			byteMessage, err = infoToProto(clientInfo).MarshalVT()
+		}
 		if err != nil {
 			return info
 		}
@@ -284,9 +304,10 @@ type historyRequest struct {
 }
 
 type historyResponse struct {
-	Offset uint64
-	Epoch  string
-	Pubs   []*centrifuge.Publication
+	Offset  uint64
+	Epoch   string
+	Pubs    []*centrifuge.Publication
+	useJSON bool
 }
 
 func (m *historyResponse) DecodeMsgpack(d *msgpack.Decoder) error {
@@ -339,7 +360,12 @@ func (m *historyResponse) DecodeMsgpack(d *msgpack.Decoder) error {
 			return err
 		}
 		var p protocol.Publication
-		if err = p.UnmarshalVT([]byte(data)); err != nil {
+		if m.useJSON {
+			err = json.Unmarshal([]byte(data), &p)
+		} else {
+			err = p.UnmarshalVT([]byte(data))
+		}
+		if err != nil {
 			return err
 		}
 		pub := pubFromProto(&p)
@@ -394,6 +420,7 @@ func (b *Broker) History(ch string, filter centrifuge.HistoryFilter) ([]*centrif
 		HistoryMetaTTL: historyMetaTTLSeconds,
 	}
 	var resp historyResponse
+	resp.useJSON = b.config.UseJSON
 	err := s.ExecTyped(tarantool.Call("centrifuge.history", req), &resp)
 	if err != nil {
 		return nil, centrifuge.StreamPosition{}, err
@@ -715,7 +742,12 @@ func (b *Broker) handleMessage(eventHandler centrifuge.BrokerEventHandler, msg p
 	switch msg.Type {
 	case "p":
 		var pub protocol.Publication
-		err := pub.UnmarshalVT(msg.Data)
+		var err error
+		if b.config.UseJSON {
+			err = json.Unmarshal(msg.Data, &pub)
+		} else {
+			err = pub.UnmarshalVT(msg.Data)
+		}
 		if err == nil {
 			publication := pubFromProto(&pub)
 			publication.Offset = msg.Offset
@@ -723,13 +755,23 @@ func (b *Broker) handleMessage(eventHandler centrifuge.BrokerEventHandler, msg p
 		}
 	case "j":
 		var info protocol.ClientInfo
-		err := info.UnmarshalVT(msg.Data)
+		var err error
+		if b.config.UseJSON {
+			err = json.Unmarshal(msg.Data, &info)
+		} else {
+			err = info.UnmarshalVT(msg.Data)
+		}
 		if err == nil {
 			_ = eventHandler.HandleJoin(msg.Channel, infoFromProto(&info))
 		}
 	case "l":
 		var info protocol.ClientInfo
-		err := info.UnmarshalVT(msg.Data)
+		var err error
+		if b.config.UseJSON {
+			err = json.Unmarshal(msg.Data, &info)
+		} else {
+			err = info.UnmarshalVT(msg.Data)
+		}
 		if err == nil {
 			_ = eventHandler.HandleLeave(msg.Channel, infoFromProto(&info))
 		}

@@ -2278,6 +2278,7 @@ func tarantoolEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.Presence
 	broker, err := tntengine.NewBroker(n, tntengine.BrokerConfig{
 		Shards:         tarantoolShards,
 		HistoryMetaTTL: GetDuration("history_meta_ttl", true),
+		UseJSON:        viper.GetBool("tarantool_experimental_use_json_in_broker"),
 	})
 	if err != nil {
 		return nil, nil, "", err
