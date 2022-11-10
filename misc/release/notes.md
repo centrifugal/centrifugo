@@ -8,6 +8,12 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## Release notes
 
+This release contains an important fix of Centrifugo memory leak. The leak happens in all setups which use Centrifugo v4.0.2 or v4.0.3.
+
 ### Fixes
 
-* Fix insensitive case match for granular proxy headers, [#572](https://github.com/centrifugal/centrifugo/issues/572)
+* Fix goroutine leak on connection close introduced by v4.0.2, [commit](https://github.com/centrifugal/centrifuge/commit/82107b38a42561ca022d50f7ee2ca038a6f120e9)
+
+### Misc
+
+* This release is built with Go 1.19.3
