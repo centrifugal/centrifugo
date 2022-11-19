@@ -2084,12 +2084,17 @@ func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
 	shardConf.DB = viper.GetInt("redis_db")
 	shardConf.User = viper.GetString("redis_user")
 	shardConf.Password = viper.GetString("redis_password")
-	shardConf.UseTLS = viper.GetBool("redis_tls")
-	shardConf.TLSSkipVerify = viper.GetBool("redis_tls_skip_verify")
-	shardConf.IdleTimeout = GetDuration("redis_idle_timeout")
+	if viper.GetBool("redis_tls") {
+		shardConf.TLSConfig = &tls.Config{}
+		if viper.GetBool("redis_tls_skip_verify") {
+			shardConf.TLSConfig.InsecureSkipVerify = true
+		}
+	}
+	//shardConf.IdleTimeout = GetDuration("redis_idle_timeout")
 	shardConf.ConnectTimeout = GetDuration("redis_connect_timeout")
-	shardConf.ReadTimeout = GetDuration("redis_read_timeout")
-	shardConf.WriteTimeout = GetDuration("redis_write_timeout")
+	shardConf.IOTimeout = 5 * time.Second
+	//shardConf.ReadTimeout = GetDuration("redis_read_timeout")
+	//shardConf.WriteTimeout = GetDuration("redis_write_timeout")
 }
 
 func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, string, error) {
