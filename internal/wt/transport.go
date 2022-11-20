@@ -133,7 +133,7 @@ func (t *webtransportTransport) WriteMany(messages ...[]byte) error {
 }
 
 // Close ...
-func (t *webtransportTransport) Close(_ centrifuge.Disconnect) error {
+func (t *webtransportTransport) Close(d centrifuge.Disconnect) error {
 	t.mu.Lock()
 	if t.closed {
 		t.mu.Unlock()
@@ -151,7 +151,8 @@ func (t *webtransportTransport) Close(_ centrifuge.Disconnect) error {
 	// reconnect. This may actually become obsolete if we will have a way to send
 	// WebTransportCloseInfo https://www.w3.org/TR/webtransport/#dictdef-webtransportcloseinfo
 	// which is currently not-supported by webtransport-go.
+	// TODO: check whether we still need this since we are sending close info now.
 	time.Sleep(time.Second)
 
-	return t.session.Close()
+	return t.session.CloseWithError(webtransport.SessionErrorCode(d.Code), d.Reason)
 }
