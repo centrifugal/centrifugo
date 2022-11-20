@@ -1393,6 +1393,7 @@ func ruleConfig() rule.Config {
 	cfg.HistorySize = v.GetInt("history_size")
 	cfg.HistoryTTL = tools.Duration(GetDuration("history_ttl", true))
 	cfg.ForcePositioning = v.GetBool("force_positioning")
+	cfg.AllowPositioning = v.GetBool("allow_positioning")
 	cfg.AllowRecovery = v.GetBool("allow_recovery")
 	cfg.ForceRecovery = v.GetBool("force_recovery")
 	cfg.AllowRecovery = v.GetBool("allow_recovery")
@@ -1413,7 +1414,9 @@ func ruleConfig() rule.Config {
 	cfg.ProxyPublish = v.GetBool("proxy_publish")
 	cfg.SubscribeProxyName = v.GetString("subscribe_proxy_name")
 	cfg.PublishProxyName = v.GetString("publish_proxy_name")
+
 	cfg.Namespaces = namespacesFromConfig(v)
+
 	cfg.ChannelPrivatePrefix = v.GetString("channel_private_prefix")
 	cfg.ChannelNamespaceBoundary = v.GetString("channel_namespace_boundary")
 	cfg.ChannelUserBoundary = v.GetString("channel_user_boundary")
