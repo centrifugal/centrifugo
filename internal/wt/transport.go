@@ -133,7 +133,7 @@ func (t *webtransportTransport) WriteMany(messages ...[]byte) error {
 }
 
 // Close ...
-func (t *webtransportTransport) Close(_ centrifuge.Disconnect) error {
+func (t *webtransportTransport) Close(d centrifuge.Disconnect) error {
 	t.mu.Lock()
 	if t.closed {
 		t.mu.Unlock()
@@ -145,13 +145,13 @@ func (t *webtransportTransport) Close(_ centrifuge.Disconnect) error {
 
 	_ = t.stream.Close()
 
-	// Seems we hit https://github.com/lucas-clemente/quic-go/issues/3291 here.
-	// Adding sleep to give client a chance to receive the data. This is mostly
-	// important for disconnect advices as sometimes we don't want clients to
-	// reconnect. This may actually become obsolete if we will have a way to send
-	// WebTransportCloseInfo https://www.w3.org/TR/webtransport/#dictdef-webtransportcloseinfo
-	// which is currently not-supported by webtransport-go.
+	// TODO: remove this Sleep.
+	// We are closing session with SessionErrorCode below but browser client does not receive
+	// it for some reason. So for now we are sending Disconnect Pushes to pass disconnect code
+	// to a client. While sending Disconnect Push we hit https://github.com/lucas-clemente/quic-go/issues/3291 –
+	// adding Sleep give client a chance to receive it. If code sent in CloseWithError will
+	// reach the client we won't need Sleep here and can disable sending Disconnect Pushes.
 	time.Sleep(time.Second)
 
-	return t.session.Close()
+	return t.session.CloseWithError(webtransport.SessionErrorCode(d.Code), d.Reason)
 }
