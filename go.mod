@@ -4,6 +4,8 @@ module github.com/centrifugal/centrifugo/v4
 
 go 1.18
 
+replace github.com/rueian/rueidis => ../rueidis
+
 replace github.com/centrifugal/centrifuge => ../centrifuge
 
 require (
@@ -31,6 +33,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	go.uber.org/automaxprocs v1.5.1
 	golang.org/x/crypto v0.3.0
+	golang.org/x/exp v0.0.0-20221114191408-850992195362
 	golang.org/x/sync v0.1.0
 	google.golang.org/grpc v1.50.1
 	google.golang.org/protobuf v1.28.1
@@ -72,7 +75,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	golang.org/x/exp v0.0.0-20221114191408-850992195362 // indirect
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/net v0.2.0 // indirect
 	golang.org/x/sys v0.2.0 // indirect

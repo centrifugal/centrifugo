@@ -198,9 +198,7 @@ func bindCentrifugoConfig() {
 
 		"redis_prefix":          "centrifugo",
 		"redis_connect_timeout": time.Second,
-		"redis_read_timeout":    5 * time.Second,
-		"redis_write_timeout":   time.Second,
-		"redis_idle_timeout":    0,
+		"redis_io_timeout":      3 * time.Second,
 
 		"history_meta_ttl": 90 * 24 * time.Hour,
 		"presence_ttl":     60 * time.Second,
@@ -2087,17 +2085,19 @@ func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
 	shardConf.DB = viper.GetInt("redis_db")
 	shardConf.User = viper.GetString("redis_user")
 	shardConf.Password = viper.GetString("redis_password")
+	shardConf.ClientName = viper.GetString("redis_client_name")
+
 	if viper.GetBool("redis_tls") {
 		shardConf.TLSConfig = &tls.Config{}
 		if viper.GetBool("redis_tls_skip_verify") {
 			shardConf.TLSConfig.InsecureSkipVerify = true
 		}
+		if viper.GetString("redis_tls_server_name") != "" {
+			shardConf.TLSConfig.ServerName = viper.GetString("redis_tls_server_name")
+		}
 	}
-	//shardConf.IdleTimeout = GetDuration("redis_idle_timeout")
 	shardConf.ConnectTimeout = GetDuration("redis_connect_timeout")
-	shardConf.IOTimeout = 5 * time.Second
-	//shardConf.ReadTimeout = GetDuration("redis_read_timeout")
-	//shardConf.WriteTimeout = GetDuration("redis_write_timeout")
+	shardConf.IOTimeout = GetDuration("redis_io_timeout")
 }
 
 func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, string, error) {
@@ -2149,6 +2149,16 @@ func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, string, error) {
 			conf.SentinelMasterName = viper.GetString("redis_sentinel_master_name")
 			if conf.SentinelMasterName == "" {
 				return nil, "", fmt.Errorf("master name must be set when using Redis Sentinel")
+			}
+			conf.SentinelClientName = viper.GetString("redis_sentinel_client_name")
+			if viper.GetBool("redis_sentinel_tls") {
+				conf.SentinelTLSConfig = &tls.Config{}
+				if viper.GetBool("redis_sentinel_tls_skip_verify") {
+					conf.SentinelTLSConfig.InsecureSkipVerify = true
+				}
+				if viper.GetString("redis_sentinel_tls_server_name") != "" {
+					conf.SentinelTLSConfig.ServerName = viper.GetString("redis_sentinel_tls_server_name")
+				}
 			}
 			shardConfigs = append(shardConfigs, *conf)
 		}
