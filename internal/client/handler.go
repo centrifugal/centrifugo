@@ -373,6 +373,7 @@ func (h *Handler) OnClientConnecting(
 		credentials = &centrifuge.Credentials{
 			UserID: "",
 		}
+		processClientChannels = true
 	}
 
 	// Automatically subscribe on personal server-side channel.
