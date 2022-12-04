@@ -1016,8 +1016,6 @@ var startHTTPChallengeServerOnce sync.Once
 
 func getTLSConfig() (*tls.Config, error) {
 	tlsEnabled := viper.GetBool("tls")
-	tlsCert := viper.GetString("tls_cert")
-	tlsKey := viper.GetString("tls_key")
 	tlsAutocertEnabled := viper.GetBool("tls_autocert")
 	autocertHostWhitelist := viper.GetString("tls_autocert_host_whitelist")
 	var tlsAutocertHostWhitelist []string
@@ -1076,44 +1074,18 @@ func getTLSConfig() (*tls.Config, error) {
 
 	} else if tlsEnabled {
 		// Autocert disabled - just try to use provided SSL cert and key files.
-		tlsConfig := &tls.Config{}
-		tlsConfig = tlsConfig.Clone()
-		tlsConfig.Certificates = make([]tls.Certificate, 1)
-		var err error
-		tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(tlsCert, tlsKey)
-		if err != nil {
-			return nil, err
-		}
-		return tlsConfig, nil
+		return tools.MakeTLSConfig(viper.GetViper(), "")
 	}
 
 	return nil, nil
 }
 
 func tlsConfigForGRPC() (*tls.Config, error) {
-	tlsCert := viper.GetString("grpc_api_tls_cert")
-	tlsKey := viper.GetString("grpc_api_tls_key")
-	tlsConfig := &tls.Config{}
-	tlsConfig.Certificates = make([]tls.Certificate, 1)
-	var err error
-	tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(tlsCert, tlsKey)
-	if err != nil {
-		return nil, err
-	}
-	return tlsConfig, nil
+	return tools.MakeTLSConfig(viper.GetViper(), "grpc_api_")
 }
 
 func tlsConfigForUniGRPC() (*tls.Config, error) {
-	tlsCert := viper.GetString("uni_grpc_tls_cert")
-	tlsKey := viper.GetString("uni_grpc_tls_key")
-	tlsConfig := &tls.Config{}
-	tlsConfig.Certificates = make([]tls.Certificate, 1)
-	var err error
-	tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(tlsCert, tlsKey)
-	if err != nil {
-		return nil, err
-	}
-	return tlsConfig, nil
+	return tools.MakeTLSConfig(viper.GetViper(), "uni_grpc_")
 }
 
 type httpErrorLogWriter struct {
@@ -2088,13 +2060,11 @@ func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
 	shardConf.ClientName = viper.GetString("redis_client_name")
 
 	if viper.GetBool("redis_tls") {
-		shardConf.TLSConfig = &tls.Config{}
-		if viper.GetBool("redis_tls_skip_verify") {
-			shardConf.TLSConfig.InsecureSkipVerify = true
+		tlsConfig, err := tools.MakeTLSConfig(viper.GetViper(), "redis_")
+		if err != nil {
+			log.Fatal().Msgf("error creating Redis TLS config: %v", err)
 		}
-		if viper.GetString("redis_tls_server_name") != "" {
-			shardConf.TLSConfig.ServerName = viper.GetString("redis_tls_server_name")
-		}
+		shardConf.TLSConfig = tlsConfig
 	}
 	shardConf.ConnectTimeout = GetDuration("redis_connect_timeout")
 	shardConf.IOTimeout = GetDuration("redis_io_timeout")
@@ -2152,13 +2122,11 @@ func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, string, error) {
 			}
 			conf.SentinelClientName = viper.GetString("redis_sentinel_client_name")
 			if viper.GetBool("redis_sentinel_tls") {
-				conf.SentinelTLSConfig = &tls.Config{}
-				if viper.GetBool("redis_sentinel_tls_skip_verify") {
-					conf.SentinelTLSConfig.InsecureSkipVerify = true
+				tlsConfig, err := tools.MakeTLSConfig(viper.GetViper(), "redis_sentinel_")
+				if err != nil {
+					log.Fatal().Msgf("error creating Redis Sentinel TLS config: %v", err)
 				}
-				if viper.GetString("redis_sentinel_tls_server_name") != "" {
-					conf.SentinelTLSConfig.ServerName = viper.GetString("redis_sentinel_tls_server_name")
-				}
+				conf.SentinelTLSConfig = tlsConfig
 			}
 			shardConfigs = append(shardConfigs, *conf)
 		}
