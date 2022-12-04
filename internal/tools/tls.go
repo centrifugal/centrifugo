@@ -26,7 +26,7 @@ func MakeTLSConfig(v *viper.Viper, keyPrefix string) (*tls.Config, error) {
 		tlsConfig.Certificates = []tls.Certificate{cert}
 	}
 	if v.GetString(keyPrefix+"tls_root_ca") != "" {
-		caCert, err := os.ReadFile(v.GetString(keyPrefix + "tls_ca"))
+		caCert, err := os.ReadFile(v.GetString(keyPrefix + "tls_root_ca"))
 		if err != nil {
 			return nil, fmt.Errorf("can not read the CA certificate: %s", err)
 		}
@@ -45,7 +45,7 @@ func MakeTLSConfig(v *viper.Viper, keyPrefix string) (*tls.Config, error) {
 		tlsConfig.RootCAs = caCertPool
 	}
 	if v.GetString(keyPrefix+"tls_server_name") != "" {
-		tlsConfig.ServerName = v.GetString(keyPrefix + "redis_tls_server_name")
+		tlsConfig.ServerName = v.GetString(keyPrefix + "tls_server_name")
 	}
 	if v.GetBool(keyPrefix+"tls_skip_verify") || v.GetBool(keyPrefix+"tls_insecure_skip_verify") { // TODO v5: remove tls_skip_verify.
 		tlsConfig.InsecureSkipVerify = true
