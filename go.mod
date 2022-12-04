@@ -4,10 +4,6 @@ module github.com/centrifugal/centrifugo/v4
 
 go 1.18
 
-replace github.com/rueian/rueidis => ../rueidis
-
-replace github.com/centrifugal/centrifuge => ../centrifuge
-
 require (
 	github.com/FZambia/eagle v0.0.2
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
@@ -41,7 +37,7 @@ require (
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
@@ -67,7 +63,7 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
-	github.com/rueian/rueidis v0.0.86 // indirect
+	github.com/rueian/rueidis v0.0.88 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/segmentio/encoding v0.3.6 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
@@ -77,7 +73,7 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/net v0.2.0 // indirect
-	golang.org/x/sys v0.2.0 // indirect
+	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/tools v0.3.0 // indirect
 	google.golang.org/genproto v0.0.0-20221027153422-115e99e71e1c // indirect
