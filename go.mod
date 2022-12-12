@@ -9,7 +9,7 @@ require (
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/tarantool v0.3.1
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
-	github.com/centrifugal/centrifuge v0.27.1-0.20221204211645-27549ba63a3e
+	github.com/centrifugal/centrifuge v0.27.1-0.20221210185122-624554e5e087
 	github.com/centrifugal/protocol v0.8.11
 	github.com/cristalhq/jwt/v4 v4.0.2
 	github.com/gobwas/glob v0.2.3
@@ -60,9 +60,9 @@ require (
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
-	github.com/prometheus/common v0.37.0 // indirect
+	github.com/prometheus/common v0.38.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
-	github.com/rueian/rueidis v0.0.88 // indirect
+	github.com/rueian/rueidis v0.0.89 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/segmentio/encoding v0.3.6 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
