@@ -8,12 +8,12 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## Release notes
 
-This release contains an important fix of Centrifugo memory leak. The leak happens in all setups which use Centrifugo v4.0.2 or v4.0.3.
-
 ### Fixes
 
-* Fix goroutine leak on connection close introduced by v4.0.2, [commit](https://github.com/centrifugal/centrifuge/commit/82107b38a42561ca022d50f7ee2ca038a6f120e9)
+* Fix non-working bidirectional emulation in multi-node case [#590](https://github.com/centrifugal/centrifugo/issues/590)
+* Process client channels for no-credentials case also, see issue [#581](https://github.com/centrifugal/centrifugo/issues/581)
+* Fix setting `allow_positioning` for top-level namespace, [commit](https://github.com/centrifugal/centrifugo/commit/dbaf01776ff294ee6731cd5422146c0f23107cce)
 
 ### Misc
 
-* This release is built with Go 1.19.3
+* This release is built with Go 1.19.4

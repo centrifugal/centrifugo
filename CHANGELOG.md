@@ -1,3 +1,16 @@
+v4.0.5
+======
+
+### Fixes
+
+* Fix non-working bidirectional emulation in multi-node case [#590](https://github.com/centrifugal/centrifugo/issues/590)
+* Process client channels for no-credentials case also, see issue [#581](https://github.com/centrifugal/centrifugo/issues/581)
+* Fix setting `allow_positioning` for top-level namespace, [commit](https://github.com/centrifugal/centrifugo/commit/dbaf01776ff294ee6731cd5422146c0f23107cce)
+
+### Misc
+
+* This release is built with Go 1.19.4
+
 v4.0.4
 ======
 
