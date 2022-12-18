@@ -16,8 +16,8 @@ github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
-github.com/centrifugal/centrifuge v0.27.1-0.20221210185122-624554e5e087 h1:jaQXb4kBhjhpuCeqKGYhcktJ1kXFhtGgbwk7lqEdf7U=
-github.com/centrifugal/centrifuge v0.27.1-0.20221210185122-624554e5e087/go.mod h1:XgjA+AbEZTsc0N7g4BmWwpFeyhImoOnEA8py+ZLjkEM=
+github.com/centrifugal/centrifuge v0.27.1-0.20221217201721-f6e948a15fd4 h1:bmxX+gTfklqxEUBYlbrtagyPy38AV0xa4B0BaMzPsv4=
+github.com/centrifugal/centrifuge v0.27.1-0.20221217201721-f6e948a15fd4/go.mod h1:zQb7IDznYwQ/gC6WGlrgXHxemx0P6AsONBtK3/24VFo=
 github.com/centrifugal/protocol v0.8.11 h1:LP3fi5h8mApGmQ3iYb6PWrfID0PvGHS+zXZIjB82qhM=
 github.com/centrifugal/protocol v0.8.11/go.mod h1:qpYrxz4cDj+rlgC6giSADkf7XDN1K7aFmkkFwt/bayQ=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
@@ -198,8 +198,8 @@ github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6So
 github.com/rs/xid v1.4.0/go.mod h1:trrq9SKmegXys3aeAKXMUTdJsYXVwGY3RLcfgqegfbg=
 github.com/rs/zerolog v1.28.0 h1:MirSo27VyNi7RJYP3078AA1+Cyzd2GB66qy3aUHvsWY=
 github.com/rs/zerolog v1.28.0/go.mod h1:NILgTygv/Uej1ra5XxGf82ZFSLk58MFGAUS2o6usyD0=
-github.com/rueian/rueidis v0.0.89 h1:Q2TbuNXMJ2d2NegQ47uOoGOGPZLQwRuL0oX/dAlCh6k=
-github.com/rueian/rueidis v0.0.89/go.mod h1:LiKWMM/QnILwRfDZIhSIXi4vQqZ/UZy4+/aNkSCt8XA=
+github.com/rueian/rueidis v0.0.90 h1:zuTFPvouPmO4FojrWg2p47XhiFcJ5Ux/cQu37ZRIdVs=
+github.com/rueian/rueidis v0.0.90/go.mod h1:LiKWMM/QnILwRfDZIhSIXi4vQqZ/UZy4+/aNkSCt8XA=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/segmentio/asm v1.1.3/go.mod h1:Ld3L4ZXGNcSLRg4JBsZ3//1+f/TjYl0Mzen/DQy1EJg=
 github.com/segmentio/asm v1.1.4/go.mod h1:Ld3L4ZXGNcSLRg4JBsZ3//1+f/TjYl0Mzen/DQy1EJg=

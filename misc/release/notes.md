@@ -10,14 +10,5 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Fully rewritten Redis engine using [rueian/rueidis](https://github.com/rueian/rueidis) library. Many thanks to [@j178](https://github.com/j178) and [@rueian](https://github.com/rueian) for the help. Check out details in our blog post [Improving Centrifugo Redis Engine throughput and allocation efficiency with Rueidis Go library](https://centrifugal.dev/blog/2022/12/13/improving-redis-engine-performance). We expect that new implementation is backwards compatible with the previous one except some timeout options which are not documented, please report issues if any.
+* Fully rewritten Redis engine using [rueian/rueidis](https://github.com/rueian/rueidis) library. Many thanks to [@j178](https://github.com/j178) and [@rueian](https://github.com/rueian) for the help. Check out details in our blog post [Improving Centrifugo Redis Engine throughput and allocation efficiency with Rueidis Go library](https://centrifugal.dev/blog/2022/12/20/improving-redis-engine-performance). We expect that new implementation is backwards compatible with the previous one except some timeout options which were not documented, please report issues if any.
 * Extended TLS configuration for Redis – it's now possible to set CA root cert, client TLS certs, set custom server name for TLS. See more details in the [updated Redis Engine option docs](https://centrifugal.dev/docs/server/engines#redis-engine-options). Also, it's now possible to provide certificates as strings.
-
-### Fixes
-
-* Process client channels for no-credentials case also, see issue [#581](https://github.com/centrifugal/centrifugo/issues/581)
-* Fix setting `allow_positioning` for top-level namespace, [commit](https://github.com/centrifugal/centrifugo/commit/dbaf01776ff294ee6731cd5422146c0f23107cce)
-
-### Misc
-
-* This release is built with Go 1.19.4
