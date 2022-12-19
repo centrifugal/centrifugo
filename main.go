@@ -198,7 +198,7 @@ func bindCentrifugoConfig() {
 
 		"redis_prefix":          "centrifugo",
 		"redis_connect_timeout": time.Second,
-		"redis_io_timeout":      3 * time.Second,
+		"redis_io_timeout":      4 * time.Second,
 
 		"history_meta_ttl": 90 * 24 * time.Hour,
 		"presence_ttl":     60 * time.Second,
