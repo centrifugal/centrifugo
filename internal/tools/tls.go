@@ -6,11 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
-
-	"github.com/FZambia/viper-lite"
 )
 
-func MakeTLSConfig(v *viper.Viper, keyPrefix string) (*tls.Config, error) {
+type ConfigGetter interface {
+	GetBool(name string) bool
+	GetString(name string) string
+}
+
+func MakeTLSConfig(v ConfigGetter, keyPrefix string) (*tls.Config, error) {
 	tlsConfig := &tls.Config{}
 	if v.GetString(keyPrefix+"tls_cert") != "" && v.GetString(keyPrefix+"tls_key") != "" {
 		cert, err := tls.LoadX509KeyPair(v.GetString(keyPrefix+"tls_cert"), v.GetString(keyPrefix+"tls_key"))
