@@ -28,6 +28,7 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	go.uber.org/automaxprocs v1.5.1
+	go.uber.org/ratelimit v0.2.0
 	golang.org/x/crypto v0.4.0
 	golang.org/x/sync v0.1.0
 	google.golang.org/grpc v1.51.0
@@ -35,6 +36,7 @@ require (
 )
 
 require (
+	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

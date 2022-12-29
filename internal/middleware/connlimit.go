@@ -9,6 +9,7 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
+	"go.uber.org/ratelimit"
 )
 
 var (
@@ -29,7 +30,9 @@ func init() {
 }
 
 func ConnLimit(node *centrifuge.Node, ruleContainer *rule.Container, h http.Handler) http.Handler {
+	rl := rateLimiter(ruleContainer.Config().ClientConnectionLimit)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rl.Take()
 		connLimit := ruleContainer.Config().ClientConnectionLimit
 		if connLimit > 0 && node.Hub().NumClients() >= connLimit {
 			connLimitReached.Inc()
@@ -44,4 +47,12 @@ func ConnLimit(node *centrifuge.Node, ruleContainer *rule.Container, h http.Hand
 		}
 		h.ServeHTTP(w, r)
 	})
+}
+
+func rateLimiter(connRateLimit int) ratelimit.Limiter {
+	if connRateLimit > 0 {
+		// Configuring the limiter with slack to perform delays only under high load
+		return ratelimit.New(connRateLimit, ratelimit.WithSlack(connRateLimit))
+	}
+	return ratelimit.NewUnlimited()
 }
