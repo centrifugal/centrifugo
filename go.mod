@@ -20,7 +20,7 @@ require (
 	github.com/marten-seemann/webtransport-go v0.4.3
 	github.com/mattn/go-isatty v0.0.16
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/nats-io/nats.go v1.21.0
+	github.com/nats-io/nats.go v1.22.1
 	github.com/prometheus/client_golang v1.14.0
 	github.com/rakutentech/jwk-go v1.0.1
 	github.com/rs/zerolog v1.28.0
