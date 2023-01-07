@@ -16,10 +16,8 @@ github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
-github.com/centrifugal/centrifuge v0.28.0-rc.1 h1:YgmGLh64llIWZ/sWCRuLQBNTUkX7K/JWe0P1iKAU0/o=
-github.com/centrifugal/centrifuge v0.28.0-rc.1/go.mod h1:zQb7IDznYwQ/gC6WGlrgXHxemx0P6AsONBtK3/24VFo=
-github.com/centrifugal/protocol v0.8.11 h1:LP3fi5h8mApGmQ3iYb6PWrfID0PvGHS+zXZIjB82qhM=
-github.com/centrifugal/protocol v0.8.11/go.mod h1:qpYrxz4cDj+rlgC6giSADkf7XDN1K7aFmkkFwt/bayQ=
+github.com/centrifugal/protocol v0.9.1-0.20221229170909-b599c453f37f h1:i4aTRwTwBVI0FawuU1R07mxTez3LyBFy6xc0XR/nucU=
+github.com/centrifugal/protocol v0.9.1-0.20221229170909-b599c453f37f/go.mod h1:qpYrxz4cDj+rlgC6giSADkf7XDN1K7aFmkkFwt/bayQ=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=
 github.com/cespare/xxhash/v2 v2.2.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=

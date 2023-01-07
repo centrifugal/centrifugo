@@ -2,7 +2,6 @@ package wt
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -73,15 +72,11 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	for {
-		cmd, data, err := decoder.Decode()
+		cmd, cmdSize, err := decoder.Decode()
 		if err != nil {
-			c.Disconnect(centrifuge.DisconnectBadRequest)
 			return
 		}
-		if s.node.LogEnabled(centrifuge.LogLevelTrace) {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelTrace, "<--", map[string]interface{}{"client": c.ID(), "user": c.UserID(), "data": fmt.Sprintf("%#v", string(data))}))
-		}
-		ok := c.HandleCommand(cmd)
+		ok := c.HandleCommand(cmd, cmdSize)
 		if !ok {
 			return
 		}
