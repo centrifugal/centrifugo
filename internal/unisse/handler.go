@@ -83,6 +83,11 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if centrifuge.DisableProtocolVersion1 && protoVersion == centrifuge.ProtocolVersion1 {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
 	transport := newEventsourceTransport(r, protoVersion, h.config.PingPongConfig)
 	c, closeFn, err := centrifuge.NewClient(r.Context(), h.node, transport)
 	if err != nil {

@@ -260,7 +260,9 @@ func bindCentrifugoConfig() {
 
 		// This option allows smooth migration to Centrifugo v4,
 		// should be removed at some point in the future.
-		"use_client_protocol_v1_by_default": false,
+		"use_client_protocol_v1_by_default": false, // TODO v5: remove.
+		// This option will be removed in v5.
+		"disable_client_protocol_v1": false, // TODO v5: remove.
 
 		"ping_interval": 25 * time.Second,
 		"pong_timeout":  8 * time.Second,
@@ -367,6 +369,10 @@ func main() {
 			}
 
 			nodeConfig := nodeConfig(build.Version)
+
+			if viper.GetBool("disable_client_protocol_v1") {
+				centrifuge.DisableProtocolVersion1 = true
+			}
 
 			node, err := centrifuge.New(nodeConfig)
 			if err != nil {

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -564,7 +563,7 @@ func (s *Sender) sendUsageStats(metrics []*metric, statsEndpoint, statsToken str
 			}
 			continue
 		}
-		_, _ = io.Copy(ioutil.Discard, resp.Body)
+		_, _ = io.Copy(io.Discard, resp.Body)
 		_ = resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {

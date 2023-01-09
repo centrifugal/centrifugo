@@ -3,6 +3,7 @@ v4.1.1
 
 ### Improvements
 
+* Possibility to disable client protocol v1 using `disable_client_protocol_v1` boolean option. To remind you about client protocol v1 vs v2 migration in Centrifugo v4 take a look at [v3 to v4 migration guide](https://centrifugal.dev/docs/getting-started/migration_v4#client-sdk-migration). Centrifugo v4 uses client protocol v2 by default, all our recent SDKs only support client protocol v2. So if you are using modern stack then you can disable clients to use outdated protocol v1 right now. In Centrifugo v5 support for client protocol v1 will be completely removed, see [Centrifugo v5 roadmap](https://github.com/centrifugal/centrifugo/issues/599).
 * More human-readable tracing logging output (especially in Protobuf protocol case). On the other hand, tracing log level is much more expensive now. We never assumed it will be used in production – so seems an acceptable trade-off.
 * Several internal optimizations in client protocol to reduce memory allocations.
 

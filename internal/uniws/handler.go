@@ -85,6 +85,11 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if centrifuge.DisableProtocolVersion1 && protoVersion == centrifuge.ProtocolVersion1 {
+		http.Error(rw, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
 	conn, err := s.upgrade.Upgrade(rw, r, nil)
 	if err != nil {
 		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "websocket upgrade error", map[string]interface{}{"error": err.Error()}))

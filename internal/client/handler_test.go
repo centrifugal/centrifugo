@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
@@ -109,7 +110,7 @@ func TestClientHandlerSetup(t *testing.T) {
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
 	require.NoError(t, err)
-	ok := client.Handle(data)
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
 	require.True(t, ok)
 }
 
@@ -417,7 +418,7 @@ func TestClientSubscribeChannel(t *testing.T) {
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
 	require.NoError(t, err)
-	ok := client.Handle(data)
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
 	require.True(t, ok)
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
@@ -456,7 +457,7 @@ func TestClientSubscribeChannelNoPermission(t *testing.T) {
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
 	require.NoError(t, err)
-	ok := client.Handle(data)
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
 	require.True(t, ok)
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
@@ -496,7 +497,7 @@ func TestClientSubscribeChannelUserLimitedError(t *testing.T) {
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
 	require.NoError(t, err)
-	ok := client.Handle(data)
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
 	require.True(t, ok)
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
@@ -536,7 +537,7 @@ func TestClientSubscribeChannelUserLimitedOK(t *testing.T) {
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
 	require.NoError(t, err)
-	ok := client.Handle(data)
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
 	require.True(t, ok)
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
@@ -575,7 +576,7 @@ func TestClientSubscribeWithToken(t *testing.T) {
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
 	require.NoError(t, err)
-	ok := client.Handle(data)
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
 	require.True(t, ok)
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
@@ -634,7 +635,7 @@ func TestClientSubscribeWithTokenAnonymous(t *testing.T) {
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
 	require.NoError(t, err)
-	ok := client.Handle(data)
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
 	require.True(t, ok)
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
@@ -675,7 +676,7 @@ func TestClientSideSubRefresh(t *testing.T) {
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
 	require.NoError(t, err)
-	ok := client.Handle(data)
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
 	require.True(t, ok)
 
 	reply, _, err := h.OnSubscribe(client, centrifuge.SubscribeEvent{
@@ -833,6 +834,7 @@ func TestClientHistory(t *testing.T) {
 	client, closeFn, err := centrifuge.NewClient(context.Background(), node, transport)
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
+	client.HandleCommand(&protocol.Command{Id: 1, Connect: &protocol.ConnectRequest{}}, 0)
 	require.NoError(t, client.Subscribe("test1"))
 
 	_, err = h.OnHistory(client, centrifuge.HistoryEvent{
@@ -891,6 +893,7 @@ func TestClientPresence(t *testing.T) {
 	client, closeFn, err := centrifuge.NewClient(context.Background(), node, transport)
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
+	client.HandleCommand(&protocol.Command{Id: 1, Connect: &protocol.ConnectRequest{}}, 0)
 	require.NoError(t, client.Subscribe("test1"))
 
 	_, err = h.OnPresence(client, centrifuge.PresenceEvent{
@@ -946,6 +949,7 @@ func TestClientPresenceStats(t *testing.T) {
 	client, closeFn, err := centrifuge.NewClient(context.Background(), node, transport)
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
+	client.HandleCommand(&protocol.Command{Id: 1, Connect: &protocol.ConnectRequest{}}, 0)
 	require.NoError(t, client.Subscribe("test1"))
 
 	_, err = h.OnPresenceStats(client, centrifuge.PresenceStatsEvent{

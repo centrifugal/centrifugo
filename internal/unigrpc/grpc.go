@@ -56,6 +56,10 @@ func (s *Service) Consume(req *unistream.ConnectRequest, stream unistream.Centri
 		}
 	}
 
+	if centrifuge.DisableProtocolVersion1 && protoVersion == centrifuge.ProtocolVersion1 {
+		return errors.New("unsupported protocol version")
+	}
+
 	streamDataCh := make(chan rawFrame)
 	transport := newGRPCTransport(stream, streamDataCh, protoVersion)
 
