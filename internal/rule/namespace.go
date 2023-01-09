@@ -115,11 +115,17 @@ type ChannelOptions struct {
 	// ProxyPublish turns on proxying publish decision for channels.
 	ProxyPublish bool `mapstructure:"proxy_publish" json:"proxy_publish"`
 
+	// ProxySubRefresh turns on proxying sub refresh for channels.
+	ProxySubRefresh bool `mapstructure:"proxy_sub_refresh" json:"proxy_sub_refresh"`
+
 	// SubscribeProxyName of proxy to use for subscribe operations in namespace.
 	SubscribeProxyName string `mapstructure:"subscribe_proxy_name" json:"subscribe_proxy_name"`
 
 	// PublishProxyName of proxy to use for publish operations in namespace.
 	PublishProxyName string `mapstructure:"publish_proxy_name" json:"publish_proxy_name"`
+
+	// SubRefreshProxyName of proxy to use for sub refresh operations in namespace.
+	SubRefreshProxyName string `mapstructure:"sub_refresh_proxy_name" json:"sub_refresh_proxy_name"`
 
 	Compiled
 }

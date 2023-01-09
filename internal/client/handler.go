@@ -30,11 +30,12 @@ type RPCExtensionFunc func(c Client, e centrifuge.RPCEvent) (centrifuge.RPCReply
 // ProxyMap is a structure which contains all configured and already initialized
 // proxies which can be used from inside client event handlers.
 type ProxyMap struct {
-	ConnectProxy     proxy.ConnectProxy
-	RefreshProxy     proxy.RefreshProxy
-	RpcProxies       map[string]proxy.RPCProxy
-	PublishProxies   map[string]proxy.PublishProxy
-	SubscribeProxies map[string]proxy.SubscribeProxy
+	ConnectProxy      proxy.ConnectProxy
+	RefreshProxy      proxy.RefreshProxy
+	RpcProxies        map[string]proxy.RPCProxy
+	PublishProxies    map[string]proxy.PublishProxy
+	SubscribeProxies  map[string]proxy.SubscribeProxy
+	SubRefreshProxies map[string]proxy.SubRefreshProxy
 }
 
 // Handler ...
@@ -114,6 +115,14 @@ func (h *Handler) Setup() error {
 	if len(h.proxyMap.SubscribeProxies) > 0 {
 		subscribeProxyHandler = proxy.NewSubscribeHandler(proxy.SubscribeHandlerConfig{
 			Proxies:           h.proxyMap.SubscribeProxies,
+			GranularProxyMode: h.granularProxyMode,
+		}).Handle(h.node)
+	}
+
+	var subRefreshProxyHandler proxy.SubRefreshHandlerFunc
+	if len(h.proxyMap.SubRefreshProxies) > 0 {
+		subRefreshProxyHandler = proxy.NewSubRefreshHandler(proxy.SubRefreshHandlerConfig{
+			Proxies:           h.proxyMap.SubRefreshProxies,
 			GranularProxyMode: h.granularProxyMode,
 		}).Handle(h.node)
 	}
@@ -225,7 +234,15 @@ func (h *Handler) Setup() error {
 
 		client.OnSubRefresh(func(event centrifuge.SubRefreshEvent, cb centrifuge.SubRefreshCallback) {
 			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-				reply, _, err := h.OnSubRefresh(client, event)
+				var pcd proxy.PerCallData
+				stateMu.RLock()
+				if subscribeProxyHandler != nil && meta != nil {
+					metaCopy := make([]byte, len(meta))
+					copy(metaCopy, meta)
+					pcd.Meta = metaCopy
+				}
+				stateMu.RUnlock()
+				reply, _, err := h.OnSubRefresh(client, subRefreshProxyHandler, event, pcd)
 				cb(reply, err)
 			})
 		})
@@ -523,7 +540,20 @@ type SubRefreshExtra struct {
 }
 
 // OnSubRefresh ...
-func (h *Handler) OnSubRefresh(c Client, e centrifuge.SubRefreshEvent) (centrifuge.SubRefreshReply, SubRefreshExtra, error) {
+func (h *Handler) OnSubRefresh(c Client, subRefreshProxyHandler proxy.SubRefreshHandlerFunc, e centrifuge.SubRefreshEvent, d proxy.PerCallData) (centrifuge.SubRefreshReply, SubRefreshExtra, error) {
+	if e.Token == "" && subRefreshProxyHandler != nil {
+		_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+		if err != nil {
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "subscribe channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
+			return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, err
+		}
+		if !found {
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe unknown channel", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
+			return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, centrifuge.ErrorUnknownChannel
+		}
+		r, _, err := subRefreshProxyHandler(c, e, chOpts, d)
+		return r, SubRefreshExtra{}, err
+	}
 	token, err := h.tokenVerifier.VerifySubscribeToken(e.Token)
 	if err != nil {
 		if err == jwtverify.ErrTokenExpired {
@@ -672,6 +702,9 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
 		}
 		r, _, err := subscribeProxyHandler(c, e, chOpts, d)
+		if chOpts.ProxySubRefresh || chOpts.SubRefreshProxyName != "" {
+			r.ClientSideRefresh = false
+		}
 		return r, SubscribeExtra{}, err
 	} else if chOpts.SubscribeForClient && (c.UserID() != "" || chOpts.SubscribeForAnonymous) && !isUserLimitedChannel {
 		allowed = true
@@ -698,7 +731,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 
 	return centrifuge.SubscribeReply{
 		Options:           options,
-		ClientSideRefresh: true,
+		ClientSideRefresh: !chOpts.ProxySubRefresh && chOpts.SubRefreshProxyName == "",
 	}, SubscribeExtra{}, nil
 }
 

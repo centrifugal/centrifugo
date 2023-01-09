@@ -8,6 +8,7 @@ type ResponseDecoder interface {
 	DecodeRPCResponse(data []byte) (*RPCResponse, error)
 	DecodeSubscribeResponse(data []byte) (*SubscribeResponse, error)
 	DecodePublishResponse(data []byte) (*PublishResponse, error)
+	DecodeSubRefreshResponse(data []byte) (*SubRefreshResponse, error)
 }
 
 var _ ResponseDecoder = (*JSONDecoder)(nil)
@@ -52,6 +53,15 @@ func (e *JSONDecoder) DecodeSubscribeResponse(data []byte) (*SubscribeResponse, 
 
 func (e *JSONDecoder) DecodePublishResponse(data []byte) (*PublishResponse, error) {
 	var resp PublishResponse
+	err := json.Unmarshal(data, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+func (e *JSONDecoder) DecodeSubRefreshResponse(data []byte) (*SubRefreshResponse, error) {
+	var resp SubRefreshResponse
 	err := json.Unmarshal(data, &resp)
 	if err != nil {
 		return nil, err

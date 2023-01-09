@@ -8,6 +8,7 @@ type RequestEncoder interface {
 	EncodeRPCRequest(req *RPCRequest) ([]byte, error)
 	EncodeSubscribeRequest(req *SubscribeRequest) ([]byte, error)
 	EncodePublishRequest(req *PublishRequest) ([]byte, error)
+	EncodeSubRefreshRequest(req *SubRefreshRequest) ([]byte, error)
 }
 
 var _ RequestEncoder = (*JSONEncoder)(nil)
@@ -31,5 +32,9 @@ func (e *JSONEncoder) EncodeSubscribeRequest(req *SubscribeRequest) ([]byte, err
 }
 
 func (e *JSONEncoder) EncodePublishRequest(req *PublishRequest) ([]byte, error) {
+	return json.Marshal(req)
+}
+
+func (e *JSONEncoder) EncodeSubRefreshRequest(req *SubRefreshRequest) ([]byte, error) {
 	return json.Marshal(req)
 }

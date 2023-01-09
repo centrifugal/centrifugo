@@ -23,6 +23,7 @@ type CentrifugoProxyClient interface {
 	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (*SubscribeResponse, error)
 	Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error)
 	RPC(ctx context.Context, in *RPCRequest, opts ...grpc.CallOption) (*RPCResponse, error)
+	SubRefresh(ctx context.Context, in *SubRefreshRequest, opts ...grpc.CallOption) (*SubRefreshResponse, error)
 }
 
 type centrifugoProxyClient struct {
@@ -78,6 +79,15 @@ func (c *centrifugoProxyClient) RPC(ctx context.Context, in *RPCRequest, opts ..
 	return out, nil
 }
 
+func (c *centrifugoProxyClient) SubRefresh(ctx context.Context, in *SubRefreshRequest, opts ...grpc.CallOption) (*SubRefreshResponse, error) {
+	out := new(SubRefreshResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.proxy.CentrifugoProxy/SubRefresh", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CentrifugoProxyServer is the server API for CentrifugoProxy service.
 // All implementations must embed UnimplementedCentrifugoProxyServer
 // for forward compatibility
@@ -87,6 +97,7 @@ type CentrifugoProxyServer interface {
 	Subscribe(context.Context, *SubscribeRequest) (*SubscribeResponse, error)
 	Publish(context.Context, *PublishRequest) (*PublishResponse, error)
 	RPC(context.Context, *RPCRequest) (*RPCResponse, error)
+	SubRefresh(context.Context, *SubRefreshRequest) (*SubRefreshResponse, error)
 	mustEmbedUnimplementedCentrifugoProxyServer()
 }
 
@@ -108,6 +119,9 @@ func (UnimplementedCentrifugoProxyServer) Publish(context.Context, *PublishReque
 }
 func (UnimplementedCentrifugoProxyServer) RPC(context.Context, *RPCRequest) (*RPCResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RPC not implemented")
+}
+func (UnimplementedCentrifugoProxyServer) SubRefresh(context.Context, *SubRefreshRequest) (*SubRefreshResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SubRefresh not implemented")
 }
 func (UnimplementedCentrifugoProxyServer) mustEmbedUnimplementedCentrifugoProxyServer() {}
 
@@ -212,6 +226,24 @@ func _CentrifugoProxy_RPC_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CentrifugoProxy_SubRefresh_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubRefreshRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoProxyServer).SubRefresh(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.proxy.CentrifugoProxy/SubRefresh",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoProxyServer).SubRefresh(ctx, req.(*SubRefreshRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CentrifugoProxy_ServiceDesc is the grpc.ServiceDesc for CentrifugoProxy service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -238,6 +270,10 @@ var CentrifugoProxy_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RPC",
 			Handler:    _CentrifugoProxy_RPC_Handler,
+		},
+		{
+			MethodName: "SubRefresh",
+			Handler:    _CentrifugoProxy_SubRefresh_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

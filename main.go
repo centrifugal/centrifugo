@@ -1390,8 +1390,10 @@ func ruleConfig() rule.Config {
 	cfg.ChannelRegex = v.GetString("channel_regex")
 	cfg.ProxySubscribe = v.GetBool("proxy_subscribe")
 	cfg.ProxyPublish = v.GetBool("proxy_publish")
+	cfg.ProxySubRefresh = v.GetBool("proxy_sub_refresh")
 	cfg.SubscribeProxyName = v.GetString("subscribe_proxy_name")
 	cfg.PublishProxyName = v.GetString("publish_proxy_name")
+	cfg.SubRefreshProxyName = v.GetString("sub_refresh_proxy_name")
 
 	cfg.Namespaces = namespacesFromConfig(v)
 
@@ -1465,9 +1467,10 @@ func GetDuration(key string, secondsPrecision ...bool) time.Duration {
 func proxyMapConfig() (*client.ProxyMap, bool) {
 	v := viper.GetViper()
 	proxyMap := &client.ProxyMap{
-		SubscribeProxies: map[string]proxy.SubscribeProxy{},
-		PublishProxies:   map[string]proxy.PublishProxy{},
-		RpcProxies:       map[string]proxy.RPCProxy{},
+		SubscribeProxies:  map[string]proxy.SubscribeProxy{},
+		PublishProxies:    map[string]proxy.PublishProxy{},
+		RpcProxies:        map[string]proxy.RPCProxy{},
+		SubRefreshProxies: map[string]proxy.SubRefreshProxy{},
 	}
 	p := proxy.Proxy{}
 	p.GrpcMetadata = v.GetStringSlice("proxy_grpc_metadata")
@@ -1493,6 +1496,8 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	subscribeTimeout := GetDuration("proxy_subscribe_timeout")
 	publishEndpoint := v.GetString("proxy_publish_endpoint")
 	publishTimeout := GetDuration("proxy_publish_timeout")
+	subRefreshEndpoint := v.GetString("proxy_sub_refresh_endpoint")
+	subRefreshTimeout := GetDuration("proxy_sub_refresh_timeout")
 
 	if connectEndpoint != "" {
 		p.Endpoint = connectEndpoint
@@ -1549,17 +1554,29 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 		log.Info().Str("endpoint", rpcEndpoint).Msg("RPC proxy enabled")
 	}
 
+	if subRefreshEndpoint != "" {
+		p.Endpoint = subRefreshEndpoint
+		p.Timeout = tools.Duration(subRefreshTimeout)
+		srp, err := proxy.GetSubRefreshProxy(p)
+		if err != nil {
+			log.Fatal().Msgf("error creating sub refresh proxy: %v", err)
+		}
+		proxyMap.SubRefreshProxies[""] = srp
+		log.Info().Str("endpoint", subRefreshEndpoint).Msg("sub refresh proxy enabled")
+	}
+
 	proxyEnabled := connectEndpoint != "" || refreshEndpoint != "" ||
-		rpcEndpoint != "" || subscribeEndpoint != "" || publishEndpoint != ""
+		rpcEndpoint != "" || subscribeEndpoint != "" || publishEndpoint != "" || subRefreshEndpoint != ""
 
 	return proxyMap, proxyEnabled
 }
 
 func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 	proxyMap := &client.ProxyMap{
-		RpcProxies:       map[string]proxy.RPCProxy{},
-		PublishProxies:   map[string]proxy.PublishProxy{},
-		SubscribeProxies: map[string]proxy.SubscribeProxy{},
+		RpcProxies:        map[string]proxy.RPCProxy{},
+		PublishProxies:    map[string]proxy.PublishProxy{},
+		SubscribeProxies:  map[string]proxy.SubscribeProxy{},
+		SubRefreshProxies: map[string]proxy.SubRefreshProxy{},
 	}
 	proxyList := granularProxiesFromConfig(viper.GetViper())
 	proxies := make(map[string]proxy.Proxy)
@@ -1626,6 +1643,20 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		proxyEnabled = true
 	}
 
+	subRefreshProxyName := ruleConfig.SubRefreshProxyName
+	if subRefreshProxyName != "" {
+		p, ok := proxies[subRefreshProxyName]
+		if !ok {
+			log.Fatal().Msgf("sub refresh proxy not found: %s", subRefreshProxyName)
+		}
+		srp, err := proxy.GetSubRefreshProxy(p)
+		if err != nil {
+			log.Fatal().Msgf("error creating publish proxy: %v", err)
+		}
+		proxyMap.SubRefreshProxies[subRefreshProxyName] = srp
+		proxyEnabled = true
+	}
+
 	for _, ns := range ruleConfig.Namespaces {
 		subscribeProxyName := ns.SubscribeProxyName
 		publishProxyName := ns.PublishProxyName
@@ -1653,6 +1684,19 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 				log.Fatal().Msgf("error creating publish proxy: %v", err)
 			}
 			proxyMap.PublishProxies[publishProxyName] = pp
+			proxyEnabled = true
+		}
+
+		if subRefreshProxyName != "" {
+			p, ok := proxies[subRefreshProxyName]
+			if !ok {
+				log.Fatal().Msgf("sub refresh proxy not found: %s", subRefreshProxyName)
+			}
+			srp, err := proxy.GetSubRefreshProxy(p)
+			if err != nil {
+				log.Fatal().Msgf("error creating sub refresh proxy: %v", err)
+			}
+			proxyMap.SubRefreshProxies[subRefreshProxyName] = srp
 			proxyEnabled = true
 		}
 	}
