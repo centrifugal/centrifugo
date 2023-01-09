@@ -114,7 +114,7 @@ func (h *SubRefreshHandler) Handle(node *centrifuge.Node) SubRefreshHandlerFunc 
 			summary.Observe(duration)
 			histogram.Observe(duration)
 			errors.Inc()
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying refresh", map[string]interface{}{"error": err.Error()}))
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying sub refresh", map[string]interface{}{"error": err.Error()}))
 			// In case of an error give connection one more minute to live and
 			// then try to check again. This way we gracefully handle temporary
 			// problems on application backend side.
@@ -129,8 +129,8 @@ func (h *SubRefreshHandler) Handle(node *centrifuge.Node) SubRefreshHandlerFunc 
 
 		result := refreshRep.Result
 		if result == nil {
-			// User will be disconnected.
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "no refresh result found", map[string]interface{}{}))
+			// Subscription will be unsubscribed.
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "no sub refresh result found", map[string]interface{}{}))
 			return centrifuge.SubRefreshReply{
 				Expired: true,
 			}, SubRefreshExtra{}, nil

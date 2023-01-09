@@ -249,11 +249,12 @@ func bindCentrifugoConfig() {
 		"prometheus_handler_prefix": "/metrics",
 		"health_handler_prefix":     "/health",
 
-		"proxy_connect_timeout":   time.Second,
-		"proxy_rpc_timeout":       time.Second,
-		"proxy_refresh_timeout":   time.Second,
-		"proxy_subscribe_timeout": time.Second,
-		"proxy_publish_timeout":   time.Second,
+		"proxy_connect_timeout":     time.Second,
+		"proxy_rpc_timeout":         time.Second,
+		"proxy_refresh_timeout":     time.Second,
+		"proxy_subscribe_timeout":   time.Second,
+		"proxy_publish_timeout":     time.Second,
+		"proxy_sub_refresh_timeout": time.Second,
 
 		"client_history_max_publication_limit":  300,
 		"client_recovery_max_publication_limit": 300,
