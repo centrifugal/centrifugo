@@ -1,3 +1,16 @@
+v4.1.1
+======
+
+### Improvements
+
+* More human-readable tracing logging output (especially in Protobuf protocol case). On the other hand, tracing log level is much more expensive now. We never assumed it will be used in production – so seems an acceptable trade-off.
+* Several internal optimizations in client protocol to reduce memory allocations.
+
+### Fixes
+
+* Fix: slow down subscription dissolver workers while Redis PUB/SUB is unavailable. This solves a CPU usage spike which may happen while Redis PUB/SUB is unavailable and last client unsubscribes from some channel.
+* Relative static paths in Centrifugo admin web UI (to fix work behind reverse proxy on sub-path)
+
 v4.1.0
 ======
 

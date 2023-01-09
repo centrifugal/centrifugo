@@ -10,5 +10,10 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Fully rewritten Redis engine using [rueian/rueidis](https://github.com/rueian/rueidis) library. Many thanks to [@j178](https://github.com/j178) and [@rueian](https://github.com/rueian) for the help. Check out details in our blog post [Improving Centrifugo Redis Engine throughput and allocation efficiency with Rueidis Go library](https://centrifugal.dev/blog/2022/12/20/improving-redis-engine-performance). We expect that new implementation is backwards compatible with the previous one except some timeout options which were not documented, please report issues if any.
-* Extended TLS configuration for Redis – it's now possible to set CA root cert, client TLS certs, set custom server name for TLS. See more details in the [updated Redis Engine option docs](https://centrifugal.dev/docs/server/engines#redis-engine-options). Also, it's now possible to provide certificates as strings.
+* More human-readable tracing logging output (especially in Protobuf protocol case). On the other hand, tracing log level is much more expensive now. We never assumed it will be used in production – so seems an acceptable trade-off.
+* Several internal optimizations in client protocol to reduce memory allocations.
+
+### Fixes
+
+* Fix: slow down subscription dissolver workers while Redis PUB/SUB is unavailable. This solves a CPU usage spike which may happen while Redis PUB/SUB is unavailable and last client unsubscribes from some channel.
+* Relative static paths in Centrifugo admin web UI (to fix work behind reverse proxy on sub-path)
