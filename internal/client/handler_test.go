@@ -819,6 +819,14 @@ func TestClientHistory(t *testing.T) {
 	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
+	node.OnConnecting(func(ctx context.Context, event centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+		return centrifuge.ConnectReply{
+			Credentials: &centrifuge.Credentials{
+				UserID: "",
+			},
+		}, nil
+	})
+
 	ruleConfig := rule.DefaultConfig
 	ruleConfig.HistorySize = 10
 	ruleConfig.HistoryTTL = tools.Duration(300 * time.Second)
@@ -879,6 +887,14 @@ func TestClientPresence(t *testing.T) {
 	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
+	node.OnConnecting(func(ctx context.Context, event centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+		return centrifuge.ConnectReply{
+			Credentials: &centrifuge.Credentials{
+				UserID: "",
+			},
+		}, nil
+	})
+
 	ruleConfig := rule.DefaultConfig
 	ruleConfig.Presence = true
 	ruleConfig.PresenceForClient = true
@@ -934,6 +950,14 @@ func TestClientPresenceError(t *testing.T) {
 func TestClientPresenceStats(t *testing.T) {
 	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	node.OnConnecting(func(ctx context.Context, event centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+		return centrifuge.ConnectReply{
+			Credentials: &centrifuge.Credentials{
+				UserID: "",
+			},
+		}, nil
+	})
 
 	ruleConfig := rule.DefaultConfig
 	ruleConfig.Presence = true
