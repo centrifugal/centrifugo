@@ -1661,6 +1661,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 	for _, ns := range ruleConfig.Namespaces {
 		subscribeProxyName := ns.SubscribeProxyName
 		publishProxyName := ns.PublishProxyName
+		subRefreshProxyName := ns.SubRefreshProxyName
 
 		if subscribeProxyName != "" {
 			p, ok := proxies[subscribeProxyName]
