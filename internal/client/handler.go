@@ -235,13 +235,15 @@ func (h *Handler) Setup() error {
 		client.OnSubRefresh(func(event centrifuge.SubRefreshEvent, cb centrifuge.SubRefreshCallback) {
 			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
 				var pcd proxy.PerCallData
-				stateMu.RLock()
-				if subscribeProxyHandler != nil && meta != nil {
-					metaCopy := make([]byte, len(meta))
-					copy(metaCopy, meta)
-					pcd.Meta = metaCopy
+				if event.Token == "" {
+					stateMu.RLock()
+					if subscribeProxyHandler != nil && meta != nil {
+						metaCopy := make([]byte, len(meta))
+						copy(metaCopy, meta)
+						pcd.Meta = metaCopy
+					}
+					stateMu.RUnlock()
 				}
-				stateMu.RUnlock()
 				reply, _, err := h.OnSubRefresh(client, subRefreshProxyHandler, event, pcd)
 				cb(reply, err)
 			})
@@ -544,11 +546,11 @@ func (h *Handler) OnSubRefresh(c Client, subRefreshProxyHandler proxy.SubRefresh
 	if e.Token == "" && subRefreshProxyHandler != nil {
 		_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 		if err != nil {
-			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "subscribe channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "sub refresh channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, err
 		}
 		if !found {
-			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe unknown channel", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "sub refresh unknown channel", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, centrifuge.ErrorUnknownChannel
 		}
 		r, _, err := subRefreshProxyHandler(c, e, chOpts, d)
