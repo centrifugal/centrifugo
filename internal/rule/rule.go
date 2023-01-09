@@ -59,6 +59,12 @@ type Config struct {
 	// a connection token or setting Credentials in authentication middleware. The resulting
 	// user will have empty string for user ID (i.e. user is treated as anonymous).
 	AnonymousConnectWithoutToken bool
+
+	// DisallowAnonymousConnectionTokens tells Centrifugo to not accept connections from
+	// anonymous users even if they provided a valid JWT. I.e. if token is valid but `sub`
+	// claim is empty then Centrifugo closes connection with advice to not reconnect again.
+	DisallowAnonymousConnectionTokens bool
+
 	// ClientConcurrency when set allows processing client commands concurrently
 	// with provided concurrency level. By default, commands processed sequentially
 	// one after another.

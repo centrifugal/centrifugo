@@ -336,6 +336,13 @@ func (h *Handler) OnClientConnecting(
 			return centrifuge.ConnectReply{}, err
 		}
 
+		if token.UserID == "" && ruleConfig.DisallowAnonymousConnectionTokens {
+			if h.node.LogEnabled(centrifuge.LogLevelDebug) {
+				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "anonymous connection tokens disallowed", map[string]interface{}{"client": e.ClientID}))
+			}
+			return centrifuge.ConnectReply{}, centrifuge.DisconnectPermissionDenied
+		}
+
 		credentials = &centrifuge.Credentials{
 			UserID:   token.UserID,
 			ExpireAt: token.ExpireAt,
