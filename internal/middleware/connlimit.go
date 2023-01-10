@@ -30,7 +30,7 @@ func init() {
 }
 
 func ConnLimit(node *centrifuge.Node, ruleContainer *rule.Container, h http.Handler) http.Handler {
-	rl := connectionRateLimiter(ruleContainer.Config().ClientConnectionRatePerSecond)
+	rl := connectionRateLimiter(ruleContainer.Config().ClientConnectionRateLimit)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if rl != nil && !rl.Allow() {
 			w.WriteHeader(http.StatusServiceUnavailable)

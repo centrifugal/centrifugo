@@ -17,7 +17,7 @@ func TestConnLimit_ConnectionRate(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig, err := rule.NewContainer(rule.Config{
-		ClientConnectionRatePerSecond: 10,
+		ClientConnectionRateLimit: 10,
 	})
 	require.NoError(t, err)
 
