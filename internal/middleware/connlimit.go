@@ -9,6 +9,7 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/time/rate"
 )
 
 var (
@@ -29,7 +30,12 @@ func init() {
 }
 
 func ConnLimit(node *centrifuge.Node, ruleContainer *rule.Container, h http.Handler) http.Handler {
+	rl := connectionRateLimiter(ruleContainer.Config().ClientConnectionRatePerSecond)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if rl != nil && !rl.Allow() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
 		connLimit := ruleContainer.Config().ClientConnectionLimit
 		if connLimit > 0 && node.Hub().NumClients() >= connLimit {
 			connLimitReached.Inc()
@@ -44,4 +50,11 @@ func ConnLimit(node *centrifuge.Node, ruleContainer *rule.Container, h http.Hand
 		}
 		h.ServeHTTP(w, r)
 	})
+}
+
+func connectionRateLimiter(connRateLimit int) *rate.Limiter {
+	if connRateLimit > 0 {
+		return rate.NewLimiter(rate.Every(time.Second), connRateLimit)
+	}
+	return nil
 }

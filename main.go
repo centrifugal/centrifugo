@@ -1413,6 +1413,7 @@ func ruleConfig() rule.Config {
 	cfg.RpcProxyName = v.GetString("rpc_proxy_name")
 	cfg.RpcNamespaces = rpcNamespacesFromConfig(v)
 	cfg.ClientConnectionLimit = v.GetInt("client_connection_limit")
+	cfg.ClientConnectionRatePerSecond = v.GetInt("client_connection_rate_per_second")
 	return cfg
 }
 
