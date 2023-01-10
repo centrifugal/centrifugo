@@ -1751,7 +1751,7 @@ type SubRefreshRequest struct {
 	Transport string `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
 	Protocol  string `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
 	Encoding  string `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
-	User      string `protobuf:"bytes,10,opt,name=user,proto3" json:"user,omitempty"`
+	User      string `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
 	Channel   string `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
 	Meta      Raw    `protobuf:"bytes,12,opt,name=meta,proto3" json:"meta,omitempty"`
 }
