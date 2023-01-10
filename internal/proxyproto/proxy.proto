@@ -10,6 +10,7 @@ service CentrifugoProxy {
   rpc Subscribe(SubscribeRequest) returns (SubscribeResponse);
   rpc Publish(PublishRequest) returns (PublishResponse);
   rpc RPC(RPCRequest) returns (RPCResponse);
+  rpc SubRefresh(SubRefreshRequest) returns (SubRefreshResponse);
 }
 
 message Disconnect {
@@ -187,6 +188,30 @@ message RPCResult {
 
 message RPCResponse {
   RPCResult result = 1;
+  Error error = 2;
+  Disconnect disconnect = 3;
+}
+
+message SubRefreshRequest {
+  string client = 1;
+  string transport = 2;
+  string protocol = 3;
+  string encoding = 4;
+
+  string user = 10;
+  string channel = 11;
+  bytes meta = 12;
+}
+
+message SubRefreshResult {
+  bool expired = 1;
+  int64 expire_at = 2;
+  bytes info = 3;
+  string b64info = 4;
+}
+
+message SubRefreshResponse {
+  SubRefreshResult result = 1;
   Error error = 2;
   Disconnect disconnect = 3;
 }

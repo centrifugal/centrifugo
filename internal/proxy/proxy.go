@@ -73,6 +73,13 @@ func GetRpcProxy(p Proxy) (RPCProxy, error) {
 	return NewGRPCRPCProxy(p)
 }
 
+func GetSubRefreshProxy(p Proxy) (SubRefreshProxy, error) {
+	if isHttpEndpoint(p.Endpoint) {
+		return NewHTTPSubRefreshProxy(p)
+	}
+	return NewGRPCSubRefreshProxy(p)
+}
+
 func GetPublishProxy(p Proxy) (PublishProxy, error) {
 	if isHttpEndpoint(p.Endpoint) {
 		return NewHTTPPublishProxy(p)

@@ -6,9 +6,9 @@ import (
 	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
 )
 
-// RefreshProxy allows to send refresh requests.
-type RefreshProxy interface {
-	ProxyRefresh(context.Context, *proxyproto.RefreshRequest) (*proxyproto.RefreshResponse, error)
+// SubRefreshProxy allows to send sub refresh requests.
+type SubRefreshProxy interface {
+	ProxySubRefresh(context.Context, *proxyproto.SubRefreshRequest) (*proxyproto.SubRefreshResponse, error)
 	// Protocol for metrics and logging.
 	Protocol() string
 	// UseBase64 for bytes in requests from Centrifugo to application backend.

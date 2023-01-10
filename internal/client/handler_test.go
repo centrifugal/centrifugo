@@ -686,29 +686,29 @@ func TestClientSideSubRefresh(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, reply.Options.ExpireAt > 0)
 
-	subRefreshReply, _, err := h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
+	subRefreshReply, _, err := h.OnSubRefresh(client, nil, centrifuge.SubRefreshEvent{
 		Channel: "$test2",
 		Token:   getSubscribeTokenHS("12", "$test1", 123),
-	})
+	}, proxy.PerCallData{})
 	require.NoError(t, err)
 	require.True(t, subRefreshReply.Expired)
 
-	subRefreshReply, _, err = h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
+	subRefreshReply, _, err = h.OnSubRefresh(client, nil, centrifuge.SubRefreshEvent{
 		Channel: "$test2",
 		Token:   "invalid",
-	})
+	}, proxy.PerCallData{})
 	require.Equal(t, centrifuge.DisconnectInvalidToken, err)
 
-	subRefreshReply, _, err = h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
+	subRefreshReply, _, err = h.OnSubRefresh(client, nil, centrifuge.SubRefreshEvent{
 		Channel: "$test2",
 		Token:   getSubscribeTokenHS("12", "$test1", 2525637058),
-	})
+	}, proxy.PerCallData{})
 	require.Equal(t, centrifuge.DisconnectInvalidToken, err)
 
-	subRefreshReply, _, err = h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
+	subRefreshReply, _, err = h.OnSubRefresh(client, nil, centrifuge.SubRefreshEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("12", "$test1", 2525637058),
-	})
+	}, proxy.PerCallData{})
 	require.NoError(t, err)
 	require.False(t, subRefreshReply.Expired)
 	require.Equal(t, int64(2525637058), subRefreshReply.ExpireAt)
