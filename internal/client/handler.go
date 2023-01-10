@@ -235,15 +235,13 @@ func (h *Handler) Setup() error {
 		client.OnSubRefresh(func(event centrifuge.SubRefreshEvent, cb centrifuge.SubRefreshCallback) {
 			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
 				var pcd proxy.PerCallData
-				if event.Token == "" {
-					stateMu.RLock()
-					if subscribeProxyHandler != nil && meta != nil {
-						metaCopy := make([]byte, len(meta))
-						copy(metaCopy, meta)
-						pcd.Meta = metaCopy
-					}
-					stateMu.RUnlock()
+				stateMu.RLock()
+				if subRefreshProxyHandler != nil && event.Token == "" && meta != nil {
+					metaCopy := make([]byte, len(meta))
+					copy(metaCopy, meta)
+					pcd.Meta = metaCopy
 				}
+				stateMu.RUnlock()
 				reply, _, err := h.OnSubRefresh(client, subRefreshProxyHandler, event, pcd)
 				cb(reply, err)
 			})
