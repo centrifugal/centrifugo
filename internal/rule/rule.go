@@ -72,6 +72,9 @@ type Config struct {
 	// ClientConnectionLimit sets the maximum number of concurrent clients a single Centrifugo
 	// node will accept.
 	ClientConnectionLimit int
+	// ClientConnectionRateLimit sets the maximum number of new connections a single Centrifugo
+	// node will accept per second.
+	ClientConnectionRateLimit int
 }
 
 // DefaultConfig has default config options.
