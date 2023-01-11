@@ -1,3 +1,10 @@
+v4.1.2
+======
+
+### Fixes
+
+* Fix decoding of large protocol messages. The bug was introduced by v4.1.1. See [bug report](https://github.com/centrifugal/centrifugo/issues/603)
+
 v4.1.1
 ======
 
