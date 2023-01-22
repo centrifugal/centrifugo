@@ -1,41 +1,44 @@
-[![Join the chat at https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ](https://img.shields.io/badge/Telegram-Group-orange?style=flat&logo=telegram)](https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ) &nbsp;&nbsp;[![Join the chat at https://discord.gg/tYgADKx](https://img.shields.io/discord/719186998686122046?style=flat&label=Discord&logo=discord)](https://discord.gg/tYgADKx)
-
 Centrifugo is an open-source scalable real-time messaging server. Centrifugo can instantly deliver messages to application online users connected over supported transports (WebSocket, HTTP-streaming, SSE/EventSource, GRPC, SockJS, WebTransport). Centrifugo has the concept of a channel – so it's a user-facing PUB/SUB server.
 
 Centrifugo is language-agnostic and can be used to build chat apps, live comments, multiplayer games, real-time data visualizations, collaborative tools, etc. in combination with any backend. It is well suited for modern architectures and allows decoupling the business logic from the real-time transport layer.
 
 Several official client SDKs for browser and mobile development wrap the bidirectional protocol. In addition, Centrifugo supports a unidirectional approach for simple use cases with no SDK dependency.
 
-For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
+## Documentation
+
+* [Centrifugo official documentation site](https://centrifugal.dev)
+* [Installation instructions](https://centrifugal.dev/docs/getting-started/installation)
+* [Getting started tutorial](https://centrifugal.dev/docs/getting-started/quickstart)
+* [Design overview and idiomatic usage](https://centrifugal.dev/docs/getting-started/design)
+* [FAQ](https://centrifugal.dev/)
+
+## Join community
+
+* [Telegram](https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ)
+* [Discord](https://discord.gg/tYgADKx)
+* [Twitter](https://twitter.com/centrifugal_dev)
+
+## Why Centrifugo
+
+The core idea of Centrifugo is quite simple – it's a PUB/SUB server on top of modern real-time transports:
 
 ![scheme](https://raw.githubusercontent.com/centrifugal/centrifugo/v2/docs/content/images/scheme_sketch.png)
 
-### How to install
+The hard part is to make this concept production-ready, efficient and available from different application environments. Centrifugo is a mature solution that already helped many projects with adding real-time features. It provides unique properties not available in other OSS solutions in the area:
 
-See [installation instructions](https://centrifugal.dev/docs/getting-started/installation) in Centrifugo documentation.
+* Built-in scalability to many machines with Redis, KeyDB, Nats, Tarantool
+* Simple HTTP and GRPC server API to communicate from the backend
+* Flexible connection authentication mechanisms: JWT and proxy-like
+* Different types of Subscriptions: client-side and server-side
+* Hot message history in channels, with automatic message recovery upon reconnect
+* Online channel presence information, with join/leave notifications
+* A way to send RPC calls to the backend over the real-time connection
+* Strict and effective client protocol wrapped by several official SDKs
+* Variety of supported real-time transports, both JSON and binary Protobuf message transfer
+* Beautiful embedded admin web UI
+* And much more, visit [Centrifugo doc site](https://centrifugal.dev)
 
-### Highlights
-
-* Centrifugo is fast and capable to scale to millions of simultaneous connections
-* Simple integration with any application – Centrifugo works as a separate service, provides HTTP and GRPC API
-* Client real-time SDKs for popular frontend environments – for both web and mobile development
-* Strict client protocol based on Protobuf schema, with JSON and binary data transfer support
-* Bidirectional transport support (WebSocket and SockJS) for full-featured communication
-* Unidirectional transport support for simple use cases with zero SDK dependency - use native APIs (SSE, Fetch, WebSocket, GRPC)
-* User authentication with JWT or over connection request proxy to the configured HTTP/GRPC endpoint
-* Proper connection management and expiration control
-* Various types of channel subscriptions: client-side or server-side
-* Transform RPC calls sent over real-time transport to the configured HTTP or GRPC endpoint calls
-* Presence information for channels (show all active clients in a channel)
-* History information for channels (last messages published into a channel)
-* Join/leave events for channels (client subscribed/unsubscribed)
-* Automatic recovery of missed messages between reconnects over configured retention period
-* Built-in administrative web panel
-* Cross-platform – works on Linux, macOS and Windows
-* Ready to deploy (Docker, RPM/DEB packages, automatic TLS certificates, Prometheus instrumentation, Grafana dashboard)
-* Open-source license
-
-### Backing
+## Backing
 
 This repository is hosted by [packagecloud.io](https://packagecloud.io/).
 
