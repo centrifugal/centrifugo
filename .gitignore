@@ -3,6 +3,7 @@ centrifugo
 config.yaml
 config.json
 config.json.*
+config.*.json
 BUILDS
 PACKAGES
 FlameGraph

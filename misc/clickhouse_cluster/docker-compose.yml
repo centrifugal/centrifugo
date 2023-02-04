@@ -1,14 +1,21 @@
-version: '3.5'
+version: '3.8'
 services:
   zookeeper:
     image: zookeeper:latest
     container_name: zookeeper
     hostname: zookeeper
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+    healthcheck:
+      test: echo "ruok" | nc -w 2 localhost 2181
+      interval: 5s
+      timeout: 10s
+      retries: 10
     volumes:
       - ${PWD}/zookeeper:/data
       - ${PWD}/zookeeper:/logs
   clickhouse01:
-    image: yandex/clickhouse-server:21.6
+    image: clickhouse/clickhouse-server:23-alpine
     container_name: clickhouse01
     hostname: clickhouse01
     ports:
@@ -18,9 +25,10 @@ services:
       - ${PWD}/clickhouse01:/etc/clickhouse-server
       - ${PWD}/clickhouse01_db:/var/lib/clickhouse
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
   clickhouse02:
-    image: yandex/clickhouse-server:21.6
+    image: clickhouse/clickhouse-server:23-alpine
     container_name: clickhouse02
     hostname: clickhouse02
     ports:
@@ -30,9 +38,10 @@ services:
       - ${PWD}/clickhouse02:/etc/clickhouse-server
       - ${PWD}/clickhouse02_db:/var/lib/clickhouse
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
   clickhouse03:
-    image: yandex/clickhouse-server:21.6
+    image: clickhouse/clickhouse-server:23-alpine
     container_name: clickhouse03
     hostname: clickhouse03
     ports:
@@ -42,9 +51,10 @@ services:
       - ${PWD}/clickhouse03:/etc/clickhouse-server
       - ${PWD}/clickhouse03_db:/var/lib/clickhouse
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
   clickhouse04:
-    image: yandex/clickhouse-server:21.6
+    image: clickhouse/clickhouse-server:23-alpine
     container_name: clickhouse04
     hostname: clickhouse04
     ports:
@@ -54,4 +64,5 @@ services:
       - ${PWD}/clickhouse04:/etc/clickhouse-server
       - ${PWD}/clickhouse04_db:/var/lib/clickhouse
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
