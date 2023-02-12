@@ -576,7 +576,6 @@ message Device {
 }
 
 message DeviceSubscriptionAddResult {
-    DeviceSubscription device_subscription = 1;
 }
 
 message DeviceSubscriptionRemoveResult {
