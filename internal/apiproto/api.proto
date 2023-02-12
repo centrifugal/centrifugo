@@ -26,6 +26,13 @@ service CentrifugoApi {
     rpc UnblockUser (UnblockUserRequest) returns (UnblockUserResponse) {}
     rpc RevokeToken (RevokeTokenRequest) returns (RevokeTokenResponse) {}
     rpc InvalidateUserTokens (InvalidateUserTokensRequest) returns (InvalidateUserTokensResponse) {}
+    rpc DeviceRegister (DeviceRegisterRequest) returns (DeviceRegisterResponse) {}
+    rpc DeviceRemove (DeviceRemoveRequest) returns (DeviceRemoveResponse) {}
+    rpc DeviceList (DeviceListRequest) returns (DeviceListResponse) {}
+    rpc DeviceSubscriptionAdd (DeviceSubscriptionAddRequest) returns (DeviceSubscriptionAddResponse) {}
+    rpc DeviceSubscriptionRemove (DeviceSubscriptionRemoveRequest) returns (DeviceSubscriptionRemoveResponse) {}
+    rpc DeviceSubscriptionList (DeviceSubscriptionListRequest) returns (DeviceSubscriptionListResponse) {}
+    rpc SendPushNotification (SendPushNotificationRequest) returns (SendPushNotificationResponse) {}
 }
 
 message Command {
@@ -51,6 +58,13 @@ message Command {
         UNBLOCK_USER = 19;
         REVOKE_TOKEN = 20;
         INVALIDATE_USER_TOKENS = 21;
+        DEVICE_REGISTER = 22;
+        DEVICE_REMOVE = 23;
+        DEVICE_LIST = 24;
+        DEVICE_SUBSCRIPTION_ADD = 25;
+        DEVICE_SUBSCRIPTION_REMOVE = 26;
+        DEVICE_SUBSCRIPTION_LIST = 27;
+        SEND_PUSH_NOTIFICATION = 28;
     }
     uint32 id = 1;
     MethodType method = 2;
@@ -466,4 +480,235 @@ message InvalidateUserTokensResult {}
 message InvalidateUserTokensResponse {
     Error error = 1;
     InvalidateUserTokensResult result = 2;
+}
+
+message DeviceRegisterRequest {
+    string id = 1;
+    string platform = 2;
+    string token = 3;
+    string user = 4;
+    map<string, string> meta = 5;
+}
+
+message DeviceRemoveRequest {
+    repeated string ids = 1;
+    repeated string tokens = 2;
+}
+
+message DeviceListRequest {
+    repeated string ids = 1;
+    repeated string platforms = 2;
+    repeated string tokens = 3;
+    repeated string users = 4;
+    string since = 5;
+    int32 limit = 6;
+    bool include_meta = 7;
+}
+
+message DeviceSubscriptionAddRequest {
+    string device_id = 1;
+    repeated string channels = 2;
+}
+
+message DeviceSubscriptionRemoveRequest {
+    string device_id = 1;
+    repeated string channels = 2;
+}
+
+message DeviceSubscriptionListRequest {
+    repeated string device_ids = 1;
+    repeated string device_platforms = 2;
+    repeated string device_tokens = 3;
+    repeated string device_users = 4;
+    repeated string channels = 5;
+    string since = 6;
+    int32 limit = 7;
+}
+
+message DeviceRegisterResponse {
+    Error error = 1;
+    DeviceRegisterResult result = 2;
+}
+
+message DeviceRemoveResponse {
+    Error error = 1;
+    DeviceRemoveResult result = 2;
+}
+
+message DeviceListResponse {
+    Error error = 1;
+    DeviceListResult result = 2;
+}
+
+message DeviceSubscriptionAddResponse {
+    Error error = 1;
+    DeviceSubscriptionAddResult result = 2;
+}
+
+message DeviceSubscriptionRemoveResponse {
+    Error error = 1;
+    DeviceSubscriptionRemoveResult result = 2;
+}
+
+message DeviceSubscriptionListResponse {
+    Error error = 1;
+    DeviceSubscriptionListResult result = 2;
+}
+
+message DeviceRegisterResult {
+    Device device = 1;
+}
+
+message DeviceRemoveResult {
+}
+
+message DeviceListResult {
+    repeated Device items = 1;
+    bool has_more = 2;
+}
+
+message Device {
+    string id = 1;
+    string platform = 2;
+    string token = 3;
+    string user = 4;
+    map<string, string> meta = 5;
+}
+
+message DeviceSubscriptionAddResult {
+    DeviceSubscription device_subscription = 1;
+}
+
+message DeviceSubscriptionRemoveResult {
+}
+
+message DeviceSubscriptionListResult {
+    repeated DeviceSubscription items = 1;
+    bool has_more = 2;
+}
+
+message DeviceSubscription {
+    string id = 1;
+    string device_id = 2;
+    string device_token = 3;
+    string device_platform = 4;
+    string device_user = 5;
+    string channel = 6;
+}
+
+message PushRecipient {
+    repeated string device_ids = 1;
+    repeated string channels = 2;
+    repeated string fcm_tokens = 3;
+    string fcm_topic = 4;
+}
+
+message FcmNotification {
+    string title = 1;
+    string body = 2;
+}
+
+message FcmPushNotification {
+    map<string, string> data = 1;
+    FcmNotification notification = 2;
+    FcmAndroid android = 3;
+    FcmApns apns = 4;
+    FcmWeb web = 5;
+    FcmOptions fcm_options = 6;
+}
+
+message FcmOptions {
+    string analytics_label = 1;
+}
+
+message PushNotification {
+    FcmPushNotification fcm = 1;
+}
+
+message FcmAndroid {
+    string collapse_key = 1;
+    string ttl = 2;
+    map<string, string> data = 3;
+    AndroidNotification notification = 4;
+    AndroidFcmOptions fcm_options = 5;
+}
+
+message AndroidFcmOptions {
+    string analytics_label = 1;
+}
+
+message AndroidNotification {
+    string title = 1;
+    string body = 2;
+    string icon = 3;
+    string color = 4;
+    string sound = 5;
+    string tag = 6;
+    string click_action = 7;
+    string image = 8;
+    bool sticky = 9;
+}
+
+message FcmApns {
+    map<string, string> headers = 1;
+    ApnsPayload payload = 2;
+    ApnsFcmOptions fcm_options = 3;
+}
+
+message ApnsFcmOptions {
+    string analytics_label = 1;
+    string image = 2;
+}
+
+message ApnsPayload {
+    ApnsAps aps = 1;
+    map<string, string> data = 2;
+}
+
+message ApnsAps {
+    ApnsApsAlert alert = 1;
+    Int32Value badge = 2;
+    string sound = 3;
+    string thread_id = 4;
+    string category = 5;
+}
+
+message ApnsApsAlert {
+    string title = 1;
+    string subtitle = 2;
+    string body = 3;
+}
+
+message FcmWeb {
+    map<string, string> headers = 1;
+    map<string, string> data = 2;
+    WebPushNotification notification = 3;
+    WebPushFcmOptions fcm_options = 4;
+}
+
+message WebPushFcmOptions {
+    string link = 1;
+}
+
+message WebPushNotification {
+    string title = 1;
+    string body = 2;
+    string icon = 3;
+    string tag = 4;
+}
+
+message SendPushNotificationRequest {
+    PushRecipient recipient = 1;
+    PushNotification notification = 2;
+    string uid = 3;
+    int64 expire_at = 4;
+}
+
+message SendPushNotificationResponse {
+    Error error = 1;
+    SendPushNotificationResult result = 2;
+}
+
+message SendPushNotificationResult {
+    string uid = 1; // Unique identifier of notification send request (not a FCM message id).
 }

@@ -39,6 +39,13 @@ type CentrifugoApiClient interface {
 	UnblockUser(ctx context.Context, in *UnblockUserRequest, opts ...grpc.CallOption) (*UnblockUserResponse, error)
 	RevokeToken(ctx context.Context, in *RevokeTokenRequest, opts ...grpc.CallOption) (*RevokeTokenResponse, error)
 	InvalidateUserTokens(ctx context.Context, in *InvalidateUserTokensRequest, opts ...grpc.CallOption) (*InvalidateUserTokensResponse, error)
+	DeviceRegister(ctx context.Context, in *DeviceRegisterRequest, opts ...grpc.CallOption) (*DeviceRegisterResponse, error)
+	DeviceRemove(ctx context.Context, in *DeviceRemoveRequest, opts ...grpc.CallOption) (*DeviceRemoveResponse, error)
+	DeviceList(ctx context.Context, in *DeviceListRequest, opts ...grpc.CallOption) (*DeviceListResponse, error)
+	DeviceSubscriptionAdd(ctx context.Context, in *DeviceSubscriptionAddRequest, opts ...grpc.CallOption) (*DeviceSubscriptionAddResponse, error)
+	DeviceSubscriptionRemove(ctx context.Context, in *DeviceSubscriptionRemoveRequest, opts ...grpc.CallOption) (*DeviceSubscriptionRemoveResponse, error)
+	DeviceSubscriptionList(ctx context.Context, in *DeviceSubscriptionListRequest, opts ...grpc.CallOption) (*DeviceSubscriptionListResponse, error)
+	SendPushNotification(ctx context.Context, in *SendPushNotificationRequest, opts ...grpc.CallOption) (*SendPushNotificationResponse, error)
 }
 
 type centrifugoApiClient struct {
@@ -238,6 +245,69 @@ func (c *centrifugoApiClient) InvalidateUserTokens(ctx context.Context, in *Inva
 	return out, nil
 }
 
+func (c *centrifugoApiClient) DeviceRegister(ctx context.Context, in *DeviceRegisterRequest, opts ...grpc.CallOption) (*DeviceRegisterResponse, error) {
+	out := new(DeviceRegisterResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/DeviceRegister", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoApiClient) DeviceRemove(ctx context.Context, in *DeviceRemoveRequest, opts ...grpc.CallOption) (*DeviceRemoveResponse, error) {
+	out := new(DeviceRemoveResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/DeviceRemove", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoApiClient) DeviceList(ctx context.Context, in *DeviceListRequest, opts ...grpc.CallOption) (*DeviceListResponse, error) {
+	out := new(DeviceListResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/DeviceList", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoApiClient) DeviceSubscriptionAdd(ctx context.Context, in *DeviceSubscriptionAddRequest, opts ...grpc.CallOption) (*DeviceSubscriptionAddResponse, error) {
+	out := new(DeviceSubscriptionAddResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/DeviceSubscriptionAdd", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoApiClient) DeviceSubscriptionRemove(ctx context.Context, in *DeviceSubscriptionRemoveRequest, opts ...grpc.CallOption) (*DeviceSubscriptionRemoveResponse, error) {
+	out := new(DeviceSubscriptionRemoveResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/DeviceSubscriptionRemove", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoApiClient) DeviceSubscriptionList(ctx context.Context, in *DeviceSubscriptionListRequest, opts ...grpc.CallOption) (*DeviceSubscriptionListResponse, error) {
+	out := new(DeviceSubscriptionListResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/DeviceSubscriptionList", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoApiClient) SendPushNotification(ctx context.Context, in *SendPushNotificationRequest, opts ...grpc.CallOption) (*SendPushNotificationResponse, error) {
+	out := new(SendPushNotificationResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/SendPushNotification", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CentrifugoApiServer is the server API for CentrifugoApi service.
 // All implementations must embed UnimplementedCentrifugoApiServer
 // for forward compatibility
@@ -263,6 +333,13 @@ type CentrifugoApiServer interface {
 	UnblockUser(context.Context, *UnblockUserRequest) (*UnblockUserResponse, error)
 	RevokeToken(context.Context, *RevokeTokenRequest) (*RevokeTokenResponse, error)
 	InvalidateUserTokens(context.Context, *InvalidateUserTokensRequest) (*InvalidateUserTokensResponse, error)
+	DeviceRegister(context.Context, *DeviceRegisterRequest) (*DeviceRegisterResponse, error)
+	DeviceRemove(context.Context, *DeviceRemoveRequest) (*DeviceRemoveResponse, error)
+	DeviceList(context.Context, *DeviceListRequest) (*DeviceListResponse, error)
+	DeviceSubscriptionAdd(context.Context, *DeviceSubscriptionAddRequest) (*DeviceSubscriptionAddResponse, error)
+	DeviceSubscriptionRemove(context.Context, *DeviceSubscriptionRemoveRequest) (*DeviceSubscriptionRemoveResponse, error)
+	DeviceSubscriptionList(context.Context, *DeviceSubscriptionListRequest) (*DeviceSubscriptionListResponse, error)
+	SendPushNotification(context.Context, *SendPushNotificationRequest) (*SendPushNotificationResponse, error)
 	mustEmbedUnimplementedCentrifugoApiServer()
 }
 
@@ -332,6 +409,27 @@ func (UnimplementedCentrifugoApiServer) RevokeToken(context.Context, *RevokeToke
 }
 func (UnimplementedCentrifugoApiServer) InvalidateUserTokens(context.Context, *InvalidateUserTokensRequest) (*InvalidateUserTokensResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method InvalidateUserTokens not implemented")
+}
+func (UnimplementedCentrifugoApiServer) DeviceRegister(context.Context, *DeviceRegisterRequest) (*DeviceRegisterResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeviceRegister not implemented")
+}
+func (UnimplementedCentrifugoApiServer) DeviceRemove(context.Context, *DeviceRemoveRequest) (*DeviceRemoveResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeviceRemove not implemented")
+}
+func (UnimplementedCentrifugoApiServer) DeviceList(context.Context, *DeviceListRequest) (*DeviceListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeviceList not implemented")
+}
+func (UnimplementedCentrifugoApiServer) DeviceSubscriptionAdd(context.Context, *DeviceSubscriptionAddRequest) (*DeviceSubscriptionAddResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeviceSubscriptionAdd not implemented")
+}
+func (UnimplementedCentrifugoApiServer) DeviceSubscriptionRemove(context.Context, *DeviceSubscriptionRemoveRequest) (*DeviceSubscriptionRemoveResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeviceSubscriptionRemove not implemented")
+}
+func (UnimplementedCentrifugoApiServer) DeviceSubscriptionList(context.Context, *DeviceSubscriptionListRequest) (*DeviceSubscriptionListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeviceSubscriptionList not implemented")
+}
+func (UnimplementedCentrifugoApiServer) SendPushNotification(context.Context, *SendPushNotificationRequest) (*SendPushNotificationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendPushNotification not implemented")
 }
 func (UnimplementedCentrifugoApiServer) mustEmbedUnimplementedCentrifugoApiServer() {}
 
@@ -724,6 +822,132 @@ func _CentrifugoApi_InvalidateUserTokens_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CentrifugoApi_DeviceRegister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeviceRegisterRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).DeviceRegister(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/DeviceRegister",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).DeviceRegister(ctx, req.(*DeviceRegisterRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CentrifugoApi_DeviceRemove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeviceRemoveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).DeviceRemove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/DeviceRemove",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).DeviceRemove(ctx, req.(*DeviceRemoveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CentrifugoApi_DeviceList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeviceListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).DeviceList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/DeviceList",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).DeviceList(ctx, req.(*DeviceListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CentrifugoApi_DeviceSubscriptionAdd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeviceSubscriptionAddRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).DeviceSubscriptionAdd(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/DeviceSubscriptionAdd",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).DeviceSubscriptionAdd(ctx, req.(*DeviceSubscriptionAddRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CentrifugoApi_DeviceSubscriptionRemove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeviceSubscriptionRemoveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).DeviceSubscriptionRemove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/DeviceSubscriptionRemove",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).DeviceSubscriptionRemove(ctx, req.(*DeviceSubscriptionRemoveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CentrifugoApi_DeviceSubscriptionList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeviceSubscriptionListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).DeviceSubscriptionList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/DeviceSubscriptionList",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).DeviceSubscriptionList(ctx, req.(*DeviceSubscriptionListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CentrifugoApi_SendPushNotification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendPushNotificationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).SendPushNotification(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/SendPushNotification",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).SendPushNotification(ctx, req.(*SendPushNotificationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CentrifugoApi_ServiceDesc is the grpc.ServiceDesc for CentrifugoApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -814,6 +1038,34 @@ var CentrifugoApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "InvalidateUserTokens",
 			Handler:    _CentrifugoApi_InvalidateUserTokens_Handler,
+		},
+		{
+			MethodName: "DeviceRegister",
+			Handler:    _CentrifugoApi_DeviceRegister_Handler,
+		},
+		{
+			MethodName: "DeviceRemove",
+			Handler:    _CentrifugoApi_DeviceRemove_Handler,
+		},
+		{
+			MethodName: "DeviceList",
+			Handler:    _CentrifugoApi_DeviceList_Handler,
+		},
+		{
+			MethodName: "DeviceSubscriptionAdd",
+			Handler:    _CentrifugoApi_DeviceSubscriptionAdd_Handler,
+		},
+		{
+			MethodName: "DeviceSubscriptionRemove",
+			Handler:    _CentrifugoApi_DeviceSubscriptionRemove_Handler,
+		},
+		{
+			MethodName: "DeviceSubscriptionList",
+			Handler:    _CentrifugoApi_DeviceSubscriptionList_Handler,
+		},
+		{
+			MethodName: "SendPushNotification",
+			Handler:    _CentrifugoApi_SendPushNotification_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
