@@ -339,7 +339,7 @@ func (h *Handler) OnClientConnecting(
 
 	var processClientChannels bool
 
-	if e.Token != "" {
+	if e.Token != "" && !ruleConfig.ProxyConnectionToken {
 		token, err := h.tokenVerifier.VerifyConnectToken(e.Token)
 		if err != nil {
 			if err == jwtverify.ErrTokenExpired {
@@ -483,7 +483,7 @@ func (h *Handler) OnClientConnecting(
 		Credentials:       credentials,
 		Subscriptions:     subscriptions,
 		Data:              data,
-		ClientSideRefresh: !refreshProxyEnabled,
+		ClientSideRefresh: !refreshProxyEnabled || ruleConfig.ProxyConnectionToken,
 	}
 	if newCtx != nil {
 		finalReply.Context = newCtx
@@ -499,6 +499,11 @@ type RefreshExtra struct {
 
 // OnRefresh ...
 func (h *Handler) OnRefresh(c Client, e centrifuge.RefreshEvent, refreshProxyHandler proxy.RefreshHandlerFunc, d proxy.PerCallData) (centrifuge.RefreshReply, RefreshExtra, error) {
+	ruleConfig := h.ruleContainer.Config()
+	if refreshProxyHandler == nil && ruleConfig.ProxyConnectionToken {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "no refresh proxy to refresh custom token", map[string]interface{}{"user": c.UserID(), "client": c.ID()}))
+		return centrifuge.RefreshReply{Expired: true}, RefreshExtra{}, nil
+	}
 	if refreshProxyHandler != nil {
 		r, extra, err := refreshProxyHandler(c, e, d)
 		return r, RefreshExtra{Meta: extra.Meta}, err

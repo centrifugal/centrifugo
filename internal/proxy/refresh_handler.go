@@ -51,7 +51,8 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 			Transport: client.Transport().Name(),
 			Encoding:  getEncoding(h.config.Proxy.UseBase64()),
 
-			User: client.UserID(),
+			User:  client.UserID(),
+			Token: e.Token,
 		}
 		if h.config.Proxy.IncludeMeta() && pcd.Meta != nil {
 			req.Meta = proxyproto.Raw(pcd.Meta)

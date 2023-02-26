@@ -36,6 +36,7 @@ message ConnectRequest {
   string name = 12;
   string version = 13;
   repeated string channels = 14;
+  string token = 15;
 }
 
 message SubscribeOptions {
@@ -80,6 +81,7 @@ message RefreshRequest {
 
   string user = 10;
   bytes meta = 11;
+  string token = 12;
 }
 
 message RefreshResult {

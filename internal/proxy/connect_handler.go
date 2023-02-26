@@ -57,6 +57,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 			Name:      e.Name,
 			Version:   e.Version,
 			Channels:  e.Channels,
+			Token:     e.Token,
 		}
 		if !h.config.Proxy.UseBase64() {
 			req.Data = e.Data

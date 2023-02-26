@@ -75,6 +75,9 @@ type Config struct {
 	// ClientConnectionRateLimit sets the maximum number of new connections a single Centrifugo
 	// node will accept per second.
 	ClientConnectionRateLimit int
+
+	// ProxyConnectionToken bool
+	ProxyConnectionToken bool
 }
 
 // DefaultConfig has default config options.
