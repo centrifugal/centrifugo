@@ -1901,7 +1901,7 @@ func getPingPongConfig() centrifuge.PingPongConfig {
 	}
 	return centrifuge.PingPongConfig{
 		PingInterval: pingInterval,
-		PongTimeout:  pongTimeout,
+		PongTimeout:  -1,
 	}
 }
 
