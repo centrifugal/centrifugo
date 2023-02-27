@@ -33,6 +33,8 @@ service CentrifugoApi {
     rpc DeviceSubscriptionRemove (DeviceSubscriptionRemoveRequest) returns (DeviceSubscriptionRemoveResponse) {}
     rpc DeviceSubscriptionList (DeviceSubscriptionListRequest) returns (DeviceSubscriptionListResponse) {}
     rpc SendPushNotification (SendPushNotificationRequest) returns (SendPushNotificationResponse) {}
+
+    rpc Batch(BatchRequest) returns (BatchResponse) {}
 }
 
 message Command {
@@ -69,7 +71,38 @@ message Command {
     uint32 id = 1;
     MethodType method = 2;
     bytes params = 3;
+
+    PublishRequest publish = 4;
+    BroadcastRequest broadcast = 5;
+    UnsubscribeRequest unsubscribe = 6;
+    DisconnectRequest disconnect = 7;
+    PresenceRequest presence = 8;
+    PresenceStatsRequest presence_stats = 9;
+    HistoryRequest history = 10;
+    HistoryRemoveRequest history_remove = 11;
+    InfoRequest info = 12;
+    RPCRequest rpc = 13;
+    RefreshRequest refresh = 14;
+    ChannelsRequest channels = 15;
+    ConnectionsRequest connections = 16;
+    UpdateUserStatusRequest update_user_status = 17;
+    GetUserStatusRequest get_user_status = 18;
+    DeleteUserStatusRequest delete_user_status = 19;
+    BlockUserRequest block_user = 20;
+    UnblockUserRequest unblock_user = 21;
+    RevokeTokenRequest revoke_token = 22;
+    InvalidateUserTokensRequest invalidate_user_tokens = 23;
+    DeviceRegisterRequest device_register = 24;
+    DeviceRemoveRequest device_remove = 25;
+    DeviceListRequest device_list = 26;
+    DeviceSubscriptionAddRequest device_subscription_add = 27;
+    DeviceSubscriptionRemoveRequest device_subscription_remove = 28;
+    DeviceSubscriptionListRequest device_subscription_list = 29;
+    SendPushNotificationRequest send_push_notification = 30;
+    SubscribeRequest subscribe = 31;
 }
+
+
 
 message Error {
     uint32 code = 1;
@@ -96,6 +129,47 @@ message SubscribeOptionOverride {
     BoolValue force_recovery = 3;
     BoolValue force_positioning = 4;
     BoolValue force_push_join_leave = 5;
+}
+
+message BatchRequest {
+    repeated Command command = 1;
+}
+
+message BatchResponse {
+    repeated BatchResult reply = 1;
+}
+
+message BatchResult {
+    uint32 id = 1;
+    PublishResponse publish = 2;
+    BroadcastResponse broadcast = 3;
+    SubscribeResponse subscribe = 4;
+    UnsubscribeResponse unsubscribe = 5;
+    DisconnectResponse disconnect = 6;
+    PresenceResponse presence = 7;
+    PresenceStatsResponse presence_stats = 8;
+    HistoryResponse history = 9;
+    HistoryRemoveResponse history_remove = 10;
+    InfoResponse info = 11;
+    RPCResponse rpc = 12;
+    RefreshResponse refresh = 13;
+    ChannelsResponse channels = 14;
+    ConnectionsResponse connections = 15;
+    UpdateUserStatusResponse update_user_status = 16;
+    GetUserStatusResponse get_user_status = 17;
+    DeleteUserStatusResponse delete_user_status = 18;
+    BlockUserResponse block_user = 19;
+    UnblockUserResponse unblock_user = 20;
+    RevokeTokenResponse revoke_token = 21;
+    InvalidateUserTokensResponse invalidate_user_tokens = 22;
+    DeviceRegisterResponse device_register = 23;
+    DeviceRemoveResponse device_remove = 24;
+    DeviceListResponse device_list = 25;
+    DeviceSubscriptionAddResponse device_subscription_add = 26;
+    DeviceSubscriptionRemoveResponse device_subscription_remove = 27;
+    DeviceSubscriptionListResponse device_subscription_list = 28;
+    SendPushNotificationResponse send_push_notification = 29;
+   
 }
 
 message PublishRequest {

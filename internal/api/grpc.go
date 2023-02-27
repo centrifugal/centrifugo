@@ -124,3 +124,48 @@ func (s *grpcAPIService) Refresh(ctx context.Context, req *RefreshRequest) (*Ref
 func (s *grpcAPIService) Channels(ctx context.Context, req *ChannelsRequest) (*ChannelsResponse, error) {
 	return s.api.Channels(ctx, req), nil
 }
+
+func (s *grpcAPIService) Batch(ctx context.Context, req *BatchRequest) (*BatchResponse, error) {
+	replies := make([]*BatchResult, len(req.Command))
+
+	for i, cmd := range req.Command {
+		replies[i] = &BatchResult{
+			Id: cmd.Id,
+		}
+
+		if cmd.Publish != nil {
+			replies[i].Publish = s.api.Publish(ctx, cmd.Publish)
+		} else if cmd.Broadcast != nil {
+			replies[i].Broadcast = s.api.Broadcast(ctx, cmd.Broadcast)
+		} else if cmd.Subscribe != nil {
+			replies[i].Subscribe = s.api.Subscribe(ctx, cmd.Subscribe)
+		} else if cmd.Unsubscribe != nil {
+			replies[i].Unsubscribe = s.api.Unsubscribe(ctx, cmd.Unsubscribe)
+		} else if cmd.Disconnect != nil {
+			replies[i].Disconnect = s.api.Disconnect(ctx, cmd.Disconnect)
+		} else if cmd.History != nil {
+			replies[i].History = s.api.History(ctx, cmd.History)
+		} else if cmd.HistoryRemove != nil {
+			replies[i].HistoryRemove = s.api.HistoryRemove(ctx, cmd.HistoryRemove)
+		} else if cmd.Presence != nil {
+			replies[i].Presence = s.api.Presence(ctx, cmd.Presence)
+		} else if cmd.PresenceStats != nil {
+			replies[i].PresenceStats = s.api.PresenceStats(ctx, cmd.PresenceStats)
+		} else if cmd.Info != nil {
+			replies[i].Info = s.api.Info(ctx, cmd.Info)
+		} else if cmd.Rpc != nil {
+			replies[i].Rpc = s.api.RPC(ctx, cmd.Rpc)
+		} else if cmd.Refresh != nil {
+			replies[i].Refresh = s.api.Refresh(ctx, cmd.Refresh)
+		} else if cmd.Channels != nil {
+			replies[i].Channels = s.api.Channels(ctx, cmd.Channels)
+		} else {
+			// unimplemented
+			panic("unimplemented")
+		}
+	}
+
+	return &BatchResponse{
+		Reply: replies,
+	}, nil
+}
