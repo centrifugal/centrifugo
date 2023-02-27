@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 
@@ -15,6 +16,7 @@ type Config struct{}
 
 // Handler is responsible for processing API commands over HTTP.
 type Handler struct {
+	mux    *http.ServeMux
 	node   *centrifuge.Node
 	config Config
 	api    *Executor
@@ -22,14 +24,51 @@ type Handler struct {
 
 // NewHandler creates new APIHandler.
 func NewHandler(n *centrifuge.Node, apiExecutor *Executor, c Config) *Handler {
-	return &Handler{
+	m := new(http.ServeMux)
+	h := &Handler{
+		mux:    m,
 		node:   n,
 		config: c,
 		api:    apiExecutor,
 	}
+
+	m.HandleFunc("/", h.handleAPI)
+	m.HandleFunc("/publish", h.handlePublish)
+	return h
 }
 
 func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.mux.ServeHTTP(w, r)
+}
+
+func (s *Handler) handlePublish(w http.ResponseWriter, r *http.Request) {
+	req := new(PublishRequest)
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error reading API request body", map[string]interface{}{"error": err.Error()}))
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if err = json.Unmarshal(data, req); err != nil {
+		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding API data", map[string]interface{}{"error": err.Error()}))
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	res := s.api.Publish(r.Context(), req)
+	data, err = json.Marshal(res)
+	if err != nil {
+		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error encoding API reply", map[string]interface{}{"error": err.Error()}))
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(data)
+}
+
+func (s *Handler) handleAPI(w http.ResponseWriter, r *http.Request) {
 	select {
 	case <-s.node.NotifyShutdown():
 		w.WriteHeader(http.StatusServiceUnavailable)
