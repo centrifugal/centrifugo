@@ -126,46 +126,56 @@ func (s *grpcAPIService) Channels(ctx context.Context, req *ChannelsRequest) (*C
 }
 
 func (s *grpcAPIService) Batch(ctx context.Context, req *BatchRequest) (*BatchResponse, error) {
-	replies := make([]*BatchResult, len(req.Command))
+	replies := make([]*Reply, len(req.Commands))
 
-	for i, cmd := range req.Command {
-		replies[i] = &BatchResult{
-			Id: cmd.Id,
-		}
+	for i, cmd := range req.Commands {
+		replies[i] = new(Reply)
 
 		if cmd.Publish != nil {
-			replies[i].Publish = s.api.Publish(ctx, cmd.Publish)
+			res := s.api.Publish(ctx, cmd.Publish)
+			replies[i].Publish, replies[i].Error = res.Result, res.Error
 		} else if cmd.Broadcast != nil {
-			replies[i].Broadcast = s.api.Broadcast(ctx, cmd.Broadcast)
+			res := s.api.Broadcast(ctx, cmd.Broadcast)
+			replies[i].Broadcast, replies[i].Error = res.Result, res.Error
 		} else if cmd.Subscribe != nil {
-			replies[i].Subscribe = s.api.Subscribe(ctx, cmd.Subscribe)
+			res := s.api.Subscribe(ctx, cmd.Subscribe)
+			replies[i].Subscribe, replies[i].Error = res.Result, res.Error
 		} else if cmd.Unsubscribe != nil {
-			replies[i].Unsubscribe = s.api.Unsubscribe(ctx, cmd.Unsubscribe)
+			res := s.api.Unsubscribe(ctx, cmd.Unsubscribe)
+			replies[i].Unsubscribe, replies[i].Error = res.Result, res.Error
 		} else if cmd.Disconnect != nil {
-			replies[i].Disconnect = s.api.Disconnect(ctx, cmd.Disconnect)
+			res := s.api.Disconnect(ctx, cmd.Disconnect)
+			replies[i].Disconnect, replies[i].Error = res.Result, res.Error
 		} else if cmd.History != nil {
-			replies[i].History = s.api.History(ctx, cmd.History)
+			res := s.api.History(ctx, cmd.History)
+			replies[i].History, replies[i].Error = res.Result, res.Error
 		} else if cmd.HistoryRemove != nil {
-			replies[i].HistoryRemove = s.api.HistoryRemove(ctx, cmd.HistoryRemove)
+			res := s.api.HistoryRemove(ctx, cmd.HistoryRemove)
+			replies[i].HistoryRemove, replies[i].Error = res.Result, res.Error
 		} else if cmd.Presence != nil {
-			replies[i].Presence = s.api.Presence(ctx, cmd.Presence)
+			res := s.api.Presence(ctx, cmd.Presence)
+			replies[i].Presence, replies[i].Error = res.Result, res.Error
 		} else if cmd.PresenceStats != nil {
-			replies[i].PresenceStats = s.api.PresenceStats(ctx, cmd.PresenceStats)
+			res := s.api.PresenceStats(ctx, cmd.PresenceStats)
+			replies[i].PresenceStats, replies[i].Error = res.Result, res.Error
 		} else if cmd.Info != nil {
-			replies[i].Info = s.api.Info(ctx, cmd.Info)
+			res := s.api.Info(ctx, cmd.Info)
+			replies[i].Info, replies[i].Error = res.Result, res.Error
 		} else if cmd.Rpc != nil {
-			replies[i].Rpc = s.api.RPC(ctx, cmd.Rpc)
+			res := s.api.RPC(ctx, cmd.Rpc)
+			replies[i].Rpc, replies[i].Error = res.Result, res.Error
 		} else if cmd.Refresh != nil {
-			replies[i].Refresh = s.api.Refresh(ctx, cmd.Refresh)
+			res := s.api.Refresh(ctx, cmd.Refresh)
+			replies[i].Refresh, replies[i].Error = res.Result, res.Error
 		} else if cmd.Channels != nil {
-			replies[i].Channels = s.api.Channels(ctx, cmd.Channels)
+			res := s.api.Channels(ctx, cmd.Channels)
+			replies[i].Channels, replies[i].Error = res.Result, res.Error
 		} else {
-			// unimplemented
-			panic("unimplemented")
+			return nil, ErrorNotAvailable
 		}
 	}
 
 	return &BatchResponse{
-		Reply: replies,
+		Replies: replies,
 	}, nil
 }
