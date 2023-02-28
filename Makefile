@@ -20,6 +20,9 @@ test:
 test-integration:
 	go test -count=1 -v $(TESTFOLDERS) -cover -race --tags=integration
 
+generate:
+	go generate ./...
+
 web:
 	./misc/scripts/update_web.sh
 
