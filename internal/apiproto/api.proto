@@ -33,7 +33,6 @@ service CentrifugoApi {
     rpc DeviceSubscriptionRemove (DeviceSubscriptionRemoveRequest) returns (DeviceSubscriptionRemoveResponse) {}
     rpc DeviceSubscriptionList (DeviceSubscriptionListRequest) returns (DeviceSubscriptionListResponse) {}
     rpc SendPushNotification (SendPushNotificationRequest) returns (SendPushNotificationResponse) {}
-
     rpc Batch(BatchRequest) returns (BatchResponse) {}
 }
 
@@ -74,35 +73,33 @@ message Command {
 
     PublishRequest publish = 4;
     BroadcastRequest broadcast = 5;
-    UnsubscribeRequest unsubscribe = 6;
-    DisconnectRequest disconnect = 7;
-    PresenceRequest presence = 8;
-    PresenceStatsRequest presence_stats = 9;
-    HistoryRequest history = 10;
-    HistoryRemoveRequest history_remove = 11;
-    InfoRequest info = 12;
-    RPCRequest rpc = 13;
-    RefreshRequest refresh = 14;
-    ChannelsRequest channels = 15;
-    ConnectionsRequest connections = 16;
-    UpdateUserStatusRequest update_user_status = 17;
-    GetUserStatusRequest get_user_status = 18;
-    DeleteUserStatusRequest delete_user_status = 19;
-    BlockUserRequest block_user = 20;
-    UnblockUserRequest unblock_user = 21;
-    RevokeTokenRequest revoke_token = 22;
-    InvalidateUserTokensRequest invalidate_user_tokens = 23;
-    DeviceRegisterRequest device_register = 24;
-    DeviceRemoveRequest device_remove = 25;
-    DeviceListRequest device_list = 26;
-    DeviceSubscriptionAddRequest device_subscription_add = 27;
-    DeviceSubscriptionRemoveRequest device_subscription_remove = 28;
-    DeviceSubscriptionListRequest device_subscription_list = 29;
-    SendPushNotificationRequest send_push_notification = 30;
-    SubscribeRequest subscribe = 31;
+    SubscribeRequest subscribe = 6;
+    UnsubscribeRequest unsubscribe = 7;
+    DisconnectRequest disconnect = 8;
+    PresenceRequest presence = 9;
+    PresenceStatsRequest presence_stats = 10;
+    HistoryRequest history = 11;
+    HistoryRemoveRequest history_remove = 12;
+    InfoRequest info = 13;
+    RPCRequest rpc = 14;
+    RefreshRequest refresh = 15;
+    ChannelsRequest channels = 16;
+    ConnectionsRequest connections = 17;
+    UpdateUserStatusRequest update_user_status = 18;
+    GetUserStatusRequest get_user_status = 19;
+    DeleteUserStatusRequest delete_user_status = 20;
+    BlockUserRequest block_user = 21;
+    UnblockUserRequest unblock_user = 22;
+    RevokeTokenRequest revoke_token = 23;
+    InvalidateUserTokensRequest invalidate_user_tokens = 24;
+    DeviceRegisterRequest device_register = 25;
+    DeviceRemoveRequest device_remove = 26;
+    DeviceListRequest device_list = 27;
+    DeviceSubscriptionAddRequest device_subscription_add = 28;
+    DeviceSubscriptionRemoveRequest device_subscription_remove = 29;
+    DeviceSubscriptionListRequest device_subscription_list = 30;
+    SendPushNotificationRequest send_push_notification = 31;
 }
-
-
 
 message Error {
     uint32 code = 1;
