@@ -23,7 +23,10 @@ func TestAPIHandler(t *testing.T) {
 	apiExecutor := NewExecutor(n, ruleContainer, &testSurveyCaller{}, "test")
 
 	mux := http.NewServeMux()
-	mux.Handle("/api", NewHandler(n, apiExecutor, Config{}))
+	apiHandler := NewHandler(n, apiExecutor, Config{})
+	mux.Handle("/api", apiHandler)
+	mux.Handle("/api/", apiHandler)
+
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -42,6 +45,14 @@ func TestAPIHandler(t *testing.T) {
 	// valid JSON request.
 	data := `{"method":"publish","params":{"channel": "test", "data":{}}}`
 	req, _ = http.NewRequest("POST", server.URL+"/api", bytes.NewBuffer([]byte(data)))
+	req.Header.Add("Content-Type", "application/json")
+	resp, err = http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	require.Equal(t, resp.StatusCode, http.StatusOK)
+
+	// valid JSON request to special method route
+	data = `{"channel": "test", "data":{}}`
+	req, _ = http.NewRequest("POST", server.URL+"/api/publish", bytes.NewBuffer([]byte(data)))
 	req.Header.Add("Content-Type", "application/json")
 	resp, err = http.DefaultClient.Do(req)
 	require.NoError(t, err)

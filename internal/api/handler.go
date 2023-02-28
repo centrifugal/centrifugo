@@ -12,7 +12,9 @@ import (
 )
 
 // Config configures APIHandler.
-type Config struct{}
+type Config struct {
+	PathPrefix string
+}
 
 // Handler is responsible for processing API commands over HTTP.
 type Handler struct {
@@ -32,13 +34,329 @@ func NewHandler(n *centrifuge.Node, apiExecutor *Executor, c Config) *Handler {
 		api:    apiExecutor,
 	}
 
-	m.HandleFunc("/", h.handleAPI)
 	m.HandleFunc("/publish", h.handlePublish)
+	m.HandleFunc("/broadcast", h.handleBroadcast)
+	m.HandleFunc("/subscribe", h.handleSubscribe)
+	m.HandleFunc("/unsubscribe", h.handleUnsubscribe)
+	m.HandleFunc("/disconnect", h.handleDisconnect)
+	m.HandleFunc("/presence", h.handlePresence)
+	m.HandleFunc("/presence_stats", h.handlePresenceStats)
+	m.HandleFunc("/history", h.handleHistory)
+	m.HandleFunc("/history_remove", h.handleHistoryRemove)
+	m.HandleFunc("/info", h.handleInfo)
+	m.HandleFunc("/rpc", h.handleRPC)
+	m.HandleFunc("/refresh", h.handleRefresh)
+	m.HandleFunc("/channels", h.handleChannels)
+	m.HandleFunc("/", h.handleAPI)
 	return h
+}
+
+func (s *Handler) OldRoute() http.HandlerFunc {
+	return s.handleAPI
 }
 
 func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
+}
+
+func (s *Handler) handleChannels(w http.ResponseWriter, r *http.Request) {
+	req := new(ChannelsRequest)
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		s.handleReadDataErr(w, err)
+		return
+	}
+
+	if err = json.Unmarshal(data, req); err != nil {
+		s.handleUnmarshalError(w, err)
+		return
+	}
+
+	res := s.api.Channels(r.Context(), req)
+	data, err = json.Marshal(res)
+	if err != nil {
+		s.handleMarshalError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(data)
+}
+
+func (s *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
+	req := new(RefreshRequest)
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		s.handleReadDataErr(w, err)
+		return
+	}
+
+	if err = json.Unmarshal(data, req); err != nil {
+		s.handleUnmarshalError(w, err)
+		return
+	}
+
+	res := s.api.Refresh(r.Context(), req)
+	data, err = json.Marshal(res)
+	if err != nil {
+		s.handleMarshalError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(data)
+}
+
+func (s *Handler) handleRPC(w http.ResponseWriter, r *http.Request) {
+	req := new(RPCRequest)
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		s.handleReadDataErr(w, err)
+		return
+	}
+
+	if err = json.Unmarshal(data, req); err != nil {
+		s.handleUnmarshalError(w, err)
+		return
+	}
+
+	res := s.api.RPC(r.Context(), req)
+	data, err = json.Marshal(res)
+	if err != nil {
+		s.handleMarshalError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(data)
+}
+
+func (s *Handler) handleInfo(w http.ResponseWriter, r *http.Request) {
+	req := new(InfoRequest)
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		s.handleReadDataErr(w, err)
+		return
+	}
+
+	if err = json.Unmarshal(data, req); err != nil {
+		s.handleUnmarshalError(w, err)
+		return
+	}
+
+	res := s.api.Info(r.Context(), req)
+	data, err = json.Marshal(res)
+	if err != nil {
+		s.handleMarshalError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(data)
+}
+
+func (s *Handler) handleHistoryRemove(w http.ResponseWriter, r *http.Request) {
+	req := new(HistoryRemoveRequest)
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		s.handleReadDataErr(w, err)
+		return
+	}
+
+	if err = json.Unmarshal(data, req); err != nil {
+		s.handleUnmarshalError(w, err)
+		return
+	}
+
+	res := s.api.HistoryRemove(r.Context(), req)
+	data, err = json.Marshal(res)
+	if err != nil {
+		s.handleMarshalError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(data)
+}
+
+func (s *Handler) handleHistory(w http.ResponseWriter, r *http.Request) {
+	req := new(HistoryRequest)
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		s.handleReadDataErr(w, err)
+		return
+	}
+
+	if err = json.Unmarshal(data, req); err != nil {
+		s.handleUnmarshalError(w, err)
+		return
+	}
+
+	res := s.api.History(r.Context(), req)
+	data, err = json.Marshal(res)
+	if err != nil {
+		s.handleMarshalError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(data)
+}
+
+func (s *Handler) handlePresenceStats(w http.ResponseWriter, r *http.Request) {
+	req := new(PresenceStatsRequest)
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		s.handleReadDataErr(w, err)
+		return
+	}
+
+	if err = json.Unmarshal(data, req); err != nil {
+		s.handleUnmarshalError(w, err)
+		return
+	}
+
+	res := s.api.PresenceStats(r.Context(), req)
+	data, err = json.Marshal(res)
+	if err != nil {
+		s.handleMarshalError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(data)
+}
+
+func (s *Handler) handlePresence(w http.ResponseWriter, r *http.Request) {
+	req := new(PresenceRequest)
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		s.handleReadDataErr(w, err)
+		return
+	}
+
+	if err = json.Unmarshal(data, req); err != nil {
+		s.handleUnmarshalError(w, err)
+		return
+	}
+
+	res := s.api.Presence(r.Context(), req)
+	data, err = json.Marshal(res)
+	if err != nil {
+		s.handleMarshalError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(data)
+}
+
+func (s *Handler) handleDisconnect(w http.ResponseWriter, r *http.Request) {
+	req := new(DisconnectRequest)
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		s.handleReadDataErr(w, err)
+		return
+	}
+
+	if err = json.Unmarshal(data, req); err != nil {
+		s.handleUnmarshalError(w, err)
+		return
+	}
+
+	res := s.api.Disconnect(r.Context(), req)
+	data, err = json.Marshal(res)
+	if err != nil {
+		s.handleMarshalError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(data)
+}
+
+func (s *Handler) handleUnsubscribe(w http.ResponseWriter, r *http.Request) {
+	req := new(UnsubscribeRequest)
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		s.handleReadDataErr(w, err)
+		return
+	}
+
+	if err = json.Unmarshal(data, req); err != nil {
+		s.handleUnmarshalError(w, err)
+		return
+	}
+
+	res := s.api.Unsubscribe(r.Context(), req)
+	data, err = json.Marshal(res)
+	if err != nil {
+		s.handleMarshalError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(data)
+}
+
+func (s *Handler) handleSubscribe(w http.ResponseWriter, r *http.Request) {
+	req := new(SubscribeRequest)
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		s.handleReadDataErr(w, err)
+		return
+	}
+
+	if err = json.Unmarshal(data, req); err != nil {
+		s.handleUnmarshalError(w, err)
+		return
+	}
+
+	res := s.api.Subscribe(r.Context(), req)
+	data, err = json.Marshal(res)
+	if err != nil {
+		s.handleMarshalError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(data)
+}
+
+func (s *Handler) handleBroadcast(w http.ResponseWriter, r *http.Request) {
+	req := new(BroadcastRequest)
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		s.handleReadDataErr(w, err)
+		return
+	}
+
+	if err = json.Unmarshal(data, req); err != nil {
+		s.handleUnmarshalError(w, err)
+		return
+	}
+
+	res := s.api.Broadcast(r.Context(), req)
+	data, err = json.Marshal(res)
+	if err != nil {
+		s.handleMarshalError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(data)
 }
 
 func (s *Handler) handlePublish(w http.ResponseWriter, r *http.Request) {
@@ -46,24 +364,22 @@ func (s *Handler) handlePublish(w http.ResponseWriter, r *http.Request) {
 
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error reading API request body", map[string]interface{}{"error": err.Error()}))
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		s.handleReadDataErr(w, err)
 		return
 	}
 
 	if err = json.Unmarshal(data, req); err != nil {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding API data", map[string]interface{}{"error": err.Error()}))
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		s.handleUnmarshalError(w, err)
 		return
 	}
 
 	res := s.api.Publish(r.Context(), req)
 	data, err = json.Marshal(res)
 	if err != nil {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error encoding API reply", map[string]interface{}{"error": err.Error()}))
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		s.handleMarshalError(w, err)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write(data)
 }
@@ -383,4 +699,19 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 	}
 
 	return rep, nil
+}
+
+func (s *Handler) handleReadDataErr(w http.ResponseWriter, err error) {
+	s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error reading API request body", map[string]interface{}{"error": err.Error()}))
+	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+}
+
+func (s *Handler) handleUnmarshalError(w http.ResponseWriter, err error) {
+	s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding API data", map[string]interface{}{"error": err.Error()}))
+	http.Error(w, "Bad Request", http.StatusBadRequest)
+}
+
+func (s *Handler) handleMarshalError(w http.ResponseWriter, err error) {
+	s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error encoding API reply", map[string]interface{}{"error": err.Error()}))
+	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 }
