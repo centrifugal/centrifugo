@@ -46,7 +46,6 @@ func NewHandler(n *centrifuge.Node, apiExecutor *Executor, c Config) *Handler {
 	m.HandleFunc("/rpc", h.handleRPC)
 	m.HandleFunc("/refresh", h.handleRefresh)
 	m.HandleFunc("/channels", h.handleChannels)
-	m.HandleFunc("/", h.handleAPI)
 	return h
 }
 
