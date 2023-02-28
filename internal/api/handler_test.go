@@ -24,8 +24,8 @@ func TestAPIHandler(t *testing.T) {
 
 	mux := http.NewServeMux()
 	apiHandler := NewHandler(n, apiExecutor, Config{})
-	mux.Handle("/api", apiHandler.OldRoute())
 	mux.Handle("/api/", http.StripPrefix("/api", apiHandler))
+	mux.Handle("/api", apiHandler.OldRoute())
 
 	server := httptest.NewServer(mux)
 	defer server.Close()

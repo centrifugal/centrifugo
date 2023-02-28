@@ -2544,16 +2544,17 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 			apiPrefix = "/"
 		}
 
-		handler := http.StripPrefix(apiPrefix, apiHandler)
+		oldRoute := apiHandler.OldRoute()
+		strippedHandler := http.StripPrefix(apiPrefix, apiHandler)
 		if viper.GetBool("api_insecure") {
-			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(apiHandler)))
+			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(oldRoute)))
 			if apiPrefix != "/" {
-				mux.Handle(apiPrefix+"/", middleware.LogRequest(middleware.Post(apiHandler)))
+				mux.Handle(apiPrefix+"/", middleware.LogRequest(middleware.Post(strippedHandler)))
 			}
 		} else {
-			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), handler))))
+			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), oldRoute))))
 			if apiPrefix != "/" {
-				mux.Handle(apiPrefix+"/", middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), handler))))
+				mux.Handle(apiPrefix+"/", middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), strippedHandler))))
 			}
 		}
 	}

@@ -63,7 +63,7 @@ func NewHandler(n *centrifuge.Node, apiExecutor *api.Executor, c Config) *Handle
 	mux := http.NewServeMux()
 	prefix := strings.TrimRight(h.config.Prefix, "/")
 	mux.Handle(prefix+"/admin/auth", middleware.Post(http.HandlerFunc(h.authHandler)))
-	mux.Handle(prefix+"/admin/api", middleware.Post(h.adminSecureTokenAuth(api.NewHandler(n, apiExecutor, api.Config{}))))
+	mux.Handle(prefix+"/admin/api", middleware.Post(h.adminSecureTokenAuth(api.NewHandler(n, apiExecutor, api.Config{}).OldRoute())))
 
 	webPrefix := prefix + "/"
 	if c.WebProxyAddress != "" {
