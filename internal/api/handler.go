@@ -13,7 +13,6 @@ import (
 
 // Config configures APIHandler.
 type Config struct {
-	PathPrefix string
 }
 
 // Handler is responsible for processing API commands over HTTP.
