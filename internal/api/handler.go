@@ -59,7 +59,7 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleBatch(w http.ResponseWriter, r *http.Request) {
-	var req BatchRequest
+	req := new(BatchRequest)
 
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -72,56 +72,7 @@ func (s *Handler) handleBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	replies := make([]*Reply, len(req.Commands))
-
-	for i, cmd := range req.Commands {
-		replies[i] = new(Reply)
-
-		if cmd.Publish != nil {
-			res := s.api.Publish(r.Context(), cmd.Publish)
-			replies[i].Publish, replies[i].Error = res.Result, res.Error
-		} else if cmd.Broadcast != nil {
-			res := s.api.Broadcast(r.Context(), cmd.Broadcast)
-			replies[i].Broadcast, replies[i].Error = res.Result, res.Error
-		} else if cmd.Subscribe != nil {
-			res := s.api.Subscribe(r.Context(), cmd.Subscribe)
-			replies[i].Subscribe, replies[i].Error = res.Result, res.Error
-		} else if cmd.Unsubscribe != nil {
-			res := s.api.Unsubscribe(r.Context(), cmd.Unsubscribe)
-			replies[i].Unsubscribe, replies[i].Error = res.Result, res.Error
-		} else if cmd.Disconnect != nil {
-			res := s.api.Disconnect(r.Context(), cmd.Disconnect)
-			replies[i].Disconnect, replies[i].Error = res.Result, res.Error
-		} else if cmd.History != nil {
-			res := s.api.History(r.Context(), cmd.History)
-			replies[i].History, replies[i].Error = res.Result, res.Error
-		} else if cmd.HistoryRemove != nil {
-			res := s.api.HistoryRemove(r.Context(), cmd.HistoryRemove)
-			replies[i].HistoryRemove, replies[i].Error = res.Result, res.Error
-		} else if cmd.Presence != nil {
-			res := s.api.Presence(r.Context(), cmd.Presence)
-			replies[i].Presence, replies[i].Error = res.Result, res.Error
-		} else if cmd.PresenceStats != nil {
-			res := s.api.PresenceStats(r.Context(), cmd.PresenceStats)
-			replies[i].PresenceStats, replies[i].Error = res.Result, res.Error
-		} else if cmd.Info != nil {
-			res := s.api.Info(r.Context(), cmd.Info)
-			replies[i].Info, replies[i].Error = res.Result, res.Error
-		} else if cmd.Rpc != nil {
-			res := s.api.RPC(r.Context(), cmd.Rpc)
-			replies[i].Rpc, replies[i].Error = res.Result, res.Error
-		} else if cmd.Refresh != nil {
-			res := s.api.Refresh(r.Context(), cmd.Refresh)
-			replies[i].Refresh, replies[i].Error = res.Result, res.Error
-		} else if cmd.Channels != nil {
-			res := s.api.Channels(r.Context(), cmd.Channels)
-			replies[i].Channels, replies[i].Error = res.Result, res.Error
-		} else {
-			replies[i].Error = ErrorMethodNotFound
-		}
-	}
-
-	data, err = json.Marshal(replies)
+	data, err = json.Marshal(s.api.Batch(r.Context(), req))
 	if err != nil {
 		s.handleMarshalError(w, err)
 		return

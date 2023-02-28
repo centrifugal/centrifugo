@@ -126,56 +126,5 @@ func (s *grpcAPIService) Channels(ctx context.Context, req *ChannelsRequest) (*C
 }
 
 func (s *grpcAPIService) Batch(ctx context.Context, req *BatchRequest) (*BatchResponse, error) {
-	replies := make([]*Reply, len(req.Commands))
-
-	for i, cmd := range req.Commands {
-		replies[i] = new(Reply)
-
-		if cmd.Publish != nil {
-			res := s.api.Publish(ctx, cmd.Publish)
-			replies[i].Publish, replies[i].Error = res.Result, res.Error
-		} else if cmd.Broadcast != nil {
-			res := s.api.Broadcast(ctx, cmd.Broadcast)
-			replies[i].Broadcast, replies[i].Error = res.Result, res.Error
-		} else if cmd.Subscribe != nil {
-			res := s.api.Subscribe(ctx, cmd.Subscribe)
-			replies[i].Subscribe, replies[i].Error = res.Result, res.Error
-		} else if cmd.Unsubscribe != nil {
-			res := s.api.Unsubscribe(ctx, cmd.Unsubscribe)
-			replies[i].Unsubscribe, replies[i].Error = res.Result, res.Error
-		} else if cmd.Disconnect != nil {
-			res := s.api.Disconnect(ctx, cmd.Disconnect)
-			replies[i].Disconnect, replies[i].Error = res.Result, res.Error
-		} else if cmd.History != nil {
-			res := s.api.History(ctx, cmd.History)
-			replies[i].History, replies[i].Error = res.Result, res.Error
-		} else if cmd.HistoryRemove != nil {
-			res := s.api.HistoryRemove(ctx, cmd.HistoryRemove)
-			replies[i].HistoryRemove, replies[i].Error = res.Result, res.Error
-		} else if cmd.Presence != nil {
-			res := s.api.Presence(ctx, cmd.Presence)
-			replies[i].Presence, replies[i].Error = res.Result, res.Error
-		} else if cmd.PresenceStats != nil {
-			res := s.api.PresenceStats(ctx, cmd.PresenceStats)
-			replies[i].PresenceStats, replies[i].Error = res.Result, res.Error
-		} else if cmd.Info != nil {
-			res := s.api.Info(ctx, cmd.Info)
-			replies[i].Info, replies[i].Error = res.Result, res.Error
-		} else if cmd.Rpc != nil {
-			res := s.api.RPC(ctx, cmd.Rpc)
-			replies[i].Rpc, replies[i].Error = res.Result, res.Error
-		} else if cmd.Refresh != nil {
-			res := s.api.Refresh(ctx, cmd.Refresh)
-			replies[i].Refresh, replies[i].Error = res.Result, res.Error
-		} else if cmd.Channels != nil {
-			res := s.api.Channels(ctx, cmd.Channels)
-			replies[i].Channels, replies[i].Error = res.Result, res.Error
-		} else {
-			return nil, ErrorNotAvailable
-		}
-	}
-
-	return &BatchResponse{
-		Replies: replies,
-	}, nil
+	return s.api.Batch(ctx, req), nil
 }
