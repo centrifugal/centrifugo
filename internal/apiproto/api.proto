@@ -110,35 +110,35 @@ message Reply {
     uint32 id = 1;
     Error error = 2;
     bytes result = 3;
-    
-    SubscribeResult subscribe = 4;
-    UnsubscribeResult unsubscribe = 5;
-    DisconnectResult disconnect = 6;
-    PresenceResult presence = 7;
-    PresenceStatsResult presence_stats = 8;
-    HistoryResult history = 9;
-    HistoryRemoveResult history_remove = 10;
-    InfoResult info = 11;
-    RPCResult rpc = 12;
-    RefreshResult refresh = 13;
-    ChannelsResult channels = 14;
-    ConnectionsResult connections = 15;
-    UpdateUserStatusResult update_user_status = 16;
-    GetUserStatusResult get_user_status = 17;
-    DeleteUserStatusResult delete_user_status = 18;
-    BlockUserResult block_user = 19;
-    UnblockUserResult unblock_user = 20;
-    RevokeTokenResult revoke_token = 21;
-    InvalidateUserTokensResult invalidate_user_tokens = 22;
-    DeviceRegisterResult device_register = 23;
-    DeviceRemoveResult device_remove = 24;
-    DeviceListResult device_list = 25;
-    DeviceSubscriptionAddResult device_subscription_add = 26;
-    DeviceSubscriptionRemoveResult device_subscription_remove = 27;
-    DeviceSubscriptionListResult device_subscription_list = 28;
-    SendPushNotificationResult send_push_notification = 29;
-    PublishResult publish = 30;
-    BroadcastResult broadcast = 31;
+
+    PublishResult publish = 4;
+    BroadcastResult broadcast = 5;
+    SubscribeResult subscribe = 6;
+    UnsubscribeResult unsubscribe = 7;
+    DisconnectResult disconnect = 8;
+    PresenceResult presence = 9;
+    PresenceStatsResult presence_stats = 10;
+    HistoryResult history = 11;
+    HistoryRemoveResult history_remove = 12;
+    InfoResult info = 13;
+    RPCResult rpc = 14;
+    RefreshResult refresh = 15;
+    ChannelsResult channels = 16;
+    ConnectionsResult connections = 17;
+    UpdateUserStatusResult update_user_status = 18;
+    GetUserStatusResult get_user_status = 19;
+    DeleteUserStatusResult delete_user_status = 20;
+    BlockUserResult block_user = 21;
+    UnblockUserResult unblock_user = 22;
+    RevokeTokenResult revoke_token = 23;
+    InvalidateUserTokensResult invalidate_user_tokens = 24;
+    DeviceRegisterResult device_register = 25;
+    DeviceRemoveResult device_remove = 26;
+    DeviceListResult device_list = 27;
+    DeviceSubscriptionAddResult device_subscription_add = 28;
+    DeviceSubscriptionRemoveResult device_subscription_remove = 29;
+    DeviceSubscriptionListResult device_subscription_list = 30;
+    SendPushNotificationResult send_push_notification = 31;
 }
 
 message BoolValue {
