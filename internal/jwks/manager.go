@@ -142,6 +142,9 @@ func keycloakPublicKeyEndpoint(keycloakBaseURL string, iss string) (string, erro
 		return "", fmt.Errorf("invalid issuer: no keycloak path in iss %s", iss)
 	}
 	realm := strings.TrimPrefix(u.Path, "/auth/realms/")
+	if realm == "" {
+		return "", fmt.Errorf("invalid issuer: no realm in iss path %s", iss)
+	}
 	return keycloakBaseURL + "/" + realm + "/protocol/openid-connect/certs", nil
 }
 

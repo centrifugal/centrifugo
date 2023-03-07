@@ -217,6 +217,15 @@ func Test_keycloakPublicKeyEndpoint(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "invalid issuer no realm",
+			args: args{
+				keycloakBaseURL: "https://example.com",
+				iss:             "https://example.com/auth/realms/",
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
 			name: "valid issuer",
 			args: args{
 				keycloakBaseURL: "https://example.com",
