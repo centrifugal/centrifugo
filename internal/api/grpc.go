@@ -124,3 +124,7 @@ func (s *grpcAPIService) Refresh(ctx context.Context, req *RefreshRequest) (*Ref
 func (s *grpcAPIService) Channels(ctx context.Context, req *ChannelsRequest) (*ChannelsResponse, error) {
 	return s.api.Channels(ctx, req), nil
 }
+
+func (s *grpcAPIService) Batch(ctx context.Context, req *BatchRequest) (*BatchResponse, error) {
+	return s.api.Batch(ctx, req), nil
+}

@@ -33,6 +33,7 @@ service CentrifugoApi {
     rpc DeviceSubscriptionRemove (DeviceSubscriptionRemoveRequest) returns (DeviceSubscriptionRemoveResponse) {}
     rpc DeviceSubscriptionList (DeviceSubscriptionListRequest) returns (DeviceSubscriptionListResponse) {}
     rpc SendPushNotification (SendPushNotificationRequest) returns (SendPushNotificationResponse) {}
+    rpc Batch(BatchRequest) returns (BatchResponse) {}
 }
 
 message Command {
@@ -69,6 +70,35 @@ message Command {
     uint32 id = 1;
     MethodType method = 2;
     bytes params = 3;
+
+    PublishRequest publish = 4;
+    BroadcastRequest broadcast = 5;
+    SubscribeRequest subscribe = 6;
+    UnsubscribeRequest unsubscribe = 7;
+    DisconnectRequest disconnect = 8;
+    PresenceRequest presence = 9;
+    PresenceStatsRequest presence_stats = 10;
+    HistoryRequest history = 11;
+    HistoryRemoveRequest history_remove = 12;
+    InfoRequest info = 13;
+    RPCRequest rpc = 14;
+    RefreshRequest refresh = 15;
+    ChannelsRequest channels = 16;
+    ConnectionsRequest connections = 17;
+    UpdateUserStatusRequest update_user_status = 18;
+    GetUserStatusRequest get_user_status = 19;
+    DeleteUserStatusRequest delete_user_status = 20;
+    BlockUserRequest block_user = 21;
+    UnblockUserRequest unblock_user = 22;
+    RevokeTokenRequest revoke_token = 23;
+    InvalidateUserTokensRequest invalidate_user_tokens = 24;
+    DeviceRegisterRequest device_register = 25;
+    DeviceRemoveRequest device_remove = 26;
+    DeviceListRequest device_list = 27;
+    DeviceSubscriptionAddRequest device_subscription_add = 28;
+    DeviceSubscriptionRemoveRequest device_subscription_remove = 29;
+    DeviceSubscriptionListRequest device_subscription_list = 30;
+    SendPushNotificationRequest send_push_notification = 31;
 }
 
 message Error {
@@ -80,6 +110,35 @@ message Reply {
     uint32 id = 1;
     Error error = 2;
     bytes result = 3;
+
+    PublishResult publish = 4;
+    BroadcastResult broadcast = 5;
+    SubscribeResult subscribe = 6;
+    UnsubscribeResult unsubscribe = 7;
+    DisconnectResult disconnect = 8;
+    PresenceResult presence = 9;
+    PresenceStatsResult presence_stats = 10;
+    HistoryResult history = 11;
+    HistoryRemoveResult history_remove = 12;
+    InfoResult info = 13;
+    RPCResult rpc = 14;
+    RefreshResult refresh = 15;
+    ChannelsResult channels = 16;
+    ConnectionsResult connections = 17;
+    UpdateUserStatusResult update_user_status = 18;
+    GetUserStatusResult get_user_status = 19;
+    DeleteUserStatusResult delete_user_status = 20;
+    BlockUserResult block_user = 21;
+    UnblockUserResult unblock_user = 22;
+    RevokeTokenResult revoke_token = 23;
+    InvalidateUserTokensResult invalidate_user_tokens = 24;
+    DeviceRegisterResult device_register = 25;
+    DeviceRemoveResult device_remove = 26;
+    DeviceListResult device_list = 27;
+    DeviceSubscriptionAddResult device_subscription_add = 28;
+    DeviceSubscriptionRemoveResult device_subscription_remove = 29;
+    DeviceSubscriptionListResult device_subscription_list = 30;
+    SendPushNotificationResult send_push_notification = 31;
 }
 
 message BoolValue {
@@ -96,6 +155,14 @@ message SubscribeOptionOverride {
     BoolValue force_recovery = 3;
     BoolValue force_positioning = 4;
     BoolValue force_push_join_leave = 5;
+}
+
+message BatchRequest {
+    repeated Command commands = 1;
+}
+
+message BatchResponse {
+    repeated Reply replies = 1;
 }
 
 message PublishRequest {

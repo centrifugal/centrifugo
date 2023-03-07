@@ -60,6 +60,7 @@ func (d *JSONCommandDecoder) Decode() (*Command, error) {
 
 // ParamsDecoder ...
 type ParamsDecoder interface {
+	DecodeBatch([]byte) (*BatchRequest, error)
 	DecodePublish([]byte) (*PublishRequest, error)
 	DecodeBroadcast([]byte) (*BroadcastRequest, error)
 	DecodeSubscribe([]byte) (*SubscribeRequest, error)
@@ -83,6 +84,16 @@ type JSONParamsDecoder struct{}
 // NewJSONParamsDecoder ...
 func NewJSONParamsDecoder() *JSONParamsDecoder {
 	return &JSONParamsDecoder{}
+}
+
+// DecodeBatch ...
+func (d *JSONParamsDecoder) DecodeBatch(data []byte) (*BatchRequest, error) {
+	var p BatchRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
 }
 
 // DecodePublish ...

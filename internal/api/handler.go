@@ -15,21 +15,53 @@ type Config struct{}
 
 // Handler is responsible for processing API commands over HTTP.
 type Handler struct {
+	mux    *http.ServeMux
 	node   *centrifuge.Node
 	config Config
 	api    *Executor
 }
 
+var paramsDecoder = NewJSONParamsDecoder()
+var responseEncoder = NewJSONResponseEncoder()
+
 // NewHandler creates new APIHandler.
 func NewHandler(n *centrifuge.Node, apiExecutor *Executor, c Config) *Handler {
-	return &Handler{
+	m := new(http.ServeMux)
+	h := &Handler{
+		mux:    m,
 		node:   n,
 		config: c,
 		api:    apiExecutor,
 	}
+
+	m.HandleFunc("/batch", h.handleBatch)
+	m.HandleFunc("/publish", h.handlePublish)
+	m.HandleFunc("/broadcast", h.handleBroadcast)
+	m.HandleFunc("/subscribe", h.handleSubscribe)
+	m.HandleFunc("/unsubscribe", h.handleUnsubscribe)
+	m.HandleFunc("/disconnect", h.handleDisconnect)
+	m.HandleFunc("/presence", h.handlePresence)
+	m.HandleFunc("/presence_stats", h.handlePresenceStats)
+	m.HandleFunc("/history", h.handleHistory)
+	m.HandleFunc("/history_remove", h.handleHistoryRemove)
+	m.HandleFunc("/info", h.handleInfo)
+	m.HandleFunc("/rpc", h.handleRPC)
+	m.HandleFunc("/refresh", h.handleRefresh)
+	m.HandleFunc("/channels", h.handleChannels)
+	return h
+}
+
+// OldRoute handles all methods inside one /api handler.
+// The plan is to remove it in Centrifugo v6.
+func (s *Handler) OldRoute() http.HandlerFunc {
+	return s.handleAPI
 }
 
 func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.mux.ServeHTTP(w, r)
+}
+
+func (s *Handler) handleAPI(w http.ResponseWriter, r *http.Request) {
 	select {
 	case <-s.node.NotifyShutdown():
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -84,8 +116,7 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	w.Header().Set("Content-Type", "application/json")
-	_, _ = w.Write(encoder.Finish())
+	s.writeJson(w, encoder.Finish())
 }
 
 func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, error) {
@@ -344,4 +375,24 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 	}
 
 	return rep, nil
+}
+
+func (s *Handler) handleReadDataError(r *http.Request, w http.ResponseWriter, err error) {
+	s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error reading API request body", map[string]interface{}{"error": err.Error(), "path": r.URL.Path}))
+	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+}
+
+func (s *Handler) handleUnmarshalError(r *http.Request, w http.ResponseWriter, err error) {
+	s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding API request body", map[string]interface{}{"error": err.Error(), "path": r.URL.Path}))
+	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+}
+
+func (s *Handler) handleMarshalError(r *http.Request, w http.ResponseWriter, err error) {
+	s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error encoding API response", map[string]interface{}{"error": err.Error(), "path": r.URL.Path}))
+	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+}
+
+func (s *Handler) writeJson(w http.ResponseWriter, data []byte) {
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(data)
 }

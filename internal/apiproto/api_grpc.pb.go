@@ -46,6 +46,7 @@ type CentrifugoApiClient interface {
 	DeviceSubscriptionRemove(ctx context.Context, in *DeviceSubscriptionRemoveRequest, opts ...grpc.CallOption) (*DeviceSubscriptionRemoveResponse, error)
 	DeviceSubscriptionList(ctx context.Context, in *DeviceSubscriptionListRequest, opts ...grpc.CallOption) (*DeviceSubscriptionListResponse, error)
 	SendPushNotification(ctx context.Context, in *SendPushNotificationRequest, opts ...grpc.CallOption) (*SendPushNotificationResponse, error)
+	Batch(ctx context.Context, in *BatchRequest, opts ...grpc.CallOption) (*BatchResponse, error)
 }
 
 type centrifugoApiClient struct {
@@ -308,6 +309,15 @@ func (c *centrifugoApiClient) SendPushNotification(ctx context.Context, in *Send
 	return out, nil
 }
 
+func (c *centrifugoApiClient) Batch(ctx context.Context, in *BatchRequest, opts ...grpc.CallOption) (*BatchResponse, error) {
+	out := new(BatchResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/Batch", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CentrifugoApiServer is the server API for CentrifugoApi service.
 // All implementations must embed UnimplementedCentrifugoApiServer
 // for forward compatibility
@@ -340,6 +350,7 @@ type CentrifugoApiServer interface {
 	DeviceSubscriptionRemove(context.Context, *DeviceSubscriptionRemoveRequest) (*DeviceSubscriptionRemoveResponse, error)
 	DeviceSubscriptionList(context.Context, *DeviceSubscriptionListRequest) (*DeviceSubscriptionListResponse, error)
 	SendPushNotification(context.Context, *SendPushNotificationRequest) (*SendPushNotificationResponse, error)
+	Batch(context.Context, *BatchRequest) (*BatchResponse, error)
 	mustEmbedUnimplementedCentrifugoApiServer()
 }
 
@@ -430,6 +441,9 @@ func (UnimplementedCentrifugoApiServer) DeviceSubscriptionList(context.Context, 
 }
 func (UnimplementedCentrifugoApiServer) SendPushNotification(context.Context, *SendPushNotificationRequest) (*SendPushNotificationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendPushNotification not implemented")
+}
+func (UnimplementedCentrifugoApiServer) Batch(context.Context, *BatchRequest) (*BatchResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Batch not implemented")
 }
 func (UnimplementedCentrifugoApiServer) mustEmbedUnimplementedCentrifugoApiServer() {}
 
@@ -948,6 +962,24 @@ func _CentrifugoApi_SendPushNotification_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CentrifugoApi_Batch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).Batch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/Batch",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).Batch(ctx, req.(*BatchRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CentrifugoApi_ServiceDesc is the grpc.ServiceDesc for CentrifugoApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1066,6 +1098,10 @@ var CentrifugoApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendPushNotification",
 			Handler:    _CentrifugoApi_SendPushNotification_Handler,
+		},
+		{
+			MethodName: "Batch",
+			Handler:    _CentrifugoApi_Batch_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -80,6 +80,8 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
+//go:generate go run internal/gen/api_handlers/main.go
+
 func bindCentrifugoConfig() {
 	viper.SetEnvPrefix("centrifugo")
 
@@ -2543,10 +2545,24 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 		if apiPrefix == "" {
 			apiPrefix = "/"
 		}
+
+		oldRoute := apiHandler.OldRoute()
+		strippedHandler := http.StripPrefix(apiPrefix, apiHandler)
+		useV5API := viper.GetBool("v5_api")
 		if viper.GetBool("api_insecure") {
-			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(apiHandler)))
+			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(oldRoute)))
+			if useV5API {
+				if apiPrefix != "/" {
+					mux.Handle(apiPrefix+"/", middleware.LogRequest(middleware.Post(strippedHandler)))
+				}
+			}
 		} else {
-			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), apiHandler))))
+			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), oldRoute))))
+			if useV5API {
+				if apiPrefix != "/" {
+					mux.Handle(apiPrefix+"/", middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), strippedHandler))))
+				}
+			}
 		}
 	}
 
