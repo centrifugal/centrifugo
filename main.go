@@ -1442,6 +1442,7 @@ func jwtVerifierConfig() jwtverify.VerifierConfig {
 	}
 
 	cfg.JWKSPublicEndpoint = v.GetString("token_jwks_public_endpoint")
+	cfg.JWKSKeycloakBaseEndpoint = v.GetString("token_jwks_keycloak_base_endpoint")
 	cfg.Audience = v.GetString("token_audience")
 	cfg.Issuer = v.GetString("token_issuer")
 

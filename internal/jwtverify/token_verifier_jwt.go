@@ -39,6 +39,12 @@ type VerifierConfig struct {
 	// extension won't be used.
 	JWKSPublicEndpoint string
 
+	// JWKSKeycloakBaseEndpoint when set tells Centrifugo that JWKS is managed by Keycloak. In this
+	// case Centrifugo expects `iss` claim to be `http(s)://<hostname>/auth/realms/<realm>`.
+	// Then upon validating a token Centrifugo constructs JWKS public endpoint on the fly in
+	// this way: JWKSKeycloakBaseEndpoint + `/<realm>/protocol/openid-connect/certs.
+	JWKSKeycloakBaseEndpoint string
+
 	// Audience when set will enable audience token check. See
 	// https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3.
 	Audience string
@@ -61,8 +67,8 @@ func NewTokenVerifierJWT(config VerifierConfig, ruleContainer *rule.Container) *
 	}
 	verifier.algorithms = algorithms
 
-	if config.JWKSPublicEndpoint != "" {
-		mng, err := jwks.NewManager(config.JWKSPublicEndpoint)
+	if config.JWKSPublicEndpoint != "" || config.JWKSKeycloakBaseEndpoint != "" {
+		mng, err := jwks.NewManager(config.JWKSPublicEndpoint, config.JWKSKeycloakBaseEndpoint)
 		if err == nil {
 			verifier.jwksManager = &jwksManager{mng}
 		}
@@ -151,10 +157,10 @@ type SubscribeTokenClaims struct {
 
 type jwksManager struct{ *jwks.Manager }
 
-func (j *jwksManager) verify(token *jwt.Token) error {
+func (j *jwksManager) verify(token *jwt.Token, iss string) error {
 	kid := token.Header().KeyID
 
-	key, err := j.Manager.FetchKey(context.Background(), kid)
+	key, err := j.Manager.FetchKey(context.Background(), kid, iss)
 	if err != nil {
 		return err
 	}
@@ -318,11 +324,11 @@ func (verifier *VerifierJWT) verifySignature(token *jwt.Token) error {
 	return verifier.algorithms.verify(token)
 }
 
-func (verifier *VerifierJWT) verifySignatureByJWK(token *jwt.Token) error {
+func (verifier *VerifierJWT) verifySignatureByJWK(token *jwt.Token, iss string) error {
 	verifier.mu.RLock()
 	defer verifier.mu.RUnlock()
 
-	return verifier.jwksManager.verify(token)
+	return verifier.jwksManager.verify(token, iss)
 }
 
 func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) {
@@ -331,17 +337,16 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
-	if verifier.jwksManager != nil {
-		err = verifier.verifySignatureByJWK(token)
-	} else {
-		err = verifier.verifySignature(token)
-	}
-
+	claims, err := claimsDecoder.DecodeConnectClaims(token.Claims())
 	if err != nil {
 		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
-	claims, err := claimsDecoder.DecodeConnectClaims(token.Claims())
+	if verifier.jwksManager != nil {
+		err = verifier.verifySignatureByJWK(token, claims.Issuer)
+	} else {
+		err = verifier.verifySignature(token)
+	}
 	if err != nil {
 		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
@@ -484,16 +489,16 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
-	if verifier.jwksManager != nil {
-		err = verifier.verifySignatureByJWK(token)
-	} else {
-		err = verifier.verifySignature(token)
-	}
+	claims, err := claimsDecoder.DecodeSubscribeClaims(token.Claims())
 	if err != nil {
 		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
-	claims, err := claimsDecoder.DecodeSubscribeClaims(token.Claims())
+	if verifier.jwksManager != nil {
+		err = verifier.verifySignatureByJWK(token, claims.Issuer)
+	} else {
+		err = verifier.verifySignature(token)
+	}
 	if err != nil {
 		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}

@@ -58,10 +58,10 @@ func TestManagerFetchKey_UnmarshalError(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	manager, err := NewManager(server.URL + path)
+	manager, err := NewManager(server.URL+path, "")
 	require.NoError(t, err)
 
-	_, err = manager.FetchKey(context.Background(), "202101")
+	_, err = manager.FetchKey(context.Background(), "202101", "")
 	require.ErrorIs(t, err, errUnmarshal)
 }
 
@@ -75,10 +75,10 @@ func TestManagerFetchKey_KeyNotFound(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	manager, err := NewManager(server.URL + path)
+	manager, err := NewManager(server.URL+path, "")
 	require.NoError(t, err)
 
-	_, err = manager.FetchKey(context.Background(), "202101")
+	_, err = manager.FetchKey(context.Background(), "202101", "")
 	require.ErrorIs(t, err, ErrPublicKeyNotFound)
 }
 
@@ -91,10 +91,10 @@ func TestManagerFetchKey_WrongStatusCode(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	manager, err := NewManager(server.URL + path)
+	manager, err := NewManager(server.URL+path, "")
 	require.NoError(t, err)
 
-	_, err = manager.FetchKey(context.Background(), "202101")
+	_, err = manager.FetchKey(context.Background(), "202101", "")
 	require.ErrorIs(t, err, errUnexpectedStatusCode)
 }
 
@@ -128,10 +128,10 @@ func TestManagerInitialFetchKey(t *testing.T) {
 			ts := httptest.NewServer(tc.Handler)
 			defer ts.Close()
 
-			manager, err := NewManager(ts.URL)
+			manager, err := NewManager(ts.URL, "")
 			r.NoError(err)
 
-			key, err := manager.FetchKey(context.Background(), tc.Kid)
+			key, err := manager.FetchKey(context.Background(), tc.Kid, "")
 			if tc.Error != nil {
 				r.Error(err)
 				r.ErrorIs(err, tc.Error)
@@ -173,16 +173,69 @@ func TestManagerCachedFetchKey(t *testing.T) {
 			ts := httptest.NewServer(jwksHandler(testKey{kid, pubKey}))
 			defer ts.Close()
 
-			manager, err := NewManager(ts.URL, tc.Options...)
+			manager, err := NewManager(ts.URL, "", tc.Options...)
 			r.NoError(err)
 
-			key, err := manager.FetchKey(ctx, kid)
+			key, err := manager.FetchKey(ctx, kid, "")
 			r.NoError(err)
 			r.Equal(kid, key.Kid)
 
 			size, err := manager.cache.Len()
 			r.NoError(err)
 			r.Equal(tc.ExpectedSize, size)
+		})
+	}
+}
+
+func Test_keycloakPublicKeyEndpoint(t *testing.T) {
+	type args struct {
+		keycloakBaseURL string
+		iss             string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "invalid issuer",
+			args: args{
+				keycloakBaseURL: "https://example.com",
+				iss:             "wrong",
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "invalid issuer no path",
+			args: args{
+				keycloakBaseURL: "https://example.com",
+				iss:             "https://example.com",
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "valid issuer",
+			args: args{
+				keycloakBaseURL: "https://example.com",
+				iss:             "https://example.com/auth/realms/test",
+			},
+			want:    "https://example.com/test/protocol/openid-connect/certs",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := keycloakPublicKeyEndpoint(tt.args.keycloakBaseURL, tt.args.iss)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("keycloakPublicKeyEndpoint() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("keycloakPublicKeyEndpoint() got = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }

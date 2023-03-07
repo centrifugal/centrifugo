@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/rakutentech/jwk-go/jwk"
@@ -41,7 +42,9 @@ var (
 
 // Manager fetches and returns JWK from public source.
 type Manager struct {
-	url      string
+	url                  string
+	keycloakBaseEndpoint string
+
 	cache    Cache
 	client   *http.Client
 	useCache bool
@@ -59,18 +62,26 @@ func defaultHTTPClient() *http.Client {
 }
 
 // NewManager returns a new instance of Manager.
-func NewManager(rawURL string, opts ...Option) (*Manager, error) {
-	_, err := url.Parse(rawURL)
-	if err != nil {
-		return nil, ErrInvalidURL
+func NewManager(publicKeyURL string, keycloakBaseEndpoint string, opts ...Option) (*Manager, error) {
+	if keycloakBaseEndpoint != "" {
+		_, err := url.Parse(keycloakBaseEndpoint)
+		if err != nil {
+			return nil, ErrInvalidURL
+		}
+		keycloakBaseEndpoint = strings.TrimSuffix(keycloakBaseEndpoint, "/")
+	} else if publicKeyURL != "" {
+		_, err := url.Parse(publicKeyURL)
+		if err != nil {
+			return nil, ErrInvalidURL
+		}
 	}
-
 	mng := &Manager{
-		url:      rawURL,
-		cache:    NewTTLCache(_defaultTTL),
-		client:   defaultHTTPClient(),
-		useCache: true,
-		retries:  _defaultRetries,
+		url:                  publicKeyURL,
+		keycloakBaseEndpoint: keycloakBaseEndpoint,
+		cache:                NewTTLCache(_defaultTTL),
+		client:               defaultHTTPClient(),
+		useCache:             true,
+		retries:              _defaultRetries,
 	}
 
 	for _, opt := range opts {
@@ -85,7 +96,7 @@ func NewManager(rawURL string, opts ...Option) (*Manager, error) {
 }
 
 // FetchKey fetches JWKS from public source or cache.
-func (m *Manager) FetchKey(ctx context.Context, kid string) (*JWK, error) {
+func (m *Manager) FetchKey(ctx context.Context, kid string, iss string) (*JWK, error) {
 	if kid == "" {
 		return nil, ErrKeyIDNotProvided
 	}
@@ -100,7 +111,7 @@ func (m *Manager) FetchKey(ctx context.Context, kid string) (*JWK, error) {
 
 	// Otherwise fetch from public JWKS.
 	v, err, _ := m.group.Do(kid, func() (interface{}, error) {
-		return m.fetchKey(ctx, kid)
+		return m.fetchKey(ctx, kid, iss)
 	})
 	if err != nil {
 		return nil, err
@@ -122,8 +133,28 @@ func (m *Manager) loadData(req *http.Request) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
-func (m *Manager) fetchKey(ctx context.Context, kid string) (*JWK, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, m.url, nil)
+func keycloakPublicKeyEndpoint(keycloakBaseURL string, iss string) (string, error) {
+	u, err := url.Parse(iss)
+	if err != nil {
+		return "", fmt.Errorf("invalid issuer: url expected, got %s", iss)
+	}
+	if !strings.HasPrefix(u.Path, "/auth/realms/") {
+		return "", fmt.Errorf("invalid issuer: no keycloak path in iss %s", iss)
+	}
+	realm := strings.TrimPrefix(u.Path, "/auth/realms/")
+	return keycloakBaseURL + "/" + realm + "/protocol/openid-connect/certs", nil
+}
+
+func (m *Manager) fetchKey(ctx context.Context, kid string, iss string) (*JWK, error) {
+	keyURL := m.url
+	if m.keycloakBaseEndpoint != "" {
+		var err error
+		keyURL, err = keycloakPublicKeyEndpoint(m.keycloakBaseEndpoint, iss)
+		if err != nil {
+			return nil, err
+		}
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, keyURL, nil)
 	if err != nil {
 		return nil, err
 	}
