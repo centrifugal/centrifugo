@@ -50,7 +50,7 @@ func PutParamsDecoder(_ ParamsDecoder) {}
 
 // GetResultEncoder ...
 func GetResultEncoder() ResultEncoder {
-	return NewJSONEncoder()
+	return NewJSONResultEncoder()
 }
 
 // PutResultEncoder ...
