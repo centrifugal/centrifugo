@@ -4,18 +4,18 @@ package apiproto
 
 import "encoding/json"
 
-var _ ParamsDecoder = (*JSONParamsDecoder)(nil)
+var _ RequestDecoder = (*JSONRequestDecoder)(nil)
 
-// JSONParamsDecoder ...
-type JSONParamsDecoder struct{}
+// JSONRequestDecoder ...
+type JSONRequestDecoder struct{}
 
-// NewJSONParamsDecoder ...
-func NewJSONParamsDecoder() *JSONParamsDecoder {
-	return &JSONParamsDecoder{}
+// NewJSONRequestDecoder ...
+func NewJSONRequestDecoder() *JSONRequestDecoder {
+	return &JSONRequestDecoder{}
 }
 
 // DecodeBatch ...
-func (d *JSONParamsDecoder) DecodeBatch(data []byte) (*BatchRequest, error) {
+func (d *JSONRequestDecoder) DecodeBatch(data []byte) (*BatchRequest, error) {
 	var p BatchRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
@@ -25,7 +25,7 @@ func (d *JSONParamsDecoder) DecodeBatch(data []byte) (*BatchRequest, error) {
 }
 
 // DecodePublish ...
-func (d *JSONParamsDecoder) DecodePublish(data []byte) (*PublishRequest, error) {
+func (d *JSONRequestDecoder) DecodePublish(data []byte) (*PublishRequest, error) {
 	var p PublishRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
@@ -35,7 +35,7 @@ func (d *JSONParamsDecoder) DecodePublish(data []byte) (*PublishRequest, error) 
 }
 
 // DecodeBroadcast ...
-func (d *JSONParamsDecoder) DecodeBroadcast(data []byte) (*BroadcastRequest, error) {
+func (d *JSONRequestDecoder) DecodeBroadcast(data []byte) (*BroadcastRequest, error) {
 	var p BroadcastRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
@@ -45,7 +45,7 @@ func (d *JSONParamsDecoder) DecodeBroadcast(data []byte) (*BroadcastRequest, err
 }
 
 // DecodeSubscribe ...
-func (d *JSONParamsDecoder) DecodeSubscribe(data []byte) (*SubscribeRequest, error) {
+func (d *JSONRequestDecoder) DecodeSubscribe(data []byte) (*SubscribeRequest, error) {
 	var p SubscribeRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
@@ -55,7 +55,7 @@ func (d *JSONParamsDecoder) DecodeSubscribe(data []byte) (*SubscribeRequest, err
 }
 
 // DecodeUnsubscribe ...
-func (d *JSONParamsDecoder) DecodeUnsubscribe(data []byte) (*UnsubscribeRequest, error) {
+func (d *JSONRequestDecoder) DecodeUnsubscribe(data []byte) (*UnsubscribeRequest, error) {
 	var p UnsubscribeRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
@@ -65,7 +65,7 @@ func (d *JSONParamsDecoder) DecodeUnsubscribe(data []byte) (*UnsubscribeRequest,
 }
 
 // DecodeDisconnect ...
-func (d *JSONParamsDecoder) DecodeDisconnect(data []byte) (*DisconnectRequest, error) {
+func (d *JSONRequestDecoder) DecodeDisconnect(data []byte) (*DisconnectRequest, error) {
 	var p DisconnectRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
@@ -75,7 +75,7 @@ func (d *JSONParamsDecoder) DecodeDisconnect(data []byte) (*DisconnectRequest, e
 }
 
 // DecodePresence ...
-func (d *JSONParamsDecoder) DecodePresence(data []byte) (*PresenceRequest, error) {
+func (d *JSONRequestDecoder) DecodePresence(data []byte) (*PresenceRequest, error) {
 	var p PresenceRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
@@ -85,7 +85,7 @@ func (d *JSONParamsDecoder) DecodePresence(data []byte) (*PresenceRequest, error
 }
 
 // DecodePresenceStats ...
-func (d *JSONParamsDecoder) DecodePresenceStats(data []byte) (*PresenceStatsRequest, error) {
+func (d *JSONRequestDecoder) DecodePresenceStats(data []byte) (*PresenceStatsRequest, error) {
 	var p PresenceStatsRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
@@ -95,7 +95,7 @@ func (d *JSONParamsDecoder) DecodePresenceStats(data []byte) (*PresenceStatsRequ
 }
 
 // DecodeHistory ...
-func (d *JSONParamsDecoder) DecodeHistory(data []byte) (*HistoryRequest, error) {
+func (d *JSONRequestDecoder) DecodeHistory(data []byte) (*HistoryRequest, error) {
 	var p HistoryRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
@@ -105,7 +105,7 @@ func (d *JSONParamsDecoder) DecodeHistory(data []byte) (*HistoryRequest, error) 
 }
 
 // DecodeHistoryRemove ...
-func (d *JSONParamsDecoder) DecodeHistoryRemove(data []byte) (*HistoryRemoveRequest, error) {
+func (d *JSONRequestDecoder) DecodeHistoryRemove(data []byte) (*HistoryRemoveRequest, error) {
 	var p HistoryRemoveRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
@@ -115,7 +115,7 @@ func (d *JSONParamsDecoder) DecodeHistoryRemove(data []byte) (*HistoryRemoveRequ
 }
 
 // DecodeInfo ...
-func (d *JSONParamsDecoder) DecodeInfo(data []byte) (*InfoRequest, error) {
+func (d *JSONRequestDecoder) DecodeInfo(data []byte) (*InfoRequest, error) {
 	var p InfoRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
@@ -125,7 +125,7 @@ func (d *JSONParamsDecoder) DecodeInfo(data []byte) (*InfoRequest, error) {
 }
 
 // DecodeRPC ...
-func (d *JSONParamsDecoder) DecodeRPC(data []byte) (*RPCRequest, error) {
+func (d *JSONRequestDecoder) DecodeRPC(data []byte) (*RPCRequest, error) {
 	var p RPCRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
@@ -135,7 +135,7 @@ func (d *JSONParamsDecoder) DecodeRPC(data []byte) (*RPCRequest, error) {
 }
 
 // DecodeRefresh ...
-func (d *JSONParamsDecoder) DecodeRefresh(data []byte) (*RefreshRequest, error) {
+func (d *JSONRequestDecoder) DecodeRefresh(data []byte) (*RefreshRequest, error) {
 	var p RefreshRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
@@ -145,7 +145,7 @@ func (d *JSONParamsDecoder) DecodeRefresh(data []byte) (*RefreshRequest, error) 
 }
 
 // DecodeChannels ...
-func (d *JSONParamsDecoder) DecodeChannels(data []byte) (*ChannelsRequest, error) {
+func (d *JSONRequestDecoder) DecodeChannels(data []byte) (*ChannelsRequest, error) {
 	var p ChannelsRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {

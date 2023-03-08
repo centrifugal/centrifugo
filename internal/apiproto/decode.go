@@ -58,8 +58,8 @@ func (d *JSONCommandDecoder) Decode() (*Command, error) {
 	return &c, nil
 }
 
-// ParamsDecoder ...
-type ParamsDecoder interface {
+// RequestDecoder ...
+type RequestDecoder interface {
 	DecodeBatch([]byte) (*BatchRequest, error)
 	DecodePublish([]byte) (*PublishRequest, error)
 	DecodeBroadcast([]byte) (*BroadcastRequest, error)

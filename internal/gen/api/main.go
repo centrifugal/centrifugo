@@ -126,20 +126,20 @@ package apiproto
 
 import "encoding/json"
 
-var _ ParamsDecoder = (*JSONParamsDecoder)(nil)
+var _ RequestDecoder = (*JSONRequestDecoder)(nil)
 
-// JSONParamsDecoder ...
-type JSONParamsDecoder struct{}
+// JSONRequestDecoder ...
+type JSONRequestDecoder struct{}
 
-// NewJSONParamsDecoder ...
-func NewJSONParamsDecoder() *JSONParamsDecoder {
-	return &JSONParamsDecoder{}
+// NewJSONRequestDecoder ...
+func NewJSONRequestDecoder() *JSONRequestDecoder {
+	return &JSONRequestDecoder{}
 }
 `
 
 var templateFuncParamsDecoder = `
 // Decode{{ .RequestCapitalized }} ...
-func (d *JSONParamsDecoder) Decode{{ .RequestCapitalized }}(data []byte) (*{{ .RequestCapitalized }}Request, error) {
+func (d *JSONRequestDecoder) Decode{{ .RequestCapitalized }}(data []byte) (*{{ .RequestCapitalized }}Request, error) {
 	var p {{ .RequestCapitalized }}Request
 	err := json.Unmarshal(data, &p)
 	if err != nil {

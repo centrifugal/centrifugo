@@ -41,12 +41,12 @@ func PutCommandDecoder(d CommandDecoder) {
 }
 
 // GetParamsDecoder ...
-func GetParamsDecoder() ParamsDecoder {
-	return NewJSONParamsDecoder()
+func GetParamsDecoder() RequestDecoder {
+	return NewJSONRequestDecoder()
 }
 
 // PutParamsDecoder ...
-func PutParamsDecoder(_ ParamsDecoder) {}
+func PutParamsDecoder(_ RequestDecoder) {}
 
 // GetResultEncoder ...
 func GetResultEncoder() ResultEncoder {
