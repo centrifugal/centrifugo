@@ -80,7 +80,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
-//go:generate go run internal/gen/api_handlers/main.go
+//go:generate go run internal/gen/api/main.go
 
 func bindCentrifugoConfig() {
 	viper.SetEnvPrefix("centrifugo")
