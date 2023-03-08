@@ -18,6 +18,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CentrifugoApiClient interface {
+	Batch(ctx context.Context, in *BatchRequest, opts ...grpc.CallOption) (*BatchResponse, error)
 	Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error)
 	Broadcast(ctx context.Context, in *BroadcastRequest, opts ...grpc.CallOption) (*BroadcastResponse, error)
 	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (*SubscribeResponse, error)
@@ -40,13 +41,12 @@ type CentrifugoApiClient interface {
 	RevokeToken(ctx context.Context, in *RevokeTokenRequest, opts ...grpc.CallOption) (*RevokeTokenResponse, error)
 	InvalidateUserTokens(ctx context.Context, in *InvalidateUserTokensRequest, opts ...grpc.CallOption) (*InvalidateUserTokensResponse, error)
 	DeviceRegister(ctx context.Context, in *DeviceRegisterRequest, opts ...grpc.CallOption) (*DeviceRegisterResponse, error)
+	DeviceUpdate(ctx context.Context, in *DeviceUpdateRequest, opts ...grpc.CallOption) (*DeviceUpdateResponse, error)
 	DeviceRemove(ctx context.Context, in *DeviceRemoveRequest, opts ...grpc.CallOption) (*DeviceRemoveResponse, error)
 	DeviceList(ctx context.Context, in *DeviceListRequest, opts ...grpc.CallOption) (*DeviceListResponse, error)
-	DeviceSubscriptionAdd(ctx context.Context, in *DeviceSubscriptionAddRequest, opts ...grpc.CallOption) (*DeviceSubscriptionAddResponse, error)
-	DeviceSubscriptionRemove(ctx context.Context, in *DeviceSubscriptionRemoveRequest, opts ...grpc.CallOption) (*DeviceSubscriptionRemoveResponse, error)
-	DeviceSubscriptionList(ctx context.Context, in *DeviceSubscriptionListRequest, opts ...grpc.CallOption) (*DeviceSubscriptionListResponse, error)
+	PushUserChannelList(ctx context.Context, in *PushUserChannelListRequest, opts ...grpc.CallOption) (*PushUserChannelListResponse, error)
+	PushUserChannelUpdate(ctx context.Context, in *PushUserChannelUpdateRequest, opts ...grpc.CallOption) (*PushUserChannelUpdateResponse, error)
 	SendPushNotification(ctx context.Context, in *SendPushNotificationRequest, opts ...grpc.CallOption) (*SendPushNotificationResponse, error)
-	Batch(ctx context.Context, in *BatchRequest, opts ...grpc.CallOption) (*BatchResponse, error)
 }
 
 type centrifugoApiClient struct {
@@ -55,6 +55,15 @@ type centrifugoApiClient struct {
 
 func NewCentrifugoApiClient(cc grpc.ClientConnInterface) CentrifugoApiClient {
 	return &centrifugoApiClient{cc}
+}
+
+func (c *centrifugoApiClient) Batch(ctx context.Context, in *BatchRequest, opts ...grpc.CallOption) (*BatchResponse, error) {
+	out := new(BatchResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/Batch", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *centrifugoApiClient) Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error) {
@@ -255,6 +264,15 @@ func (c *centrifugoApiClient) DeviceRegister(ctx context.Context, in *DeviceRegi
 	return out, nil
 }
 
+func (c *centrifugoApiClient) DeviceUpdate(ctx context.Context, in *DeviceUpdateRequest, opts ...grpc.CallOption) (*DeviceUpdateResponse, error) {
+	out := new(DeviceUpdateResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/DeviceUpdate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *centrifugoApiClient) DeviceRemove(ctx context.Context, in *DeviceRemoveRequest, opts ...grpc.CallOption) (*DeviceRemoveResponse, error) {
 	out := new(DeviceRemoveResponse)
 	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/DeviceRemove", in, out, opts...)
@@ -273,27 +291,18 @@ func (c *centrifugoApiClient) DeviceList(ctx context.Context, in *DeviceListRequ
 	return out, nil
 }
 
-func (c *centrifugoApiClient) DeviceSubscriptionAdd(ctx context.Context, in *DeviceSubscriptionAddRequest, opts ...grpc.CallOption) (*DeviceSubscriptionAddResponse, error) {
-	out := new(DeviceSubscriptionAddResponse)
-	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/DeviceSubscriptionAdd", in, out, opts...)
+func (c *centrifugoApiClient) PushUserChannelList(ctx context.Context, in *PushUserChannelListRequest, opts ...grpc.CallOption) (*PushUserChannelListResponse, error) {
+	out := new(PushUserChannelListResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/PushUserChannelList", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *centrifugoApiClient) DeviceSubscriptionRemove(ctx context.Context, in *DeviceSubscriptionRemoveRequest, opts ...grpc.CallOption) (*DeviceSubscriptionRemoveResponse, error) {
-	out := new(DeviceSubscriptionRemoveResponse)
-	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/DeviceSubscriptionRemove", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *centrifugoApiClient) DeviceSubscriptionList(ctx context.Context, in *DeviceSubscriptionListRequest, opts ...grpc.CallOption) (*DeviceSubscriptionListResponse, error) {
-	out := new(DeviceSubscriptionListResponse)
-	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/DeviceSubscriptionList", in, out, opts...)
+func (c *centrifugoApiClient) PushUserChannelUpdate(ctx context.Context, in *PushUserChannelUpdateRequest, opts ...grpc.CallOption) (*PushUserChannelUpdateResponse, error) {
+	out := new(PushUserChannelUpdateResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/PushUserChannelUpdate", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -309,19 +318,11 @@ func (c *centrifugoApiClient) SendPushNotification(ctx context.Context, in *Send
 	return out, nil
 }
 
-func (c *centrifugoApiClient) Batch(ctx context.Context, in *BatchRequest, opts ...grpc.CallOption) (*BatchResponse, error) {
-	out := new(BatchResponse)
-	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/Batch", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // CentrifugoApiServer is the server API for CentrifugoApi service.
 // All implementations must embed UnimplementedCentrifugoApiServer
 // for forward compatibility
 type CentrifugoApiServer interface {
+	Batch(context.Context, *BatchRequest) (*BatchResponse, error)
 	Publish(context.Context, *PublishRequest) (*PublishResponse, error)
 	Broadcast(context.Context, *BroadcastRequest) (*BroadcastResponse, error)
 	Subscribe(context.Context, *SubscribeRequest) (*SubscribeResponse, error)
@@ -344,13 +345,12 @@ type CentrifugoApiServer interface {
 	RevokeToken(context.Context, *RevokeTokenRequest) (*RevokeTokenResponse, error)
 	InvalidateUserTokens(context.Context, *InvalidateUserTokensRequest) (*InvalidateUserTokensResponse, error)
 	DeviceRegister(context.Context, *DeviceRegisterRequest) (*DeviceRegisterResponse, error)
+	DeviceUpdate(context.Context, *DeviceUpdateRequest) (*DeviceUpdateResponse, error)
 	DeviceRemove(context.Context, *DeviceRemoveRequest) (*DeviceRemoveResponse, error)
 	DeviceList(context.Context, *DeviceListRequest) (*DeviceListResponse, error)
-	DeviceSubscriptionAdd(context.Context, *DeviceSubscriptionAddRequest) (*DeviceSubscriptionAddResponse, error)
-	DeviceSubscriptionRemove(context.Context, *DeviceSubscriptionRemoveRequest) (*DeviceSubscriptionRemoveResponse, error)
-	DeviceSubscriptionList(context.Context, *DeviceSubscriptionListRequest) (*DeviceSubscriptionListResponse, error)
+	PushUserChannelList(context.Context, *PushUserChannelListRequest) (*PushUserChannelListResponse, error)
+	PushUserChannelUpdate(context.Context, *PushUserChannelUpdateRequest) (*PushUserChannelUpdateResponse, error)
 	SendPushNotification(context.Context, *SendPushNotificationRequest) (*SendPushNotificationResponse, error)
-	Batch(context.Context, *BatchRequest) (*BatchResponse, error)
 	mustEmbedUnimplementedCentrifugoApiServer()
 }
 
@@ -358,6 +358,9 @@ type CentrifugoApiServer interface {
 type UnimplementedCentrifugoApiServer struct {
 }
 
+func (UnimplementedCentrifugoApiServer) Batch(context.Context, *BatchRequest) (*BatchResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Batch not implemented")
+}
 func (UnimplementedCentrifugoApiServer) Publish(context.Context, *PublishRequest) (*PublishResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Publish not implemented")
 }
@@ -424,26 +427,23 @@ func (UnimplementedCentrifugoApiServer) InvalidateUserTokens(context.Context, *I
 func (UnimplementedCentrifugoApiServer) DeviceRegister(context.Context, *DeviceRegisterRequest) (*DeviceRegisterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeviceRegister not implemented")
 }
+func (UnimplementedCentrifugoApiServer) DeviceUpdate(context.Context, *DeviceUpdateRequest) (*DeviceUpdateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeviceUpdate not implemented")
+}
 func (UnimplementedCentrifugoApiServer) DeviceRemove(context.Context, *DeviceRemoveRequest) (*DeviceRemoveResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeviceRemove not implemented")
 }
 func (UnimplementedCentrifugoApiServer) DeviceList(context.Context, *DeviceListRequest) (*DeviceListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeviceList not implemented")
 }
-func (UnimplementedCentrifugoApiServer) DeviceSubscriptionAdd(context.Context, *DeviceSubscriptionAddRequest) (*DeviceSubscriptionAddResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeviceSubscriptionAdd not implemented")
+func (UnimplementedCentrifugoApiServer) PushUserChannelList(context.Context, *PushUserChannelListRequest) (*PushUserChannelListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PushUserChannelList not implemented")
 }
-func (UnimplementedCentrifugoApiServer) DeviceSubscriptionRemove(context.Context, *DeviceSubscriptionRemoveRequest) (*DeviceSubscriptionRemoveResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeviceSubscriptionRemove not implemented")
-}
-func (UnimplementedCentrifugoApiServer) DeviceSubscriptionList(context.Context, *DeviceSubscriptionListRequest) (*DeviceSubscriptionListResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeviceSubscriptionList not implemented")
+func (UnimplementedCentrifugoApiServer) PushUserChannelUpdate(context.Context, *PushUserChannelUpdateRequest) (*PushUserChannelUpdateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PushUserChannelUpdate not implemented")
 }
 func (UnimplementedCentrifugoApiServer) SendPushNotification(context.Context, *SendPushNotificationRequest) (*SendPushNotificationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendPushNotification not implemented")
-}
-func (UnimplementedCentrifugoApiServer) Batch(context.Context, *BatchRequest) (*BatchResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Batch not implemented")
 }
 func (UnimplementedCentrifugoApiServer) mustEmbedUnimplementedCentrifugoApiServer() {}
 
@@ -456,6 +456,24 @@ type UnsafeCentrifugoApiServer interface {
 
 func RegisterCentrifugoApiServer(s grpc.ServiceRegistrar, srv CentrifugoApiServer) {
 	s.RegisterService(&CentrifugoApi_ServiceDesc, srv)
+}
+
+func _CentrifugoApi_Batch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).Batch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/Batch",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).Batch(ctx, req.(*BatchRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _CentrifugoApi_Publish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -854,6 +872,24 @@ func _CentrifugoApi_DeviceRegister_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CentrifugoApi_DeviceUpdate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeviceUpdateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).DeviceUpdate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/DeviceUpdate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).DeviceUpdate(ctx, req.(*DeviceUpdateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CentrifugoApi_DeviceRemove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeviceRemoveRequest)
 	if err := dec(in); err != nil {
@@ -890,56 +926,38 @@ func _CentrifugoApi_DeviceList_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CentrifugoApi_DeviceSubscriptionAdd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeviceSubscriptionAddRequest)
+func _CentrifugoApi_PushUserChannelList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PushUserChannelListRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CentrifugoApiServer).DeviceSubscriptionAdd(ctx, in)
+		return srv.(CentrifugoApiServer).PushUserChannelList(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/DeviceSubscriptionAdd",
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/PushUserChannelList",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugoApiServer).DeviceSubscriptionAdd(ctx, req.(*DeviceSubscriptionAddRequest))
+		return srv.(CentrifugoApiServer).PushUserChannelList(ctx, req.(*PushUserChannelListRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CentrifugoApi_DeviceSubscriptionRemove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeviceSubscriptionRemoveRequest)
+func _CentrifugoApi_PushUserChannelUpdate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PushUserChannelUpdateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CentrifugoApiServer).DeviceSubscriptionRemove(ctx, in)
+		return srv.(CentrifugoApiServer).PushUserChannelUpdate(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/DeviceSubscriptionRemove",
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/PushUserChannelUpdate",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugoApiServer).DeviceSubscriptionRemove(ctx, req.(*DeviceSubscriptionRemoveRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _CentrifugoApi_DeviceSubscriptionList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeviceSubscriptionListRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CentrifugoApiServer).DeviceSubscriptionList(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/DeviceSubscriptionList",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugoApiServer).DeviceSubscriptionList(ctx, req.(*DeviceSubscriptionListRequest))
+		return srv.(CentrifugoApiServer).PushUserChannelUpdate(ctx, req.(*PushUserChannelUpdateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -962,24 +980,6 @@ func _CentrifugoApi_SendPushNotification_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CentrifugoApi_Batch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BatchRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CentrifugoApiServer).Batch(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/Batch",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugoApiServer).Batch(ctx, req.(*BatchRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // CentrifugoApi_ServiceDesc is the grpc.ServiceDesc for CentrifugoApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -987,6 +987,10 @@ var CentrifugoApi_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "centrifugal.centrifugo.api.CentrifugoApi",
 	HandlerType: (*CentrifugoApiServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Batch",
+			Handler:    _CentrifugoApi_Batch_Handler,
+		},
 		{
 			MethodName: "Publish",
 			Handler:    _CentrifugoApi_Publish_Handler,
@@ -1076,6 +1080,10 @@ var CentrifugoApi_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CentrifugoApi_DeviceRegister_Handler,
 		},
 		{
+			MethodName: "DeviceUpdate",
+			Handler:    _CentrifugoApi_DeviceUpdate_Handler,
+		},
+		{
 			MethodName: "DeviceRemove",
 			Handler:    _CentrifugoApi_DeviceRemove_Handler,
 		},
@@ -1084,24 +1092,16 @@ var CentrifugoApi_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CentrifugoApi_DeviceList_Handler,
 		},
 		{
-			MethodName: "DeviceSubscriptionAdd",
-			Handler:    _CentrifugoApi_DeviceSubscriptionAdd_Handler,
+			MethodName: "PushUserChannelList",
+			Handler:    _CentrifugoApi_PushUserChannelList_Handler,
 		},
 		{
-			MethodName: "DeviceSubscriptionRemove",
-			Handler:    _CentrifugoApi_DeviceSubscriptionRemove_Handler,
-		},
-		{
-			MethodName: "DeviceSubscriptionList",
-			Handler:    _CentrifugoApi_DeviceSubscriptionList_Handler,
+			MethodName: "PushUserChannelUpdate",
+			Handler:    _CentrifugoApi_PushUserChannelUpdate_Handler,
 		},
 		{
 			MethodName: "SendPushNotification",
 			Handler:    _CentrifugoApi_SendPushNotification_Handler,
-		},
-		{
-			MethodName: "Batch",
-			Handler:    _CentrifugoApi_Batch_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
