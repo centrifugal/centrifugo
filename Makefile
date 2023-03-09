@@ -22,6 +22,7 @@ test-integration:
 
 generate:
 	go generate ./...
+	bash misc/scripts/generate.sh
 
 web:
 	./misc/scripts/update_web.sh
