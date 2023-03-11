@@ -105,7 +105,8 @@ func TestClientHandlerSetup(t *testing.T) {
 	defer func() { _ = closeFn() }()
 
 	connectCommand := &protocol.Command{
-		Id: 1,
+		Id:      1,
+		Connect: &protocol.ConnectRequest{},
 	}
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
@@ -413,7 +414,8 @@ func TestClientSubscribeChannel(t *testing.T) {
 	})
 
 	connectCommand := &protocol.Command{
-		Id: 1,
+		Id:      1,
+		Connect: &protocol.ConnectRequest{},
 	}
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
@@ -452,7 +454,8 @@ func TestClientSubscribeChannelNoPermission(t *testing.T) {
 	})
 
 	connectCommand := &protocol.Command{
-		Id: 1,
+		Id:      1,
+		Connect: &protocol.ConnectRequest{},
 	}
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
@@ -492,7 +495,8 @@ func TestClientSubscribeChannelUserLimitedError(t *testing.T) {
 	})
 
 	connectCommand := &protocol.Command{
-		Id: 1,
+		Id:      1,
+		Connect: &protocol.ConnectRequest{},
 	}
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
@@ -532,7 +536,8 @@ func TestClientSubscribeChannelUserLimitedOK(t *testing.T) {
 	})
 
 	connectCommand := &protocol.Command{
-		Id: 1,
+		Id:      1,
+		Connect: &protocol.ConnectRequest{},
 	}
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
@@ -571,7 +576,8 @@ func TestClientSubscribeWithToken(t *testing.T) {
 	})
 
 	connectCommand := &protocol.Command{
-		Id: 1,
+		Id:      1,
+		Connect: &protocol.ConnectRequest{},
 	}
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
@@ -630,7 +636,8 @@ func TestClientSubscribeWithTokenAnonymous(t *testing.T) {
 	})
 
 	connectCommand := &protocol.Command{
-		Id: 1,
+		Id:      1,
+		Connect: &protocol.ConnectRequest{},
 	}
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
@@ -671,7 +678,8 @@ func TestClientSideSubRefresh(t *testing.T) {
 	})
 
 	connectCommand := &protocol.Command{
-		Id: 1,
+		Id:      1,
+		Connect: &protocol.ConnectRequest{},
 	}
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
