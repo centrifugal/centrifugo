@@ -324,15 +324,17 @@ func BenchmarkTarantoolRecover_1Ch(b *testing.B) {
 		_, err := broker.Publish("channel", rawData, centrifuge.PublishOptions{HistorySize: numMessages, HistoryTTL: 300 * time.Second})
 		require.NoError(b, err)
 	}
-	_, sp, err := broker.History("channel", centrifuge.HistoryFilter{})
+	_, sp, err := broker.History("channel", centrifuge.HistoryOptions{})
 	require.NoError(b, err)
 	b.ResetTimer()
 	b.SetParallelism(128)
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			pubs, _, err := broker.History("channel", centrifuge.HistoryFilter{
-				Limit: -1,
-				Since: &centrifuge.StreamPosition{Offset: sp.Offset - uint64(numMissing), Epoch: ""},
+			pubs, _, err := broker.History("channel", centrifuge.HistoryOptions{
+				Filter: centrifuge.HistoryFilter{
+					Limit: -1,
+					Since: &centrifuge.StreamPosition{Offset: sp.Offset - uint64(numMissing), Epoch: ""},
+				},
 			})
 			if err != nil {
 				b.Fatal(err)
