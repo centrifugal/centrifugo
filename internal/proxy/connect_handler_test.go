@@ -239,9 +239,8 @@ func TestHandleConnectWithProxyServerCustomDisconnect(t *testing.T) {
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
 		expectedErr := centrifuge.Disconnect{
-			Code:      4000,
-			Reason:    "custom disconnect",
-			Reconnect: false,
+			Code:   4000,
+			Reason: "custom disconnect",
 		}
 
 		reply, err := c.invokeHandle(context.Background())
