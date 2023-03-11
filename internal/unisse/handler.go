@@ -31,8 +31,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		connectRequestString := r.URL.Query().Get(connectUrlParam)
 		if connectRequestString != "" {
-			var err error
-			err = json.Unmarshal([]byte(connectRequestString), &req)
+			err := json.Unmarshal([]byte(connectRequestString), &req)
 			if err != nil {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "malformed connect request", map[string]interface{}{"error": err.Error()}))
 				return
@@ -41,11 +40,11 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			req = &protocol.ConnectRequest{}
 		}
 	} else if r.Method == http.MethodPost {
-		maxBytesSize := int64(h.config.MaxRequestBodySize)
-		r.Body = http.MaxBytesReader(w, r.Body, maxBytesSize)
+		maxBytesSize := h.config.MaxRequestBodySize
+		r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytesSize))
 		connectRequestData, err := io.ReadAll(r.Body)
 		if err != nil {
-			if len(connectRequestData) >= int(maxBytesSize) {
+			if len(connectRequestData) >= maxBytesSize {
 				w.WriteHeader(http.StatusRequestEntityTooLarge)
 				return
 			}
