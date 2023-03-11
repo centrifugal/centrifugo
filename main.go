@@ -60,15 +60,15 @@ import (
 	"github.com/centrifugal/centrifugo/v4/internal/usage"
 	"github.com/centrifugal/centrifugo/v4/internal/webui"
 	"github.com/centrifugal/centrifugo/v4/internal/wt"
+	"github.com/mattn/go-isatty"
 
 	"github.com/FZambia/viper-lite"
 	"github.com/centrifugal/centrifuge"
-	"github.com/lucas-clemente/quic-go/http3"
-	"github.com/marten-seemann/webtransport-go"
-	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/mapstructure"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/quic-go/quic-go/http3"
+	"github.com/quic-go/webtransport-go"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -263,12 +263,6 @@ func bindCentrifugoConfig() {
 
 		"usage_stats_disable": false,
 
-		// This option allows smooth migration to Centrifugo v4,
-		// should be removed at some point in the future.
-		"use_client_protocol_v1_by_default": false, // TODO v5: remove.
-		// This option will be removed in v5.
-		"disable_client_protocol_v1": false, // TODO v5: remove.
-
 		"ping_interval": 25 * time.Second,
 		"pong_timeout":  8 * time.Second,
 	}
@@ -374,10 +368,6 @@ func main() {
 			}
 
 			nodeConfig := nodeConfig(build.Version)
-
-			if viper.GetBool("disable_client_protocol_v1") {
-				centrifuge.DisableProtocolVersion1 = true
-			}
 
 			node, err := centrifuge.New(nodeConfig)
 			if err != nil {
@@ -1416,6 +1406,7 @@ func ruleConfig() rule.Config {
 	cfg.RpcNamespaces = rpcNamespacesFromConfig(v)
 	cfg.ClientConnectionLimit = v.GetInt("client_connection_limit")
 	cfg.ClientConnectionRateLimit = v.GetInt("client_connection_rate_limit")
+
 	return cfg
 }
 
@@ -1802,6 +1793,7 @@ func nodeConfig(version string) centrifuge.Config {
 	cfg.NodeInfoMetricsAggregateInterval = GetDuration("node_info_metrics_aggregate_interval")
 	cfg.HistoryMaxPublicationLimit = v.GetInt("client_history_max_publication_limit")
 	cfg.RecoveryMaxPublicationLimit = v.GetInt("client_recovery_max_publication_limit")
+	cfg.HistoryMetaTTL = GetDuration("history_meta_ttl", true)
 
 	level, ok := logStringToLevel[strings.ToLower(v.GetString("log_level"))]
 	if !ok {
@@ -1910,10 +1902,6 @@ func getPingPongConfig() centrifuge.PingPongConfig {
 func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	v := viper.GetViper()
 	cfg := centrifuge.WebsocketConfig{}
-	cfg.ProtocolVersion = centrifuge.ProtocolVersion2
-	if v.GetBool("use_client_protocol_v1_by_default") {
-		cfg.ProtocolVersion = centrifuge.ProtocolVersion1
-	}
 	cfg.Compression = v.GetBool("websocket_compression")
 	cfg.CompressionLevel = v.GetInt("websocket_compression_level")
 	cfg.CompressionMinSize = v.GetInt("websocket_compression_min_size")
@@ -1989,12 +1977,7 @@ func getCheckOrigin() func(r *http.Request) bool {
 
 func uniWebsocketHandlerConfig() uniws.Config {
 	v := viper.GetViper()
-	protocolVersion := centrifuge.ProtocolVersion2
-	if viper.GetBool("use_client_protocol_v1_by_default") {
-		protocolVersion = centrifuge.ProtocolVersion1
-	}
 	return uniws.Config{
-		ProtocolVersion:    protocolVersion,
 		Compression:        v.GetBool("uni_websocket_compression"),
 		CompressionLevel:   v.GetInt("uni_websocket_compression_level"),
 		CompressionMinSize: v.GetInt("uni_websocket_compression_min_size"),
@@ -2010,46 +1993,26 @@ func uniWebsocketHandlerConfig() uniws.Config {
 }
 
 func uniSSEHandlerConfig() unisse.Config {
-	protocolVersion := centrifuge.ProtocolVersion2
-	if viper.GetBool("use_client_protocol_v1_by_default") {
-		protocolVersion = centrifuge.ProtocolVersion1
-	}
 	return unisse.Config{
-		ProtocolVersion:    protocolVersion,
 		MaxRequestBodySize: viper.GetInt("uni_sse_max_request_body_size"),
 		PingPongConfig:     getPingPongConfig(),
 	}
 }
 
 func uniStreamHandlerConfig() unihttpstream.Config {
-	protocolVersion := centrifuge.ProtocolVersion2
-	if viper.GetBool("use_client_protocol_v1_by_default") {
-		protocolVersion = centrifuge.ProtocolVersion1
-	}
 	return unihttpstream.Config{
-		ProtocolVersion:    protocolVersion,
 		MaxRequestBodySize: viper.GetInt("uni_http_stream_max_request_body_size"),
 		PingPongConfig:     getPingPongConfig(),
 	}
 }
 
 func uniGRPCHandlerConfig() unigrpc.Config {
-	protocolVersion := centrifuge.ProtocolVersion2
-	if viper.GetBool("use_client_protocol_v1_by_default") {
-		protocolVersion = centrifuge.ProtocolVersion1
-	}
-	return unigrpc.Config{
-		ProtocolVersion: protocolVersion,
-	}
+	return unigrpc.Config{}
 }
 
 func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	v := viper.GetViper()
 	cfg := centrifuge.SockjsConfig{}
-	cfg.ProtocolVersion = centrifuge.ProtocolVersion2
-	if v.GetBool("use_client_protocol_v1_by_default") {
-		cfg.ProtocolVersion = centrifuge.ProtocolVersion1
-	}
 	cfg.URL = v.GetString("sockjs_url")
 	cfg.HeartbeatDelay = GetDuration("sockjs_heartbeat_delay")
 	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
@@ -2102,9 +2065,7 @@ func memoryEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMan
 }
 
 func memoryBrokerConfig() (*centrifuge.MemoryBrokerConfig, error) {
-	return &centrifuge.MemoryBrokerConfig{
-		HistoryMetaTTL: GetDuration("history_meta_ttl", true),
-	}, nil
+	return &centrifuge.MemoryBrokerConfig{}, nil
 }
 
 func memoryPresenceManagerConfig() (*centrifuge.MemoryPresenceManagerConfig, error) {
@@ -2235,10 +2196,9 @@ func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMana
 	}
 
 	broker, err := centrifuge.NewRedisBroker(n, centrifuge.RedisBrokerConfig{
-		Shards:         redisShards,
-		Prefix:         viper.GetString("redis_prefix"),
-		UseLists:       viper.GetBool("redis_use_lists"),
-		HistoryMetaTTL: GetDuration("history_meta_ttl", true),
+		Shards:   redisShards,
+		Prefix:   viper.GetString("redis_prefix"),
+		UseLists: viper.GetBool("redis_use_lists"),
 	})
 	if err != nil {
 		return nil, nil, "", err
@@ -2320,8 +2280,7 @@ func tarantoolEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.Presence
 		return nil, nil, "", err
 	}
 	broker, err := tntengine.NewBroker(n, tntengine.BrokerConfig{
-		Shards:         tarantoolShards,
-		HistoryMetaTTL: GetDuration("history_meta_ttl", true),
+		Shards: tarantoolShards,
 	})
 	if err != nil {
 		return nil, nil, "", err

@@ -375,9 +375,8 @@ func (h *Executor) Disconnect(_ context.Context, cmd *DisconnectRequest) *Discon
 	disconnect := centrifuge.DisconnectForceNoReconnect
 	if cmd.Disconnect != nil {
 		disconnect = centrifuge.Disconnect{
-			Code:      cmd.Disconnect.Code,
-			Reason:    cmd.Disconnect.Reason,
-			Reconnect: cmd.Disconnect.Reconnect,
+			Code:   cmd.Disconnect.Code,
+			Reason: cmd.Disconnect.Reason,
 		}
 	}
 

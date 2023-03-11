@@ -25,7 +25,6 @@ type websocketTransportOptions struct {
 	pingInterval       time.Duration
 	writeTimeout       time.Duration
 	compressionMinSize int
-	protoVersion       centrifuge.ProtocolVersion
 	pingPongConfig     centrifuge.PingPongConfig
 }
 
@@ -47,13 +46,6 @@ func (t *websocketTransport) ping() {
 	case <-t.closeCh:
 		return
 	default:
-		if t.ProtocolVersion() == centrifuge.ProtocolVersion1 {
-			err := t.writeData([]byte(""))
-			if err != nil {
-				_ = t.Close(centrifuge.DisconnectWriteError)
-				return
-			}
-		}
 		deadline := time.Now().Add(t.opts.pingInterval / 2)
 		err := t.conn.WriteControl(websocket.PingMessage, nil, deadline)
 		if err != nil {
@@ -88,7 +80,7 @@ func (t *websocketTransport) Protocol() centrifuge.ProtocolType {
 
 // ProtocolVersion returns transport protocol version.
 func (t *websocketTransport) ProtocolVersion() centrifuge.ProtocolVersion {
-	return t.opts.protoVersion
+	return centrifuge.ProtocolVersion2
 }
 
 // Unidirectional returns whether transport is unidirectional.

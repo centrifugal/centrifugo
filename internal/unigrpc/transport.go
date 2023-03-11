@@ -15,15 +15,13 @@ type grpcTransport struct {
 	closed       bool
 	closeCh      chan struct{}
 	streamDataCh chan rawFrame
-	protoVersion centrifuge.ProtocolVersion
 }
 
-func newGRPCTransport(stream unistream.CentrifugoUniStream_ConsumeServer, streamDataCh chan rawFrame, protoVersion centrifuge.ProtocolVersion) *grpcTransport {
+func newGRPCTransport(stream unistream.CentrifugoUniStream_ConsumeServer, streamDataCh chan rawFrame) *grpcTransport {
 	return &grpcTransport{
 		stream:       stream,
 		streamDataCh: streamDataCh,
 		closeCh:      make(chan struct{}),
-		protoVersion: protoVersion,
 	}
 }
 
@@ -39,7 +37,7 @@ func (t *grpcTransport) Protocol() centrifuge.ProtocolType {
 
 // ProtocolVersion returns transport protocol version.
 func (t *grpcTransport) ProtocolVersion() centrifuge.ProtocolVersion {
-	return t.protoVersion
+	return centrifuge.ProtocolVersion2
 }
 
 // Unidirectional returns whether transport is unidirectional.

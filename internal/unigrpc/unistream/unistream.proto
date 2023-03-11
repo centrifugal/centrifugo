@@ -20,30 +20,17 @@ message ConnectRequest {
 message SubscribeRequest {
   // Numeration is in sync with Centrifuge client protocol.
   bool recover = 3;
+  reserved 4, 5;
   string epoch = 6;
   uint64 offset = 7;
 }
 
-// ProtocolVersion1 uses type, channel and data fields.
+// Push can be sent to a client as part of Reply in case of bidirectional transport or
+// without additional wrapping in case of unidirectional transports.
 // ProtocolVersion2 uses channel and one of the possible concrete push messages.
 message Push {
-  enum PushType {
-    PUBLICATION = 0;
-    JOIN = 1;
-    LEAVE = 2;
-    UNSUBSCRIBE = 3;
-    MESSAGE = 4;
-    SUBSCRIBE = 5;
-    CONNECT = 6;
-    DISCONNECT = 7;
-    REFRESH = 8;
-  }
-  // Type is used in ProtocolVersion1 only.
-  PushType type = 1;
+  reserved 1, 3;
   string channel = 2;
-
-  // Data is used in ProtocolVersion1 only.
-  bytes data = 3;
 
   // ProtocolVersion2 server can push one of the following fields to the client. We are
   // not using oneof here due to JSON interoperability concerns.
@@ -66,7 +53,7 @@ message ClientInfo {
 }
 
 message Publication {
-  // 1-3 skipped here for backwards compatibility.
+  reserved 1, 2, 3;
   bytes data = 4;
   ClientInfo info = 5;
   uint64 offset = 6;
@@ -82,14 +69,14 @@ message Leave {
 }
 
 message Unsubscribe {
-  // Field 1 removed (bool resubscribe).
+  reserved 1;
   uint32 code = 2;
   string reason = 3;
 }
 
 message Subscribe {
   bool recoverable = 1;
-  // 2-3 skipped here for backwards compatibility.
+  reserved 2, 3;
   string epoch = 4;
   uint64 offset = 5;
   bool positioned = 6;
@@ -128,7 +115,7 @@ message SubscribeResult {
   bool expires = 1;
   uint32 ttl = 2;
   bool recoverable = 3;
-  // 4-5 skipped here for backwards compatibility.
+  reserved 4, 5;
   string epoch = 6;
   repeated Publication publications = 7;
   bool recovered = 8;

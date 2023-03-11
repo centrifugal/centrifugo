@@ -1,6 +1,7 @@
 package unihttpstream
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"time"
@@ -15,9 +16,6 @@ type Handler struct {
 }
 
 func NewHandler(n *centrifuge.Node, c Config) *Handler {
-	if c.ProtocolVersion == 0 {
-		c.ProtocolVersion = centrifuge.ProtocolVersion1
-	}
 	return &Handler{
 		node:   n,
 		config: c,
@@ -43,7 +41,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error reading body", map[string]interface{}{"error": err.Error()}))
 			return
 		}
-		req, err = protocol.NewJSONParamsDecoder().DecodeConnect(connectRequestData)
+		err = json.Unmarshal(connectRequestData, &req)
 		if err != nil {
 			if h.node.LogEnabled(centrifuge.LogLevelDebug) {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "malformed connect request", map[string]interface{}{"error": err.Error()}))
@@ -55,29 +53,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	protoVersion := h.config.ProtocolVersion
-	if r.URL.RawQuery != "" {
-		query := r.URL.Query()
-		if queryProtocolVersion := query.Get("cf_protocol_version"); queryProtocolVersion != "" {
-			switch queryProtocolVersion {
-			case "v1":
-				protoVersion = centrifuge.ProtocolVersion1
-			case "v2":
-				protoVersion = centrifuge.ProtocolVersion2
-			default:
-				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "unknown protocol version", map[string]interface{}{"transport": transportName, "version": queryProtocolVersion}))
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-		}
-	}
-
-	if centrifuge.DisableProtocolVersion1 && protoVersion == centrifuge.ProtocolVersion1 {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-
-	transport := newStreamTransport(r, protoVersion, h.config.PingPongConfig)
+	transport := newStreamTransport(r, h.config.PingPongConfig)
 	c, closeFn, err := centrifuge.NewClient(r.Context(), h.node, transport)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error create client", map[string]interface{}{"error": err.Error(), "transport": "uni_http_stream"}))
@@ -129,60 +105,25 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	c.Connect(connectRequest)
 
-	if protoVersion == centrifuge.ProtocolVersion1 {
-		pingInterval := 25 * time.Second
-		tick := time.NewTicker(pingInterval)
-		defer tick.Stop()
-
-		for {
-			select {
-			case <-r.Context().Done():
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-transport.disconnectCh:
+			return
+		case data, ok := <-transport.messages:
+			if !ok {
 				return
-			case <-transport.disconnectCh:
-				return
-			case <-tick.C:
-				_, err = w.Write([]byte("null\n"))
-				if err != nil {
-					return
-				}
-				flusher.Flush()
-			case data, ok := <-transport.messages:
-				if !ok {
-					return
-				}
-				tick.Reset(pingInterval)
-				_, err = w.Write(data)
-				if err != nil {
-					return
-				}
-				_, err = w.Write([]byte("\n"))
-				if err != nil {
-					return
-				}
-				flusher.Flush()
 			}
-		}
-	} else {
-		for {
-			select {
-			case <-r.Context().Done():
+			_, err = w.Write(data)
+			if err != nil {
 				return
-			case <-transport.disconnectCh:
-				return
-			case data, ok := <-transport.messages:
-				if !ok {
-					return
-				}
-				_, err = w.Write(data)
-				if err != nil {
-					return
-				}
-				_, err = w.Write([]byte("\n"))
-				if err != nil {
-					return
-				}
-				flusher.Flush()
 			}
+			_, err = w.Write([]byte("\n"))
+			if err != nil {
+				return
+			}
+			flusher.Flush()
 		}
 	}
 }

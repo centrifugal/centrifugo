@@ -67,7 +67,7 @@ func (t *TestTransport) Protocol() centrifuge.ProtocolType {
 
 // ProtocolVersion returns transport protocol version.
 func (t *TestTransport) ProtocolVersion() centrifuge.ProtocolVersion {
-	return centrifuge.ProtocolVersion1
+	return centrifuge.ProtocolVersion2
 }
 
 // Unidirectional - ...

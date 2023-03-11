@@ -4,9 +4,8 @@ import "github.com/centrifugal/centrifuge"
 
 func DisconnectFromProto(s *Disconnect) *centrifuge.Disconnect {
 	return &centrifuge.Disconnect{
-		Code:      s.Code,
-		Reason:    s.Reason,
-		Reconnect: s.Reconnect,
+		Code:   s.Code,
+		Reason: s.Reason,
 	}
 }
 
