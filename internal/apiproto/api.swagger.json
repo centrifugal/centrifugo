@@ -1017,8 +1017,7 @@
           }
         },
         "payload": {
-          "type": "string",
-          "format": "byte"
+          "type": "object"
         }
       }
     },
@@ -1049,7 +1048,7 @@
     "apiBlockUserRequest": {
       "type": "object",
       "properties": {
-        "expireAt": {
+        "expire_at": {
           "type": "string",
           "format": "int64"
         },
@@ -1095,7 +1094,7 @@
         "b64data": {
           "type": "string"
         },
-        "skipHistory": {
+        "skip_history": {
           "type": "boolean"
         },
         "tags": {
@@ -1141,7 +1140,7 @@
     "apiChannelInfo": {
       "type": "object",
       "properties": {
-        "numClients": {
+        "num_clients": {
           "type": "integer",
           "format": "int64"
         }
@@ -1186,13 +1185,11 @@
         "client": {
           "type": "string"
         },
-        "connInfo": {
-          "type": "string",
-          "format": "byte"
+        "conn_info": {
+          "type": "object"
         },
-        "chanInfo": {
-          "type": "string",
-          "format": "byte"
+        "chan_info": {
+          "type": "object"
         }
       }
     },
@@ -1217,13 +1214,13 @@
         "presence": {
           "$ref": "#/definitions/apiPresenceRequest"
         },
-        "presenceStats": {
+        "presence_stats": {
           "$ref": "#/definitions/apiPresenceStatsRequest"
         },
         "history": {
           "$ref": "#/definitions/apiHistoryRequest"
         },
-        "historyRemove": {
+        "history_remove": {
           "$ref": "#/definitions/apiHistoryRemoveRequest"
         },
         "info": {
@@ -1241,46 +1238,46 @@
         "connections": {
           "$ref": "#/definitions/apiConnectionsRequest"
         },
-        "updateUserStatus": {
+        "update_user_status": {
           "$ref": "#/definitions/apiUpdateUserStatusRequest"
         },
-        "getUserStatus": {
+        "get_user_status": {
           "$ref": "#/definitions/apiGetUserStatusRequest"
         },
-        "deleteUserStatus": {
+        "delete_user_status": {
           "$ref": "#/definitions/apiDeleteUserStatusRequest"
         },
-        "blockUser": {
+        "block_user": {
           "$ref": "#/definitions/apiBlockUserRequest"
         },
-        "unblockUser": {
+        "unblock_user": {
           "$ref": "#/definitions/apiUnblockUserRequest"
         },
-        "revokeToken": {
+        "revoke_token": {
           "$ref": "#/definitions/apiRevokeTokenRequest"
         },
-        "invalidateUserTokens": {
+        "invalidate_user_tokens": {
           "$ref": "#/definitions/apiInvalidateUserTokensRequest"
         },
-        "deviceRegister": {
+        "device_register": {
           "$ref": "#/definitions/apiDeviceRegisterRequest"
         },
-        "deviceUpdate": {
+        "device_update": {
           "$ref": "#/definitions/apiDeviceUpdateRequest"
         },
-        "deviceRemove": {
+        "device_remove": {
           "$ref": "#/definitions/apiDeviceRemoveRequest"
         },
-        "deviceList": {
+        "device_list": {
           "$ref": "#/definitions/apiDeviceListRequest"
         },
-        "pushUserChannelList": {
+        "push_user_channel_list": {
           "$ref": "#/definitions/apiPushUserChannelListRequest"
         },
-        "pushUserChannelUpdate": {
+        "push_user_channel_update": {
           "$ref": "#/definitions/apiPushUserChannelUpdateRequest"
         },
-        "sendPushNotification": {
+        "send_push_notification": {
           "$ref": "#/definitions/apiSendPushNotificationRequest"
         }
       }
@@ -1288,10 +1285,10 @@
     "apiConnectionInfo": {
       "type": "object",
       "properties": {
-        "appName": {
+        "app_name": {
           "type": "string"
         },
-        "appVersion": {
+        "app_version": {
           "type": "string"
         },
         "transport": {
@@ -1318,18 +1315,17 @@
             "$ref": "#/definitions/apiChannelContext"
           }
         },
-        "connectionToken": {
+        "connection_token": {
           "$ref": "#/definitions/apiConnectionTokenInfo"
         },
-        "subscriptionTokens": {
+        "subscription_tokens": {
           "type": "object",
           "additionalProperties": {
             "$ref": "#/definitions/apiSubscriptionTokenInfo"
           }
         },
         "meta": {
-          "type": "string",
-          "format": "byte"
+          "type": "object"
         }
       }
     },
@@ -1339,7 +1335,7 @@
         "uid": {
           "type": "string"
         },
-        "issuedAt": {
+        "issued_at": {
           "type": "string",
           "format": "int64"
         }
@@ -1471,7 +1467,7 @@
             "type": "string"
           }
         },
-        "providerTokens": {
+        "provider_tokens": {
           "type": "array",
           "items": {
             "type": "object",
@@ -1503,13 +1499,13 @@
           "type": "integer",
           "format": "int32"
         },
-        "includeChannels": {
+        "include_channels": {
           "type": "boolean"
         },
-        "includeMeta": {
+        "include_meta": {
           "type": "boolean"
         },
-        "includeTags": {
+        "include_tags": {
           "type": "boolean"
         }
       }
@@ -1535,7 +1531,7 @@
             "$ref": "#/definitions/apiDevice"
           }
         },
-        "hasMore": {
+        "has_more": {
           "type": "boolean"
         }
       }
@@ -1637,7 +1633,7 @@
             "type": "string"
           }
         },
-        "providerTokens": {
+        "provider_tokens": {
           "type": "array",
           "items": {
             "type": "object",
@@ -1690,23 +1686,23 @@
             "type": "string"
           }
         },
-        "providerTokens": {
+        "provider_tokens": {
           "type": "array",
           "items": {
             "type": "object",
             "$ref": "#/definitions/apiDeviceProviderTokens"
           }
         },
-        "userUpdate": {
+        "user_update": {
           "$ref": "#/definitions/apiDeviceUserUpdate"
         },
-        "metaUpdate": {
+        "meta_update": {
           "$ref": "#/definitions/apiDeviceMetaUpdate"
         },
-        "tagsUpdate": {
+        "tags_update": {
           "$ref": "#/definitions/apiDeviceTagsUpdate"
         },
-        "channelsUpdate": {
+        "channels_update": {
           "$ref": "#/definitions/apiDeviceChannelsUpdate"
         }
       }
@@ -1801,8 +1797,7 @@
       "type": "object",
       "properties": {
         "message": {
-          "type": "string",
-          "format": "byte"
+          "type": "object"
         }
       }
     },
@@ -1905,8 +1900,7 @@
           "type": "string"
         },
         "offset": {
-          "type": "string",
-          "format": "uint64"
+          "type": "integer"
         }
       }
     },
@@ -1914,8 +1908,7 @@
       "type": "object",
       "properties": {
         "message": {
-          "type": "string",
-          "format": "byte"
+          "type": "object"
         }
       }
     },
@@ -1948,14 +1941,14 @@
     "apiInvalidateUserTokensRequest": {
       "type": "object",
       "properties": {
-        "expireAt": {
+        "expire_at": {
           "type": "string",
           "format": "int64"
         },
         "user": {
           "type": "string"
         },
-        "issuedBefore": {
+        "issued_before": {
           "type": "string",
           "format": "int64"
         },
@@ -2006,15 +1999,15 @@
         "version": {
           "type": "string"
         },
-        "numClients": {
+        "num_clients": {
           "type": "integer",
           "format": "int64"
         },
-        "numUsers": {
+        "num_users": {
           "type": "integer",
           "format": "int64"
         },
-        "numChannels": {
+        "num_channels": {
           "type": "integer",
           "format": "int64"
         },
@@ -2028,7 +2021,7 @@
         "process": {
           "$ref": "#/definitions/apiProcess"
         },
-        "numSubs": {
+        "num_subs": {
           "type": "integer",
           "format": "int64"
         }
@@ -2086,11 +2079,11 @@
     "apiPresenceStatsResult": {
       "type": "object",
       "properties": {
-        "numClients": {
+        "num_clients": {
           "type": "integer",
           "format": "int64"
         },
-        "numUsers": {
+        "num_users": {
           "type": "integer",
           "format": "int64"
         }
@@ -2120,8 +2113,7 @@
           "$ref": "#/definitions/apiClientInfo"
         },
         "offset": {
-          "type": "string",
-          "format": "uint64"
+          "type": "integer"
         },
         "tags": {
           "type": "object",
@@ -2143,7 +2135,7 @@
         "b64data": {
           "type": "string"
         },
-        "skipHistory": {
+        "skip_history": {
           "type": "boolean"
         },
         "tags": {
@@ -2169,8 +2161,7 @@
       "type": "object",
       "properties": {
         "offset": {
-          "type": "string",
-          "format": "uint64"
+          "type": "integer"
         },
         "epoch": {
           "type": "string"
@@ -2192,7 +2183,7 @@
         "uid": {
           "type": "string"
         },
-        "expireAt": {
+        "expire_at": {
           "type": "string",
           "format": "int64"
         }
@@ -2201,7 +2192,7 @@
     "apiPushRecipient": {
       "type": "object",
       "properties": {
-        "deviceIds": {
+        "device_ids": {
           "type": "array",
           "items": {
             "type": "string"
@@ -2213,31 +2204,31 @@
             "type": "string"
           }
         },
-        "fcmTokens": {
+        "fcm_tokens": {
           "type": "array",
           "items": {
             "type": "string"
           }
         },
-        "fcmTopic": {
+        "fcm_topic": {
           "type": "string"
         },
-        "fcmCondition": {
+        "fcm_condition": {
           "type": "string"
         },
-        "hmsTokens": {
+        "hms_tokens": {
           "type": "array",
           "items": {
             "type": "string"
           }
         },
-        "hmsTopic": {
+        "hms_topic": {
           "type": "string"
         },
-        "hmsCondition": {
+        "hms_condition": {
           "type": "string"
         },
-        "apnsTokens": {
+        "apns_tokens": {
           "type": "array",
           "items": {
             "type": "string"
@@ -2304,7 +2295,7 @@
             "$ref": "#/definitions/apiPushUserChannel"
           }
         },
-        "hasMore": {
+        "has_more": {
           "type": "boolean"
         }
       }
@@ -2348,8 +2339,7 @@
           "type": "string"
         },
         "params": {
-          "type": "string",
-          "format": "byte"
+          "type": "object"
         }
       }
     },
@@ -2373,13 +2363,12 @@
         "expired": {
           "type": "boolean"
         },
-        "expireAt": {
+        "expire_at": {
           "type": "string",
           "format": "int64"
         },
         "info": {
-          "type": "string",
-          "format": "byte"
+          "type": "object"
         },
         "session": {
           "type": "string"
@@ -2421,13 +2410,13 @@
         "presence": {
           "$ref": "#/definitions/apiPresenceResult"
         },
-        "presenceStats": {
+        "presence_stats": {
           "$ref": "#/definitions/apiPresenceStatsResult"
         },
         "history": {
           "$ref": "#/definitions/apiHistoryResult"
         },
-        "historyRemove": {
+        "history_remove": {
           "$ref": "#/definitions/apiHistoryRemoveResult"
         },
         "info": {
@@ -2445,46 +2434,46 @@
         "connections": {
           "$ref": "#/definitions/apiConnectionsResult"
         },
-        "updateUserStatus": {
+        "update_user_status": {
           "$ref": "#/definitions/apiUpdateUserStatusResult"
         },
-        "getUserStatus": {
+        "get_user_status": {
           "$ref": "#/definitions/apiGetUserStatusResult"
         },
-        "deleteUserStatus": {
+        "delete_user_status": {
           "$ref": "#/definitions/apiDeleteUserStatusResult"
         },
-        "blockUser": {
+        "block_user": {
           "$ref": "#/definitions/apiBlockUserResult"
         },
-        "unblockUser": {
+        "unblock_user": {
           "$ref": "#/definitions/apiUnblockUserResult"
         },
-        "revokeToken": {
+        "revoke_token": {
           "$ref": "#/definitions/apiRevokeTokenResult"
         },
-        "invalidateUserTokens": {
+        "invalidate_user_tokens": {
           "$ref": "#/definitions/apiInvalidateUserTokensResult"
         },
-        "deviceRegister": {
+        "device_register": {
           "$ref": "#/definitions/apiDeviceRegisterResult"
         },
-        "deviceUpdate": {
+        "device_update": {
           "$ref": "#/definitions/apiDeviceUpdateResult"
         },
-        "deviceRemove": {
+        "device_remove": {
           "$ref": "#/definitions/apiDeviceRemoveResult"
         },
-        "deviceList": {
+        "device_list": {
           "$ref": "#/definitions/apiDeviceListResult"
         },
-        "pushUserChannelList": {
+        "push_user_channel_list": {
           "$ref": "#/definitions/apiPushUserChannelListResult"
         },
-        "pushUserChannelUpdate": {
+        "push_user_channel_update": {
           "$ref": "#/definitions/apiPushUserChannelUpdateResult"
         },
-        "sendPushNotification": {
+        "send_push_notification": {
           "$ref": "#/definitions/apiSendPushNotificationResult"
         }
       }
@@ -2492,7 +2481,7 @@
     "apiRevokeTokenRequest": {
       "type": "object",
       "properties": {
-        "expireAt": {
+        "expire_at": {
           "type": "string",
           "format": "int64"
         },
@@ -2550,8 +2539,7 @@
       "type": "object",
       "properties": {
         "offset": {
-          "type": "string",
-          "format": "uint64"
+          "type": "integer"
         },
         "epoch": {
           "type": "string"
@@ -2564,16 +2552,16 @@
         "presence": {
           "$ref": "#/definitions/apiBoolValue"
         },
-        "joinLeave": {
+        "join_leave": {
           "$ref": "#/definitions/apiBoolValue"
         },
-        "forceRecovery": {
+        "force_recovery": {
           "$ref": "#/definitions/apiBoolValue"
         },
-        "forcePositioning": {
+        "force_positioning": {
           "$ref": "#/definitions/apiBoolValue"
         },
-        "forcePushJoinLeave": {
+        "force_push_join_leave": {
           "$ref": "#/definitions/apiBoolValue"
         }
       }
@@ -2587,13 +2575,12 @@
         "user": {
           "type": "string"
         },
-        "expireAt": {
+        "expire_at": {
           "type": "string",
           "format": "int64"
         },
         "info": {
-          "type": "string",
-          "format": "byte"
+          "type": "object"
         },
         "b64info": {
           "type": "string"
@@ -2607,7 +2594,7 @@
         "b64data": {
           "type": "string"
         },
-        "recoverSince": {
+        "recover_since": {
           "$ref": "#/definitions/apiStreamPosition"
         },
         "override": {
@@ -2638,7 +2625,7 @@
         "uid": {
           "type": "string"
         },
-        "issuedAt": {
+        "issued_at": {
           "type": "string",
           "format": "int64"
         }
