@@ -4,16 +4,9 @@ package centrifugal.centrifugo.api;
 
 option go_package = "./;apiproto";
 
-import "google/api/annotations.proto";
-
 service CentrifugoApi {
     rpc Batch(BatchRequest) returns (BatchResponse) {}
-    rpc Publish (PublishRequest) returns (PublishResponse) {
-        option (google.api.http) = {
-            post: "/publish",
-            body: "*"
-        };
-    }
+    rpc Publish (PublishRequest) returns (PublishResponse) {}
     rpc Broadcast (BroadcastRequest) returns (BroadcastResponse) {}
     rpc Subscribe (SubscribeRequest) returns (SubscribeResponse) {}
     rpc Unsubscribe (UnsubscribeRequest) returns (UnsubscribeResponse) {}

@@ -1,8 +1,8 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "api.proto",
-    "version": "version not set"
+    "title": "Centrifugo server HTTP API",
+    "version": "5.0"
   },
   "consumes": [
     "application/json"
@@ -11,6 +11,582 @@
     "application/json"
   ],
   "paths": {
+    "/batch": {
+      "post": {
+        "operationId": "CentrifugoApi_Batch",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiBatchResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiBatchRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/block_user": {
+      "post": {
+        "operationId": "CentrifugoApi_BlockUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiBlockUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiBlockUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/broadcast": {
+      "post": {
+        "operationId": "CentrifugoApi_Broadcast",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiBroadcastResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiBroadcastRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/channels": {
+      "post": {
+        "operationId": "CentrifugoApi_Channels",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiChannelsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiChannelsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/connections": {
+      "post": {
+        "operationId": "CentrifugoApi_Connections",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiConnectionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiConnectionsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/delete_user_status": {
+      "post": {
+        "operationId": "CentrifugoApi_DeleteUserStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiDeleteUserStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiDeleteUserStatusRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/device_list": {
+      "post": {
+        "operationId": "CentrifugoApi_DeviceList",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiDeviceListResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiDeviceListRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/device_register": {
+      "post": {
+        "operationId": "CentrifugoApi_DeviceRegister",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiDeviceRegisterResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiDeviceRegisterRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/device_remove": {
+      "post": {
+        "operationId": "CentrifugoApi_DeviceRemove",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiDeviceRemoveResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiDeviceRemoveRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/device_update": {
+      "post": {
+        "operationId": "CentrifugoApi_DeviceUpdate",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiDeviceUpdateResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiDeviceUpdateRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/disconnect": {
+      "post": {
+        "operationId": "CentrifugoApi_Disconnect",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiDisconnectResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiDisconnectRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/get_user_status": {
+      "post": {
+        "operationId": "CentrifugoApi_GetUserStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiGetUserStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiGetUserStatusRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/history": {
+      "post": {
+        "operationId": "CentrifugoApi_History",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiHistoryResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiHistoryRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/history_remove": {
+      "post": {
+        "operationId": "CentrifugoApi_HistoryRemove",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiHistoryRemoveResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiHistoryRemoveRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/info": {
+      "post": {
+        "operationId": "CentrifugoApi_Info",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiInfoResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiInfoRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/invalidate_user_tokens": {
+      "post": {
+        "operationId": "CentrifugoApi_InvalidateUserTokens",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiInvalidateUserTokensResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiInvalidateUserTokensRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/presence": {
+      "post": {
+        "operationId": "CentrifugoApi_Presence",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiPresenceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiPresenceRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/presence_stats": {
+      "post": {
+        "operationId": "CentrifugoApi_PresenceStats",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiPresenceStatsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiPresenceStatsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
     "/publish": {
       "post": {
         "operationId": "CentrifugoApi_Publish",
@@ -42,43 +618,329 @@
           "CentrifugoApi"
         ]
       }
+    },
+    "/push_user_channel_list": {
+      "post": {
+        "operationId": "CentrifugoApi_PushUserChannelList",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiPushUserChannelListResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiPushUserChannelListRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/push_user_channel_update": {
+      "post": {
+        "operationId": "CentrifugoApi_PushUserChannelUpdate",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiPushUserChannelUpdateResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiPushUserChannelUpdateRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/refresh": {
+      "post": {
+        "operationId": "CentrifugoApi_Refresh",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiRefreshResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiRefreshRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/revoke_token": {
+      "post": {
+        "operationId": "CentrifugoApi_RevokeToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiRevokeTokenResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiRevokeTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/rpc": {
+      "post": {
+        "operationId": "CentrifugoApi_RPC",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiRPCResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiRPCRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/send_push_notification": {
+      "post": {
+        "operationId": "CentrifugoApi_SendPushNotification",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiSendPushNotificationResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiSendPushNotificationRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/subscribe": {
+      "post": {
+        "operationId": "CentrifugoApi_Subscribe",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiSubscribeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiSubscribeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/unblock_user": {
+      "post": {
+        "operationId": "CentrifugoApi_UnblockUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiUnblockUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiUnblockUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/unsubscribe": {
+      "post": {
+        "operationId": "CentrifugoApi_Unsubscribe",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiUnsubscribeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiUnsubscribeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    },
+    "/update_user_status": {
+      "post": {
+        "operationId": "CentrifugoApi_UpdateUserStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiUpdateUserStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiUpdateUserStatusRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
     }
   },
   "definitions": {
-    "CommandMethodType": {
-      "type": "string",
-      "enum": [
-        "PUBLISH",
-        "BROADCAST",
-        "UNSUBSCRIBE",
-        "DISCONNECT",
-        "PRESENCE",
-        "PRESENCE_STATS",
-        "HISTORY",
-        "HISTORY_REMOVE",
-        "CHANNELS",
-        "INFO",
-        "RPC",
-        "SUBSCRIBE",
-        "REFRESH",
-        "CONNECTIONS",
-        "UPDATE_USER_STATUS",
-        "GET_USER_STATUS",
-        "DELETE_USER_STATUS",
-        "BLOCK_USER",
-        "UNBLOCK_USER",
-        "REVOKE_TOKEN",
-        "INVALIDATE_USER_TOKENS",
-        "DEVICE_REGISTER",
-        "DEVICE_UPDATE",
-        "DEVICE_REMOVE",
-        "DEVICE_LIST",
-        "PUSH_USER_CHANNEL_LIST",
-        "PUSH_USER_CHANNEL_UPDATE",
-        "SEND_PUSH_NOTIFICATION"
-      ],
-      "default": "PUBLISH"
-    },
     "apiApnsPushNotification": {
       "type": "object",
       "properties": {
@@ -91,6 +953,17 @@
         "payload": {
           "type": "string",
           "format": "byte"
+        }
+      }
+    },
+    "apiBatchRequest": {
+      "type": "object",
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiCommand"
+          }
         }
       }
     },
@@ -257,17 +1130,6 @@
     "apiCommand": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "method": {
-          "$ref": "#/definitions/CommandMethodType"
-        },
-        "params": {
-          "type": "string",
-          "format": "byte"
-        },
         "publish": {
           "$ref": "#/definitions/apiPublishRequest"
         },
@@ -1460,17 +2322,6 @@
     "apiReply": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "error": {
-          "$ref": "#/definitions/centrifugoapiError"
-        },
-        "result": {
-          "type": "string",
-          "format": "byte"
-        },
         "publish": {
           "$ref": "#/definitions/apiPublishResult"
         },
@@ -1849,6 +2700,13 @@
           "format": "byte"
         }
       }
+    }
+  },
+  "securityDefinitions": {
+    "ApiKeyAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
     }
   }
 }

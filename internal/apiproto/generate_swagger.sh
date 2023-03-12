@@ -2,14 +2,11 @@
 
 set -e
 
-# go install \
-#        github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway \
-#        github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger \
-#        github.com/golang/protobuf/protoc-gen-go
+#go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway@latest
+#go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger@latest
 
+protoc --swagger_out=allow_merge=true,merge_file_name=api:. ./api.swagger.proto
 
-protoc --swagger_out=allow_merge=true,merge_file_name=api:. ./api.proto
-#search='"data":[ \t\n]*{[ \t\n]*"type": "string",[ \t\n]*"format": "byte"[ \t\n]*}'
 search='("data":\s+{\s+"type":\s)"string",\s+"format":\s"byte"'
 replace='\1"object"'
 
