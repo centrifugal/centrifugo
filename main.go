@@ -2506,22 +2506,24 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 		if apiPrefix == "" {
 			apiPrefix = "/"
 		}
-
 		oldRoute := apiHandler.OldRoute()
 		strippedHandler := http.StripPrefix(apiPrefix, apiHandler)
-		useV5API := viper.GetBool("v5_api")
 		if viper.GetBool("api_insecure") {
 			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(oldRoute)))
-			if useV5API {
-				if apiPrefix != "/" {
-					mux.Handle(apiPrefix+"/", middleware.LogRequest(middleware.Post(strippedHandler)))
+			if apiPrefix != "/" {
+				mux.Handle(apiPrefix+"/", middleware.LogRequest(middleware.Post(strippedHandler)))
+			} else {
+				for path, handler := range apiHandler.Routes() {
+					mux.Handle(path, middleware.LogRequest(middleware.Post(handler)))
 				}
 			}
 		} else {
 			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), oldRoute))))
-			if useV5API {
-				if apiPrefix != "/" {
-					mux.Handle(apiPrefix+"/", middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), strippedHandler))))
+			if apiPrefix != "/" {
+				mux.Handle(apiPrefix+"/", middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), strippedHandler))))
+			} else {
+				for path, handler := range apiHandler.Routes() {
+					mux.Handle(path, middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), handler))))
 				}
 			}
 		}
