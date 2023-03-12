@@ -28,6 +28,7 @@ web:
 	./misc/scripts/update_web.sh
 
 swagger-web:
+	make generate
 	./misc/scripts/update_swagger_web.sh
 
 package:

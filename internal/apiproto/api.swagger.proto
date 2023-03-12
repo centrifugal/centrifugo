@@ -46,14 +46,26 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
     },
     {
       name: "batch"
-    },
-    {
-      name: "oss"
-    },
-    {
-      name: "pro"
     }
   ];
+  responses: {
+    key: "400";
+    value: {
+      description: "Returned in case of invalid request."
+    }
+  }
+  responses: {
+    key: "401";
+    value: {
+      description: "Returned in case of missing auth."
+    }
+  }
+  responses: {
+    key: "500";
+    value: {
+      description: "Returned in case of internal server error."
+    }
+  }
   security_definitions: {
     security: {
       key: "ApiKeyAuth";
@@ -80,7 +92,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Batch request";
-      tags: ["batch", "oss"];
+      tags: ["batch"];
     };
   }
   rpc Publish (PublishRequest) returns (PublishResponse) {
@@ -90,7 +102,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Publish request";
-      tags: ["publication", "oss"];
+      tags: ["publication"];
     };
   }
   rpc Broadcast (BroadcastRequest) returns (BroadcastResponse) {
@@ -100,7 +112,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Broadcast request";
-      tags: ["publication", "oss"];
+      tags: ["publication"];
     };
   }
   rpc Subscribe (SubscribeRequest) returns (SubscribeResponse) {
@@ -110,7 +122,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Subscribe request";
-      tags: ["connection management", "oss"];
+      tags: ["connection management"];
     };
   }
   rpc Unsubscribe (UnsubscribeRequest) returns (UnsubscribeResponse) {
@@ -120,7 +132,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Unsubscribe request";
-      tags: ["connection management", "oss"];
+      tags: ["connection management"];
     };
   }
   rpc Disconnect (DisconnectRequest) returns (DisconnectResponse) {
@@ -130,7 +142,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Disconnect request";
-      tags: ["connection management", "oss"];
+      tags: ["connection management"];
     };
   }
   rpc Presence (PresenceRequest) returns (PresenceResponse) {
@@ -140,7 +152,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Presence request";
-      tags: ["presence", "oss"];
+      tags: ["presence"];
     };
   }
   rpc PresenceStats (PresenceStatsRequest) returns (PresenceStatsResponse) {
@@ -150,7 +162,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Presence stats request";
-      tags: ["presence", "oss"];
+      tags: ["presence"];
     };
   }
   rpc History (HistoryRequest) returns (HistoryResponse) {
@@ -160,7 +172,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "History request";
-      tags: ["history", "oss"];
+      tags: ["history"];
     };
   }
   rpc HistoryRemove (HistoryRemoveRequest) returns (HistoryRemoveResponse) {
@@ -170,7 +182,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "History remove request";
-      tags: ["history", "oss"];
+      tags: ["history"];
     };
   }
   rpc Info (InfoRequest) returns (InfoResponse) {
@@ -180,7 +192,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Info request";
-      tags: ["stats", "oss"];
+      tags: ["stats"];
     };
   }
   rpc Refresh (RefreshRequest) returns (RefreshResponse) {
@@ -190,7 +202,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Refresh request";
-      tags: ["connection management", "oss"];
+      tags: ["connection management"];
     };
   }
   rpc Channels (ChannelsRequest) returns (ChannelsResponse) {
@@ -200,7 +212,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Channels request";
-      tags: ["stats", "oss"];
+      tags: ["stats"];
     };
   }
   rpc Connections (ConnectionsRequest) returns (ConnectionsResponse) {
@@ -210,7 +222,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Connections request";
-      tags: ["stats", "pro"];
+      tags: ["stats"];
     };
   }
   rpc UpdateUserStatus (UpdateUserStatusRequest) returns (UpdateUserStatusResponse) {
@@ -220,7 +232,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Updated user status request";
-      tags: ["user status", "pro"];
+      tags: ["user status"];
     };
   }
   rpc GetUserStatus (GetUserStatusRequest) returns (GetUserStatusResponse) {
@@ -230,7 +242,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Get user status request";
-      tags: ["user status", "pro"];
+      tags: ["user status"];
     };
   }
   rpc DeleteUserStatus (DeleteUserStatusRequest) returns (DeleteUserStatusResponse) {
@@ -240,7 +252,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Delete user status request";
-      tags: ["user status", "pro"];
+      tags: ["user status"];
     };
   }
   rpc BlockUser (BlockUserRequest) returns (BlockUserResponse) {
@@ -250,7 +262,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Block user request";
-      tags: ["user block", "pro"];
+      tags: ["user block"];
     };
   }
   rpc UnblockUser (UnblockUserRequest) returns (UnblockUserResponse) {
@@ -260,7 +272,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Unblock user request";
-      tags: ["user block", "pro"];
+      tags: ["user block"];
     };
   }
   rpc RevokeToken (RevokeTokenRequest) returns (RevokeTokenResponse) {
@@ -270,7 +282,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Revoke token request";
-      tags: ["token", "pro"];
+      tags: ["token"];
     };
   }
   rpc InvalidateUserTokens (InvalidateUserTokensRequest) returns (InvalidateUserTokensResponse) {
@@ -280,7 +292,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Invalidate user tokens request";
-      tags: ["token", "pro"];
+      tags: ["token"];
     };
   }
   rpc DeviceRegister (DeviceRegisterRequest) returns (DeviceRegisterResponse) {
@@ -290,7 +302,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Device register request";
-      tags: ["push notifications", "pro"];
+      tags: ["push notifications"];
     };
   }
   rpc DeviceUpdate (DeviceUpdateRequest) returns (DeviceUpdateResponse) {
@@ -300,7 +312,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Device register request";
-      tags: ["push notifications", "pro"];
+      tags: ["push notifications"];
     };
   }
   rpc DeviceRemove (DeviceRemoveRequest) returns (DeviceRemoveResponse) {
@@ -310,7 +322,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Device register request";
-      tags: ["push notifications", "pro"];
+      tags: ["push notifications"];
     };
   }
   rpc DeviceList (DeviceListRequest) returns (DeviceListResponse) {
@@ -320,7 +332,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Device register request";
-      tags: ["push notifications", "pro"];
+      tags: ["push notifications"];
     };
   }
   rpc PushUserChannelList (PushUserChannelListRequest) returns (PushUserChannelListResponse) {
@@ -330,7 +342,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Device register request";
-      tags: ["push notifications", "pro"];
+      tags: ["push notifications"];
     };
   }
   rpc PushUserChannelUpdate (PushUserChannelUpdateRequest) returns (PushUserChannelUpdateResponse) {
@@ -340,7 +352,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Device register request";
-      tags: ["push notifications", "pro"];
+      tags: ["push notifications"];
     };
   }
   rpc SendPushNotification (SendPushNotificationRequest) returns (SendPushNotificationResponse) {
@@ -350,7 +362,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Device register request";
-      tags: ["push notifications","pro"];
+      tags: ["push notifications"];
     };
   }
 }

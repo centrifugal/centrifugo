@@ -8,6 +8,7 @@ fi
 
 cd internal/apiproto
 bash generate.sh
+bash generate_swagger.sh
 cd -
 
 cd internal/proxyproto

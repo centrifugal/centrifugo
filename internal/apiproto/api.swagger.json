@@ -6,9 +6,6 @@
   },
   "tags": [
     {
-      "name": "CentrifugoApi"
-    },
-    {
       "name": "publication"
     },
     {
@@ -37,12 +34,6 @@
     },
     {
       "name": "batch"
-    },
-    {
-      "name": "oss"
-    },
-    {
-      "name": "pro"
     }
   ],
   "basePath": "/api",
@@ -61,14 +52,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiBatchResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.BatchResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -77,13 +74,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiBatchRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.BatchRequest"
             }
           }
         ],
         "tags": [
-          "batch",
-          "oss"
+          "batch"
         ]
       }
     },
@@ -95,14 +91,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiBlockUserResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.BlockUserResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -111,13 +113,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiBlockUserRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.BlockUserRequest"
             }
           }
         ],
         "tags": [
-          "user block",
-          "pro"
+          "user block"
         ]
       }
     },
@@ -129,14 +130,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiBroadcastResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.BroadcastResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -145,13 +152,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiBroadcastRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.BroadcastRequest"
             }
           }
         ],
         "tags": [
-          "publication",
-          "oss"
+          "publication"
         ]
       }
     },
@@ -163,14 +169,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiChannelsResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.ChannelsResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -179,13 +191,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiChannelsRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.ChannelsRequest"
             }
           }
         ],
         "tags": [
-          "stats",
-          "oss"
+          "stats"
         ]
       }
     },
@@ -197,14 +208,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiConnectionsResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.ConnectionsResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -213,13 +230,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiConnectionsRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.ConnectionsRequest"
             }
           }
         ],
         "tags": [
-          "stats",
-          "pro"
+          "stats"
         ]
       }
     },
@@ -231,14 +247,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiDeleteUserStatusResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.DeleteUserStatusResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -247,13 +269,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiDeleteUserStatusRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.DeleteUserStatusRequest"
             }
           }
         ],
         "tags": [
-          "user status",
-          "pro"
+          "user status"
         ]
       }
     },
@@ -265,14 +286,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiDeviceListResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceListResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -281,13 +308,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiDeviceListRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceListRequest"
             }
           }
         ],
         "tags": [
-          "push notifications",
-          "pro"
+          "push notifications"
         ]
       }
     },
@@ -299,14 +325,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiDeviceRegisterResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceRegisterResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -315,13 +347,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiDeviceRegisterRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceRegisterRequest"
             }
           }
         ],
         "tags": [
-          "push notifications",
-          "pro"
+          "push notifications"
         ]
       }
     },
@@ -333,14 +364,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiDeviceRemoveResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceRemoveResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -349,13 +386,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiDeviceRemoveRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceRemoveRequest"
             }
           }
         ],
         "tags": [
-          "push notifications",
-          "pro"
+          "push notifications"
         ]
       }
     },
@@ -367,14 +403,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiDeviceUpdateResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceUpdateResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -383,13 +425,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiDeviceUpdateRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceUpdateRequest"
             }
           }
         ],
         "tags": [
-          "push notifications",
-          "pro"
+          "push notifications"
         ]
       }
     },
@@ -401,14 +442,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiDisconnectResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.DisconnectResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -417,13 +464,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiDisconnectRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.DisconnectRequest"
             }
           }
         ],
         "tags": [
-          "connection management",
-          "oss"
+          "connection management"
         ]
       }
     },
@@ -435,14 +481,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiGetUserStatusResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.GetUserStatusResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -451,13 +503,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiGetUserStatusRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.GetUserStatusRequest"
             }
           }
         ],
         "tags": [
-          "user status",
-          "pro"
+          "user status"
         ]
       }
     },
@@ -469,14 +520,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiHistoryResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.HistoryResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -485,13 +542,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiHistoryRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.HistoryRequest"
             }
           }
         ],
         "tags": [
-          "history",
-          "oss"
+          "history"
         ]
       }
     },
@@ -503,14 +559,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiHistoryRemoveResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.HistoryRemoveResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -519,13 +581,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiHistoryRemoveRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.HistoryRemoveRequest"
             }
           }
         ],
         "tags": [
-          "history",
-          "oss"
+          "history"
         ]
       }
     },
@@ -537,14 +598,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiInfoResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.InfoResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -553,13 +620,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiInfoRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.InfoRequest"
             }
           }
         ],
         "tags": [
-          "stats",
-          "oss"
+          "stats"
         ]
       }
     },
@@ -571,14 +637,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiInvalidateUserTokensResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.InvalidateUserTokensResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -587,13 +659,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiInvalidateUserTokensRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.InvalidateUserTokensRequest"
             }
           }
         ],
         "tags": [
-          "token",
-          "pro"
+          "token"
         ]
       }
     },
@@ -605,14 +676,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiPresenceResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.PresenceResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -621,13 +698,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiPresenceRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.PresenceRequest"
             }
           }
         ],
         "tags": [
-          "presence",
-          "oss"
+          "presence"
         ]
       }
     },
@@ -639,14 +715,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiPresenceStatsResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.PresenceStatsResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -655,13 +737,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiPresenceStatsRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.PresenceStatsRequest"
             }
           }
         ],
         "tags": [
-          "presence",
-          "oss"
+          "presence"
         ]
       }
     },
@@ -673,14 +754,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiPublishResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.PublishResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -689,13 +776,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiPublishRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.PublishRequest"
             }
           }
         ],
         "tags": [
-          "publication",
-          "oss"
+          "publication"
         ]
       }
     },
@@ -707,14 +793,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiPushUserChannelListResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.PushUserChannelListResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -723,13 +815,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiPushUserChannelListRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.PushUserChannelListRequest"
             }
           }
         ],
         "tags": [
-          "push notifications",
-          "pro"
+          "push notifications"
         ]
       }
     },
@@ -741,14 +832,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiPushUserChannelUpdateResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.PushUserChannelUpdateResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -757,13 +854,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiPushUserChannelUpdateRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.PushUserChannelUpdateRequest"
             }
           }
         ],
         "tags": [
-          "push notifications",
-          "pro"
+          "push notifications"
         ]
       }
     },
@@ -775,14 +871,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiRefreshResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.RefreshResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -791,13 +893,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiRefreshRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.RefreshRequest"
             }
           }
         ],
         "tags": [
-          "connection management",
-          "oss"
+          "connection management"
         ]
       }
     },
@@ -809,14 +910,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiRevokeTokenResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.RevokeTokenResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -825,13 +932,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiRevokeTokenRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.RevokeTokenRequest"
             }
           }
         ],
         "tags": [
-          "token",
-          "pro"
+          "token"
         ]
       }
     },
@@ -843,14 +949,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiSendPushNotificationResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.SendPushNotificationResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -859,13 +971,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiSendPushNotificationRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.SendPushNotificationRequest"
             }
           }
         ],
         "tags": [
-          "push notifications",
-          "pro"
+          "push notifications"
         ]
       }
     },
@@ -877,14 +988,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiSubscribeResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.SubscribeResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -893,13 +1010,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiSubscribeRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.SubscribeRequest"
             }
           }
         ],
         "tags": [
-          "connection management",
-          "oss"
+          "connection management"
         ]
       }
     },
@@ -911,14 +1027,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiUnblockUserResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.UnblockUserResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -927,13 +1049,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiUnblockUserRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.UnblockUserRequest"
             }
           }
         ],
         "tags": [
-          "user block",
-          "pro"
+          "user block"
         ]
       }
     },
@@ -945,14 +1066,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiUnsubscribeResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.UnsubscribeResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -961,13 +1088,12 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiUnsubscribeRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.UnsubscribeRequest"
             }
           }
         ],
         "tags": [
-          "connection management",
-          "oss"
+          "connection management"
         ]
       }
     },
@@ -979,14 +1105,20 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiUpdateUserStatusResponse"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.UpdateUserStatusResponse"
             }
           },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
           }
         },
         "parameters": [
@@ -995,19 +1127,18 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiUpdateUserStatusRequest"
+              "$ref": "#/definitions/centrifugal.centrifugo.api.UpdateUserStatusRequest"
             }
           }
         ],
         "tags": [
-          "user status",
-          "pro"
+          "user status"
         ]
       }
     }
   },
   "definitions": {
-    "apiApnsPushNotification": {
+    "centrifugal.centrifugo.api.ApnsPushNotification": {
       "type": "object",
       "properties": {
         "headers": {
@@ -1021,57 +1152,56 @@
         }
       }
     },
-    "apiBatchRequest": {
+    "centrifugal.centrifugo.api.BatchRequest": {
       "type": "object",
       "properties": {
         "commands": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/apiCommand"
+            "$ref": "#/definitions/centrifugal.centrifugo.api.Command"
           }
         }
       }
     },
-    "apiBatchResponse": {
+    "centrifugal.centrifugo.api.BatchResponse": {
       "type": "object",
       "properties": {
         "replies": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/apiReply"
+            "$ref": "#/definitions/centrifugal.centrifugo.api.Reply"
           }
         }
       }
     },
-    "apiBlockUserRequest": {
+    "centrifugal.centrifugo.api.BlockUserRequest": {
       "type": "object",
       "properties": {
         "expire_at": {
-          "type": "string",
-          "format": "int64"
+          "type": "integer"
         },
         "user": {
           "type": "string"
         }
       }
     },
-    "apiBlockUserResponse": {
+    "centrifugal.centrifugo.api.BlockUserResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiBlockUserResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.BlockUserResult"
         }
       }
     },
-    "apiBlockUserResult": {
+    "centrifugal.centrifugo.api.BlockUserResult": {
       "type": "object"
     },
-    "apiBoolValue": {
+    "centrifugal.centrifugo.api.BoolValue": {
       "type": "object",
       "properties": {
         "value": {
@@ -1079,7 +1209,7 @@
         }
       }
     },
-    "apiBroadcastRequest": {
+    "centrifugal.centrifugo.api.BroadcastRequest": {
       "type": "object",
       "properties": {
         "channels": {
@@ -1105,30 +1235,30 @@
         }
       }
     },
-    "apiBroadcastResponse": {
+    "centrifugal.centrifugo.api.BroadcastResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiBroadcastResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.BroadcastResult"
         }
       }
     },
-    "apiBroadcastResult": {
+    "centrifugal.centrifugo.api.BroadcastResult": {
       "type": "object",
       "properties": {
         "responses": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/apiPublishResponse"
+            "$ref": "#/definitions/centrifugal.centrifugo.api.PublishResponse"
           }
         }
       }
     },
-    "apiChannelContext": {
+    "centrifugal.centrifugo.api.ChannelContext": {
       "type": "object",
       "properties": {
         "source": {
@@ -1137,7 +1267,7 @@
         }
       }
     },
-    "apiChannelInfo": {
+    "centrifugal.centrifugo.api.ChannelInfo": {
       "type": "object",
       "properties": {
         "num_clients": {
@@ -1146,7 +1276,7 @@
         }
       }
     },
-    "apiChannelsRequest": {
+    "centrifugal.centrifugo.api.ChannelsRequest": {
       "type": "object",
       "properties": {
         "pattern": {
@@ -1154,29 +1284,29 @@
         }
       }
     },
-    "apiChannelsResponse": {
+    "centrifugal.centrifugo.api.ChannelsResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiChannelsResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.ChannelsResult"
         }
       }
     },
-    "apiChannelsResult": {
+    "centrifugal.centrifugo.api.ChannelsResult": {
       "type": "object",
       "properties": {
         "channels": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/apiChannelInfo"
+            "$ref": "#/definitions/centrifugal.centrifugo.api.ChannelInfo"
           }
         }
       }
     },
-    "apiClientInfo": {
+    "centrifugal.centrifugo.api.ClientInfo": {
       "type": "object",
       "properties": {
         "user": {
@@ -1193,96 +1323,96 @@
         }
       }
     },
-    "apiCommand": {
+    "centrifugal.centrifugo.api.Command": {
       "type": "object",
       "properties": {
         "publish": {
-          "$ref": "#/definitions/apiPublishRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.PublishRequest"
         },
         "broadcast": {
-          "$ref": "#/definitions/apiBroadcastRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.BroadcastRequest"
         },
         "subscribe": {
-          "$ref": "#/definitions/apiSubscribeRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.SubscribeRequest"
         },
         "unsubscribe": {
-          "$ref": "#/definitions/apiUnsubscribeRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.UnsubscribeRequest"
         },
         "disconnect": {
-          "$ref": "#/definitions/apiDisconnectRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DisconnectRequest"
         },
         "presence": {
-          "$ref": "#/definitions/apiPresenceRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.PresenceRequest"
         },
         "presence_stats": {
-          "$ref": "#/definitions/apiPresenceStatsRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.PresenceStatsRequest"
         },
         "history": {
-          "$ref": "#/definitions/apiHistoryRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.HistoryRequest"
         },
         "history_remove": {
-          "$ref": "#/definitions/apiHistoryRemoveRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.HistoryRemoveRequest"
         },
         "info": {
-          "$ref": "#/definitions/apiInfoRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.InfoRequest"
         },
         "rpc": {
-          "$ref": "#/definitions/apiRPCRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.RPCRequest"
         },
         "refresh": {
-          "$ref": "#/definitions/apiRefreshRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.RefreshRequest"
         },
         "channels": {
-          "$ref": "#/definitions/apiChannelsRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.ChannelsRequest"
         },
         "connections": {
-          "$ref": "#/definitions/apiConnectionsRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.ConnectionsRequest"
         },
         "update_user_status": {
-          "$ref": "#/definitions/apiUpdateUserStatusRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.UpdateUserStatusRequest"
         },
         "get_user_status": {
-          "$ref": "#/definitions/apiGetUserStatusRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.GetUserStatusRequest"
         },
         "delete_user_status": {
-          "$ref": "#/definitions/apiDeleteUserStatusRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeleteUserStatusRequest"
         },
         "block_user": {
-          "$ref": "#/definitions/apiBlockUserRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.BlockUserRequest"
         },
         "unblock_user": {
-          "$ref": "#/definitions/apiUnblockUserRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.UnblockUserRequest"
         },
         "revoke_token": {
-          "$ref": "#/definitions/apiRevokeTokenRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.RevokeTokenRequest"
         },
         "invalidate_user_tokens": {
-          "$ref": "#/definitions/apiInvalidateUserTokensRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.InvalidateUserTokensRequest"
         },
         "device_register": {
-          "$ref": "#/definitions/apiDeviceRegisterRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceRegisterRequest"
         },
         "device_update": {
-          "$ref": "#/definitions/apiDeviceUpdateRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceUpdateRequest"
         },
         "device_remove": {
-          "$ref": "#/definitions/apiDeviceRemoveRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceRemoveRequest"
         },
         "device_list": {
-          "$ref": "#/definitions/apiDeviceListRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceListRequest"
         },
         "push_user_channel_list": {
-          "$ref": "#/definitions/apiPushUserChannelListRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.PushUserChannelListRequest"
         },
         "push_user_channel_update": {
-          "$ref": "#/definitions/apiPushUserChannelUpdateRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.PushUserChannelUpdateRequest"
         },
         "send_push_notification": {
-          "$ref": "#/definitions/apiSendPushNotificationRequest"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.SendPushNotificationRequest"
         }
       }
     },
-    "apiConnectionInfo": {
+    "centrifugal.centrifugo.api.ConnectionInfo": {
       "type": "object",
       "properties": {
         "app_name": {
@@ -1302,26 +1432,26 @@
           "description": "5-7 dropped for backwards compatibility."
         },
         "state": {
-          "$ref": "#/definitions/apiConnectionState"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.ConnectionState"
         }
       }
     },
-    "apiConnectionState": {
+    "centrifugal.centrifugo.api.ConnectionState": {
       "type": "object",
       "properties": {
         "channels": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/apiChannelContext"
+            "$ref": "#/definitions/centrifugal.centrifugo.api.ChannelContext"
           }
         },
         "connection_token": {
-          "$ref": "#/definitions/apiConnectionTokenInfo"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.ConnectionTokenInfo"
         },
         "subscription_tokens": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/apiSubscriptionTokenInfo"
+            "$ref": "#/definitions/centrifugal.centrifugo.api.SubscriptionTokenInfo"
           }
         },
         "meta": {
@@ -1329,19 +1459,18 @@
         }
       }
     },
-    "apiConnectionTokenInfo": {
+    "centrifugal.centrifugo.api.ConnectionTokenInfo": {
       "type": "object",
       "properties": {
         "uid": {
           "type": "string"
         },
         "issued_at": {
-          "type": "string",
-          "format": "int64"
+          "type": "integer"
         }
       }
     },
-    "apiConnectionsRequest": {
+    "centrifugal.centrifugo.api.ConnectionsRequest": {
       "type": "object",
       "properties": {
         "user": {
@@ -1352,29 +1481,29 @@
         }
       }
     },
-    "apiConnectionsResponse": {
+    "centrifugal.centrifugo.api.ConnectionsResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiConnectionsResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.ConnectionsResult"
         }
       }
     },
-    "apiConnectionsResult": {
+    "centrifugal.centrifugo.api.ConnectionsResult": {
       "type": "object",
       "properties": {
         "connections": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/apiConnectionInfo"
+            "$ref": "#/definitions/centrifugal.centrifugo.api.ConnectionInfo"
           }
         }
       }
     },
-    "apiDeleteUserStatusRequest": {
+    "centrifugal.centrifugo.api.DeleteUserStatusRequest": {
       "type": "object",
       "properties": {
         "users": {
@@ -1385,21 +1514,21 @@
         }
       }
     },
-    "apiDeleteUserStatusResponse": {
+    "centrifugal.centrifugo.api.DeleteUserStatusResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiDeleteUserStatusResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeleteUserStatusResult"
         }
       }
     },
-    "apiDeleteUserStatusResult": {
+    "centrifugal.centrifugo.api.DeleteUserStatusResult": {
       "type": "object"
     },
-    "apiDevice": {
+    "centrifugal.centrifugo.api.Device": {
       "type": "object",
       "properties": {
         "id": {
@@ -1437,7 +1566,7 @@
         }
       }
     },
-    "apiDeviceChannelsUpdate": {
+    "centrifugal.centrifugo.api.DeviceChannelsUpdate": {
       "type": "object",
       "properties": {
         "op": {
@@ -1452,7 +1581,7 @@
         }
       }
     },
-    "apiDeviceListRequest": {
+    "centrifugal.centrifugo.api.DeviceListRequest": {
       "type": "object",
       "properties": {
         "ids": {
@@ -1471,7 +1600,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/apiDeviceProviderTokens"
+            "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceProviderTokens"
           }
         },
         "platforms": {
@@ -1510,25 +1639,25 @@
         }
       }
     },
-    "apiDeviceListResponse": {
+    "centrifugal.centrifugo.api.DeviceListResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiDeviceListResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceListResult"
         }
       }
     },
-    "apiDeviceListResult": {
+    "centrifugal.centrifugo.api.DeviceListResult": {
       "type": "object",
       "properties": {
         "items": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/apiDevice"
+            "$ref": "#/definitions/centrifugal.centrifugo.api.Device"
           }
         },
         "has_more": {
@@ -1536,7 +1665,7 @@
         }
       }
     },
-    "apiDeviceMetaUpdate": {
+    "centrifugal.centrifugo.api.DeviceMetaUpdate": {
       "type": "object",
       "properties": {
         "meta": {
@@ -1547,7 +1676,7 @@
         }
       }
     },
-    "apiDeviceProviderTokens": {
+    "centrifugal.centrifugo.api.DeviceProviderTokens": {
       "type": "object",
       "properties": {
         "provider": {
@@ -1561,7 +1690,7 @@
         }
       }
     },
-    "apiDeviceRegisterRequest": {
+    "centrifugal.centrifugo.api.DeviceRegisterRequest": {
       "type": "object",
       "properties": {
         "id": {
@@ -1599,26 +1728,26 @@
         }
       }
     },
-    "apiDeviceRegisterResponse": {
+    "centrifugal.centrifugo.api.DeviceRegisterResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiDeviceRegisterResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceRegisterResult"
         }
       }
     },
-    "apiDeviceRegisterResult": {
+    "centrifugal.centrifugo.api.DeviceRegisterResult": {
       "type": "object",
       "properties": {
         "device": {
-          "$ref": "#/definitions/apiDevice"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Device"
         }
       }
     },
-    "apiDeviceRemoveRequest": {
+    "centrifugal.centrifugo.api.DeviceRemoveRequest": {
       "type": "object",
       "properties": {
         "ids": {
@@ -1637,26 +1766,26 @@
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/apiDeviceProviderTokens"
+            "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceProviderTokens"
           }
         }
       }
     },
-    "apiDeviceRemoveResponse": {
+    "centrifugal.centrifugo.api.DeviceRemoveResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiDeviceRemoveResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceRemoveResult"
         }
       }
     },
-    "apiDeviceRemoveResult": {
+    "centrifugal.centrifugo.api.DeviceRemoveResult": {
       "type": "object"
     },
-    "apiDeviceTagsUpdate": {
+    "centrifugal.centrifugo.api.DeviceTagsUpdate": {
       "type": "object",
       "properties": {
         "op": {
@@ -1671,7 +1800,7 @@
         }
       }
     },
-    "apiDeviceUpdateRequest": {
+    "centrifugal.centrifugo.api.DeviceUpdateRequest": {
       "type": "object",
       "properties": {
         "ids": {
@@ -1690,38 +1819,38 @@
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/apiDeviceProviderTokens"
+            "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceProviderTokens"
           }
         },
         "user_update": {
-          "$ref": "#/definitions/apiDeviceUserUpdate"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceUserUpdate"
         },
         "meta_update": {
-          "$ref": "#/definitions/apiDeviceMetaUpdate"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceMetaUpdate"
         },
         "tags_update": {
-          "$ref": "#/definitions/apiDeviceTagsUpdate"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceTagsUpdate"
         },
         "channels_update": {
-          "$ref": "#/definitions/apiDeviceChannelsUpdate"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceChannelsUpdate"
         }
       }
     },
-    "apiDeviceUpdateResponse": {
+    "centrifugal.centrifugo.api.DeviceUpdateResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiDeviceUpdateResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceUpdateResult"
         }
       }
     },
-    "apiDeviceUpdateResult": {
+    "centrifugal.centrifugo.api.DeviceUpdateResult": {
       "type": "object"
     },
-    "apiDeviceUserUpdate": {
+    "centrifugal.centrifugo.api.DeviceUserUpdate": {
       "type": "object",
       "properties": {
         "user": {
@@ -1729,7 +1858,7 @@
         }
       }
     },
-    "apiDisconnect": {
+    "centrifugal.centrifugo.api.Disconnect": {
       "type": "object",
       "properties": {
         "code": {
@@ -1744,14 +1873,14 @@
         }
       }
     },
-    "apiDisconnectRequest": {
+    "centrifugal.centrifugo.api.DisconnectRequest": {
       "type": "object",
       "properties": {
         "user": {
           "type": "string"
         },
         "disconnect": {
-          "$ref": "#/definitions/apiDisconnect"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Disconnect"
         },
         "client": {
           "type": "string"
@@ -1767,21 +1896,21 @@
         }
       }
     },
-    "apiDisconnectResponse": {
+    "centrifugal.centrifugo.api.DisconnectResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiDisconnectResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DisconnectResult"
         }
       }
     },
-    "apiDisconnectResult": {
+    "centrifugal.centrifugo.api.DisconnectResult": {
       "type": "object"
     },
-    "apiError": {
+    "centrifugal.centrifugo.api.Error": {
       "type": "object",
       "properties": {
         "code": {
@@ -1793,7 +1922,7 @@
         }
       }
     },
-    "apiFcmPushNotification": {
+    "centrifugal.centrifugo.api.FcmPushNotification": {
       "type": "object",
       "properties": {
         "message": {
@@ -1801,7 +1930,7 @@
         }
       }
     },
-    "apiGetUserStatusRequest": {
+    "centrifugal.centrifugo.api.GetUserStatusRequest": {
       "type": "object",
       "properties": {
         "users": {
@@ -1812,30 +1941,30 @@
         }
       }
     },
-    "apiGetUserStatusResponse": {
+    "centrifugal.centrifugo.api.GetUserStatusResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiGetUserStatusResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.GetUserStatusResult"
         }
       }
     },
-    "apiGetUserStatusResult": {
+    "centrifugal.centrifugo.api.GetUserStatusResult": {
       "type": "object",
       "properties": {
         "statuses": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/apiUserStatus"
+            "$ref": "#/definitions/centrifugal.centrifugo.api.UserStatus"
           }
         }
       }
     },
-    "apiHistoryRemoveRequest": {
+    "centrifugal.centrifugo.api.HistoryRemoveRequest": {
       "type": "object",
       "properties": {
         "channel": {
@@ -1843,21 +1972,21 @@
         }
       }
     },
-    "apiHistoryRemoveResponse": {
+    "centrifugal.centrifugo.api.HistoryRemoveResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiHistoryRemoveResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.HistoryRemoveResult"
         }
       }
     },
-    "apiHistoryRemoveResult": {
+    "centrifugal.centrifugo.api.HistoryRemoveResult": {
       "type": "object"
     },
-    "apiHistoryRequest": {
+    "centrifugal.centrifugo.api.HistoryRequest": {
       "type": "object",
       "properties": {
         "channel": {
@@ -1868,32 +1997,32 @@
           "format": "int32"
         },
         "since": {
-          "$ref": "#/definitions/apiStreamPosition"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.StreamPosition"
         },
         "reverse": {
           "type": "boolean"
         }
       }
     },
-    "apiHistoryResponse": {
+    "centrifugal.centrifugo.api.HistoryResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiHistoryResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.HistoryResult"
         }
       }
     },
-    "apiHistoryResult": {
+    "centrifugal.centrifugo.api.HistoryResult": {
       "type": "object",
       "properties": {
         "publications": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/apiPublication"
+            "$ref": "#/definitions/centrifugal.centrifugo.api.Publication"
           }
         },
         "epoch": {
@@ -1904,7 +2033,7 @@
         }
       }
     },
-    "apiHmsPushNotification": {
+    "centrifugal.centrifugo.api.HmsPushNotification": {
       "type": "object",
       "properties": {
         "message": {
@@ -1912,66 +2041,64 @@
         }
       }
     },
-    "apiInfoRequest": {
+    "centrifugal.centrifugo.api.InfoRequest": {
       "type": "object"
     },
-    "apiInfoResponse": {
+    "centrifugal.centrifugo.api.InfoResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiInfoResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.InfoResult"
         }
       }
     },
-    "apiInfoResult": {
+    "centrifugal.centrifugo.api.InfoResult": {
       "type": "object",
       "properties": {
         "nodes": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/apiNodeResult"
+            "$ref": "#/definitions/centrifugal.centrifugo.api.NodeResult"
           }
         }
       }
     },
-    "apiInvalidateUserTokensRequest": {
+    "centrifugal.centrifugo.api.InvalidateUserTokensRequest": {
       "type": "object",
       "properties": {
         "expire_at": {
-          "type": "string",
-          "format": "int64"
+          "type": "integer"
         },
         "user": {
           "type": "string"
         },
         "issued_before": {
-          "type": "string",
-          "format": "int64"
+          "type": "integer"
         },
         "channel": {
           "type": "string"
         }
       }
     },
-    "apiInvalidateUserTokensResponse": {
+    "centrifugal.centrifugo.api.InvalidateUserTokensResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiInvalidateUserTokensResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.InvalidateUserTokensResult"
         }
       }
     },
-    "apiInvalidateUserTokensResult": {
+    "centrifugal.centrifugo.api.InvalidateUserTokensResult": {
       "type": "object"
     },
-    "apiMetrics": {
+    "centrifugal.centrifugo.api.Metrics": {
       "type": "object",
       "properties": {
         "interval": {
@@ -1987,7 +2114,7 @@
         }
       }
     },
-    "apiNodeResult": {
+    "centrifugal.centrifugo.api.NodeResult": {
       "type": "object",
       "properties": {
         "uid": {
@@ -2016,10 +2143,10 @@
           "format": "int64"
         },
         "metrics": {
-          "$ref": "#/definitions/apiMetrics"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Metrics"
         },
         "process": {
-          "$ref": "#/definitions/apiProcess"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Process"
         },
         "num_subs": {
           "type": "integer",
@@ -2027,7 +2154,7 @@
         }
       }
     },
-    "apiPresenceRequest": {
+    "centrifugal.centrifugo.api.PresenceRequest": {
       "type": "object",
       "properties": {
         "channel": {
@@ -2035,29 +2162,29 @@
         }
       }
     },
-    "apiPresenceResponse": {
+    "centrifugal.centrifugo.api.PresenceResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiPresenceResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.PresenceResult"
         }
       }
     },
-    "apiPresenceResult": {
+    "centrifugal.centrifugo.api.PresenceResult": {
       "type": "object",
       "properties": {
         "presence": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/apiClientInfo"
+            "$ref": "#/definitions/centrifugal.centrifugo.api.ClientInfo"
           }
         }
       }
     },
-    "apiPresenceStatsRequest": {
+    "centrifugal.centrifugo.api.PresenceStatsRequest": {
       "type": "object",
       "properties": {
         "channel": {
@@ -2065,18 +2192,18 @@
         }
       }
     },
-    "apiPresenceStatsResponse": {
+    "centrifugal.centrifugo.api.PresenceStatsResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiPresenceStatsResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.PresenceStatsResult"
         }
       }
     },
-    "apiPresenceStatsResult": {
+    "centrifugal.centrifugo.api.PresenceStatsResult": {
       "type": "object",
       "properties": {
         "num_clients": {
@@ -2089,7 +2216,7 @@
         }
       }
     },
-    "apiProcess": {
+    "centrifugal.centrifugo.api.Process": {
       "type": "object",
       "properties": {
         "cpu": {
@@ -2097,12 +2224,11 @@
           "format": "double"
         },
         "rss": {
-          "type": "string",
-          "format": "int64"
+          "type": "integer"
         }
       }
     },
-    "apiPublication": {
+    "centrifugal.centrifugo.api.Publication": {
       "type": "object",
       "properties": {
         "data": {
@@ -2110,7 +2236,7 @@
           "title": "Removed: string uid = 1;"
         },
         "info": {
-          "$ref": "#/definitions/apiClientInfo"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.ClientInfo"
         },
         "offset": {
           "type": "integer"
@@ -2123,7 +2249,7 @@
         }
       }
     },
-    "apiPublishRequest": {
+    "centrifugal.centrifugo.api.PublishRequest": {
       "type": "object",
       "properties": {
         "channel": {
@@ -2146,18 +2272,18 @@
         }
       }
     },
-    "apiPublishResponse": {
+    "centrifugal.centrifugo.api.PublishResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiPublishResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.PublishResult"
         }
       }
     },
-    "apiPublishResult": {
+    "centrifugal.centrifugo.api.PublishResult": {
       "type": "object",
       "properties": {
         "offset": {
@@ -2168,28 +2294,27 @@
         }
       }
     },
-    "apiPushNotification": {
+    "centrifugal.centrifugo.api.PushNotification": {
       "type": "object",
       "properties": {
         "fcm": {
-          "$ref": "#/definitions/apiFcmPushNotification"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.FcmPushNotification"
         },
         "hms": {
-          "$ref": "#/definitions/apiHmsPushNotification"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.HmsPushNotification"
         },
         "apns": {
-          "$ref": "#/definitions/apiApnsPushNotification"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.ApnsPushNotification"
         },
         "uid": {
           "type": "string"
         },
         "expire_at": {
-          "type": "string",
-          "format": "int64"
+          "type": "integer"
         }
       }
     },
-    "apiPushRecipient": {
+    "centrifugal.centrifugo.api.PushRecipient": {
       "type": "object",
       "properties": {
         "device_ids": {
@@ -2236,7 +2361,7 @@
         }
       }
     },
-    "apiPushUserChannel": {
+    "centrifugal.centrifugo.api.PushUserChannel": {
       "type": "object",
       "properties": {
         "id": {
@@ -2250,7 +2375,7 @@
         }
       }
     },
-    "apiPushUserChannelListRequest": {
+    "centrifugal.centrifugo.api.PushUserChannelListRequest": {
       "type": "object",
       "properties": {
         "users": {
@@ -2274,25 +2399,25 @@
         }
       }
     },
-    "apiPushUserChannelListResponse": {
+    "centrifugal.centrifugo.api.PushUserChannelListResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiPushUserChannelListResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.PushUserChannelListResult"
         }
       }
     },
-    "apiPushUserChannelListResult": {
+    "centrifugal.centrifugo.api.PushUserChannelListResult": {
       "type": "object",
       "properties": {
         "items": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/apiPushUserChannel"
+            "$ref": "#/definitions/centrifugal.centrifugo.api.PushUserChannel"
           }
         },
         "has_more": {
@@ -2300,7 +2425,7 @@
         }
       }
     },
-    "apiPushUserChannelUpdateRequest": {
+    "centrifugal.centrifugo.api.PushUserChannelUpdateRequest": {
       "type": "object",
       "properties": {
         "user": {
@@ -2318,21 +2443,21 @@
         }
       }
     },
-    "apiPushUserChannelUpdateResponse": {
+    "centrifugal.centrifugo.api.PushUserChannelUpdateResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiPushUserChannelUpdateResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.PushUserChannelUpdateResult"
         }
       }
     },
-    "apiPushUserChannelUpdateResult": {
+    "centrifugal.centrifugo.api.PushUserChannelUpdateResult": {
       "type": "object"
     },
-    "apiRPCRequest": {
+    "centrifugal.centrifugo.api.RPCRequest": {
       "type": "object",
       "properties": {
         "method": {
@@ -2343,7 +2468,7 @@
         }
       }
     },
-    "apiRPCResult": {
+    "centrifugal.centrifugo.api.RPCResult": {
       "type": "object",
       "properties": {
         "data": {
@@ -2351,7 +2476,7 @@
         }
       }
     },
-    "apiRefreshRequest": {
+    "centrifugal.centrifugo.api.RefreshRequest": {
       "type": "object",
       "properties": {
         "user": {
@@ -2364,8 +2489,7 @@
           "type": "boolean"
         },
         "expire_at": {
-          "type": "string",
-          "format": "int64"
+          "type": "integer"
         },
         "info": {
           "type": "object"
@@ -2375,158 +2499,157 @@
         }
       }
     },
-    "apiRefreshResponse": {
+    "centrifugal.centrifugo.api.RefreshResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiRefreshResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.RefreshResult"
         }
       }
     },
-    "apiRefreshResult": {
+    "centrifugal.centrifugo.api.RefreshResult": {
       "type": "object"
     },
-    "apiReply": {
+    "centrifugal.centrifugo.api.Reply": {
       "type": "object",
       "properties": {
         "publish": {
-          "$ref": "#/definitions/apiPublishResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.PublishResult"
         },
         "broadcast": {
-          "$ref": "#/definitions/apiBroadcastResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.BroadcastResult"
         },
         "subscribe": {
-          "$ref": "#/definitions/apiSubscribeResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.SubscribeResult"
         },
         "unsubscribe": {
-          "$ref": "#/definitions/apiUnsubscribeResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.UnsubscribeResult"
         },
         "disconnect": {
-          "$ref": "#/definitions/apiDisconnectResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DisconnectResult"
         },
         "presence": {
-          "$ref": "#/definitions/apiPresenceResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.PresenceResult"
         },
         "presence_stats": {
-          "$ref": "#/definitions/apiPresenceStatsResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.PresenceStatsResult"
         },
         "history": {
-          "$ref": "#/definitions/apiHistoryResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.HistoryResult"
         },
         "history_remove": {
-          "$ref": "#/definitions/apiHistoryRemoveResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.HistoryRemoveResult"
         },
         "info": {
-          "$ref": "#/definitions/apiInfoResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.InfoResult"
         },
         "rpc": {
-          "$ref": "#/definitions/apiRPCResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.RPCResult"
         },
         "refresh": {
-          "$ref": "#/definitions/apiRefreshResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.RefreshResult"
         },
         "channels": {
-          "$ref": "#/definitions/apiChannelsResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.ChannelsResult"
         },
         "connections": {
-          "$ref": "#/definitions/apiConnectionsResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.ConnectionsResult"
         },
         "update_user_status": {
-          "$ref": "#/definitions/apiUpdateUserStatusResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.UpdateUserStatusResult"
         },
         "get_user_status": {
-          "$ref": "#/definitions/apiGetUserStatusResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.GetUserStatusResult"
         },
         "delete_user_status": {
-          "$ref": "#/definitions/apiDeleteUserStatusResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeleteUserStatusResult"
         },
         "block_user": {
-          "$ref": "#/definitions/apiBlockUserResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.BlockUserResult"
         },
         "unblock_user": {
-          "$ref": "#/definitions/apiUnblockUserResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.UnblockUserResult"
         },
         "revoke_token": {
-          "$ref": "#/definitions/apiRevokeTokenResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.RevokeTokenResult"
         },
         "invalidate_user_tokens": {
-          "$ref": "#/definitions/apiInvalidateUserTokensResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.InvalidateUserTokensResult"
         },
         "device_register": {
-          "$ref": "#/definitions/apiDeviceRegisterResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceRegisterResult"
         },
         "device_update": {
-          "$ref": "#/definitions/apiDeviceUpdateResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceUpdateResult"
         },
         "device_remove": {
-          "$ref": "#/definitions/apiDeviceRemoveResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceRemoveResult"
         },
         "device_list": {
-          "$ref": "#/definitions/apiDeviceListResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.DeviceListResult"
         },
         "push_user_channel_list": {
-          "$ref": "#/definitions/apiPushUserChannelListResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.PushUserChannelListResult"
         },
         "push_user_channel_update": {
-          "$ref": "#/definitions/apiPushUserChannelUpdateResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.PushUserChannelUpdateResult"
         },
         "send_push_notification": {
-          "$ref": "#/definitions/apiSendPushNotificationResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.SendPushNotificationResult"
         }
       }
     },
-    "apiRevokeTokenRequest": {
+    "centrifugal.centrifugo.api.RevokeTokenRequest": {
       "type": "object",
       "properties": {
         "expire_at": {
-          "type": "string",
-          "format": "int64"
+          "type": "integer"
         },
         "uid": {
           "type": "string"
         }
       }
     },
-    "apiRevokeTokenResponse": {
+    "centrifugal.centrifugo.api.RevokeTokenResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiRevokeTokenResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.RevokeTokenResult"
         }
       }
     },
-    "apiRevokeTokenResult": {
+    "centrifugal.centrifugo.api.RevokeTokenResult": {
       "type": "object"
     },
-    "apiSendPushNotificationRequest": {
+    "centrifugal.centrifugo.api.SendPushNotificationRequest": {
       "type": "object",
       "properties": {
         "recipient": {
-          "$ref": "#/definitions/apiPushRecipient"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.PushRecipient"
         },
         "notification": {
-          "$ref": "#/definitions/apiPushNotification"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.PushNotification"
         }
       }
     },
-    "apiSendPushNotificationResponse": {
+    "centrifugal.centrifugo.api.SendPushNotificationResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiSendPushNotificationResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.SendPushNotificationResult"
         }
       }
     },
-    "apiSendPushNotificationResult": {
+    "centrifugal.centrifugo.api.SendPushNotificationResult": {
       "type": "object",
       "properties": {
         "uid": {
@@ -2535,7 +2658,7 @@
         }
       }
     },
-    "apiStreamPosition": {
+    "centrifugal.centrifugo.api.StreamPosition": {
       "type": "object",
       "properties": {
         "offset": {
@@ -2546,27 +2669,27 @@
         }
       }
     },
-    "apiSubscribeOptionOverride": {
+    "centrifugal.centrifugo.api.SubscribeOptionOverride": {
       "type": "object",
       "properties": {
         "presence": {
-          "$ref": "#/definitions/apiBoolValue"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.BoolValue"
         },
         "join_leave": {
-          "$ref": "#/definitions/apiBoolValue"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.BoolValue"
         },
         "force_recovery": {
-          "$ref": "#/definitions/apiBoolValue"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.BoolValue"
         },
         "force_positioning": {
-          "$ref": "#/definitions/apiBoolValue"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.BoolValue"
         },
         "force_push_join_leave": {
-          "$ref": "#/definitions/apiBoolValue"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.BoolValue"
         }
       }
     },
-    "apiSubscribeRequest": {
+    "centrifugal.centrifugo.api.SubscribeRequest": {
       "type": "object",
       "properties": {
         "channel": {
@@ -2576,8 +2699,7 @@
           "type": "string"
         },
         "expire_at": {
-          "type": "string",
-          "format": "int64"
+          "type": "integer"
         },
         "info": {
           "type": "object"
@@ -2595,43 +2717,42 @@
           "type": "string"
         },
         "recover_since": {
-          "$ref": "#/definitions/apiStreamPosition"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.StreamPosition"
         },
         "override": {
-          "$ref": "#/definitions/apiSubscribeOptionOverride"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.SubscribeOptionOverride"
         },
         "session": {
           "type": "string"
         }
       }
     },
-    "apiSubscribeResponse": {
+    "centrifugal.centrifugo.api.SubscribeResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiSubscribeResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.SubscribeResult"
         }
       }
     },
-    "apiSubscribeResult": {
+    "centrifugal.centrifugo.api.SubscribeResult": {
       "type": "object"
     },
-    "apiSubscriptionTokenInfo": {
+    "centrifugal.centrifugo.api.SubscriptionTokenInfo": {
       "type": "object",
       "properties": {
         "uid": {
           "type": "string"
         },
         "issued_at": {
-          "type": "string",
-          "format": "int64"
+          "type": "integer"
         }
       }
     },
-    "apiUnblockUserRequest": {
+    "centrifugal.centrifugo.api.UnblockUserRequest": {
       "type": "object",
       "properties": {
         "user": {
@@ -2639,21 +2760,21 @@
         }
       }
     },
-    "apiUnblockUserResponse": {
+    "centrifugal.centrifugo.api.UnblockUserResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiUnblockUserResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.UnblockUserResult"
         }
       }
     },
-    "apiUnblockUserResult": {
+    "centrifugal.centrifugo.api.UnblockUserResult": {
       "type": "object"
     },
-    "apiUnsubscribeRequest": {
+    "centrifugal.centrifugo.api.UnsubscribeRequest": {
       "type": "object",
       "properties": {
         "channel": {
@@ -2670,21 +2791,21 @@
         }
       }
     },
-    "apiUnsubscribeResponse": {
+    "centrifugal.centrifugo.api.UnsubscribeResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiUnsubscribeResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.UnsubscribeResult"
         }
       }
     },
-    "apiUnsubscribeResult": {
+    "centrifugal.centrifugo.api.UnsubscribeResult": {
       "type": "object"
     },
-    "apiUpdateUserStatusRequest": {
+    "centrifugal.centrifugo.api.UpdateUserStatusRequest": {
       "type": "object",
       "properties": {
         "users": {
@@ -2695,61 +2816,31 @@
         }
       }
     },
-    "apiUpdateUserStatusResponse": {
+    "centrifugal.centrifugo.api.UpdateUserStatusResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/apiError"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.Error"
         },
         "result": {
-          "$ref": "#/definitions/apiUpdateUserStatusResult"
+          "$ref": "#/definitions/centrifugal.centrifugo.api.UpdateUserStatusResult"
         }
       }
     },
-    "apiUpdateUserStatusResult": {
+    "centrifugal.centrifugo.api.UpdateUserStatusResult": {
       "type": "object"
     },
-    "apiUserStatus": {
+    "centrifugal.centrifugo.api.UserStatus": {
       "type": "object",
       "properties": {
         "user": {
           "type": "string"
         },
         "active": {
-          "type": "string",
-          "format": "int64"
+          "type": "integer"
         },
         "online": {
-          "type": "string",
-          "format": "int64"
-        }
-      }
-    },
-    "protobufAny": {
-      "type": "object",
-      "properties": {
-        "@type": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": {}
-    },
-    "rpcStatus": {
-      "type": "object",
-      "properties": {
-        "code": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "message": {
-          "type": "string"
-        },
-        "details": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/protobufAny"
-          }
+          "type": "integer"
         }
       }
     }
