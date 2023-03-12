@@ -13,6 +13,10 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
     version: "5.0";
     description: "";
   };
+  external_docs: {
+    url: "https://centrifugal.dev/docs/server/server_api";
+    description: "More about Centrifugo HTTP API";
+  }
   consumes: "application/json";
   produces: "application/json";
   base_path: "/api";
@@ -91,7 +95,7 @@ service CentrifugoApi {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Batch request";
+      summary: "Batch request (send many commands in one request)";
       tags: ["batch"];
     };
   }
@@ -101,7 +105,7 @@ service CentrifugoApi {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Publish request";
+      summary: "Publish data into channel";
       tags: ["publication"];
     };
   }
@@ -111,7 +115,7 @@ service CentrifugoApi {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Broadcast request";
+      summary: "Broadcast allows publishing same data into many channels";
       tags: ["publication"];
     };
   }
@@ -121,7 +125,7 @@ service CentrifugoApi {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Subscribe request";
+      summary: "Subscribe connection(s) to a channel";
       tags: ["connection management"];
     };
   }
@@ -131,7 +135,7 @@ service CentrifugoApi {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Unsubscribe request";
+      summary: "Unsubscribe connection(s) from channel";
       tags: ["connection management"];
     };
   }
@@ -141,7 +145,7 @@ service CentrifugoApi {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Disconnect request";
+      summary: "Disconnect client(s) from server";
       tags: ["connection management"];
     };
   }
@@ -151,7 +155,7 @@ service CentrifugoApi {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Presence request";
+      summary: "Presence information for a channel";
       tags: ["presence"];
     };
   }
@@ -161,7 +165,7 @@ service CentrifugoApi {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Presence stats request";
+      summary: "Presence stats information for a channel";
       tags: ["presence"];
     };
   }
@@ -171,7 +175,7 @@ service CentrifugoApi {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "History request";
+      summary: "History for a channel";
       tags: ["history"];
     };
   }
@@ -181,7 +185,7 @@ service CentrifugoApi {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "History remove request";
+      summary: "Remove history for a channel";
       tags: ["history"];
     };
   }
@@ -191,7 +195,7 @@ service CentrifugoApi {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Info request";
+      summary: "Info shows details about server nodes";
       tags: ["stats"];
     };
   }
@@ -201,7 +205,7 @@ service CentrifugoApi {
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Refresh request";
+      summary: "Refresh connection(s) by server-side call";
       tags: ["connection management"];
     };
   }

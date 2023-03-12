@@ -46,7 +46,7 @@
   "paths": {
     "/batch": {
       "post": {
-        "summary": "Batch request",
+        "summary": "Batch request (send many commands in one request)",
         "operationId": "CentrifugoApi_Batch",
         "responses": {
           "200": {
@@ -124,7 +124,7 @@
     },
     "/broadcast": {
       "post": {
-        "summary": "Broadcast request",
+        "summary": "Broadcast allows publishing same data into many channels",
         "operationId": "CentrifugoApi_Broadcast",
         "responses": {
           "200": {
@@ -436,7 +436,7 @@
     },
     "/disconnect": {
       "post": {
-        "summary": "Disconnect request",
+        "summary": "Disconnect client(s) from server",
         "operationId": "CentrifugoApi_Disconnect",
         "responses": {
           "200": {
@@ -514,7 +514,7 @@
     },
     "/history": {
       "post": {
-        "summary": "History request",
+        "summary": "History for a channel",
         "operationId": "CentrifugoApi_History",
         "responses": {
           "200": {
@@ -553,7 +553,7 @@
     },
     "/history_remove": {
       "post": {
-        "summary": "History remove request",
+        "summary": "Remove history for a channel",
         "operationId": "CentrifugoApi_HistoryRemove",
         "responses": {
           "200": {
@@ -592,7 +592,7 @@
     },
     "/info": {
       "post": {
-        "summary": "Info request",
+        "summary": "Info shows details about server nodes",
         "operationId": "CentrifugoApi_Info",
         "responses": {
           "200": {
@@ -670,7 +670,7 @@
     },
     "/presence": {
       "post": {
-        "summary": "Presence request",
+        "summary": "Presence information for a channel",
         "operationId": "CentrifugoApi_Presence",
         "responses": {
           "200": {
@@ -709,7 +709,7 @@
     },
     "/presence_stats": {
       "post": {
-        "summary": "Presence stats request",
+        "summary": "Presence stats information for a channel",
         "operationId": "CentrifugoApi_PresenceStats",
         "responses": {
           "200": {
@@ -748,7 +748,7 @@
     },
     "/publish": {
       "post": {
-        "summary": "Publish request",
+        "summary": "Publish data into channel",
         "operationId": "CentrifugoApi_Publish",
         "responses": {
           "200": {
@@ -865,7 +865,7 @@
     },
     "/refresh": {
       "post": {
-        "summary": "Refresh request",
+        "summary": "Refresh connection(s) by server-side call",
         "operationId": "CentrifugoApi_Refresh",
         "responses": {
           "200": {
@@ -982,7 +982,7 @@
     },
     "/subscribe": {
       "post": {
-        "summary": "Subscribe request",
+        "summary": "Subscribe connection(s) to a channel",
         "operationId": "CentrifugoApi_Subscribe",
         "responses": {
           "200": {
@@ -1060,7 +1060,7 @@
     },
     "/unsubscribe": {
       "post": {
-        "summary": "Unsubscribe request",
+        "summary": "Unsubscribe connection(s) from channel",
         "operationId": "CentrifugoApi_Unsubscribe",
         "responses": {
           "200": {
@@ -2856,5 +2856,9 @@
     {
       "ApiKeyAuth": []
     }
-  ]
+  ],
+  "externalDocs": {
+    "description": "More about Centrifugo HTTP API",
+    "url": "https://centrifugal.dev/docs/server/server_api"
+  }
 }
