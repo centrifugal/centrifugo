@@ -10,9 +10,6 @@ protoc --openapiv2_out=allow_merge=true,merge_file_name=api:. ./api.swagger.prot
 search='("data":\s+{\s+"type":\s)"string",\s+"format":\s"byte"'
 replace='\1"object"'
 
-echo $search
-echo $replace
-
 python - << EOF
 import re
 
