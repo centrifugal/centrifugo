@@ -1,0 +1,1854 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "api.proto",
+    "version": "version not set"
+  },
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/publish": {
+      "post": {
+        "operationId": "CentrifugoApi_Publish",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiPublishResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/gatewayruntimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiPublishRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CentrifugoApi"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "CommandMethodType": {
+      "type": "string",
+      "enum": [
+        "PUBLISH",
+        "BROADCAST",
+        "UNSUBSCRIBE",
+        "DISCONNECT",
+        "PRESENCE",
+        "PRESENCE_STATS",
+        "HISTORY",
+        "HISTORY_REMOVE",
+        "CHANNELS",
+        "INFO",
+        "RPC",
+        "SUBSCRIBE",
+        "REFRESH",
+        "CONNECTIONS",
+        "UPDATE_USER_STATUS",
+        "GET_USER_STATUS",
+        "DELETE_USER_STATUS",
+        "BLOCK_USER",
+        "UNBLOCK_USER",
+        "REVOKE_TOKEN",
+        "INVALIDATE_USER_TOKENS",
+        "DEVICE_REGISTER",
+        "DEVICE_UPDATE",
+        "DEVICE_REMOVE",
+        "DEVICE_LIST",
+        "PUSH_USER_CHANNEL_LIST",
+        "PUSH_USER_CHANNEL_UPDATE",
+        "SEND_PUSH_NOTIFICATION"
+      ],
+      "default": "PUBLISH"
+    },
+    "apiApnsPushNotification": {
+      "type": "object",
+      "properties": {
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "payload": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "apiBatchResponse": {
+      "type": "object",
+      "properties": {
+        "replies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiReply"
+          }
+        }
+      }
+    },
+    "apiBlockUserRequest": {
+      "type": "object",
+      "properties": {
+        "expire_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "user": {
+          "type": "string"
+        }
+      }
+    },
+    "apiBlockUserResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiBlockUserResult"
+        }
+      }
+    },
+    "apiBlockUserResult": {
+      "type": "object"
+    },
+    "apiBoolValue": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "boolean"
+        }
+      }
+    },
+    "apiBroadcastRequest": {
+      "type": "object",
+      "properties": {
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "data": {
+          "type": "object"
+        },
+        "b64data": {
+          "type": "string"
+        },
+        "skip_history": {
+          "type": "boolean"
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiBroadcastResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiBroadcastResult"
+        }
+      }
+    },
+    "apiBroadcastResult": {
+      "type": "object",
+      "properties": {
+        "responses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiPublishResponse"
+          }
+        }
+      }
+    },
+    "apiChannelContext": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "apiChannelInfo": {
+      "type": "object",
+      "properties": {
+        "num_clients": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "apiChannelsRequest": {
+      "type": "object",
+      "properties": {
+        "pattern": {
+          "type": "string"
+        }
+      }
+    },
+    "apiChannelsResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiChannelsResult"
+        }
+      }
+    },
+    "apiChannelsResult": {
+      "type": "object",
+      "properties": {
+        "channels": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/apiChannelInfo"
+          }
+        }
+      }
+    },
+    "apiClientInfo": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "client": {
+          "type": "string"
+        },
+        "conn_info": {
+          "type": "string",
+          "format": "byte"
+        },
+        "chan_info": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "apiCommand": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "method": {
+          "$ref": "#/definitions/CommandMethodType"
+        },
+        "params": {
+          "type": "string",
+          "format": "byte"
+        },
+        "publish": {
+          "$ref": "#/definitions/apiPublishRequest"
+        },
+        "broadcast": {
+          "$ref": "#/definitions/apiBroadcastRequest"
+        },
+        "subscribe": {
+          "$ref": "#/definitions/apiSubscribeRequest"
+        },
+        "unsubscribe": {
+          "$ref": "#/definitions/apiUnsubscribeRequest"
+        },
+        "disconnect": {
+          "$ref": "#/definitions/apiDisconnectRequest"
+        },
+        "presence": {
+          "$ref": "#/definitions/apiPresenceRequest"
+        },
+        "presence_stats": {
+          "$ref": "#/definitions/apiPresenceStatsRequest"
+        },
+        "history": {
+          "$ref": "#/definitions/apiHistoryRequest"
+        },
+        "history_remove": {
+          "$ref": "#/definitions/apiHistoryRemoveRequest"
+        },
+        "info": {
+          "$ref": "#/definitions/apiInfoRequest"
+        },
+        "rpc": {
+          "$ref": "#/definitions/apiRPCRequest"
+        },
+        "refresh": {
+          "$ref": "#/definitions/apiRefreshRequest"
+        },
+        "channels": {
+          "$ref": "#/definitions/apiChannelsRequest"
+        },
+        "connections": {
+          "$ref": "#/definitions/apiConnectionsRequest"
+        },
+        "update_user_status": {
+          "$ref": "#/definitions/apiUpdateUserStatusRequest"
+        },
+        "get_user_status": {
+          "$ref": "#/definitions/apiGetUserStatusRequest"
+        },
+        "delete_user_status": {
+          "$ref": "#/definitions/apiDeleteUserStatusRequest"
+        },
+        "block_user": {
+          "$ref": "#/definitions/apiBlockUserRequest"
+        },
+        "unblock_user": {
+          "$ref": "#/definitions/apiUnblockUserRequest"
+        },
+        "revoke_token": {
+          "$ref": "#/definitions/apiRevokeTokenRequest"
+        },
+        "invalidate_user_tokens": {
+          "$ref": "#/definitions/apiInvalidateUserTokensRequest"
+        },
+        "device_register": {
+          "$ref": "#/definitions/apiDeviceRegisterRequest"
+        },
+        "device_update": {
+          "$ref": "#/definitions/apiDeviceUpdateRequest"
+        },
+        "device_remove": {
+          "$ref": "#/definitions/apiDeviceRemoveRequest"
+        },
+        "device_list": {
+          "$ref": "#/definitions/apiDeviceListRequest"
+        },
+        "push_user_channel_list": {
+          "$ref": "#/definitions/apiPushUserChannelListRequest"
+        },
+        "push_user_channel_update": {
+          "$ref": "#/definitions/apiPushUserChannelUpdateRequest"
+        },
+        "send_push_notification": {
+          "$ref": "#/definitions/apiSendPushNotificationRequest"
+        }
+      }
+    },
+    "apiConnectionInfo": {
+      "type": "object",
+      "properties": {
+        "app_name": {
+          "type": "string"
+        },
+        "app_version": {
+          "type": "string"
+        },
+        "transport": {
+          "type": "string"
+        },
+        "protocol": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string",
+          "description": "5-7 dropped for backwards compatibility."
+        },
+        "state": {
+          "$ref": "#/definitions/apiConnectionState"
+        }
+      }
+    },
+    "apiConnectionState": {
+      "type": "object",
+      "properties": {
+        "channels": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/apiChannelContext"
+          }
+        },
+        "connection_token": {
+          "$ref": "#/definitions/apiConnectionTokenInfo"
+        },
+        "subscription_tokens": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/apiSubscriptionTokenInfo"
+          }
+        },
+        "meta": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "apiConnectionTokenInfo": {
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string"
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "apiConnectionsRequest": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "expression": {
+          "type": "string"
+        }
+      }
+    },
+    "apiConnectionsResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiConnectionsResult"
+        }
+      }
+    },
+    "apiConnectionsResult": {
+      "type": "object",
+      "properties": {
+        "connections": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/apiConnectionInfo"
+          }
+        }
+      }
+    },
+    "apiDeleteUserStatusRequest": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiDeleteUserStatusResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiDeleteUserStatusResult"
+        }
+      }
+    },
+    "apiDeleteUserStatusResult": {
+      "type": "object"
+    },
+    "apiDevice": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiDeviceChannelsUpdate": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string"
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiDeviceListRequest": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "provider_tokens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiDeviceProviderTokens"
+          }
+        },
+        "platforms": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "since": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "include_channels": {
+          "type": "boolean"
+        },
+        "include_meta": {
+          "type": "boolean"
+        },
+        "include_tags": {
+          "type": "boolean"
+        }
+      }
+    },
+    "apiDeviceListResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiDeviceListResult"
+        }
+      }
+    },
+    "apiDeviceListResult": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiDevice"
+          }
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      }
+    },
+    "apiDeviceMetaUpdate": {
+      "type": "object",
+      "properties": {
+        "meta": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiDeviceProviderTokens": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "tokens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiDeviceRegisterRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiDeviceRegisterResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiDeviceRegisterResult"
+        }
+      }
+    },
+    "apiDeviceRegisterResult": {
+      "type": "object",
+      "properties": {
+        "device": {
+          "$ref": "#/definitions/apiDevice"
+        }
+      }
+    },
+    "apiDeviceRemoveRequest": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "provider_tokens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiDeviceProviderTokens"
+          }
+        }
+      }
+    },
+    "apiDeviceRemoveResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiDeviceRemoveResult"
+        }
+      }
+    },
+    "apiDeviceRemoveResult": {
+      "type": "object"
+    },
+    "apiDeviceTagsUpdate": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiDeviceUpdateRequest": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "provider_tokens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiDeviceProviderTokens"
+          }
+        },
+        "user_update": {
+          "$ref": "#/definitions/apiDeviceUserUpdate"
+        },
+        "meta_update": {
+          "$ref": "#/definitions/apiDeviceMetaUpdate"
+        },
+        "tags_update": {
+          "$ref": "#/definitions/apiDeviceTagsUpdate"
+        },
+        "channels_update": {
+          "$ref": "#/definitions/apiDeviceChannelsUpdate"
+        }
+      }
+    },
+    "apiDeviceUpdateResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiDeviceUpdateResult"
+        }
+      }
+    },
+    "apiDeviceUpdateResult": {
+      "type": "object"
+    },
+    "apiDeviceUserUpdate": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        }
+      }
+    },
+    "apiDisconnect": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "reconnect": {
+          "type": "boolean"
+        }
+      }
+    },
+    "apiDisconnectRequest": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "disconnect": {
+          "$ref": "#/definitions/apiDisconnect"
+        },
+        "client": {
+          "type": "string"
+        },
+        "whitelist": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "session": {
+          "type": "string"
+        }
+      }
+    },
+    "apiDisconnectResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiDisconnectResult"
+        }
+      }
+    },
+    "apiDisconnectResult": {
+      "type": "object"
+    },
+    "apiFcmPushNotification": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "apiGetUserStatusRequest": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiGetUserStatusResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiGetUserStatusResult"
+        }
+      }
+    },
+    "apiGetUserStatusResult": {
+      "type": "object",
+      "properties": {
+        "statuses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiUserStatus"
+          }
+        }
+      }
+    },
+    "apiHistoryRemoveRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        }
+      }
+    },
+    "apiHistoryRemoveResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiHistoryRemoveResult"
+        }
+      }
+    },
+    "apiHistoryRemoveResult": {
+      "type": "object"
+    },
+    "apiHistoryRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "since": {
+          "$ref": "#/definitions/apiStreamPosition"
+        },
+        "reverse": {
+          "type": "boolean"
+        }
+      }
+    },
+    "apiHistoryResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiHistoryResult"
+        }
+      }
+    },
+    "apiHistoryResult": {
+      "type": "object",
+      "properties": {
+        "publications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiPublication"
+          }
+        },
+        "epoch": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "string",
+          "format": "uint64"
+        }
+      }
+    },
+    "apiHmsPushNotification": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "apiInfoRequest": {
+      "type": "object"
+    },
+    "apiInfoResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiInfoResult"
+        }
+      }
+    },
+    "apiInfoResult": {
+      "type": "object",
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiNodeResult"
+          }
+        }
+      }
+    },
+    "apiInvalidateUserTokensRequest": {
+      "type": "object",
+      "properties": {
+        "expire_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "user": {
+          "type": "string"
+        },
+        "issued_before": {
+          "type": "string",
+          "format": "int64"
+        },
+        "channel": {
+          "type": "string"
+        }
+      }
+    },
+    "apiInvalidateUserTokensResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiInvalidateUserTokensResult"
+        }
+      }
+    },
+    "apiInvalidateUserTokensResult": {
+      "type": "object"
+    },
+    "apiMetrics": {
+      "type": "object",
+      "properties": {
+        "interval": {
+          "type": "number",
+          "format": "double"
+        },
+        "items": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      }
+    },
+    "apiNodeResult": {
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "num_clients": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "num_users": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "num_channels": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "uptime": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "metrics": {
+          "$ref": "#/definitions/apiMetrics"
+        },
+        "process": {
+          "$ref": "#/definitions/apiProcess"
+        },
+        "num_subs": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "apiPresenceRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        }
+      }
+    },
+    "apiPresenceResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiPresenceResult"
+        }
+      }
+    },
+    "apiPresenceResult": {
+      "type": "object",
+      "properties": {
+        "presence": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/apiClientInfo"
+          }
+        }
+      }
+    },
+    "apiPresenceStatsRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        }
+      }
+    },
+    "apiPresenceStatsResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiPresenceStatsResult"
+        }
+      }
+    },
+    "apiPresenceStatsResult": {
+      "type": "object",
+      "properties": {
+        "num_clients": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "num_users": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "apiProcess": {
+      "type": "object",
+      "properties": {
+        "cpu": {
+          "type": "number",
+          "format": "double"
+        },
+        "rss": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "apiPublication": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "title": "Removed: string uid = 1;"
+        },
+        "info": {
+          "$ref": "#/definitions/apiClientInfo"
+        },
+        "offset": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiPublishRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object"
+        },
+        "b64data": {
+          "type": "string"
+        },
+        "skip_history": {
+          "type": "boolean"
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiPublishResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiPublishResult"
+        }
+      }
+    },
+    "apiPublishResult": {
+      "type": "object",
+      "properties": {
+        "offset": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "epoch": {
+          "type": "string"
+        }
+      }
+    },
+    "apiPushNotification": {
+      "type": "object",
+      "properties": {
+        "fcm": {
+          "$ref": "#/definitions/apiFcmPushNotification"
+        },
+        "hms": {
+          "$ref": "#/definitions/apiHmsPushNotification"
+        },
+        "apns": {
+          "$ref": "#/definitions/apiApnsPushNotification"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "expire_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "apiPushRecipient": {
+      "type": "object",
+      "properties": {
+        "device_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "fcm_tokens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "fcm_topic": {
+          "type": "string"
+        },
+        "fcm_condition": {
+          "type": "string"
+        },
+        "hms_tokens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "hms_topic": {
+          "type": "string"
+        },
+        "hms_condition": {
+          "type": "string"
+        },
+        "apns_tokens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiPushUserChannel": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        },
+        "channel": {
+          "type": "string"
+        }
+      }
+    },
+    "apiPushUserChannelListRequest": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "since": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "apiPushUserChannelListResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiPushUserChannelListResult"
+        }
+      }
+    },
+    "apiPushUserChannelListResult": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiPushUserChannel"
+          }
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      }
+    },
+    "apiPushUserChannelUpdateRequest": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "op": {
+          "type": "string"
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiPushUserChannelUpdateResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiPushUserChannelUpdateResult"
+        }
+      }
+    },
+    "apiPushUserChannelUpdateResult": {
+      "type": "object"
+    },
+    "apiRPCRequest": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "params": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "apiRPCResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiRPCResult"
+        }
+      }
+    },
+    "apiRPCResult": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "apiRefreshRequest": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "client": {
+          "type": "string"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "expire_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "info": {
+          "type": "string",
+          "format": "byte"
+        },
+        "session": {
+          "type": "string"
+        }
+      }
+    },
+    "apiRefreshResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiRefreshResult"
+        }
+      }
+    },
+    "apiRefreshResult": {
+      "type": "object"
+    },
+    "apiReply": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "type": "string",
+          "format": "byte"
+        },
+        "publish": {
+          "$ref": "#/definitions/apiPublishResult"
+        },
+        "broadcast": {
+          "$ref": "#/definitions/apiBroadcastResult"
+        },
+        "subscribe": {
+          "$ref": "#/definitions/apiSubscribeResult"
+        },
+        "unsubscribe": {
+          "$ref": "#/definitions/apiUnsubscribeResult"
+        },
+        "disconnect": {
+          "$ref": "#/definitions/apiDisconnectResult"
+        },
+        "presence": {
+          "$ref": "#/definitions/apiPresenceResult"
+        },
+        "presence_stats": {
+          "$ref": "#/definitions/apiPresenceStatsResult"
+        },
+        "history": {
+          "$ref": "#/definitions/apiHistoryResult"
+        },
+        "history_remove": {
+          "$ref": "#/definitions/apiHistoryRemoveResult"
+        },
+        "info": {
+          "$ref": "#/definitions/apiInfoResult"
+        },
+        "rpc": {
+          "$ref": "#/definitions/apiRPCResult"
+        },
+        "refresh": {
+          "$ref": "#/definitions/apiRefreshResult"
+        },
+        "channels": {
+          "$ref": "#/definitions/apiChannelsResult"
+        },
+        "connections": {
+          "$ref": "#/definitions/apiConnectionsResult"
+        },
+        "update_user_status": {
+          "$ref": "#/definitions/apiUpdateUserStatusResult"
+        },
+        "get_user_status": {
+          "$ref": "#/definitions/apiGetUserStatusResult"
+        },
+        "delete_user_status": {
+          "$ref": "#/definitions/apiDeleteUserStatusResult"
+        },
+        "block_user": {
+          "$ref": "#/definitions/apiBlockUserResult"
+        },
+        "unblock_user": {
+          "$ref": "#/definitions/apiUnblockUserResult"
+        },
+        "revoke_token": {
+          "$ref": "#/definitions/apiRevokeTokenResult"
+        },
+        "invalidate_user_tokens": {
+          "$ref": "#/definitions/apiInvalidateUserTokensResult"
+        },
+        "device_register": {
+          "$ref": "#/definitions/apiDeviceRegisterResult"
+        },
+        "device_update": {
+          "$ref": "#/definitions/apiDeviceUpdateResult"
+        },
+        "device_remove": {
+          "$ref": "#/definitions/apiDeviceRemoveResult"
+        },
+        "device_list": {
+          "$ref": "#/definitions/apiDeviceListResult"
+        },
+        "push_user_channel_list": {
+          "$ref": "#/definitions/apiPushUserChannelListResult"
+        },
+        "push_user_channel_update": {
+          "$ref": "#/definitions/apiPushUserChannelUpdateResult"
+        },
+        "send_push_notification": {
+          "$ref": "#/definitions/apiSendPushNotificationResult"
+        }
+      }
+    },
+    "apiRevokeTokenRequest": {
+      "type": "object",
+      "properties": {
+        "expire_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "uid": {
+          "type": "string"
+        }
+      }
+    },
+    "apiRevokeTokenResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiRevokeTokenResult"
+        }
+      }
+    },
+    "apiRevokeTokenResult": {
+      "type": "object"
+    },
+    "apiSendPushNotificationRequest": {
+      "type": "object",
+      "properties": {
+        "recipient": {
+          "$ref": "#/definitions/apiPushRecipient"
+        },
+        "notification": {
+          "$ref": "#/definitions/apiPushNotification"
+        }
+      }
+    },
+    "apiSendPushNotificationResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiSendPushNotificationResult"
+        }
+      }
+    },
+    "apiSendPushNotificationResult": {
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string"
+        }
+      }
+    },
+    "apiStreamPosition": {
+      "type": "object",
+      "properties": {
+        "offset": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "epoch": {
+          "type": "string"
+        }
+      }
+    },
+    "apiSubscribeOptionOverride": {
+      "type": "object",
+      "properties": {
+        "presence": {
+          "$ref": "#/definitions/apiBoolValue"
+        },
+        "join_leave": {
+          "$ref": "#/definitions/apiBoolValue"
+        },
+        "force_recovery": {
+          "$ref": "#/definitions/apiBoolValue"
+        },
+        "force_positioning": {
+          "$ref": "#/definitions/apiBoolValue"
+        },
+        "force_push_join_leave": {
+          "$ref": "#/definitions/apiBoolValue"
+        }
+      }
+    },
+    "apiSubscribeRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        },
+        "expire_at": {
+          "type": "string",
+          "format": "int64"
+        },
+        "info": {
+          "type": "string",
+          "format": "byte"
+        },
+        "b64info": {
+          "type": "string"
+        },
+        "client": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object"
+        },
+        "b64data": {
+          "type": "string"
+        },
+        "recover_since": {
+          "$ref": "#/definitions/apiStreamPosition"
+        },
+        "override": {
+          "$ref": "#/definitions/apiSubscribeOptionOverride"
+        },
+        "session": {
+          "type": "string"
+        }
+      }
+    },
+    "apiSubscribeResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiSubscribeResult"
+        }
+      }
+    },
+    "apiSubscribeResult": {
+      "type": "object"
+    },
+    "apiSubscriptionTokenInfo": {
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string"
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "apiUnblockUserRequest": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        }
+      }
+    },
+    "apiUnblockUserResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiUnblockUserResult"
+        }
+      }
+    },
+    "apiUnblockUserResult": {
+      "type": "object"
+    },
+    "apiUnsubscribeRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        },
+        "client": {
+          "type": "string"
+        },
+        "session": {
+          "type": "string"
+        }
+      }
+    },
+    "apiUnsubscribeResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiUnsubscribeResult"
+        }
+      }
+    },
+    "apiUnsubscribeResult": {
+      "type": "object"
+    },
+    "apiUpdateUserStatusRequest": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "apiUpdateUserStatusResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/centrifugoapiError"
+        },
+        "result": {
+          "$ref": "#/definitions/apiUpdateUserStatusResult"
+        }
+      }
+    },
+    "apiUpdateUserStatusResult": {
+      "type": "object"
+    },
+    "apiUserStatus": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "active": {
+          "type": "string",
+          "format": "int64"
+        },
+        "online": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "centrifugoapiError": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "gatewayruntimeError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    }
+  }
+}
