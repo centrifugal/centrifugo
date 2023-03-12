@@ -2,7 +2,6 @@
 
 set -e
 
-#go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway@latest
 #go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
 
 protoc --openapiv2_out=json_names_for_fields=false,allow_merge=true,merge_file_name=api:. ./api.swagger.proto
