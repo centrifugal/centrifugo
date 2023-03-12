@@ -45,6 +45,7 @@
       "name": "pro"
     }
   ],
+  "basePath": "/api",
   "consumes": [
     "application/json"
   ],
