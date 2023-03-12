@@ -144,6 +144,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 					EnableRecovery:    chOpts.ForceRecovery,
 					EnablePositioning: chOpts.ForcePositioning,
 					Source:            subsource.ConnectProxy,
+					HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
 				}
 			}
 			reply.Subscriptions = subscriptions
