@@ -52,6 +52,11 @@ type ChannelOptions struct {
 	// grows it's important to remove history for inactive channels.
 	HistoryTTL tools.Duration `mapstructure:"history_ttl" json:"history_ttl"`
 
+	// HistoryMetaTTL is a time to live for history stream meta information. Must be
+	// much larger than HistoryTTL in common scenario. If zero, then we use global value
+	// set over default_history_meta_ttl on configuration top level.
+	HistoryMetaTTL tools.Duration `mapstructure:"history_meta_ttl" json:"history_meta_ttl"`
+
 	// ForcePositioning enables client positioning. This means that StreamPosition
 	// will be exposed to the client and server will look that no messages from
 	// PUB/SUB layer lost. In the loss found – client is disconnected (or unsubscribed)

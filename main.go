@@ -98,11 +98,15 @@ func bindCentrifugoConfig() {
 		"token_audience":             "",
 		"token_issuer":               "",
 
+		"default_history_meta_ttl": 90 * 24 * time.Hour,
+		"default_presence_ttl":     60 * time.Second,
+
 		"presence":                      false,
 		"join_leave":                    false,
 		"force_push_join_leave":         false,
 		"history_size":                  0,
 		"history_ttl":                   0,
+		"history_meta_ttl":              0,
 		"force_positioning":             false,
 		"allow_positioning":             false,
 		"force_recovery":                false,
@@ -203,9 +207,6 @@ func bindCentrifugoConfig() {
 		"redis_prefix":          "centrifugo",
 		"redis_connect_timeout": time.Second,
 		"redis_io_timeout":      4 * time.Second,
-
-		"history_meta_ttl": 90 * 24 * time.Hour,
-		"presence_ttl":     60 * time.Second,
 
 		"grpc_api":         false,
 		"grpc_api_address": "",
@@ -1363,6 +1364,7 @@ func ruleConfig() rule.Config {
 	cfg.ForcePushJoinLeave = v.GetBool("force_push_join_leave")
 	cfg.HistorySize = v.GetInt("history_size")
 	cfg.HistoryTTL = tools.Duration(GetDuration("history_ttl", true))
+	cfg.HistoryMetaTTL = tools.Duration(GetDuration("history_meta_ttl", true))
 	cfg.ForcePositioning = v.GetBool("force_positioning")
 	cfg.AllowPositioning = v.GetBool("allow_positioning")
 	cfg.AllowRecovery = v.GetBool("allow_recovery")
@@ -1793,7 +1795,7 @@ func nodeConfig(version string) centrifuge.Config {
 	cfg.NodeInfoMetricsAggregateInterval = GetDuration("node_info_metrics_aggregate_interval")
 	cfg.HistoryMaxPublicationLimit = v.GetInt("client_history_max_publication_limit")
 	cfg.RecoveryMaxPublicationLimit = v.GetInt("client_recovery_max_publication_limit")
-	cfg.HistoryMetaTTL = GetDuration("history_meta_ttl", true)
+	cfg.HistoryMetaTTL = GetDuration("default_history_meta_ttl", true)
 
 	level, ok := logStringToLevel[strings.ToLower(v.GetString("log_level"))]
 	if !ok {
@@ -2207,7 +2209,7 @@ func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMana
 	presenceManager, err := centrifuge.NewRedisPresenceManager(n, centrifuge.RedisPresenceManagerConfig{
 		Shards:      redisShards,
 		Prefix:      viper.GetString("redis_prefix"),
-		PresenceTTL: GetDuration("presence_ttl", true),
+		PresenceTTL: GetDuration("default_presence_ttl", true),
 	})
 	if err != nil {
 		return nil, nil, "", err
@@ -2287,7 +2289,7 @@ func tarantoolEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.Presence
 	}
 	presenceManager, err := tntengine.NewPresenceManager(n, tntengine.PresenceManagerConfig{
 		Shards:      tarantoolShards,
-		PresenceTTL: GetDuration("presence_ttl", true),
+		PresenceTTL: GetDuration("default_presence_ttl", true),
 	})
 	if err != nil {
 		return nil, nil, "", err
