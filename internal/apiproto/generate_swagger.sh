@@ -3,9 +3,9 @@
 set -e
 
 #go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway@latest
-#go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger@latest
+#go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
 
-protoc --swagger_out=allow_merge=true,merge_file_name=api:. ./api.swagger.proto
+protoc --openapiv2_out=allow_merge=true,merge_file_name=api:. ./api.swagger.proto
 
 search='("data":\s+{\s+"type":\s)"string",\s+"format":\s"byte"'
 replace='\1"object"'

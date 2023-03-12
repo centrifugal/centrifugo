@@ -15,6 +15,44 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   };
   consumes: "application/json";
   produces: "application/json";
+  tags: [
+    {
+      name: "publication"
+    },
+    {
+      name: "connection management"
+    },
+    {
+      name: "history"
+    },
+    {
+      name: "presence"
+    },
+    {
+      name: "stats"
+    },
+    {
+      name: "user status"
+    },
+    {
+      name: "user block"
+    },
+    {
+      name: "token"
+    },
+    {
+      name: "push notifications"
+    },
+    {
+      name: "batch"
+    },
+    {
+      name: "oss"
+    },
+    {
+      name: "pro"
+    }
+  ];
   security_definitions: {
     security: {
       key: "ApiKeyAuth";
@@ -25,6 +63,12 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
       }
     }
   }
+  security: {
+    security_requirement: {
+      key: "ApiKeyAuth";
+      value: {};
+    }
+  }
 };
 
 service CentrifugoApi {
@@ -33,11 +77,19 @@ service CentrifugoApi {
       post: "/batch",
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Batch request";
+      tags: ["batch", "oss"];
+    };
   }
   rpc Publish (PublishRequest) returns (PublishResponse) {
     option (google.api.http) = {
       post: "/publish",
       body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Publish request";
+      tags: ["publication", "oss"];
     };
   }
   rpc Broadcast (BroadcastRequest) returns (BroadcastResponse) {
@@ -45,11 +97,19 @@ service CentrifugoApi {
       post: "/broadcast",
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Broadcast request";
+      tags: ["publication", "oss"];
+    };
   }
   rpc Subscribe (SubscribeRequest) returns (SubscribeResponse) {
     option (google.api.http) = {
       post: "/subscribe",
       body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Subscribe request";
+      tags: ["connection management", "oss"];
     };
   }
   rpc Unsubscribe (UnsubscribeRequest) returns (UnsubscribeResponse) {
@@ -57,11 +117,19 @@ service CentrifugoApi {
       post: "/unsubscribe",
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Unsubscribe request";
+      tags: ["connection management", "oss"];
+    };
   }
   rpc Disconnect (DisconnectRequest) returns (DisconnectResponse) {
     option (google.api.http) = {
       post: "/disconnect",
       body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Disconnect request";
+      tags: ["connection management", "oss"];
     };
   }
   rpc Presence (PresenceRequest) returns (PresenceResponse) {
@@ -69,11 +137,19 @@ service CentrifugoApi {
       post: "/presence",
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Presence request";
+      tags: ["presence", "oss"];
+    };
   }
   rpc PresenceStats (PresenceStatsRequest) returns (PresenceStatsResponse) {
     option (google.api.http) = {
       post: "/presence_stats",
       body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Presence stats request";
+      tags: ["presence", "oss"];
     };
   }
   rpc History (HistoryRequest) returns (HistoryResponse) {
@@ -81,11 +157,19 @@ service CentrifugoApi {
       post: "/history",
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "History request";
+      tags: ["history", "oss"];
+    };
   }
   rpc HistoryRemove (HistoryRemoveRequest) returns (HistoryRemoveResponse) {
     option (google.api.http) = {
       post: "/history_remove",
       body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "History remove request";
+      tags: ["history", "oss"];
     };
   }
   rpc Info (InfoRequest) returns (InfoResponse) {
@@ -93,11 +177,9 @@ service CentrifugoApi {
       post: "/info",
       body: "*"
     };
-  }
-  rpc RPC (RPCRequest) returns (RPCResponse) {
-    option (google.api.http) = {
-      post: "/rpc",
-      body: "*"
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Info request";
+      tags: ["stats", "oss"];
     };
   }
   rpc Refresh (RefreshRequest) returns (RefreshResponse) {
@@ -105,11 +187,19 @@ service CentrifugoApi {
       post: "/refresh",
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Refresh request";
+      tags: ["connection management", "oss"];
+    };
   }
   rpc Channels (ChannelsRequest) returns (ChannelsResponse) {
     option (google.api.http) = {
       post: "/channels",
       body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Channels request";
+      tags: ["stats", "oss"];
     };
   }
   rpc Connections (ConnectionsRequest) returns (ConnectionsResponse) {
@@ -117,11 +207,19 @@ service CentrifugoApi {
       post: "/connections",
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Connections request";
+      tags: ["stats", "pro"];
+    };
   }
   rpc UpdateUserStatus (UpdateUserStatusRequest) returns (UpdateUserStatusResponse) {
     option (google.api.http) = {
       post: "/update_user_status",
       body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Updated user status request";
+      tags: ["user status", "pro"];
     };
   }
   rpc GetUserStatus (GetUserStatusRequest) returns (GetUserStatusResponse) {
@@ -129,11 +227,19 @@ service CentrifugoApi {
       post: "/get_user_status",
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get user status request";
+      tags: ["user status", "pro"];
+    };
   }
   rpc DeleteUserStatus (DeleteUserStatusRequest) returns (DeleteUserStatusResponse) {
     option (google.api.http) = {
       post: "/delete_user_status",
       body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Delete user status request";
+      tags: ["user status", "pro"];
     };
   }
   rpc BlockUser (BlockUserRequest) returns (BlockUserResponse) {
@@ -141,11 +247,19 @@ service CentrifugoApi {
       post: "/block_user",
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Block user request";
+      tags: ["user block", "pro"];
+    };
   }
   rpc UnblockUser (UnblockUserRequest) returns (UnblockUserResponse) {
     option (google.api.http) = {
       post: "/unblock_user",
       body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Unblock user request";
+      tags: ["user block", "pro"];
     };
   }
   rpc RevokeToken (RevokeTokenRequest) returns (RevokeTokenResponse) {
@@ -153,11 +267,19 @@ service CentrifugoApi {
       post: "/revoke_token",
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Revoke token request";
+      tags: ["token", "pro"];
+    };
   }
   rpc InvalidateUserTokens (InvalidateUserTokensRequest) returns (InvalidateUserTokensResponse) {
     option (google.api.http) = {
       post: "/invalidate_user_tokens",
       body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Invalidate user tokens request";
+      tags: ["token", "pro"];
     };
   }
   rpc DeviceRegister (DeviceRegisterRequest) returns (DeviceRegisterResponse) {
@@ -165,11 +287,19 @@ service CentrifugoApi {
       post: "/device_register",
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Device register request";
+      tags: ["push notifications", "pro"];
+    };
   }
   rpc DeviceUpdate (DeviceUpdateRequest) returns (DeviceUpdateResponse) {
     option (google.api.http) = {
       post: "/device_update",
       body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Device register request";
+      tags: ["push notifications", "pro"];
     };
   }
   rpc DeviceRemove (DeviceRemoveRequest) returns (DeviceRemoveResponse) {
@@ -177,11 +307,19 @@ service CentrifugoApi {
       post: "/device_remove",
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Device register request";
+      tags: ["push notifications", "pro"];
+    };
   }
   rpc DeviceList (DeviceListRequest) returns (DeviceListResponse) {
     option (google.api.http) = {
       post: "/device_list",
       body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Device register request";
+      tags: ["push notifications", "pro"];
     };
   }
   rpc PushUserChannelList (PushUserChannelListRequest) returns (PushUserChannelListResponse) {
@@ -189,17 +327,29 @@ service CentrifugoApi {
       post: "/push_user_channel_list",
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Device register request";
+      tags: ["push notifications", "pro"];
+    };
   }
   rpc PushUserChannelUpdate (PushUserChannelUpdateRequest) returns (PushUserChannelUpdateResponse) {
     option (google.api.http) = {
       post: "/push_user_channel_update",
       body: "*"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Device register request";
+      tags: ["push notifications", "pro"];
+    };
   }
   rpc SendPushNotification (SendPushNotificationRequest) returns (SendPushNotificationResponse) {
     option (google.api.http) = {
       post: "/send_push_notification",
       body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Device register request";
+      tags: ["push notifications","pro"];
     };
   }
 }

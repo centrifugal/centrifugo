@@ -4,6 +4,47 @@
     "title": "Centrifugo server HTTP API",
     "version": "5.0"
   },
+  "tags": [
+    {
+      "name": "CentrifugoApi"
+    },
+    {
+      "name": "publication"
+    },
+    {
+      "name": "connection management"
+    },
+    {
+      "name": "history"
+    },
+    {
+      "name": "presence"
+    },
+    {
+      "name": "stats"
+    },
+    {
+      "name": "user status"
+    },
+    {
+      "name": "user block"
+    },
+    {
+      "name": "token"
+    },
+    {
+      "name": "push notifications"
+    },
+    {
+      "name": "batch"
+    },
+    {
+      "name": "oss"
+    },
+    {
+      "name": "pro"
+    }
+  ],
   "consumes": [
     "application/json"
   ],
@@ -13,6 +54,7 @@
   "paths": {
     "/batch": {
       "post": {
+        "summary": "Batch request",
         "operationId": "CentrifugoApi_Batch",
         "responses": {
           "200": {
@@ -24,7 +66,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -39,12 +81,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "batch",
+          "oss"
         ]
       }
     },
     "/block_user": {
       "post": {
+        "summary": "Block user request",
         "operationId": "CentrifugoApi_BlockUser",
         "responses": {
           "200": {
@@ -56,7 +100,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -71,12 +115,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "user block",
+          "pro"
         ]
       }
     },
     "/broadcast": {
       "post": {
+        "summary": "Broadcast request",
         "operationId": "CentrifugoApi_Broadcast",
         "responses": {
           "200": {
@@ -88,7 +134,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -103,12 +149,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "publication",
+          "oss"
         ]
       }
     },
     "/channels": {
       "post": {
+        "summary": "Channels request",
         "operationId": "CentrifugoApi_Channels",
         "responses": {
           "200": {
@@ -120,7 +168,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -135,12 +183,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "stats",
+          "oss"
         ]
       }
     },
     "/connections": {
       "post": {
+        "summary": "Connections request",
         "operationId": "CentrifugoApi_Connections",
         "responses": {
           "200": {
@@ -152,7 +202,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -167,12 +217,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "stats",
+          "pro"
         ]
       }
     },
     "/delete_user_status": {
       "post": {
+        "summary": "Delete user status request",
         "operationId": "CentrifugoApi_DeleteUserStatus",
         "responses": {
           "200": {
@@ -184,7 +236,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -199,12 +251,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "user status",
+          "pro"
         ]
       }
     },
     "/device_list": {
       "post": {
+        "summary": "Device register request",
         "operationId": "CentrifugoApi_DeviceList",
         "responses": {
           "200": {
@@ -216,7 +270,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -231,12 +285,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "push notifications",
+          "pro"
         ]
       }
     },
     "/device_register": {
       "post": {
+        "summary": "Device register request",
         "operationId": "CentrifugoApi_DeviceRegister",
         "responses": {
           "200": {
@@ -248,7 +304,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -263,12 +319,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "push notifications",
+          "pro"
         ]
       }
     },
     "/device_remove": {
       "post": {
+        "summary": "Device register request",
         "operationId": "CentrifugoApi_DeviceRemove",
         "responses": {
           "200": {
@@ -280,7 +338,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -295,12 +353,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "push notifications",
+          "pro"
         ]
       }
     },
     "/device_update": {
       "post": {
+        "summary": "Device register request",
         "operationId": "CentrifugoApi_DeviceUpdate",
         "responses": {
           "200": {
@@ -312,7 +372,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -327,12 +387,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "push notifications",
+          "pro"
         ]
       }
     },
     "/disconnect": {
       "post": {
+        "summary": "Disconnect request",
         "operationId": "CentrifugoApi_Disconnect",
         "responses": {
           "200": {
@@ -344,7 +406,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -359,12 +421,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "connection management",
+          "oss"
         ]
       }
     },
     "/get_user_status": {
       "post": {
+        "summary": "Get user status request",
         "operationId": "CentrifugoApi_GetUserStatus",
         "responses": {
           "200": {
@@ -376,7 +440,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -391,12 +455,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "user status",
+          "pro"
         ]
       }
     },
     "/history": {
       "post": {
+        "summary": "History request",
         "operationId": "CentrifugoApi_History",
         "responses": {
           "200": {
@@ -408,7 +474,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -423,12 +489,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "history",
+          "oss"
         ]
       }
     },
     "/history_remove": {
       "post": {
+        "summary": "History remove request",
         "operationId": "CentrifugoApi_HistoryRemove",
         "responses": {
           "200": {
@@ -440,7 +508,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -455,12 +523,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "history",
+          "oss"
         ]
       }
     },
     "/info": {
       "post": {
+        "summary": "Info request",
         "operationId": "CentrifugoApi_Info",
         "responses": {
           "200": {
@@ -472,7 +542,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -487,12 +557,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "stats",
+          "oss"
         ]
       }
     },
     "/invalidate_user_tokens": {
       "post": {
+        "summary": "Invalidate user tokens request",
         "operationId": "CentrifugoApi_InvalidateUserTokens",
         "responses": {
           "200": {
@@ -504,7 +576,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -519,12 +591,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "token",
+          "pro"
         ]
       }
     },
     "/presence": {
       "post": {
+        "summary": "Presence request",
         "operationId": "CentrifugoApi_Presence",
         "responses": {
           "200": {
@@ -536,7 +610,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -551,12 +625,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "presence",
+          "oss"
         ]
       }
     },
     "/presence_stats": {
       "post": {
+        "summary": "Presence stats request",
         "operationId": "CentrifugoApi_PresenceStats",
         "responses": {
           "200": {
@@ -568,7 +644,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -583,12 +659,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "presence",
+          "oss"
         ]
       }
     },
     "/publish": {
       "post": {
+        "summary": "Publish request",
         "operationId": "CentrifugoApi_Publish",
         "responses": {
           "200": {
@@ -600,7 +678,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -615,12 +693,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "publication",
+          "oss"
         ]
       }
     },
     "/push_user_channel_list": {
       "post": {
+        "summary": "Device register request",
         "operationId": "CentrifugoApi_PushUserChannelList",
         "responses": {
           "200": {
@@ -632,7 +712,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -647,12 +727,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "push notifications",
+          "pro"
         ]
       }
     },
     "/push_user_channel_update": {
       "post": {
+        "summary": "Device register request",
         "operationId": "CentrifugoApi_PushUserChannelUpdate",
         "responses": {
           "200": {
@@ -664,7 +746,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -679,12 +761,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "push notifications",
+          "pro"
         ]
       }
     },
     "/refresh": {
       "post": {
+        "summary": "Refresh request",
         "operationId": "CentrifugoApi_Refresh",
         "responses": {
           "200": {
@@ -696,7 +780,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -711,12 +795,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "connection management",
+          "oss"
         ]
       }
     },
     "/revoke_token": {
       "post": {
+        "summary": "Revoke token request",
         "operationId": "CentrifugoApi_RevokeToken",
         "responses": {
           "200": {
@@ -728,7 +814,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -743,44 +829,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
-        ]
-      }
-    },
-    "/rpc": {
-      "post": {
-        "operationId": "CentrifugoApi_RPC",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/apiRPCResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/apiRPCRequest"
-            }
-          }
-        ],
-        "tags": [
-          "CentrifugoApi"
+          "token",
+          "pro"
         ]
       }
     },
     "/send_push_notification": {
       "post": {
+        "summary": "Device register request",
         "operationId": "CentrifugoApi_SendPushNotification",
         "responses": {
           "200": {
@@ -792,7 +848,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -807,12 +863,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "push notifications",
+          "pro"
         ]
       }
     },
     "/subscribe": {
       "post": {
+        "summary": "Subscribe request",
         "operationId": "CentrifugoApi_Subscribe",
         "responses": {
           "200": {
@@ -824,7 +882,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -839,12 +897,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "connection management",
+          "oss"
         ]
       }
     },
     "/unblock_user": {
       "post": {
+        "summary": "Unblock user request",
         "operationId": "CentrifugoApi_UnblockUser",
         "responses": {
           "200": {
@@ -856,7 +916,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -871,12 +931,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "user block",
+          "pro"
         ]
       }
     },
     "/unsubscribe": {
       "post": {
+        "summary": "Unsubscribe request",
         "operationId": "CentrifugoApi_Unsubscribe",
         "responses": {
           "200": {
@@ -888,7 +950,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -903,12 +965,14 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "connection management",
+          "oss"
         ]
       }
     },
     "/update_user_status": {
       "post": {
+        "summary": "Updated user status request",
         "operationId": "CentrifugoApi_UpdateUserStatus",
         "responses": {
           "200": {
@@ -920,7 +984,7 @@
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/gatewayruntimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -935,7 +999,8 @@
           }
         ],
         "tags": [
-          "CentrifugoApi"
+          "user status",
+          "pro"
         ]
       }
     }
@@ -962,6 +1027,7 @@
         "commands": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/apiCommand"
           }
         }
@@ -973,6 +1039,7 @@
         "replies": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/apiReply"
           }
         }
@@ -981,7 +1048,7 @@
     "apiBlockUserRequest": {
       "type": "object",
       "properties": {
-        "expire_at": {
+        "expireAt": {
           "type": "string",
           "format": "int64"
         },
@@ -994,7 +1061,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiBlockUserResult"
@@ -1027,7 +1094,7 @@
         "b64data": {
           "type": "string"
         },
-        "skip_history": {
+        "skipHistory": {
           "type": "boolean"
         },
         "tags": {
@@ -1042,7 +1109,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiBroadcastResult"
@@ -1055,6 +1122,7 @@
         "responses": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/apiPublishResponse"
           }
         }
@@ -1072,7 +1140,7 @@
     "apiChannelInfo": {
       "type": "object",
       "properties": {
-        "num_clients": {
+        "numClients": {
           "type": "integer",
           "format": "int64"
         }
@@ -1090,7 +1158,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiChannelsResult"
@@ -1117,11 +1185,11 @@
         "client": {
           "type": "string"
         },
-        "conn_info": {
+        "connInfo": {
           "type": "string",
           "format": "byte"
         },
-        "chan_info": {
+        "chanInfo": {
           "type": "string",
           "format": "byte"
         }
@@ -1148,13 +1216,13 @@
         "presence": {
           "$ref": "#/definitions/apiPresenceRequest"
         },
-        "presence_stats": {
+        "presenceStats": {
           "$ref": "#/definitions/apiPresenceStatsRequest"
         },
         "history": {
           "$ref": "#/definitions/apiHistoryRequest"
         },
-        "history_remove": {
+        "historyRemove": {
           "$ref": "#/definitions/apiHistoryRemoveRequest"
         },
         "info": {
@@ -1172,46 +1240,46 @@
         "connections": {
           "$ref": "#/definitions/apiConnectionsRequest"
         },
-        "update_user_status": {
+        "updateUserStatus": {
           "$ref": "#/definitions/apiUpdateUserStatusRequest"
         },
-        "get_user_status": {
+        "getUserStatus": {
           "$ref": "#/definitions/apiGetUserStatusRequest"
         },
-        "delete_user_status": {
+        "deleteUserStatus": {
           "$ref": "#/definitions/apiDeleteUserStatusRequest"
         },
-        "block_user": {
+        "blockUser": {
           "$ref": "#/definitions/apiBlockUserRequest"
         },
-        "unblock_user": {
+        "unblockUser": {
           "$ref": "#/definitions/apiUnblockUserRequest"
         },
-        "revoke_token": {
+        "revokeToken": {
           "$ref": "#/definitions/apiRevokeTokenRequest"
         },
-        "invalidate_user_tokens": {
+        "invalidateUserTokens": {
           "$ref": "#/definitions/apiInvalidateUserTokensRequest"
         },
-        "device_register": {
+        "deviceRegister": {
           "$ref": "#/definitions/apiDeviceRegisterRequest"
         },
-        "device_update": {
+        "deviceUpdate": {
           "$ref": "#/definitions/apiDeviceUpdateRequest"
         },
-        "device_remove": {
+        "deviceRemove": {
           "$ref": "#/definitions/apiDeviceRemoveRequest"
         },
-        "device_list": {
+        "deviceList": {
           "$ref": "#/definitions/apiDeviceListRequest"
         },
-        "push_user_channel_list": {
+        "pushUserChannelList": {
           "$ref": "#/definitions/apiPushUserChannelListRequest"
         },
-        "push_user_channel_update": {
+        "pushUserChannelUpdate": {
           "$ref": "#/definitions/apiPushUserChannelUpdateRequest"
         },
-        "send_push_notification": {
+        "sendPushNotification": {
           "$ref": "#/definitions/apiSendPushNotificationRequest"
         }
       }
@@ -1219,10 +1287,10 @@
     "apiConnectionInfo": {
       "type": "object",
       "properties": {
-        "app_name": {
+        "appName": {
           "type": "string"
         },
-        "app_version": {
+        "appVersion": {
           "type": "string"
         },
         "transport": {
@@ -1249,10 +1317,10 @@
             "$ref": "#/definitions/apiChannelContext"
           }
         },
-        "connection_token": {
+        "connectionToken": {
           "$ref": "#/definitions/apiConnectionTokenInfo"
         },
-        "subscription_tokens": {
+        "subscriptionTokens": {
           "type": "object",
           "additionalProperties": {
             "$ref": "#/definitions/apiSubscriptionTokenInfo"
@@ -1270,7 +1338,7 @@
         "uid": {
           "type": "string"
         },
-        "issued_at": {
+        "issuedAt": {
           "type": "string",
           "format": "int64"
         }
@@ -1291,7 +1359,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiConnectionsResult"
@@ -1324,7 +1392,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiDeleteUserStatusResult"
@@ -1376,7 +1444,8 @@
       "type": "object",
       "properties": {
         "op": {
-          "type": "string"
+          "type": "string",
+          "title": "add | remove | set"
         },
         "channels": {
           "type": "array",
@@ -1401,9 +1470,10 @@
             "type": "string"
           }
         },
-        "provider_tokens": {
+        "providerTokens": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/apiDeviceProviderTokens"
           }
         },
@@ -1432,13 +1502,13 @@
           "type": "integer",
           "format": "int32"
         },
-        "include_channels": {
+        "includeChannels": {
           "type": "boolean"
         },
-        "include_meta": {
+        "includeMeta": {
           "type": "boolean"
         },
-        "include_tags": {
+        "includeTags": {
           "type": "boolean"
         }
       }
@@ -1447,7 +1517,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiDeviceListResult"
@@ -1460,10 +1530,11 @@
         "items": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/apiDevice"
           }
         },
-        "has_more": {
+        "hasMore": {
           "type": "boolean"
         }
       }
@@ -1535,7 +1606,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiDeviceRegisterResult"
@@ -1565,9 +1636,10 @@
             "type": "string"
           }
         },
-        "provider_tokens": {
+        "providerTokens": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/apiDeviceProviderTokens"
           }
         }
@@ -1577,7 +1649,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiDeviceRemoveResult"
@@ -1591,7 +1663,8 @@
       "type": "object",
       "properties": {
         "op": {
-          "type": "string"
+          "type": "string",
+          "title": "add | remove | set"
         },
         "tags": {
           "type": "object",
@@ -1616,22 +1689,23 @@
             "type": "string"
           }
         },
-        "provider_tokens": {
+        "providerTokens": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/apiDeviceProviderTokens"
           }
         },
-        "user_update": {
+        "userUpdate": {
           "$ref": "#/definitions/apiDeviceUserUpdate"
         },
-        "meta_update": {
+        "metaUpdate": {
           "$ref": "#/definitions/apiDeviceMetaUpdate"
         },
-        "tags_update": {
+        "tagsUpdate": {
           "$ref": "#/definitions/apiDeviceTagsUpdate"
         },
-        "channels_update": {
+        "channelsUpdate": {
           "$ref": "#/definitions/apiDeviceChannelsUpdate"
         }
       }
@@ -1640,7 +1714,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiDeviceUpdateResult"
@@ -1700,7 +1774,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiDisconnectResult"
@@ -1709,6 +1783,18 @@
     },
     "apiDisconnectResult": {
       "type": "object"
+    },
+    "apiError": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
     },
     "apiFcmPushNotification": {
       "type": "object",
@@ -1734,7 +1820,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiGetUserStatusResult"
@@ -1747,6 +1833,7 @@
         "statuses": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/apiUserStatus"
           }
         }
@@ -1764,7 +1851,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiHistoryRemoveResult"
@@ -1796,7 +1883,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiHistoryResult"
@@ -1809,6 +1896,7 @@
         "publications": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/apiPublication"
           }
         },
@@ -1837,7 +1925,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiInfoResult"
@@ -1850,6 +1938,7 @@
         "nodes": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/apiNodeResult"
           }
         }
@@ -1858,14 +1947,14 @@
     "apiInvalidateUserTokensRequest": {
       "type": "object",
       "properties": {
-        "expire_at": {
+        "expireAt": {
           "type": "string",
           "format": "int64"
         },
         "user": {
           "type": "string"
         },
-        "issued_before": {
+        "issuedBefore": {
           "type": "string",
           "format": "int64"
         },
@@ -1878,7 +1967,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiInvalidateUserTokensResult"
@@ -1916,15 +2005,15 @@
         "version": {
           "type": "string"
         },
-        "num_clients": {
+        "numClients": {
           "type": "integer",
           "format": "int64"
         },
-        "num_users": {
+        "numUsers": {
           "type": "integer",
           "format": "int64"
         },
-        "num_channels": {
+        "numChannels": {
           "type": "integer",
           "format": "int64"
         },
@@ -1938,7 +2027,7 @@
         "process": {
           "$ref": "#/definitions/apiProcess"
         },
-        "num_subs": {
+        "numSubs": {
           "type": "integer",
           "format": "int64"
         }
@@ -1956,7 +2045,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiPresenceResult"
@@ -1986,7 +2075,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiPresenceStatsResult"
@@ -1996,11 +2085,11 @@
     "apiPresenceStatsResult": {
       "type": "object",
       "properties": {
-        "num_clients": {
+        "numClients": {
           "type": "integer",
           "format": "int64"
         },
-        "num_users": {
+        "numUsers": {
           "type": "integer",
           "format": "int64"
         }
@@ -2053,7 +2142,7 @@
         "b64data": {
           "type": "string"
         },
-        "skip_history": {
+        "skipHistory": {
           "type": "boolean"
         },
         "tags": {
@@ -2068,7 +2157,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiPublishResult"
@@ -2102,7 +2191,7 @@
         "uid": {
           "type": "string"
         },
-        "expire_at": {
+        "expireAt": {
           "type": "string",
           "format": "int64"
         }
@@ -2111,7 +2200,7 @@
     "apiPushRecipient": {
       "type": "object",
       "properties": {
-        "device_ids": {
+        "deviceIds": {
           "type": "array",
           "items": {
             "type": "string"
@@ -2123,31 +2212,31 @@
             "type": "string"
           }
         },
-        "fcm_tokens": {
+        "fcmTokens": {
           "type": "array",
           "items": {
             "type": "string"
           }
         },
-        "fcm_topic": {
+        "fcmTopic": {
           "type": "string"
         },
-        "fcm_condition": {
+        "fcmCondition": {
           "type": "string"
         },
-        "hms_tokens": {
+        "hmsTokens": {
           "type": "array",
           "items": {
             "type": "string"
           }
         },
-        "hms_topic": {
+        "hmsTopic": {
           "type": "string"
         },
-        "hms_condition": {
+        "hmsCondition": {
           "type": "string"
         },
-        "apns_tokens": {
+        "apnsTokens": {
           "type": "array",
           "items": {
             "type": "string"
@@ -2197,7 +2286,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiPushUserChannelListResult"
@@ -2210,10 +2299,11 @@
         "items": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/apiPushUserChannel"
           }
         },
-        "has_more": {
+        "hasMore": {
           "type": "boolean"
         }
       }
@@ -2225,7 +2315,8 @@
           "type": "string"
         },
         "op": {
-          "type": "string"
+          "type": "string",
+          "title": "add | remove | set"
         },
         "channels": {
           "type": "array",
@@ -2239,7 +2330,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiPushUserChannelUpdateResult"
@@ -2258,17 +2349,6 @@
         "params": {
           "type": "string",
           "format": "byte"
-        }
-      }
-    },
-    "apiRPCResponse": {
-      "type": "object",
-      "properties": {
-        "error": {
-          "$ref": "#/definitions/centrifugoapiError"
-        },
-        "result": {
-          "$ref": "#/definitions/apiRPCResult"
         }
       }
     },
@@ -2292,7 +2372,7 @@
         "expired": {
           "type": "boolean"
         },
-        "expire_at": {
+        "expireAt": {
           "type": "string",
           "format": "int64"
         },
@@ -2309,7 +2389,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiRefreshResult"
@@ -2340,13 +2420,13 @@
         "presence": {
           "$ref": "#/definitions/apiPresenceResult"
         },
-        "presence_stats": {
+        "presenceStats": {
           "$ref": "#/definitions/apiPresenceStatsResult"
         },
         "history": {
           "$ref": "#/definitions/apiHistoryResult"
         },
-        "history_remove": {
+        "historyRemove": {
           "$ref": "#/definitions/apiHistoryRemoveResult"
         },
         "info": {
@@ -2364,46 +2444,46 @@
         "connections": {
           "$ref": "#/definitions/apiConnectionsResult"
         },
-        "update_user_status": {
+        "updateUserStatus": {
           "$ref": "#/definitions/apiUpdateUserStatusResult"
         },
-        "get_user_status": {
+        "getUserStatus": {
           "$ref": "#/definitions/apiGetUserStatusResult"
         },
-        "delete_user_status": {
+        "deleteUserStatus": {
           "$ref": "#/definitions/apiDeleteUserStatusResult"
         },
-        "block_user": {
+        "blockUser": {
           "$ref": "#/definitions/apiBlockUserResult"
         },
-        "unblock_user": {
+        "unblockUser": {
           "$ref": "#/definitions/apiUnblockUserResult"
         },
-        "revoke_token": {
+        "revokeToken": {
           "$ref": "#/definitions/apiRevokeTokenResult"
         },
-        "invalidate_user_tokens": {
+        "invalidateUserTokens": {
           "$ref": "#/definitions/apiInvalidateUserTokensResult"
         },
-        "device_register": {
+        "deviceRegister": {
           "$ref": "#/definitions/apiDeviceRegisterResult"
         },
-        "device_update": {
+        "deviceUpdate": {
           "$ref": "#/definitions/apiDeviceUpdateResult"
         },
-        "device_remove": {
+        "deviceRemove": {
           "$ref": "#/definitions/apiDeviceRemoveResult"
         },
-        "device_list": {
+        "deviceList": {
           "$ref": "#/definitions/apiDeviceListResult"
         },
-        "push_user_channel_list": {
+        "pushUserChannelList": {
           "$ref": "#/definitions/apiPushUserChannelListResult"
         },
-        "push_user_channel_update": {
+        "pushUserChannelUpdate": {
           "$ref": "#/definitions/apiPushUserChannelUpdateResult"
         },
-        "send_push_notification": {
+        "sendPushNotification": {
           "$ref": "#/definitions/apiSendPushNotificationResult"
         }
       }
@@ -2411,7 +2491,7 @@
     "apiRevokeTokenRequest": {
       "type": "object",
       "properties": {
-        "expire_at": {
+        "expireAt": {
           "type": "string",
           "format": "int64"
         },
@@ -2424,7 +2504,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiRevokeTokenResult"
@@ -2449,7 +2529,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiSendPushNotificationResult"
@@ -2460,7 +2540,8 @@
       "type": "object",
       "properties": {
         "uid": {
-          "type": "string"
+          "type": "string",
+          "description": "Unique identifier of notification send request (not a FCM message id)."
         }
       }
     },
@@ -2482,16 +2563,16 @@
         "presence": {
           "$ref": "#/definitions/apiBoolValue"
         },
-        "join_leave": {
+        "joinLeave": {
           "$ref": "#/definitions/apiBoolValue"
         },
-        "force_recovery": {
+        "forceRecovery": {
           "$ref": "#/definitions/apiBoolValue"
         },
-        "force_positioning": {
+        "forcePositioning": {
           "$ref": "#/definitions/apiBoolValue"
         },
-        "force_push_join_leave": {
+        "forcePushJoinLeave": {
           "$ref": "#/definitions/apiBoolValue"
         }
       }
@@ -2505,7 +2586,7 @@
         "user": {
           "type": "string"
         },
-        "expire_at": {
+        "expireAt": {
           "type": "string",
           "format": "int64"
         },
@@ -2525,7 +2606,7 @@
         "b64data": {
           "type": "string"
         },
-        "recover_since": {
+        "recoverSince": {
           "$ref": "#/definitions/apiStreamPosition"
         },
         "override": {
@@ -2540,7 +2621,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiSubscribeResult"
@@ -2556,7 +2637,7 @@
         "uid": {
           "type": "string"
         },
-        "issued_at": {
+        "issuedAt": {
           "type": "string",
           "format": "int64"
         }
@@ -2574,7 +2655,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiUnblockUserResult"
@@ -2605,7 +2686,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiUnsubscribeResult"
@@ -2630,7 +2711,7 @@
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/centrifugoapiError"
+          "$ref": "#/definitions/apiError"
         },
         "result": {
           "$ref": "#/definitions/apiUpdateUserStatusResult"
@@ -2656,24 +2737,18 @@
         }
       }
     },
-    "centrifugoapiError": {
+    "protobufAny": {
       "type": "object",
       "properties": {
-        "code": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "message": {
+        "@type": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": {}
     },
-    "gatewayruntimeError": {
+    "rpcStatus": {
       "type": "object",
       "properties": {
-        "error": {
-          "type": "string"
-        },
         "code": {
           "type": "integer",
           "format": "int32"
@@ -2684,20 +2759,9 @@
         "details": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/protobufAny"
           }
-        }
-      }
-    },
-    "protobufAny": {
-      "type": "object",
-      "properties": {
-        "type_url": {
-          "type": "string"
-        },
-        "value": {
-          "type": "string",
-          "format": "byte"
         }
       }
     }
@@ -2708,5 +2772,10 @@
       "name": "Authorization",
       "in": "header"
     }
-  }
+  },
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ]
 }
