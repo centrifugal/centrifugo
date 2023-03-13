@@ -4,7 +4,7 @@ set -e
 
 #go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
 
-protoc --openapiv2_out=disable_default_errors=true,disable_service_tags=true,openapi_naming_strategy=fqn,json_names_for_fields=false,allow_merge=true,merge_file_name=api:. ./api.swagger.proto
+protoc --openapiv2_out=disable_default_errors=true,disable_service_tags=true,openapi_naming_strategy=simple,json_names_for_fields=false,allow_merge=true,merge_file_name=api:. ./api.swagger.proto
 
 search='(:\s+{\s+"type":\s)"string",\s+"format":\s"byte"'
 replace='\1"object"'
