@@ -46,7 +46,7 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
       name: "token"
     },
     {
-      name: "push notifications"
+      name: "push notification"
     },
     {
       name: "batch"
@@ -306,7 +306,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Device register request";
-      tags: ["push notifications"];
+      tags: ["push notification"];
     };
   }
   rpc DeviceUpdate (DeviceUpdateRequest) returns (DeviceUpdateResponse) {
@@ -316,7 +316,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Device register request";
-      tags: ["push notifications"];
+      tags: ["push notification"];
     };
   }
   rpc DeviceRemove (DeviceRemoveRequest) returns (DeviceRemoveResponse) {
@@ -326,7 +326,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Device register request";
-      tags: ["push notifications"];
+      tags: ["push notification"];
     };
   }
   rpc DeviceList (DeviceListRequest) returns (DeviceListResponse) {
@@ -336,7 +336,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Device register request";
-      tags: ["push notifications"];
+      tags: ["push notification"];
     };
   }
   rpc PushUserChannelList (PushUserChannelListRequest) returns (PushUserChannelListResponse) {
@@ -346,7 +346,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Device register request";
-      tags: ["push notifications"];
+      tags: ["push notification"];
     };
   }
   rpc PushUserChannelUpdate (PushUserChannelUpdateRequest) returns (PushUserChannelUpdateResponse) {
@@ -356,7 +356,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Device register request";
-      tags: ["push notifications"];
+      tags: ["push notification"];
     };
   }
   rpc SendPushNotification (SendPushNotificationRequest) returns (SendPushNotificationResponse) {
@@ -366,7 +366,7 @@ service CentrifugoApi {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Device register request";
-      tags: ["push notifications"];
+      tags: ["push notification"];
     };
   }
 }

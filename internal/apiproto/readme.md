@@ -21,14 +21,20 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"time"
 
 	"test_project/centrifugo"
 )
 
 func main() {
+	httpClient := &http.Client{Transport: &http.Transport{
+		MaxIdleConnsPerHost: 100,
+	}, Timeout: time.Second}
 	client := centrifugo.NewAPIClient(&centrifugo.Configuration{
 		BasePath:      "http://localhost:8000/api",
 		DefaultHeader: map[string]string{"Authorization": "apikey "},
+		HTTPClient:    httpClient,
 	})
 	reply, resp, err := client.PublicationApi.CentrifugoApiPublish(context.Background(), centrifugo.PublishRequest{
 		Channel: "test",
@@ -43,6 +49,6 @@ func main() {
 	if reply.Error_ != nil {
 		panic(reply.Error_.Message)
 	}
-	fmt.Println("published successfully")
+	fmt.Println("ok")
 }
 ```

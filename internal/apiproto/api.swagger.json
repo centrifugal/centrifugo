@@ -30,7 +30,7 @@
       "name": "token"
     },
     {
-      "name": "push notifications"
+      "name": "push notification"
     },
     {
       "name": "batch"
@@ -313,7 +313,7 @@
           }
         ],
         "tags": [
-          "push notifications"
+          "push notification"
         ]
       }
     },
@@ -352,7 +352,7 @@
           }
         ],
         "tags": [
-          "push notifications"
+          "push notification"
         ]
       }
     },
@@ -391,7 +391,7 @@
           }
         ],
         "tags": [
-          "push notifications"
+          "push notification"
         ]
       }
     },
@@ -430,7 +430,7 @@
           }
         ],
         "tags": [
-          "push notifications"
+          "push notification"
         ]
       }
     },
@@ -820,7 +820,7 @@
           }
         ],
         "tags": [
-          "push notifications"
+          "push notification"
         ]
       }
     },
@@ -859,7 +859,7 @@
           }
         ],
         "tags": [
-          "push notifications"
+          "push notification"
         ]
       }
     },
@@ -976,7 +976,7 @@
           }
         ],
         "tags": [
-          "push notifications"
+          "push notification"
         ]
       }
     },
