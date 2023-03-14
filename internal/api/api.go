@@ -323,6 +323,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 		centrifuge.WithEmitPresence(presence),
 		centrifuge.WithRecoverSince(recoverSince),
 		centrifuge.WithSubscribeSource(subsource.ServerAPI),
+		centrifuge.WithSubscribeHistoryMetaTTL(time.Duration(chOpts.HistoryMetaTTL)),
 	)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error subscribing user to a channel", map[string]interface{}{"channel": channel, "user": user, "error": err.Error()}))
