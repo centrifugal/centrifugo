@@ -167,9 +167,8 @@ func bindCentrifugoConfig() {
 		"admin_insecure": false,
 		"admin_web_path": "",
 
-		"sockjs":                 false,
-		"sockjs_url":             "https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js",
-		"sockjs_heartbeat_delay": 25 * time.Second,
+		"sockjs":     false,
+		"sockjs_url": "https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js",
 
 		"websocket_compression":           false,
 		"websocket_compression_min_size":  0,
@@ -2024,7 +2023,6 @@ func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	v := viper.GetViper()
 	cfg := centrifuge.SockjsConfig{}
 	cfg.URL = v.GetString("sockjs_url")
-	cfg.HeartbeatDelay = GetDuration("sockjs_heartbeat_delay")
 	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WebsocketWriteBufferSize = v.GetInt("websocket_write_buffer_size")
 	cfg.WebsocketUseWriteBufferPool = v.GetBool("websocket_use_write_buffer_pool")
