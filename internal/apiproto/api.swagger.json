@@ -1,0 +1,2864 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Centrifugo server HTTP API",
+    "version": "5.0"
+  },
+  "tags": [
+    {
+      "name": "publication"
+    },
+    {
+      "name": "connection management"
+    },
+    {
+      "name": "history"
+    },
+    {
+      "name": "presence"
+    },
+    {
+      "name": "stats"
+    },
+    {
+      "name": "user status"
+    },
+    {
+      "name": "user block"
+    },
+    {
+      "name": "token"
+    },
+    {
+      "name": "push notification"
+    },
+    {
+      "name": "batch"
+    }
+  ],
+  "basePath": "/api",
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/batch": {
+      "post": {
+        "summary": "Batch request (send many commands in one request)",
+        "operationId": "CentrifugoApi_Batch",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/BatchResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BatchRequest"
+            }
+          }
+        ],
+        "tags": [
+          "batch"
+        ]
+      }
+    },
+    "/block_user": {
+      "post": {
+        "summary": "Block user request",
+        "operationId": "CentrifugoApi_BlockUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/BlockUserResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BlockUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "user block"
+        ]
+      }
+    },
+    "/broadcast": {
+      "post": {
+        "summary": "Broadcast allows publishing same data into many channels",
+        "operationId": "CentrifugoApi_Broadcast",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/BroadcastResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BroadcastRequest"
+            }
+          }
+        ],
+        "tags": [
+          "publication"
+        ]
+      }
+    },
+    "/channels": {
+      "post": {
+        "summary": "Channels request",
+        "operationId": "CentrifugoApi_Channels",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ChannelsResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ChannelsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "stats"
+        ]
+      }
+    },
+    "/connections": {
+      "post": {
+        "summary": "Connections request",
+        "operationId": "CentrifugoApi_Connections",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/ConnectionsResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ConnectionsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "stats"
+        ]
+      }
+    },
+    "/delete_user_status": {
+      "post": {
+        "summary": "Delete user status request",
+        "operationId": "CentrifugoApi_DeleteUserStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/DeleteUserStatusResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeleteUserStatusRequest"
+            }
+          }
+        ],
+        "tags": [
+          "user status"
+        ]
+      }
+    },
+    "/device_list": {
+      "post": {
+        "summary": "Device register request",
+        "operationId": "CentrifugoApi_DeviceList",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/DeviceListResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeviceListRequest"
+            }
+          }
+        ],
+        "tags": [
+          "push notification"
+        ]
+      }
+    },
+    "/device_register": {
+      "post": {
+        "summary": "Device register request",
+        "operationId": "CentrifugoApi_DeviceRegister",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/DeviceRegisterResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeviceRegisterRequest"
+            }
+          }
+        ],
+        "tags": [
+          "push notification"
+        ]
+      }
+    },
+    "/device_remove": {
+      "post": {
+        "summary": "Device register request",
+        "operationId": "CentrifugoApi_DeviceRemove",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/DeviceRemoveResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeviceRemoveRequest"
+            }
+          }
+        ],
+        "tags": [
+          "push notification"
+        ]
+      }
+    },
+    "/device_update": {
+      "post": {
+        "summary": "Device register request",
+        "operationId": "CentrifugoApi_DeviceUpdate",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/DeviceUpdateResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeviceUpdateRequest"
+            }
+          }
+        ],
+        "tags": [
+          "push notification"
+        ]
+      }
+    },
+    "/disconnect": {
+      "post": {
+        "summary": "Disconnect client(s) from server",
+        "operationId": "CentrifugoApi_Disconnect",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/DisconnectResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DisconnectRequest"
+            }
+          }
+        ],
+        "tags": [
+          "connection management"
+        ]
+      }
+    },
+    "/get_user_status": {
+      "post": {
+        "summary": "Get user status request",
+        "operationId": "CentrifugoApi_GetUserStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/GetUserStatusResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/GetUserStatusRequest"
+            }
+          }
+        ],
+        "tags": [
+          "user status"
+        ]
+      }
+    },
+    "/history": {
+      "post": {
+        "summary": "History for a channel",
+        "operationId": "CentrifugoApi_History",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/HistoryResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/HistoryRequest"
+            }
+          }
+        ],
+        "tags": [
+          "history"
+        ]
+      }
+    },
+    "/history_remove": {
+      "post": {
+        "summary": "Remove history for a channel",
+        "operationId": "CentrifugoApi_HistoryRemove",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/HistoryRemoveResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/HistoryRemoveRequest"
+            }
+          }
+        ],
+        "tags": [
+          "history"
+        ]
+      }
+    },
+    "/info": {
+      "post": {
+        "summary": "Info shows details about server nodes",
+        "operationId": "CentrifugoApi_Info",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/InfoResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/InfoRequest"
+            }
+          }
+        ],
+        "tags": [
+          "stats"
+        ]
+      }
+    },
+    "/invalidate_user_tokens": {
+      "post": {
+        "summary": "Invalidate user tokens request",
+        "operationId": "CentrifugoApi_InvalidateUserTokens",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/InvalidateUserTokensResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/InvalidateUserTokensRequest"
+            }
+          }
+        ],
+        "tags": [
+          "token"
+        ]
+      }
+    },
+    "/presence": {
+      "post": {
+        "summary": "Presence information for a channel",
+        "operationId": "CentrifugoApi_Presence",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/PresenceResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PresenceRequest"
+            }
+          }
+        ],
+        "tags": [
+          "presence"
+        ]
+      }
+    },
+    "/presence_stats": {
+      "post": {
+        "summary": "Presence stats information for a channel",
+        "operationId": "CentrifugoApi_PresenceStats",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/PresenceStatsResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PresenceStatsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "presence"
+        ]
+      }
+    },
+    "/publish": {
+      "post": {
+        "summary": "Publish data into channel",
+        "operationId": "CentrifugoApi_Publish",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/PublishResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PublishRequest"
+            }
+          }
+        ],
+        "tags": [
+          "publication"
+        ]
+      }
+    },
+    "/push_user_channel_list": {
+      "post": {
+        "summary": "Device register request",
+        "operationId": "CentrifugoApi_PushUserChannelList",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/PushUserChannelListResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PushUserChannelListRequest"
+            }
+          }
+        ],
+        "tags": [
+          "push notification"
+        ]
+      }
+    },
+    "/push_user_channel_update": {
+      "post": {
+        "summary": "Device register request",
+        "operationId": "CentrifugoApi_PushUserChannelUpdate",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/PushUserChannelUpdateResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PushUserChannelUpdateRequest"
+            }
+          }
+        ],
+        "tags": [
+          "push notification"
+        ]
+      }
+    },
+    "/refresh": {
+      "post": {
+        "summary": "Refresh connection(s) by server-side call",
+        "operationId": "CentrifugoApi_Refresh",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/RefreshResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RefreshRequest"
+            }
+          }
+        ],
+        "tags": [
+          "connection management"
+        ]
+      }
+    },
+    "/revoke_token": {
+      "post": {
+        "summary": "Revoke token request",
+        "operationId": "CentrifugoApi_RevokeToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/RevokeTokenResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RevokeTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "token"
+        ]
+      }
+    },
+    "/send_push_notification": {
+      "post": {
+        "summary": "Device register request",
+        "operationId": "CentrifugoApi_SendPushNotification",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/SendPushNotificationResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SendPushNotificationRequest"
+            }
+          }
+        ],
+        "tags": [
+          "push notification"
+        ]
+      }
+    },
+    "/subscribe": {
+      "post": {
+        "summary": "Subscribe connection(s) to a channel",
+        "operationId": "CentrifugoApi_Subscribe",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/SubscribeResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SubscribeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "connection management"
+        ]
+      }
+    },
+    "/unblock_user": {
+      "post": {
+        "summary": "Unblock user request",
+        "operationId": "CentrifugoApi_UnblockUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/UnblockUserResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UnblockUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "user block"
+        ]
+      }
+    },
+    "/unsubscribe": {
+      "post": {
+        "summary": "Unsubscribe connection(s) from channel",
+        "operationId": "CentrifugoApi_Unsubscribe",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/UnsubscribeResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UnsubscribeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "connection management"
+        ]
+      }
+    },
+    "/update_user_status": {
+      "post": {
+        "summary": "Updated user status request",
+        "operationId": "CentrifugoApi_UpdateUserStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/UpdateUserStatusResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateUserStatusRequest"
+            }
+          }
+        ],
+        "tags": [
+          "user status"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "ApnsPushNotification": {
+      "type": "object",
+      "properties": {
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "payload": {
+          "type": "object"
+        }
+      }
+    },
+    "BatchRequest": {
+      "type": "object",
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/Command"
+          }
+        }
+      }
+    },
+    "BatchResponse": {
+      "type": "object",
+      "properties": {
+        "replies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/Reply"
+          }
+        }
+      }
+    },
+    "BlockUserRequest": {
+      "type": "object",
+      "properties": {
+        "expire_at": {
+          "type": "integer"
+        },
+        "user": {
+          "type": "string"
+        }
+      }
+    },
+    "BlockUserResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/BlockUserResult"
+        }
+      }
+    },
+    "BlockUserResult": {
+      "type": "object"
+    },
+    "BoolValue": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "boolean"
+        }
+      }
+    },
+    "BroadcastRequest": {
+      "type": "object",
+      "properties": {
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "data": {
+          "type": "object"
+        },
+        "b64data": {
+          "type": "string"
+        },
+        "skip_history": {
+          "type": "boolean"
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "BroadcastResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/BroadcastResult"
+        }
+      }
+    },
+    "BroadcastResult": {
+      "type": "object",
+      "properties": {
+        "responses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/PublishResponse"
+          }
+        }
+      }
+    },
+    "ChannelContext": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "ChannelInfo": {
+      "type": "object",
+      "properties": {
+        "num_clients": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "ChannelsRequest": {
+      "type": "object",
+      "properties": {
+        "pattern": {
+          "type": "string"
+        }
+      }
+    },
+    "ChannelsResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/ChannelsResult"
+        }
+      }
+    },
+    "ChannelsResult": {
+      "type": "object",
+      "properties": {
+        "channels": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/ChannelInfo"
+          }
+        }
+      }
+    },
+    "ClientInfo": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "client": {
+          "type": "string"
+        },
+        "conn_info": {
+          "type": "object"
+        },
+        "chan_info": {
+          "type": "object"
+        }
+      }
+    },
+    "Command": {
+      "type": "object",
+      "properties": {
+        "publish": {
+          "$ref": "#/definitions/PublishRequest"
+        },
+        "broadcast": {
+          "$ref": "#/definitions/BroadcastRequest"
+        },
+        "subscribe": {
+          "$ref": "#/definitions/SubscribeRequest"
+        },
+        "unsubscribe": {
+          "$ref": "#/definitions/UnsubscribeRequest"
+        },
+        "disconnect": {
+          "$ref": "#/definitions/DisconnectRequest"
+        },
+        "presence": {
+          "$ref": "#/definitions/PresenceRequest"
+        },
+        "presence_stats": {
+          "$ref": "#/definitions/PresenceStatsRequest"
+        },
+        "history": {
+          "$ref": "#/definitions/HistoryRequest"
+        },
+        "history_remove": {
+          "$ref": "#/definitions/HistoryRemoveRequest"
+        },
+        "info": {
+          "$ref": "#/definitions/InfoRequest"
+        },
+        "rpc": {
+          "$ref": "#/definitions/RPCRequest"
+        },
+        "refresh": {
+          "$ref": "#/definitions/RefreshRequest"
+        },
+        "channels": {
+          "$ref": "#/definitions/ChannelsRequest"
+        },
+        "connections": {
+          "$ref": "#/definitions/ConnectionsRequest"
+        },
+        "update_user_status": {
+          "$ref": "#/definitions/UpdateUserStatusRequest"
+        },
+        "get_user_status": {
+          "$ref": "#/definitions/GetUserStatusRequest"
+        },
+        "delete_user_status": {
+          "$ref": "#/definitions/DeleteUserStatusRequest"
+        },
+        "block_user": {
+          "$ref": "#/definitions/BlockUserRequest"
+        },
+        "unblock_user": {
+          "$ref": "#/definitions/UnblockUserRequest"
+        },
+        "revoke_token": {
+          "$ref": "#/definitions/RevokeTokenRequest"
+        },
+        "invalidate_user_tokens": {
+          "$ref": "#/definitions/InvalidateUserTokensRequest"
+        },
+        "device_register": {
+          "$ref": "#/definitions/DeviceRegisterRequest"
+        },
+        "device_update": {
+          "$ref": "#/definitions/DeviceUpdateRequest"
+        },
+        "device_remove": {
+          "$ref": "#/definitions/DeviceRemoveRequest"
+        },
+        "device_list": {
+          "$ref": "#/definitions/DeviceListRequest"
+        },
+        "push_user_channel_list": {
+          "$ref": "#/definitions/PushUserChannelListRequest"
+        },
+        "push_user_channel_update": {
+          "$ref": "#/definitions/PushUserChannelUpdateRequest"
+        },
+        "send_push_notification": {
+          "$ref": "#/definitions/SendPushNotificationRequest"
+        }
+      }
+    },
+    "ConnectionInfo": {
+      "type": "object",
+      "properties": {
+        "app_name": {
+          "type": "string"
+        },
+        "app_version": {
+          "type": "string"
+        },
+        "transport": {
+          "type": "string"
+        },
+        "protocol": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string",
+          "description": "5-7 dropped for backwards compatibility."
+        },
+        "state": {
+          "$ref": "#/definitions/ConnectionState"
+        }
+      }
+    },
+    "ConnectionState": {
+      "type": "object",
+      "properties": {
+        "channels": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/ChannelContext"
+          }
+        },
+        "connection_token": {
+          "$ref": "#/definitions/ConnectionTokenInfo"
+        },
+        "subscription_tokens": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/SubscriptionTokenInfo"
+          }
+        },
+        "meta": {
+          "type": "object"
+        }
+      }
+    },
+    "ConnectionTokenInfo": {
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string"
+        },
+        "issued_at": {
+          "type": "integer"
+        }
+      }
+    },
+    "ConnectionsRequest": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "expression": {
+          "type": "string"
+        }
+      }
+    },
+    "ConnectionsResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/ConnectionsResult"
+        }
+      }
+    },
+    "ConnectionsResult": {
+      "type": "object",
+      "properties": {
+        "connections": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/ConnectionInfo"
+          }
+        }
+      }
+    },
+    "DeleteUserStatusRequest": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "DeleteUserStatusResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/DeleteUserStatusResult"
+        }
+      }
+    },
+    "DeleteUserStatusResult": {
+      "type": "object"
+    },
+    "Device": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "DeviceChannelsUpdate": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "title": "add | remove | set"
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "DeviceListRequest": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "provider_tokens": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/DeviceProviderTokens"
+          }
+        },
+        "platforms": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "since": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "include_channels": {
+          "type": "boolean"
+        },
+        "include_meta": {
+          "type": "boolean"
+        },
+        "include_tags": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DeviceListResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/DeviceListResult"
+        }
+      }
+    },
+    "DeviceListResult": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/Device"
+          }
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DeviceMetaUpdate": {
+      "type": "object",
+      "properties": {
+        "meta": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "DeviceProviderTokens": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "tokens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "DeviceRegisterRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "DeviceRegisterResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/DeviceRegisterResult"
+        }
+      }
+    },
+    "DeviceRegisterResult": {
+      "type": "object",
+      "properties": {
+        "device": {
+          "$ref": "#/definitions/Device"
+        }
+      }
+    },
+    "DeviceRemoveRequest": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "provider_tokens": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/DeviceProviderTokens"
+          }
+        }
+      }
+    },
+    "DeviceRemoveResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/DeviceRemoveResult"
+        }
+      }
+    },
+    "DeviceRemoveResult": {
+      "type": "object"
+    },
+    "DeviceTagsUpdate": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "title": "add | remove | set"
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "DeviceUpdateRequest": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "provider_tokens": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/DeviceProviderTokens"
+          }
+        },
+        "user_update": {
+          "$ref": "#/definitions/DeviceUserUpdate"
+        },
+        "meta_update": {
+          "$ref": "#/definitions/DeviceMetaUpdate"
+        },
+        "tags_update": {
+          "$ref": "#/definitions/DeviceTagsUpdate"
+        },
+        "channels_update": {
+          "$ref": "#/definitions/DeviceChannelsUpdate"
+        }
+      }
+    },
+    "DeviceUpdateResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/DeviceUpdateResult"
+        }
+      }
+    },
+    "DeviceUpdateResult": {
+      "type": "object"
+    },
+    "DeviceUserUpdate": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        }
+      }
+    },
+    "Disconnect": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "reconnect": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DisconnectRequest": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "disconnect": {
+          "$ref": "#/definitions/Disconnect"
+        },
+        "client": {
+          "type": "string"
+        },
+        "whitelist": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "session": {
+          "type": "string"
+        }
+      }
+    },
+    "DisconnectResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/DisconnectResult"
+        }
+      }
+    },
+    "DisconnectResult": {
+      "type": "object"
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "FcmPushNotification": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "object"
+        }
+      }
+    },
+    "GetUserStatusRequest": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "GetUserStatusResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/GetUserStatusResult"
+        }
+      }
+    },
+    "GetUserStatusResult": {
+      "type": "object",
+      "properties": {
+        "statuses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/UserStatus"
+          }
+        }
+      }
+    },
+    "HistoryRemoveRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        }
+      }
+    },
+    "HistoryRemoveResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/HistoryRemoveResult"
+        }
+      }
+    },
+    "HistoryRemoveResult": {
+      "type": "object"
+    },
+    "HistoryRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "since": {
+          "$ref": "#/definitions/StreamPosition"
+        },
+        "reverse": {
+          "type": "boolean"
+        }
+      }
+    },
+    "HistoryResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/HistoryResult"
+        }
+      }
+    },
+    "HistoryResult": {
+      "type": "object",
+      "properties": {
+        "publications": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/Publication"
+          }
+        },
+        "epoch": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "integer"
+        }
+      }
+    },
+    "HmsPushNotification": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "object"
+        }
+      }
+    },
+    "InfoRequest": {
+      "type": "object"
+    },
+    "InfoResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/InfoResult"
+        }
+      }
+    },
+    "InfoResult": {
+      "type": "object",
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/NodeResult"
+          }
+        }
+      }
+    },
+    "InvalidateUserTokensRequest": {
+      "type": "object",
+      "properties": {
+        "expire_at": {
+          "type": "integer"
+        },
+        "user": {
+          "type": "string"
+        },
+        "issued_before": {
+          "type": "integer"
+        },
+        "channel": {
+          "type": "string"
+        }
+      }
+    },
+    "InvalidateUserTokensResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/InvalidateUserTokensResult"
+        }
+      }
+    },
+    "InvalidateUserTokensResult": {
+      "type": "object"
+    },
+    "Metrics": {
+      "type": "object",
+      "properties": {
+        "interval": {
+          "type": "number",
+          "format": "double"
+        },
+        "items": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      }
+    },
+    "NodeResult": {
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "num_clients": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "num_users": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "num_channels": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "uptime": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "metrics": {
+          "$ref": "#/definitions/Metrics"
+        },
+        "process": {
+          "$ref": "#/definitions/Process"
+        },
+        "num_subs": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "PresenceRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        }
+      }
+    },
+    "PresenceResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/PresenceResult"
+        }
+      }
+    },
+    "PresenceResult": {
+      "type": "object",
+      "properties": {
+        "presence": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/ClientInfo"
+          }
+        }
+      }
+    },
+    "PresenceStatsRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        }
+      }
+    },
+    "PresenceStatsResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/PresenceStatsResult"
+        }
+      }
+    },
+    "PresenceStatsResult": {
+      "type": "object",
+      "properties": {
+        "num_clients": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "num_users": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "Process": {
+      "type": "object",
+      "properties": {
+        "cpu": {
+          "type": "number",
+          "format": "double"
+        },
+        "rss": {
+          "type": "integer"
+        }
+      }
+    },
+    "Publication": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "title": "Removed: string uid = 1;"
+        },
+        "info": {
+          "$ref": "#/definitions/ClientInfo"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "PublishRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object"
+        },
+        "b64data": {
+          "type": "string"
+        },
+        "skip_history": {
+          "type": "boolean"
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "PublishResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/PublishResult"
+        }
+      }
+    },
+    "PublishResult": {
+      "type": "object",
+      "properties": {
+        "offset": {
+          "type": "integer"
+        },
+        "epoch": {
+          "type": "string"
+        }
+      }
+    },
+    "PushNotification": {
+      "type": "object",
+      "properties": {
+        "fcm": {
+          "$ref": "#/definitions/FcmPushNotification"
+        },
+        "hms": {
+          "$ref": "#/definitions/HmsPushNotification"
+        },
+        "apns": {
+          "$ref": "#/definitions/ApnsPushNotification"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "expire_at": {
+          "type": "integer"
+        }
+      }
+    },
+    "PushRecipient": {
+      "type": "object",
+      "properties": {
+        "device_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "fcm_tokens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "fcm_topic": {
+          "type": "string"
+        },
+        "fcm_condition": {
+          "type": "string"
+        },
+        "hms_tokens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "hms_topic": {
+          "type": "string"
+        },
+        "hms_condition": {
+          "type": "string"
+        },
+        "apns_tokens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "PushUserChannel": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        },
+        "channel": {
+          "type": "string"
+        }
+      }
+    },
+    "PushUserChannelListRequest": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "since": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "PushUserChannelListResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/PushUserChannelListResult"
+        }
+      }
+    },
+    "PushUserChannelListResult": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/PushUserChannel"
+          }
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      }
+    },
+    "PushUserChannelUpdateRequest": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "op": {
+          "type": "string",
+          "title": "add | remove | set"
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "PushUserChannelUpdateResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/PushUserChannelUpdateResult"
+        }
+      }
+    },
+    "PushUserChannelUpdateResult": {
+      "type": "object"
+    },
+    "RPCRequest": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "params": {
+          "type": "object"
+        }
+      }
+    },
+    "RPCResult": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "RefreshRequest": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "client": {
+          "type": "string"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "expire_at": {
+          "type": "integer"
+        },
+        "info": {
+          "type": "object"
+        },
+        "session": {
+          "type": "string"
+        }
+      }
+    },
+    "RefreshResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/RefreshResult"
+        }
+      }
+    },
+    "RefreshResult": {
+      "type": "object"
+    },
+    "Reply": {
+      "type": "object",
+      "properties": {
+        "publish": {
+          "$ref": "#/definitions/PublishResult"
+        },
+        "broadcast": {
+          "$ref": "#/definitions/BroadcastResult"
+        },
+        "subscribe": {
+          "$ref": "#/definitions/SubscribeResult"
+        },
+        "unsubscribe": {
+          "$ref": "#/definitions/UnsubscribeResult"
+        },
+        "disconnect": {
+          "$ref": "#/definitions/DisconnectResult"
+        },
+        "presence": {
+          "$ref": "#/definitions/PresenceResult"
+        },
+        "presence_stats": {
+          "$ref": "#/definitions/PresenceStatsResult"
+        },
+        "history": {
+          "$ref": "#/definitions/HistoryResult"
+        },
+        "history_remove": {
+          "$ref": "#/definitions/HistoryRemoveResult"
+        },
+        "info": {
+          "$ref": "#/definitions/InfoResult"
+        },
+        "rpc": {
+          "$ref": "#/definitions/RPCResult"
+        },
+        "refresh": {
+          "$ref": "#/definitions/RefreshResult"
+        },
+        "channels": {
+          "$ref": "#/definitions/ChannelsResult"
+        },
+        "connections": {
+          "$ref": "#/definitions/ConnectionsResult"
+        },
+        "update_user_status": {
+          "$ref": "#/definitions/UpdateUserStatusResult"
+        },
+        "get_user_status": {
+          "$ref": "#/definitions/GetUserStatusResult"
+        },
+        "delete_user_status": {
+          "$ref": "#/definitions/DeleteUserStatusResult"
+        },
+        "block_user": {
+          "$ref": "#/definitions/BlockUserResult"
+        },
+        "unblock_user": {
+          "$ref": "#/definitions/UnblockUserResult"
+        },
+        "revoke_token": {
+          "$ref": "#/definitions/RevokeTokenResult"
+        },
+        "invalidate_user_tokens": {
+          "$ref": "#/definitions/InvalidateUserTokensResult"
+        },
+        "device_register": {
+          "$ref": "#/definitions/DeviceRegisterResult"
+        },
+        "device_update": {
+          "$ref": "#/definitions/DeviceUpdateResult"
+        },
+        "device_remove": {
+          "$ref": "#/definitions/DeviceRemoveResult"
+        },
+        "device_list": {
+          "$ref": "#/definitions/DeviceListResult"
+        },
+        "push_user_channel_list": {
+          "$ref": "#/definitions/PushUserChannelListResult"
+        },
+        "push_user_channel_update": {
+          "$ref": "#/definitions/PushUserChannelUpdateResult"
+        },
+        "send_push_notification": {
+          "$ref": "#/definitions/SendPushNotificationResult"
+        }
+      }
+    },
+    "RevokeTokenRequest": {
+      "type": "object",
+      "properties": {
+        "expire_at": {
+          "type": "integer"
+        },
+        "uid": {
+          "type": "string"
+        }
+      }
+    },
+    "RevokeTokenResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/RevokeTokenResult"
+        }
+      }
+    },
+    "RevokeTokenResult": {
+      "type": "object"
+    },
+    "SendPushNotificationRequest": {
+      "type": "object",
+      "properties": {
+        "recipient": {
+          "$ref": "#/definitions/PushRecipient"
+        },
+        "notification": {
+          "$ref": "#/definitions/PushNotification"
+        }
+      }
+    },
+    "SendPushNotificationResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/SendPushNotificationResult"
+        }
+      }
+    },
+    "SendPushNotificationResult": {
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Unique identifier of notification send request (not a FCM message id)."
+        }
+      }
+    },
+    "StreamPosition": {
+      "type": "object",
+      "properties": {
+        "offset": {
+          "type": "integer"
+        },
+        "epoch": {
+          "type": "string"
+        }
+      }
+    },
+    "SubscribeOptionOverride": {
+      "type": "object",
+      "properties": {
+        "presence": {
+          "$ref": "#/definitions/BoolValue"
+        },
+        "join_leave": {
+          "$ref": "#/definitions/BoolValue"
+        },
+        "force_recovery": {
+          "$ref": "#/definitions/BoolValue"
+        },
+        "force_positioning": {
+          "$ref": "#/definitions/BoolValue"
+        },
+        "force_push_join_leave": {
+          "$ref": "#/definitions/BoolValue"
+        }
+      }
+    },
+    "SubscribeRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        },
+        "expire_at": {
+          "type": "integer"
+        },
+        "info": {
+          "type": "object"
+        },
+        "b64info": {
+          "type": "string"
+        },
+        "client": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object"
+        },
+        "b64data": {
+          "type": "string"
+        },
+        "recover_since": {
+          "$ref": "#/definitions/StreamPosition"
+        },
+        "override": {
+          "$ref": "#/definitions/SubscribeOptionOverride"
+        },
+        "session": {
+          "type": "string"
+        }
+      }
+    },
+    "SubscribeResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/SubscribeResult"
+        }
+      }
+    },
+    "SubscribeResult": {
+      "type": "object"
+    },
+    "SubscriptionTokenInfo": {
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string"
+        },
+        "issued_at": {
+          "type": "integer"
+        }
+      }
+    },
+    "UnblockUserRequest": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        }
+      }
+    },
+    "UnblockUserResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/UnblockUserResult"
+        }
+      }
+    },
+    "UnblockUserResult": {
+      "type": "object"
+    },
+    "UnsubscribeRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "user": {
+          "type": "string"
+        },
+        "client": {
+          "type": "string"
+        },
+        "session": {
+          "type": "string"
+        }
+      }
+    },
+    "UnsubscribeResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/UnsubscribeResult"
+        }
+      }
+    },
+    "UnsubscribeResult": {
+      "type": "object"
+    },
+    "UpdateUserStatusRequest": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "UpdateUserStatusResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/UpdateUserStatusResult"
+        }
+      }
+    },
+    "UpdateUserStatusResult": {
+      "type": "object"
+    },
+    "UserStatus": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string"
+        },
+        "active": {
+          "type": "integer"
+        },
+        "online": {
+          "type": "integer"
+        }
+      }
+    }
+  },
+  "securityDefinitions": {
+    "ApiKeyAuth": {
+      "type": "apiKey",
+      "name": "X-API-Key",
+      "in": "header"
+    }
+  },
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "externalDocs": {
+    "description": "More about Centrifugo HTTP API",
+    "url": "https://centrifugal.dev/docs/server/server_api"
+  }
+}

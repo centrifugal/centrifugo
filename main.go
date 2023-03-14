@@ -51,6 +51,7 @@ import (
 	"github.com/centrifugal/centrifugo/v4/internal/proxy"
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
 	"github.com/centrifugal/centrifugo/v4/internal/survey"
+	"github.com/centrifugal/centrifugo/v4/internal/swaggerui"
 	"github.com/centrifugal/centrifugo/v4/internal/tntengine"
 	"github.com/centrifugal/centrifugo/v4/internal/tools"
 	"github.com/centrifugal/centrifugo/v4/internal/unigrpc"
@@ -251,6 +252,7 @@ func bindCentrifugoConfig() {
 		"api_handler_prefix":        "/api",
 		"prometheus_handler_prefix": "/metrics",
 		"health_handler_prefix":     "/health",
+		"swagger_handler_prefix":    "/swagger",
 
 		"proxy_connect_timeout":     time.Second,
 		"proxy_rpc_timeout":         time.Second,
@@ -297,6 +299,7 @@ func main() {
 				"broker", "nats_url", "grpc_api", "grpc_api_tls", "grpc_api_tls_disable",
 				"grpc_api_tls_cert", "grpc_api_tls_key", "grpc_api_port", "sockjs", "uni_grpc",
 				"uni_grpc_port", "uni_websocket", "uni_sse", "uni_http_stream", "sse", "http_stream",
+				"swagger",
 			}
 			for _, flag := range bindPFlags {
 				_ = viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -623,6 +626,7 @@ func main() {
 	rootCmd.Flags().BoolP("admin", "", false, "enable admin web interface")
 	rootCmd.Flags().BoolP("admin_external", "", false, "expose admin web interface on external port")
 	rootCmd.Flags().BoolP("prometheus", "", false, "enable Prometheus metrics endpoint")
+	rootCmd.Flags().BoolP("swagger", "", false, "enable Swagger UI endpoint describing server HTTP API")
 	rootCmd.Flags().BoolP("health", "", false, "enable health check endpoint")
 	rootCmd.Flags().BoolP("sockjs", "", false, "enable SockJS endpoint")
 	rootCmd.Flags().BoolP("uni_websocket", "", false, "enable unidirectional websocket endpoint")
@@ -1104,6 +1108,7 @@ func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecut
 	useAdmin := viper.GetBool("admin")
 	usePrometheus := viper.GetBool("prometheus")
 	useHealth := viper.GetBool("health")
+	useSwagger := viper.GetBool("swagger")
 
 	adminExternal := viper.GetBool("admin_external")
 	apiExternal := viper.GetBool("api_external")
@@ -1184,6 +1189,9 @@ func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecut
 	}
 	if usePrometheus {
 		portFlags |= HandlerPrometheus
+	}
+	if useSwagger {
+		portFlags |= HandlerSwagger
 	}
 	if debug {
 		portFlags |= HandlerDebug
@@ -2374,6 +2382,8 @@ const (
 	HandlerHTTPStream
 	// HandlerEmulation handles client-to-server requests in an emulation layer.
 	HandlerEmulation
+	// HandlerSwagger handles swagger UI.
+	HandlerSwagger
 )
 
 var handlerText = map[HandlerFlag]string{
@@ -2391,10 +2401,11 @@ var handlerText = map[HandlerFlag]string{
 	HandlerSSE:           "sse",
 	HandlerHTTPStream:    "http_stream",
 	HandlerEmulation:     "emulation",
+	HandlerSwagger:       "swagger",
 }
 
 func (flags HandlerFlag) String() string {
-	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerWebtransport, HandlerHTTPStream, HandlerSSE, HandlerEmulation, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniHTTPStream}
+	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerWebtransport, HandlerHTTPStream, HandlerSSE, HandlerEmulation, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniHTTPStream, HandlerSwagger}
 	var endpoints []string
 	for _, flag := range flagsOrdered {
 		text, ok := handlerText[flag]
@@ -2527,6 +2538,14 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 				}
 			}
 		}
+	}
+
+	if flags&HandlerSwagger != 0 {
+		swaggerPrefix := strings.TrimRight(v.GetString("swagger_handler_prefix"), "/") + "/"
+		if swaggerPrefix == "" {
+			swaggerPrefix = "/"
+		}
+		mux.Handle(swaggerPrefix, middleware.LogRequest(http.StripPrefix(swaggerPrefix, http.FileServer(swaggerui.FS))))
 	}
 
 	if flags&HandlerPrometheus != 0 {
