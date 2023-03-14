@@ -176,7 +176,6 @@ func bindCentrifugoConfig() {
 		"websocket_read_buffer_size":      0,
 		"websocket_use_write_buffer_pool": false,
 		"websocket_write_buffer_size":     0,
-		"websocket_ping_interval":         25 * time.Second,
 		"websocket_write_timeout":         time.Second,
 		"websocket_message_size_limit":    65536, // 64KB
 
@@ -187,7 +186,6 @@ func bindCentrifugoConfig() {
 		"uni_websocket_read_buffer_size":      0,
 		"uni_websocket_use_write_buffer_pool": false,
 		"uni_websocket_write_buffer_size":     0,
-		"uni_websocket_ping_interval":         25 * time.Second,
 		"uni_websocket_write_timeout":         time.Second,
 		"uni_websocket_message_size_limit":    65536, // 64KB
 
@@ -1917,7 +1915,6 @@ func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	cfg.ReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WriteBufferSize = v.GetInt("websocket_write_buffer_size")
 	cfg.UseWriteBufferPool = v.GetBool("websocket_use_write_buffer_pool")
-	cfg.PingInterval = GetDuration("websocket_ping_interval")
 	cfg.WriteTimeout = GetDuration("websocket_write_timeout")
 	cfg.MessageSizeLimit = v.GetInt("websocket_message_size_limit")
 	cfg.CheckOrigin = getCheckOrigin()
@@ -1993,7 +1990,6 @@ func uniWebsocketHandlerConfig() uniws.Config {
 		ReadBufferSize:     v.GetInt("uni_websocket_read_buffer_size"),
 		WriteBufferSize:    v.GetInt("uni_websocket_write_buffer_size"),
 		UseWriteBufferPool: v.GetBool("uni_websocket_use_write_buffer_pool"),
-		PingInterval:       GetDuration("uni_websocket_ping_interval"),
 		WriteTimeout:       GetDuration("uni_websocket_write_timeout"),
 		MessageSizeLimit:   v.GetInt("uni_websocket_message_size_limit"),
 		CheckOrigin:        getCheckOrigin(),

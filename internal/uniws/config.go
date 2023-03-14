@@ -45,10 +45,6 @@ type Config struct {
 	// nil means allow all origins.
 	CheckOrigin func(r *http.Request) bool
 
-	// PingInterval sets interval server will send ping messages to clients.
-	// By default DefaultPingInterval will be used.
-	PingInterval time.Duration
-
 	// WriteTimeout is maximum time of write message operation.
 	// Slow client will be disconnected.
 	// By default, DefaultWebsocketWriteTimeout will be used.
