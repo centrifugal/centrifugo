@@ -99,8 +99,8 @@ func bindCentrifugoConfig() {
 		"token_audience":             "",
 		"token_issuer":               "",
 
-		"default_history_meta_ttl": 90 * 24 * time.Hour,
-		"default_presence_ttl":     60 * time.Second,
+		"global_history_meta_ttl": 90 * 24 * time.Hour,
+		"global_presence_ttl":     60 * time.Second,
 
 		"presence":                      false,
 		"join_leave":                    false,
@@ -1800,7 +1800,7 @@ func nodeConfig(version string) centrifuge.Config {
 	cfg.NodeInfoMetricsAggregateInterval = GetDuration("node_info_metrics_aggregate_interval")
 	cfg.HistoryMaxPublicationLimit = v.GetInt("client_history_max_publication_limit")
 	cfg.RecoveryMaxPublicationLimit = v.GetInt("client_recovery_max_publication_limit")
-	cfg.HistoryMetaTTL = GetDuration("default_history_meta_ttl", true)
+	cfg.HistoryMetaTTL = GetDuration("global_history_meta_ttl", true)
 
 	level, ok := logStringToLevel[strings.ToLower(v.GetString("log_level"))]
 	if !ok {
@@ -2211,7 +2211,7 @@ func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMana
 	presenceManager, err := centrifuge.NewRedisPresenceManager(n, centrifuge.RedisPresenceManagerConfig{
 		Shards:      redisShards,
 		Prefix:      viper.GetString("redis_prefix"),
-		PresenceTTL: GetDuration("default_presence_ttl", true),
+		PresenceTTL: GetDuration("global_presence_ttl", true),
 	})
 	if err != nil {
 		return nil, nil, "", err
@@ -2291,7 +2291,7 @@ func tarantoolEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.Presence
 	}
 	presenceManager, err := tntengine.NewPresenceManager(n, tntengine.PresenceManagerConfig{
 		Shards:      tarantoolShards,
-		PresenceTTL: GetDuration("default_presence_ttl", true),
+		PresenceTTL: GetDuration("global_presence_ttl", true),
 	})
 	if err != nil {
 		return nil, nil, "", err
