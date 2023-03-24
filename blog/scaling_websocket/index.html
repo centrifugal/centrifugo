@@ -1,1424 +1,1651 @@
-
 <!doctype html>
 <html lang="en" class="no-js">
-  <head>
-    
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width,initial-scale=1">
-      
-        <meta name="description" content="Several tips to write scalable WebSocket servers with Go language and beyond.">
-      
-      
-      
-        <meta name="author" content="Centrifugal organization">
-      
-      
-        <link rel="canonical" href="https://centrifugal.github.io/centrifugo/blog/scaling_websocket/">
-      
-      <link rel="shortcut icon" href="../../images/favicon.png">
-      <meta name="generator" content="mkdocs-1.2.1, mkdocs-material-6.2.8">
-    
-    
-      
-        <title>Scaling WebSocket in Go and beyond - Centrifugo</title>
-      
-    
-    
-      <link rel="stylesheet" href="../../assets/stylesheets/main.cb6bc1d0.min.css">
-      
-        
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.39b8e14a.min.css">
-        
-          
-          
-          <meta name="theme-color" content="#000000">
-        
-      
-    
-    
-    
-      
-        
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
-        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
-      
-    
-    
-    
-      <link rel="stylesheet" href="../../theme/styles/extra.css">
-    
-    
-      
-    
-    
 
-<!-- Determine title -->
+<head>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <meta name="description" content="Several tips to write scalable WebSocket servers with Go language and beyond.">
+
+
+
+  <meta name="author" content="Centrifugal organization">
+
+
+  <link rel="canonical" href="https://centrifugal.dev/blog/2020/11/12/scaling-websocket">
+
+  <link rel="shortcut icon" href="../../images/favicon.png">
+  <meta name="generator" content="mkdocs-1.2.1, mkdocs-material-6.2.8">
+
+
+
+  <title>Scaling WebSocket in Go and beyond - Centrifugo</title>
+
+
+
+  <link rel="stylesheet" href="../../assets/stylesheets/main.cb6bc1d0.min.css">
+
+
+  <link rel="stylesheet" href="../../assets/stylesheets/palette.39b8e14a.min.css">
+
+
+
+  <meta name="theme-color" content="#000000">
 
 
 
 
 
-<!-- The image needs to have an absolute URL -->
 
 
-<!-- Open graph meta tags -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+  <style>
+    body,
+    input {
+      font-family: "Roboto", -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif
+    }
 
-<meta property="og:title" content="Scaling WebSocket in Go and beyond" />
-
-
-
-<meta property="og:type" content="website" />
-
-
-<meta property="og:url" content="https://centrifugal.github.io/centrifugo/blog/scaling_websocket/" />
-
-
-<meta property="og:image" content="https://i.imgur.com/QOJ1M9a.png" />
-
-
-
-<meta property="og:image:type" content="image/png" />
+    code,
+    kbd,
+    pre {
+      font-family: "Roboto Mono", SFMono-Regular, Consolas, Menlo, monospace
+    }
+  </style>
 
 
 
-<meta property="og:image:width" content="2000">
+
+  <link rel="stylesheet" href="../../theme/styles/extra.css">
 
 
 
-<meta property="og:image:height" content="1000">
 
 
 
-<meta property="og:description" content="Several tips to write scalable WebSocket servers with Go language and beyond.">
+  <!-- Determine title -->
 
 
 
-  </head>
-  
-  
-    
-    
-    
-    
-    
-    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="black" data-md-color-accent="cyan">
-      
-  
-    
-    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
-    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
-    <label class="md-overlay" for="__drawer"></label>
-    <div data-md-component="skip">
-      
-        
-        <a href="#scaling-websocket-in-go-and-beyond" class="md-skip">
-          Skip to content
-        </a>
-      
-    </div>
-    <div data-md-component="announce">
-      
-    </div>
-    
-      
 
-<header class="md-header" data-md-component="header">
-  <nav class="md-header-nav md-grid" aria-label="Header">
-    <a href="https://centrifugal.github.io/centrifugo/" title="Centrifugo" class="md-header-nav__button md-logo" aria-label="Centrifugo">
-      
-  <img src="../../images/logo.png" alt="logo">
 
+  <!-- The image needs to have an absolute URL -->
+
+
+  <!-- Open graph meta tags -->
+
+  <meta property="og:title" content="Scaling WebSocket in Go and beyond" />
+
+
+
+  <meta property="og:type" content="website" />
+
+
+  <meta property="og:url" content="https://centrifugal.github.io/centrifugo/blog/scaling_websocket/" />
+
+
+  <meta property="og:image" content="https://i.imgur.com/QOJ1M9a.png" />
+
+
+
+  <meta property="og:image:type" content="image/png" />
+
+
+
+  <meta property="og:image:width" content="2000">
+
+
+
+  <meta property="og:image:height" content="1000">
+
+
+
+  <meta property="og:description"
+    content="Several tips to write scalable WebSocket servers with Go language and beyond.">
+
+
+
+</head>
+
+
+
+
+
+
+
+<body dir="ltr" data-md-color-scheme="" data-md-color-primary="black" data-md-color-accent="cyan">
+
+
+
+  <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+  <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+  <label class="md-overlay" for="__drawer"></label>
+  <div data-md-component="skip">
+
+
+    <a href="#scaling-websocket-in-go-and-beyond" class="md-skip">
+      Skip to content
     </a>
-    <label class="md-header-nav__button md-icon" for="__drawer">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
-    </label>
-    <div class="md-header-nav__title" data-md-component="header-title">
-      <div class="md-header-nav__ellipsis">
-        <div class="md-header-nav__topic">
-          <span class="md-ellipsis">
-            Centrifugo
-          </span>
-        </div>
-        <div class="md-header-nav__topic">
-          <span class="md-ellipsis">
-            
-              Scaling WebSocket in Go and beyond
-            
-          </span>
-        </div>
-      </div>
-    </div>
-    
-      <label class="md-header-nav__button md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+
+  </div>
+  <div data-md-component="announce">
+
+  </div>
+
+
+
+  <header class="md-header" data-md-component="header">
+    <nav class="md-header-nav md-grid" aria-label="Header">
+      <a href="https://centrifugal.github.io/centrifugo/" title="Centrifugo" class="md-header-nav__button md-logo"
+        aria-label="Centrifugo">
+
+        <img src="../../images/logo.png" alt="logo">
+
+      </a>
+      <label class="md-header-nav__button md-icon" for="__drawer">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z" />
+        </svg>
       </label>
-      
-<div class="md-search" data-md-component="search" role="dialog">
-  <label class="md-search__overlay" for="__search"></label>
-  <div class="md-search__inner" role="search">
-    <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active" required>
-      <label class="md-search__icon md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-      </label>
-      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
-      </button>
-    </form>
-    <div class="md-search__output">
-      <div class="md-search__scrollwrap" data-md-scrollfix>
-        <div class="md-search-result" data-md-component="search-result">
-          <div class="md-search-result__meta">
-            Initializing search
+      <div class="md-header-nav__title" data-md-component="header-title">
+        <div class="md-header-nav__ellipsis">
+          <div class="md-header-nav__topic">
+            <span class="md-ellipsis">
+              Centrifugo
+            </span>
           </div>
-          <ol class="md-search-result__list"></ol>
+          <div class="md-header-nav__topic">
+            <span class="md-ellipsis">
+
+              Scaling WebSocket in Go and beyond
+
+            </span>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
-</div>
-    
-    
-      <div class="md-header-nav__source">
-        
-<a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source">
-  <div class="md-source__icon md-icon">
-    
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
-  </div>
-  <div class="md-source__repository">
-    centrifugal/centrifugo
-  </div>
-</a>
+
+      <label class="md-header-nav__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path
+            d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z" />
+        </svg>
+      </label>
+
+      <div class="md-search" data-md-component="search" role="dialog">
+        <label class="md-search__overlay" for="__search"></label>
+        <div class="md-search__inner" role="search">
+          <form class="md-search__form" name="search">
+            <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search"
+              autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false"
+              data-md-component="search-query" data-md-state="active" required>
+            <label class="md-search__icon md-icon" for="__search">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path
+                  d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z" />
+              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z" />
+              </svg>
+            </label>
+            <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset"
+              tabindex="-1">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path
+                  d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
+              </svg>
+            </button>
+          </form>
+          <div class="md-search__output">
+            <div class="md-search__scrollwrap" data-md-scrollfix>
+              <div class="md-search-result" data-md-component="search-result">
+                <div class="md-search-result__meta">
+                  Initializing search
+                </div>
+                <ol class="md-search-result__list"></ol>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    
-  </nav>
-</header>
-    
-    <div class="md-container" data-md-component="container">
-      
-      
-
-        
-          
-<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
-  <div class="md-tabs__inner md-grid">
-    <ul class="md-tabs__list">
-      
-        
-  
-  
 
 
-  <li class="md-tabs__item">
-    <a href="../.." class="md-tabs__link">
-      Home
-    </a>
-  </li>
+      <div class="md-header-nav__source">
 
-      
-        
-  
-  
+        <a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source">
+          <div class="md-source__icon md-icon">
 
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+              <path
+                d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z" />
+            </svg>
+          </div>
+          <div class="md-source__repository">
+            centrifugal/centrifugo
+          </div>
+        </a>
+      </div>
 
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="../../getting_started/" class="md-tabs__link">
-        Getting Started
-      </a>
-    </li>
-  
+    </nav>
+  </header>
 
-      
-        
-  
-  
-
-
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="../../server/install/" class="md-tabs__link">
-        Server
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-
-
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="../../libraries/client/" class="md-tabs__link">
-        Libraries
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-
-
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="../../faq/" class="md-tabs__link">
-        FAQ
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-    
-  
-
-
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="../" class="md-tabs__link md-tabs__link--active">
-        Blog
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-
-
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="../../pro/" class="md-tabs__link">
-        Centrifugo PRO
-      </a>
-    </li>
-  
-
-      
-    </ul>
-  </div>
-</nav>
-        
-      
-
-      <main class="md-main" data-md-component="main">
-        <div class="md-main__inner md-grid">
-          
-            
-              
-              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation" >
-                <div class="md-sidebar__scrollwrap">
-                  <div class="md-sidebar__inner">
-                    
+  <div class="md-container" data-md-component="container">
 
 
 
-  
 
 
-<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
-  <label class="md-nav__title" for="__drawer">
-    <a href="https://centrifugal.github.io/centrifugo/" title="Centrifugo" class="md-nav__button md-logo" aria-label="Centrifugo">
-      
-  <img src="../../images/logo.png" alt="logo">
+    <nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+      <div class="md-tabs__inner md-grid">
+        <ul class="md-tabs__list">
 
-    </a>
-    Centrifugo
-  </label>
-  
-    <div class="md-nav__source">
-      
-<a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source">
-  <div class="md-source__icon md-icon">
-    
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
-  </div>
-  <div class="md-source__repository">
-    centrifugal/centrifugo
-  </div>
-</a>
-    </div>
-  
-  <ul class="md-nav__list" data-md-scrollfix>
-    
-      
-      
-      
 
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
-        Home
-      </a>
-    </li>
-  
 
-    
-      
-      
-      
 
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-2" type="checkbox" id="nav-2" >
-      
-      <label class="md-nav__link" for="nav-2">
-        Getting Started
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Getting Started" data-md-level="1">
-        <label class="md-nav__title" for="nav-2">
-          <span class="md-nav__icon md-icon"></span>
-          Getting Started
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting_started/" class="md-nav__link">
-        What is Centrifugo
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../quick_start/" class="md-nav__link">
-        Quick start
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../guide/" class="md-nav__link">
-        Integration Guide
-      </a>
-    </li>
-  
+          <li class="md-tabs__item">
+            <a href="../.." class="md-tabs__link">
+              Home
+            </a>
+          </li>
 
-          
+
+
+
+
+
+
+
+
+
+          <li class="md-tabs__item">
+            <a href="../../getting_started/" class="md-tabs__link">
+              Getting Started
+            </a>
+          </li>
+
+
+
+
+
+
+
+
+
+
+
+          <li class="md-tabs__item">
+            <a href="../../server/install/" class="md-tabs__link">
+              Server
+            </a>
+          </li>
+
+
+
+
+
+
+
+
+
+
+
+          <li class="md-tabs__item">
+            <a href="../../libraries/client/" class="md-tabs__link">
+              Libraries
+            </a>
+          </li>
+
+
+
+
+
+
+
+
+
+
+
+          <li class="md-tabs__item">
+            <a href="../../faq/" class="md-tabs__link">
+              FAQ
+            </a>
+          </li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <li class="md-tabs__item">
+            <a href="../" class="md-tabs__link md-tabs__link--active">
+              Blog
+            </a>
+          </li>
+
+
+
+
+
+
+
+
+
+
+
+          <li class="md-tabs__item">
+            <a href="../../pro/" class="md-tabs__link">
+              Centrifugo PRO
+            </a>
+          </li>
+
+
+
         </ul>
-      </nav>
-    </li>
-  
+      </div>
+    </nav>
 
-    
-      
-      
-      
 
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" >
-      
-      <label class="md-nav__link" for="nav-3">
-        Server
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Server" data-md-level="1">
-        <label class="md-nav__title" for="nav-3">
-          <span class="md-nav__icon md-icon"></span>
-          Server
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../server/install/" class="md-nav__link">
-        Installation
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../server/configuration/" class="md-nav__link">
-        Configuration
-      </a>
-    </li>
-  
+    <main class="md-main" data-md-component="main">
+      <div class="md-main__inner md-grid">
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../server/commands/" class="md-nav__link">
-        Console commands
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../server/client_api/" class="md-nav__link">
-        Client API
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../server/http_api/" class="md-nav__link">
-        Server HTTP API
-      </a>
-    </li>
-  
+        <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+          <div class="md-sidebar__scrollwrap">
+            <div class="md-sidebar__inner">
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../server/grpc_api/" class="md-nav__link">
-        Server GRPC API
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../server/channels/" class="md-nav__link">
-        Channels
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../server/authentication/" class="md-nav__link">
-        Authentication
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../server/private_channels/" class="md-nav__link">
-        Private channels
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../server/engines/" class="md-nav__link">
-        Engines
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../server/admin/" class="md-nav__link">
-        Admin web interface
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../server/proxy/" class="md-nav__link">
-        Proxy to backend
-      </a>
-    </li>
-  
+              <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+                <label class="md-nav__title" for="__drawer">
+                  <a href="https://centrifugal.github.io/centrifugo/" title="Centrifugo" class="md-nav__button md-logo"
+                    aria-label="Centrifugo">
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../server/server_subs/" class="md-nav__link">
-        Server-side subscriptions
-      </a>
-    </li>
-  
+                    <img src="../../images/logo.png" alt="logo">
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../server/connection_expiration/" class="md-nav__link">
-        Connection expiration
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15" >
-      
-      <label class="md-nav__link" for="nav-3-15">
-        Client-server transports
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Client-server transports" data-md-level="2">
-        <label class="md-nav__title" for="nav-3-15">
-          <span class="md-nav__icon md-icon"></span>
-          Client-server transports
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../transports/" class="md-nav__link">
-        Overview
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../transports/websocket/" class="md-nav__link">
-        Websocket
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../transports/sockjs/" class="md-nav__link">
-        SockJS
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../transports/protobuf/" class="md-nav__link">
-        Protobuf protocol
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../transports/protocol/" class="md-nav__link">
-        Client protocol
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../transports/recovery/" class="md-nav__link">
-        Message recovery
-      </a>
-    </li>
-  
-
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-16" type="checkbox" id="nav-3-16" >
-      
-      <label class="md-nav__link" for="nav-3-16">
-        Deploy
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Deploy" data-md-level="2">
-        <label class="md-nav__title" for="nav-3-16">
-          <span class="md-nav__icon md-icon"></span>
-          Deploy
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../deploy/monitoring/" class="md-nav__link">
-        Monitoring
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../deploy/tuning/" class="md-nav__link">
-        Infrastructure tuning
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../deploy/tls/" class="md-nav__link">
-        TLS
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../deploy/nginx/" class="md-nav__link">
-        Nginx configuration
-      </a>
-    </li>
-  
-
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-17" type="checkbox" id="nav-3-17" >
-      
-      <label class="md-nav__link" for="nav-3-17">
-        Misc
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Misc" data-md-level="2">
-        <label class="md-nav__title" for="nav-3-17">
-          <span class="md-nav__icon md-icon"></span>
-          Misc
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../misc/insecure_modes/" class="md-nav__link">
-        Insecure modes
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../misc/migrate/" class="md-nav__link">
-        Migrate from Centrifugo v1
-      </a>
-    </li>
-  
-
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../misc/benchmark/" class="md-nav__link">
-        Benchmark
-      </a>
-    </li>
-  
-
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-    
-      
-      
-      
-
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4" >
-      
-      <label class="md-nav__link" for="nav-4">
-        Libraries
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Libraries" data-md-level="1">
-        <label class="md-nav__title" for="nav-4">
-          <span class="md-nav__icon md-icon"></span>
-          Libraries
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../libraries/client/" class="md-nav__link">
-        Client libraries
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../libraries/api/" class="md-nav__link">
-        API libraries
-      </a>
-    </li>
-  
-
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-    
-      
-      
-      
-
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5" >
-      
-      <label class="md-nav__link" for="nav-5">
-        FAQ
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="FAQ" data-md-level="1">
-        <label class="md-nav__title" for="nav-5">
-          <span class="md-nav__icon md-icon"></span>
-          FAQ
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../faq/" class="md-nav__link">
-        Frequently Asked Questions
-      </a>
-    </li>
-  
-
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-    
-      
-      
-      
-
-  
-  
-    
-  
-  
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6" checked>
-      
-      <label class="md-nav__link" for="nav-6">
-        Blog
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Blog" data-md-level="1">
-        <label class="md-nav__title" for="nav-6">
-          <span class="md-nav__icon md-icon"></span>
-          Blog
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
-        About this blog
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../intro_centrifuge/" class="md-nav__link">
-        An introduction to Centrifuge – real-time messaging with Go
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../quic_web_transport/" class="md-nav__link">
-        Experimenting with QUIC and WebTransport in Go
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-    
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Scaling WebSocket in Go and beyond
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
-        Scaling WebSocket in Go and beyond
-      </a>
-      
-        
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#websocket-server-tasks" class="md-nav__link">
-    WebSocket server tasks
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#websocket-libraries" class="md-nav__link">
-    WebSocket libraries
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#os-tuning" class="md-nav__link">
-    OS tuning
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#sending-many-messages" class="md-nav__link">
-    Sending many messages
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#websocket-fallback-transport" class="md-nav__link">
-    WebSocket fallback transport
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#performance-is-not-scalability" class="md-nav__link">
-    Performance is not scalability
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#massive-reconnect" class="md-nav__link">
-    Massive reconnect
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#message-event-stream-benefits" class="md-nav__link">
-    Message event stream benefits
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#conclusion" class="md-nav__link">
-    Conclusion
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-    
-      
-      
-      
-
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7" >
-      
-      <label class="md-nav__link" for="nav-7">
-        Centrifugo PRO
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Centrifugo PRO" data-md-level="1">
-        <label class="md-nav__title" for="nav-7">
-          <span class="md-nav__icon md-icon"></span>
-          Centrifugo PRO
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../pro/" class="md-nav__link">
-        About
-      </a>
-    </li>
-  
-
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-    
-  </ul>
-</nav>
-                  </div>
-                </div>
-              </div>
-            
-            
-              
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc" >
-                <div class="md-sidebar__scrollwrap">
-                  <div class="md-sidebar__inner">
-                    
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#websocket-server-tasks" class="md-nav__link">
-    WebSocket server tasks
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#websocket-libraries" class="md-nav__link">
-    WebSocket libraries
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#os-tuning" class="md-nav__link">
-    OS tuning
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#sending-many-messages" class="md-nav__link">
-    Sending many messages
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#websocket-fallback-transport" class="md-nav__link">
-    WebSocket fallback transport
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#performance-is-not-scalability" class="md-nav__link">
-    Performance is not scalability
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#massive-reconnect" class="md-nav__link">
-    Massive reconnect
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#message-event-stream-benefits" class="md-nav__link">
-    Message event stream benefits
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#conclusion" class="md-nav__link">
-    Conclusion
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-                  </div>
-                </div>
-              </div>
-            
-          
-          <div class="md-content">
-            <article class="md-content__inner md-typeset">
-              
-
-                
-                  <a href="https://github.com/centrifugal/centrifugo/edit/master/docs/content/blog/scaling_websocket.md" title="Edit this page" class="md-content__button md-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
-                
-                
-                <h1 id="scaling-websocket-in-go-and-beyond">Scaling WebSocket in Go and beyond<a class="headerlink" href="#scaling-websocket-in-go-and-beyond" title="Permanent link">&para;</a></h1>
-<p><img alt="gopher-broker" src="https://i.imgur.com/QOJ1M9a.png" /></p>
-<p>I believe that in 2020 WebSocket is still an entertaining technology which is not so well-known and understood like HTTP. In this blog post I'd like to tell about state of WebSocket in Go language ecosystem, and a way we could write scalable WebSocket servers with Go and beyond Go.</p>
-<p>We won't talk a lot about WebSocket transport pros and cons – I'll provide links to other resources on this topic. Most advices here are generic enough and can be easily approximated to other programming languages. Also in this post we won't talk about ready to use solutions (if you are looking for it – check out <a href="https://www.leggetter.co.uk/real-time-web-technologies-guide/">Real-time Web Technologies guide</a> by Phil Leggetter), just general considerations. There is not so much information about scaling WebSocket on the internet so if you are interested in WebSocket and real-time messaging technologies - keep on reading.</p>
-<p>If you don't know what WebSocket is – check out the following curious links:</p>
-<ul>
-<li><a href="https://hpbn.co/websocket/">https://hpbn.co/websocket/</a> – a wonderful chapter of great book by Ilya Grigorik</li>
-<li><a href="https://lucumr.pocoo.org/2012/9/24/websockets-101/">https://lucumr.pocoo.org/2012/9/24/websockets-101/</a> – valuable thoughts about WebSocket from Armin Ronacher</li>
-</ul>
-<p>As soon as you know WebSocket basics – we can proceed.</p>
-<h2 id="websocket-server-tasks">WebSocket server tasks<a class="headerlink" href="#websocket-server-tasks" title="Permanent link">&para;</a></h2>
-<p>Speaking about scalable servers that work with many persistent WebSocket connections – I found several important tasks such a server should be able to do:</p>
-<ul>
-<li>Maintain many active connections</li>
-<li>Send many messages to clients</li>
-<li>Support WebSocket fallback to scale to every client</li>
-<li>Authenticate incoming connections and invalidate connections</li>
-<li>Survive massive reconnect of all clients without loosing messages</li>
-</ul>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Of course not all of these points equally important in various situations.</p>
-</div>
-<p>Below we will look at some tips which relate to these points.</p>
-<p><img alt="one_hour_scale" src="https://i.imgur.com/4lYjJSP.png" /></p>
-<h2 id="websocket-libraries">WebSocket libraries<a class="headerlink" href="#websocket-libraries" title="Permanent link">&para;</a></h2>
-<p>In Go language ecosystem we have several libraries which can be used as a building block for a WebSocket server.</p>
-<p>Package <a href="https://godoc.org/golang.org/x/net/websocket">golang.org/x/net/websocket</a> is considered <strong>deprecated</strong>.</p>
-<p>The default choice in the community is <a href="https://github.com/gorilla/websocket">gorilla/websocket</a> library. Made by Gary Burd (who also gifted us an awesome <a href="https://github.com/gomodule/redigo">Redigo</a> package to communicate with Redis) – it's widely used, performs well, has a very good API – so in most cases you should go with it. Some people think that library not actively maintained at moment – but this is not quite true, it implements full WebSocket RFC, so actually it can be considered done.</p>
-<p>In 2018 my ex-colleague Sergey Kamardin open-sourced <a href="https://github.com/gobwas/ws">gobwas/ws</a> library. It provides a bit lower-level API than <code>gorilla/websocket</code> thus allows reducing RAM usage per connection and has nice optimizations for WebSocket upgrade process. It does not support WebSocket <code>permessage-deflate</code> compression but otherwise a good alternative you can consider using. If you have not read Sergey's famous post <a href="https://www.freecodecamp.org/news/million-websockets-and-go-cc58418460bb/">A Million WebSockets and Go</a> – make a bookmark!</p>
-<p>One more library is <a href="https://github.com/nhooyr/websocket">nhooyr/websocket</a>. It's the youngest one and actively maintained. It compiles to WASM which can be a cool thing for someone. The API is a bit different from what <code>gorilla/websocket</code> offers, and one of the big advantages I see is that it solves a problem with a proper WebSocket closing handshake which is <a href="https://github.com/gorilla/websocket/issues/448">a bit hard to do right with Gorilla WebSocket</a>.</p>
-<p>You can consider all listed libraries except one from <code>x/net</code> for your project. Take a library, follow its examples (make attention to goroutine-safety of various API operations). Personally I prefer Gorilla WebSocket at moment since it's feature-complete and battle tested by tons of projects around Go world.</p>
-<h2 id="os-tuning">OS tuning<a class="headerlink" href="#os-tuning" title="Permanent link">&para;</a></h2>
-<p>OK, so you have chosen a library and built a server on top of it. As soon as you put it in production the interesting things start happening.</p>
-<p>Let's start with several OS specific key things you should do to prepare for many connections from WebSocket clients.</p>
-<p>Every connection will cost you an open file descriptor, so you should tune a maximum number of open file descriptors your process can use. An errors like <code>too many open files</code> raise due to OS limit on file descriptors which is usually 256-1024 by default (see with <code>ulimit -n</code> on Unix). A nice overview on how to do this on different systems can be found <a href="https://docs.riak.com/riak/kv/2.2.3/using/performance/open-files-limit.1.html">in Riak docs</a>. Wanna more connections? Make this limit higher.</p>
-<p>Nice tip here is to limit a maximum number of connections your process can serve – making it less than known file descriptor limit:</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// ulimit -n == 65535</span>
+                  Centrifugo
+                </label>
+
+                <div class="md-nav__source">
+
+                  <a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source">
+                    <div class="md-source__icon md-icon">
+
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+                        <path
+                          d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z" />
+                      </svg>
+                    </div>
+                    <div class="md-source__repository">
+                      centrifugal/centrifugo
+                    </div>
+                  </a>
+                </div>
+
+                <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+
+
+                  <li class="md-nav__item">
+                    <a href="../.." class="md-nav__link">
+                      Home
+                    </a>
+                  </li>
+
+
+
+
+
+
+
+
+
+
+
+                  <li class="md-nav__item md-nav__item--nested">
+
+
+                    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-2" type="checkbox" id="nav-2">
+
+                    <label class="md-nav__link" for="nav-2">
+                      Getting Started
+                      <span class="md-nav__icon md-icon"></span>
+                    </label>
+                    <nav class="md-nav" aria-label="Getting Started" data-md-level="1">
+                      <label class="md-nav__title" for="nav-2">
+                        <span class="md-nav__icon md-icon"></span>
+                        Getting Started
+                      </label>
+                      <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../getting_started/" class="md-nav__link">
+                            What is Centrifugo
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../quick_start/" class="md-nav__link">
+                            Quick start
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../guide/" class="md-nav__link">
+                            Integration Guide
+                          </a>
+                        </li>
+
+
+
+                      </ul>
+                    </nav>
+                  </li>
+
+
+
+
+
+
+
+
+
+
+
+                  <li class="md-nav__item md-nav__item--nested">
+
+
+                    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3">
+
+                    <label class="md-nav__link" for="nav-3">
+                      Server
+                      <span class="md-nav__icon md-icon"></span>
+                    </label>
+                    <nav class="md-nav" aria-label="Server" data-md-level="1">
+                      <label class="md-nav__title" for="nav-3">
+                        <span class="md-nav__icon md-icon"></span>
+                        Server
+                      </label>
+                      <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../server/install/" class="md-nav__link">
+                            Installation
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../server/configuration/" class="md-nav__link">
+                            Configuration
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../server/commands/" class="md-nav__link">
+                            Console commands
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../server/client_api/" class="md-nav__link">
+                            Client API
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../server/http_api/" class="md-nav__link">
+                            Server HTTP API
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../server/grpc_api/" class="md-nav__link">
+                            Server GRPC API
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../server/channels/" class="md-nav__link">
+                            Channels
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../server/authentication/" class="md-nav__link">
+                            Authentication
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../server/private_channels/" class="md-nav__link">
+                            Private channels
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../server/engines/" class="md-nav__link">
+                            Engines
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../server/admin/" class="md-nav__link">
+                            Admin web interface
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../server/proxy/" class="md-nav__link">
+                            Proxy to backend
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../server/server_subs/" class="md-nav__link">
+                            Server-side subscriptions
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../server/connection_expiration/" class="md-nav__link">
+                            Connection expiration
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+
+                        <li class="md-nav__item md-nav__item--nested">
+
+
+                          <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox"
+                            id="nav-3-15">
+
+                          <label class="md-nav__link" for="nav-3-15">
+                            Client-server transports
+                            <span class="md-nav__icon md-icon"></span>
+                          </label>
+                          <nav class="md-nav" aria-label="Client-server transports" data-md-level="2">
+                            <label class="md-nav__title" for="nav-3-15">
+                              <span class="md-nav__icon md-icon"></span>
+                              Client-server transports
+                            </label>
+                            <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../../transports/" class="md-nav__link">
+                                  Overview
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../../transports/websocket/" class="md-nav__link">
+                                  Websocket
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../../transports/sockjs/" class="md-nav__link">
+                                  SockJS
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../../transports/protobuf/" class="md-nav__link">
+                                  Protobuf protocol
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../../transports/protocol/" class="md-nav__link">
+                                  Client protocol
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../../transports/recovery/" class="md-nav__link">
+                                  Message recovery
+                                </a>
+                              </li>
+
+
+
+                            </ul>
+                          </nav>
+                        </li>
+
+
+
+
+
+
+
+
+                        <li class="md-nav__item md-nav__item--nested">
+
+
+                          <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-16" type="checkbox"
+                            id="nav-3-16">
+
+                          <label class="md-nav__link" for="nav-3-16">
+                            Deploy
+                            <span class="md-nav__icon md-icon"></span>
+                          </label>
+                          <nav class="md-nav" aria-label="Deploy" data-md-level="2">
+                            <label class="md-nav__title" for="nav-3-16">
+                              <span class="md-nav__icon md-icon"></span>
+                              Deploy
+                            </label>
+                            <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../../deploy/monitoring/" class="md-nav__link">
+                                  Monitoring
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../../deploy/tuning/" class="md-nav__link">
+                                  Infrastructure tuning
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../../deploy/tls/" class="md-nav__link">
+                                  TLS
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../../deploy/nginx/" class="md-nav__link">
+                                  Nginx configuration
+                                </a>
+                              </li>
+
+
+
+                            </ul>
+                          </nav>
+                        </li>
+
+
+
+
+
+
+
+
+                        <li class="md-nav__item md-nav__item--nested">
+
+
+                          <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-17" type="checkbox"
+                            id="nav-3-17">
+
+                          <label class="md-nav__link" for="nav-3-17">
+                            Misc
+                            <span class="md-nav__icon md-icon"></span>
+                          </label>
+                          <nav class="md-nav" aria-label="Misc" data-md-level="2">
+                            <label class="md-nav__title" for="nav-3-17">
+                              <span class="md-nav__icon md-icon"></span>
+                              Misc
+                            </label>
+                            <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../../misc/insecure_modes/" class="md-nav__link">
+                                  Insecure modes
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../../misc/migrate/" class="md-nav__link">
+                                  Migrate from Centrifugo v1
+                                </a>
+                              </li>
+
+
+
+                            </ul>
+                          </nav>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../misc/benchmark/" class="md-nav__link">
+                            Benchmark
+                          </a>
+                        </li>
+
+
+
+                      </ul>
+                    </nav>
+                  </li>
+
+
+
+
+
+
+
+
+
+
+
+                  <li class="md-nav__item md-nav__item--nested">
+
+
+                    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
+
+                    <label class="md-nav__link" for="nav-4">
+                      Libraries
+                      <span class="md-nav__icon md-icon"></span>
+                    </label>
+                    <nav class="md-nav" aria-label="Libraries" data-md-level="1">
+                      <label class="md-nav__title" for="nav-4">
+                        <span class="md-nav__icon md-icon"></span>
+                        Libraries
+                      </label>
+                      <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../libraries/client/" class="md-nav__link">
+                            Client libraries
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../libraries/api/" class="md-nav__link">
+                            API libraries
+                          </a>
+                        </li>
+
+
+
+                      </ul>
+                    </nav>
+                  </li>
+
+
+
+
+
+
+
+
+
+
+
+                  <li class="md-nav__item md-nav__item--nested">
+
+
+                    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
+
+                    <label class="md-nav__link" for="nav-5">
+                      FAQ
+                      <span class="md-nav__icon md-icon"></span>
+                    </label>
+                    <nav class="md-nav" aria-label="FAQ" data-md-level="1">
+                      <label class="md-nav__title" for="nav-5">
+                        <span class="md-nav__icon md-icon"></span>
+                        FAQ
+                      </label>
+                      <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../faq/" class="md-nav__link">
+                            Frequently Asked Questions
+                          </a>
+                        </li>
+
+
+
+                      </ul>
+                    </nav>
+                  </li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+                  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+
+
+                    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6" checked>
+
+                    <label class="md-nav__link" for="nav-6">
+                      Blog
+                      <span class="md-nav__icon md-icon"></span>
+                    </label>
+                    <nav class="md-nav" aria-label="Blog" data-md-level="1">
+                      <label class="md-nav__title" for="nav-6">
+                        <span class="md-nav__icon md-icon"></span>
+                        Blog
+                      </label>
+                      <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../" class="md-nav__link">
+                            About this blog
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../intro_centrifuge/" class="md-nav__link">
+                            An introduction to Centrifuge – real-time messaging with Go
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../quic_web_transport/" class="md-nav__link">
+                            Experimenting with QUIC and WebTransport in Go
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+
+
+                        <li class="md-nav__item md-nav__item--active">
+
+                          <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+
+
+
+
+                          <label class="md-nav__link md-nav__link--active" for="__toc">
+                            Scaling WebSocket in Go and beyond
+                            <span class="md-nav__icon md-icon"></span>
+                          </label>
+
+                          <a href="./" class="md-nav__link md-nav__link--active">
+                            Scaling WebSocket in Go and beyond
+                          </a>
+
+
+                          <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+
+
+
+
+
+                            <label class="md-nav__title" for="__toc">
+                              <span class="md-nav__icon md-icon"></span>
+                              Table of contents
+                            </label>
+                            <ul class="md-nav__list" data-md-scrollfix>
+
+                              <li class="md-nav__item">
+                                <a href="#websocket-server-tasks" class="md-nav__link">
+                                  WebSocket server tasks
+                                </a>
+
+                              </li>
+
+                              <li class="md-nav__item">
+                                <a href="#websocket-libraries" class="md-nav__link">
+                                  WebSocket libraries
+                                </a>
+
+                              </li>
+
+                              <li class="md-nav__item">
+                                <a href="#os-tuning" class="md-nav__link">
+                                  OS tuning
+                                </a>
+
+                              </li>
+
+                              <li class="md-nav__item">
+                                <a href="#sending-many-messages" class="md-nav__link">
+                                  Sending many messages
+                                </a>
+
+                              </li>
+
+                              <li class="md-nav__item">
+                                <a href="#websocket-fallback-transport" class="md-nav__link">
+                                  WebSocket fallback transport
+                                </a>
+
+                              </li>
+
+                              <li class="md-nav__item">
+                                <a href="#performance-is-not-scalability" class="md-nav__link">
+                                  Performance is not scalability
+                                </a>
+
+                              </li>
+
+                              <li class="md-nav__item">
+                                <a href="#massive-reconnect" class="md-nav__link">
+                                  Massive reconnect
+                                </a>
+
+                              </li>
+
+                              <li class="md-nav__item">
+                                <a href="#message-event-stream-benefits" class="md-nav__link">
+                                  Message event stream benefits
+                                </a>
+
+                              </li>
+
+                              <li class="md-nav__item">
+                                <a href="#conclusion" class="md-nav__link">
+                                  Conclusion
+                                </a>
+
+                              </li>
+
+                            </ul>
+
+                          </nav>
+
+                        </li>
+
+
+
+                      </ul>
+                    </nav>
+                  </li>
+
+
+
+
+
+
+
+
+
+
+
+                  <li class="md-nav__item md-nav__item--nested">
+
+
+                    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7">
+
+                    <label class="md-nav__link" for="nav-7">
+                      Centrifugo PRO
+                      <span class="md-nav__icon md-icon"></span>
+                    </label>
+                    <nav class="md-nav" aria-label="Centrifugo PRO" data-md-level="1">
+                      <label class="md-nav__title" for="nav-7">
+                        <span class="md-nav__icon md-icon"></span>
+                        Centrifugo PRO
+                      </label>
+                      <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../../pro/" class="md-nav__link">
+                            About
+                          </a>
+                        </li>
+
+
+
+                      </ul>
+                    </nav>
+                  </li>
+
+
+
+                </ul>
+              </nav>
+            </div>
+          </div>
+        </div>
+
+
+
+        <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+          <div class="md-sidebar__scrollwrap">
+            <div class="md-sidebar__inner">
+
+              <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+
+
+
+
+
+                <label class="md-nav__title" for="__toc">
+                  <span class="md-nav__icon md-icon"></span>
+                  Table of contents
+                </label>
+                <ul class="md-nav__list" data-md-scrollfix>
+
+                  <li class="md-nav__item">
+                    <a href="#websocket-server-tasks" class="md-nav__link">
+                      WebSocket server tasks
+                    </a>
+
+                  </li>
+
+                  <li class="md-nav__item">
+                    <a href="#websocket-libraries" class="md-nav__link">
+                      WebSocket libraries
+                    </a>
+
+                  </li>
+
+                  <li class="md-nav__item">
+                    <a href="#os-tuning" class="md-nav__link">
+                      OS tuning
+                    </a>
+
+                  </li>
+
+                  <li class="md-nav__item">
+                    <a href="#sending-many-messages" class="md-nav__link">
+                      Sending many messages
+                    </a>
+
+                  </li>
+
+                  <li class="md-nav__item">
+                    <a href="#websocket-fallback-transport" class="md-nav__link">
+                      WebSocket fallback transport
+                    </a>
+
+                  </li>
+
+                  <li class="md-nav__item">
+                    <a href="#performance-is-not-scalability" class="md-nav__link">
+                      Performance is not scalability
+                    </a>
+
+                  </li>
+
+                  <li class="md-nav__item">
+                    <a href="#massive-reconnect" class="md-nav__link">
+                      Massive reconnect
+                    </a>
+
+                  </li>
+
+                  <li class="md-nav__item">
+                    <a href="#message-event-stream-benefits" class="md-nav__link">
+                      Message event stream benefits
+                    </a>
+
+                  </li>
+
+                  <li class="md-nav__item">
+                    <a href="#conclusion" class="md-nav__link">
+                      Conclusion
+                    </a>
+
+                  </li>
+
+                </ul>
+
+              </nav>
+            </div>
+          </div>
+        </div>
+
+
+        <div class="md-content">
+          <article class="md-content__inner md-typeset">
+
+
+
+            <a href="https://github.com/centrifugal/centrifugo/edit/master/docs/content/blog/scaling_websocket.md"
+              title="Edit this page" class="md-content__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path
+                  d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z" />
+              </svg>
+            </a>
+
+
+            <h1 id="scaling-websocket-in-go-and-beyond">Scaling WebSocket in Go and beyond<a class="headerlink"
+                href="#scaling-websocket-in-go-and-beyond" title="Permanent link">&para;</a></h1>
+            <p><img alt="gopher-broker" src="https://i.imgur.com/QOJ1M9a.png" /></p>
+            <p>I believe that in 2020 WebSocket is still an entertaining technology which is not so well-known and
+              understood like HTTP. In this blog post I'd like to tell about state of WebSocket in Go language
+              ecosystem, and a way we could write scalable WebSocket servers with Go and beyond Go.</p>
+            <p>We won't talk a lot about WebSocket transport pros and cons – I'll provide links to other resources on
+              this topic. Most advices here are generic enough and can be easily approximated to other programming
+              languages. Also in this post we won't talk about ready to use solutions (if you are looking for it – check
+              out <a href="https://www.leggetter.co.uk/real-time-web-technologies-guide/">Real-time Web Technologies
+                guide</a> by Phil Leggetter), just general considerations. There is not so much information about
+              scaling WebSocket on the internet so if you are interested in WebSocket and real-time messaging
+              technologies - keep on reading.</p>
+            <p>If you don't know what WebSocket is – check out the following curious links:</p>
+            <ul>
+              <li><a href="https://hpbn.co/websocket/">https://hpbn.co/websocket/</a> – a wonderful chapter of great
+                book by Ilya Grigorik</li>
+              <li><a
+                  href="https://lucumr.pocoo.org/2012/9/24/websockets-101/">https://lucumr.pocoo.org/2012/9/24/websockets-101/</a>
+                – valuable thoughts about WebSocket from Armin Ronacher</li>
+            </ul>
+            <p>As soon as you know WebSocket basics – we can proceed.</p>
+            <h2 id="websocket-server-tasks">WebSocket server tasks<a class="headerlink" href="#websocket-server-tasks"
+                title="Permanent link">&para;</a></h2>
+            <p>Speaking about scalable servers that work with many persistent WebSocket connections – I found several
+              important tasks such a server should be able to do:</p>
+            <ul>
+              <li>Maintain many active connections</li>
+              <li>Send many messages to clients</li>
+              <li>Support WebSocket fallback to scale to every client</li>
+              <li>Authenticate incoming connections and invalidate connections</li>
+              <li>Survive massive reconnect of all clients without loosing messages</li>
+            </ul>
+            <div class="admonition note">
+              <p class="admonition-title">Note</p>
+              <p>Of course not all of these points equally important in various situations.</p>
+            </div>
+            <p>Below we will look at some tips which relate to these points.</p>
+            <p><img alt="one_hour_scale" src="https://i.imgur.com/4lYjJSP.png" /></p>
+            <h2 id="websocket-libraries">WebSocket libraries<a class="headerlink" href="#websocket-libraries"
+                title="Permanent link">&para;</a></h2>
+            <p>In Go language ecosystem we have several libraries which can be used as a building block for a WebSocket
+              server.</p>
+            <p>Package <a href="https://godoc.org/golang.org/x/net/websocket">golang.org/x/net/websocket</a> is
+              considered <strong>deprecated</strong>.</p>
+            <p>The default choice in the community is <a
+                href="https://github.com/gorilla/websocket">gorilla/websocket</a> library. Made by Gary Burd (who also
+              gifted us an awesome <a href="https://github.com/gomodule/redigo">Redigo</a> package to communicate with
+              Redis) – it's widely used, performs well, has a very good API – so in most cases you should go with it.
+              Some people think that library not actively maintained at moment – but this is not quite true, it
+              implements full WebSocket RFC, so actually it can be considered done.</p>
+            <p>In 2018 my ex-colleague Sergey Kamardin open-sourced <a href="https://github.com/gobwas/ws">gobwas/ws</a>
+              library. It provides a bit lower-level API than <code>gorilla/websocket</code> thus allows reducing RAM
+              usage per connection and has nice optimizations for WebSocket upgrade process. It does not support
+              WebSocket <code>permessage-deflate</code> compression but otherwise a good alternative you can consider
+              using. If you have not read Sergey's famous post <a
+                href="https://www.freecodecamp.org/news/million-websockets-and-go-cc58418460bb/">A Million WebSockets
+                and Go</a> – make a bookmark!</p>
+            <p>One more library is <a href="https://github.com/nhooyr/websocket">nhooyr/websocket</a>. It's the youngest
+              one and actively maintained. It compiles to WASM which can be a cool thing for someone. The API is a bit
+              different from what <code>gorilla/websocket</code> offers, and one of the big advantages I see is that it
+              solves a problem with a proper WebSocket closing handshake which is <a
+                href="https://github.com/gorilla/websocket/issues/448">a bit hard to do right with Gorilla
+                WebSocket</a>.</p>
+            <p>You can consider all listed libraries except one from <code>x/net</code> for your project. Take a
+              library, follow its examples (make attention to goroutine-safety of various API operations). Personally I
+              prefer Gorilla WebSocket at moment since it's feature-complete and battle tested by tons of projects
+              around Go world.</p>
+            <h2 id="os-tuning">OS tuning<a class="headerlink" href="#os-tuning" title="Permanent link">&para;</a></h2>
+            <p>OK, so you have chosen a library and built a server on top of it. As soon as you put it in production the
+              interesting things start happening.</p>
+            <p>Let's start with several OS specific key things you should do to prepare for many connections from
+              WebSocket clients.</p>
+            <p>Every connection will cost you an open file descriptor, so you should tune a maximum number of open file
+              descriptors your process can use. An errors like <code>too many open files</code> raise due to OS limit on
+              file descriptors which is usually 256-1024 by default (see with <code>ulimit -n</code> on Unix). A nice
+              overview on how to do this on different systems can be found <a
+                href="https://docs.riak.com/riak/kv/2.2.3/using/performance/open-files-limit.1.html">in Riak docs</a>.
+              Wanna more connections? Make this limit higher.</p>
+            <p>Nice tip here is to limit a maximum number of connections your process can serve – making it less than
+              known file descriptor limit:</p>
+            <div class="highlight">
+              <pre><span></span><code><span class="c1">// ulimit -n == 65535</span>
 <span class="k">if</span> <span class="nx">conns</span><span class="p">.</span><span class="nx">Len</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">65500</span> <span class="p">{</span>
     <span class="k">return</span> <span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;connection limit reached&quot;</span><span class="p">)</span>
 <span class="p">}</span>
 <span class="nx">conns</span><span class="p">.</span><span class="nx">Add</span><span class="p">(</span><span class="nx">conn</span><span class="p">)</span>
-</code></pre></div>
-<p>– otherwise you have a risk to not even able to look at <code>pprof</code> when things go bad. And you always need monitoring of open file descriptors.</p>
-<p>You can also consider using <a href="https://godoc.org/golang.org/x/net/netutil#LimitListener">netutil.LimitListener</a> for this task, but don't forget to put pprof on another port with another HTTP server instance in this case.</p>
-<p>Keep attention on <em>Ephemeral ports</em> problem which is often happens between your load balancer and your WebSocket server. The problem arises due to the fact that each TCP connection uniquely identified in the OS by the 4-part-tuple:</p>
-<div class="highlight"><pre><span></span><code>source ip | source port | destination ip | destination port
-</code></pre></div>
-<p>On balancer/server boundary you are limited in 65536 possible variants by default. But actually due to some OS limits and sockets in TIME_WAIT state the number is even less. A very good explanation and how to deal with it can be found <a href="https://making.pusher.com/ephemeral-port-exhaustion-and-how-to-avoid-it/">in Pusher blog</a>.</p>
-<p>Your possible number of connections also limited by conntrack table. Netfilter framework which is part of iptables keeps information about all connections and has limited size for this information. See how to see its limits and instructions to increase <a href="https://morganwu277.github.io/2018/05/26/Solve-production-issue-of-nf-conntrack-table-full-dropping-packet/">in this article</a>.</p>
-<p>One more thing you can do is tune your network stack for performance. Do this only if you understand that you need it. Maybe start <a href="https://gist.github.com/mustafaturan/47268d8ad6d56cadda357e4c438f51ca">with this gist</a>, but don't optimize without full understanding why you are doing this. </p>
-<h2 id="sending-many-messages">Sending many messages<a class="headerlink" href="#sending-many-messages" title="Permanent link">&para;</a></h2>
-<p>Now let's speak about sending many messages. The general tips follows.</p>
-<p><strong>Make payload smaller</strong>. This is obvious – fewer data means more effective work on all layers. BTW WebSocket framing overhead is minimal and adds only 2-8 bytes to your payload. You can read detailed dedicated research in <a href="https://crossbario.com/blog/Dissecting-Websocket-Overhead/">Dissecting WebSocket's Overhead</a> article. You can reduce an amount of data traveling over network with <code>permessage-deflate</code> WebSocket extension, so your data will be compressed. Though using <code>permessage-deflate</code> is not always a good thing for server due to <a href="https://github.com/gorilla/websocket/issues/203">poor performance of flate</a>, so you should be prepared for a CPU and RAM resource usage on server side. While Gorilla WebSocket has a lot of optimizations internally by reusing flate writers, overhead is still noticeable. The increase value heavily depends on your load profile.</p>
-<p><strong>Make less system calls</strong>. Every syscall will have a constant overhead, and actually in WebSocket server under load you will mostly see read and write system calls in your CPU profiles. An advice here – try to use client-server protocol that supports message batching, so you can join individual messages together.</p>
-<p><strong>Use effective message serialization protocol</strong>. Maybe use code generation for JSON to avoid extensive usage of reflect package done by Go std lib. Maybe use sth like <a href="https://github.com/gogo/protobuf">gogo/protobuf</a> package which allows to speedup Protobuf marshalling and unmarshalling. Unfortunately Gogo Protobuf <a href="https://github.com/gogo/protobuf/issues/691">is going through hard times
-</a> at this moment. Try to serialize a message only once when sending to many subscribers.</p>
-<p><strong>Have a way to scale to several machines</strong> - more power, more possible messages. We will talk about this very soon.</p>
-<h2 id="websocket-fallback-transport">WebSocket fallback transport<a class="headerlink" href="#websocket-fallback-transport" title="Permanent link">&para;</a></h2>
-<p><img alt="ie" src="https://i.imgur.com/IAOyvmg.png" /></p>
-<p>Even in 2020 there are still users which cannot establish connection with WebSocket server. Actually the problem mostly appears with browsers. Some users still use old browsers. But they have a choice – install a newer browser. Still, there could also be users behind corporate proxies. Employees can have a trusted certificate installed on their machine so company proxy can re-encrypt even TLS traffic. Also, some browser extensions can block WebSocket traffic.</p>
-<p>One ready solution to this is <a href="https://github.com/igm/sockjs-go/">Sockjs-Go</a> library. This is a mature library that provides fallback transport for WebSocket. If client does not succeed with WebSocket connection establishment then client can use some of HTTP transports for client-server communication: <a href="https://hpbn.co/server-sent-events-sse/">EventSource aka Server-Sent Events</a>, XHR-streaming, Long-Polling etc. The downside with those transports is that to achieve bidirectional communication you should use sticky sessions on your load balancer since SockJS keeps connection session state in process memory. We will talk about many instances of your WebSocket server very soon.</p>
-<p>You can implement WebSocket fallback yourself, this should be simple if you have a sliding window message stream on your backend which we will discuss very soon.</p>
-<p>Maybe look at <a href="https://grpc.io/docs/what-is-grpc/introduction/">GRPC</a>, depending on application it could be better or worse than WebSocket – in general you can expect a better performance and less resource consumption from WebSocket for bidirectional communication case. My measurements for a <strong>bidirectional</strong> scenario showed 3x win for WebSocket (binary + GOGO protobuf) in terms of server CPU consumption and 4 times less RAM per connection. Though if you only need RPC then GRPC can be a better choice. But you need additional proxy to work with GRPC from a browser. </p>
-<h2 id="performance-is-not-scalability">Performance is not scalability<a class="headerlink" href="#performance-is-not-scalability" title="Permanent link">&para;</a></h2>
-<p>You can optimize client-server protocol, tune your OS, but at some point you won't be able to use only one process on one server machine. You need to scale connections and work your server does over different server machines. Horizontal scaling is also good for a server high availability. Actually there are some sort of real-time applications where a single isolated process makes sense - for example multiplayer games where limited number of players play independent game rounds.</p>
-<p><img alt="many_instances" src="https://i.imgur.com/8ElqpjI.png" /></p>
-<p>As soon as you distribute connections over several machines you have to find a way to deliver a message to a certain user. The basic approach here is to publish messages to all server instances. This can work but this does not scale well. You need a sort of instance discovery to make this less painful.</p>
-<p>Here comes PUB/SUB, where you can connect WebSocket server instances over central PUB/SUB broker. Clients that establish connections with your WebSocket server subscribe to topics (channels) in a broker, and as soon as you publish a message to that topic it will be delivered to all active subscribers on WebSocket server instances. If server node does not have interested subscriber then it won't get a message from a broker thus you are getting effective network communication.</p>
-<p>Actually the main picture of this post illustrates exactly this architecture:</p>
-<p><img alt="gopher-broker" src="https://i.imgur.com/QOJ1M9a.png" /></p>
-<p>Let's think about requirements for a broker for real-time messaging application. We want a broker:</p>
-<ul>
-<li>with reasonable performance and possibility to scale</li>
-<li>which maintains message order in topics</li>
-<li>can support millions of topics, where each topic should be ephemeral and lightweight – topics can be created when user comes to application and removed after user goes away</li>
-<li>possibility to keep a sliding window of messages inside channel to help us survive massive reconnect scenario (will talk about this later below, can be a separate part from broker actually)</li>
-</ul>
-<p>Personally when we talk about such brokers here are some options that come into my mind:</p>
-<ul>
-<li><a href="https://www.rabbitmq.com/">RabbitMQ</a></li>
-<li><a href="https://kafka.apache.org/">Kafka</a> or <a href="https://pulsar.apache.org/">Pulsar</a></li>
-<li><a href="https://nats.io/">Nats or Nats-Streaming</a></li>
-<li><a href="https://www.tarantool.io/en/">Tarantool</a></li>
-<li><a href="https://redis.io/">Redis</a></li>
-</ul>
-<p><strong>Sure there are more exist</strong> including libraries like <a href="https://zeromq.org/">ZeroMQ</a> or <a href="https://nanomsg.org/">nanomsg</a>.</p>
-<p>Below I'll try to consider these solutions for the task of making scalable WebSocket server facing many user connections from Internet.</p>
-<p>If you are looking for unreliable at most once PUB/SUB then any of solutions mentioned above should be sufficient. Many real-time messaging apps are ok with at most once guarantee delivery.</p>
-<p>If you don't want to miss messages then things are a bit harder. Let's try to evaluate these options for a task where application has lots of different topics from which it wants to receive messages with at least once guarantee (having a personal topic per client is common thing in applications). A short analysis below can be a bit biased, but I believe thoughts are reasonable enough. I did not found enough information on the internet about scaling WebSocket beyond a single server process, so I'll try to fill the gap a little based on my personal knowledge without pretending to be absolutely objective in these considerations.</p>
-<p>In some posts on the internet about scaling WebSocket I saw advices to use RabbitMQ for PUB/SUB stuff in real-time messaging server. While this is a great messaging server, it does not like a high rate of queue bind and unbind type of load. It will work, but you will need to use a lot of server resources for not so big number of clients (imagine having millions of queues inside RabbitMQ). I have an example from my practice where RabbitMQ consumed about 70 CPU cores to serve real-time messages for 100k online connections. After replacing it with Redis keeping the same message delivery semantics we got only 0.3 CPU consumption on broker side.</p>
-<p>Kafka and Pulsar are great solutions, but not for this task I believe. The problem is again in dynamic ephemeral nature of our topics. Kafka also likes a more stable configuration of its topics. Keeping messages on disk can be an overkill for real-time messaging task. Also your consumers on Kafka server should pull from millions of different topics, not sure how well it performs, but my thoughts at moment - this should not perform very well. Kafka itself scales perfectly, you will definitely be able to achieve a goal but resource usage will be significant. Here is <a href="https://tech.trello.com/why-we-chose-kafka/">a post from Trello</a> where they moved from RabbitMQ to Kafka for similar real-time messaging task and got about 5x resource usage improvements. Note also that the more partitions you have the more heavy failover process you get.</p>
-<p>Nats and Nats-Streaming. Raw Nats can only provide at most once guarantee. BTW recently Nats developers <a href="https://github.com/nats-io/nats-server/issues/315">released native WebSocket support</a>, so you can consider it for your application. Nats-Streaming server as broker will allow you to not lose messages. To be fair I don't have enough information about how well Nats-Streaming scales to millions of topics. An upcoming <a href="https://github.com/nats-io/jetstream">Jetstream</a> which will be a part of Nats server can also be an interesting option – like Kafka it provides a persistent stream of messages for at least once delivery semantics. But again, it involves disk storage, a nice thing for backend microservices communication but can be an overkill for real-time messaging task.</p>
-<p>Sure Tarantool can fit to this task well too. It's fast, im-memory and flexible. Some possible problems with Tarantool are not so healthy state of its client libraries, complexity and the fact that it's heavily enterprise-oriented. You should invest enough time to benefit from it, but this can worth it actually. See <a href="https://hackernoon.com/tarantool-when-it-takes-500-lines-of-code-to-notify-a-million-users-11d340523493">an article</a> on how to do a performant broker for WebSocket applications with Tarantool.</p>
-<p>Building PUB/SUB system on top of ZeroMQ will require you to build separate broker yourself. This could be an unnecessary complexity for your system. It's possible to implement PUB/SUB pattern with ZeroMQ and nanomsg without a central broker, but in this case messages without active subscribers on a server will be dropped on a consumer side thus all publications will travel to all server nodes. </p>
-<p>My personal choice at moment is Redis. While <strong>Redis PUB/SUB itself provides at most once guarantee</strong>, you can build at least once delivery on top of PUB/SUB and Redis data structures (though this can be challenging enough). Redis is very fast (especially when using pipelining protocol feature), and what is more important – <strong>very predictable</strong>. It gives you a good understanding of operation time complexity. You can shard topics over different Redis instances running in HA setup - with Sentinel or with Redis Cluster. It allows writing LUA procedures with some advanced logic which can be uploaded over client protocol thus feels like ordinary commands. You can use Redis to keep sliding window event stream which gives you access to missed messages from a certain position. We will talk about this later.</p>
-<p>OK, the end of opinionated thoughts here :)</p>
-<p>Depending on your choice the implementation of your system will vary and will have different properties – so try to evaluate possible solutions based on your application requirements. Anyway, whatever broker will be your choice, try to follow this rules to build effective PUB/SUB system:</p>
-<ul>
-<li>take into account message delivery guarantees of your system: at most once or at least once, ideally you should have an option to have both for different real-time features in your app</li>
-<li>make sure to use one or pool of connections between your server and a broker, don't create new connection per each client or topic that comes to your WebSocket server</li>
-<li>use effective serialization format between your WebSocket server and broker</li>
-</ul>
-<h2 id="massive-reconnect">Massive reconnect<a class="headerlink" href="#massive-reconnect" title="Permanent link">&para;</a></h2>
-<p><img alt="mass_reconnect" src="https://i.imgur.com/S9koKYg.png" /></p>
-<p>Let's talk about one more problem that is unique for Websocket servers compared to HTTP. Your app can have thousands or millions of active WebSocket connections. In contract to stateless HTTP APIs your application is stateful. It uses push model. As soon as you deploying your WebSocket server or reload your load balancer (Nginx maybe) – connections got dropped and all that army of users start reconnecting. And this can be like an avalanche actually. How to survive?</p>
-<p>First of all - use exponential backoff strategies on client side. I.e. reconnect with intervals like 1, 2, 4, 8, 16 seconds with some random jitter.</p>
-<p>Turn on various rate limiting strategies on your WebSocket server, some of them should be turned on your backend load balancer level (like controlling TCP connection establishment rate), some are application specific (maybe limit an amount of requests from certain user).</p>
-<p>One more interesting technique to survive massive reconnect is using JWT (JSON Web Token) for authentication. I'll try to explain why this can be useful.</p>
-<p><img alt="jwt" src="https://i.imgur.com/aaTEhXo.png" /></p>
-<p>As soon as your client start reconnecting you will have to authenticate each connection. In massive setups with many persistent connection this can be a very significant load on your Session backend. Since you need an extra request to your session storage for every client coming back. This can be a no problem for some infrastructures but can be really disastrous for others. JWT allows to reduce this spike in load on session storage since it can have all required authentication information inside its payload. When using JWT make sure you have chosen a reasonable JWT expiration time – expiration interval depends on your application nature and just one of trade-offs you should deal with as developer.</p>
-<p>Don't forget about making an effective connection between your WebSocket server and broker – as soon as all clients start reconnecting you should resubscribe your server nodes to all topics as fast as possible. Use techniques like smart batching at this moment.</p>
-<p>Let's look at a small piece of code that demonstrates this technique. Imagine we have a source channel from which we get items to process. We don’t want to process items individually but in batch. For this we wait for first item coming from channel, then try to collect as many items from channel buffer as we want without blocking and timeouts involved. And then process slice of items we collected at once. For example build Redis pipeline from them and send to Redis in one connection write call.</p>
-<div class="highlight"><pre><span></span><code><span class="nx">maxBatchSize</span> <span class="o">:=</span> <span class="mi">50</span>
+</code></pre>
+            </div>
+            <p>– otherwise you have a risk to not even able to look at <code>pprof</code> when things go bad. And you
+              always need monitoring of open file descriptors.</p>
+            <p>You can also consider using <a
+                href="https://godoc.org/golang.org/x/net/netutil#LimitListener">netutil.LimitListener</a> for this task,
+              but don't forget to put pprof on another port with another HTTP server instance in this case.</p>
+            <p>Keep attention on <em>Ephemeral ports</em> problem which is often happens between your load balancer and
+              your WebSocket server. The problem arises due to the fact that each TCP connection uniquely identified in
+              the OS by the 4-part-tuple:</p>
+            <div class="highlight">
+              <pre><span></span><code>source ip | source port | destination ip | destination port
+</code></pre>
+            </div>
+            <p>On balancer/server boundary you are limited in 65536 possible variants by default. But actually due to
+              some OS limits and sockets in TIME_WAIT state the number is even less. A very good explanation and how to
+              deal with it can be found <a
+                href="https://making.pusher.com/ephemeral-port-exhaustion-and-how-to-avoid-it/">in Pusher blog</a>.</p>
+            <p>Your possible number of connections also limited by conntrack table. Netfilter framework which is part of
+              iptables keeps information about all connections and has limited size for this information. See how to see
+              its limits and instructions to increase <a
+                href="https://morganwu277.github.io/2018/05/26/Solve-production-issue-of-nf-conntrack-table-full-dropping-packet/">in
+                this article</a>.</p>
+            <p>One more thing you can do is tune your network stack for performance. Do this only if you understand that
+              you need it. Maybe start <a
+                href="https://gist.github.com/mustafaturan/47268d8ad6d56cadda357e4c438f51ca">with this gist</a>, but
+              don't optimize without full understanding why you are doing this. </p>
+            <h2 id="sending-many-messages">Sending many messages<a class="headerlink" href="#sending-many-messages"
+                title="Permanent link">&para;</a></h2>
+            <p>Now let's speak about sending many messages. The general tips follows.</p>
+            <p><strong>Make payload smaller</strong>. This is obvious – fewer data means more effective work on all
+              layers. BTW WebSocket framing overhead is minimal and adds only 2-8 bytes to your payload. You can read
+              detailed dedicated research in <a
+                href="https://crossbario.com/blog/Dissecting-Websocket-Overhead/">Dissecting WebSocket's Overhead</a>
+              article. You can reduce an amount of data traveling over network with <code>permessage-deflate</code>
+              WebSocket extension, so your data will be compressed. Though using <code>permessage-deflate</code> is not
+              always a good thing for server due to <a href="https://github.com/gorilla/websocket/issues/203">poor
+                performance of flate</a>, so you should be prepared for a CPU and RAM resource usage on server side.
+              While Gorilla WebSocket has a lot of optimizations internally by reusing flate writers, overhead is still
+              noticeable. The increase value heavily depends on your load profile.</p>
+            <p><strong>Make less system calls</strong>. Every syscall will have a constant overhead, and actually in
+              WebSocket server under load you will mostly see read and write system calls in your CPU profiles. An
+              advice here – try to use client-server protocol that supports message batching, so you can join individual
+              messages together.</p>
+            <p><strong>Use effective message serialization protocol</strong>. Maybe use code generation for JSON to
+              avoid extensive usage of reflect package done by Go std lib. Maybe use sth like <a
+                href="https://github.com/gogo/protobuf">gogo/protobuf</a> package which allows to speedup Protobuf
+              marshalling and unmarshalling. Unfortunately Gogo Protobuf <a
+                href="https://github.com/gogo/protobuf/issues/691">is going through hard times
+              </a> at this moment. Try to serialize a message only once when sending to many subscribers.</p>
+            <p><strong>Have a way to scale to several machines</strong> - more power, more possible messages. We will
+              talk about this very soon.</p>
+            <h2 id="websocket-fallback-transport">WebSocket fallback transport<a class="headerlink"
+                href="#websocket-fallback-transport" title="Permanent link">&para;</a></h2>
+            <p><img alt="ie" src="https://i.imgur.com/IAOyvmg.png" /></p>
+            <p>Even in 2020 there are still users which cannot establish connection with WebSocket server. Actually the
+              problem mostly appears with browsers. Some users still use old browsers. But they have a choice – install
+              a newer browser. Still, there could also be users behind corporate proxies. Employees can have a trusted
+              certificate installed on their machine so company proxy can re-encrypt even TLS traffic. Also, some
+              browser extensions can block WebSocket traffic.</p>
+            <p>One ready solution to this is <a href="https://github.com/igm/sockjs-go/">Sockjs-Go</a> library. This is
+              a mature library that provides fallback transport for WebSocket. If client does not succeed with WebSocket
+              connection establishment then client can use some of HTTP transports for client-server communication: <a
+                href="https://hpbn.co/server-sent-events-sse/">EventSource aka Server-Sent Events</a>, XHR-streaming,
+              Long-Polling etc. The downside with those transports is that to achieve bidirectional communication you
+              should use sticky sessions on your load balancer since SockJS keeps connection session state in process
+              memory. We will talk about many instances of your WebSocket server very soon.</p>
+            <p>You can implement WebSocket fallback yourself, this should be simple if you have a sliding window message
+              stream on your backend which we will discuss very soon.</p>
+            <p>Maybe look at <a href="https://grpc.io/docs/what-is-grpc/introduction/">GRPC</a>, depending on
+              application it could be better or worse than WebSocket – in general you can expect a better performance
+              and less resource consumption from WebSocket for bidirectional communication case. My measurements for a
+              <strong>bidirectional</strong> scenario showed 3x win for WebSocket (binary + GOGO protobuf) in terms of
+              server CPU consumption and 4 times less RAM per connection. Though if you only need RPC then GRPC can be a
+              better choice. But you need additional proxy to work with GRPC from a browser. </p>
+            <h2 id="performance-is-not-scalability">Performance is not scalability<a class="headerlink"
+                href="#performance-is-not-scalability" title="Permanent link">&para;</a></h2>
+            <p>You can optimize client-server protocol, tune your OS, but at some point you won't be able to use only
+              one process on one server machine. You need to scale connections and work your server does over different
+              server machines. Horizontal scaling is also good for a server high availability. Actually there are some
+              sort of real-time applications where a single isolated process makes sense - for example multiplayer games
+              where limited number of players play independent game rounds.</p>
+            <p><img alt="many_instances" src="https://i.imgur.com/8ElqpjI.png" /></p>
+            <p>As soon as you distribute connections over several machines you have to find a way to deliver a message
+              to a certain user. The basic approach here is to publish messages to all server instances. This can work
+              but this does not scale well. You need a sort of instance discovery to make this less painful.</p>
+            <p>Here comes PUB/SUB, where you can connect WebSocket server instances over central PUB/SUB broker. Clients
+              that establish connections with your WebSocket server subscribe to topics (channels) in a broker, and as
+              soon as you publish a message to that topic it will be delivered to all active subscribers on WebSocket
+              server instances. If server node does not have interested subscriber then it won't get a message from a
+              broker thus you are getting effective network communication.</p>
+            <p>Actually the main picture of this post illustrates exactly this architecture:</p>
+            <p><img alt="gopher-broker" src="https://i.imgur.com/QOJ1M9a.png" /></p>
+            <p>Let's think about requirements for a broker for real-time messaging application. We want a broker:</p>
+            <ul>
+              <li>with reasonable performance and possibility to scale</li>
+              <li>which maintains message order in topics</li>
+              <li>can support millions of topics, where each topic should be ephemeral and lightweight – topics can be
+                created when user comes to application and removed after user goes away</li>
+              <li>possibility to keep a sliding window of messages inside channel to help us survive massive reconnect
+                scenario (will talk about this later below, can be a separate part from broker actually)</li>
+            </ul>
+            <p>Personally when we talk about such brokers here are some options that come into my mind:</p>
+            <ul>
+              <li><a href="https://www.rabbitmq.com/">RabbitMQ</a></li>
+              <li><a href="https://kafka.apache.org/">Kafka</a> or <a href="https://pulsar.apache.org/">Pulsar</a></li>
+              <li><a href="https://nats.io/">Nats or Nats-Streaming</a></li>
+              <li><a href="https://www.tarantool.io/en/">Tarantool</a></li>
+              <li><a href="https://redis.io/">Redis</a></li>
+            </ul>
+            <p><strong>Sure there are more exist</strong> including libraries like <a
+                href="https://zeromq.org/">ZeroMQ</a> or <a href="https://nanomsg.org/">nanomsg</a>.</p>
+            <p>Below I'll try to consider these solutions for the task of making scalable WebSocket server facing many
+              user connections from Internet.</p>
+            <p>If you are looking for unreliable at most once PUB/SUB then any of solutions mentioned above should be
+              sufficient. Many real-time messaging apps are ok with at most once guarantee delivery.</p>
+            <p>If you don't want to miss messages then things are a bit harder. Let's try to evaluate these options for
+              a task where application has lots of different topics from which it wants to receive messages with at
+              least once guarantee (having a personal topic per client is common thing in applications). A short
+              analysis below can be a bit biased, but I believe thoughts are reasonable enough. I did not found enough
+              information on the internet about scaling WebSocket beyond a single server process, so I'll try to fill
+              the gap a little based on my personal knowledge without pretending to be absolutely objective in these
+              considerations.</p>
+            <p>In some posts on the internet about scaling WebSocket I saw advices to use RabbitMQ for PUB/SUB stuff in
+              real-time messaging server. While this is a great messaging server, it does not like a high rate of queue
+              bind and unbind type of load. It will work, but you will need to use a lot of server resources for not so
+              big number of clients (imagine having millions of queues inside RabbitMQ). I have an example from my
+              practice where RabbitMQ consumed about 70 CPU cores to serve real-time messages for 100k online
+              connections. After replacing it with Redis keeping the same message delivery semantics we got only 0.3 CPU
+              consumption on broker side.</p>
+            <p>Kafka and Pulsar are great solutions, but not for this task I believe. The problem is again in dynamic
+              ephemeral nature of our topics. Kafka also likes a more stable configuration of its topics. Keeping
+              messages on disk can be an overkill for real-time messaging task. Also your consumers on Kafka server
+              should pull from millions of different topics, not sure how well it performs, but my thoughts at moment -
+              this should not perform very well. Kafka itself scales perfectly, you will definitely be able to achieve a
+              goal but resource usage will be significant. Here is <a
+                href="https://tech.trello.com/why-we-chose-kafka/">a post from Trello</a> where they moved from RabbitMQ
+              to Kafka for similar real-time messaging task and got about 5x resource usage improvements. Note also that
+              the more partitions you have the more heavy failover process you get.</p>
+            <p>Nats and Nats-Streaming. Raw Nats can only provide at most once guarantee. BTW recently Nats developers
+              <a href="https://github.com/nats-io/nats-server/issues/315">released native WebSocket support</a>, so you
+              can consider it for your application. Nats-Streaming server as broker will allow you to not lose messages.
+              To be fair I don't have enough information about how well Nats-Streaming scales to millions of topics. An
+              upcoming <a href="https://github.com/nats-io/jetstream">Jetstream</a> which will be a part of Nats server
+              can also be an interesting option – like Kafka it provides a persistent stream of messages for at least
+              once delivery semantics. But again, it involves disk storage, a nice thing for backend microservices
+              communication but can be an overkill for real-time messaging task.</p>
+            <p>Sure Tarantool can fit to this task well too. It's fast, im-memory and flexible. Some possible problems
+              with Tarantool are not so healthy state of its client libraries, complexity and the fact that it's heavily
+              enterprise-oriented. You should invest enough time to benefit from it, but this can worth it actually. See
+              <a
+                href="https://hackernoon.com/tarantool-when-it-takes-500-lines-of-code-to-notify-a-million-users-11d340523493">an
+                article</a> on how to do a performant broker for WebSocket applications with Tarantool.</p>
+            <p>Building PUB/SUB system on top of ZeroMQ will require you to build separate broker yourself. This could
+              be an unnecessary complexity for your system. It's possible to implement PUB/SUB pattern with ZeroMQ and
+              nanomsg without a central broker, but in this case messages without active subscribers on a server will be
+              dropped on a consumer side thus all publications will travel to all server nodes. </p>
+            <p>My personal choice at moment is Redis. While <strong>Redis PUB/SUB itself provides at most once
+                guarantee</strong>, you can build at least once delivery on top of PUB/SUB and Redis data structures
+              (though this can be challenging enough). Redis is very fast (especially when using pipelining protocol
+              feature), and what is more important – <strong>very predictable</strong>. It gives you a good
+              understanding of operation time complexity. You can shard topics over different Redis instances running in
+              HA setup - with Sentinel or with Redis Cluster. It allows writing LUA procedures with some advanced logic
+              which can be uploaded over client protocol thus feels like ordinary commands. You can use Redis to keep
+              sliding window event stream which gives you access to missed messages from a certain position. We will
+              talk about this later.</p>
+            <p>OK, the end of opinionated thoughts here :)</p>
+            <p>Depending on your choice the implementation of your system will vary and will have different properties –
+              so try to evaluate possible solutions based on your application requirements. Anyway, whatever broker will
+              be your choice, try to follow this rules to build effective PUB/SUB system:</p>
+            <ul>
+              <li>take into account message delivery guarantees of your system: at most once or at least once, ideally
+                you should have an option to have both for different real-time features in your app</li>
+              <li>make sure to use one or pool of connections between your server and a broker, don't create new
+                connection per each client or topic that comes to your WebSocket server</li>
+              <li>use effective serialization format between your WebSocket server and broker</li>
+            </ul>
+            <h2 id="massive-reconnect">Massive reconnect<a class="headerlink" href="#massive-reconnect"
+                title="Permanent link">&para;</a></h2>
+            <p><img alt="mass_reconnect" src="https://i.imgur.com/S9koKYg.png" /></p>
+            <p>Let's talk about one more problem that is unique for Websocket servers compared to HTTP. Your app can
+              have thousands or millions of active WebSocket connections. In contract to stateless HTTP APIs your
+              application is stateful. It uses push model. As soon as you deploying your WebSocket server or reload your
+              load balancer (Nginx maybe) – connections got dropped and all that army of users start reconnecting. And
+              this can be like an avalanche actually. How to survive?</p>
+            <p>First of all - use exponential backoff strategies on client side. I.e. reconnect with intervals like 1,
+              2, 4, 8, 16 seconds with some random jitter.</p>
+            <p>Turn on various rate limiting strategies on your WebSocket server, some of them should be turned on your
+              backend load balancer level (like controlling TCP connection establishment rate), some are application
+              specific (maybe limit an amount of requests from certain user).</p>
+            <p>One more interesting technique to survive massive reconnect is using JWT (JSON Web Token) for
+              authentication. I'll try to explain why this can be useful.</p>
+            <p><img alt="jwt" src="https://i.imgur.com/aaTEhXo.png" /></p>
+            <p>As soon as your client start reconnecting you will have to authenticate each connection. In massive
+              setups with many persistent connection this can be a very significant load on your Session backend. Since
+              you need an extra request to your session storage for every client coming back. This can be a no problem
+              for some infrastructures but can be really disastrous for others. JWT allows to reduce this spike in load
+              on session storage since it can have all required authentication information inside its payload. When
+              using JWT make sure you have chosen a reasonable JWT expiration time – expiration interval depends on your
+              application nature and just one of trade-offs you should deal with as developer.</p>
+            <p>Don't forget about making an effective connection between your WebSocket server and broker – as soon as
+              all clients start reconnecting you should resubscribe your server nodes to all topics as fast as possible.
+              Use techniques like smart batching at this moment.</p>
+            <p>Let's look at a small piece of code that demonstrates this technique. Imagine we have a source channel
+              from which we get items to process. We don’t want to process items individually but in batch. For this we
+              wait for first item coming from channel, then try to collect as many items from channel buffer as we want
+              without blocking and timeouts involved. And then process slice of items we collected at once. For example
+              build Redis pipeline from them and send to Redis in one connection write call.</p>
+            <div class="highlight">
+              <pre><span></span><code><span class="nx">maxBatchSize</span> <span class="o">:=</span> <span class="mi">50</span>
 
 <span class="k">for</span> <span class="p">{</span>
     <span class="k">select</span> <span class="p">{</span>
@@ -1437,125 +1664,163 @@
         <span class="nb">println</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nx">batch</span><span class="p">))</span>
     <span class="p">}</span>
 <span class="p">}</span>
-</code></pre></div>
-<p>Look at a complete example in a Go playground: <a href="https://play.golang.org/p/u7SAGOLmDke">https://play.golang.org/p/u7SAGOLmDke</a>.</p>
-<p>I also made a repo where I demonstrate how this technique together with Redis pipelining feature allows to fully utilize connection for a good performance <a href="https://github.com/FZambia/redigo-smart-batching">https://github.com/FZambia/redigo-smart-batching</a>.</p>
-<p>Another advice for those who run WebSocket services in Kubernetes. Learn how your ingress behaves – for example Nginx ingress can reload its configuration on every change inside Kubernetes services map resulting into closing all active WebSocket connections. Proxies like Envoy don't have this behaviour, so you can reduce number of mass disconnections in your system. You can also proxy WebSocket without using ingress at all over configured WebSocket service NodePort.</p>
-<h2 id="message-event-stream-benefits">Message event stream benefits<a class="headerlink" href="#message-event-stream-benefits" title="Permanent link">&para;</a></h2>
-<p>Here comes a final part of this post. Maybe the most important one.</p>
-<p>Not only mass client re-connections could create a significant load on a session backend but also a huge load on your main application database. Why? Because WebSocket applications are stateful. Clients rely on a stream of messages coming from a backend to maintain its state actual. As soon as connection dropped client tries to reconnect. In some scenarios it also wants to restore its actual state. What if client reconnected after 3 seconds? How many state updates it could miss? Nobody knows. So to make sure state is actual client tries to get it from application database. This is again <strong>a significant spike in load on your main database</strong> in massive reconnect scenario. In can be really painful with many active connections.</p>
-<p>So what I think is nice to have for scenarios where we can't afford to miss messages (like in chat-like apps for example) is having effective and performant stream of messages inside each channel. Keep this stream in fast in-memory storage. This stream can have time retention and be limited in size (think about it as a sliding window of messages). I already mentioned that Redis can do this – it's possible to keep messages in Redis List or Redis Stream data structures. Other broker solutions could give you access to such a stream inside each channel out of the box.</p>
-<p>So as soon as client reconnects it can restore its state from fast in-memory event stream without even querying your database. Actually to survive mass reconnect scenario you don't need to keep such a stream for a long time – several minutes should be enough. You can <strong>even create your own Websocket fallback implementation (like Long-Polling) utilizing event stream with limited retention</strong>.</p>
-<h2 id="conclusion">Conclusion<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h2>
-<p>Hope advices given here will be useful for a reader and will help writing a more robust and more scalable real-time application backends.</p>
-<p><a href="https://github.com/centrifugal/centrifugo/">Centrifugo server</a> and <a href="https://github.com/centrifugal/centrifuge">Centrifuge library for Go language</a> have most of the mechanics described here including the last one – message stream for topics limited by size and retention period. Both also have techniques to prevent message loss due to at most once nature of Redis PUB/SUB giving at least once delivery guarantee inside message history window size and retention period.</p>
-                
-                  
-                
-              
+</code></pre>
+            </div>
+            <p>Look at a complete example in a Go playground: <a
+                href="https://play.golang.org/p/u7SAGOLmDke">https://play.golang.org/p/u7SAGOLmDke</a>.</p>
+            <p>I also made a repo where I demonstrate how this technique together with Redis pipelining feature allows
+              to fully utilize connection for a good performance <a
+                href="https://github.com/FZambia/redigo-smart-batching">https://github.com/FZambia/redigo-smart-batching</a>.
+            </p>
+            <p>Another advice for those who run WebSocket services in Kubernetes. Learn how your ingress behaves – for
+              example Nginx ingress can reload its configuration on every change inside Kubernetes services map
+              resulting into closing all active WebSocket connections. Proxies like Envoy don't have this behaviour, so
+              you can reduce number of mass disconnections in your system. You can also proxy WebSocket without using
+              ingress at all over configured WebSocket service NodePort.</p>
+            <h2 id="message-event-stream-benefits">Message event stream benefits<a class="headerlink"
+                href="#message-event-stream-benefits" title="Permanent link">&para;</a></h2>
+            <p>Here comes a final part of this post. Maybe the most important one.</p>
+            <p>Not only mass client re-connections could create a significant load on a session backend but also a huge
+              load on your main application database. Why? Because WebSocket applications are stateful. Clients rely on
+              a stream of messages coming from a backend to maintain its state actual. As soon as connection dropped
+              client tries to reconnect. In some scenarios it also wants to restore its actual state. What if client
+              reconnected after 3 seconds? How many state updates it could miss? Nobody knows. So to make sure state is
+              actual client tries to get it from application database. This is again <strong>a significant spike in load
+                on your main database</strong> in massive reconnect scenario. In can be really painful with many active
+              connections.</p>
+            <p>So what I think is nice to have for scenarios where we can't afford to miss messages (like in chat-like
+              apps for example) is having effective and performant stream of messages inside each channel. Keep this
+              stream in fast in-memory storage. This stream can have time retention and be limited in size (think about
+              it as a sliding window of messages). I already mentioned that Redis can do this – it's possible to keep
+              messages in Redis List or Redis Stream data structures. Other broker solutions could give you access to
+              such a stream inside each channel out of the box.</p>
+            <p>So as soon as client reconnects it can restore its state from fast in-memory event stream without even
+              querying your database. Actually to survive mass reconnect scenario you don't need to keep such a stream
+              for a long time – several minutes should be enough. You can <strong>even create your own Websocket
+                fallback implementation (like Long-Polling) utilizing event stream with limited retention</strong>.</p>
+            <h2 id="conclusion">Conclusion<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a>
+            </h2>
+            <p>Hope advices given here will be useful for a reader and will help writing a more robust and more scalable
+              real-time application backends.</p>
+            <p><a href="https://github.com/centrifugal/centrifugo/">Centrifugo server</a> and <a
+                href="https://github.com/centrifugal/centrifuge">Centrifuge library for Go language</a> have most of the
+              mechanics described here including the last one – message stream for topics limited by size and retention
+              period. Both also have techniques to prevent message loss due to at most once nature of Redis PUB/SUB
+              giving at least once delivery guarantee inside message history window size and retention period.</p>
 
-              
-                
 
 
-              
-            </article>
-          </div>
+
+
+
+
+
+
+
+          </article>
         </div>
-      </main>
-      
+      </div>
+    </main>
 
-        
-<footer class="md-footer">
-    
-    <div class="md-footer-nav">
+
+
+    <footer class="md-footer">
+
+      <div class="md-footer-nav">
         <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
-            
-            <a href="../quic_web_transport/" title="Experimenting with QUIC and WebTransport in Go" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
-                <div class="md-footer-nav__button md-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-                </div>
-                <div class="md-footer-nav__title">
-                    <div class="md-ellipsis">
+
+          <a href="../quic_web_transport/" title="Experimenting with QUIC and WebTransport in Go"
+            class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z" />
+              </svg>
+            </div>
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                        Experimenting with QUIC and WebTransport in Go
-                    </div>
-                </div>
-            </a>
-            
-            
-            <a href="../../pro/" title="About" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
-                <div class="md-footer-nav__title">
-                    <div class="md-ellipsis">
+                Experimenting with QUIC and WebTransport in Go
+              </div>
+            </div>
+          </a>
+
+
+          <a href="../../pro/" title="About" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                        About
-                    </div>
-                </div>
-                <div class="md-footer-nav__button md-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
-                </div>
-            </a>
-            
-        </nav>
-    </div>
-    
-    <div class="md-footer-meta md-typeset">
-        <div class="md-footer-meta__inner md-grid">
-            <div class="md-footer-copyright">
-                
-                <div class="md-footer-copyright__highlight">
-                    Copyright &copy; 2020 Centrifugal
-                </div>
-                
-                <style>
-
-                    /* Preserve link color */
-                    .md-announce a,
-                    .md-announce a:focus,
-                    .md-announce a:hover {
-                        color: currentColor;
-                    }
-
-                    /* Don't wrap name of blog article */
-                    .md-announce strong {
-                        white-space: nowrap;
-                    }
-
-                    /* Twitter icon */
-                    .md-announce .twitter {
-                        margin-left: .2em;
-                        color: #00acee;
-                    }
-                </style>
-                <a href="https://opencollective.com/centrifugal">
-                    Support Centrifugo development on <strong>Open Collective</strong>
-                </a>
+                About
+              </div>
             </div>
-            
-        </div>
-    </div>
-</footer>
-      
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z" />
+              </svg>
+            </div>
+          </a>
 
-    </div>
-    
-      <script src="../../assets/javascripts/vendor.18f0862e.min.js"></script>
-      <script src="../../assets/javascripts/bundle.994580cf.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}</script>
-      
-      <script>
-        app = initialize({
-          base: "../..",
-          features: ['navigation.tabs'],
-          search: Object.assign({
-            worker: "../../assets/javascripts/worker/search.9c0e82ba.min.js"
-          }, typeof search !== "undefined" && search)
-        })
-      </script>
-      
-    
-  </body>
+        </nav>
+      </div>
+
+      <div class="md-footer-meta md-typeset">
+        <div class="md-footer-meta__inner md-grid">
+          <div class="md-footer-copyright">
+
+            <div class="md-footer-copyright__highlight">
+              Copyright &copy; 2020 Centrifugal
+            </div>
+
+            <style>
+              /* Preserve link color */
+              .md-announce a,
+              .md-announce a:focus,
+              .md-announce a:hover {
+                color: currentColor;
+              }
+
+              /* Don't wrap name of blog article */
+              .md-announce strong {
+                white-space: nowrap;
+              }
+
+              /* Twitter icon */
+              .md-announce .twitter {
+                margin-left: .2em;
+                color: #00acee;
+              }
+            </style>
+            <a href="https://opencollective.com/centrifugal">
+              Support Centrifugo development on <strong>Open Collective</strong>
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </footer>
+
+
+  </div>
+
+  <script src="../../assets/javascripts/vendor.18f0862e.min.js"></script>
+  <script src="../../assets/javascripts/bundle.994580cf.min.js"></script>
+  <script id="__lang"
+    type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}</script>
+
+  <script>
+    app = initialize({
+      base: "../..",
+      features: ['navigation.tabs'],
+      search: Object.assign({
+        worker: "../../assets/javascripts/worker/search.9c0e82ba.min.js"
+      }, typeof search !== "undefined" && search)
+    })
+  </script>
+
+
+</body>
+
 </html>

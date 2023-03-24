@@ -1,1164 +1,1217 @@
-
 <!doctype html>
 <html lang="en" class="no-js">
-  <head>
-    
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width,initial-scale=1">
-      
-        <meta name="description" content="Centrifugo is a scalable real-time messaging server in language-agnostic way">
-      
-      
-      
-        <meta name="author" content="Centrifugal organization">
-      
-      
-        <link rel="canonical" href="https://centrifugal.github.io/centrifugo/quick_start/">
-      
-      <link rel="shortcut icon" href="../images/favicon.png">
-      <meta name="generator" content="mkdocs-1.2.1, mkdocs-material-6.2.8">
-    
-    
-      
-        <title>Quick start - Centrifugo</title>
-      
-    
-    
-      <link rel="stylesheet" href="../assets/stylesheets/main.cb6bc1d0.min.css">
-      
-        
-        <link rel="stylesheet" href="../assets/stylesheets/palette.39b8e14a.min.css">
-        
-          
-          
-          <meta name="theme-color" content="#000000">
-        
-      
-    
-    
-    
-      
-        
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
-        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
-      
-    
-    
-    
-      <link rel="stylesheet" href="../theme/styles/extra.css">
-    
-    
-      
-    
-    
-  </head>
-  
-  
-    
-    
-    
-    
-    
-    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="black" data-md-color-accent="cyan">
-      
-  
-    
-    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
-    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
-    <label class="md-overlay" for="__drawer"></label>
-    <div data-md-component="skip">
-      
-        
-        <a href="#quick-start" class="md-skip">
-          Skip to content
-        </a>
-      
-    </div>
-    <div data-md-component="announce">
-      
-    </div>
-    
-      
 
-<header class="md-header" data-md-component="header">
-  <nav class="md-header-nav md-grid" aria-label="Header">
-    <a href="https://centrifugal.github.io/centrifugo/" title="Centrifugo" class="md-header-nav__button md-logo" aria-label="Centrifugo">
-      
-  <img src="../images/logo.png" alt="logo">
+<head>
 
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <meta name="description" content="Centrifugo is a scalable real-time messaging server in language-agnostic way">
+
+
+
+  <meta name="author" content="Centrifugal organization">
+
+
+  <link rel="canonical" href="https://centrifugal.dev/docs/getting-started/quickstart">
+
+  <link rel="shortcut icon" href="../images/favicon.png">
+  <meta name="generator" content="mkdocs-1.2.1, mkdocs-material-6.2.8">
+
+
+
+  <title>Quick start - Centrifugo</title>
+
+
+
+  <link rel="stylesheet" href="../assets/stylesheets/main.cb6bc1d0.min.css">
+
+
+  <link rel="stylesheet" href="../assets/stylesheets/palette.39b8e14a.min.css">
+
+
+
+  <meta name="theme-color" content="#000000">
+
+
+
+
+
+
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+  <style>
+    body,
+    input {
+      font-family: "Roboto", -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif
+    }
+
+    code,
+    kbd,
+    pre {
+      font-family: "Roboto Mono", SFMono-Regular, Consolas, Menlo, monospace
+    }
+  </style>
+
+
+
+
+  <link rel="stylesheet" href="../theme/styles/extra.css">
+
+
+
+
+
+</head>
+
+
+
+
+
+
+
+<body dir="ltr" data-md-color-scheme="" data-md-color-primary="black" data-md-color-accent="cyan">
+
+
+
+  <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+  <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+  <label class="md-overlay" for="__drawer"></label>
+  <div data-md-component="skip">
+
+
+    <a href="#quick-start" class="md-skip">
+      Skip to content
     </a>
-    <label class="md-header-nav__button md-icon" for="__drawer">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
-    </label>
-    <div class="md-header-nav__title" data-md-component="header-title">
-      <div class="md-header-nav__ellipsis">
-        <div class="md-header-nav__topic">
-          <span class="md-ellipsis">
-            Centrifugo
-          </span>
-        </div>
-        <div class="md-header-nav__topic">
-          <span class="md-ellipsis">
-            
-              Quick start
-            
-          </span>
-        </div>
-      </div>
-    </div>
-    
-      <label class="md-header-nav__button md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+
+  </div>
+  <div data-md-component="announce">
+
+  </div>
+
+
+
+  <header class="md-header" data-md-component="header">
+    <nav class="md-header-nav md-grid" aria-label="Header">
+      <a href="https://centrifugal.github.io/centrifugo/" title="Centrifugo" class="md-header-nav__button md-logo"
+        aria-label="Centrifugo">
+
+        <img src="../images/logo.png" alt="logo">
+
+      </a>
+      <label class="md-header-nav__button md-icon" for="__drawer">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z" />
+        </svg>
       </label>
-      
-<div class="md-search" data-md-component="search" role="dialog">
-  <label class="md-search__overlay" for="__search"></label>
-  <div class="md-search__inner" role="search">
-    <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active" required>
-      <label class="md-search__icon md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-      </label>
-      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
-      </button>
-    </form>
-    <div class="md-search__output">
-      <div class="md-search__scrollwrap" data-md-scrollfix>
-        <div class="md-search-result" data-md-component="search-result">
-          <div class="md-search-result__meta">
-            Initializing search
+      <div class="md-header-nav__title" data-md-component="header-title">
+        <div class="md-header-nav__ellipsis">
+          <div class="md-header-nav__topic">
+            <span class="md-ellipsis">
+              Centrifugo
+            </span>
           </div>
-          <ol class="md-search-result__list"></ol>
+          <div class="md-header-nav__topic">
+            <span class="md-ellipsis">
+
+              Quick start
+
+            </span>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
-</div>
-    
-    
-      <div class="md-header-nav__source">
-        
-<a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source">
-  <div class="md-source__icon md-icon">
-    
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
-  </div>
-  <div class="md-source__repository">
-    centrifugal/centrifugo
-  </div>
-</a>
+
+      <label class="md-header-nav__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path
+            d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z" />
+        </svg>
+      </label>
+
+      <div class="md-search" data-md-component="search" role="dialog">
+        <label class="md-search__overlay" for="__search"></label>
+        <div class="md-search__inner" role="search">
+          <form class="md-search__form" name="search">
+            <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search"
+              autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false"
+              data-md-component="search-query" data-md-state="active" required>
+            <label class="md-search__icon md-icon" for="__search">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path
+                  d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z" />
+              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z" />
+              </svg>
+            </label>
+            <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset"
+              tabindex="-1">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path
+                  d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
+              </svg>
+            </button>
+          </form>
+          <div class="md-search__output">
+            <div class="md-search__scrollwrap" data-md-scrollfix>
+              <div class="md-search-result" data-md-component="search-result">
+                <div class="md-search-result__meta">
+                  Initializing search
+                </div>
+                <ol class="md-search-result__list"></ol>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    
-  </nav>
-</header>
-    
-    <div class="md-container" data-md-component="container">
-      
-      
-        
-          
-<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
-  <div class="md-tabs__inner md-grid">
-    <ul class="md-tabs__list">
-      
-        
-  
-  
 
 
-  <li class="md-tabs__item">
-    <a href=".." class="md-tabs__link">
-      Home
-    </a>
-  </li>
+      <div class="md-header-nav__source">
 
-      
-        
-  
-  
-    
-  
+        <a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source">
+          <div class="md-source__icon md-icon">
 
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+              <path
+                d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z" />
+            </svg>
+          </div>
+          <div class="md-source__repository">
+            centrifugal/centrifugo
+          </div>
+        </a>
+      </div>
 
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="../getting_started/" class="md-tabs__link md-tabs__link--active">
-        Getting Started
-      </a>
-    </li>
-  
+    </nav>
+  </header>
 
-      
-        
-  
-  
-
-
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="../server/install/" class="md-tabs__link">
-        Server
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-
-
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="../libraries/client/" class="md-tabs__link">
-        Libraries
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-
-
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="../faq/" class="md-tabs__link">
-        FAQ
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-
-
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="../blog/" class="md-tabs__link">
-        Blog
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-
-
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="../pro/" class="md-tabs__link">
-        Centrifugo PRO
-      </a>
-    </li>
-  
-
-      
-    </ul>
-  </div>
-</nav>
-        
-      
-      <main class="md-main" data-md-component="main">
-        <div class="md-main__inner md-grid">
-          
-            
-              
-              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation" >
-                <div class="md-sidebar__scrollwrap">
-                  <div class="md-sidebar__inner">
-                    
+  <div class="md-container" data-md-component="container">
 
 
 
-  
+
+    <nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+      <div class="md-tabs__inner md-grid">
+        <ul class="md-tabs__list">
 
 
-<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
-  <label class="md-nav__title" for="__drawer">
-    <a href="https://centrifugal.github.io/centrifugo/" title="Centrifugo" class="md-nav__button md-logo" aria-label="Centrifugo">
-      
-  <img src="../images/logo.png" alt="logo">
 
-    </a>
-    Centrifugo
-  </label>
-  
-    <div class="md-nav__source">
-      
-<a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source">
-  <div class="md-source__icon md-icon">
-    
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
-  </div>
-  <div class="md-source__repository">
-    centrifugal/centrifugo
-  </div>
-</a>
-    </div>
-  
-  <ul class="md-nav__list" data-md-scrollfix>
-    
-      
-      
-      
 
-  
-  
-  
-    <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
-        Home
-      </a>
-    </li>
-  
 
-    
-      
-      
-      
 
-  
-  
-    
-  
-  
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-2" type="checkbox" id="nav-2" checked>
-      
-      <label class="md-nav__link" for="nav-2">
-        Getting Started
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Getting Started" data-md-level="1">
-        <label class="md-nav__title" for="nav-2">
-          <span class="md-nav__icon md-icon"></span>
-          Getting Started
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../getting_started/" class="md-nav__link">
-        What is Centrifugo
-      </a>
-    </li>
-  
+          <li class="md-tabs__item">
+            <a href=".." class="md-tabs__link">
+              Home
+            </a>
+          </li>
 
-          
-            
-  
-  
-    
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Quick start
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
-        Quick start
-      </a>
-      
-        
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#more-examples" class="md-nav__link">
-    More examples
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../guide/" class="md-nav__link">
-        Integration Guide
-      </a>
-    </li>
-  
 
-          
+
+
+
+
+
+
+
+
+
+          <li class="md-tabs__item">
+            <a href="../getting_started/" class="md-tabs__link md-tabs__link--active">
+              Getting Started
+            </a>
+          </li>
+
+
+
+
+
+
+
+
+
+
+
+          <li class="md-tabs__item">
+            <a href="../server/install/" class="md-tabs__link">
+              Server
+            </a>
+          </li>
+
+
+
+
+
+
+
+
+
+
+
+          <li class="md-tabs__item">
+            <a href="../libraries/client/" class="md-tabs__link">
+              Libraries
+            </a>
+          </li>
+
+
+
+
+
+
+
+
+
+
+
+          <li class="md-tabs__item">
+            <a href="../faq/" class="md-tabs__link">
+              FAQ
+            </a>
+          </li>
+
+
+
+
+
+
+
+
+
+
+
+          <li class="md-tabs__item">
+            <a href="../blog/" class="md-tabs__link">
+              Blog
+            </a>
+          </li>
+
+
+
+
+
+
+
+
+
+
+
+          <li class="md-tabs__item">
+            <a href="../pro/" class="md-tabs__link">
+              Centrifugo PRO
+            </a>
+          </li>
+
+
+
         </ul>
-      </nav>
-    </li>
-  
+      </div>
+    </nav>
 
-    
-      
-      
-      
 
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" >
-      
-      <label class="md-nav__link" for="nav-3">
-        Server
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Server" data-md-level="1">
-        <label class="md-nav__title" for="nav-3">
-          <span class="md-nav__icon md-icon"></span>
-          Server
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../server/install/" class="md-nav__link">
-        Installation
-      </a>
-    </li>
-  
+    <main class="md-main" data-md-component="main">
+      <div class="md-main__inner md-grid">
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../server/configuration/" class="md-nav__link">
-        Configuration
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../server/commands/" class="md-nav__link">
-        Console commands
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../server/client_api/" class="md-nav__link">
-        Client API
-      </a>
-    </li>
-  
+        <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+          <div class="md-sidebar__scrollwrap">
+            <div class="md-sidebar__inner">
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../server/http_api/" class="md-nav__link">
-        Server HTTP API
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../server/grpc_api/" class="md-nav__link">
-        Server GRPC API
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../server/channels/" class="md-nav__link">
-        Channels
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../server/authentication/" class="md-nav__link">
-        Authentication
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../server/private_channels/" class="md-nav__link">
-        Private channels
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../server/engines/" class="md-nav__link">
-        Engines
-      </a>
-    </li>
-  
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../server/admin/" class="md-nav__link">
-        Admin web interface
-      </a>
-    </li>
-  
+              <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+                <label class="md-nav__title" for="__drawer">
+                  <a href="https://centrifugal.github.io/centrifugo/" title="Centrifugo" class="md-nav__button md-logo"
+                    aria-label="Centrifugo">
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../server/proxy/" class="md-nav__link">
-        Proxy to backend
-      </a>
-    </li>
-  
+                    <img src="../images/logo.png" alt="logo">
 
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../server/server_subs/" class="md-nav__link">
-        Server-side subscriptions
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../server/connection_expiration/" class="md-nav__link">
-        Connection expiration
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15" >
-      
-      <label class="md-nav__link" for="nav-3-15">
-        Client-server transports
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Client-server transports" data-md-level="2">
-        <label class="md-nav__title" for="nav-3-15">
-          <span class="md-nav__icon md-icon"></span>
-          Client-server transports
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../transports/" class="md-nav__link">
-        Overview
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../transports/websocket/" class="md-nav__link">
-        Websocket
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../transports/sockjs/" class="md-nav__link">
-        SockJS
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../transports/protobuf/" class="md-nav__link">
-        Protobuf protocol
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../transports/protocol/" class="md-nav__link">
-        Client protocol
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../transports/recovery/" class="md-nav__link">
-        Message recovery
-      </a>
-    </li>
-  
-
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-16" type="checkbox" id="nav-3-16" >
-      
-      <label class="md-nav__link" for="nav-3-16">
-        Deploy
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Deploy" data-md-level="2">
-        <label class="md-nav__title" for="nav-3-16">
-          <span class="md-nav__icon md-icon"></span>
-          Deploy
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../deploy/monitoring/" class="md-nav__link">
-        Monitoring
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../deploy/tuning/" class="md-nav__link">
-        Infrastructure tuning
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../deploy/tls/" class="md-nav__link">
-        TLS
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../deploy/nginx/" class="md-nav__link">
-        Nginx configuration
-      </a>
-    </li>
-  
-
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-17" type="checkbox" id="nav-3-17" >
-      
-      <label class="md-nav__link" for="nav-3-17">
-        Misc
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Misc" data-md-level="2">
-        <label class="md-nav__title" for="nav-3-17">
-          <span class="md-nav__icon md-icon"></span>
-          Misc
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../misc/insecure_modes/" class="md-nav__link">
-        Insecure modes
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../misc/migrate/" class="md-nav__link">
-        Migrate from Centrifugo v1
-      </a>
-    </li>
-  
-
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../misc/benchmark/" class="md-nav__link">
-        Benchmark
-      </a>
-    </li>
-  
-
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-    
-      
-      
-      
-
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4" >
-      
-      <label class="md-nav__link" for="nav-4">
-        Libraries
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Libraries" data-md-level="1">
-        <label class="md-nav__title" for="nav-4">
-          <span class="md-nav__icon md-icon"></span>
-          Libraries
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../libraries/client/" class="md-nav__link">
-        Client libraries
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../libraries/api/" class="md-nav__link">
-        API libraries
-      </a>
-    </li>
-  
-
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-    
-      
-      
-      
-
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5" >
-      
-      <label class="md-nav__link" for="nav-5">
-        FAQ
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="FAQ" data-md-level="1">
-        <label class="md-nav__title" for="nav-5">
-          <span class="md-nav__icon md-icon"></span>
-          FAQ
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../faq/" class="md-nav__link">
-        Frequently Asked Questions
-      </a>
-    </li>
-  
-
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-    
-      
-      
-      
-
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6" >
-      
-      <label class="md-nav__link" for="nav-6">
-        Blog
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Blog" data-md-level="1">
-        <label class="md-nav__title" for="nav-6">
-          <span class="md-nav__icon md-icon"></span>
-          Blog
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../blog/" class="md-nav__link">
-        About this blog
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../blog/intro_centrifuge/" class="md-nav__link">
-        An introduction to Centrifuge – real-time messaging with Go
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../blog/quic_web_transport/" class="md-nav__link">
-        Experimenting with QUIC and WebTransport in Go
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../blog/scaling_websocket/" class="md-nav__link">
-        Scaling WebSocket in Go and beyond
-      </a>
-    </li>
-  
-
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-    
-      
-      
-      
-
-  
-  
-  
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7" >
-      
-      <label class="md-nav__link" for="nav-7">
-        Centrifugo PRO
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Centrifugo PRO" data-md-level="1">
-        <label class="md-nav__title" for="nav-7">
-          <span class="md-nav__icon md-icon"></span>
-          Centrifugo PRO
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
-          
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../pro/" class="md-nav__link">
-        About
-      </a>
-    </li>
-  
-
-          
-        </ul>
-      </nav>
-    </li>
-  
-
-    
-  </ul>
-</nav>
-                  </div>
-                </div>
-              </div>
-            
-            
-              
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc" >
-                <div class="md-sidebar__scrollwrap">
-                  <div class="md-sidebar__inner">
-                    
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#more-examples" class="md-nav__link">
-    More examples
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-                  </div>
-                </div>
-              </div>
-            
-          
-          <div class="md-content">
-            <article class="md-content__inner md-typeset">
-              
-                
-                  <a href="https://github.com/centrifugal/centrifugo/edit/master/docs/content/quick_start.md" title="Edit this page" class="md-content__button md-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
-                
-                
-                <h1 id="quick-start">Quick start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h1>
-<div class="admonition danger">
-<p class="admonition-title">Danger</p>
-<p>This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the <a href="https://centrifugal.dev">centrifugal.dev</a> for v3 docs.</p>
-</div>
-<p>Here we will build a very simple browser application with Centrifugo. It works in a way that users connect to Centrifugo over WebSocket, subscribe to channel and start receiving all messages published to that channel. In our case we will send a counter value to all channel subscribers to update it in all open browser tabs in real-time.</p>
-<p>First you need to <a href="../server/install/">install Centrifugo</a>. Below in this example we will use binary file release for simplicity. We can generate minimal required configuration file with the following command:</p>
-<div class="highlight"><pre><span></span><code>./centrifugo genconfig
-</code></pre></div>
-<p>It will generate <code>config.json</code> file in the same directory with content like this:</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
+                  Centrifugo
+                </label>
+
+                <div class="md-nav__source">
+
+                  <a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source">
+                    <div class="md-source__icon md-icon">
+
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+                        <path
+                          d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z" />
+                      </svg>
+                    </div>
+                    <div class="md-source__repository">
+                      centrifugal/centrifugo
+                    </div>
+                  </a>
+                </div>
+
+                <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+
+
+                  <li class="md-nav__item">
+                    <a href=".." class="md-nav__link">
+                      Home
+                    </a>
+                  </li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+                  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+
+
+                    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-2" type="checkbox" id="nav-2" checked>
+
+                    <label class="md-nav__link" for="nav-2">
+                      Getting Started
+                      <span class="md-nav__icon md-icon"></span>
+                    </label>
+                    <nav class="md-nav" aria-label="Getting Started" data-md-level="1">
+                      <label class="md-nav__title" for="nav-2">
+                        <span class="md-nav__icon md-icon"></span>
+                        Getting Started
+                      </label>
+                      <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../getting_started/" class="md-nav__link">
+                            What is Centrifugo
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+
+
+                        <li class="md-nav__item md-nav__item--active">
+
+                          <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+
+
+
+
+                          <label class="md-nav__link md-nav__link--active" for="__toc">
+                            Quick start
+                            <span class="md-nav__icon md-icon"></span>
+                          </label>
+
+                          <a href="./" class="md-nav__link md-nav__link--active">
+                            Quick start
+                          </a>
+
+
+                          <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+
+
+
+
+
+                            <label class="md-nav__title" for="__toc">
+                              <span class="md-nav__icon md-icon"></span>
+                              Table of contents
+                            </label>
+                            <ul class="md-nav__list" data-md-scrollfix>
+
+                              <li class="md-nav__item">
+                                <a href="#more-examples" class="md-nav__link">
+                                  More examples
+                                </a>
+
+                              </li>
+
+                            </ul>
+
+                          </nav>
+
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../guide/" class="md-nav__link">
+                            Integration Guide
+                          </a>
+                        </li>
+
+
+
+                      </ul>
+                    </nav>
+                  </li>
+
+
+
+
+
+
+
+
+
+
+
+                  <li class="md-nav__item md-nav__item--nested">
+
+
+                    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3">
+
+                    <label class="md-nav__link" for="nav-3">
+                      Server
+                      <span class="md-nav__icon md-icon"></span>
+                    </label>
+                    <nav class="md-nav" aria-label="Server" data-md-level="1">
+                      <label class="md-nav__title" for="nav-3">
+                        <span class="md-nav__icon md-icon"></span>
+                        Server
+                      </label>
+                      <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../server/install/" class="md-nav__link">
+                            Installation
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../server/configuration/" class="md-nav__link">
+                            Configuration
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../server/commands/" class="md-nav__link">
+                            Console commands
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../server/client_api/" class="md-nav__link">
+                            Client API
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../server/http_api/" class="md-nav__link">
+                            Server HTTP API
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../server/grpc_api/" class="md-nav__link">
+                            Server GRPC API
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../server/channels/" class="md-nav__link">
+                            Channels
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../server/authentication/" class="md-nav__link">
+                            Authentication
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../server/private_channels/" class="md-nav__link">
+                            Private channels
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../server/engines/" class="md-nav__link">
+                            Engines
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../server/admin/" class="md-nav__link">
+                            Admin web interface
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../server/proxy/" class="md-nav__link">
+                            Proxy to backend
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../server/server_subs/" class="md-nav__link">
+                            Server-side subscriptions
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../server/connection_expiration/" class="md-nav__link">
+                            Connection expiration
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+
+                        <li class="md-nav__item md-nav__item--nested">
+
+
+                          <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox"
+                            id="nav-3-15">
+
+                          <label class="md-nav__link" for="nav-3-15">
+                            Client-server transports
+                            <span class="md-nav__icon md-icon"></span>
+                          </label>
+                          <nav class="md-nav" aria-label="Client-server transports" data-md-level="2">
+                            <label class="md-nav__title" for="nav-3-15">
+                              <span class="md-nav__icon md-icon"></span>
+                              Client-server transports
+                            </label>
+                            <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../transports/" class="md-nav__link">
+                                  Overview
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../transports/websocket/" class="md-nav__link">
+                                  Websocket
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../transports/sockjs/" class="md-nav__link">
+                                  SockJS
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../transports/protobuf/" class="md-nav__link">
+                                  Protobuf protocol
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../transports/protocol/" class="md-nav__link">
+                                  Client protocol
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../transports/recovery/" class="md-nav__link">
+                                  Message recovery
+                                </a>
+                              </li>
+
+
+
+                            </ul>
+                          </nav>
+                        </li>
+
+
+
+
+
+
+
+
+                        <li class="md-nav__item md-nav__item--nested">
+
+
+                          <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-16" type="checkbox"
+                            id="nav-3-16">
+
+                          <label class="md-nav__link" for="nav-3-16">
+                            Deploy
+                            <span class="md-nav__icon md-icon"></span>
+                          </label>
+                          <nav class="md-nav" aria-label="Deploy" data-md-level="2">
+                            <label class="md-nav__title" for="nav-3-16">
+                              <span class="md-nav__icon md-icon"></span>
+                              Deploy
+                            </label>
+                            <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../deploy/monitoring/" class="md-nav__link">
+                                  Monitoring
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../deploy/tuning/" class="md-nav__link">
+                                  Infrastructure tuning
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../deploy/tls/" class="md-nav__link">
+                                  TLS
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../deploy/nginx/" class="md-nav__link">
+                                  Nginx configuration
+                                </a>
+                              </li>
+
+
+
+                            </ul>
+                          </nav>
+                        </li>
+
+
+
+
+
+
+
+
+                        <li class="md-nav__item md-nav__item--nested">
+
+
+                          <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-17" type="checkbox"
+                            id="nav-3-17">
+
+                          <label class="md-nav__link" for="nav-3-17">
+                            Misc
+                            <span class="md-nav__icon md-icon"></span>
+                          </label>
+                          <nav class="md-nav" aria-label="Misc" data-md-level="2">
+                            <label class="md-nav__title" for="nav-3-17">
+                              <span class="md-nav__icon md-icon"></span>
+                              Misc
+                            </label>
+                            <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../misc/insecure_modes/" class="md-nav__link">
+                                  Insecure modes
+                                </a>
+                              </li>
+
+
+
+
+
+
+
+                              <li class="md-nav__item">
+                                <a href="../misc/migrate/" class="md-nav__link">
+                                  Migrate from Centrifugo v1
+                                </a>
+                              </li>
+
+
+
+                            </ul>
+                          </nav>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../misc/benchmark/" class="md-nav__link">
+                            Benchmark
+                          </a>
+                        </li>
+
+
+
+                      </ul>
+                    </nav>
+                  </li>
+
+
+
+
+
+
+
+
+
+
+
+                  <li class="md-nav__item md-nav__item--nested">
+
+
+                    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
+
+                    <label class="md-nav__link" for="nav-4">
+                      Libraries
+                      <span class="md-nav__icon md-icon"></span>
+                    </label>
+                    <nav class="md-nav" aria-label="Libraries" data-md-level="1">
+                      <label class="md-nav__title" for="nav-4">
+                        <span class="md-nav__icon md-icon"></span>
+                        Libraries
+                      </label>
+                      <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../libraries/client/" class="md-nav__link">
+                            Client libraries
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../libraries/api/" class="md-nav__link">
+                            API libraries
+                          </a>
+                        </li>
+
+
+
+                      </ul>
+                    </nav>
+                  </li>
+
+
+
+
+
+
+
+
+
+
+
+                  <li class="md-nav__item md-nav__item--nested">
+
+
+                    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
+
+                    <label class="md-nav__link" for="nav-5">
+                      FAQ
+                      <span class="md-nav__icon md-icon"></span>
+                    </label>
+                    <nav class="md-nav" aria-label="FAQ" data-md-level="1">
+                      <label class="md-nav__title" for="nav-5">
+                        <span class="md-nav__icon md-icon"></span>
+                        FAQ
+                      </label>
+                      <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../faq/" class="md-nav__link">
+                            Frequently Asked Questions
+                          </a>
+                        </li>
+
+
+
+                      </ul>
+                    </nav>
+                  </li>
+
+
+
+
+
+
+
+
+
+
+
+                  <li class="md-nav__item md-nav__item--nested">
+
+
+                    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
+
+                    <label class="md-nav__link" for="nav-6">
+                      Blog
+                      <span class="md-nav__icon md-icon"></span>
+                    </label>
+                    <nav class="md-nav" aria-label="Blog" data-md-level="1">
+                      <label class="md-nav__title" for="nav-6">
+                        <span class="md-nav__icon md-icon"></span>
+                        Blog
+                      </label>
+                      <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../blog/" class="md-nav__link">
+                            About this blog
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../blog/intro_centrifuge/" class="md-nav__link">
+                            An introduction to Centrifuge – real-time messaging with Go
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../blog/quic_web_transport/" class="md-nav__link">
+                            Experimenting with QUIC and WebTransport in Go
+                          </a>
+                        </li>
+
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../blog/scaling_websocket/" class="md-nav__link">
+                            Scaling WebSocket in Go and beyond
+                          </a>
+                        </li>
+
+
+
+                      </ul>
+                    </nav>
+                  </li>
+
+
+
+
+
+
+
+
+
+
+
+                  <li class="md-nav__item md-nav__item--nested">
+
+
+                    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7">
+
+                    <label class="md-nav__link" for="nav-7">
+                      Centrifugo PRO
+                      <span class="md-nav__icon md-icon"></span>
+                    </label>
+                    <nav class="md-nav" aria-label="Centrifugo PRO" data-md-level="1">
+                      <label class="md-nav__title" for="nav-7">
+                        <span class="md-nav__icon md-icon"></span>
+                        Centrifugo PRO
+                      </label>
+                      <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+                        <li class="md-nav__item">
+                          <a href="../pro/" class="md-nav__link">
+                            About
+                          </a>
+                        </li>
+
+
+
+                      </ul>
+                    </nav>
+                  </li>
+
+
+
+                </ul>
+              </nav>
+            </div>
+          </div>
+        </div>
+
+
+
+        <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+          <div class="md-sidebar__scrollwrap">
+            <div class="md-sidebar__inner">
+
+              <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+
+
+
+
+
+                <label class="md-nav__title" for="__toc">
+                  <span class="md-nav__icon md-icon"></span>
+                  Table of contents
+                </label>
+                <ul class="md-nav__list" data-md-scrollfix>
+
+                  <li class="md-nav__item">
+                    <a href="#more-examples" class="md-nav__link">
+                      More examples
+                    </a>
+
+                  </li>
+
+                </ul>
+
+              </nav>
+            </div>
+          </div>
+        </div>
+
+
+        <div class="md-content">
+          <article class="md-content__inner md-typeset">
+
+
+            <a href="https://github.com/centrifugal/centrifugo/edit/master/docs/content/quick_start.md"
+              title="Edit this page" class="md-content__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path
+                  d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z" />
+              </svg>
+            </a>
+
+
+            <h1 id="quick-start">Quick start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a>
+            </h1>
+            <div class="admonition danger">
+              <p class="admonition-title">Danger</p>
+              <p>This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the <a
+                  href="https://centrifugal.dev">centrifugal.dev</a> for v3 docs.</p>
+            </div>
+            <p>Here we will build a very simple browser application with Centrifugo. It works in a way that users
+              connect to Centrifugo over WebSocket, subscribe to channel and start receiving all messages published to
+              that channel. In our case we will send a counter value to all channel subscribers to update it in all open
+              browser tabs in real-time.</p>
+            <p>First you need to <a href="../server/install/">install Centrifugo</a>. Below in this example we will use
+              binary file release for simplicity. We can generate minimal required configuration file with the following
+              command:</p>
+            <div class="highlight">
+              <pre><span></span><code>./centrifugo genconfig
+</code></pre>
+            </div>
+            <p>It will generate <code>config.json</code> file in the same directory with content like this:</p>
+            <div class="highlight">
+              <pre><span></span><code><span class="p">{</span>
   <span class="nt">&quot;v3_use_offset&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
   <span class="nt">&quot;token_hmac_secret_key&quot;</span><span class="p">:</span> <span class="s2">&quot;46b38493-147e-4e3f-86e0-dc5ec54f5133&quot;</span><span class="p">,</span>
   <span class="nt">&quot;admin_password&quot;</span><span class="p">:</span> <span class="s2">&quot;ad0dff75-3131-4a02-8d64-9279b4f1c57b&quot;</span><span class="p">,</span>
@@ -1166,12 +1219,17 @@
   <span class="nt">&quot;api_key&quot;</span><span class="p">:</span> <span class="s2">&quot;aaaf202f-b5f8-4b34-bf88-f6c03a1ecda6&quot;</span><span class="p">,</span>
   <span class="nt">&quot;allowed_origins&quot;</span><span class="p">:</span> <span class="p">[]</span>
 <span class="p">}</span>
-</code></pre></div>
-<p>Now we can start server, and let's start it with built-in admin web interface:</p>
-<div class="highlight"><pre><span></span><code><span class="go">./centrifugo --config=config.json --admin</span>
-</code></pre></div>
-<p>We could also enable admin web interface by not using <code>--admin</code> flag but simply add <code>"admin": true</code> option to configuration file:</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
+</code></pre>
+            </div>
+            <p>Now we can start server, and let's start it with built-in admin web interface:</p>
+            <div class="highlight">
+              <pre><span></span><code><span class="go">./centrifugo --config=config.json --admin</span>
+</code></pre>
+            </div>
+            <p>We could also enable admin web interface by not using <code>--admin</code> flag but simply add
+              <code>"admin": true</code> option to configuration file:</p>
+            <div class="highlight">
+              <pre><span></span><code><span class="p">{</span>
   <span class="nt">&quot;v3_use_offset&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
   <span class="nt">&quot;token_hmac_secret_key&quot;</span><span class="p">:</span> <span class="s2">&quot;46b38493-147e-4e3f-86e0-dc5ec54f5133&quot;</span><span class="p">,</span>
   <span class="nt">&quot;admin&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
@@ -1180,15 +1238,21 @@
   <span class="nt">&quot;api_key&quot;</span><span class="p">:</span> <span class="s2">&quot;aaaf202f-b5f8-4b34-bf88-f6c03a1ecda6&quot;</span><span class="p">,</span>
   <span class="nt">&quot;allowed_origins&quot;</span><span class="p">:</span> <span class="p">[]</span>
 <span class="p">}</span>
-</code></pre></div>
-<p>And running:</p>
-<div class="highlight"><pre><span></span><code><span class="go">./centrifugo --config=config.json</span>
-</code></pre></div>
-<p>Now open <a href="http://localhost:8000">http://localhost:8000</a>. You should see Centrifugo admin web panel. Enter <code>admin_password</code> from configuration file to log in.</p>
-<p><img alt="Admin web panel" src="../images/quick_start_admin.png" /></p>
-<p>Inside admin panel you should see that one Centrifugo node is running, and it does not have connected clients.</p>
-<p>Now let's create <code>index.html</code> file with our simple app:</p>
-<div class="highlight"><pre><span></span><code><span class="p">&lt;</span><span class="nt">html</span><span class="p">&gt;</span>
+</code></pre>
+            </div>
+            <p>And running:</p>
+            <div class="highlight">
+              <pre><span></span><code><span class="go">./centrifugo --config=config.json</span>
+</code></pre>
+            </div>
+            <p>Now open <a href="http://localhost:8000">http://localhost:8000</a>. You should see Centrifugo admin web
+              panel. Enter <code>admin_password</code> from configuration file to log in.</p>
+            <p><img alt="Admin web panel" src="../images/quick_start_admin.png" /></p>
+            <p>Inside admin panel you should see that one Centrifugo node is running, and it does not have connected
+              clients.</p>
+            <p>Now let's create <code>index.html</code> file with our simple app:</p>
+            <div class="highlight">
+              <pre><span></span><code><span class="p">&lt;</span><span class="nt">html</span><span class="p">&gt;</span>
     <span class="p">&lt;</span><span class="nt">head</span><span class="p">&gt;</span>
         <span class="p">&lt;</span><span class="nt">title</span><span class="p">&gt;</span>Centrifugo quick start<span class="p">&lt;/</span><span class="nt">title</span><span class="p">&gt;</span>
     <span class="p">&lt;/</span><span class="nt">head</span><span class="p">&gt;</span>
@@ -1217,167 +1281,226 @@
         <span class="p">&lt;/</span><span class="nt">script</span><span class="p">&gt;</span>
     <span class="p">&lt;/</span><span class="nt">body</span><span class="p">&gt;</span>
 <span class="p">&lt;/</span><span class="nt">html</span><span class="p">&gt;</span>
-</code></pre></div>
-<p>Note that we are using <code>centrifuge-js</code> 2.7.3 in this example, you better use its latest version for a moment of reading this.</p>
-<p>In this example we created an instance of a client passing Centrifugo default WebSocket endpoint address to it, then we subscribed to a channel called <code>channel</code> and provided a callback function to process real-time messages. Then we called <code>connect</code> method to create WebSocket connection. </p>
-<p>Now you need to serve this file with HTTP server. In real Javascript application you will serve your HTML files with a web server of your choice – but for this simple example we can use a simple built-in Centrifugo static file server.</p>
-<div class="highlight"><pre><span></span><code>centrifugo serve --port 3000
-</code></pre></div>
-<p>This command starts a very simple static file web server that serves current directory on port 3000. Make sure you still have Centrifugo server running. Open <a href="http://localhost:3000/">http://localhost:3000/</a>.</p>
-<p>Now if you look at browser developer tools or in Centrifugo logs you will notice a connection can not be successfully established:</p>
-<div class="highlight"><pre><span></span><code>2021-02-26 17:37:47 [INF] error checking request origin error=&quot;request Origin \&quot;http://localhost:3000\&quot; is not authorized for Host \&quot;localhost:8000\&quot;&quot;
-</code></pre></div>
-<p>That's because we are connecting from an application on <code>localhost:3000</code> while Centrifugo runs on <code>localhost:8000</code>. We need to additionally configure <code>allowed_origins</code> option:</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
+</code></pre>
+            </div>
+            <p>Note that we are using <code>centrifuge-js</code> 2.7.3 in this example, you better use its latest
+              version for a moment of reading this.</p>
+            <p>In this example we created an instance of a client passing Centrifugo default WebSocket endpoint address
+              to it, then we subscribed to a channel called <code>channel</code> and provided a callback function to
+              process real-time messages. Then we called <code>connect</code> method to create WebSocket connection.
+            </p>
+            <p>Now you need to serve this file with HTTP server. In real Javascript application you will serve your HTML
+              files with a web server of your choice – but for this simple example we can use a simple built-in
+              Centrifugo static file server.</p>
+            <div class="highlight">
+              <pre><span></span><code>centrifugo serve --port 3000
+</code></pre>
+            </div>
+            <p>This command starts a very simple static file web server that serves current directory on port 3000. Make
+              sure you still have Centrifugo server running. Open <a
+                href="http://localhost:3000/">http://localhost:3000/</a>.</p>
+            <p>Now if you look at browser developer tools or in Centrifugo logs you will notice a connection can not be
+              successfully established:</p>
+            <div class="highlight">
+              <pre><span></span><code>2021-02-26 17:37:47 [INF] error checking request origin error=&quot;request Origin \&quot;http://localhost:3000\&quot; is not authorized for Host \&quot;localhost:8000\&quot;&quot;
+</code></pre>
+            </div>
+            <p>That's because we are connecting from an application on <code>localhost:3000</code> while Centrifugo runs
+              on <code>localhost:8000</code>. We need to additionally configure <code>allowed_origins</code> option:</p>
+            <div class="highlight">
+              <pre><span></span><code><span class="p">{</span>
   <span class="err">...</span>
   <span class="nt">&quot;allowed_origins&quot;</span><span class="p">:</span> <span class="p">[</span>
     <span class="s2">&quot;http://localhost:3000&quot;</span>
   <span class="p">]</span>
 <span class="p">}</span>
-</code></pre></div>
-<p>Restart Centrifugo after fixing a configuration file.</p>
-<p>Now if you reload a browser window with an application you should see new information logs in server output:</p>
-<div class="highlight"><pre><span></span><code>2021-02-26 17:47:47 [INF] invalid connection token error=&quot;jwt: token format is not valid&quot; client=45a1b8f4-d6dc-4679-9927-93e41c14ad93
+</code></pre>
+            </div>
+            <p>Restart Centrifugo after fixing a configuration file.</p>
+            <p>Now if you reload a browser window with an application you should see new information logs in server
+              output:</p>
+            <div class="highlight">
+              <pre><span></span><code>2021-02-26 17:47:47 [INF] invalid connection token error=&quot;jwt: token format is not valid&quot; client=45a1b8f4-d6dc-4679-9927-93e41c14ad93
 2021-02-26 17:47:47 [INF] disconnect after handling command client=45a1b8f4-d6dc-4679-9927-93e41c14ad93 command=&quot;id:1 params:\&quot;{\\\&quot;token\\\&quot;:\\\&quot;&lt;TOKEN&gt;\\\&quot;}\&quot; &quot; reason=&quot;invalid token&quot; user=
-</code></pre></div>
-<p>We still can not connect. That's because client should provide a valid JWT (JSON Web Token) to authenticate itself. This token <strong>must be generated on your backend</strong> and passed to a client side. Since in our simple example we don't have application backend we can quickly generate example token for a user using <code>centrifugo</code> sub-command <code>gentoken</code>. Like this:</p>
-<div class="highlight"><pre><span></span><code>./centrifugo gentoken -u 123722
-</code></pre></div>
-<p>– where <code>-u</code> flag sets user ID. The output should be like:</p>
-<div class="highlight"><pre><span></span><code>HMAC SHA-256 JWT for user 123722 with expiration TTL 168h0m0s:
+</code></pre>
+            </div>
+            <p>We still can not connect. That's because client should provide a valid JWT (JSON Web Token) to
+              authenticate itself. This token <strong>must be generated on your backend</strong> and passed to a client
+              side. Since in our simple example we don't have application backend we can quickly generate example token
+              for a user using <code>centrifugo</code> sub-command <code>gentoken</code>. Like this:</p>
+            <div class="highlight">
+              <pre><span></span><code>./centrifugo gentoken -u 123722
+</code></pre>
+            </div>
+            <p>– where <code>-u</code> flag sets user ID. The output should be like:</p>
+            <div class="highlight">
+              <pre><span></span><code>HMAC SHA-256 JWT for user 123722 with expiration TTL 168h0m0s:
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM3MjIiLCJleHAiOjE1OTAxODYzMTZ9.YMJVJsQbK_p1fYFWkcoKBYr718AeavAk3MAYvxcMk0M
-</code></pre></div>
-<p>– you will have another token value since this one based on randomly generated <code>token_hmac_secret_key</code> from configuration file we created in the beginning of this tutorial.</p>
-<p>Now we can copy generated HMAC SHA-256 JWT and paste it into <code>centrifuge.setToken</code> call instead of <code>&lt;TOKEN&gt;</code> placeholder in <code>index.html</code> file. I.e.:</p>
-<div class="highlight"><pre><span></span><code>centrifuge.setToken(&quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM3MjIiLCJleHAiOjE1OTAxODYzMTZ9.YMJVJsQbK_p1fYFWkcoKBYr718AeavAk3MAYvxcMk0M&quot;);
-</code></pre></div>
-<p>That's it! Now if you reload your browser tab – connection will be successfully established and client will subscribe to channel.</p>
-<p>If you open developer tools and look at WebSocket frames panel you should see sth like this:</p>
-<p><img alt="Connected" src="../images/quick_start_connected.png" /></p>
-<p>OK, the last thing we need to do here is to publish new counter value to a channel and make sure our app works properly.</p>
-<p>We can do this over Centrifugo API sending HTTP request to default API endpoint <code>http://localhost:8000/api</code>, but let's do this over admin web panel first.</p>
-<p>Open Centrifugo admin web panel in another browser tab and go to <code>Actions</code> section. Select publish action, insert channel name that you want to publish to – in our case this is string <code>channel</code> and insert into <code>data</code> area JSON like this:</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
+</code></pre>
+            </div>
+            <p>– you will have another token value since this one based on randomly generated
+              <code>token_hmac_secret_key</code> from configuration file we created in the beginning of this tutorial.
+            </p>
+            <p>Now we can copy generated HMAC SHA-256 JWT and paste it into <code>centrifuge.setToken</code> call
+              instead of <code>&lt;TOKEN&gt;</code> placeholder in <code>index.html</code> file. I.e.:</p>
+            <div class="highlight">
+              <pre><span></span><code>centrifuge.setToken(&quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM3MjIiLCJleHAiOjE1OTAxODYzMTZ9.YMJVJsQbK_p1fYFWkcoKBYr718AeavAk3MAYvxcMk0M&quot;);
+</code></pre>
+            </div>
+            <p>That's it! Now if you reload your browser tab – connection will be successfully established and client
+              will subscribe to channel.</p>
+            <p>If you open developer tools and look at WebSocket frames panel you should see sth like this:</p>
+            <p><img alt="Connected" src="../images/quick_start_connected.png" /></p>
+            <p>OK, the last thing we need to do here is to publish new counter value to a channel and make sure our app
+              works properly.</p>
+            <p>We can do this over Centrifugo API sending HTTP request to default API endpoint
+              <code>http://localhost:8000/api</code>, but let's do this over admin web panel first.</p>
+            <p>Open Centrifugo admin web panel in another browser tab and go to <code>Actions</code> section. Select
+              publish action, insert channel name that you want to publish to – in our case this is string
+              <code>channel</code> and insert into <code>data</code> area JSON like this:</p>
+            <div class="highlight">
+              <pre><span></span><code><span class="p">{</span>
     <span class="nt">&quot;value&quot;</span><span class="p">:</span> <span class="mi">1</span>
 <span class="p">}</span>
-</code></pre></div>
-<p><img alt="Admin publish" src="../images/quick_start_publish.png" /></p>
-<p>Click <code>Submit</code> button and check out application browser tab – counter value must be immediately received and displayed.</p>
-<p>Open several browser tabs with our app and make sure all tabs receive message as soon as you publish it.</p>
-<p><img alt="Message received" src="../images/quick_start_message.png" /></p>
-<p>BTW, let's also look at how you can publish data to channel over Centrifugo API from a terminal using <code>curl</code> tool:</p>
-<div class="highlight"><pre><span></span><code>curl --header <span class="s2">&quot;Content-Type: application/json&quot;</span> <span class="se">\</span>
+</code></pre>
+            </div>
+            <p><img alt="Admin publish" src="../images/quick_start_publish.png" /></p>
+            <p>Click <code>Submit</code> button and check out application browser tab – counter value must be
+              immediately received and displayed.</p>
+            <p>Open several browser tabs with our app and make sure all tabs receive message as soon as you publish it.
+            </p>
+            <p><img alt="Message received" src="../images/quick_start_message.png" /></p>
+            <p>BTW, let's also look at how you can publish data to channel over Centrifugo API from a terminal using
+              <code>curl</code> tool:</p>
+            <div class="highlight">
+              <pre><span></span><code>curl --header <span class="s2">&quot;Content-Type: application/json&quot;</span> <span class="se">\</span>
   --header <span class="s2">&quot;Authorization: apikey aaaf202f-b5f8-4b34-bf88-f6c03a1ecda6&quot;</span> <span class="se">\</span>
   --request POST <span class="se">\</span>
   --data <span class="s1">&#39;{&quot;method&quot;: &quot;publish&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;channel&quot;, &quot;data&quot;: {&quot;value&quot;: 2}}}&#39;</span> <span class="se">\</span>
   http://localhost:8000/api
-</code></pre></div>
-<p>– where for <code>Authorization</code> header we set <code>api_key</code> value from Centrifugo config file generated above.</p>
-<p>We did it! We built the simplest browser real-time app with Centrifugo and its Javascript client. It does not have backend, it's not very useful to be honest, but it should give you an insight on how to start working with Centrifugo server. Read more about Centrifugo server in next documentations chapters – it can do much-much more than we just showed here. <a href="../guide/">Integration guide</a> describes a process of idiomatic Centrifugo integration with your application backend.</p>
-<h3 id="more-examples">More examples<a class="headerlink" href="#more-examples" title="Permanent link">&para;</a></h3>
-<p>Several more examples located on Github – <a href="https://github.com/centrifugal/examples">check out this repo</a></p>
-                
-              
-              
-                
+</code></pre>
+            </div>
+            <p>– where for <code>Authorization</code> header we set <code>api_key</code> value from Centrifugo config
+              file generated above.</p>
+            <p>We did it! We built the simplest browser real-time app with Centrifugo and its Javascript client. It does
+              not have backend, it's not very useful to be honest, but it should give you an insight on how to start
+              working with Centrifugo server. Read more about Centrifugo server in next documentations chapters – it can
+              do much-much more than we just showed here. <a href="../guide/">Integration guide</a> describes a process
+              of idiomatic Centrifugo integration with your application backend.</p>
+            <h3 id="more-examples">More examples<a class="headerlink" href="#more-examples"
+                title="Permanent link">&para;</a></h3>
+            <p>Several more examples located on Github – <a href="https://github.com/centrifugal/examples">check out
+                this repo</a></p>
 
 
-              
-            </article>
-          </div>
+
+
+
+
+
+          </article>
         </div>
-      </main>
-      
-        
-<footer class="md-footer">
-    
-    <div class="md-footer-nav">
+      </div>
+    </main>
+
+
+    <footer class="md-footer">
+
+      <div class="md-footer-nav">
         <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
-            
-            <a href="../getting_started/" title="What is Centrifugo" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
-                <div class="md-footer-nav__button md-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-                </div>
-                <div class="md-footer-nav__title">
-                    <div class="md-ellipsis">
+
+          <a href="../getting_started/" title="What is Centrifugo" class="md-footer-nav__link md-footer-nav__link--prev"
+            rel="prev">
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z" />
+              </svg>
+            </div>
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                        What is Centrifugo
-                    </div>
-                </div>
-            </a>
-            
-            
-            <a href="../guide/" title="Integration Guide" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
-                <div class="md-footer-nav__title">
-                    <div class="md-ellipsis">
+                What is Centrifugo
+              </div>
+            </div>
+          </a>
+
+
+          <a href="../guide/" title="Integration Guide" class="md-footer-nav__link md-footer-nav__link--next"
+            rel="next">
+            <div class="md-footer-nav__title">
+              <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                        Integration Guide
-                    </div>
-                </div>
-                <div class="md-footer-nav__button md-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
-                </div>
-            </a>
-            
-        </nav>
-    </div>
-    
-    <div class="md-footer-meta md-typeset">
-        <div class="md-footer-meta__inner md-grid">
-            <div class="md-footer-copyright">
-                
-                <div class="md-footer-copyright__highlight">
-                    Copyright &copy; 2020 Centrifugal
-                </div>
-                
-                <style>
-
-                    /* Preserve link color */
-                    .md-announce a,
-                    .md-announce a:focus,
-                    .md-announce a:hover {
-                        color: currentColor;
-                    }
-
-                    /* Don't wrap name of blog article */
-                    .md-announce strong {
-                        white-space: nowrap;
-                    }
-
-                    /* Twitter icon */
-                    .md-announce .twitter {
-                        margin-left: .2em;
-                        color: #00acee;
-                    }
-                </style>
-                <a href="https://opencollective.com/centrifugal">
-                    Support Centrifugo development on <strong>Open Collective</strong>
-                </a>
+                Integration Guide
+              </div>
             </div>
-            
+            <div class="md-footer-nav__button md-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z" />
+              </svg>
+            </div>
+          </a>
+
+        </nav>
+      </div>
+
+      <div class="md-footer-meta md-typeset">
+        <div class="md-footer-meta__inner md-grid">
+          <div class="md-footer-copyright">
+
+            <div class="md-footer-copyright__highlight">
+              Copyright &copy; 2020 Centrifugal
+            </div>
+
+            <style>
+              /* Preserve link color */
+              .md-announce a,
+              .md-announce a:focus,
+              .md-announce a:hover {
+                color: currentColor;
+              }
+
+              /* Don't wrap name of blog article */
+              .md-announce strong {
+                white-space: nowrap;
+              }
+
+              /* Twitter icon */
+              .md-announce .twitter {
+                margin-left: .2em;
+                color: #00acee;
+              }
+            </style>
+            <a href="https://opencollective.com/centrifugal">
+              Support Centrifugo development on <strong>Open Collective</strong>
+            </a>
+          </div>
+
         </div>
-    </div>
-</footer>
-      
-    </div>
-    
-      <script src="../assets/javascripts/vendor.18f0862e.min.js"></script>
-      <script src="../assets/javascripts/bundle.994580cf.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}</script>
-      
-      <script>
-        app = initialize({
-          base: "..",
-          features: ['navigation.tabs'],
-          search: Object.assign({
-            worker: "../assets/javascripts/worker/search.9c0e82ba.min.js"
-          }, typeof search !== "undefined" && search)
-        })
-      </script>
-      
-    
-  </body>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="../assets/javascripts/vendor.18f0862e.min.js"></script>
+  <script src="../assets/javascripts/bundle.994580cf.min.js"></script>
+  <script id="__lang"
+    type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}</script>
+
+  <script>
+    app = initialize({
+      base: "..",
+      features: ['navigation.tabs'],
+      search: Object.assign({
+        worker: "../assets/javascripts/worker/search.9c0e82ba.min.js"
+      }, typeof search !== "undefined" && search)
+    })
+  </script>
+
+
+</body>
+
 </html>
