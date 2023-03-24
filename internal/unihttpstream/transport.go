@@ -52,11 +52,9 @@ func (t *streamTransport) DisabledPushFlags() uint64 {
 	return 0
 }
 
-// AppLevelPing ...
-func (t *streamTransport) AppLevelPing() centrifuge.AppLevelPing {
-	return centrifuge.AppLevelPing{
-		PingInterval: t.pingPongConfig.PingInterval,
-	}
+// PingPongConfig ...
+func (t *streamTransport) PingPongConfig() centrifuge.PingPongConfig {
+	return t.pingPongConfig
 }
 
 // Emulation ...

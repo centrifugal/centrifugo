@@ -52,11 +52,9 @@ func (t *eventsourceTransport) DisabledPushFlags() uint64 {
 	return 0
 }
 
-// AppLevelPing ...
-func (t *eventsourceTransport) AppLevelPing() centrifuge.AppLevelPing {
-	return centrifuge.AppLevelPing{
-		PingInterval: t.pingPongConfig.PingInterval,
-	}
+// PingPongConfig ...
+func (t *eventsourceTransport) PingPongConfig() centrifuge.PingPongConfig {
+	return t.pingPongConfig
 }
 
 // Emulation ...

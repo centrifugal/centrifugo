@@ -80,11 +80,9 @@ func (t *TestTransport) DisabledPushFlags() uint64 {
 	return centrifuge.PushFlagDisconnect
 }
 
-// AppLevelPing ...
-func (t *TestTransport) AppLevelPing() centrifuge.AppLevelPing {
-	return centrifuge.AppLevelPing{
-		PingInterval: 0,
-	}
+// PingPongConfig ...
+func (t *TestTransport) PingPongConfig() centrifuge.PingPongConfig {
+	return centrifuge.PingPongConfig{}
 }
 
 // Emulation ...

@@ -93,11 +93,9 @@ func (t *websocketTransport) DisabledPushFlags() uint64 {
 	return 0
 }
 
-// AppLevelPing ...
-func (t *websocketTransport) AppLevelPing() centrifuge.AppLevelPing {
-	return centrifuge.AppLevelPing{
-		PingInterval: t.opts.pingPongConfig.PingInterval,
-	}
+// PingPongConfig ...
+func (t *websocketTransport) PingPongConfig() centrifuge.PingPongConfig {
+	return t.opts.pingPongConfig
 }
 
 // Emulation ...

@@ -61,12 +61,9 @@ func (t *webtransportTransport) Emulation() bool {
 	return false
 }
 
-// AppLevelPing ...
-func (t *webtransportTransport) AppLevelPing() centrifuge.AppLevelPing {
-	return centrifuge.AppLevelPing{
-		PingInterval: t.pingPongConfig.PingInterval,
-		PongTimeout:  t.pingPongConfig.PongTimeout,
-	}
+// PingPongConfig ...
+func (t *webtransportTransport) PingPongConfig() centrifuge.PingPongConfig {
+	return t.pingPongConfig
 }
 
 const writeTimeout = 1 * time.Second
