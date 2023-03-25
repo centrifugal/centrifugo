@@ -18,7 +18,7 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/mattn/go-isatty v0.0.17
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/nats-io/nats.go v1.24.0
+	github.com/nats-io/nats.go v1.25.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/quic-go/quic-go v0.33.0
 	github.com/quic-go/webtransport-go v0.5.2
@@ -51,7 +51,7 @@ require (
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/nats-io/nats-server/v2 v2.8.1 // indirect
-	github.com/nats-io/nkeys v0.3.0 // indirect
+	github.com/nats-io/nkeys v0.4.4 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/ginkgo/v2 v2.6.0 // indirect
