@@ -6,7 +6,7 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
-	"github.com/marten-seemann/webtransport-go"
+	"github.com/quic-go/webtransport-go"
 )
 
 const transportName = "webtransport"
@@ -148,7 +148,7 @@ func (t *webtransportTransport) Close(d centrifuge.Disconnect) error {
 	// TODO: remove this Sleep.
 	// We are closing session with SessionErrorCode below but browser client does not receive
 	// it for some reason. So for now we are sending Disconnect Pushes to pass disconnect code
-	// to a client. While sending Disconnect Push we hit https://github.com/lucas-clemente/quic-go/issues/3291 –
+	// to a client. While sending Disconnect Push we hit https://github.com/quic-go/quic-go/issues/3291 –
 	// adding Sleep give client a chance to receive it. If code sent in CloseWithError will
 	// reach the client we won't need Sleep here and can disable sending Disconnect Pushes.
 	time.Sleep(time.Second)

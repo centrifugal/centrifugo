@@ -7,8 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/lucas-clemente/quic-go/http3"
-
+	"github.com/quic-go/quic-go/http3"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -74,6 +73,7 @@ func (lrw *logResponseWriter) StreamCreator() http3.StreamCreator {
 }
 
 // CloseNotify as SockJS uses http.CloseNotifier.
+//
 //goland:noinspection GoDeprecation
 func (lrw *logResponseWriter) CloseNotify() <-chan bool {
 	//nolint:staticcheck
