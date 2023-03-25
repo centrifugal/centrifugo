@@ -65,6 +65,7 @@ import (
 
 	"github.com/FZambia/viper-lite"
 	"github.com/centrifugal/centrifuge"
+	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/mapstructure"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"

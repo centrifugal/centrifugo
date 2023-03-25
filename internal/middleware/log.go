@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/quic-go/quic-go/http3"
-
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
