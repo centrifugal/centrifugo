@@ -7,7 +7,7 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
-	"github.com/marten-seemann/webtransport-go"
+	"github.com/quic-go/webtransport-go"
 )
 
 // Handler for WebTransport.

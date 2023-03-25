@@ -1,8 +1,8 @@
-// +heroku goVersion go1.18
+// +heroku goVersion go1.20
 
 module github.com/centrifugal/centrifugo/v4
 
-go 1.18
+go 1.20
 
 require (
 	github.com/FZambia/eagle v0.0.2
@@ -16,12 +16,12 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/websocket v1.5.0
-	github.com/lucas-clemente/quic-go v0.31.1
-	github.com/marten-seemann/webtransport-go v0.4.3
 	github.com/mattn/go-isatty v0.0.17
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nats-io/nats.go v1.24.0
 	github.com/prometheus/client_golang v1.14.0
+	github.com/quic-go/quic-go v0.33.0
+	github.com/quic-go/webtransport-go v0.5.2
 	github.com/rakutentech/jwk-go v1.1.2
 	github.com/rs/zerolog v1.29.0
 	github.com/spf13/cobra v0.0.7
@@ -48,9 +48,6 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/marten-seemann/qpack v0.3.0 // indirect
-	github.com/marten-seemann/qtls-go1-18 v0.1.3 // indirect
-	github.com/marten-seemann/qtls-go1-19 v0.1.1 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/nats-io/nats-server/v2 v2.8.1 // indirect
@@ -63,6 +60,9 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.38.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
+	github.com/quic-go/qpack v0.4.0 // indirect
+	github.com/quic-go/qtls-go1-19 v0.2.1 // indirect
+	github.com/quic-go/qtls-go1-20 v0.1.1 // indirect
 	github.com/rueian/rueidis v0.0.90 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/segmentio/encoding v0.3.6 // indirect
