@@ -61,7 +61,6 @@ import (
 	"github.com/centrifugal/centrifugo/v4/internal/usage"
 	"github.com/centrifugal/centrifugo/v4/internal/webui"
 	"github.com/centrifugal/centrifugo/v4/internal/wt"
-	"github.com/mattn/go-isatty"
 
 	"github.com/FZambia/viper-lite"
 	"github.com/centrifugal/centrifuge"
