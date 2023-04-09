@@ -22,10 +22,11 @@ Several official client SDKs for browser and mobile development wrap the bidirec
 
 The core idea of Centrifugo is quite simple – it's a PUB/SUB server on top of modern real-time transports:
 
-<img src="https://centrifugal.dev/img/basic_pub_sub.png" width="75%" />
+<img src="https://centrifugal.dev/img/protocol_pub_sub.png" />
 
 The hard part is to make this concept production-ready, efficient and available from different application environments. Centrifugo is a mature solution that already helped many projects with adding real-time features. It provides unique properties not available in other OSS solutions in the area:
 
+* Real-time transports: WebSocket, HTTP-streaming, SSE/EventSource, GRPC, SockJS, WebTransport
 * Built-in scalability to many machines with Redis, KeyDB, Nats, Tarantool
 * Simple HTTP and GRPC server API to communicate from the backend
 * Flexible connection authentication mechanisms: JWT and proxy-like
