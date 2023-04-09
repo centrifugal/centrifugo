@@ -22,7 +22,7 @@ Several official client SDKs for browser and mobile development wrap the bidirec
 
 The core idea of Centrifugo is quite simple – it's a PUB/SUB server on top of modern real-time transports:
 
-![scheme](https://raw.githubusercontent.com/centrifugal/centrifugo/v2/docs/content/images/scheme_sketch.png)
+<img src="https://centrifugal.dev/img/basic_pub_sub.png" width="75%" />
 
 The hard part is to make this concept production-ready, efficient and available from different application environments. Centrifugo is a mature solution that already helped many projects with adding real-time features. It provides unique properties not available in other OSS solutions in the area:
 
