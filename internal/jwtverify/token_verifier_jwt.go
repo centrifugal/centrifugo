@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -43,16 +44,42 @@ type VerifierConfig struct {
 	// https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3.
 	Audience string
 
+	// AudienceRegex allows setting Audience in form of Go language regex pattern. Regex groups
+	// may be then used in constructing JWKSPublicEndpoint.
+	AudienceRegex string
+
 	// Issuer when set will enable a check that token issuer matches configured string.
 	// See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.1.
 	Issuer string
+
+	// IssuerRegex allows setting Issuer in form of Go language regex pattern. Regex groups
+	// may be then used in constructing JWKSPublicEndpoint.
+	IssuerRegex string
 }
 
-func NewTokenVerifierJWT(config VerifierConfig, ruleContainer *rule.Container) *VerifierJWT {
+func NewTokenVerifierJWT(config VerifierConfig, ruleContainer *rule.Container) (*VerifierJWT, error) {
+	var audienceRe *regexp.Regexp
+	var issuerRe *regexp.Regexp
+	var err error
+	if config.AudienceRegex != "" {
+		audienceRe, err = regexp.Compile(config.AudienceRegex)
+		if err != nil {
+			return nil, fmt.Errorf("error compiling audience regex: %w", err)
+		}
+	}
+	if config.IssuerRegex != "" {
+		issuerRe, err = regexp.Compile(config.IssuerRegex)
+		if err != nil {
+			return nil, fmt.Errorf("error compiling issuer regex: %w", err)
+		}
+	}
+
 	verifier := &VerifierJWT{
 		ruleContainer: ruleContainer,
 		issuer:        config.Issuer,
+		issuerRe:      issuerRe,
 		audience:      config.Audience,
+		audienceRe:    audienceRe,
 	}
 
 	algorithms, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey, config.ECDSAPublicKey)
@@ -63,12 +90,13 @@ func NewTokenVerifierJWT(config VerifierConfig, ruleContainer *rule.Container) *
 
 	if config.JWKSPublicEndpoint != "" {
 		mng, err := jwks.NewManager(config.JWKSPublicEndpoint)
-		if err == nil {
-			verifier.jwksManager = &jwksManager{mng}
+		if err != nil {
+			return nil, fmt.Errorf("error creating JWK manager: %w", err)
 		}
+		verifier.jwksManager = &jwksManager{mng}
 	}
 
-	return verifier
+	return verifier, nil
 }
 
 type VerifierJWT struct {
@@ -77,7 +105,9 @@ type VerifierJWT struct {
 	algorithms    *algorithms
 	ruleContainer *rule.Container
 	audience      string
+	audienceRe    *regexp.Regexp
 	issuer        string
+	issuerRe      *regexp.Regexp
 }
 
 var (
@@ -151,10 +181,10 @@ type SubscribeTokenClaims struct {
 
 type jwksManager struct{ *jwks.Manager }
 
-func (j *jwksManager) verify(token *jwt.Token) error {
+func (j *jwksManager) verify(token *jwt.Token, tokenVars map[string]any) error {
 	kid := token.Header().KeyID
 
-	key, err := j.Manager.FetchKey(context.Background(), kid)
+	key, err := j.Manager.FetchKey(context.Background(), kid, tokenVars)
 	if err != nil {
 		return err
 	}
@@ -318,11 +348,11 @@ func (verifier *VerifierJWT) verifySignature(token *jwt.Token) error {
 	return verifier.algorithms.verify(token)
 }
 
-func (verifier *VerifierJWT) verifySignatureByJWK(token *jwt.Token) error {
+func (verifier *VerifierJWT) verifySignatureByJWK(token *jwt.Token, tokenVars map[string]any) error {
 	verifier.mu.RLock()
 	defer verifier.mu.RUnlock()
 
-	return verifier.jwksManager.verify(token)
+	return verifier.jwksManager.verify(token, tokenVars)
 }
 
 func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) {
@@ -331,17 +361,58 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
-	if verifier.jwksManager != nil {
-		err = verifier.verifySignatureByJWK(token)
-	} else {
-		err = verifier.verifySignature(token)
-	}
-
+	claims, err := claimsDecoder.DecodeConnectClaims(token.Claims())
 	if err != nil {
 		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
-	claims, err := claimsDecoder.DecodeConnectClaims(token.Claims())
+	if verifier.audience != "" && !claims.IsForAudience(verifier.audience) {
+		return ConnectToken{}, ErrInvalidToken
+	}
+
+	if verifier.issuer != "" && !claims.IsIssuer(verifier.issuer) {
+		return ConnectToken{}, ErrInvalidToken
+	}
+
+	tokenVars := map[string]any{}
+
+	if verifier.issuerRe != nil {
+		match := verifier.issuerRe.FindStringSubmatch(claims.Issuer)
+		if len(match) == 0 {
+			return ConnectToken{}, ErrInvalidToken
+		}
+		for i, name := range verifier.issuerRe.SubexpNames() {
+			if i != 0 && name != "" {
+				tokenVars[name] = match[i]
+			}
+		}
+	}
+
+	if verifier.audienceRe != nil {
+		matched := false
+		for _, audience := range claims.Audience {
+			match := verifier.audienceRe.FindStringSubmatch(audience)
+			if len(match) == 0 {
+				continue
+			}
+			matched = true
+			for i, name := range verifier.audienceRe.SubexpNames() {
+				if i != 0 && name != "" {
+					tokenVars[name] = match[i]
+				}
+			}
+			break
+		}
+		if !matched {
+			return ConnectToken{}, ErrInvalidToken
+		}
+	}
+
+	if verifier.jwksManager != nil {
+		err = verifier.verifySignatureByJWK(token, tokenVars)
+	} else {
+		err = verifier.verifySignature(token)
+	}
 	if err != nil {
 		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
@@ -353,14 +424,6 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 	now := time.Now()
 	if !claims.IsValidExpiresAt(now) || !claims.IsValidNotBefore(now) {
 		return ConnectToken{}, ErrTokenExpired
-	}
-
-	if verifier.audience != "" && !claims.IsForAudience(verifier.audience) {
-		return ConnectToken{}, ErrInvalidToken
-	}
-
-	if verifier.issuer != "" && !claims.IsIssuer(verifier.issuer) {
-		return ConnectToken{}, ErrInvalidToken
 	}
 
 	subs := map[string]centrifuge.SubscribeOptions{}
@@ -484,23 +547,9 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
-	if verifier.jwksManager != nil {
-		err = verifier.verifySignatureByJWK(token)
-	} else {
-		err = verifier.verifySignature(token)
-	}
-	if err != nil {
-		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
-	}
-
 	claims, err := claimsDecoder.DecodeSubscribeClaims(token.Claims())
 	if err != nil {
 		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
-	}
-
-	now := time.Now()
-	if !claims.IsValidExpiresAt(now) || !claims.IsValidNotBefore(now) {
-		return SubscribeToken{}, ErrTokenExpired
 	}
 
 	if verifier.audience != "" && !claims.IsForAudience(verifier.audience) {
@@ -509,6 +558,54 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 
 	if verifier.issuer != "" && !claims.IsIssuer(verifier.issuer) {
 		return SubscribeToken{}, ErrInvalidToken
+	}
+
+	tokenVars := map[string]any{}
+
+	if verifier.issuerRe != nil {
+		match := verifier.issuerRe.FindStringSubmatch(claims.Issuer)
+		if len(match) == 0 {
+			return SubscribeToken{}, ErrInvalidToken
+		}
+		for i, name := range verifier.issuerRe.SubexpNames() {
+			if i != 0 && name != "" {
+				tokenVars[name] = match[i]
+			}
+		}
+	}
+
+	if verifier.audienceRe != nil {
+		matched := false
+		for _, audience := range claims.Audience {
+			match := verifier.audienceRe.FindStringSubmatch(audience)
+			if len(match) == 0 {
+				continue
+			}
+			matched = true
+			for i, name := range verifier.audienceRe.SubexpNames() {
+				if i != 0 && name != "" {
+					tokenVars[name] = match[i]
+				}
+			}
+			break
+		}
+		if !matched {
+			return SubscribeToken{}, ErrInvalidToken
+		}
+	}
+
+	if verifier.jwksManager != nil {
+		err = verifier.verifySignatureByJWK(token, tokenVars)
+	} else {
+		err = verifier.verifySignature(token)
+	}
+	if err != nil {
+		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+	}
+
+	now := time.Now()
+	if !claims.IsValidExpiresAt(now) || !claims.IsValidNotBefore(now) {
+		return SubscribeToken{}, ErrTokenExpired
 	}
 
 	if claims.Channel == "" {
@@ -602,5 +699,19 @@ func (verifier *VerifierJWT) Reload(config VerifierConfig) error {
 	verifier.algorithms = alg
 	verifier.audience = config.Audience
 	verifier.issuer = config.Issuer
+	if config.AudienceRegex != "" {
+		audienceRe, err := regexp.Compile(config.AudienceRegex)
+		if err != nil {
+			return fmt.Errorf("error compiling audience regex: %w", err)
+		}
+		verifier.audienceRe = audienceRe
+	}
+	if config.IssuerRegex != "" {
+		issuerRe, err := regexp.Compile(config.IssuerRegex)
+		if err != nil {
+			return fmt.Errorf("error compiling issuer regex: %w", err)
+		}
+		verifier.issuerRe = issuerRe
+	}
 	return nil
 }
