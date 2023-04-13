@@ -348,6 +348,7 @@ func Test_tokenVerifierJWT_ArrayAudience(t *testing.T) {
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(t, err)
 	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", ""}, ruleContainer)
+	require.NoError(t, err)
 	ct, err := verifier.VerifyConnectToken(jwtArrayAud)
 	require.NoError(t, err)
 	require.Equal(t, "2694", ct.UserID)
