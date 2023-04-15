@@ -132,7 +132,7 @@ func bindCentrifugoConfig() {
 
 		"client_expired_close_delay":          25 * time.Second,
 		"client_expired_sub_close_delay":      25 * time.Second,
-		"client_stale_close_delay":            25 * time.Second,
+		"client_stale_close_delay":            10 * time.Second,
 		"client_channel_limit":                128,
 		"client_queue_max_size":               1048576, // 1 MB
 		"client_presence_update_interval":     27 * time.Second,
