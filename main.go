@@ -137,7 +137,7 @@ func bindCentrifugoConfig() {
 
 		"client_expired_close_delay":          25 * time.Second,
 		"client_expired_sub_close_delay":      25 * time.Second,
-		"client_stale_close_delay":            25 * time.Second,
+		"client_stale_close_delay":            10 * time.Second,
 		"client_channel_limit":                128,
 		"client_queue_max_size":               1048576, // 1 MB
 		"client_presence_update_interval":     27 * time.Second,
@@ -2091,6 +2091,7 @@ func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
 	}
 	shardConf.ConnectTimeout = GetDuration("redis_connect_timeout")
 	shardConf.IOTimeout = GetDuration("redis_io_timeout")
+	shardConf.ForceRESP2 = viper.GetBool("redis_force_resp2")
 }
 
 func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, string, error) {

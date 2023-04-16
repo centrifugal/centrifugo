@@ -10,7 +10,8 @@ Several official client SDKs for browser and mobile development wrap the bidirec
 * [Installation instructions](https://centrifugal.dev/docs/getting-started/installation)
 * [Getting started tutorial](https://centrifugal.dev/docs/getting-started/quickstart)
 * [Design overview and idiomatic usage](https://centrifugal.dev/docs/getting-started/design)
-* [FAQ](https://centrifugal.dev/)
+* [Centrifugal blog](https://centrifugal.dev/blog)
+* [FAQ](https://centrifugal.dev/docs/faq)
 
 ## Join community
 
@@ -20,23 +21,25 @@ Several official client SDKs for browser and mobile development wrap the bidirec
 
 ## Why Centrifugo
 
-The core idea of Centrifugo is quite simple – it's a PUB/SUB server on top of modern real-time transports:
+The core idea of Centrifugo is simple – it's a PUB/SUB server on top of modern real-time transports:
 
-![scheme](https://raw.githubusercontent.com/centrifugal/centrifugo/v2/docs/content/images/scheme_sketch.png)
+<img src="https://centrifugal.dev/img/protocol_pub_sub.png?v=1" />
 
-The hard part is to make this concept production-ready, efficient and available from different application environments. Centrifugo is a mature solution that already helped many projects with adding real-time features. It provides unique properties not available in other OSS solutions in the area:
+The hard part is to make this concept production-ready, efficient and available from different application environments. Centrifugo is a mature solution that already helped many projects with adding real-time features and scale towards many concurrent connections. Centrifugo provides unique properties not available in other open-source solutions in the area:
 
+* Real-time transports: WebSocket, HTTP-streaming, Server-Sent Events (SSE), GRPC, SockJS, WebTransport
 * Built-in scalability to many machines with Redis, KeyDB, Nats, Tarantool
-* Simple HTTP and GRPC server API to communicate from the backend
+* Simple HTTP and GRPC server API to communicate with Centrifugo from the app backend
 * Flexible connection authentication mechanisms: JWT and proxy-like
-* Different types of Subscriptions: client-side and server-side
+* Different types of subscriptions: client-side and server-side
+* Various channel permission strategies, channel namespace concept
 * Hot message history in channels, with automatic message recovery upon reconnect
 * Online channel presence information, with join/leave notifications
 * A way to send RPC calls to the backend over the real-time connection
 * Strict and effective client protocol wrapped by several official SDKs
-* Variety of supported real-time transports, both JSON and binary Protobuf message transfer
+* JSON and binary Protobuf message transfer, with optimized serialization
 * Beautiful embedded admin web UI
-* And much more, visit [Centrifugo doc site](https://centrifugal.dev)
+* And much more, visit [Centrifugo documentation site](https://centrifugal.dev)
 
 ## Backing
 
