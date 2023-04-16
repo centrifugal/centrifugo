@@ -57,7 +57,20 @@ type VerifierConfig struct {
 	IssuerRegex string
 }
 
+func (c VerifierConfig) Validate() error {
+	if c.Audience != "" && c.AudienceRegex != "" {
+		return errors.New("can not use both token_audience and token_audience_regex, configure only one of them")
+	}
+	if c.Issuer != "" && c.IssuerRegex != "" {
+		return errors.New("can not use both token_issuer and token_issuer_regex, configure only one of them")
+	}
+	return nil
+}
+
 func NewTokenVerifierJWT(config VerifierConfig, ruleContainer *rule.Container) (*VerifierJWT, error) {
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("error validating token verifier config: %w", err)
+	}
 	var audienceRe *regexp.Regexp
 	var issuerRe *regexp.Regexp
 	var err error
@@ -84,7 +97,7 @@ func NewTokenVerifierJWT(config VerifierConfig, ruleContainer *rule.Container) (
 
 	algorithms, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey, config.ECDSAPublicKey)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("error initializing token algorithms: %w", err)
 	}
 	verifier.algorithms = algorithms
 
@@ -690,28 +703,37 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 }
 
 func (verifier *VerifierJWT) Reload(config VerifierConfig) error {
+	if err := config.Validate(); err != nil {
+		return fmt.Errorf("error validating token verifier config: %w", err)
+	}
+
 	verifier.mu.Lock()
 	defer verifier.mu.Unlock()
+
 	alg, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey, config.ECDSAPublicKey)
 	if err != nil {
 		return err
 	}
-	verifier.algorithms = alg
-	verifier.audience = config.Audience
-	verifier.issuer = config.Issuer
+
+	var audienceRe *regexp.Regexp
+	var issuerRe *regexp.Regexp
 	if config.AudienceRegex != "" {
-		audienceRe, err := regexp.Compile(config.AudienceRegex)
+		audienceRe, err = regexp.Compile(config.AudienceRegex)
 		if err != nil {
 			return fmt.Errorf("error compiling audience regex: %w", err)
 		}
-		verifier.audienceRe = audienceRe
 	}
 	if config.IssuerRegex != "" {
-		issuerRe, err := regexp.Compile(config.IssuerRegex)
+		issuerRe, err = regexp.Compile(config.IssuerRegex)
 		if err != nil {
 			return fmt.Errorf("error compiling issuer regex: %w", err)
 		}
-		verifier.issuerRe = issuerRe
 	}
+
+	verifier.algorithms = alg
+	verifier.audience = config.Audience
+	verifier.audienceRe = audienceRe
+	verifier.issuer = config.Issuer
+	verifier.issuerRe = issuerRe
 	return nil
 }
