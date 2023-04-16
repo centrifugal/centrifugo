@@ -2126,6 +2126,7 @@ func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
 	}
 	shardConf.ConnectTimeout = GetDuration("redis_connect_timeout")
 	shardConf.IOTimeout = GetDuration("redis_io_timeout")
+	shardConf.ForceRESP2 = viper.GetBool("redis_force_resp2")
 }
 
 func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, string, error) {
