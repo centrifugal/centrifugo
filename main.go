@@ -407,7 +407,10 @@ func main() {
 				log.Fatal().Msgf("error creating engine: %v", err)
 			}
 
-			tokenVerifier := jwtverify.NewTokenVerifierJWT(jwtVerifierConfig(), ruleContainer)
+			tokenVerifier, err := jwtverify.NewTokenVerifierJWT(jwtVerifierConfig(), ruleContainer)
+			if err != nil {
+				log.Fatal().Msgf("error creating token verifier: %v", err)
+			}
 
 			if viper.GetBool("skip_user_check_in_subscription_token") {
 				// See detailed comment about this by falling through to
@@ -1445,8 +1448,9 @@ func jwtVerifierConfig() jwtverify.VerifierConfig {
 
 	cfg.JWKSPublicEndpoint = v.GetString("token_jwks_public_endpoint")
 	cfg.Audience = v.GetString("token_audience")
+	cfg.AudienceRegex = v.GetString("token_audience_regex")
 	cfg.Issuer = v.GetString("token_issuer")
-
+	cfg.IssuerRegex = v.GetString("token_issuer_regex")
 	return cfg
 }
 
