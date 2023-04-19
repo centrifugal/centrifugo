@@ -8,6 +8,12 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## Release notes
 
-### Fixes
+### Improvements
 
-* Fix decoding of large protocol messages. The bug was introduced by v4.1.1. See [bug report](https://github.com/centrifugal/centrifugo/issues/603)
+* Dynamic JWKS endpoint based on iss and aud – implemented in [#638](https://github.com/centrifugal/centrifugo/pull/638), [documented here](https://centrifugal.dev/docs/server/authentication#dynamic-jwks-endpoint)
+* Add [redis_force_resp2](https://centrifugal.dev/docs/server/engines#redis_force_resp2) option, [#641](https://github.com/centrifugal/centrifugo/pull/641)
+* Document [client_stale_close_delay](https://centrifugal.dev/docs/server/configuration#client_stale_close_delay), make it 10 sec  instead of 25 sec by default, relates [#639](https://github.com/centrifugal/centrifugo/issues/639)
+
+### Misc
+
+* This release is built with Go 1.20.3
