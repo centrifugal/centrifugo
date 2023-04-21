@@ -11,9 +11,6 @@ DOCKER_RUN_DOC_OPTS := --rm $(DOCKER_RUN_DOC_MOUNT) -p $(DOCKER_RUN_DOC_PORT):80
 
 all: test
 
-prepare:
-	go install github.com/mitchellh/gox@latest
-
 test:
 	go test -count=1 -v $(TESTFOLDERS) -cover -race
 

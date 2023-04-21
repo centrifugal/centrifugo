@@ -20,9 +20,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install gox
-        run: go install github.com/mitchellh/gox@latest
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
