@@ -389,6 +389,16 @@ service CentrifugoApi {
       tags: ["push notification"];
     };
   }
+  rpc UpdatePushStatus (UpdatePushStatusRequest) returns (UpdatePushStatusResponse) {
+    option (google.api.http) = {
+      post: "/update_push_status",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update push notification status";
+      tags: ["push notification"];
+    };
+  }
 }
 
 message Command {

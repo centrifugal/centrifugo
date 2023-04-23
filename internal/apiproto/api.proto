@@ -36,6 +36,7 @@ service CentrifugoApi {
     rpc UserTopicList (UserTopicListRequest) returns (UserTopicListResponse) {}
     rpc UserTopicUpdate (UserTopicUpdateRequest) returns (UserTopicUpdateResponse) {}
     rpc SendPushNotification (SendPushNotificationRequest) returns (SendPushNotificationResponse) {}
+    rpc UpdatePushStatus (UpdatePushStatusRequest) returns (UpdatePushStatusResponse) {}
 }
 
 message Command {
