@@ -44,8 +44,10 @@ type CentrifugoApiClient interface {
 	DeviceUpdate(ctx context.Context, in *DeviceUpdateRequest, opts ...grpc.CallOption) (*DeviceUpdateResponse, error)
 	DeviceRemove(ctx context.Context, in *DeviceRemoveRequest, opts ...grpc.CallOption) (*DeviceRemoveResponse, error)
 	DeviceList(ctx context.Context, in *DeviceListRequest, opts ...grpc.CallOption) (*DeviceListResponse, error)
-	PushUserChannelList(ctx context.Context, in *PushUserChannelListRequest, opts ...grpc.CallOption) (*PushUserChannelListResponse, error)
-	PushUserChannelUpdate(ctx context.Context, in *PushUserChannelUpdateRequest, opts ...grpc.CallOption) (*PushUserChannelUpdateResponse, error)
+	DeviceTopicList(ctx context.Context, in *DeviceTopicListRequest, opts ...grpc.CallOption) (*DeviceTopicListResponse, error)
+	DeviceTopicUpdate(ctx context.Context, in *DeviceTopicUpdateRequest, opts ...grpc.CallOption) (*DeviceTopicUpdateResponse, error)
+	UserTopicList(ctx context.Context, in *UserTopicListRequest, opts ...grpc.CallOption) (*UserTopicListResponse, error)
+	UserTopicUpdate(ctx context.Context, in *UserTopicUpdateRequest, opts ...grpc.CallOption) (*UserTopicUpdateResponse, error)
 	SendPushNotification(ctx context.Context, in *SendPushNotificationRequest, opts ...grpc.CallOption) (*SendPushNotificationResponse, error)
 }
 
@@ -291,18 +293,36 @@ func (c *centrifugoApiClient) DeviceList(ctx context.Context, in *DeviceListRequ
 	return out, nil
 }
 
-func (c *centrifugoApiClient) PushUserChannelList(ctx context.Context, in *PushUserChannelListRequest, opts ...grpc.CallOption) (*PushUserChannelListResponse, error) {
-	out := new(PushUserChannelListResponse)
-	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/PushUserChannelList", in, out, opts...)
+func (c *centrifugoApiClient) DeviceTopicList(ctx context.Context, in *DeviceTopicListRequest, opts ...grpc.CallOption) (*DeviceTopicListResponse, error) {
+	out := new(DeviceTopicListResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/DeviceTopicList", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *centrifugoApiClient) PushUserChannelUpdate(ctx context.Context, in *PushUserChannelUpdateRequest, opts ...grpc.CallOption) (*PushUserChannelUpdateResponse, error) {
-	out := new(PushUserChannelUpdateResponse)
-	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/PushUserChannelUpdate", in, out, opts...)
+func (c *centrifugoApiClient) DeviceTopicUpdate(ctx context.Context, in *DeviceTopicUpdateRequest, opts ...grpc.CallOption) (*DeviceTopicUpdateResponse, error) {
+	out := new(DeviceTopicUpdateResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/DeviceTopicUpdate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoApiClient) UserTopicList(ctx context.Context, in *UserTopicListRequest, opts ...grpc.CallOption) (*UserTopicListResponse, error) {
+	out := new(UserTopicListResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/UserTopicList", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoApiClient) UserTopicUpdate(ctx context.Context, in *UserTopicUpdateRequest, opts ...grpc.CallOption) (*UserTopicUpdateResponse, error) {
+	out := new(UserTopicUpdateResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/UserTopicUpdate", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -348,8 +368,10 @@ type CentrifugoApiServer interface {
 	DeviceUpdate(context.Context, *DeviceUpdateRequest) (*DeviceUpdateResponse, error)
 	DeviceRemove(context.Context, *DeviceRemoveRequest) (*DeviceRemoveResponse, error)
 	DeviceList(context.Context, *DeviceListRequest) (*DeviceListResponse, error)
-	PushUserChannelList(context.Context, *PushUserChannelListRequest) (*PushUserChannelListResponse, error)
-	PushUserChannelUpdate(context.Context, *PushUserChannelUpdateRequest) (*PushUserChannelUpdateResponse, error)
+	DeviceTopicList(context.Context, *DeviceTopicListRequest) (*DeviceTopicListResponse, error)
+	DeviceTopicUpdate(context.Context, *DeviceTopicUpdateRequest) (*DeviceTopicUpdateResponse, error)
+	UserTopicList(context.Context, *UserTopicListRequest) (*UserTopicListResponse, error)
+	UserTopicUpdate(context.Context, *UserTopicUpdateRequest) (*UserTopicUpdateResponse, error)
 	SendPushNotification(context.Context, *SendPushNotificationRequest) (*SendPushNotificationResponse, error)
 	mustEmbedUnimplementedCentrifugoApiServer()
 }
@@ -436,11 +458,17 @@ func (UnimplementedCentrifugoApiServer) DeviceRemove(context.Context, *DeviceRem
 func (UnimplementedCentrifugoApiServer) DeviceList(context.Context, *DeviceListRequest) (*DeviceListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeviceList not implemented")
 }
-func (UnimplementedCentrifugoApiServer) PushUserChannelList(context.Context, *PushUserChannelListRequest) (*PushUserChannelListResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PushUserChannelList not implemented")
+func (UnimplementedCentrifugoApiServer) DeviceTopicList(context.Context, *DeviceTopicListRequest) (*DeviceTopicListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeviceTopicList not implemented")
 }
-func (UnimplementedCentrifugoApiServer) PushUserChannelUpdate(context.Context, *PushUserChannelUpdateRequest) (*PushUserChannelUpdateResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PushUserChannelUpdate not implemented")
+func (UnimplementedCentrifugoApiServer) DeviceTopicUpdate(context.Context, *DeviceTopicUpdateRequest) (*DeviceTopicUpdateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeviceTopicUpdate not implemented")
+}
+func (UnimplementedCentrifugoApiServer) UserTopicList(context.Context, *UserTopicListRequest) (*UserTopicListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UserTopicList not implemented")
+}
+func (UnimplementedCentrifugoApiServer) UserTopicUpdate(context.Context, *UserTopicUpdateRequest) (*UserTopicUpdateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UserTopicUpdate not implemented")
 }
 func (UnimplementedCentrifugoApiServer) SendPushNotification(context.Context, *SendPushNotificationRequest) (*SendPushNotificationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendPushNotification not implemented")
@@ -926,38 +954,74 @@ func _CentrifugoApi_DeviceList_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CentrifugoApi_PushUserChannelList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PushUserChannelListRequest)
+func _CentrifugoApi_DeviceTopicList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeviceTopicListRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CentrifugoApiServer).PushUserChannelList(ctx, in)
+		return srv.(CentrifugoApiServer).DeviceTopicList(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/PushUserChannelList",
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/DeviceTopicList",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugoApiServer).PushUserChannelList(ctx, req.(*PushUserChannelListRequest))
+		return srv.(CentrifugoApiServer).DeviceTopicList(ctx, req.(*DeviceTopicListRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CentrifugoApi_PushUserChannelUpdate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PushUserChannelUpdateRequest)
+func _CentrifugoApi_DeviceTopicUpdate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeviceTopicUpdateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CentrifugoApiServer).PushUserChannelUpdate(ctx, in)
+		return srv.(CentrifugoApiServer).DeviceTopicUpdate(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/PushUserChannelUpdate",
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/DeviceTopicUpdate",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugoApiServer).PushUserChannelUpdate(ctx, req.(*PushUserChannelUpdateRequest))
+		return srv.(CentrifugoApiServer).DeviceTopicUpdate(ctx, req.(*DeviceTopicUpdateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CentrifugoApi_UserTopicList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserTopicListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).UserTopicList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/UserTopicList",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).UserTopicList(ctx, req.(*UserTopicListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CentrifugoApi_UserTopicUpdate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserTopicUpdateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).UserTopicUpdate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/UserTopicUpdate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).UserTopicUpdate(ctx, req.(*UserTopicUpdateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1092,12 +1156,20 @@ var CentrifugoApi_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CentrifugoApi_DeviceList_Handler,
 		},
 		{
-			MethodName: "PushUserChannelList",
-			Handler:    _CentrifugoApi_PushUserChannelList_Handler,
+			MethodName: "DeviceTopicList",
+			Handler:    _CentrifugoApi_DeviceTopicList_Handler,
 		},
 		{
-			MethodName: "PushUserChannelUpdate",
-			Handler:    _CentrifugoApi_PushUserChannelUpdate_Handler,
+			MethodName: "DeviceTopicUpdate",
+			Handler:    _CentrifugoApi_DeviceTopicUpdate_Handler,
+		},
+		{
+			MethodName: "UserTopicList",
+			Handler:    _CentrifugoApi_UserTopicList_Handler,
+		},
+		{
+			MethodName: "UserTopicUpdate",
+			Handler:    _CentrifugoApi_UserTopicUpdate_Handler,
 		},
 		{
 			MethodName: "SendPushNotification",

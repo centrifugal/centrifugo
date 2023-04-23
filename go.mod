@@ -26,6 +26,7 @@ require (
 	github.com/rs/zerolog v1.29.0
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.2
+	github.com/valyala/fasttemplate v1.2.2
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	go.uber.org/automaxprocs v1.5.2
 	golang.org/x/crypto v0.7.0

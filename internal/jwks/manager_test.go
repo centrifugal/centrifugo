@@ -61,7 +61,7 @@ func TestManagerFetchKey_UnmarshalError(t *testing.T) {
 	manager, err := NewManager(server.URL + path)
 	require.NoError(t, err)
 
-	_, err = manager.FetchKey(context.Background(), "202101")
+	_, err = manager.FetchKey(context.Background(), "202101", nil)
 	require.ErrorIs(t, err, errUnmarshal)
 }
 
@@ -78,7 +78,7 @@ func TestManagerFetchKey_KeyNotFound(t *testing.T) {
 	manager, err := NewManager(server.URL + path)
 	require.NoError(t, err)
 
-	_, err = manager.FetchKey(context.Background(), "202101")
+	_, err = manager.FetchKey(context.Background(), "202101", nil)
 	require.ErrorIs(t, err, ErrPublicKeyNotFound)
 }
 
@@ -94,7 +94,7 @@ func TestManagerFetchKey_WrongStatusCode(t *testing.T) {
 	manager, err := NewManager(server.URL + path)
 	require.NoError(t, err)
 
-	_, err = manager.FetchKey(context.Background(), "202101")
+	_, err = manager.FetchKey(context.Background(), "202101", nil)
 	require.ErrorIs(t, err, errUnexpectedStatusCode)
 }
 
@@ -131,7 +131,7 @@ func TestManagerInitialFetchKey(t *testing.T) {
 			manager, err := NewManager(ts.URL)
 			r.NoError(err)
 
-			key, err := manager.FetchKey(context.Background(), tc.Kid)
+			key, err := manager.FetchKey(context.Background(), tc.Kid, nil)
 			if tc.Error != nil {
 				r.Error(err)
 				r.ErrorIs(err, tc.Error)
@@ -176,7 +176,7 @@ func TestManagerCachedFetchKey(t *testing.T) {
 			manager, err := NewManager(ts.URL, tc.Options...)
 			r.NoError(err)
 
-			key, err := manager.FetchKey(ctx, kid)
+			key, err := manager.FetchKey(ctx, kid, nil)
 			r.NoError(err)
 			r.Equal(kid, key.Kid)
 

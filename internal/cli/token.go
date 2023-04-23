@@ -63,7 +63,10 @@ func verify(config jwtverify.VerifierConfig, ruleConfig rule.Config, token strin
 	if err != nil {
 		return jwtverify.ConnectToken{}, err
 	}
-	verifier := jwtverify.NewTokenVerifierJWT(config, ruleContainer)
+	verifier, err := jwtverify.NewTokenVerifierJWT(config, ruleContainer)
+	if err != nil {
+		return jwtverify.ConnectToken{}, err
+	}
 	return verifier.VerifyConnectToken(token)
 }
 
@@ -72,7 +75,10 @@ func verifySub(config jwtverify.VerifierConfig, ruleConfig rule.Config, token st
 	if err != nil {
 		return jwtverify.SubscribeToken{}, err
 	}
-	verifier := jwtverify.NewTokenVerifierJWT(config, ruleContainer)
+	verifier, err := jwtverify.NewTokenVerifierJWT(config, ruleContainer)
+	if err != nil {
+		return jwtverify.SubscribeToken{}, err
+	}
 	return verifier.VerifySubscribeToken(token)
 }
 

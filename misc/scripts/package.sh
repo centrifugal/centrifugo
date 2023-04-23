@@ -106,15 +106,16 @@ do_build() {
         echo "STATS_TOKEN found"
     fi
 
-    gox -os="linux" -ldflags="-X github.com/centrifugal/centrifugo/v4/internal/build.Version=$VERSION -X github.com/centrifugal/centrifugo/v4/internal/build.UsageStatsEndpoint=$STATS_ENDPOINT -X github.com/centrifugal/centrifugo/v4/internal/build.UsageStatsToken=$STATS_TOKEN" -arch="amd64" -output="$TMP_BINARIES_DIR/{{.OS}}-{{.Arch}}/centrifugo"
+    CGO_ENABLED=0 GOOS="linux" GOARCH="amd64" go build -ldflags="-X github.com/centrifugal/centrifugo/v4/internal/build.Version=$VERSION -X github.com/centrifugal/centrifugo/v4/internal/build.UsageStatsEndpoint=$STATS_ENDPOINT -X github.com/centrifugal/centrifugo/v4/internal/build.UsageStatsToken=$STATS_TOKEN" -o "$TMP_BINARIES_DIR/centrifugo"
     echo "Binary build completed successfully"
+    "$TMP_BINARIES_DIR"/centrifugo version
 }
 
 do_build $VERSION
 
 make_dir_tree $TMP_WORK_DIR
 
-cp $TMP_BINARIES_DIR/linux-amd64/centrifugo $TMP_WORK_DIR/$INSTALL_DIR/
+cp $TMP_BINARIES_DIR/centrifugo $TMP_WORK_DIR/$INSTALL_DIR/
 if [ $? -ne 0 ]; then
     echo "Failed to copy binaries to packaging directory ($TMP_WORK_DIR/$INSTALL_DIR/) -- aborting."
     cleanup_exit 1

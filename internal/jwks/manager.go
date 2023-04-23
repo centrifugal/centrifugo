@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/rakutentech/jwk-go/jwk"
+	"github.com/valyala/fasttemplate"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -41,7 +42,7 @@ var (
 
 // Manager fetches and returns JWK from public source.
 type Manager struct {
-	url      string
+	url      *fasttemplate.Template
 	cache    Cache
 	client   *http.Client
 	useCache bool
@@ -60,13 +61,18 @@ func defaultHTTPClient() *http.Client {
 
 // NewManager returns a new instance of Manager.
 func NewManager(rawURL string, opts ...Option) (*Manager, error) {
-	_, err := url.Parse(rawURL)
+	u, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, ErrInvalidURL
 	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return nil, fmt.Errorf("endpoint must have http:// or https:// scheme, got: %s", rawURL)
+	}
+	urlTemplate := fasttemplate.New(rawURL, "{{", "}}")
 
 	mng := &Manager{
-		url:      rawURL,
+		url: urlTemplate,
+
 		cache:    NewTTLCache(_defaultTTL),
 		client:   defaultHTTPClient(),
 		useCache: true,
@@ -85,7 +91,7 @@ func NewManager(rawURL string, opts ...Option) (*Manager, error) {
 }
 
 // FetchKey fetches JWKS from public source or cache.
-func (m *Manager) FetchKey(ctx context.Context, kid string) (*JWK, error) {
+func (m *Manager) FetchKey(ctx context.Context, kid string, tokenVars map[string]any) (*JWK, error) {
 	if kid == "" {
 		return nil, ErrKeyIDNotProvided
 	}
@@ -100,7 +106,7 @@ func (m *Manager) FetchKey(ctx context.Context, kid string) (*JWK, error) {
 
 	// Otherwise fetch from public JWKS.
 	v, err, _ := m.group.Do(kid, func() (interface{}, error) {
-		return m.fetchKey(ctx, kid)
+		return m.fetchKey(ctx, kid, tokenVars)
 	})
 	if err != nil {
 		return nil, err
@@ -122,8 +128,9 @@ func (m *Manager) loadData(req *http.Request) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
-func (m *Manager) fetchKey(ctx context.Context, kid string) (*JWK, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, m.url, nil)
+func (m *Manager) fetchKey(ctx context.Context, kid string, tokenVars map[string]any) (*JWK, error) {
+	jwkURL := m.url.ExecuteString(tokenVars)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, jwkURL, nil)
 	if err != nil {
 		return nil, err
 	}
