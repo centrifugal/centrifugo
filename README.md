@@ -25,7 +25,7 @@ The core idea of Centrifugo is simple – it's a PUB/SUB server on top of modern
 
 <img src="https://centrifugal.dev/img/protocol_pub_sub.png?v=2" />
 
-The hard part is to make this concept production-ready, efficient and available from different application environments. Centrifugo is a mature solution that already helped many projects with adding real-time features and scale towards many concurrent connections. Centrifugo provides unique properties not available in other open-source solutions in the area:
+The hard part is to make this concept production-ready, efficient, flexible and available from different application environments. Centrifugo is a mature solution that already helped many projects with adding real-time features and scale towards many concurrent connections. Centrifugo provides a set of features not available in other open-source solutions in the area:
 
 * Real-time transports: WebSocket, HTTP-streaming, Server-Sent Events (SSE), GRPC, SockJS, WebTransport
 * Built-in scalability to many machines with Redis, KeyDB, Nats, Tarantool
