@@ -37,6 +37,11 @@ type Broker struct {
 	config       BrokerConfig
 	shards       []*Shard
 	nodeChannel  string
+	router       Router
+}
+
+type Router interface {
+	Find(channel string) any
 }
 
 var _ centrifuge.Broker = (*Broker)(nil)
@@ -60,6 +65,9 @@ type BrokerConfig struct {
 
 	// Shards is a list of Tarantool instances to shard data by channel.
 	Shards []*Shard
+
+	// Router is a mapper of channels to Tarantool instances subset.
+	Router Router
 }
 
 // NewBroker initializes Tarantool Broker.
@@ -76,6 +84,7 @@ func NewBroker(n *centrifuge.Node, config BrokerConfig) (*Broker, error) {
 		config:      config,
 		sharding:    len(config.Shards) > 1,
 		nodeChannel: nodeChannel(n.ID()),
+		router:      config.Router,
 	}
 	return e, nil
 }
@@ -152,7 +161,7 @@ func (m *pubResponse) DecodeMsgpack(d *msgpack.Decoder) error {
 
 // Publish - see centrifuge.Broker interface description.
 func (b *Broker) Publish(ch string, data []byte, opts centrifuge.PublishOptions) (centrifuge.StreamPosition, error) {
-	s := consistentShard(ch, b.shards)
+	s := getShard(ch, b.getShards(ch))
 
 	protoPub := &protocol.Publication{
 		Data: data,
@@ -187,7 +196,7 @@ func (b *Broker) Publish(ch string, data []byte, opts centrifuge.PublishOptions)
 
 // PublishJoin - see centrifuge.Broker interface description.
 func (b *Broker) PublishJoin(ch string, info *centrifuge.ClientInfo) error {
-	s := consistentShard(ch, b.shards)
+	s := getShard(ch, b.getShards(ch))
 	pr := pubRequest{
 		MsgType: "j",
 		Channel: ch,
@@ -199,7 +208,7 @@ func (b *Broker) PublishJoin(ch string, info *centrifuge.ClientInfo) error {
 
 // PublishLeave - see centrifuge.Broker interface description.
 func (b *Broker) PublishLeave(ch string, info *centrifuge.ClientInfo) error {
-	s := consistentShard(ch, b.shards)
+	s := getShard(ch, b.getShards(ch))
 	pr := pubRequest{
 		MsgType: "l",
 		Channel: ch,
@@ -255,7 +264,29 @@ func nodeChannel(nodeID string) string {
 }
 
 // Subscribe - see centrifuge.Broker interface description.
-func (b *Broker) Subscribe(ch string) error {
+func (b *Broker) Subscribe(ch string) (err error) {
+	var subscribed []*Shard
+	defer func() {
+		if err != nil {
+			for _, s := range subscribed {
+				if err := b.unsubscribe(ch, s); err != nil {
+					b.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "failed to unsubscribe node on channel", map[string]interface{}{"channel": ch, "err": err, "shard": s.GetAddresses()}))
+				}
+			}
+		}
+	}()
+
+	for _, s := range b.getShards(ch) {
+		if err := b.subscribe(ch, s); err != nil {
+			b.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "failed to subscribe node on channel", map[string]interface{}{"channel": ch, "err": err, "shard": s.GetAddresses()}))
+			return err
+		}
+		subscribed = append(subscribed, s)
+	}
+	return nil
+}
+
+func (b *Broker) subscribe(ch string, s *Shard) error {
 	if strings.HasPrefix(ch, internalChannelPrefix) {
 		return centrifuge.ErrorBadRequest
 	}
@@ -263,17 +294,22 @@ func (b *Broker) Subscribe(ch string) error {
 		b.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "subscribe node on channel", map[string]interface{}{"channel": ch}))
 	}
 	r := newSubRequest([]string{ch}, true)
-	s := b.shards[consistentIndex(ch, len(b.shards))]
 	return b.sendSubscribe(s, r)
 }
 
 // Unsubscribe - see centrifuge.Broker interface description.
 func (b *Broker) Unsubscribe(ch string) error {
+	for _, s := range b.getShards(ch) {
+		b.unsubscribe(ch, s)
+	}
+	return nil
+}
+
+func (b *Broker) unsubscribe(ch string, s *Shard) error {
 	if b.node.LogEnabled(centrifuge.LogLevelDebug) {
 		b.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "unsubscribe node from channel", map[string]interface{}{"channel": ch}))
 	}
 	r := newSubRequest([]string{ch}, false)
-	s := b.shards[consistentIndex(ch, len(b.shards))]
 	return b.sendSubscribe(s, r)
 }
 
@@ -410,7 +446,7 @@ func (b *Broker) History(ch string, filter centrifuge.HistoryFilter) ([]*centrif
 		limit = filter.Limit
 	}
 	historyMetaTTLSeconds := int(b.config.HistoryMetaTTL.Seconds())
-	s := consistentShard(ch, b.shards)
+	s := getShard(ch, b.getShards(ch))
 	req := historyRequest{
 		Channel:        ch,
 		Offset:         offset,
@@ -435,7 +471,7 @@ type removeHistoryRequest struct {
 
 // RemoveHistory - see centrifuge.Broker interface description.
 func (b *Broker) RemoveHistory(ch string) error {
-	s := consistentShard(ch, b.shards)
+	s := getShard(ch, b.getShards(ch))
 	_, err := s.Exec(tarantool.Call("centrifuge.remove_history", removeHistoryRequest{Channel: ch}))
 	return err
 }
@@ -449,11 +485,19 @@ const (
 	tarantoolSubscribeBatchLimit = 512
 )
 
-func (b *Broker) getShard(channel string) *Shard {
-	if !b.sharding {
-		return b.shards[0]
+func (b *Broker) getShards(channel string) []*Shard {
+	if b.router != nil {
+		if value := b.router.Find(channel); value != nil {
+			return value.([]*Shard)
+		}
+		b.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "Tarantool routing failure: no shard found", map[string]any{"channel": channel}))
 	}
-	return b.shards[consistentIndex(channel, len(b.shards))]
+
+	return b.shards
+}
+
+func getShard(channel string, shards []*Shard) *Shard {
+	return consistentShard(channel, shards)
 }
 
 type pollRequest struct {
@@ -653,7 +697,7 @@ func (b *Broker) runPubSub(s *Shard, eventHandler centrifuge.BrokerEventHandler)
 
 		channels := b.node.Hub().Channels()
 		for i := 0; i < len(channels); i++ {
-			if b.getShard(channels[i]) == s {
+			if getShard(channels[i], b.getShards(channels[i])) == s {
 				chIDs = append(chIDs, channels[i])
 			}
 		}

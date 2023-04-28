@@ -49,6 +49,7 @@ import (
 	"github.com/centrifugal/centrifugo/v4/internal/notify"
 	"github.com/centrifugal/centrifugo/v4/internal/origin"
 	"github.com/centrifugal/centrifugo/v4/internal/proxy"
+	"github.com/centrifugal/centrifugo/v4/internal/router"
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
 	"github.com/centrifugal/centrifugo/v4/internal/survey"
 	"github.com/centrifugal/centrifugo/v4/internal/tntengine"
@@ -1864,6 +1865,33 @@ func rpcNamespacesFromConfig(v *viper.Viper) []rule.RpcNamespace {
 	return ns
 }
 
+func getRouterConfig(v *viper.Viper) *router.Config {
+	var cfg router.Config
+	if !v.IsSet("router") {
+		return &cfg
+	}
+	var err error
+	switch val := v.Get("router").(type) {
+	case string:
+		err = json.Unmarshal([]byte(val), &cfg)
+	case interface{}:
+		decoderCfg := tools.DecoderConfig(&cfg)
+		decoder, newErr := mapstructure.NewDecoder(decoderCfg)
+		if newErr != nil {
+			log.Fatal().Msg(newErr.Error())
+			return &cfg
+		}
+		err = decoder.Decode(v.Get("router"))
+	default:
+		err = fmt.Errorf("unknown router type: %T", val)
+	}
+	if err != nil {
+		log.Error().Err(err).Msg("malformed router")
+		os.Exit(1)
+	}
+	return &cfg
+}
+
 func getPingPongConfig() centrifuge.PingPongConfig {
 	pingInterval := GetDuration("ping_interval")
 	pongTimeout := GetDuration("pong_timeout")
@@ -2270,13 +2298,60 @@ func getTarantoolShards() ([]*tntengine.Shard, string, error) {
 	return tarantoolShards, mode, nil
 }
 
+func tarantoolMapRoutesToShards(n *centrifuge.Node, routerConfig *router.Config, shards []*tntengine.Shard) (*router.Router, error) {
+	findShard := func(addr string) (*tntengine.Shard, error) {
+		for _, s := range shards {
+			for _, shardAddr := range s.GetAddresses() {
+				if addr == shardAddr {
+					return s, nil
+				}
+			}
+		}
+		return nil, fmt.Errorf("%s was not found in tarantool_address", addr)
+	}
+
+	if len(routerConfig.Routes) == 0 {
+		return nil, nil
+	}
+
+	r := router.New(n)
+	for _, route := range routerConfig.Routes {
+		var routeShards []*tntengine.Shard
+		for _, addr := range route.Addresses {
+			s, err := findShard(addr)
+			if err != nil {
+				return nil, err
+			}
+			routeShards = append(routeShards, s)
+		}
+
+		ch := route.Name
+		last := len(ch)-1
+		if len(ch) > 0 && ch[last] == '*' {
+			r.AddPrefix(ch[0:last], routeShards)
+			log.Debug().Msgf("added prefix route %s for channel %s", tools.GetLogAddresses(route.Addresses), ch)
+			continue
+		}
+		r.AddExact(ch, routeShards)
+		log.Debug().Msgf("added exact route %s for channel %s", tools.GetLogAddresses(route.Addresses), ch)
+	}
+	return r, nil
+}
+
 func tarantoolEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceManager, string, error) {
 	tarantoolShards, mode, err := getTarantoolShards()
 	if err != nil {
 		return nil, nil, "", err
 	}
+	routerConfig := getRouterConfig(viper.GetViper())
+	channelRouter, err := tarantoolMapRoutesToShards(n, routerConfig, tarantoolShards)
+	if err != nil {
+		return nil, nil, "", err
+	}
+
 	broker, err := tntengine.NewBroker(n, tntengine.BrokerConfig{
 		Shards:         tarantoolShards,
+		Router:         channelRouter,
 		HistoryMetaTTL: GetDuration("history_meta_ttl", true),
 		UseJSON:        viper.GetBool("tarantool_experimental_use_json_in_broker"),
 	})
