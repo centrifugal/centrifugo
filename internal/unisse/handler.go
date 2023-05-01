@@ -26,6 +26,8 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 // This should be a properly encoded JSON object.
 const connectUrlParam = "cf_connect"
 
+const streamWriteTimeout = time.Second
+
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var req *protocol.ConnectRequest
 	if r.Method == http.MethodGet {
@@ -91,15 +93,18 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Expire", "0")
 	w.WriteHeader(http.StatusOK)
 
-	flusher, ok := w.(http.Flusher)
+	_, ok := w.(http.Flusher)
 	if !ok {
 		return
 	}
+
+	rc := http.NewResponseController(w)
+	_ = rc.SetWriteDeadline(time.Now().Add(streamWriteTimeout))
 	_, err = w.Write([]byte("\r\n"))
 	if err != nil {
 		return
 	}
-	flusher.Flush()
+	_ = rc.Flush()
 
 	connectRequest := centrifuge.ConnectRequest{
 		Token:   req.Token,
@@ -131,11 +136,12 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if !ok {
 				return
 			}
+			_ = rc.SetWriteDeadline(time.Now().Add(streamWriteTimeout))
 			_, err = w.Write([]byte("data: " + string(data) + "\n\n"))
 			if err != nil {
 				return
 			}
-			flusher.Flush()
+			_ = rc.Flush()
 		}
 	}
 }
