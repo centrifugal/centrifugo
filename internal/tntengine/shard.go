@@ -77,6 +77,10 @@ func (s *Shard) ExecTyped(request *tarantool.Request, result interface{}) error 
 	return conn.ExecTyped(request, result)
 }
 
+func (s *Shard) GetAddresses() []string {
+	return s.config.Addresses
+}
+
 func (s *Shard) pubSubConn() (*tarantool.Connection, func(), error) {
 	conn, err := s.mc.NewLeaderConn(tarantool.Opts{
 		ConnectTimeout: defaultConnectTimeout,
