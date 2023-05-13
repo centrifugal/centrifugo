@@ -22,6 +22,8 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 	}
 }
 
+const streamWriteTimeout = time.Second
+
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusOK)
@@ -80,10 +82,12 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Expire", "0")
 	w.WriteHeader(http.StatusOK)
 
-	flusher, ok := w.(http.Flusher)
+	_, ok := w.(http.Flusher)
 	if !ok {
 		return
 	}
+
+	rc := http.NewResponseController(w)
 
 	connectRequest := centrifuge.ConnectRequest{
 		Token:   req.Token,
@@ -115,6 +119,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if !ok {
 				return
 			}
+			_ = rc.SetWriteDeadline(time.Now().Add(streamWriteTimeout))
 			_, err = w.Write(data)
 			if err != nil {
 				return
@@ -123,7 +128,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				return
 			}
-			flusher.Flush()
+			_ = rc.Flush()
 		}
 	}
 }
