@@ -50,7 +50,7 @@ func MakeTLSConfig(v ConfigGetter, keyPrefix string) (*tls.Config, error) {
 	if v.GetString(keyPrefix+"tls_server_name") != "" {
 		tlsConfig.ServerName = v.GetString(keyPrefix + "tls_server_name")
 	}
-	if v.GetBool(keyPrefix+"tls_skip_verify") || v.GetBool(keyPrefix+"tls_insecure_skip_verify") { // TODO v5: remove tls_skip_verify.
+	if v.GetBool(keyPrefix + "tls_insecure_skip_verify") {
 		tlsConfig.InsecureSkipVerify = true
 	}
 	return tlsConfig, nil

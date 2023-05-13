@@ -13,4 +13,5 @@ type Client interface {
 	IsSubscribed(string) bool
 	Context() context.Context
 	Transport() centrifuge.TransportInfo
+	AcquireStorage() (map[string]any, func(map[string]any))
 }

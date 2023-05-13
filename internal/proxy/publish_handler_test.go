@@ -202,9 +202,8 @@ func TestHandlePublishWithProxyServerCustomDisconnect(t *testing.T) {
 	defer httpTestCase.Teardown()
 
 	expectedErr := centrifuge.Disconnect{
-		Code:      4000,
-		Reason:    "custom disconnect",
-		Reconnect: false,
+		Code:   4000,
+		Reason: "custom disconnect",
 	}
 
 	cases := newPublishHandleTestCases(httpTestCase, grpcTestCase)

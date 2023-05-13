@@ -1,6 +1,7 @@
 package unisse
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"time"
@@ -15,9 +16,6 @@ type Handler struct {
 }
 
 func NewHandler(n *centrifuge.Node, c Config) *Handler {
-	if c.ProtocolVersion == 0 {
-		c.ProtocolVersion = centrifuge.ProtocolVersion1
-	}
 	return &Handler{
 		node:   n,
 		config: c,
@@ -28,13 +26,14 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 // This should be a properly encoded JSON object.
 const connectUrlParam = "cf_connect"
 
+const streamWriteTimeout = time.Second
+
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var req *protocol.ConnectRequest
 	if r.Method == http.MethodGet {
 		connectRequestString := r.URL.Query().Get(connectUrlParam)
 		if connectRequestString != "" {
-			var err error
-			req, err = protocol.NewJSONParamsDecoder().DecodeConnect([]byte(connectRequestString))
+			err := json.Unmarshal([]byte(connectRequestString), &req)
 			if err != nil {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "malformed connect request", map[string]interface{}{"error": err.Error()}))
 				return
@@ -43,18 +42,18 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			req = &protocol.ConnectRequest{}
 		}
 	} else if r.Method == http.MethodPost {
-		maxBytesSize := int64(h.config.MaxRequestBodySize)
-		r.Body = http.MaxBytesReader(w, r.Body, maxBytesSize)
+		maxBytesSize := h.config.MaxRequestBodySize
+		r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytesSize))
 		connectRequestData, err := io.ReadAll(r.Body)
 		if err != nil {
-			if len(connectRequestData) >= int(maxBytesSize) {
+			if len(connectRequestData) >= maxBytesSize {
 				w.WriteHeader(http.StatusRequestEntityTooLarge)
 				return
 			}
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error reading body", map[string]interface{}{"error": err.Error()}))
 			return
 		}
-		req, err = protocol.NewJSONParamsDecoder().DecodeConnect(connectRequestData)
+		err = json.Unmarshal(connectRequestData, &req)
 		if err != nil {
 			if h.node.LogEnabled(centrifuge.LogLevelDebug) {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "malformed connect request", map[string]interface{}{"error": err.Error()}))
@@ -66,29 +65,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	protoVersion := h.config.ProtocolVersion
-	if r.URL.RawQuery != "" {
-		query := r.URL.Query()
-		if queryProtocolVersion := query.Get("cf_protocol_version"); queryProtocolVersion != "" {
-			switch queryProtocolVersion {
-			case "v1":
-				protoVersion = centrifuge.ProtocolVersion1
-			case "v2":
-				protoVersion = centrifuge.ProtocolVersion2
-			default:
-				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "unknown protocol version", map[string]interface{}{"transport": transportName, "version": queryProtocolVersion}))
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-		}
-	}
-
-	if centrifuge.DisableProtocolVersion1 && protoVersion == centrifuge.ProtocolVersion1 {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-
-	transport := newEventsourceTransport(r, protoVersion, h.config.PingPongConfig)
+	transport := newEventsourceTransport(r, h.config.PingPongConfig)
 	c, closeFn, err := centrifuge.NewClient(r.Context(), h.node, transport)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error create client", map[string]interface{}{"error": err.Error(), "transport": "uni_sse"}))
@@ -116,15 +93,18 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Expire", "0")
 	w.WriteHeader(http.StatusOK)
 
-	flusher, ok := w.(http.Flusher)
+	_, ok := w.(http.Flusher)
 	if !ok {
 		return
 	}
+
+	rc := http.NewResponseController(w)
+	_ = rc.SetWriteDeadline(time.Now().Add(streamWriteTimeout))
 	_, err = w.Write([]byte("\r\n"))
 	if err != nil {
 		return
 	}
-	flusher.Flush()
+	_ = rc.Flush()
 
 	connectRequest := centrifuge.ConnectRequest{
 		Token:   req.Token,
@@ -146,52 +126,22 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	c.Connect(connectRequest)
 
-	if protoVersion == centrifuge.ProtocolVersion1 {
-		pingInterval := 25 * time.Second
-		tick := time.NewTicker(pingInterval)
-		defer tick.Stop()
-
-		for {
-			select {
-			case <-r.Context().Done():
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-transport.disconnectCh:
+			return
+		case data, ok := <-transport.messages:
+			if !ok {
 				return
-			case <-transport.disconnectCh:
-				return
-			case <-tick.C:
-				_, err = w.Write([]byte("event: ping\ndata:\n\n"))
-				if err != nil {
-					return
-				}
-				flusher.Flush()
-			case data, ok := <-transport.messages:
-				if !ok {
-					return
-				}
-				tick.Reset(pingInterval)
-				_, err = w.Write([]byte("data: " + string(data) + "\n\n"))
-				if err != nil {
-					return
-				}
-				flusher.Flush()
 			}
-		}
-	} else {
-		for {
-			select {
-			case <-r.Context().Done():
+			_ = rc.SetWriteDeadline(time.Now().Add(streamWriteTimeout))
+			_, err = w.Write([]byte("data: " + string(data) + "\n\n"))
+			if err != nil {
 				return
-			case <-transport.disconnectCh:
-				return
-			case data, ok := <-transport.messages:
-				if !ok {
-					return
-				}
-				_, err = w.Write([]byte("data: " + string(data) + "\n\n"))
-				if err != nil {
-					return
-				}
-				flusher.Flush()
 			}
+			_ = rc.Flush()
 		}
 	}
 }

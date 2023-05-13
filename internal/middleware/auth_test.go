@@ -31,6 +31,25 @@ func TestAPIKeyAuthMissingAuthKey(t *testing.T) {
 	require.Equal(t, res.StatusCode, http.StatusUnauthorized)
 }
 
+func TestAPIKeyAuthXAPIKey(t *testing.T) {
+	ts := httptest.NewServer(APIKeyAuth("test", testHandler()))
+	defer ts.Close()
+
+	req, err := http.NewRequest("POST", ts.URL, nil)
+	require.NoError(t, err)
+	req.Header.Set("X-API-Key", "test")
+	res, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	require.Equal(t, res.StatusCode, http.StatusOK)
+
+	req, err = http.NewRequest("POST", ts.URL, nil)
+	require.NoError(t, err)
+	req.Header.Set("x-api-key", "test")
+	res, err = http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	require.Equal(t, res.StatusCode, http.StatusOK)
+}
+
 func TestAPIKeyAuthAuthorizationHeader(t *testing.T) {
 	ts := httptest.NewServer(APIKeyAuth("test", testHandler()))
 	defer ts.Close()

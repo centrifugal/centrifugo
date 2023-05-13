@@ -5,12 +5,12 @@ module github.com/centrifugal/centrifugo/v4
 go 1.20
 
 require (
-	github.com/FZambia/eagle v0.0.2
+	github.com/FZambia/eagle v0.1.0
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/tarantool v0.3.1
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
-	github.com/centrifugal/centrifuge v0.28.1
-	github.com/centrifugal/protocol v0.9.1
+	github.com/centrifugal/centrifuge v0.29.2-0.20230513124308-3c4117e7c377
+	github.com/centrifugal/protocol v0.10.0
 	github.com/cristalhq/jwt/v4 v4.0.2
 	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.3.0
@@ -24,7 +24,7 @@ require (
 	github.com/quic-go/webtransport-go v0.5.2
 	github.com/rakutentech/jwk-go v1.1.2
 	github.com/rs/zerolog v1.29.0
-	github.com/spf13/cobra v0.0.7
+	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.2
 	github.com/valyala/fasttemplate v1.2.2
 	github.com/vmihailenco/msgpack/v5 v5.3.5
@@ -46,7 +46,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect
 	github.com/igm/sockjs-go/v3 v3.0.2 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
@@ -64,8 +64,7 @@ require (
 	github.com/quic-go/qpack v0.4.0 // indirect
 	github.com/quic-go/qtls-go1-19 v0.3.2 // indirect
 	github.com/quic-go/qtls-go1-20 v0.2.2 // indirect
-	github.com/rogpeppe/go-internal v1.10.0 // indirect
-	github.com/rueian/rueidis v0.0.100-go1.18 // indirect
+	github.com/redis/rueidis v1.0.2-go1.18 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/segmentio/encoding v0.3.6 // indirect
 	github.com/spf13/cast v1.4.1 // indirect

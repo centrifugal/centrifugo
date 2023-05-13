@@ -132,6 +132,7 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 
 		historySize := chOpts.HistorySize
 		historyTTL := chOpts.HistoryTTL
+		historyMetaTTL := chOpts.HistoryMetaTTL
 
 		data := e.Data
 		if publishRep.Result != nil {
@@ -155,7 +156,7 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 		result, err := node.Publish(
 			e.Channel, data,
 			centrifuge.WithClientInfo(e.ClientInfo),
-			centrifuge.WithHistory(historySize, time.Duration(historyTTL)),
+			centrifuge.WithHistory(historySize, time.Duration(historyTTL), time.Duration(historyMetaTTL)),
 		)
 		return centrifuge.PublishReply{Result: &result}, err
 	}

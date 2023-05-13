@@ -67,7 +67,7 @@ func (t *TestTransport) Protocol() centrifuge.ProtocolType {
 
 // ProtocolVersion returns transport protocol version.
 func (t *TestTransport) ProtocolVersion() centrifuge.ProtocolVersion {
-	return centrifuge.ProtocolVersion1
+	return centrifuge.ProtocolVersion2
 }
 
 // Unidirectional - ...
@@ -80,11 +80,9 @@ func (t *TestTransport) DisabledPushFlags() uint64 {
 	return centrifuge.PushFlagDisconnect
 }
 
-// AppLevelPing ...
-func (t *TestTransport) AppLevelPing() centrifuge.AppLevelPing {
-	return centrifuge.AppLevelPing{
-		PingInterval: 0,
-	}
+// PingPongConfig ...
+func (t *TestTransport) PingPongConfig() centrifuge.PingPongConfig {
+	return centrifuge.PingPongConfig{}
 }
 
 // Emulation ...
@@ -213,39 +211,52 @@ type TestClientMock struct {
 	IsSubscribedFunc func(string) bool
 	ContextFunc      func() context.Context
 	TransportFunc    func() centrifuge.TransportInfo
+	storageMu        sync.Mutex
+	storage          map[string]any
 }
 
-func (m TestClientMock) ID() string {
+func (m *TestClientMock) ID() string {
 	if m.IDFunc != nil {
 		return m.IDFunc()
 	}
 	panic("not implemented")
 }
 
-func (m TestClientMock) UserID() string {
+func (m *TestClientMock) UserID() string {
 	if m.UserIDFunc != nil {
 		return m.UserIDFunc()
 	}
 	panic("not implemented")
 }
 
-func (m TestClientMock) IsSubscribed(s string) bool {
+func (m *TestClientMock) IsSubscribed(s string) bool {
 	if m.IsSubscribedFunc != nil {
 		return m.IsSubscribedFunc(s)
 	}
 	panic("not implemented")
 }
 
-func (m TestClientMock) Context() context.Context {
+func (m *TestClientMock) Context() context.Context {
 	if m.ContextFunc != nil {
 		return m.ContextFunc()
 	}
 	panic("not implemented")
 }
 
-func (m TestClientMock) Transport() centrifuge.TransportInfo {
+func (m *TestClientMock) Transport() centrifuge.TransportInfo {
 	if m.TransportFunc != nil {
 		return m.TransportFunc()
 	}
 	panic("not implemented")
+}
+
+func (m *TestClientMock) AcquireStorage() (map[string]any, func(map[string]any)) {
+	m.storageMu.Lock()
+	if m.storage == nil {
+		m.storage = map[string]any{}
+	}
+	return m.storage, func(updatedStorage map[string]any) {
+		m.storage = updatedStorage
+		m.storageMu.Unlock()
+	}
 }

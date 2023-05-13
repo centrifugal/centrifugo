@@ -39,9 +39,6 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 	} else {
 		upgrade.CheckOrigin = sameHostOriginCheck()
 	}
-	if c.ProtocolVersion == 0 {
-		c.ProtocolVersion = centrifuge.ProtocolVersion1
-	}
 	return &Handler{
 		node:    n,
 		config:  c,
@@ -67,28 +64,6 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	compression := s.config.Compression
 	compressionLevel := s.config.CompressionLevel
 	compressionMinSize := s.config.CompressionMinSize
-
-	protoVersion := s.config.ProtocolVersion
-	if r.URL.RawQuery != "" {
-		query := r.URL.Query()
-		if queryProtocolVersion := query.Get("cf_protocol_version"); queryProtocolVersion != "" {
-			switch queryProtocolVersion {
-			case "v1":
-				protoVersion = centrifuge.ProtocolVersion1
-			case "v2":
-				protoVersion = centrifuge.ProtocolVersion2
-			default:
-				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "unknown protocol version", map[string]interface{}{"transport": transportName, "version": queryProtocolVersion}))
-				rw.WriteHeader(http.StatusBadRequest)
-				return
-			}
-		}
-	}
-
-	if centrifuge.DisableProtocolVersion1 && protoVersion == centrifuge.ProtocolVersion1 {
-		http.Error(rw, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
 
 	conn, err := s.upgrade.Upgrade(rw, r, nil)
 	if err != nil {
@@ -134,7 +109,6 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			pingInterval:       pingInterval,
 			writeTimeout:       writeTimeout,
 			compressionMinSize: compressionMinSize,
-			protoVersion:       protoVersion,
 			pingPongConfig:     s.config.PingPongConfig,
 		}
 
@@ -170,7 +144,8 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		req, err := protocol.NewJSONParamsDecoder().DecodeConnect(data)
+		var req protocol.ConnectRequest
+		err = json.Unmarshal(data, &req)
 		if err != nil {
 			return
 		}

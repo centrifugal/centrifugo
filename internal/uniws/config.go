@@ -19,9 +19,6 @@ const (
 
 // Config represents config for Handler.
 type Config struct {
-	// ProtocolVersion used by default. If not set then we use centrifuge.ProtocolVersion1.
-	ProtocolVersion centrifuge.ProtocolVersion
-
 	// CompressionLevel sets a level for websocket compression.
 	// See possible value description at https://golang.org/pkg/compress/flate/#NewWriter
 	CompressionLevel int
@@ -47,10 +44,6 @@ type Config struct {
 	// CheckOrigin func to provide custom origin check logic.
 	// nil means allow all origins.
 	CheckOrigin func(r *http.Request) bool
-
-	// PingInterval sets interval server will send ping messages to clients.
-	// By default DefaultPingInterval will be used.
-	PingInterval time.Duration
 
 	// WriteTimeout is maximum time of write message operation.
 	// Slow client will be disconnected.

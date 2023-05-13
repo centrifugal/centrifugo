@@ -21,11 +21,18 @@ func APIKeyAuth(key string, h http.Handler) http.Handler {
 			return
 		}
 		authValid := false
-		authHeader := r.Header.Get("Authorization")
-		if authHeader != "" {
-			parts := strings.Fields(authHeader)
-			if len(parts) == 2 && strings.ToLower(parts[0]) == "apikey" && tools.SecureCompareString(key, parts[1]) {
+		authHeaderValue := r.Header.Get("X-API-Key")
+		if authHeaderValue != "" {
+			if tools.SecureCompareString(key, authHeaderValue) {
 				authValid = true
+			}
+		} else {
+			authHeaderAuthorization := r.Header.Get("Authorization")
+			if authHeaderAuthorization != "" {
+				parts := strings.Fields(authHeaderAuthorization)
+				if len(parts) == 2 && strings.ToLower(parts[0]) == "apikey" && tools.SecureCompareString(key, parts[1]) {
+					authValid = true
+				}
 			}
 		}
 		if !authValid && r.URL.RawQuery != "" {

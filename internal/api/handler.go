@@ -33,22 +33,33 @@ func NewHandler(n *centrifuge.Node, apiExecutor *Executor, c Config) *Handler {
 		config: c,
 		api:    apiExecutor,
 	}
-
-	m.HandleFunc("/batch", h.handleBatch)
-	m.HandleFunc("/publish", h.handlePublish)
-	m.HandleFunc("/broadcast", h.handleBroadcast)
-	m.HandleFunc("/subscribe", h.handleSubscribe)
-	m.HandleFunc("/unsubscribe", h.handleUnsubscribe)
-	m.HandleFunc("/disconnect", h.handleDisconnect)
-	m.HandleFunc("/presence", h.handlePresence)
-	m.HandleFunc("/presence_stats", h.handlePresenceStats)
-	m.HandleFunc("/history", h.handleHistory)
-	m.HandleFunc("/history_remove", h.handleHistoryRemove)
-	m.HandleFunc("/info", h.handleInfo)
-	m.HandleFunc("/rpc", h.handleRPC)
-	m.HandleFunc("/refresh", h.handleRefresh)
-	m.HandleFunc("/channels", h.handleChannels)
+	h.RegisterRoutes(m)
 	return h
+}
+
+func (s *Handler) Routes() map[string]http.HandlerFunc {
+	return map[string]http.HandlerFunc{
+		"/batch":          s.handleBatch,
+		"/publish":        s.handlePublish,
+		"/broadcast":      s.handleBroadcast,
+		"/subscribe":      s.handleSubscribe,
+		"/unsubscribe":    s.handleUnsubscribe,
+		"/disconnect":     s.handleDisconnect,
+		"/presence":       s.handlePresence,
+		"/presence_stats": s.handlePresenceStats,
+		"/history":        s.handleHistory,
+		"/history_remove": s.handleHistoryRemove,
+		"/info":           s.handleInfo,
+		"/rpc":            s.handleRPC,
+		"/refresh":        s.handleRefresh,
+		"/channels":       s.handleChannels,
+	}
+}
+
+func (s *Handler) RegisterRoutes(m *http.ServeMux) {
+	for path, handler := range s.Routes() {
+		m.HandleFunc(path, handler)
+	}
 }
 
 // OldRoute handles all methods inside one /api handler.

@@ -248,9 +248,9 @@ message UnsubscribeResponse {
 message UnsubscribeResult {}
 
 message Disconnect {
+    reserved 3;
     uint32 code = 1;
     string reason = 2;
-    bool reconnect = 3;
 }
 
 message DisconnectRequest {

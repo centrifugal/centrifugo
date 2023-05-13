@@ -14,17 +14,15 @@ type streamTransport struct {
 	disconnectCh   chan *centrifuge.Disconnect
 	closedCh       chan struct{}
 	closed         bool
-	protoVersion   centrifuge.ProtocolVersion
 	pingPongConfig centrifuge.PingPongConfig
 }
 
-func newStreamTransport(req *http.Request, protoVersion centrifuge.ProtocolVersion, pingPongConfig centrifuge.PingPongConfig) *streamTransport {
+func newStreamTransport(req *http.Request, pingPongConfig centrifuge.PingPongConfig) *streamTransport {
 	return &streamTransport{
 		messages:       make(chan []byte),
 		disconnectCh:   make(chan *centrifuge.Disconnect),
 		closedCh:       make(chan struct{}),
 		req:            req,
-		protoVersion:   protoVersion,
 		pingPongConfig: pingPongConfig,
 	}
 }
@@ -41,7 +39,7 @@ func (t *streamTransport) Protocol() centrifuge.ProtocolType {
 
 // ProtocolVersion returns transport protocol version.
 func (t *streamTransport) ProtocolVersion() centrifuge.ProtocolVersion {
-	return t.protoVersion
+	return centrifuge.ProtocolVersion2
 }
 
 // Unidirectional returns whether transport is unidirectional.
@@ -54,11 +52,9 @@ func (t *streamTransport) DisabledPushFlags() uint64 {
 	return 0
 }
 
-// AppLevelPing ...
-func (t *streamTransport) AppLevelPing() centrifuge.AppLevelPing {
-	return centrifuge.AppLevelPing{
-		PingInterval: t.pingPongConfig.PingInterval,
-	}
+// PingPongConfig ...
+func (t *streamTransport) PingPongConfig() centrifuge.PingPongConfig {
+	return t.pingPongConfig
 }
 
 // Emulation ...

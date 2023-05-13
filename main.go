@@ -51,6 +51,7 @@ import (
 	"github.com/centrifugal/centrifugo/v4/internal/proxy"
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
 	"github.com/centrifugal/centrifugo/v4/internal/survey"
+	"github.com/centrifugal/centrifugo/v4/internal/swaggerui"
 	"github.com/centrifugal/centrifugo/v4/internal/tntengine"
 	"github.com/centrifugal/centrifugo/v4/internal/tools"
 	"github.com/centrifugal/centrifugo/v4/internal/unigrpc"
@@ -98,11 +99,15 @@ func bindCentrifugoConfig() {
 		"token_audience":             "",
 		"token_issuer":               "",
 
+		"global_history_meta_ttl": 90 * 24 * time.Hour,
+		"global_presence_ttl":     60 * time.Second,
+
 		"presence":                      false,
 		"join_leave":                    false,
 		"force_push_join_leave":         false,
 		"history_size":                  0,
 		"history_ttl":                   0,
+		"history_meta_ttl":              0,
 		"force_positioning":             false,
 		"allow_positioning":             false,
 		"force_recovery":                false,
@@ -162,9 +167,8 @@ func bindCentrifugoConfig() {
 		"admin_insecure": false,
 		"admin_web_path": "",
 
-		"sockjs":                 false,
-		"sockjs_url":             "https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js",
-		"sockjs_heartbeat_delay": 25 * time.Second,
+		"sockjs":     false,
+		"sockjs_url": "https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js",
 
 		"websocket_compression":           false,
 		"websocket_compression_min_size":  0,
@@ -172,7 +176,6 @@ func bindCentrifugoConfig() {
 		"websocket_read_buffer_size":      0,
 		"websocket_use_write_buffer_pool": false,
 		"websocket_write_buffer_size":     0,
-		"websocket_ping_interval":         25 * time.Second,
 		"websocket_write_timeout":         time.Second,
 		"websocket_message_size_limit":    65536, // 64KB
 
@@ -183,7 +186,6 @@ func bindCentrifugoConfig() {
 		"uni_websocket_read_buffer_size":      0,
 		"uni_websocket_use_write_buffer_pool": false,
 		"uni_websocket_write_buffer_size":     0,
-		"uni_websocket_ping_interval":         25 * time.Second,
 		"uni_websocket_write_timeout":         time.Second,
 		"uni_websocket_message_size_limit":    65536, // 64KB
 
@@ -203,9 +205,6 @@ func bindCentrifugoConfig() {
 		"redis_prefix":          "centrifugo",
 		"redis_connect_timeout": time.Second,
 		"redis_io_timeout":      4 * time.Second,
-
-		"history_meta_ttl": 90 * 24 * time.Hour,
-		"presence_ttl":     60 * time.Second,
 
 		"grpc_api":         false,
 		"grpc_api_address": "",
@@ -250,6 +249,7 @@ func bindCentrifugoConfig() {
 		"api_handler_prefix":        "/api",
 		"prometheus_handler_prefix": "/metrics",
 		"health_handler_prefix":     "/health",
+		"swagger_handler_prefix":    "/swagger",
 
 		"proxy_connect_timeout":     time.Second,
 		"proxy_rpc_timeout":         time.Second,
@@ -262,12 +262,6 @@ func bindCentrifugoConfig() {
 		"client_recovery_max_publication_limit": 300,
 
 		"usage_stats_disable": false,
-
-		// This option allows smooth migration to Centrifugo v4,
-		// should be removed at some point in the future.
-		"use_client_protocol_v1_by_default": false, // TODO v5: remove.
-		// This option will be removed in v5.
-		"disable_client_protocol_v1": false, // TODO v5: remove.
 
 		"ping_interval": 25 * time.Second,
 		"pong_timeout":  8 * time.Second,
@@ -302,6 +296,7 @@ func main() {
 				"broker", "nats_url", "grpc_api", "grpc_api_tls", "grpc_api_tls_disable",
 				"grpc_api_tls_cert", "grpc_api_tls_key", "grpc_api_port", "sockjs", "uni_grpc",
 				"uni_grpc_port", "uni_websocket", "uni_sse", "uni_http_stream", "sse", "http_stream",
+				"swagger",
 			}
 			for _, flag := range bindPFlags {
 				_ = viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -375,10 +370,6 @@ func main() {
 
 			nodeConfig := nodeConfig(build.Version)
 
-			if viper.GetBool("disable_client_protocol_v1") {
-				centrifuge.DisableProtocolVersion1 = true
-			}
-
 			node, err := centrifuge.New(nodeConfig)
 			if err != nil {
 				log.Fatal().Msgf("error creating Centrifuge Node: %v", err)
@@ -412,11 +403,6 @@ func main() {
 				log.Fatal().Msgf("error creating token verifier: %v", err)
 			}
 
-			if viper.GetBool("skip_user_check_in_subscription_token") {
-				// See detailed comment about this by falling through to
-				// client.SkipUserCheckInSubscriptionToken definition.
-				client.SkipUserCheckInSubscriptionToken = true
-			}
 			clientHandler := client.NewHandler(node, ruleContainer, tokenVerifier, proxyMap, granularProxyMode)
 			err = clientHandler.Setup()
 			if err != nil {
@@ -635,6 +621,7 @@ func main() {
 	rootCmd.Flags().BoolP("admin", "", false, "enable admin web interface")
 	rootCmd.Flags().BoolP("admin_external", "", false, "expose admin web interface on external port")
 	rootCmd.Flags().BoolP("prometheus", "", false, "enable Prometheus metrics endpoint")
+	rootCmd.Flags().BoolP("swagger", "", false, "enable Swagger UI endpoint describing server HTTP API")
 	rootCmd.Flags().BoolP("health", "", false, "enable health check endpoint")
 	rootCmd.Flags().BoolP("sockjs", "", false, "enable SockJS endpoint")
 	rootCmd.Flags().BoolP("uni_websocket", "", false, "enable unidirectional websocket endpoint")
@@ -1116,6 +1103,7 @@ func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecut
 	useAdmin := viper.GetBool("admin")
 	usePrometheus := viper.GetBool("prometheus")
 	useHealth := viper.GetBool("health")
+	useSwagger := viper.GetBool("swagger")
 
 	adminExternal := viper.GetBool("admin_external")
 	apiExternal := viper.GetBool("api_external")
@@ -1196,6 +1184,9 @@ func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecut
 	}
 	if usePrometheus {
 		portFlags |= HandlerPrometheus
+	}
+	if useSwagger {
+		portFlags |= HandlerSwagger
 	}
 	if debug {
 		portFlags |= HandlerDebug
@@ -1376,6 +1367,7 @@ func ruleConfig() rule.Config {
 	cfg.ForcePushJoinLeave = v.GetBool("force_push_join_leave")
 	cfg.HistorySize = v.GetInt("history_size")
 	cfg.HistoryTTL = tools.Duration(GetDuration("history_ttl", true))
+	cfg.HistoryMetaTTL = tools.Duration(GetDuration("history_meta_ttl", true))
 	cfg.ForcePositioning = v.GetBool("force_positioning")
 	cfg.AllowPositioning = v.GetBool("allow_positioning")
 	cfg.AllowRecovery = v.GetBool("allow_recovery")
@@ -1419,6 +1411,7 @@ func ruleConfig() rule.Config {
 	cfg.RpcNamespaces = rpcNamespacesFromConfig(v)
 	cfg.ClientConnectionLimit = v.GetInt("client_connection_limit")
 	cfg.ClientConnectionRateLimit = v.GetInt("client_connection_rate_limit")
+
 	return cfg
 }
 
@@ -1806,6 +1799,7 @@ func nodeConfig(version string) centrifuge.Config {
 	cfg.NodeInfoMetricsAggregateInterval = GetDuration("node_info_metrics_aggregate_interval")
 	cfg.HistoryMaxPublicationLimit = v.GetInt("client_history_max_publication_limit")
 	cfg.RecoveryMaxPublicationLimit = v.GetInt("client_recovery_max_publication_limit")
+	cfg.HistoryMetaTTL = GetDuration("global_history_meta_ttl", true)
 
 	level, ok := logStringToLevel[strings.ToLower(v.GetString("log_level"))]
 	if !ok {
@@ -1914,17 +1908,12 @@ func getPingPongConfig() centrifuge.PingPongConfig {
 func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	v := viper.GetViper()
 	cfg := centrifuge.WebsocketConfig{}
-	cfg.ProtocolVersion = centrifuge.ProtocolVersion2
-	if v.GetBool("use_client_protocol_v1_by_default") {
-		cfg.ProtocolVersion = centrifuge.ProtocolVersion1
-	}
 	cfg.Compression = v.GetBool("websocket_compression")
 	cfg.CompressionLevel = v.GetInt("websocket_compression_level")
 	cfg.CompressionMinSize = v.GetInt("websocket_compression_min_size")
 	cfg.ReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WriteBufferSize = v.GetInt("websocket_write_buffer_size")
 	cfg.UseWriteBufferPool = v.GetBool("websocket_use_write_buffer_pool")
-	cfg.PingInterval = GetDuration("websocket_ping_interval")
 	cfg.WriteTimeout = GetDuration("websocket_write_timeout")
 	cfg.MessageSizeLimit = v.GetInt("websocket_message_size_limit")
 	cfg.CheckOrigin = getCheckOrigin()
@@ -1993,19 +1982,13 @@ func getCheckOrigin() func(r *http.Request) bool {
 
 func uniWebsocketHandlerConfig() uniws.Config {
 	v := viper.GetViper()
-	protocolVersion := centrifuge.ProtocolVersion2
-	if viper.GetBool("use_client_protocol_v1_by_default") {
-		protocolVersion = centrifuge.ProtocolVersion1
-	}
 	return uniws.Config{
-		ProtocolVersion:    protocolVersion,
 		Compression:        v.GetBool("uni_websocket_compression"),
 		CompressionLevel:   v.GetInt("uni_websocket_compression_level"),
 		CompressionMinSize: v.GetInt("uni_websocket_compression_min_size"),
 		ReadBufferSize:     v.GetInt("uni_websocket_read_buffer_size"),
 		WriteBufferSize:    v.GetInt("uni_websocket_write_buffer_size"),
 		UseWriteBufferPool: v.GetBool("uni_websocket_use_write_buffer_pool"),
-		PingInterval:       GetDuration("uni_websocket_ping_interval"),
 		WriteTimeout:       GetDuration("uni_websocket_write_timeout"),
 		MessageSizeLimit:   v.GetInt("uni_websocket_message_size_limit"),
 		CheckOrigin:        getCheckOrigin(),
@@ -2014,48 +1997,27 @@ func uniWebsocketHandlerConfig() uniws.Config {
 }
 
 func uniSSEHandlerConfig() unisse.Config {
-	protocolVersion := centrifuge.ProtocolVersion2
-	if viper.GetBool("use_client_protocol_v1_by_default") {
-		protocolVersion = centrifuge.ProtocolVersion1
-	}
 	return unisse.Config{
-		ProtocolVersion:    protocolVersion,
 		MaxRequestBodySize: viper.GetInt("uni_sse_max_request_body_size"),
 		PingPongConfig:     getPingPongConfig(),
 	}
 }
 
 func uniStreamHandlerConfig() unihttpstream.Config {
-	protocolVersion := centrifuge.ProtocolVersion2
-	if viper.GetBool("use_client_protocol_v1_by_default") {
-		protocolVersion = centrifuge.ProtocolVersion1
-	}
 	return unihttpstream.Config{
-		ProtocolVersion:    protocolVersion,
 		MaxRequestBodySize: viper.GetInt("uni_http_stream_max_request_body_size"),
 		PingPongConfig:     getPingPongConfig(),
 	}
 }
 
 func uniGRPCHandlerConfig() unigrpc.Config {
-	protocolVersion := centrifuge.ProtocolVersion2
-	if viper.GetBool("use_client_protocol_v1_by_default") {
-		protocolVersion = centrifuge.ProtocolVersion1
-	}
-	return unigrpc.Config{
-		ProtocolVersion: protocolVersion,
-	}
+	return unigrpc.Config{}
 }
 
 func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	v := viper.GetViper()
 	cfg := centrifuge.SockjsConfig{}
-	cfg.ProtocolVersion = centrifuge.ProtocolVersion2
-	if v.GetBool("use_client_protocol_v1_by_default") {
-		cfg.ProtocolVersion = centrifuge.ProtocolVersion1
-	}
 	cfg.URL = v.GetString("sockjs_url")
-	cfg.HeartbeatDelay = GetDuration("sockjs_heartbeat_delay")
 	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WebsocketWriteBufferSize = v.GetInt("websocket_write_buffer_size")
 	cfg.WebsocketUseWriteBufferPool = v.GetBool("websocket_use_write_buffer_pool")
@@ -2106,9 +2068,7 @@ func memoryEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMan
 }
 
 func memoryBrokerConfig() (*centrifuge.MemoryBrokerConfig, error) {
-	return &centrifuge.MemoryBrokerConfig{
-		HistoryMetaTTL: GetDuration("history_meta_ttl", true),
-	}, nil
+	return &centrifuge.MemoryBrokerConfig{}, nil
 }
 
 func memoryPresenceManagerConfig() (*centrifuge.MemoryPresenceManagerConfig, error) {
@@ -2240,10 +2200,9 @@ func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMana
 	}
 
 	broker, err := centrifuge.NewRedisBroker(n, centrifuge.RedisBrokerConfig{
-		Shards:         redisShards,
-		Prefix:         viper.GetString("redis_prefix"),
-		UseLists:       viper.GetBool("redis_use_lists"),
-		HistoryMetaTTL: GetDuration("history_meta_ttl", true),
+		Shards:   redisShards,
+		Prefix:   viper.GetString("redis_prefix"),
+		UseLists: viper.GetBool("redis_use_lists"),
 	})
 	if err != nil {
 		return nil, nil, "", err
@@ -2252,7 +2211,7 @@ func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMana
 	presenceManager, err := centrifuge.NewRedisPresenceManager(n, centrifuge.RedisPresenceManagerConfig{
 		Shards:      redisShards,
 		Prefix:      viper.GetString("redis_prefix"),
-		PresenceTTL: GetDuration("presence_ttl", true),
+		PresenceTTL: GetDuration("global_presence_ttl", true),
 	})
 	if err != nil {
 		return nil, nil, "", err
@@ -2325,15 +2284,14 @@ func tarantoolEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.Presence
 		return nil, nil, "", err
 	}
 	broker, err := tntengine.NewBroker(n, tntengine.BrokerConfig{
-		Shards:         tarantoolShards,
-		HistoryMetaTTL: GetDuration("history_meta_ttl", true),
+		Shards: tarantoolShards,
 	})
 	if err != nil {
 		return nil, nil, "", err
 	}
 	presenceManager, err := tntengine.NewPresenceManager(n, tntengine.PresenceManagerConfig{
 		Shards:      tarantoolShards,
-		PresenceTTL: GetDuration("presence_ttl", true),
+		PresenceTTL: GetDuration("global_presence_ttl", true),
 	})
 	if err != nil {
 		return nil, nil, "", err
@@ -2418,6 +2376,8 @@ const (
 	HandlerHTTPStream
 	// HandlerEmulation handles client-to-server requests in an emulation layer.
 	HandlerEmulation
+	// HandlerSwagger handles swagger UI.
+	HandlerSwagger
 )
 
 var handlerText = map[HandlerFlag]string{
@@ -2435,10 +2395,11 @@ var handlerText = map[HandlerFlag]string{
 	HandlerSSE:           "sse",
 	HandlerHTTPStream:    "http_stream",
 	HandlerEmulation:     "emulation",
+	HandlerSwagger:       "swagger",
 }
 
 func (flags HandlerFlag) String() string {
-	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerWebtransport, HandlerHTTPStream, HandlerSSE, HandlerEmulation, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniHTTPStream}
+	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerWebtransport, HandlerHTTPStream, HandlerSSE, HandlerEmulation, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniHTTPStream, HandlerSwagger}
 	var endpoints []string
 	for _, flag := range flagsOrdered {
 		text, ok := handlerText[flag]
@@ -2550,25 +2511,35 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 		if apiPrefix == "" {
 			apiPrefix = "/"
 		}
-
 		oldRoute := apiHandler.OldRoute()
 		strippedHandler := http.StripPrefix(apiPrefix, apiHandler)
-		useV5API := viper.GetBool("v5_api")
 		if viper.GetBool("api_insecure") {
 			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(oldRoute)))
-			if useV5API {
-				if apiPrefix != "/" {
-					mux.Handle(apiPrefix+"/", middleware.LogRequest(middleware.Post(strippedHandler)))
+			if apiPrefix != "/" {
+				mux.Handle(apiPrefix+"/", middleware.LogRequest(middleware.Post(strippedHandler)))
+			} else {
+				for path, handler := range apiHandler.Routes() {
+					mux.Handle(path, middleware.LogRequest(middleware.Post(handler)))
 				}
 			}
 		} else {
 			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), oldRoute))))
-			if useV5API {
-				if apiPrefix != "/" {
-					mux.Handle(apiPrefix+"/", middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), strippedHandler))))
+			if apiPrefix != "/" {
+				mux.Handle(apiPrefix+"/", middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), strippedHandler))))
+			} else {
+				for path, handler := range apiHandler.Routes() {
+					mux.Handle(path, middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), handler))))
 				}
 			}
 		}
+	}
+
+	if flags&HandlerSwagger != 0 {
+		swaggerPrefix := strings.TrimRight(v.GetString("swagger_handler_prefix"), "/") + "/"
+		if swaggerPrefix == "" {
+			swaggerPrefix = "/"
+		}
+		mux.Handle(swaggerPrefix, middleware.LogRequest(http.StripPrefix(swaggerPrefix, http.FileServer(swaggerui.FS))))
 	}
 
 	if flags&HandlerPrometheus != 0 {

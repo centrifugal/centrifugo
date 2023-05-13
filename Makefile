@@ -24,6 +24,10 @@ generate:
 web:
 	./misc/scripts/update_web.sh
 
+swagger-web:
+	make generate
+	./misc/scripts/update_swagger_web.sh
+
 package:
 	./misc/scripts/package.sh $(VERSION) $(ITERATION)
 

@@ -145,6 +145,7 @@ func (h *Executor) Publish(_ context.Context, cmd *PublishRequest) *PublishRespo
 
 	historySize := chOpts.HistorySize
 	historyTTL := chOpts.HistoryTTL
+	historyMetaTTL := chOpts.HistoryMetaTTL
 	if cmd.SkipHistory {
 		historySize = 0
 		historyTTL = 0
@@ -152,7 +153,7 @@ func (h *Executor) Publish(_ context.Context, cmd *PublishRequest) *PublishRespo
 
 	result, err := h.node.Publish(
 		cmd.Channel, data,
-		centrifuge.WithHistory(historySize, time.Duration(historyTTL)),
+		centrifuge.WithHistory(historySize, time.Duration(historyTTL), time.Duration(historyMetaTTL)),
 		centrifuge.WithTags(cmd.GetTags()),
 	)
 	if err != nil {
@@ -225,6 +226,7 @@ func (h *Executor) Broadcast(_ context.Context, cmd *BroadcastRequest) *Broadcas
 
 			historySize := chOpts.HistorySize
 			historyTTL := chOpts.HistoryTTL
+			historyMetaTTL := chOpts.HistoryMetaTTL
 			if cmd.SkipHistory {
 				historySize = 0
 				historyTTL = 0
@@ -232,7 +234,7 @@ func (h *Executor) Broadcast(_ context.Context, cmd *BroadcastRequest) *Broadcas
 
 			result, err := h.node.Publish(
 				ch, data,
-				centrifuge.WithHistory(historySize, time.Duration(historyTTL)),
+				centrifuge.WithHistory(historySize, time.Duration(historyTTL), time.Duration(historyMetaTTL)),
 				centrifuge.WithTags(cmd.GetTags()),
 			)
 			resp := &PublishResponse{}
@@ -321,6 +323,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 		centrifuge.WithEmitPresence(presence),
 		centrifuge.WithRecoverSince(recoverSince),
 		centrifuge.WithSubscribeSource(subsource.ServerAPI),
+		centrifuge.WithSubscribeHistoryMetaTTL(time.Duration(chOpts.HistoryMetaTTL)),
 	)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error subscribing user to a channel", map[string]interface{}{"channel": channel, "user": user, "error": err.Error()}))
@@ -375,9 +378,8 @@ func (h *Executor) Disconnect(_ context.Context, cmd *DisconnectRequest) *Discon
 	disconnect := centrifuge.DisconnectForceNoReconnect
 	if cmd.Disconnect != nil {
 		disconnect = centrifuge.Disconnect{
-			Code:      cmd.Disconnect.Code,
-			Reason:    cmd.Disconnect.Reason,
-			Reconnect: cmd.Disconnect.Reconnect,
+			Code:   cmd.Disconnect.Code,
+			Reason: cmd.Disconnect.Reason,
 		}
 	}
 
@@ -550,8 +552,11 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 		}
 	}
 
+	historyMetaTTL := chOpts.HistoryMetaTTL
+
 	history, err := h.node.History(
 		ch,
+		centrifuge.WithHistoryMetaTTL(time.Duration(historyMetaTTL)),
 		centrifuge.WithLimit(int(cmd.Limit)),
 		centrifuge.WithSince(sp),
 		centrifuge.WithReverse(cmd.Reverse),
@@ -679,6 +684,7 @@ func (h *Executor) RPC(ctx context.Context, cmd *RPCRequest) *RPCResponse {
 	resp := &RPCResponse{}
 
 	if cmd.Method == "" {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "rpc method required", map[string]interface{}{}))
 		resp.Error = ErrorBadRequest
 		return resp
 	}

@@ -163,7 +163,7 @@ func (b *NatsBroker) PublishControl(data []byte, nodeID, _ string) error {
 }
 
 // History ...
-func (b *NatsBroker) History(_ string, _ centrifuge.HistoryFilter) ([]*centrifuge.Publication, centrifuge.StreamPosition, error) {
+func (b *NatsBroker) History(_ string, _ centrifuge.HistoryOptions) ([]*centrifuge.Publication, centrifuge.StreamPosition, error) {
 	return nil, centrifuge.StreamPosition{}, centrifuge.ErrorNotAvailable
 }
 
