@@ -8,7 +8,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/v4/internal/jwtverify"
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
-	"github.com/cristalhq/jwt/v4"
+	"github.com/cristalhq/jwt/v5"
 )
 
 // GenerateToken generates sample JWT for user.

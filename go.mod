@@ -11,7 +11,7 @@ require (
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
 	github.com/centrifugal/centrifuge v0.29.2-0.20230513124308-3c4117e7c377
 	github.com/centrifugal/protocol v0.10.0
-	github.com/cristalhq/jwt/v4 v4.0.2
+	github.com/cristalhq/jwt/v5 v5.1.0
 	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/securecookie v1.1.1
@@ -23,16 +23,16 @@ require (
 	github.com/quic-go/quic-go v0.34.0
 	github.com/quic-go/webtransport-go v0.5.2
 	github.com/rakutentech/jwk-go v1.1.2
-	github.com/rs/zerolog v1.29.0
-	github.com/spf13/cobra v1.6.1
+	github.com/rs/zerolog v1.29.1
+	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.2
 	github.com/valyala/fasttemplate v1.2.2
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	go.uber.org/automaxprocs v1.5.2
-	golang.org/x/crypto v0.8.0
-	golang.org/x/sync v0.1.0
+	golang.org/x/crypto v0.9.0
+	golang.org/x/sync v0.2.0
 	golang.org/x/time v0.3.0
-	google.golang.org/grpc v1.54.0
+	google.golang.org/grpc v1.55.0
 	google.golang.org/protobuf v1.30.0
 )
 
@@ -46,7 +46,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect
 	github.com/igm/sockjs-go/v3 v3.0.2 // indirect
-	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
@@ -74,11 +74,11 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	golang.org/x/exp v0.0.0-20221212164502-fae10dda9338 // indirect
 	golang.org/x/mod v0.9.0 // indirect
-	golang.org/x/net v0.9.0 // indirect
-	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/tools v0.7.0 // indirect
-	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
+	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

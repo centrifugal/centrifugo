@@ -18,7 +18,7 @@ import (
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
 
 	"github.com/centrifugal/centrifuge"
-	"github.com/cristalhq/jwt/v4"
+	"github.com/cristalhq/jwt/v5"
 	"github.com/stretchr/testify/require"
 )
 
