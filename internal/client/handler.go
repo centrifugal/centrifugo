@@ -4,11 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"sync"
 	"time"
 	"unicode"
 
-	"github.com/centrifugal/centrifugo/v4/internal/clientcontext"
+	"github.com/centrifugal/centrifugo/v4/internal/clientstorage"
 	"github.com/centrifugal/centrifugo/v4/internal/jwtverify"
 	"github.com/centrifugal/centrifugo/v4/internal/proxy"
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
@@ -126,12 +125,6 @@ func (h *Handler) Setup() error {
 	concurrency := ruleConfig.ClientConcurrency
 
 	h.node.OnConnect(func(client *centrifuge.Client) {
-		var stateMu sync.RWMutex
-		var meta json.RawMessage
-		if ctxMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
-			meta = ctxMeta.Meta
-		}
-
 		userID := client.UserID()
 		if usePersonalChannel && singleConnection && userID != "" {
 			personalChannel := h.ruleContainer.PersonalChannel(userID)
@@ -162,23 +155,10 @@ func (h *Handler) Setup() error {
 
 		client.OnRefresh(func(event centrifuge.RefreshEvent, cb centrifuge.RefreshCallback) {
 			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-				var pcd proxy.PerCallData
-				stateMu.RLock()
-				if refreshProxyHandler != nil && meta != nil {
-					metaCopy := make([]byte, len(meta))
-					copy(metaCopy, meta)
-					pcd.Meta = metaCopy
-				}
-				stateMu.RUnlock()
-				reply, extra, err := h.OnRefresh(client, event, refreshProxyHandler, pcd)
+				reply, extra, err := h.OnRefresh(client, event, refreshProxyHandler)
 				if err != nil {
 					cb(reply, err)
 					return
-				}
-				if extra.Meta != nil {
-					stateMu.Lock()
-					meta = extra.Meta
-					stateMu.Unlock()
 				}
 				if extra.CheckSubs && tokenChannelsChanged(client, extra.Subs) {
 					// Check whether server-side subscriptions changed. If yes – disconnect
@@ -196,15 +176,7 @@ func (h *Handler) Setup() error {
 		if rpcProxyHandler != nil || len(h.rpcExtension) > 0 {
 			client.OnRPC(func(event centrifuge.RPCEvent, cb centrifuge.RPCCallback) {
 				h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-					var pcd proxy.PerCallData
-					stateMu.RLock()
-					if rpcProxyHandler != nil && meta != nil {
-						metaCopy := make([]byte, len(meta))
-						copy(metaCopy, meta)
-						pcd.Meta = metaCopy
-					}
-					stateMu.RUnlock()
-					reply, err := h.OnRPC(client, event, rpcProxyHandler, pcd)
+					reply, err := h.OnRPC(client, event, rpcProxyHandler)
 					cb(reply, err)
 				})
 			})
@@ -212,45 +184,21 @@ func (h *Handler) Setup() error {
 
 		client.OnSubscribe(func(event centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
 			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-				var pcd proxy.PerCallData
-				stateMu.RLock()
-				if subscribeProxyHandler != nil && meta != nil {
-					metaCopy := make([]byte, len(meta))
-					copy(metaCopy, meta)
-					pcd.Meta = metaCopy
-				}
-				stateMu.RUnlock()
-				reply, _, err := h.OnSubscribe(client, event, subscribeProxyHandler, pcd)
+				reply, _, err := h.OnSubscribe(client, event, subscribeProxyHandler)
 				cb(reply, err)
 			})
 		})
 
 		client.OnSubRefresh(func(event centrifuge.SubRefreshEvent, cb centrifuge.SubRefreshCallback) {
 			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-				var pcd proxy.PerCallData
-				stateMu.RLock()
-				if subRefreshProxyHandler != nil && event.Token == "" && meta != nil {
-					metaCopy := make([]byte, len(meta))
-					copy(metaCopy, meta)
-					pcd.Meta = metaCopy
-				}
-				stateMu.RUnlock()
-				reply, _, err := h.OnSubRefresh(client, subRefreshProxyHandler, event, pcd)
+				reply, _, err := h.OnSubRefresh(client, subRefreshProxyHandler, event)
 				cb(reply, err)
 			})
 		})
 
 		client.OnPublish(func(event centrifuge.PublishEvent, cb centrifuge.PublishCallback) {
 			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-				var pcd proxy.PerCallData
-				stateMu.RLock()
-				if publishProxyHandler != nil && meta != nil {
-					metaCopy := make([]byte, len(meta))
-					copy(metaCopy, meta)
-					pcd.Meta = metaCopy
-				}
-				stateMu.RUnlock()
-				reply, err := h.OnPublish(client, event, publishProxyHandler, pcd)
+				reply, err := h.OnPublish(client, event, publishProxyHandler)
 				cb(reply, err)
 			})
 		})
@@ -332,6 +280,8 @@ func (h *Handler) OnClientConnecting(
 
 	var processClientChannels bool
 
+	storage := map[string]any{}
+
 	if e.Token != "" {
 		token, err := h.tokenVerifier.VerifyConnectToken(e.Token)
 		if err != nil {
@@ -366,9 +316,7 @@ func (h *Handler) OnClientConnecting(
 		subscriptions = token.Subs
 
 		if token.Meta != nil {
-			newCtx = clientcontext.SetContextConnectionMeta(ctx, clientcontext.ConnectionMeta{
-				Meta: token.Meta,
-			})
+			storage[clientstorage.KeyMeta] = token.Meta
 		}
 
 		processClientChannels = true
@@ -487,16 +435,36 @@ func (h *Handler) OnClientConnecting(
 }
 
 type RefreshExtra struct {
-	Meta      json.RawMessage
 	Subs      map[string]centrifuge.SubscribeOptions
 	CheckSubs bool
 }
 
+func getPerCallData(c Client) proxy.PerCallData {
+	storage, release := c.AcquireStorage()
+	var pcd proxy.PerCallData
+	if meta, ok := storage[clientstorage.KeyMeta].(json.RawMessage); ok {
+		metaCopy := make([]byte, len(meta))
+		copy(metaCopy, meta)
+		pcd.Meta = metaCopy
+	}
+	release(storage)
+	return pcd
+}
+
+func setStorageMeta(c Client, meta json.RawMessage) {
+	storage, release := c.AcquireStorage()
+	defer release(storage)
+	storage[clientstorage.KeyMeta] = meta
+}
+
 // OnRefresh ...
-func (h *Handler) OnRefresh(c Client, e centrifuge.RefreshEvent, refreshProxyHandler proxy.RefreshHandlerFunc, d proxy.PerCallData) (centrifuge.RefreshReply, RefreshExtra, error) {
+func (h *Handler) OnRefresh(c Client, e centrifuge.RefreshEvent, refreshProxyHandler proxy.RefreshHandlerFunc) (centrifuge.RefreshReply, RefreshExtra, error) {
 	if refreshProxyHandler != nil {
-		r, extra, err := refreshProxyHandler(c, e, d)
-		return r, RefreshExtra{Meta: extra.Meta}, err
+		r, extra, err := refreshProxyHandler(c, e, getPerCallData(c))
+		if extra.Meta != nil {
+			setStorageMeta(c, extra.Meta)
+		}
+		return r, RefreshExtra{}, err
 	}
 	token, err := h.tokenVerifier.VerifyConnectToken(e.Token)
 	if err != nil {
@@ -514,19 +482,22 @@ func (h *Handler) OnRefresh(c Client, e centrifuge.RefreshEvent, refreshProxyHan
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "refresh token user mismatch", map[string]interface{}{"tokenUser": token.UserID, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.RefreshReply{}, RefreshExtra{}, centrifuge.DisconnectInvalidToken
 	}
+	if token.Meta != nil {
+		setStorageMeta(c, token.Meta)
+	}
 	return centrifuge.RefreshReply{
 		ExpireAt: token.ExpireAt,
 		Info:     token.Info,
-	}, RefreshExtra{Meta: token.Meta, Subs: token.Subs, CheckSubs: true}, nil
+	}, RefreshExtra{Subs: token.Subs, CheckSubs: true}, nil
 }
 
 // OnRPC ...
-func (h *Handler) OnRPC(c Client, e centrifuge.RPCEvent, rpcProxyHandler proxy.RPCHandlerFunc, d proxy.PerCallData) (centrifuge.RPCReply, error) {
+func (h *Handler) OnRPC(c Client, e centrifuge.RPCEvent, rpcProxyHandler proxy.RPCHandlerFunc) (centrifuge.RPCReply, error) {
 	if handler, ok := h.rpcExtension[e.Method]; ok {
 		return handler(c, e)
 	}
 	if rpcProxyHandler != nil {
-		return rpcProxyHandler(c, e, h.ruleContainer, d)
+		return rpcProxyHandler(c, e, h.ruleContainer, getPerCallData(c))
 	}
 	return centrifuge.RPCReply{}, centrifuge.ErrorMethodNotFound
 }
@@ -535,7 +506,7 @@ type SubRefreshExtra struct {
 }
 
 // OnSubRefresh ...
-func (h *Handler) OnSubRefresh(c Client, subRefreshProxyHandler proxy.SubRefreshHandlerFunc, e centrifuge.SubRefreshEvent, d proxy.PerCallData) (centrifuge.SubRefreshReply, SubRefreshExtra, error) {
+func (h *Handler) OnSubRefresh(c Client, subRefreshProxyHandler proxy.SubRefreshHandlerFunc, e centrifuge.SubRefreshEvent) (centrifuge.SubRefreshReply, SubRefreshExtra, error) {
 	if e.Token == "" && subRefreshProxyHandler != nil {
 		_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 		if err != nil {
@@ -546,7 +517,7 @@ func (h *Handler) OnSubRefresh(c Client, subRefreshProxyHandler proxy.SubRefresh
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "sub refresh unknown channel", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, centrifuge.ErrorUnknownChannel
 		}
-		r, _, err := subRefreshProxyHandler(c, e, chOpts, d)
+		r, _, err := subRefreshProxyHandler(c, e, chOpts, getPerCallData(c))
 		return r, SubRefreshExtra{}, err
 	}
 	token, err := h.tokenVerifier.VerifySubscribeToken(e.Token)
@@ -621,7 +592,7 @@ type SubscribeExtra struct {
 }
 
 // OnSubscribe ...
-func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribeProxyHandler proxy.SubscribeHandlerFunc, d proxy.PerCallData) (centrifuge.SubscribeReply, SubscribeExtra, error) {
+func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribeProxyHandler proxy.SubscribeHandlerFunc) (centrifuge.SubscribeReply, SubscribeExtra, error) {
 	ruleConfig := h.ruleContainer.Config()
 
 	if e.Channel == "" {
@@ -697,7 +668,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe proxy not enabled", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
 		}
-		r, _, err := subscribeProxyHandler(c, e, chOpts, d)
+		r, _, err := subscribeProxyHandler(c, e, chOpts, getPerCallData(c))
 		if chOpts.ProxySubRefresh || chOpts.SubRefreshProxyName != "" {
 			r.ClientSideRefresh = false
 		}
@@ -732,7 +703,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 }
 
 // OnPublish ...
-func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHandler proxy.PublishHandlerFunc, d proxy.PerCallData) (centrifuge.PublishReply, error) {
+func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHandler proxy.PublishHandlerFunc) (centrifuge.PublishReply, error) {
 	ruleConfig := h.ruleContainer.Config()
 
 	nsName, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
@@ -755,7 +726,7 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "publish proxy not enabled", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
 		}
-		return publishProxyHandler(c, e, chOpts, d)
+		return publishProxyHandler(c, e, chOpts, getPerCallData(c))
 	} else if chOpts.PublishForClient && (c.UserID() != "" || chOpts.PublishForAnonymous) {
 		allowed = true
 	} else if chOpts.PublishForSubscriber && c.IsSubscribed(e.Channel) && (c.UserID() != "" || chOpts.PublishForAnonymous) {

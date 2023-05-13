@@ -3,10 +3,9 @@ package proxy
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v4/internal/clientcontext"
+	"github.com/centrifugal/centrifugo/v4/internal/clientstorage"
 	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v4/internal/rule"
 	"github.com/centrifugal/centrifugo/v4/internal/subsource"
@@ -150,10 +149,9 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 			reply.Subscriptions = subscriptions
 		}
 		if result.Meta != nil {
-			newCtx := clientcontext.SetContextConnectionMeta(ctx, clientcontext.ConnectionMeta{
-				Meta: json.RawMessage(result.Meta),
-			})
-			reply.Context = newCtx
+			reply.Storage = map[string]any{
+				clientstorage.KeyMeta: result.Meta,
+			}
 		}
 
 		return reply, ConnectExtra{}, nil
