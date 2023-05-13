@@ -17,13 +17,6 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
-// SkipUserCheckInSubscriptionToken enables mode when user id check is skipped
-// while validating Subscription tokens. This flag exists for those who use
-// Centrifugo v3 and want to migrate on Centrifugo v4. Eventually this flag
-// should be removed – all tokens must be issued for users who initiate
-// connection.
-var SkipUserCheckInSubscriptionToken bool
-
 // RPCExtensionFunc ...
 type RPCExtensionFunc func(c Client, e centrifuge.RPCEvent) (centrifuge.RPCReply, error)
 
@@ -576,7 +569,7 @@ func (h *Handler) OnSubRefresh(c Client, subRefreshProxyHandler proxy.SubRefresh
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "sub refresh token channel mismatch", map[string]interface{}{"channel": e.Channel, "tokenChannel": token.Channel, "client": c.ID(), "user": c.UserID()}))
 		return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, centrifuge.DisconnectInvalidToken
 	}
-	if !SkipUserCheckInSubscriptionToken && token.UserID != c.UserID() {
+	if token.UserID != c.UserID() {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "sub refresh token user mismatch", map[string]interface{}{"channel": e.Channel, "tokenUser": token.UserID, "client": c.ID(), "user": c.UserID()}))
 		return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, centrifuge.DisconnectInvalidToken
 	}
@@ -685,7 +678,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "token channel mismatch", map[string]interface{}{"channel": e.Channel, "tokenChannel": token.Channel, "client": c.ID(), "user": c.UserID()}))
 			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.DisconnectInvalidToken
 		}
-		if !SkipUserCheckInSubscriptionToken && token.UserID != c.UserID() {
+		if token.UserID != c.UserID() {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "token user mismatch", map[string]interface{}{"channel": e.Channel, "tokenUser": token.UserID, "client": c.ID(), "user": c.UserID()}))
 			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.DisconnectInvalidToken
 		}

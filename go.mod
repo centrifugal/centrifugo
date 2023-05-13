@@ -5,11 +5,11 @@ module github.com/centrifugal/centrifugo/v4
 go 1.20
 
 require (
-	github.com/FZambia/eagle v0.0.2
+	github.com/FZambia/eagle v0.1.0
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/tarantool v0.3.1
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
-	github.com/centrifugal/centrifuge v0.29.1
+	github.com/centrifugal/centrifuge v0.29.2-0.20230513124308-3c4117e7c377
 	github.com/centrifugal/protocol v0.10.0
 	github.com/cristalhq/jwt/v4 v4.0.2
 	github.com/gobwas/glob v0.2.3
@@ -19,7 +19,7 @@ require (
 	github.com/mattn/go-isatty v0.0.18
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nats-io/nats.go v1.25.0
-	github.com/prometheus/client_golang v1.14.0
+	github.com/prometheus/client_golang v1.15.0
 	github.com/quic-go/quic-go v0.33.0
 	github.com/quic-go/webtransport-go v0.5.2
 	github.com/rakutentech/jwk-go v1.1.2
@@ -59,12 +59,12 @@ require (
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
-	github.com/prometheus/common v0.38.0 // indirect
-	github.com/prometheus/procfs v0.8.0 // indirect
+	github.com/prometheus/common v0.42.0 // indirect
+	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
 	github.com/quic-go/qtls-go1-19 v0.2.1 // indirect
 	github.com/quic-go/qtls-go1-20 v0.1.1 // indirect
-	github.com/rueian/rueidis v0.0.100-go1.18 // indirect
+	github.com/redis/rueidis v1.0.2-go1.18 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/segmentio/encoding v0.3.6 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
@@ -75,7 +75,7 @@ require (
 	golang.org/x/exp v0.0.0-20221212164502-fae10dda9338 // indirect
 	golang.org/x/mod v0.9.0 // indirect
 	golang.org/x/net v0.8.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
+	golang.org/x/sys v0.7.0 // indirect
 	golang.org/x/text v0.8.0 // indirect
 	golang.org/x/tools v0.7.0 // indirect
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
