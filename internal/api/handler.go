@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	. "github.com/centrifugal/centrifugo/v4/internal/apiproto"
+	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
 
 	"github.com/centrifugal/centrifuge"
 )

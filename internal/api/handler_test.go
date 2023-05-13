@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/centrifugal/centrifugo/v4/internal/rule"
+	"github.com/centrifugal/centrifugo/v5/internal/rule"
 
 	"github.com/stretchr/testify/require"
 )

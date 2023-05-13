@@ -5,7 +5,7 @@
   "logo": "https://avatars1.githubusercontent.com/u/6236442?v=3&s=200",
   "keywords": ["go", "pubsub", "websocket", "real-time", "sockjs", "redis", "json", "protobuf"],
   "env": {
-    "GO_LINKER_SYMBOL": "github.com/centrifugal/centrifugo/v4/internal/build.Version",
+    "GO_LINKER_SYMBOL": "github.com/centrifugal/centrifugo/v5/internal/build.Version",
     "GO_LINKER_VALUE": "dev",
     "CENTRIFUGO_ADMIN_PASSWORD": {
       "description": "Admin password used to log into admin web panel",

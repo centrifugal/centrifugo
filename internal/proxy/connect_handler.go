@@ -5,10 +5,10 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v4/internal/clientstorage"
-	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
-	"github.com/centrifugal/centrifugo/v4/internal/rule"
-	"github.com/centrifugal/centrifugo/v4/internal/subsource"
+	"github.com/centrifugal/centrifugo/v5/internal/clientstorage"
+	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/v5/internal/rule"
+	"github.com/centrifugal/centrifugo/v5/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"

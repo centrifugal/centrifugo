@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"

@@ -2,7 +2,7 @@ package notify
 
 import (
 	"github.com/centrifugal/centrifuge"
-	"github.com/centrifugal/centrifugo/v4/internal/usage"
+	"github.com/centrifugal/centrifugo/v5/internal/usage"
 )
 
 func RegisterHandlers(node *centrifuge.Node, statsSender *usage.Sender) {

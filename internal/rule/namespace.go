@@ -3,7 +3,7 @@ package rule
 import (
 	"regexp"
 
-	"github.com/centrifugal/centrifugo/v4/internal/tools"
+	"github.com/centrifugal/centrifugo/v5/internal/tools"
 )
 
 // ChannelNamespace allows creating channels with different channel options.

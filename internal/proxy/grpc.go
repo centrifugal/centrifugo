@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/centrifugal/centrifugo/v4/internal/middleware"
-	"github.com/centrifugal/centrifugo/v4/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/v5/internal/middleware"
+	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

@@ -5,7 +5,7 @@ package api
 import (
 	"context"
 
-	. "github.com/centrifugal/centrifugo/v4/internal/apiproto"
+	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
 )
 
 // Batch ...

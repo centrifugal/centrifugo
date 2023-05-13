@@ -3,7 +3,7 @@ package unigrpc
 import (
 	"time"
 
-	"github.com/centrifugal/centrifugo/v4/internal/unigrpc/unistream"
+	"github.com/centrifugal/centrifugo/v5/internal/unigrpc/unistream"
 
 	"github.com/centrifugal/centrifuge"
 	"google.golang.org/grpc"

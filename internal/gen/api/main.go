@@ -6,7 +6,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/centrifugal/centrifugo/v4/internal/gen"
+	"github.com/centrifugal/centrifugo/v5/internal/gen"
 )
 
 func main() {
@@ -105,7 +105,7 @@ package api
 import (
 	"context"
 
-	. "github.com/centrifugal/centrifugo/v4/internal/apiproto"
+	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
 )
 `
 
