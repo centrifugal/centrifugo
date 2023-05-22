@@ -41,7 +41,6 @@ packagecloud-deb:
 	package_cloud push FZambia/centrifugo/debian/buster PACKAGES/*.deb
 	package_cloud push FZambia/centrifugo/debian/bullseye PACKAGES/*.deb
 
-	package_cloud push FZambia/centrifugo/ubuntu/xenial PACKAGES/*.deb
 	package_cloud push FZambia/centrifugo/ubuntu/bionic PACKAGES/*.deb
 	package_cloud push FZambia/centrifugo/ubuntu/focal PACKAGES/*.deb
 	package_cloud push FZambia/centrifugo/ubuntu/jammy PACKAGES/*.deb
