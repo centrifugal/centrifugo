@@ -21,7 +21,7 @@ func TestConnLimit_ConnectionRate(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ts := httptest.NewServer(ConnLimit(node, ruleConfig, testHandler()))
+	ts := httptest.NewServer(NewConnLimit(node, ruleConfig).Middleware(testHandler()))
 	defer ts.Close()
 
 	for i := 0; i < 20; i++ {

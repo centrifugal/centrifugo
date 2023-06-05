@@ -21,12 +21,8 @@ func SetHeadersToContext(ctx context.Context, h http.Header) context.Context {
 }
 
 // HeadersToContext puts HTTP headers to request context.
-func HeadersToContext(enable bool, h http.Handler) http.Handler {
+func HeadersToContext(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !enable {
-			h.ServeHTTP(w, r)
-			return
-		}
 		r = r.WithContext(SetHeadersToContext(r.Context(), r.Header))
 		h.ServeHTTP(w, r)
 	})

@@ -64,6 +64,7 @@ import (
 
 	"github.com/FZambia/viper-lite"
 	"github.com/centrifugal/centrifuge"
+	"github.com/justinas/alice"
 	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/mapstructure"
 	"github.com/prometheus/client_golang/prometheus"
@@ -2418,13 +2419,48 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 	mux := http.NewServeMux()
 	v := viper.GetViper()
 
-	if flags&HandlerDebug != 0 {
-		mux.Handle("/debug/pprof/", middleware.LogRequest(http.HandlerFunc(pprof.Index)))
-		mux.Handle("/debug/pprof/cmdline", middleware.LogRequest(http.HandlerFunc(pprof.Cmdline)))
-		mux.Handle("/debug/pprof/profile", middleware.LogRequest(http.HandlerFunc(pprof.Profile)))
-		mux.Handle("/debug/pprof/symbol", middleware.LogRequest(http.HandlerFunc(pprof.Symbol)))
-		mux.Handle("/debug/pprof/trace", middleware.LogRequest(http.HandlerFunc(pprof.Trace)))
+	var commonMiddlewares []alice.Constructor
+
+	useLoggingMW := zerolog.GlobalLevel() <= zerolog.DebugLevel
+	if useLoggingMW {
+		commonMiddlewares = append(commonMiddlewares, middleware.LogRequest)
 	}
+
+	basicMiddlewares := append([]alice.Constructor{}, commonMiddlewares...)
+	basicChain := alice.New(basicMiddlewares...)
+
+	if flags&HandlerDebug != 0 {
+		mux.Handle("/debug/pprof/", basicChain.Then(http.HandlerFunc(pprof.Index)))
+		mux.Handle("/debug/pprof/cmdline", basicChain.Then(http.HandlerFunc(pprof.Cmdline)))
+		mux.Handle("/debug/pprof/profile", basicChain.Then(http.HandlerFunc(pprof.Profile)))
+		mux.Handle("/debug/pprof/symbol", basicChain.Then(http.HandlerFunc(pprof.Symbol)))
+		mux.Handle("/debug/pprof/trace", basicChain.Then(http.HandlerFunc(pprof.Trace)))
+	}
+
+	if flags&HandlerEmulation != 0 {
+		// register bidirectional SSE connection endpoint.
+		emulationMiddlewares := append([]alice.Constructor{}, commonMiddlewares...)
+		emulationMiddlewares = append(emulationMiddlewares, middleware.NewCORS(getCheckOrigin()).Middleware)
+		emulationChain := alice.New(emulationMiddlewares...)
+
+		emulationPrefix := strings.TrimRight(v.GetString("emulation_handler_prefix"), "/")
+		if emulationPrefix == "" {
+			emulationPrefix = "/"
+		}
+		mux.Handle(emulationPrefix, emulationChain.Then(centrifuge.NewEmulationHandler(n, emulationHandlerConfig())))
+	}
+
+	connMiddlewares := append([]alice.Constructor{}, commonMiddlewares...)
+	connLimit := ruleContainer.Config().ClientConnectionLimit
+	if connLimit > 0 {
+		connLimitMW := middleware.NewConnLimit(n, ruleContainer)
+		connMiddlewares = append(connMiddlewares, connLimitMW.Middleware)
+	}
+	if keepHeadersInContext {
+		connMiddlewares = append(connMiddlewares, middleware.HeadersToContext)
+	}
+	connMiddlewares = append(connMiddlewares, middleware.NewCORS(getCheckOrigin()).Middleware)
+	connChain := alice.New(connMiddlewares...)
 
 	if flags&HandlerWebsocket != 0 {
 		// register WebSocket connection endpoint.
@@ -2432,7 +2468,7 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 		if wsPrefix == "" {
 			wsPrefix = "/"
 		}
-		mux.Handle(wsPrefix, middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.HeadersToContext(keepHeadersInContext, centrifuge.NewWebsocketHandler(n, websocketHandlerConfig())))))
+		mux.Handle(wsPrefix, connChain.Then(centrifuge.NewWebsocketHandler(n, websocketHandlerConfig())))
 	}
 
 	if flags&HandlerWebtransport != 0 {
@@ -2441,7 +2477,7 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 		if wtPrefix == "" {
 			wtPrefix = "/"
 		}
-		mux.Handle(wtPrefix, middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.HeadersToContext(keepHeadersInContext, wt.NewHandler(n, wtServer, webTransportHandlerConfig())))))
+		mux.Handle(wtPrefix, connChain.Then(wt.NewHandler(n, wtServer, webTransportHandlerConfig())))
 	}
 
 	if flags&HandlerHTTPStream != 0 {
@@ -2450,7 +2486,7 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 		if streamPrefix == "" {
 			streamPrefix = "/"
 		}
-		mux.Handle(streamPrefix, middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.HeadersToContext(keepHeadersInContext, middleware.CORS(getCheckOrigin(), centrifuge.NewHTTPStreamHandler(n, httpStreamHandlerConfig()))))))
+		mux.Handle(streamPrefix, connChain.Then(centrifuge.NewHTTPStreamHandler(n, httpStreamHandlerConfig())))
 	}
 	if flags&HandlerSSE != 0 {
 		// register bidirectional SSE connection endpoint.
@@ -2458,15 +2494,7 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 		if ssePrefix == "" {
 			ssePrefix = "/"
 		}
-		mux.Handle(ssePrefix, middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.HeadersToContext(keepHeadersInContext, middleware.CORS(getCheckOrigin(), centrifuge.NewSSEHandler(n, sseHandlerConfig()))))))
-	}
-	if flags&HandlerEmulation != 0 {
-		// register bidirectional SSE connection endpoint.
-		emulationPrefix := strings.TrimRight(v.GetString("emulation_handler_prefix"), "/")
-		if emulationPrefix == "" {
-			emulationPrefix = "/"
-		}
-		mux.Handle(emulationPrefix, middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.CORS(getCheckOrigin(), centrifuge.NewEmulationHandler(n, emulationHandlerConfig())))))
+		mux.Handle(ssePrefix, connChain.Then(centrifuge.NewSSEHandler(n, sseHandlerConfig())))
 	}
 
 	if flags&HandlerSockJS != 0 {
@@ -2474,7 +2502,7 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 		sockjsConfig := sockjsHandlerConfig()
 		sockjsPrefix := strings.TrimRight(v.GetString("sockjs_handler_prefix"), "/")
 		sockjsConfig.HandlerPrefix = sockjsPrefix
-		mux.Handle(sockjsPrefix+"/", middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.HeadersToContext(keepHeadersInContext, centrifuge.NewSockjsHandler(n, sockjsConfig)))))
+		mux.Handle(sockjsPrefix+"/", connChain.Then(centrifuge.NewSockjsHandler(n, sockjsConfig)))
 	}
 
 	if flags&HandlerUniWebsocket != 0 {
@@ -2483,7 +2511,7 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 		if wsPrefix == "" {
 			wsPrefix = "/"
 		}
-		mux.Handle(wsPrefix, middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.HeadersToContext(keepHeadersInContext, uniws.NewHandler(n, uniWebsocketHandlerConfig())))))
+		mux.Handle(wsPrefix, connChain.Then(uniws.NewHandler(n, uniWebsocketHandlerConfig())))
 	}
 
 	if flags&HandlerUniSSE != 0 {
@@ -2492,7 +2520,7 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 		if ssePrefix == "" {
 			ssePrefix = "/"
 		}
-		mux.Handle(ssePrefix, middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.HeadersToContext(keepHeadersInContext, middleware.CORS(getCheckOrigin(), unisse.NewHandler(n, uniSSEHandlerConfig()))))))
+		mux.Handle(ssePrefix, connChain.Then(unisse.NewHandler(n, uniSSEHandlerConfig())))
 	}
 
 	if flags&HandlerUniHTTPStream != 0 {
@@ -2501,11 +2529,11 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 		if streamPrefix == "" {
 			streamPrefix = "/"
 		}
-		mux.Handle(streamPrefix, middleware.ConnLimit(n, ruleContainer, middleware.LogRequest(middleware.HeadersToContext(keepHeadersInContext, middleware.CORS(getCheckOrigin(), unihttpstream.NewHandler(n, uniStreamHandlerConfig()))))))
+		mux.Handle(streamPrefix, connChain.Then(unihttpstream.NewHandler(n, uniStreamHandlerConfig())))
 	}
 
 	if flags&HandlerAPI != 0 {
-		// register HTTP API endpoint.
+		// register HTTP API endpoints.
 		apiHandler := api.NewHandler(n, apiExecutor, api.Config{})
 		apiPrefix := strings.TrimRight(v.GetString("api_handler_prefix"), "/")
 		if apiPrefix == "" {
@@ -2513,33 +2541,31 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 		}
 		oldRoute := apiHandler.OldRoute()
 		strippedHandler := http.StripPrefix(apiPrefix, apiHandler)
-		if viper.GetBool("api_insecure") {
-			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(oldRoute)))
-			if apiPrefix != "/" {
-				mux.Handle(apiPrefix+"/", middleware.LogRequest(middleware.Post(strippedHandler)))
-			} else {
-				for path, handler := range apiHandler.Routes() {
-					mux.Handle(path, middleware.LogRequest(middleware.Post(handler)))
-				}
-			}
+
+		apiMiddlewares := append([]alice.Constructor{}, commonMiddlewares...)
+		apiMiddlewares = append(apiMiddlewares, middleware.Post)
+		if !viper.GetBool("api_insecure") {
+			apiMiddlewares = append(apiMiddlewares, middleware.NewAPIKeyAuth(viper.GetString("api_key")).Middleware)
+		}
+		apiChain := alice.New(apiMiddlewares...)
+
+		mux.Handle(apiPrefix, apiChain.Then(oldRoute))
+		if apiPrefix != "/" {
+			mux.Handle(apiPrefix+"/", apiChain.Then(strippedHandler))
 		} else {
-			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), oldRoute))))
-			if apiPrefix != "/" {
-				mux.Handle(apiPrefix+"/", middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), strippedHandler))))
-			} else {
-				for path, handler := range apiHandler.Routes() {
-					mux.Handle(path, middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), handler))))
-				}
+			for path, handler := range apiHandler.Routes() {
+				mux.Handle(path, apiChain.Then(handler))
 			}
 		}
 	}
 
 	if flags&HandlerSwagger != 0 {
+		// register Swagger UI endpoint.
 		swaggerPrefix := strings.TrimRight(v.GetString("swagger_handler_prefix"), "/") + "/"
 		if swaggerPrefix == "" {
 			swaggerPrefix = "/"
 		}
-		mux.Handle(swaggerPrefix, middleware.LogRequest(http.StripPrefix(swaggerPrefix, http.FileServer(swaggerui.FS))))
+		mux.Handle(swaggerPrefix, basicChain.Then(http.StripPrefix(swaggerPrefix, http.FileServer(swaggerui.FS))))
 	}
 
 	if flags&HandlerPrometheus != 0 {
@@ -2548,13 +2574,13 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 		if prometheusPrefix == "" {
 			prometheusPrefix = "/"
 		}
-		mux.Handle(prometheusPrefix, middleware.LogRequest(promhttp.Handler()))
+		mux.Handle(prometheusPrefix, basicChain.Then(promhttp.Handler()))
 	}
 
 	if flags&HandlerAdmin != 0 {
 		// register admin web interface API endpoints.
 		adminPrefix := strings.TrimRight(v.GetString("admin_handler_prefix"), "/")
-		mux.Handle(adminPrefix+"/", admin.NewHandler(n, apiExecutor, adminHandlerConfig()))
+		mux.Handle(adminPrefix+"/", basicChain.Then(admin.NewHandler(n, apiExecutor, adminHandlerConfig())))
 	}
 
 	if flags&HandlerHealth != 0 {
@@ -2562,7 +2588,7 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 		if healthPrefix == "" {
 			healthPrefix = "/"
 		}
-		mux.Handle(healthPrefix, middleware.LogRequest(health.NewHandler(n, health.Config{})))
+		mux.Handle(healthPrefix, basicChain.Then(health.NewHandler(n, health.Config{})))
 	}
 
 	return mux

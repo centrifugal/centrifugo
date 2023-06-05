@@ -8,28 +8,23 @@ import (
 	"time"
 
 	"github.com/quic-go/quic-go/http3"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 // LogRequest middleware logs details of request.
 func LogRequest(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if zerolog.GlobalLevel() <= zerolog.DebugLevel {
-			start := time.Now()
-			lrw := &logResponseWriter{w, 0}
-			h.ServeHTTP(lrw, r)
-			addr := r.Header.Get("X-Real-IP")
+		start := time.Now()
+		lrw := &logResponseWriter{w, 0}
+		h.ServeHTTP(lrw, r)
+		addr := r.Header.Get("X-Real-IP")
+		if addr == "" {
+			addr = r.Header.Get("X-Forwarded-For")
 			if addr == "" {
-				addr = r.Header.Get("X-Forwarded-For")
-				if addr == "" {
-					addr = r.RemoteAddr
-				}
+				addr = r.RemoteAddr
 			}
-			log.Debug().Str("method", r.Method).Int("status", lrw.Status()).Str("path", r.URL.Path).Str("addr", addr).Str("duration", time.Since(start).String()).Msg("http request")
-		} else {
-			h.ServeHTTP(w, r)
 		}
+		log.Debug().Str("method", r.Method).Int("status", lrw.Status()).Str("path", r.URL.Path).Str("addr", addr).Str("duration", time.Since(start).String()).Msg("http request")
 	})
 }
 

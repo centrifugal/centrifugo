@@ -14,7 +14,7 @@ func testHandler() http.Handler {
 }
 
 func TestAPIKeyAuthEmptyKey(t *testing.T) {
-	ts := httptest.NewServer(APIKeyAuth("", testHandler()))
+	ts := httptest.NewServer(NewAPIKeyAuth("").Middleware(testHandler()))
 	defer ts.Close()
 
 	res, err := http.Get(ts.URL)
@@ -23,7 +23,7 @@ func TestAPIKeyAuthEmptyKey(t *testing.T) {
 }
 
 func TestAPIKeyAuthMissingAuthKey(t *testing.T) {
-	ts := httptest.NewServer(APIKeyAuth("test", testHandler()))
+	ts := httptest.NewServer(NewAPIKeyAuth("test").Middleware(testHandler()))
 	defer ts.Close()
 
 	res, err := http.Get(ts.URL)
@@ -32,7 +32,7 @@ func TestAPIKeyAuthMissingAuthKey(t *testing.T) {
 }
 
 func TestAPIKeyAuthXAPIKey(t *testing.T) {
-	ts := httptest.NewServer(APIKeyAuth("test", testHandler()))
+	ts := httptest.NewServer(NewAPIKeyAuth("test").Middleware(testHandler()))
 	defer ts.Close()
 
 	req, err := http.NewRequest("POST", ts.URL, nil)
@@ -51,7 +51,7 @@ func TestAPIKeyAuthXAPIKey(t *testing.T) {
 }
 
 func TestAPIKeyAuthAuthorizationHeader(t *testing.T) {
-	ts := httptest.NewServer(APIKeyAuth("test", testHandler()))
+	ts := httptest.NewServer(NewAPIKeyAuth("test").Middleware(testHandler()))
 	defer ts.Close()
 
 	req, err := http.NewRequest("POST", ts.URL, nil)
@@ -84,7 +84,7 @@ func TestAPIKeyAuthAuthorizationHeader(t *testing.T) {
 }
 
 func TestAPIKeyAuthQueryParam(t *testing.T) {
-	ts := httptest.NewServer(APIKeyAuth("test", testHandler()))
+	ts := httptest.NewServer(NewAPIKeyAuth("test").Middleware(testHandler()))
 	defer ts.Close()
 
 	res, err := http.Post(ts.URL+"?api_key=t", "application/json", nil)
