@@ -52,6 +52,7 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/rule"
 	"github.com/centrifugal/centrifugo/v5/internal/survey"
 	"github.com/centrifugal/centrifugo/v5/internal/swaggerui"
+	"github.com/centrifugal/centrifugo/v5/internal/telemetry"
 	"github.com/centrifugal/centrifugo/v5/internal/tntengine"
 	"github.com/centrifugal/centrifugo/v5/internal/tools"
 	"github.com/centrifugal/centrifugo/v5/internal/unigrpc"
@@ -74,12 +75,14 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/automaxprocs/maxprocs"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/reflection"
 )
 
 //go:generate go run internal/gen/api/main.go
@@ -376,6 +379,13 @@ func main() {
 				log.Fatal().Msgf("error creating Centrifuge Node: %v", err)
 			}
 
+			if viper.GetBool("opentelemetry") {
+				_, err := telemetry.SetupTracing(context.Background())
+				if err != nil {
+					log.Fatal().Msgf("error setting up opentelemetry tracing: %v", err)
+				}
+			}
+
 			brokerName := viper.GetString("broker")
 			if brokerName != "" && brokerName != "nats" {
 				log.Fatal().Msgf("unknown broker: %s", brokerName)
@@ -412,8 +422,10 @@ func main() {
 
 			surveyCaller := survey.NewCaller(node)
 
-			httpAPIExecutor := api.NewExecutor(node, ruleContainer, surveyCaller, "http")
-			grpcAPIExecutor := api.NewExecutor(node, ruleContainer, surveyCaller, "grpc")
+			useAPIOpentelemetry := viper.GetBool("opentelemetry") && viper.GetBool("opentelemetry_api")
+
+			httpAPIExecutor := api.NewExecutor(node, ruleContainer, surveyCaller, "http", useAPIOpentelemetry)
+			grpcAPIExecutor := api.NewExecutor(node, ruleContainer, surveyCaller, "grpc", useAPIOpentelemetry)
 
 			node.SetBroker(broker)
 			node.SetPresenceManager(presenceManager)
@@ -489,8 +501,14 @@ func main() {
 				if tlsConfig != nil {
 					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
 				}
+				if viper.GetBool("opentelemetry") && viper.GetBool("opentelemetry_api") {
+					grpcOpts = append(grpcOpts, grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()))
+				}
 				grpcAPIServer = grpc.NewServer(grpcOpts...)
-				_ = api.RegisterGRPCServerAPI(node, grpcAPIExecutor, grpcAPIServer, api.GRPCAPIServiceConfig{})
+				_ = api.RegisterGRPCServerAPI(node, grpcAPIExecutor, grpcAPIServer, api.GRPCAPIServiceConfig{}, useAPIOpentelemetry)
+				if viper.GetBool("grpc_api_reflection") {
+					reflection.Register(grpcAPIServer)
+				}
 				go func() {
 					if err := grpcAPIServer.Serve(grpcAPIConn); err != nil {
 						log.Fatal().Msgf("serve GRPC API: %v", err)
@@ -2534,27 +2552,36 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoints.
-		apiHandler := api.NewHandler(n, apiExecutor, api.Config{})
+		useOpenTelemetry := viper.GetBool("opentelemetry") && viper.GetBool("opentelemetry_api")
+		apiHandler := api.NewHandler(n, apiExecutor, api.Config{UseOpenTelemetry: useOpenTelemetry})
 		apiPrefix := strings.TrimRight(v.GetString("api_handler_prefix"), "/")
 		if apiPrefix == "" {
 			apiPrefix = "/"
 		}
-		oldRoute := apiHandler.OldRoute()
-		strippedHandler := http.StripPrefix(apiPrefix, apiHandler)
 
-		apiMiddlewares := append([]alice.Constructor{}, commonMiddlewares...)
-		apiMiddlewares = append(apiMiddlewares, middleware.Post)
-		if !viper.GetBool("api_insecure") {
-			apiMiddlewares = append(apiMiddlewares, middleware.NewAPIKeyAuth(viper.GetString("api_key")).Middleware)
+		apiChain := func(op string) alice.Chain {
+			apiMiddlewares := append([]alice.Constructor{}, commonMiddlewares...)
+			otelHandler := middleware.NewOpenTelemetryHandler(op, nil)
+			if useOpenTelemetry {
+				apiMiddlewares = append(apiMiddlewares, otelHandler.Middleware)
+			}
+			apiMiddlewares = append(apiMiddlewares, middleware.Post)
+			if !viper.GetBool("api_insecure") {
+				apiMiddlewares = append(apiMiddlewares, middleware.NewAPIKeyAuth(viper.GetString("api_key")).Middleware)
+			}
+			apiChain := alice.New(apiMiddlewares...)
+			return apiChain
 		}
-		apiChain := alice.New(apiMiddlewares...)
 
-		mux.Handle(apiPrefix, apiChain.Then(oldRoute))
+		mux.Handle(apiPrefix, apiChain(apiPrefix).Then(apiHandler.OldRoute()))
 		if apiPrefix != "/" {
-			mux.Handle(apiPrefix+"/", apiChain.Then(strippedHandler))
+			for path, handler := range apiHandler.Routes() {
+				handlePath := apiPrefix + path
+				mux.Handle(handlePath, apiChain(handlePath).Then(handler))
+			}
 		} else {
 			for path, handler := range apiHandler.Routes() {
-				mux.Handle(path, apiChain.Then(handler))
+				mux.Handle(path, apiChain(path).Then(handler))
 			}
 		}
 	}

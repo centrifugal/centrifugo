@@ -12,6 +12,8 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // RPCHandler allows to handle custom RPC.
@@ -19,11 +21,12 @@ type RPCHandler func(ctx context.Context, params Raw) (Raw, error)
 
 // Executor can run API methods.
 type Executor struct {
-	node          *centrifuge.Node
-	ruleContainer *rule.Container
-	protocol      string
-	rpcExtension  map[string]RPCHandler
-	surveyCaller  SurveyCaller
+	node             *centrifuge.Node
+	ruleContainer    *rule.Container
+	protocol         string
+	rpcExtension     map[string]RPCHandler
+	surveyCaller     SurveyCaller
+	useOpenTelemetry bool
 }
 
 // SurveyCaller can do surveys.
@@ -32,13 +35,14 @@ type SurveyCaller interface {
 }
 
 // NewExecutor ...
-func NewExecutor(n *centrifuge.Node, ruleContainer *rule.Container, surveyCaller SurveyCaller, protocol string) *Executor {
+func NewExecutor(n *centrifuge.Node, ruleContainer *rule.Container, surveyCaller SurveyCaller, protocol string, useOpentelemetry bool) *Executor {
 	e := &Executor{
-		node:          n,
-		ruleContainer: ruleContainer,
-		protocol:      protocol,
-		surveyCaller:  surveyCaller,
-		rpcExtension:  make(map[string]RPCHandler),
+		node:             n,
+		ruleContainer:    ruleContainer,
+		protocol:         protocol,
+		surveyCaller:     surveyCaller,
+		rpcExtension:     make(map[string]RPCHandler),
+		useOpenTelemetry: useOpentelemetry,
 	}
 	return e
 }
@@ -102,10 +106,15 @@ func (h *Executor) Batch(ctx context.Context, req *BatchRequest) *BatchResponse 
 }
 
 // Publish publishes data into channel.
-func (h *Executor) Publish(_ context.Context, cmd *PublishRequest) *PublishResponse {
+func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishResponse {
 	defer observe(time.Now(), h.protocol, "publish")
 
 	ch := cmd.Channel
+
+	if h.useOpenTelemetry {
+		span := trace.SpanFromContext(ctx)
+		span.SetAttributes(attribute.String("channel", ch))
+	}
 
 	resp := &PublishResponse{}
 
@@ -169,12 +178,17 @@ func (h *Executor) Publish(_ context.Context, cmd *PublishRequest) *PublishRespo
 }
 
 // Broadcast publishes the same data into many channels.
-func (h *Executor) Broadcast(_ context.Context, cmd *BroadcastRequest) *BroadcastResponse {
+func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *BroadcastResponse {
 	defer observe(time.Now(), h.protocol, "broadcast")
 
 	resp := &BroadcastResponse{}
 
 	channels := cmd.Channels
+
+	if h.useOpenTelemetry {
+		span := trace.SpanFromContext(ctx)
+		span.SetAttributes(attribute.Int("num_channels", len(channels)))
+	}
 
 	if len(channels) == 0 {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "channels required for broadcast", nil))

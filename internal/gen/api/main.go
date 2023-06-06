@@ -67,6 +67,9 @@ package api
 import (
 	"io"
 	"net/http"
+
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 `
 
@@ -84,7 +87,16 @@ func (s *Handler) handle{{ .RequestCapitalized }}(w http.ResponseWriter, r *http
 		return
 	}
 
-	data, err = responseEncoder.Encode{{ .RequestCapitalized }}(s.api.{{ .RequestCapitalized }}(r.Context(), req))
+	resp := s.api.{{ .RequestCapitalized }}(r.Context(), req)
+
+{{- if ne .RequestCapitalized "Batch" }}
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(r.Context())
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+{{- end}}
+
+	data, err = responseEncoder.Encode{{ .RequestCapitalized }}(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
 		return
@@ -106,13 +118,23 @@ import (
 	"context"
 
 	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
+
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 `
 
 var templateFuncHandlersGRPC = `
 // {{ .RequestCapitalized }} ...
 func (s *grpcAPIService) {{ .RequestCapitalized }}(ctx context.Context, req *{{ .RequestCapitalized }}Request) (*{{ .RequestCapitalized }}Response, error) {
-	return s.api.{{ .RequestCapitalized }}(ctx, req), nil
+	resp := s.api.{{ .RequestCapitalized }}(ctx, req)
+{{- if ne .RequestCapitalized "Batch" }}
+	if s.useOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+{{- end}}
+	return resp, nil
 }
 `
 

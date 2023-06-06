@@ -8,10 +8,15 @@ import (
 	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
 
 	"github.com/centrifugal/centrifuge"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Config configures APIHandler.
-type Config struct{}
+type Config struct {
+	UseOpenTelemetry bool
+}
 
 // Handler is responsible for processing API commands over HTTP.
 type Handler struct {
@@ -33,7 +38,6 @@ func NewHandler(n *centrifuge.Node, apiExecutor *Executor, c Config) *Handler {
 		config: c,
 		api:    apiExecutor,
 	}
-	h.RegisterRoutes(m)
 	return h
 }
 
@@ -56,20 +60,10 @@ func (s *Handler) Routes() map[string]http.HandlerFunc {
 	}
 }
 
-func (s *Handler) RegisterRoutes(m *http.ServeMux) {
-	for path, handler := range s.Routes() {
-		m.HandleFunc(path, handler)
-	}
-}
-
 // OldRoute handles all methods inside one /api handler.
 // The plan is to remove it in Centrifugo v6.
 func (s *Handler) OldRoute() http.HandlerFunc {
 	return s.handleAPI
-}
-
-func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.mux.ServeHTTP(w, r)
 }
 
 func (s *Handler) handleAPI(w http.ResponseWriter, r *http.Request) {
@@ -110,11 +104,23 @@ func (s *Handler) handleAPI(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if command != nil {
+			if s.config.UseOpenTelemetry {
+				span := trace.SpanFromContext(r.Context())
+				span.SetAttributes(attribute.String("method", Command_MethodType_name[int32(command.Method)]))
+			}
 			rep, err := s.handleAPICommand(r.Context(), command)
 			if err != nil {
+				if s.config.UseOpenTelemetry {
+					span := trace.SpanFromContext(r.Context())
+					span.SetStatus(codes.Error, err.Error())
+				}
 				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error handling API command", map[string]interface{}{"error": err.Error()}))
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
+			}
+			if s.config.UseOpenTelemetry && rep.Error != nil {
+				span := trace.SpanFromContext(r.Context())
+				span.SetStatus(codes.Error, rep.Error.Error())
 			}
 			err = encoder.Encode(rep)
 			if err != nil {
