@@ -21,12 +21,12 @@ type RPCHandler func(ctx context.Context, params Raw) (Raw, error)
 
 // Executor can run API methods.
 type Executor struct {
-	node                *centrifuge.Node
-	ruleContainer       *rule.Container
-	protocol            string
-	rpcExtension        map[string]RPCHandler
-	surveyCaller        SurveyCaller
-	useAPIOpentelemetry bool
+	node             *centrifuge.Node
+	ruleContainer    *rule.Container
+	protocol         string
+	rpcExtension     map[string]RPCHandler
+	surveyCaller     SurveyCaller
+	useOpenTelemetry bool
 }
 
 // SurveyCaller can do surveys.
@@ -35,14 +35,14 @@ type SurveyCaller interface {
 }
 
 // NewExecutor ...
-func NewExecutor(n *centrifuge.Node, ruleContainer *rule.Container, surveyCaller SurveyCaller, protocol string, useAPIOpentelemetry bool) *Executor {
+func NewExecutor(n *centrifuge.Node, ruleContainer *rule.Container, surveyCaller SurveyCaller, protocol string, useOpentelemetry bool) *Executor {
 	e := &Executor{
-		node:                n,
-		ruleContainer:       ruleContainer,
-		protocol:            protocol,
-		surveyCaller:        surveyCaller,
-		rpcExtension:        make(map[string]RPCHandler),
-		useAPIOpentelemetry: useAPIOpentelemetry,
+		node:             n,
+		ruleContainer:    ruleContainer,
+		protocol:         protocol,
+		surveyCaller:     surveyCaller,
+		rpcExtension:     make(map[string]RPCHandler),
+		useOpenTelemetry: useOpentelemetry,
 	}
 	return e
 }
@@ -111,7 +111,7 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 
 	ch := cmd.Channel
 
-	if h.useAPIOpentelemetry {
+	if h.useOpenTelemetry {
 		span := trace.SpanFromContext(ctx)
 		span.SetAttributes(attribute.String("channel", ch))
 	}
@@ -185,7 +185,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 
 	channels := cmd.Channels
 
-	if h.useAPIOpentelemetry {
+	if h.useOpenTelemetry {
 		span := trace.SpanFromContext(ctx)
 		span.SetAttributes(attribute.Int("num_channels", len(channels)))
 	}

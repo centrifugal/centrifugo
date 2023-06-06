@@ -57,21 +57,11 @@ func (s *Handler) Routes() map[string]http.HandlerFunc {
 	}
 }
 
-//func (s *Handler) RegisterRoutes(m *http.ServeMux) {
-//	for path, handler := range s.Routes() {
-//		m.HandleFunc(path, handler)
-//	}
-//}
-
 // OldRoute handles all methods inside one /api handler.
 // The plan is to remove it in Centrifugo v6.
 func (s *Handler) OldRoute() http.HandlerFunc {
 	return s.handleAPI
 }
-
-//func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-//	s.mux.ServeHTTP(w, r)
-//}
 
 func (s *Handler) handleAPI(w http.ResponseWriter, r *http.Request) {
 	select {
