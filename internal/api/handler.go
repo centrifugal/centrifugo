@@ -8,6 +8,9 @@ import (
 	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
 
 	"github.com/centrifugal/centrifuge"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Config configures APIHandler.
@@ -101,11 +104,23 @@ func (s *Handler) handleAPI(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if command != nil {
+			if s.config.UseOpenTelemetry {
+				span := trace.SpanFromContext(r.Context())
+				span.SetAttributes(attribute.String("method", Command_MethodType_name[int32(command.Method)]))
+			}
 			rep, err := s.handleAPICommand(r.Context(), command)
 			if err != nil {
+				if s.config.UseOpenTelemetry {
+					span := trace.SpanFromContext(r.Context())
+					span.SetStatus(codes.Error, err.Error())
+				}
 				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error handling API command", map[string]interface{}{"error": err.Error()}))
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
+			}
+			if s.config.UseOpenTelemetry && rep.Error != nil {
+				span := trace.SpanFromContext(r.Context())
+				span.SetStatus(codes.Error, rep.Error.Error())
 			}
 			err = encoder.Encode(rep)
 			if err != nil {
