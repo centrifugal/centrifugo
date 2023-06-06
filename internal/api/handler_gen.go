@@ -5,6 +5,9 @@ package api
 import (
 	"io"
 	"net/http"
+
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func (s *Handler) handleBatch(w http.ResponseWriter, r *http.Request) {
@@ -20,7 +23,9 @@ func (s *Handler) handleBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err = responseEncoder.EncodeBatch(s.api.Batch(r.Context(), req))
+	resp := s.api.Batch(r.Context(), req)
+
+	data, err = responseEncoder.EncodeBatch(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
 		return
@@ -42,7 +47,13 @@ func (s *Handler) handlePublish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err = responseEncoder.EncodePublish(s.api.Publish(r.Context(), req))
+	resp := s.api.Publish(r.Context(), req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(r.Context())
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	data, err = responseEncoder.EncodePublish(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
 		return
@@ -64,7 +75,13 @@ func (s *Handler) handleBroadcast(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err = responseEncoder.EncodeBroadcast(s.api.Broadcast(r.Context(), req))
+	resp := s.api.Broadcast(r.Context(), req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(r.Context())
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	data, err = responseEncoder.EncodeBroadcast(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
 		return
@@ -86,7 +103,13 @@ func (s *Handler) handleSubscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err = responseEncoder.EncodeSubscribe(s.api.Subscribe(r.Context(), req))
+	resp := s.api.Subscribe(r.Context(), req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(r.Context())
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	data, err = responseEncoder.EncodeSubscribe(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
 		return
@@ -108,7 +131,13 @@ func (s *Handler) handleUnsubscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err = responseEncoder.EncodeUnsubscribe(s.api.Unsubscribe(r.Context(), req))
+	resp := s.api.Unsubscribe(r.Context(), req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(r.Context())
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	data, err = responseEncoder.EncodeUnsubscribe(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
 		return
@@ -130,7 +159,13 @@ func (s *Handler) handleDisconnect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err = responseEncoder.EncodeDisconnect(s.api.Disconnect(r.Context(), req))
+	resp := s.api.Disconnect(r.Context(), req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(r.Context())
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	data, err = responseEncoder.EncodeDisconnect(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
 		return
@@ -152,7 +187,13 @@ func (s *Handler) handlePresence(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err = responseEncoder.EncodePresence(s.api.Presence(r.Context(), req))
+	resp := s.api.Presence(r.Context(), req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(r.Context())
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	data, err = responseEncoder.EncodePresence(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
 		return
@@ -174,7 +215,13 @@ func (s *Handler) handlePresenceStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err = responseEncoder.EncodePresenceStats(s.api.PresenceStats(r.Context(), req))
+	resp := s.api.PresenceStats(r.Context(), req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(r.Context())
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	data, err = responseEncoder.EncodePresenceStats(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
 		return
@@ -196,7 +243,13 @@ func (s *Handler) handleHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err = responseEncoder.EncodeHistory(s.api.History(r.Context(), req))
+	resp := s.api.History(r.Context(), req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(r.Context())
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	data, err = responseEncoder.EncodeHistory(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
 		return
@@ -218,7 +271,13 @@ func (s *Handler) handleHistoryRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err = responseEncoder.EncodeHistoryRemove(s.api.HistoryRemove(r.Context(), req))
+	resp := s.api.HistoryRemove(r.Context(), req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(r.Context())
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	data, err = responseEncoder.EncodeHistoryRemove(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
 		return
@@ -240,7 +299,13 @@ func (s *Handler) handleInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err = responseEncoder.EncodeInfo(s.api.Info(r.Context(), req))
+	resp := s.api.Info(r.Context(), req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(r.Context())
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	data, err = responseEncoder.EncodeInfo(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
 		return
@@ -262,7 +327,13 @@ func (s *Handler) handleRPC(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err = responseEncoder.EncodeRPC(s.api.RPC(r.Context(), req))
+	resp := s.api.RPC(r.Context(), req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(r.Context())
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	data, err = responseEncoder.EncodeRPC(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
 		return
@@ -284,7 +355,13 @@ func (s *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err = responseEncoder.EncodeRefresh(s.api.Refresh(r.Context(), req))
+	resp := s.api.Refresh(r.Context(), req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(r.Context())
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	data, err = responseEncoder.EncodeRefresh(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
 		return
@@ -306,7 +383,13 @@ func (s *Handler) handleChannels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err = responseEncoder.EncodeChannels(s.api.Channels(r.Context(), req))
+	resp := s.api.Channels(r.Context(), req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(r.Context())
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	data, err = responseEncoder.EncodeChannels(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
 		return

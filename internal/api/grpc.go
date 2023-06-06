@@ -39,8 +39,8 @@ func GRPCKeyAuth(key string) grpc.ServerOption {
 type GRPCAPIServiceConfig struct{}
 
 // RegisterGRPCServerAPI registers GRPC API service in provided GRPC server.
-func RegisterGRPCServerAPI(n *centrifuge.Node, apiExecutor *Executor, server *grpc.Server, config GRPCAPIServiceConfig) error {
-	RegisterCentrifugoApiServer(server, newGRPCAPIService(n, apiExecutor, config))
+func RegisterGRPCServerAPI(n *centrifuge.Node, apiExecutor *Executor, server *grpc.Server, config GRPCAPIServiceConfig, useOpenTelemetry bool) error {
+	RegisterCentrifugoApiServer(server, newGRPCAPIService(n, apiExecutor, config, useOpenTelemetry))
 	return nil
 }
 
@@ -48,14 +48,16 @@ func RegisterGRPCServerAPI(n *centrifuge.Node, apiExecutor *Executor, server *gr
 type grpcAPIService struct {
 	UnimplementedCentrifugoApiServer
 
-	config GRPCAPIServiceConfig
-	api    *Executor
+	config           GRPCAPIServiceConfig
+	api              *Executor
+	useOpenTelemetry bool
 }
 
 // newGRPCAPIService creates new Service.
-func newGRPCAPIService(_ *centrifuge.Node, apiExecutor *Executor, c GRPCAPIServiceConfig) *grpcAPIService {
+func newGRPCAPIService(_ *centrifuge.Node, apiExecutor *Executor, c GRPCAPIServiceConfig, useOpenTelemetry bool) *grpcAPIService {
 	return &grpcAPIService{
-		config: c,
-		api:    apiExecutor,
+		config:           c,
+		api:              apiExecutor,
+		useOpenTelemetry: useOpenTelemetry,
 	}
 }

@@ -11,7 +11,9 @@ import (
 )
 
 // Config configures APIHandler.
-type Config struct{}
+type Config struct {
+	UseOpenTelemetry bool
+}
 
 // Handler is responsible for processing API commands over HTTP.
 type Handler struct {
@@ -33,7 +35,6 @@ func NewHandler(n *centrifuge.Node, apiExecutor *Executor, c Config) *Handler {
 		config: c,
 		api:    apiExecutor,
 	}
-	h.RegisterRoutes(m)
 	return h
 }
 
@@ -56,11 +57,11 @@ func (s *Handler) Routes() map[string]http.HandlerFunc {
 	}
 }
 
-func (s *Handler) RegisterRoutes(m *http.ServeMux) {
-	for path, handler := range s.Routes() {
-		m.HandleFunc(path, handler)
-	}
-}
+//func (s *Handler) RegisterRoutes(m *http.ServeMux) {
+//	for path, handler := range s.Routes() {
+//		m.HandleFunc(path, handler)
+//	}
+//}
 
 // OldRoute handles all methods inside one /api handler.
 // The plan is to remove it in Centrifugo v6.
@@ -68,9 +69,9 @@ func (s *Handler) OldRoute() http.HandlerFunc {
 	return s.handleAPI
 }
 
-func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.mux.ServeHTTP(w, r)
-}
+//func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+//	s.mux.ServeHTTP(w, r)
+//}
 
 func (s *Handler) handleAPI(w http.ResponseWriter, r *http.Request) {
 	select {
