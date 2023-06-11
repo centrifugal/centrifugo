@@ -1672,6 +1672,12 @@
         "user": {
           "type": "string"
         },
+        "created_at": {
+          "type": "integer"
+        },
+        "updated_at": {
+          "type": "integer"
+        },
         "meta": {
           "type": "object",
           "additionalProperties": {
@@ -1692,29 +1698,10 @@
         }
       }
     },
-    "DeviceListRequest": {
+    "DeviceFilter": {
       "type": "object",
       "properties": {
         "ids": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "providers": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "provider_tokens": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/DeviceProviderTokens"
-          }
-        },
-        "platforms": {
           "type": "array",
           "items": {
             "type": "string"
@@ -1732,12 +1719,32 @@
             "type": "string"
           }
         },
-        "since": {
-          "type": "string"
+        "providers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
-        "limit": {
-          "type": "integer",
-          "format": "int32"
+        "platforms": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "provider_tokens": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/DeviceProviderTokens"
+          }
+        }
+      }
+    },
+    "DeviceListRequest": {
+      "type": "object",
+      "properties": {
+        "filter": {
+          "$ref": "#/definitions/DeviceFilter"
         },
         "include_topics": {
           "type": "boolean"
@@ -1747,6 +1754,13 @@
         },
         "include_tags": {
           "type": "boolean"
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "int32"
         }
       }
     },
@@ -1771,8 +1785,8 @@
             "$ref": "#/definitions/Device"
           }
         },
-        "has_more": {
-          "type": "boolean"
+        "next_cursor": {
+          "type": "string"
         }
       }
     },
@@ -1925,7 +1939,7 @@
         }
       }
     },
-    "DeviceTopicListRequest": {
+    "DeviceTopicFilter": {
       "type": "object",
       "properties": {
         "device_ids": {
@@ -1967,16 +1981,24 @@
         },
         "topic_prefix": {
           "type": "string"
+        }
+      }
+    },
+    "DeviceTopicListRequest": {
+      "type": "object",
+      "properties": {
+        "filter": {
+          "$ref": "#/definitions/DeviceTopicFilter"
         },
-        "since": {
+        "include_device": {
+          "type": "boolean"
+        },
+        "cursor": {
           "type": "string"
         },
         "limit": {
           "type": "integer",
           "format": "int32"
-        },
-        "include_device": {
-          "type": "boolean"
         }
       }
     },
@@ -2001,8 +2023,8 @@
             "$ref": "#/definitions/DeviceTopic"
           }
         },
-        "has_more": {
-          "type": "boolean"
+        "next_cursor": {
+          "type": "string"
         }
       }
     },
@@ -2567,17 +2589,8 @@
     "PushRecipient": {
       "type": "object",
       "properties": {
-        "device_ids": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "topics": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "filter": {
+          "$ref": "#/definitions/DeviceFilter"
         },
         "fcm_tokens": {
           "type": "array",
@@ -2817,7 +2830,7 @@
       "properties": {
         "uid": {
           "type": "string",
-          "description": "Unique identifier of notification send request (not a FCM message id)."
+          "description": "Unique identifier of notification send request (it's not a FCM message id)."
         }
       }
     },
@@ -3052,7 +3065,7 @@
         }
       }
     },
-    "UserTopicListRequest": {
+    "UserTopicFilter": {
       "type": "object",
       "properties": {
         "users": {
@@ -3069,8 +3082,16 @@
         },
         "topic_prefix": {
           "type": "string"
+        }
+      }
+    },
+    "UserTopicListRequest": {
+      "type": "object",
+      "properties": {
+        "filter": {
+          "$ref": "#/definitions/UserTopicFilter"
         },
-        "since": {
+        "cursor": {
           "type": "string"
         },
         "limit": {
@@ -3100,8 +3121,8 @@
             "$ref": "#/definitions/UserTopic"
           }
         },
-        "has_more": {
-          "type": "boolean"
+        "next_cursor": {
+          "type": "string"
         }
       }
     },

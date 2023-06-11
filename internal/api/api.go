@@ -113,7 +113,7 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 
 	if h.useOpenTelemetry {
 		span := trace.SpanFromContext(ctx)
-		span.SetAttributes(attribute.String("channel", ch))
+		span.SetAttributes(attribute.String("centrifugo.channel", ch))
 	}
 
 	resp := &PublishResponse{}
@@ -187,7 +187,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 
 	if h.useOpenTelemetry {
 		span := trace.SpanFromContext(ctx)
-		span.SetAttributes(attribute.Int("num_channels", len(channels)))
+		span.SetAttributes(attribute.Int("centrifugo.num_channels", len(channels)))
 	}
 
 	if len(channels) == 0 {

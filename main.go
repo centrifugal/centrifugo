@@ -2401,9 +2401,9 @@ const (
 
 var handlerText = map[HandlerFlag]string{
 	HandlerWebsocket:     "websocket",
-	HandlerSockJS:        "SockJS",
+	HandlerSockJS:        "sockjs",
 	HandlerWebtransport:  "webtransport",
-	HandlerAPI:           "API",
+	HandlerAPI:           "api",
 	HandlerAdmin:         "admin",
 	HandlerDebug:         "debug",
 	HandlerPrometheus:    "prometheus",

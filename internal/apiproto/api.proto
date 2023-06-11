@@ -612,21 +612,26 @@ message DeviceProviderTokens {
     repeated string tokens = 2;
 }
 
-message DeviceListRequest {
+message DeviceFilter {
     repeated string ids = 1;
-    repeated string providers = 2;
-    repeated DeviceProviderTokens provider_tokens= 3;
-    repeated string platforms = 4;
-    repeated string users = 5;
-    repeated string topics = 6;
-    string since = 7;
-    int32 limit = 8;
-    bool include_topics = 10;
-    bool include_meta = 11;
-    bool include_tags = 12;
+    repeated string users = 2;
+    repeated string topics = 3;
+    repeated string providers = 4;
+    repeated string platforms = 5;
+    repeated DeviceProviderTokens provider_tokens= 6;
 }
 
-message DeviceTopicListRequest {
+message DeviceListRequest {
+    DeviceFilter filter =1;
+    bool include_topics = 2;
+    bool include_meta = 3;
+    bool include_tags = 4;
+
+    string cursor = 10;
+    int32 limit = 11;
+}
+
+message DeviceTopicFilter {
     repeated string device_ids = 1;
     repeated string device_providers = 2;
     repeated DeviceProviderTokens device_provider_tokens= 3;
@@ -634,17 +639,27 @@ message DeviceTopicListRequest {
     repeated string device_users = 5;
     repeated string topics = 6;
     string topic_prefix = 7;
-    string since = 8;
-    int32 limit = 9;
-    bool include_device = 10;
 }
 
-message UserTopicListRequest {
+message DeviceTopicListRequest {
+    DeviceTopicFilter filter = 1;
+    bool include_device = 2;
+
+    string cursor = 10;
+    int32 limit = 11;
+}
+
+message UserTopicFilter {
     repeated string users = 1;
     repeated string topics = 2;
     string topic_prefix = 3;
-    string since = 4;
-    int32 limit = 5;
+}
+
+message UserTopicListRequest {
+    UserTopicFilter filter = 1;
+
+    string cursor = 2;
+    int32 limit = 3;
 }
 
 message DeviceTopicUpdateRequest {
@@ -711,7 +726,7 @@ message DeviceRemoveResult {
 
 message DeviceListResult {
     repeated Device items = 1;
-    bool has_more = 2;
+    string next_cursor = 2;
 }
 
 message Device {
@@ -720,15 +735,17 @@ message Device {
     string provider = 3;
     string token = 4;
     string user = 5;
+    int64 created_at = 6;
+    int64 updated_at = 7;
 
-    map<string, string> meta = 6;
-    repeated string topics = 7;
-    map<string, string> tags = 8;
+    map<string, string> meta = 10;
+    repeated string topics = 11;
+    map<string, string> tags = 12;
 }
 
 message DeviceTopicListResult {
     repeated DeviceTopic items = 1;
-    bool has_more = 2;
+    string next_cursor = 2;
 }
 
 message DeviceTopic {
@@ -739,7 +756,7 @@ message DeviceTopic {
 
 message UserTopicListResult {
     repeated UserTopic items = 1;
-    bool has_more = 2;
+    string next_cursor = 2;
 }
 
 message DeviceTopicUpdateResult {
@@ -754,11 +771,6 @@ message UserTopic {
     string topic = 3;
 }
 
-message DeviceTagListResult {
-    repeated DeviceTag items = 1;
-    bool has_more = 2;
-}
-
 message DeviceTag {
     string id = 1;
     string key = 2;
@@ -767,18 +779,17 @@ message DeviceTag {
 }
 
 message PushRecipient {
-    repeated string device_ids = 1;
-    repeated string topics = 2;
+    DeviceFilter filter = 1;
 
-    repeated string fcm_tokens = 3;
-    string fcm_topic = 4;
-    string fcm_condition = 5;
+    repeated string fcm_tokens = 2;
+    string fcm_topic = 3;
+    string fcm_condition = 4;
 
-    repeated string hms_tokens = 6;
-    string hms_topic = 7;
-    string hms_condition = 8;
+    repeated string hms_tokens = 5;
+    string hms_topic = 6;
+    string hms_condition = 7;
 
-    repeated string apns_tokens = 9;
+    repeated string apns_tokens = 8;
 }
 
 message PushNotification {
@@ -814,7 +825,7 @@ message SendPushNotificationResponse {
 }
 
 message SendPushNotificationResult {
-    string uid = 1; // Unique identifier of notification send request (not a FCM message id).
+    string uid = 1; // Unique identifier of notification send request (it's not a FCM message id).
 }
 
 message UpdatePushStatusRequest {
