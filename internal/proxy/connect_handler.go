@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/clientstorage"
@@ -150,7 +151,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 		}
 		if result.Meta != nil {
 			reply.Storage = map[string]any{
-				clientstorage.KeyMeta: result.Meta,
+				clientstorage.KeyMeta: json.RawMessage(result.Meta),
 			}
 		}
 

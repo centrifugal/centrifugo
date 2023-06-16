@@ -331,6 +331,9 @@ func (h *Handler) OnClientConnecting(
 		}
 		data = connectReply.Data
 		newCtx = connectReply.Context
+		if connectReply.Storage != nil {
+			storage = connectReply.Storage
+		}
 	}
 
 	// Proceed with Credentials with empty user ID in case anonymous or insecure options on.
@@ -423,6 +426,7 @@ func (h *Handler) OnClientConnecting(
 	}
 
 	finalReply := centrifuge.ConnectReply{
+		Storage:           storage,
 		Credentials:       credentials,
 		Subscriptions:     subscriptions,
 		Data:              data,
