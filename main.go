@@ -103,7 +103,7 @@ func bindCentrifugoConfig() {
 		"token_audience":             "",
 		"token_issuer":               "",
 
-		"global_history_meta_ttl": 90 * 24 * time.Hour,
+		"global_history_meta_ttl": 30 * 24 * time.Hour,
 		"global_presence_ttl":     60 * time.Second,
 
 		"presence":                      false,
