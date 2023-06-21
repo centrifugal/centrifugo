@@ -183,7 +183,14 @@ func (s *Sender) Start(ctx context.Context) {
 			if s.isDev() {
 				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: sending usage stats", map[string]interface{}{}))
 			}
-			err = s.sendUsageStats(s.prepareMetrics(), build.UsageStatsEndpoint, build.UsageStatsToken)
+			metrics, err := s.prepareMetrics()
+			if err != nil {
+				if s.isDev() {
+					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error preparing metrics", map[string]interface{}{"error": err.Error()}))
+				}
+				continue
+			}
+			err = s.sendUsageStats(metrics, build.UsageStatsEndpoint, build.UsageStatsToken)
 			if err != nil {
 				if s.isDev() {
 					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error sending", map[string]interface{}{"error": err.Error()}))
@@ -299,7 +306,7 @@ func (s *Sender) resetMaxValues() {
 	s.maxNumChannels = 0
 }
 
-func (s *Sender) prepareMetrics() []*metric {
+func (s *Sender) prepareMetrics() ([]*metric, error) {
 	now := time.Now().Unix()
 
 	createPoint := func(name string) *metric {
@@ -439,6 +446,11 @@ func (s *Sender) prepareMetrics() []*metric {
 	}
 
 	s.mu.RLock()
+	if s.maxNumNodes == 0 {
+		s.mu.RUnlock()
+		return nil, errors.New("no nodes found, skip sending")
+	}
+
 	numNodesMetric := getHistogramMetric(
 		s.maxNumNodes,
 		[]int{1, 2, 3, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000},
@@ -504,7 +516,7 @@ func (s *Sender) prepareMetrics() []*metric {
 		"num_rpc_namespaces.",
 	)
 	metrics = append(metrics, createPoint(numRpcNamespacesMetric))
-	return metrics
+	return metrics, nil
 }
 
 func (s *Sender) sendUsageStats(metrics []*metric, statsEndpoint, statsToken string) error {
