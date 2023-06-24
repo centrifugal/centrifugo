@@ -1688,13 +1688,8 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
-        },
-        "tags": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
+          },
+          "title": "map\u003cstring, string\u003e labels = 12;\nmap\u003cstring, int64\u003e scores = 13;"
         }
       }
     },
@@ -1730,13 +1725,6 @@
           "items": {
             "type": "string"
           }
-        },
-        "provider_tokens": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/DeviceProviderTokens"
-          }
         }
       }
     },
@@ -1746,14 +1734,15 @@
         "filter": {
           "$ref": "#/definitions/DeviceFilter"
         },
-        "include_topics": {
+        "include_total_count": {
           "type": "boolean"
         },
         "include_meta": {
           "type": "boolean"
         },
-        "include_tags": {
-          "type": "boolean"
+        "include_topics": {
+          "type": "boolean",
+          "title": "bool include_labels = 5;\nbool include_scores = 6;"
         },
         "cursor": {
           "type": "string"
@@ -1787,6 +1776,9 @@
         },
         "next_cursor": {
           "type": "string"
+        },
+        "total_count": {
+          "type": "integer"
         }
       }
     },
@@ -1796,20 +1788,6 @@
         "meta": {
           "type": "object",
           "additionalProperties": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "DeviceProviderTokens": {
-      "type": "object",
-      "properties": {
-        "provider": {
-          "type": "string"
-        },
-        "tokens": {
-          "type": "array",
-          "items": {
             "type": "string"
           }
         }
@@ -1839,17 +1817,12 @@
             "type": "string"
           }
         },
-        "tags": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
         "topics": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "title": "map\u003cstring, string\u003e labels = 8;\nmap\u003cstring, int64\u003e scores = 9;"
         }
       }
     },
@@ -1886,13 +1859,6 @@
           "items": {
             "type": "string"
           }
-        },
-        "provider_tokens": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/DeviceProviderTokens"
-          }
         }
       }
     },
@@ -1909,21 +1875,6 @@
     },
     "DeviceRemoveResult": {
       "type": "object"
-    },
-    "DeviceTagsUpdate": {
-      "type": "object",
-      "properties": {
-        "op": {
-          "type": "string",
-          "title": "add | remove | set"
-        },
-        "tags": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        }
-      }
     },
     "DeviceTopic": {
       "type": "object",
@@ -1954,13 +1905,6 @@
             "type": "string"
           }
         },
-        "device_provider_tokens": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/DeviceProviderTokens"
-          }
-        },
         "device_platforms": {
           "type": "array",
           "items": {
@@ -1989,6 +1933,9 @@
       "properties": {
         "filter": {
           "$ref": "#/definitions/DeviceTopicFilter"
+        },
+        "include_total_count": {
+          "type": "boolean"
         },
         "include_device": {
           "type": "boolean"
@@ -2025,6 +1972,9 @@
         },
         "next_cursor": {
           "type": "string"
+        },
+        "total_count": {
+          "type": "integer"
         }
       }
     },
@@ -2090,24 +2040,15 @@
             "type": "string"
           }
         },
-        "provider_tokens": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/DeviceProviderTokens"
-          }
-        },
         "user_update": {
           "$ref": "#/definitions/DeviceUserUpdate"
         },
         "meta_update": {
           "$ref": "#/definitions/DeviceMetaUpdate"
         },
-        "tags_update": {
-          "$ref": "#/definitions/DeviceTagsUpdate"
-        },
         "topics_update": {
-          "$ref": "#/definitions/DeviceTopicsUpdate"
+          "$ref": "#/definitions/DeviceTopicsUpdate",
+          "title": "DeviceLabelsUpdate labels_update = 7;\nDeviceScoresUpdate scores_update = 8;"
         }
       }
     },
@@ -2579,10 +2520,12 @@
           "$ref": "#/definitions/ApnsPushNotification"
         },
         "uid": {
-          "type": "string"
+          "type": "string",
+          "description": "unique identifier for push notification, used for matching in Centrifugo analytics."
         },
         "expire_at": {
-          "type": "integer"
+          "type": "integer",
+          "description": "timestamp in the future when Centrifugo should stop trying to send push notification."
         }
       }
     },
@@ -2985,16 +2928,20 @@
       "type": "object",
       "properties": {
         "uid": {
-          "type": "string"
+          "type": "string",
+          "title": "uid of push notification (matches SendPushNotificationResult.uid)"
         },
         "status": {
-          "type": "string"
+          "type": "string",
+          "title": "failed | sent | delivered | interacted"
         },
         "device_id": {
-          "type": "string"
+          "type": "string",
+          "description": "Centrifugo device id."
         },
         "msg_id": {
-          "type": "string"
+          "type": "string",
+          "description": "Provider issued message id."
         }
       }
     },
@@ -3091,6 +3038,9 @@
         "filter": {
           "$ref": "#/definitions/UserTopicFilter"
         },
+        "include_total_count": {
+          "type": "boolean"
+        },
         "cursor": {
           "type": "string"
         },
@@ -3123,6 +3073,9 @@
         },
         "next_cursor": {
           "type": "string"
+        },
+        "total_count": {
+          "type": "integer"
         }
       }
     },

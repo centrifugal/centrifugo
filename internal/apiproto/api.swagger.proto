@@ -889,25 +889,25 @@ message DeviceRegisterRequest {
   string platform = 4;
   string user = 5;
   map<string, string> meta = 6;
-  map<string, string> tags = 7;
-  repeated string topics = 8;
+  repeated string topics = 7;
+  //map<string, string> labels = 8;
+  //map<string, int64> scores = 9;
 }
 
 message DeviceUpdateRequest {
   repeated string ids = 1;
   repeated string users = 2;
-  repeated DeviceProviderTokens provider_tokens = 3;
 
   DeviceUserUpdate user_update = 4;
   DeviceMetaUpdate meta_update = 5;
-  DeviceTagsUpdate tags_update = 6;
-  DeviceTopicsUpdate topics_update = 7;
+  DeviceTopicsUpdate topics_update = 6;
+  //DeviceLabelsUpdate labels_update = 7;
+  //DeviceScoresUpdate scores_update = 8;
 }
 
 message DeviceRemoveRequest {
   repeated string ids = 1;
   repeated string users = 2;
-  repeated DeviceProviderTokens provider_tokens = 3;
 }
 
 message DeviceUserUpdate {
@@ -923,30 +923,22 @@ message DeviceTopicsUpdate {
   repeated string topics = 2;
 }
 
-message DeviceTagsUpdate {
-  string op = 1; // add | remove | set
-  map<string, string> tags = 2;
-}
-
-message DeviceProviderTokens {
-  string provider = 1;
-  repeated string tokens = 2;
-}
-
 message DeviceFilter {
   repeated string ids = 1;
   repeated string users = 2;
   repeated string topics = 3;
   repeated string providers = 4;
   repeated string platforms = 5;
-  repeated DeviceProviderTokens provider_tokens= 6;
 }
 
 message DeviceListRequest {
-  DeviceFilter filter =1;
-  bool include_topics = 2;
+  DeviceFilter filter = 1;
+
+  bool include_total_count = 2;
   bool include_meta = 3;
-  bool include_tags = 4;
+  bool include_topics = 4;
+  //bool include_labels = 5;
+  //bool include_scores = 6;
 
   string cursor = 10;
   int32 limit = 11;
@@ -955,16 +947,17 @@ message DeviceListRequest {
 message DeviceTopicFilter {
   repeated string device_ids = 1;
   repeated string device_providers = 2;
-  repeated DeviceProviderTokens device_provider_tokens= 3;
-  repeated string device_platforms = 4;
-  repeated string device_users = 5;
-  repeated string topics = 6;
-  string topic_prefix = 7;
+  repeated string device_platforms = 3;
+  repeated string device_users = 4;
+  repeated string topics = 5;
+  string topic_prefix = 6;
 }
 
 message DeviceTopicListRequest {
   DeviceTopicFilter filter = 1;
-  bool include_device = 2;
+
+  bool include_total_count = 2;
+  bool include_device = 3;
 
   string cursor = 10;
   int32 limit = 11;
@@ -979,8 +972,10 @@ message UserTopicFilter {
 message UserTopicListRequest {
   UserTopicFilter filter = 1;
 
-  string cursor = 2;
-  int32 limit = 3;
+  bool include_total_count = 2;
+
+  string cursor = 10;
+  int32 limit = 11;
 }
 
 message DeviceTopicUpdateRequest {
@@ -1048,6 +1043,7 @@ message DeviceRemoveResult {
 message DeviceListResult {
   repeated Device items = 1;
   string next_cursor = 2;
+  int64 total_count = 3;
 }
 
 message Device {
@@ -1061,12 +1057,14 @@ message Device {
 
   map<string, string> meta = 10;
   repeated string topics = 11;
-  map<string, string> tags = 12;
+  //map<string, string> labels = 12;
+  //map<string, int64> scores = 13;
 }
 
 message DeviceTopicListResult {
   repeated DeviceTopic items = 1;
   string next_cursor = 2;
+  int64 total_count = 3;
 }
 
 message DeviceTopic {
@@ -1078,6 +1076,7 @@ message DeviceTopic {
 message UserTopicListResult {
   repeated UserTopic items = 1;
   string next_cursor = 2;
+  int64 total_count = 3;
 }
 
 message DeviceTopicUpdateResult {
@@ -1090,13 +1089,6 @@ message UserTopic {
   string id = 1;
   string user = 2;
   string topic = 3;
-}
-
-message DeviceTag {
-  string id = 1;
-  string key = 2;
-  string value = 3;
-  Device device = 4;
 }
 
 message PushRecipient {
@@ -1118,8 +1110,8 @@ message PushNotification {
   HmsPushNotification hms = 2;
   ApnsPushNotification apns = 3;
 
-  string uid = 4;
-  int64 expire_at = 5;
+  string uid = 4;      // unique identifier for push notification, used for matching in Centrifugo analytics.
+  int64 expire_at = 5; // timestamp in the future when Centrifugo should stop trying to send push notification.
 }
 
 message FcmPushNotification {
@@ -1146,14 +1138,14 @@ message SendPushNotificationResponse {
 }
 
 message SendPushNotificationResult {
-  string uid = 1; // Unique identifier of notification send request (it's not a FCM message id).
+  string uid = 1;  // Unique identifier of notification send request (it's not a FCM message id).
 }
 
 message UpdatePushStatusRequest {
-  string uid = 1;
-  string status = 2;
-  string device_id = 3;
-  string msg_id = 4;
+  string uid = 1;        // uid of push notification (matches SendPushNotificationResult.uid)
+  string status = 2;     // failed | sent | delivered | interacted
+  string device_id = 3;  // Centrifugo device id.
+  string msg_id = 4;     // Provider issued message id.
 }
 
 message UpdatePushStatusResponse {
