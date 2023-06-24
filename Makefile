@@ -40,6 +40,7 @@ packagecloud-deb:
 	package_cloud push FZambia/centrifugo/ubuntu/xenial PACKAGES/*.deb
 	package_cloud push FZambia/centrifugo/ubuntu/bionic PACKAGES/*.deb
 	package_cloud push FZambia/centrifugo/ubuntu/focal PACKAGES/*.deb
+	package_cloud push FZambia/centrifugo/ubuntu/jammy PACKAGES/*.deb
 
 packagecloud-rpm:
 	# PACKAGECLOUD_TOKEN env must be set
