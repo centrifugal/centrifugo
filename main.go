@@ -87,189 +87,335 @@ import (
 
 //go:generate go run internal/gen/api/main.go
 
+var defaults = map[string]any{
+	"gomaxprocs": 0,
+	"name":       "",
+	"engine":     "memory",
+	"broker":     "",
+
+	"pid_file": "",
+
+	"granular_proxy_mode": false,
+
+	"opentelemetry":     false,
+	"opentelemetry_api": false,
+
+	"client_insecure": false,
+	"api_insecure":    false,
+
+	"token_hmac_secret_key":      "",
+	"token_rsa_public_key":       "",
+	"token_ecdsa_public_key":     "",
+	"token_jwks_public_endpoint": "",
+	"token_audience":             "",
+	"token_audience_regex":       "",
+	"token_issuer":               "",
+	"token_issuer_regex":         "",
+
+	"allowed_origins": []string{},
+
+	"global_history_meta_ttl": 30 * 24 * time.Hour,
+	"global_presence_ttl":     60 * time.Second,
+
+	"presence":                      false,
+	"join_leave":                    false,
+	"force_push_join_leave":         false,
+	"history_size":                  0,
+	"history_ttl":                   0,
+	"history_meta_ttl":              0,
+	"force_positioning":             false,
+	"allow_positioning":             false,
+	"force_recovery":                false,
+	"allow_recovery":                false,
+	"allow_subscribe_for_anonymous": false,
+	"allow_subscribe_for_client":    false,
+	"allow_publish_for_anonymous":   false,
+	"allow_publish_for_client":      false,
+	"allow_publish_for_subscriber":  false,
+	"allow_presence_for_anonymous":  false,
+	"allow_presence_for_client":     false,
+	"allow_presence_for_subscriber": false,
+	"allow_history_for_anonymous":   false,
+	"allow_history_for_client":      false,
+	"allow_history_for_subscriber":  false,
+	"allow_user_limited_channels":   false,
+	"channel_regex":                 "",
+	"proxy_subscribe":               false,
+	"proxy_publish":                 false,
+	"proxy_sub_refresh":             false,
+	"subscribe_proxy_name":          "",
+	"publish_proxy_name":            "",
+	"sub_refresh_proxy_name":        "",
+
+	"node_info_metrics_aggregate_interval": 60 * time.Second,
+
+	"allow_anonymous_connect_without_token": false,
+	"disallow_anonymous_connection_tokens":  false,
+
+	"client_expired_close_delay":          25 * time.Second,
+	"client_expired_sub_close_delay":      25 * time.Second,
+	"client_stale_close_delay":            10 * time.Second,
+	"client_channel_limit":                128,
+	"client_queue_max_size":               1048576, // 1 MB
+	"client_presence_update_interval":     27 * time.Second,
+	"client_user_connection_limit":        0,
+	"client_concurrency":                  0,
+	"client_channel_position_check_delay": 40 * time.Second,
+	"client_connection_limit":             0,
+	"client_connection_rate_limit":        0,
+
+	"channel_max_length":         255,
+	"channel_private_prefix":     "$",
+	"channel_namespace_boundary": ":",
+	"channel_user_boundary":      "#",
+	"channel_user_separator":     ",",
+
+	"rpc_namespace_boundary": ":",
+
+	"user_subscribe_to_personal":      false,
+	"user_personal_channel_namespace": "",
+	"user_personal_single_connection": false,
+
+	"debug":      false,
+	"prometheus": false,
+	"health":     false,
+
+	"admin":                   false,
+	"admin_password":          "",
+	"admin_secret":            "",
+	"admin_insecure":          false,
+	"admin_web_path":          "",
+	"admin_web_proxy_address": "",
+
+	"sockjs":     false,
+	"sockjs_url": "https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js",
+
+	"websocket_compression":           false,
+	"websocket_compression_min_size":  0,
+	"websocket_compression_level":     1,
+	"websocket_read_buffer_size":      0,
+	"websocket_use_write_buffer_pool": false,
+	"websocket_write_buffer_size":     0,
+	"websocket_write_timeout":         time.Second,
+	"websocket_message_size_limit":    65536, // 64KB
+
+	"uni_websocket":                       false,
+	"uni_websocket_compression":           false,
+	"uni_websocket_compression_min_size":  0,
+	"uni_websocket_compression_level":     1,
+	"uni_websocket_read_buffer_size":      0,
+	"uni_websocket_use_write_buffer_pool": false,
+	"uni_websocket_write_buffer_size":     0,
+	"uni_websocket_write_timeout":         time.Second,
+	"uni_websocket_message_size_limit":    65536, // 64KB
+
+	"uni_sse":         false,
+	"uni_http_stream": false,
+
+	"log_level": "info",
+	"log_file":  "",
+
+	"tls":                      false,
+	"tls_key":                  "",
+	"tls_cert":                 "",
+	"tls_cert_pem":             "",
+	"tls_key_pem":              "",
+	"tls_root_ca":              "",
+	"tls_root_ca_pem":          "",
+	"tls_server_name":          "",
+	"tls_insecure_skip_verify": false,
+
+	"swagger":          false,
+	"admin_external":   false,
+	"api_external":     false,
+	"address":          "",
+	"port":             "8000",
+	"internal_address": "",
+	"internal_port":    "",
+
+	"webtransport": false,
+	"http3":        false,
+
+	"tls_external": false,
+
+	"connect_proxy_name": "",
+	"refresh_proxy_name": "",
+	"rpc_proxy_name":     "",
+
+	"proxy_connect_endpoint":        "",
+	"proxy_refresh_endpoint":        "",
+	"proxy_subscribe_endpoint":      "",
+	"proxy_publish_endpoint":        "",
+	"proxy_sub_refresh_endpoint":    "",
+	"proxy_rpc_endpoint":            "",
+	"proxy_connect_timeout":         time.Second,
+	"proxy_rpc_timeout":             time.Second,
+	"proxy_refresh_timeout":         time.Second,
+	"proxy_subscribe_timeout":       time.Second,
+	"proxy_publish_timeout":         time.Second,
+	"proxy_sub_refresh_timeout":     time.Second,
+	"proxy_grpc_metadata":           []string{},
+	"proxy_http_headers":            []string{},
+	"proxy_binary_encoding":         false,
+	"proxy_include_connection_meta": false,
+	"proxy_grpc_cert_file":          "",
+
+	"tarantool_mode":     "standalone",
+	"tarantool_address":  "tcp://127.0.0.1:3301",
+	"tarantool_user":     "",
+	"tarantool_password": "",
+
+	"api_key": "",
+
+	"uni_http_stream_max_request_body_size": 65536, // 64KB
+	"uni_sse_max_request_body_size":         65536, // 64KB
+	"http_stream_max_request_body_size":     65536, // 64KB
+	"sse_max_request_body_size":             65536, // 64KB
+
+	"tls_autocert":                false,
+	"tls_autocert_host_whitelist": "",
+	"tls_autocert_cache_dir":      "",
+	"tls_autocert_email":          "",
+	"tls_autocert_server_name":    "",
+	"tls_autocert_http":           false,
+	"tls_autocert_http_addr":      ":80",
+
+	"grpc_api":                          false,
+	"grpc_api_address":                  "",
+	"grpc_api_port":                     10000,
+	"grpc_api_key":                      "",
+	"grpc_api_tls_disable":              false,
+	"grpc_api_reflection":               false,
+	"grpc_api_tls":                      false,
+	"grpc_api_tls_key":                  "",
+	"grpc_api_tls_cert":                 "",
+	"grpc_api_tls_cert_pem":             "",
+	"grpc_api_tls_key_pem":              "",
+	"grpc_api_tls_root_ca":              "",
+	"grpc_api_tls_root_ca_pem":          "",
+	"grpc_api_tls_server_name":          "",
+	"grpc_api_tls_insecure_skip_verify": false,
+
+	"shutdown_timeout":           30 * time.Second,
+	"shutdown_termination_delay": 0,
+
+	"graphite":          false,
+	"graphite_host":     "localhost",
+	"graphite_port":     2003,
+	"graphite_prefix":   "centrifugo",
+	"graphite_interval": 10 * time.Second,
+	"graphite_tags":     false,
+
+	"nats_prefix":        "centrifugo",
+	"nats_url":           "nats://127.0.0.1:4222",
+	"nats_dial_timeout":  time.Second,
+	"nats_write_timeout": time.Second,
+
+	"websocket_disable": false,
+	"api_disable":       false,
+
+	"websocket_handler_prefix":       "/connection/websocket",
+	"webtransport_handler_prefix":    "/connection/webtransport",
+	"sockjs_handler_prefix":          "/connection/sockjs",
+	"http_stream_handler_prefix":     "/connection/http_stream",
+	"sse_handler_prefix":             "/connection/sse",
+	"uni_websocket_handler_prefix":   "/connection/uni_websocket",
+	"uni_sse_handler_prefix":         "/connection/uni_sse",
+	"uni_http_stream_handler_prefix": "/connection/uni_http_stream",
+
+	"uni_grpc":                          false,
+	"uni_grpc_address":                  "",
+	"uni_grpc_port":                     11000,
+	"uni_grpc_max_receive_message_size": 65536,
+	"uni_grpc_tls_disable":              false,
+	"uni_grpc_tls":                      false,
+	"uni_grpc_tls_key":                  "",
+	"uni_grpc_tls_cert":                 "",
+	"uni_grpc_tls_cert_pem":             "",
+	"uni_grpc_tls_key_pem":              "",
+	"uni_grpc_tls_root_ca":              "",
+	"uni_grpc_tls_root_ca_pem":          "",
+	"uni_grpc_tls_server_name":          "",
+	"uni_grpc_tls_insecure_skip_verify": false,
+
+	"http_stream": false,
+	"sse":         false,
+
+	"emulation_handler_prefix":        "/emulation",
+	"emulation_max_request_body_size": 65536, // 64KB
+
+	"admin_handler_prefix":      "",
+	"api_handler_prefix":        "/api",
+	"prometheus_handler_prefix": "/metrics",
+	"health_handler_prefix":     "/health",
+	"swagger_handler_prefix":    "/swagger",
+
+	"client_history_max_publication_limit":  300,
+	"client_recovery_max_publication_limit": 300,
+
+	"usage_stats_disable": false,
+
+	"ping_interval": 25 * time.Second,
+	"pong_timeout":  8 * time.Second,
+
+	"namespaces":     []any{},
+	"rpc_namespaces": []any{},
+
+	"proxies": []any{},
+
+	"proxy_grpc_credentials_key":   "",
+	"proxy_grpc_credentials_value": "",
+}
+
+func init() {
+	redisConfigPrefixes := []string{
+		"",
+	}
+	for _, prefix := range redisConfigPrefixes {
+		keyMap := map[string]any{
+			prefix + "redis_address":                           "redis://127.0.0.1:6379",
+			prefix + "redis_prefix":                            "centrifugo",
+			prefix + "redis_connect_timeout":                   time.Second,
+			prefix + "redis_io_timeout":                        4 * time.Second,
+			prefix + "redis_use_lists":                         false,
+			prefix + "redis_db":                                0,
+			prefix + "redis_user":                              "",
+			prefix + "redis_password":                          "",
+			prefix + "redis_client_name":                       "",
+			prefix + "redis_force_resp2":                       false,
+			prefix + "redis_cluster_address":                   []string{},
+			prefix + "redis_sentinel_address":                  []string{},
+			prefix + "redis_sentinel_user":                     "",
+			prefix + "redis_sentinel_password":                 "",
+			prefix + "redis_sentinel_master_name":              "",
+			prefix + "redis_sentinel_client_name":              "",
+			prefix + "redis_tls":                               false,
+			prefix + "redis_tls_key":                           "",
+			prefix + "redis_tls_cert":                          "",
+			prefix + "redis_tls_cert_pem":                      "",
+			prefix + "redis_tls_key_pem":                       "",
+			prefix + "redis_tls_root_ca":                       "",
+			prefix + "redis_tls_root_ca_pem":                   "",
+			prefix + "redis_tls_server_name":                   "",
+			prefix + "redis_tls_insecure_skip_verify":          false,
+			prefix + "redis_sentinel_tls":                      false,
+			prefix + "redis_sentinel_tls_key":                  "",
+			prefix + "redis_sentinel_tls_cert":                 "",
+			prefix + "redis_sentinel_tls_cert_pem":             "",
+			prefix + "redis_sentinel_tls_key_pem":              "",
+			prefix + "redis_sentinel_tls_root_ca":              "",
+			prefix + "redis_sentinel_tls_root_ca_pem":          "",
+			prefix + "redis_sentinel_tls_server_name":          "",
+			prefix + "redis_sentinel_tls_insecure_skip_verify": false,
+		}
+		for k, v := range keyMap {
+			defaults[k] = v
+		}
+	}
+}
+
 func bindCentrifugoConfig() {
 	viper.SetEnvPrefix("centrifugo")
-
-	var defaults = map[string]interface{}{
-		"gomaxprocs": 0,
-		"name":       "",
-		"engine":     "memory",
-		"broker":     "",
-
-		"token_hmac_secret_key":      "",
-		"token_rsa_public_key":       "",
-		"token_ecdsa_public_key":     "",
-		"token_jwks_public_endpoint": "",
-		"token_audience":             "",
-		"token_issuer":               "",
-
-		"global_history_meta_ttl": 30 * 24 * time.Hour,
-		"global_presence_ttl":     60 * time.Second,
-
-		"presence":                      false,
-		"join_leave":                    false,
-		"force_push_join_leave":         false,
-		"history_size":                  0,
-		"history_ttl":                   0,
-		"history_meta_ttl":              0,
-		"force_positioning":             false,
-		"allow_positioning":             false,
-		"force_recovery":                false,
-		"allow_recovery":                false,
-		"allow_subscribe_for_anonymous": false,
-		"allow_subscribe_for_client":    false,
-		"allow_publish_for_anonymous":   false,
-		"allow_publish_for_client":      false,
-		"allow_publish_for_subscriber":  false,
-		"allow_presence_for_anonymous":  false,
-		"allow_presence_for_client":     false,
-		"allow_presence_for_subscriber": false,
-		"allow_history_for_anonymous":   false,
-		"allow_history_for_client":      false,
-		"allow_history_for_subscriber":  false,
-		"allow_user_limited_channels":   false,
-		"channel_regex":                 "",
-		"proxy_subscribe":               false,
-		"proxy_publish":                 false,
-		"subscribe_proxy_name":          "",
-		"publish_proxy_name":            "",
-
-		"node_info_metrics_aggregate_interval": 60 * time.Second,
-
-		"allow_anonymous_connect_without_token": false,
-		"disallow_anonymous_connection_tokens":  false,
-
-		"client_expired_close_delay":          25 * time.Second,
-		"client_expired_sub_close_delay":      25 * time.Second,
-		"client_stale_close_delay":            10 * time.Second,
-		"client_channel_limit":                128,
-		"client_queue_max_size":               1048576, // 1 MB
-		"client_presence_update_interval":     27 * time.Second,
-		"client_user_connection_limit":        0,
-		"client_concurrency":                  0,
-		"client_channel_position_check_delay": 40 * time.Second,
-
-		"channel_max_length":         255,
-		"channel_private_prefix":     "$",
-		"channel_namespace_boundary": ":",
-		"channel_user_boundary":      "#",
-		"channel_user_separator":     ",",
-
-		"rpc_namespace_boundary": ":",
-
-		"user_subscribe_to_personal":      false,
-		"user_personal_channel_namespace": "",
-		"user_personal_single_connection": false,
-
-		"debug":      false,
-		"prometheus": false,
-		"health":     false,
-
-		"admin":          false,
-		"admin_password": "",
-		"admin_secret":   "",
-		"admin_insecure": false,
-		"admin_web_path": "",
-
-		"sockjs":     false,
-		"sockjs_url": "https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js",
-
-		"websocket_compression":           false,
-		"websocket_compression_min_size":  0,
-		"websocket_compression_level":     1,
-		"websocket_read_buffer_size":      0,
-		"websocket_use_write_buffer_pool": false,
-		"websocket_write_buffer_size":     0,
-		"websocket_write_timeout":         time.Second,
-		"websocket_message_size_limit":    65536, // 64KB
-
-		"uni_websocket":                       false,
-		"uni_websocket_compression":           false,
-		"uni_websocket_compression_min_size":  0,
-		"uni_websocket_compression_level":     1,
-		"uni_websocket_read_buffer_size":      0,
-		"uni_websocket_use_write_buffer_pool": false,
-		"uni_websocket_write_buffer_size":     0,
-		"uni_websocket_write_timeout":         time.Second,
-		"uni_websocket_message_size_limit":    65536, // 64KB
-
-		"uni_http_stream_max_request_body_size": 65536, // 64KB
-		"uni_sse_max_request_body_size":         65536, // 64KB
-		"http_stream_max_request_body_size":     65536, // 64KB
-		"sse_max_request_body_size":             65536, // 64KB
-
-		"tls_autocert":                false,
-		"tls_autocert_host_whitelist": "",
-		"tls_autocert_cache_dir":      "",
-		"tls_autocert_email":          "",
-		"tls_autocert_server_name":    "",
-		"tls_autocert_http":           false,
-		"tls_autocert_http_addr":      ":80",
-
-		"redis_prefix":          "centrifugo",
-		"redis_connect_timeout": time.Second,
-		"redis_io_timeout":      4 * time.Second,
-
-		"grpc_api":         false,
-		"grpc_api_address": "",
-		"grpc_api_port":    10000,
-
-		"shutdown_timeout":           30 * time.Second,
-		"shutdown_termination_delay": 0,
-
-		"graphite":          false,
-		"graphite_host":     "localhost",
-		"graphite_port":     2003,
-		"graphite_prefix":   "centrifugo",
-		"graphite_interval": 10 * time.Second,
-		"graphite_tags":     false,
-
-		"nats_prefix":        "centrifugo",
-		"nats_url":           "",
-		"nats_dial_timeout":  time.Second,
-		"nats_write_timeout": time.Second,
-
-		"websocket_disable": false,
-		"api_disable":       false,
-
-		"websocket_handler_prefix":    "/connection/websocket",
-		"webtransport_handler_prefix": "/connection/webtransport",
-		"sockjs_handler_prefix":       "/connection/sockjs",
-		"http_stream_handler_prefix":  "/connection/http_stream",
-		"sse_handler_prefix":          "/connection/sse",
-
-		"uni_websocket_handler_prefix":      "/connection/uni_websocket",
-		"uni_sse_handler_prefix":            "/connection/uni_sse",
-		"uni_http_stream_handler_prefix":    "/connection/uni_http_stream",
-		"uni_grpc":                          false,
-		"uni_grpc_address":                  "",
-		"uni_grpc_port":                     11000,
-		"uni_grpc_max_receive_message_size": 65536,
-
-		"emulation_handler_prefix":        "/emulation",
-		"emulation_max_request_body_size": 65536, // 64KB
-
-		"admin_handler_prefix":      "",
-		"api_handler_prefix":        "/api",
-		"prometheus_handler_prefix": "/metrics",
-		"health_handler_prefix":     "/health",
-		"swagger_handler_prefix":    "/swagger",
-
-		"proxy_connect_timeout":     time.Second,
-		"proxy_rpc_timeout":         time.Second,
-		"proxy_refresh_timeout":     time.Second,
-		"proxy_subscribe_timeout":   time.Second,
-		"proxy_publish_timeout":     time.Second,
-		"proxy_sub_refresh_timeout": time.Second,
-
-		"client_history_max_publication_limit":  300,
-		"client_recovery_max_publication_limit": 300,
-
-		"usage_stats_disable": false,
-
-		"ping_interval": 25 * time.Second,
-		"pong_timeout":  8 * time.Second,
-	}
 
 	for k, v := range defaults {
 		viper.SetDefault(k, v)
@@ -623,6 +769,8 @@ func main() {
 			}
 
 			notify.RegisterHandlers(node, statsSender)
+
+			tools.CheckPlainConfigKeys(defaults, viper.AllKeys())
 
 			handleSignals(configFile, node, ruleContainer, tokenVerifier, servers, grpcAPIServer, grpcUniServer, exporter)
 		},
@@ -1763,11 +1911,14 @@ func granularProxiesFromConfig(v *viper.Viper) []proxy.Proxy {
 	if !v.IsSet("proxies") {
 		return proxies
 	}
+	var jsonData []byte
 	var err error
 	switch val := v.Get("proxies").(type) {
 	case string:
+		jsonData = []byte(val)
 		err = json.Unmarshal([]byte(val), &proxies)
 	case []interface{}:
+		jsonData, _ = json.Marshal(val)
 		decoderCfg := tools.DecoderConfig(&proxies)
 		decoder, newErr := mapstructure.NewDecoder(decoderCfg)
 		if newErr != nil {
@@ -1797,6 +1948,9 @@ func granularProxiesFromConfig(v *viper.Viper) []proxy.Proxy {
 		}
 		names[p.Name] = struct{}{}
 	}
+
+	proxy.WarnUnknownProxyKeys(jsonData)
+
 	return proxies
 }
 
@@ -1862,11 +2016,14 @@ func namespacesFromConfig(v *viper.Viper) []rule.ChannelNamespace {
 	if !v.IsSet("namespaces") {
 		return ns
 	}
+	var jsonData []byte
 	var err error
 	switch val := v.Get("namespaces").(type) {
 	case string:
+		jsonData = []byte(val)
 		err = json.Unmarshal([]byte(val), &ns)
 	case []interface{}:
+		jsonData, _ = json.Marshal(val)
 		decoderCfg := tools.DecoderConfig(&ns)
 		decoder, newErr := mapstructure.NewDecoder(decoderCfg)
 		if newErr != nil {
@@ -1881,6 +2038,7 @@ func namespacesFromConfig(v *viper.Viper) []rule.ChannelNamespace {
 		log.Error().Err(err).Msg("malformed namespaces")
 		os.Exit(1)
 	}
+	rule.WarnUnknownNamespaceKeys(jsonData)
 	return ns
 }
 
@@ -1890,11 +2048,14 @@ func rpcNamespacesFromConfig(v *viper.Viper) []rule.RpcNamespace {
 	if !v.IsSet("rpc_namespaces") {
 		return ns
 	}
+	var jsonData []byte
 	var err error
 	switch val := v.Get("rpc_namespaces").(type) {
 	case string:
+		jsonData, _ = json.Marshal(val)
 		err = json.Unmarshal([]byte(val), &ns)
 	case []interface{}:
+		jsonData, _ = json.Marshal(val)
 		decoderCfg := tools.DecoderConfig(&ns)
 		decoder, newErr := mapstructure.NewDecoder(decoderCfg)
 		if newErr != nil {
@@ -1909,6 +2070,7 @@ func rpcNamespacesFromConfig(v *viper.Viper) []rule.RpcNamespace {
 		log.Error().Err(err).Msg("malformed rpc_namespaces")
 		os.Exit(1)
 	}
+	rule.WarnUnknownRpcNamespaceKeys(jsonData)
 	return ns
 }
 
