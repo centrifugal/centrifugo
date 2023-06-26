@@ -27,21 +27,20 @@ func generateTestRSAKeys(t *testing.T) (*rsa.PrivateKey, *rsa.PublicKey) {
 	return key, &key.PublicKey
 }
 
-func getTokenBuilder(rsaPrivateKey *rsa.PrivateKey) *jwt.Builder {
+func getTokenBuilder(rsaPrivateKey *rsa.PrivateKey, hmacSecret string) *jwt.Builder {
 	var signer jwt.Signer
 	if rsaPrivateKey != nil {
 		signer, _ = jwt.NewSignerRS(jwt.RS256, rsaPrivateKey)
 	} else {
 		// For HS we do everything in tests with key `secret`.
-		key := []byte(`secret`)
+		key := []byte(hmacSecret)
 		signer, _ = jwt.NewSignerHS(jwt.HS256, key)
-
 	}
 	return jwt.NewBuilder(signer)
 }
 
 func getConnToken(user string, exp int64, rsaPrivateKey *rsa.PrivateKey) string {
-	builder := getTokenBuilder(rsaPrivateKey)
+	builder := getTokenBuilder(rsaPrivateKey, "secret")
 	claims := &jwtverify.ConnectTokenClaims{
 		Base64Info: "e30=",
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -58,8 +57,8 @@ func getConnToken(user string, exp int64, rsaPrivateKey *rsa.PrivateKey) string 
 	return token.String()
 }
 
-func getSubscribeToken(user string, channel string, exp int64, rsaPrivateKey *rsa.PrivateKey) string {
-	builder := getTokenBuilder(rsaPrivateKey)
+func getSubscribeToken(user string, channel string, exp int64, rsaPrivateKey *rsa.PrivateKey, hmacSecret string) string {
+	builder := getTokenBuilder(rsaPrivateKey, hmacSecret)
 	claims := &jwtverify.SubscribeTokenClaims{
 		SubscribeOptions: jwtverify.SubscribeOptions{
 			Base64Info: "e30=",
@@ -84,7 +83,11 @@ func getConnTokenHS(user string, exp int64) string {
 }
 
 func getSubscribeTokenHS(user string, channel string, exp int64) string {
-	return getSubscribeToken(user, channel, exp, nil)
+	return getSubscribeTokenHSWithSecret(user, channel, exp, "secret")
+}
+
+func getSubscribeTokenHSWithSecret(user string, channel string, exp int64, hmacSecret string) string {
+	return getSubscribeToken(user, channel, exp, nil, hmacSecret)
 }
 
 func emptyJWTVerifier(t *testing.T, ruleContainer *rule.Container) *jwtverify.VerifierJWT {
@@ -94,8 +97,12 @@ func emptyJWTVerifier(t *testing.T, ruleContainer *rule.Container) *jwtverify.Ve
 }
 
 func hmacJWTVerifier(t *testing.T, ruleContainer *rule.Container) *jwtverify.VerifierJWT {
+	return hmacJWTVerifierWithSecret(t, ruleContainer, "secret")
+}
+
+func hmacJWTVerifierWithSecret(t *testing.T, ruleContainer *rule.Container, secret string) *jwtverify.VerifierJWT {
 	verifier, err := jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
-		HMACSecretKey: "secret",
+		HMACSecretKey: secret,
 	}, ruleContainer)
 	require.NoError(t, err)
 	return verifier
@@ -713,6 +720,67 @@ func TestClientSideSubRefresh(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, subRefreshReply.Expired)
 	require.Equal(t, int64(2525637058), subRefreshReply.ExpireAt)
+}
+
+func TestClientSideSubRefresh_SeparateSubTokenConfig(t *testing.T) {
+	node := tools.NodeWithMemoryEngine()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	ruleConfig := rule.DefaultConfig
+	ruleConfig.AnonymousConnectWithoutToken = true
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
+	h := NewHandler(node, ruleContainer, hmacJWTVerifier(t, ruleContainer), hmacJWTVerifierWithSecret(t, ruleContainer, "new_secret"), &ProxyMap{}, false)
+
+	transport := tools.NewTestTransport()
+	client, closeFn, err := centrifuge.NewClient(context.Background(), node, transport)
+	require.NoError(t, err)
+	defer func() { _ = closeFn() }()
+
+	node.OnConnecting(func(ctx context.Context, event centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+		return centrifuge.ConnectReply{
+			Credentials: &centrifuge.Credentials{
+				UserID: "12",
+			},
+		}, nil
+	})
+
+	connectCommand := &protocol.Command{
+		Id:      1,
+		Connect: &protocol.ConnectRequest{},
+	}
+	encoder := protocol.NewJSONCommandEncoder()
+	data, err := encoder.Encode(connectCommand)
+	require.NoError(t, err)
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
+	require.True(t, ok)
+
+	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
+		Channel: "$test1",
+		Token:   getSubscribeTokenHS("12", "$test1", time.Now().Unix()+10),
+	}, nil)
+	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
+
+	reply, _, err := h.OnSubscribe(client, centrifuge.SubscribeEvent{
+		Channel: "$test1",
+		Token:   getSubscribeTokenHSWithSecret("12", "$test1", time.Now().Unix()+10, "new_secret"),
+	}, nil)
+	require.NoError(t, err)
+	require.True(t, reply.Options.ExpireAt > 0)
+
+	subRefreshReply, _, err := h.OnSubRefresh(client, nil, centrifuge.SubRefreshEvent{
+		Channel: "$test1",
+		Token:   getSubscribeTokenHSWithSecret("12", "$test1", 2525637058, "new_secret"),
+	})
+	require.NoError(t, err)
+	require.False(t, subRefreshReply.Expired)
+	require.Equal(t, int64(2525637058), subRefreshReply.ExpireAt)
+
+	_, _, err = h.OnSubRefresh(client, nil, centrifuge.SubRefreshEvent{
+		Channel: "$test1",
+		Token:   getSubscribeTokenHS("12", "$test1", 2525637058),
+	})
+	require.Equal(t, centrifuge.DisconnectInvalidToken, err)
 }
 
 func TestClientSubscribePrivateChannelWithExpiringToken(t *testing.T) {
