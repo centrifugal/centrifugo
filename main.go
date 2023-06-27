@@ -112,6 +112,16 @@ var defaults = map[string]any{
 	"token_issuer":               "",
 	"token_issuer_regex":         "",
 
+	"separate_subscription_token_config":      false,
+	"subscription_token_hmac_secret_key":      "",
+	"subscription_token_rsa_public_key":       "",
+	"subscription_token_ecdsa_public_key":     "",
+	"subscription_token_jwks_public_endpoint": "",
+	"subscription_token_audience":             "",
+	"subscription_token_audience_regex":       "",
+	"subscription_token_issuer":               "",
+	"subscription_token_issuer_regex":         "",
+
 	"allowed_origins": []string{},
 
 	"global_history_meta_ttl": 30 * 24 * time.Hour,
@@ -560,7 +570,17 @@ func main() {
 				log.Fatal().Msgf("error creating token verifier: %v", err)
 			}
 
-			clientHandler := client.NewHandler(node, ruleContainer, tokenVerifier, proxyMap, granularProxyMode)
+			var subTokenVerifier *jwtverify.VerifierJWT
+			if viper.GetBool("separate_subscription_token_config") {
+				log.Info().Msg("initializing separate verifier for subscription tokens")
+				var err error
+				subTokenVerifier, err = jwtverify.NewTokenVerifierJWT(subJWTVerifierConfig(), ruleContainer)
+				if err != nil {
+					log.Fatal().Msgf("error creating token verifier: %v", err)
+				}
+			}
+
+			clientHandler := client.NewHandler(node, ruleContainer, tokenVerifier, subTokenVerifier, proxyMap, granularProxyMode)
 			err = clientHandler.Setup()
 			if err != nil {
 				log.Fatal().Msgf("error setting up client handler: %v", err)
@@ -772,7 +792,7 @@ func main() {
 
 			tools.CheckPlainConfigKeys(defaults, viper.AllKeys())
 
-			handleSignals(configFile, node, ruleContainer, tokenVerifier, servers, grpcAPIServer, grpcUniServer, exporter)
+			handleSignals(configFile, node, ruleContainer, tokenVerifier, subTokenVerifier, servers, grpcAPIServer, grpcUniServer, exporter)
 		},
 	}
 
@@ -927,8 +947,11 @@ func main() {
 				fmt.Println("channel is required")
 				os.Exit(1)
 			}
-			jwtVerifierConfig := jwtVerifierConfig()
-			token, err := cli.GenerateSubToken(jwtVerifierConfig, genSubTokenUser, genSubTokenChannel, genSubTokenTTL)
+			verifierConfig := jwtVerifierConfig()
+			if viper.GetBool("separate_subscription_token_config") {
+				verifierConfig = subJWTVerifierConfig()
+			}
+			token, err := cli.GenerateSubToken(verifierConfig, genSubTokenUser, genSubTokenChannel, genSubTokenTTL)
 			if err != nil {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
@@ -958,12 +981,12 @@ func main() {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
-			jwtVerifierConfig := jwtVerifierConfig()
+			verifierConfig := jwtVerifierConfig()
 			if len(args) != 1 {
 				fmt.Printf("error: provide token to check [centrifugo checktoken <TOKEN>]\n")
 				os.Exit(1)
 			}
-			subject, claims, err := cli.CheckToken(jwtVerifierConfig, ruleConfig(), args[0])
+			subject, claims, err := cli.CheckToken(verifierConfig, ruleConfig(), args[0])
 			if err != nil {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
@@ -990,12 +1013,15 @@ func main() {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
-			jwtVerifierConfig := jwtVerifierConfig()
+			verifierConfig := jwtVerifierConfig()
+			if viper.GetBool("separate_subscription_token_config") {
+				verifierConfig = subJWTVerifierConfig()
+			}
 			if len(args) != 1 {
 				fmt.Printf("error: provide token to check [centrifugo checksubtoken <TOKEN>]\n")
 				os.Exit(1)
 			}
-			subject, channel, claims, err := cli.CheckSubToken(jwtVerifierConfig, ruleConfig(), args[0])
+			subject, channel, claims, err := cli.CheckSubToken(verifierConfig, ruleConfig(), args[0])
 			if err != nil {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
@@ -1098,7 +1124,7 @@ func setupLogging() *os.File {
 	return nil
 }
 
-func handleSignals(configFile string, n *centrifuge.Node, ruleContainer *rule.Container, tokenVerifier *jwtverify.VerifierJWT, httpServers []*http.Server, grpcAPIServer *grpc.Server, grpcUniServer *grpc.Server, exporter *graphite.Exporter) {
+func handleSignals(configFile string, n *centrifuge.Node, ruleContainer *rule.Container, tokenVerifier *jwtverify.VerifierJWT, subTokenVerifier *jwtverify.VerifierJWT, httpServers []*http.Server, grpcAPIServer *grpc.Server, grpcUniServer *grpc.Server, exporter *graphite.Exporter) {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -1117,6 +1143,12 @@ func handleSignals(configFile string, n *centrifuge.Node, ruleContainer *rule.Co
 			if err := tokenVerifier.Reload(jwtVerifierConfig()); err != nil {
 				log.Error().Msgf("error reloading: %v", err)
 				continue
+			}
+			if subTokenVerifier != nil {
+				if err := subTokenVerifier.Reload(subJWTVerifierConfig()); err != nil {
+					log.Error().Msgf("error reloading: %v", err)
+					continue
+				}
 			}
 			if err := ruleContainer.Reload(ruleConfig); err != nil {
 				log.Error().Msgf("error reloading: %v", err)
@@ -1611,6 +1643,38 @@ func jwtVerifierConfig() jwtverify.VerifierConfig {
 	cfg.AudienceRegex = v.GetString("token_audience_regex")
 	cfg.Issuer = v.GetString("token_issuer")
 	cfg.IssuerRegex = v.GetString("token_issuer_regex")
+	return cfg
+}
+
+func subJWTVerifierConfig() jwtverify.VerifierConfig {
+	v := viper.GetViper()
+	cfg := jwtverify.VerifierConfig{}
+
+	cfg.HMACSecretKey = v.GetString("subscription_token_hmac_secret_key")
+
+	rsaPublicKey := v.GetString("subscription_token_rsa_public_key")
+	if rsaPublicKey != "" {
+		pubKey, err := jwtutils.ParseRSAPublicKeyFromPEM([]byte(rsaPublicKey))
+		if err != nil {
+			log.Fatal().Msgf("error parsing RSA public key: %v", err)
+		}
+		cfg.RSAPublicKey = pubKey
+	}
+
+	ecdsaPublicKey := v.GetString("subscription_token_ecdsa_public_key")
+	if ecdsaPublicKey != "" {
+		pubKey, err := jwtutils.ParseECDSAPublicKeyFromPEM([]byte(ecdsaPublicKey))
+		if err != nil {
+			log.Fatal().Msgf("error parsing ECDSA public key: %v", err)
+		}
+		cfg.ECDSAPublicKey = pubKey
+	}
+
+	cfg.JWKSPublicEndpoint = v.GetString("subscription_token_jwks_public_endpoint")
+	cfg.Audience = v.GetString("subscription_token_audience")
+	cfg.AudienceRegex = v.GetString("subscription_token_audience_regex")
+	cfg.Issuer = v.GetString("subscription_token_issuer")
+	cfg.IssuerRegex = v.GetString("subscription_token_issuer_regex")
 	return cfg
 }
 
