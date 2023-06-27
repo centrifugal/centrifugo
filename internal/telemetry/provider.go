@@ -6,6 +6,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/v5/internal/build"
 
+	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -48,5 +49,12 @@ func SetupTracing(ctx context.Context) (*trace.TracerProvider, error) {
 		),
 	)
 
+	otel.SetErrorHandler(&ErrorHandlerImpl{})
 	return provider, nil
+}
+
+type ErrorHandlerImpl struct{}
+
+func (e ErrorHandlerImpl) Handle(err error) {
+	log.Err(err).Msg("opentelemetry error")
 }
