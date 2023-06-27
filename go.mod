@@ -9,7 +9,7 @@ require (
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/tarantool v0.3.1
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
-	github.com/centrifugal/centrifuge v0.29.2-0.20230513124308-3c4117e7c377
+	github.com/centrifugal/centrifuge v0.29.3-0.20230627043243-999756ceb1fe
 	github.com/centrifugal/protocol v0.10.0
 	github.com/cristalhq/jwt/v5 v5.1.0
 	github.com/gobwas/glob v0.2.3
@@ -38,7 +38,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.16.0
 	go.uber.org/automaxprocs v1.5.2
 	golang.org/x/crypto v0.9.0
-	golang.org/x/sync v0.2.0
+	golang.org/x/sync v0.3.0
 	golang.org/x/time v0.3.0
 	google.golang.org/grpc v1.55.0
 	google.golang.org/protobuf v1.30.0
@@ -78,7 +78,7 @@ require (
 	github.com/quic-go/qpack v0.4.0 // indirect
 	github.com/quic-go/qtls-go1-19 v0.3.2 // indirect
 	github.com/quic-go/qtls-go1-20 v0.2.2 // indirect
-	github.com/redis/rueidis v1.0.2-go1.18 // indirect
+	github.com/redis/rueidis v1.0.10-go1.18 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/segmentio/encoding v0.3.6 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
