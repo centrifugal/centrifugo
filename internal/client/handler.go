@@ -35,6 +35,7 @@ type Handler struct {
 	node              *centrifuge.Node
 	ruleContainer     *rule.Container
 	tokenVerifier     jwtverify.Verifier
+	subTokenVerifier  jwtverify.Verifier
 	proxyMap          *ProxyMap
 	rpcExtension      map[string]RPCExtensionFunc
 	granularProxyMode bool
@@ -45,6 +46,7 @@ func NewHandler(
 	node *centrifuge.Node,
 	ruleContainer *rule.Container,
 	tokenVerifier jwtverify.Verifier,
+	subTokenVerifier jwtverify.Verifier,
 	proxyMap *ProxyMap,
 	granularProxyMode bool,
 ) *Handler {
@@ -52,6 +54,7 @@ func NewHandler(
 		node:              node,
 		ruleContainer:     ruleContainer,
 		tokenVerifier:     tokenVerifier,
+		subTokenVerifier:  subTokenVerifier,
 		proxyMap:          proxyMap,
 		granularProxyMode: granularProxyMode,
 		rpcExtension:      make(map[string]RPCExtensionFunc),
@@ -524,7 +527,11 @@ func (h *Handler) OnSubRefresh(c Client, subRefreshProxyHandler proxy.SubRefresh
 		r, _, err := subRefreshProxyHandler(c, e, chOpts, getPerCallData(c))
 		return r, SubRefreshExtra{}, err
 	}
-	token, err := h.tokenVerifier.VerifySubscribeToken(e.Token)
+	tokenVerifier := h.tokenVerifier
+	if h.subTokenVerifier != nil {
+		tokenVerifier = h.subTokenVerifier
+	}
+	token, err := tokenVerifier.VerifySubscribeToken(e.Token)
 	if err != nil {
 		if err == jwtverify.ErrTokenExpired {
 			return centrifuge.SubRefreshReply{Expired: true}, SubRefreshExtra{}, nil
@@ -637,7 +644,11 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	}
 
 	if e.Token != "" {
-		token, err := h.tokenVerifier.VerifySubscribeToken(e.Token)
+		tokenVerifier := h.tokenVerifier
+		if h.subTokenVerifier != nil {
+			tokenVerifier = h.subTokenVerifier
+		}
+		token, err := tokenVerifier.VerifySubscribeToken(e.Token)
 		if err != nil {
 			if err == jwtverify.ErrTokenExpired {
 				return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorTokenExpired
