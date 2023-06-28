@@ -9,7 +9,7 @@ require (
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/tarantool v0.3.1
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
-	github.com/centrifugal/centrifuge v0.29.3-0.20230627043243-999756ceb1fe
+	github.com/centrifugal/centrifuge v0.29.3
 	github.com/centrifugal/protocol v0.10.0
 	github.com/cristalhq/jwt/v5 v5.1.0
 	github.com/gobwas/glob v0.2.3
@@ -21,7 +21,7 @@ require (
 	github.com/mattn/go-isatty v0.0.19
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nats-io/nats.go v1.26.0
-	github.com/prometheus/client_golang v1.15.1
+	github.com/prometheus/client_golang v1.16.0
 	github.com/quic-go/quic-go v0.34.0
 	github.com/quic-go/webtransport-go v0.5.3
 	github.com/rakutentech/jwk-go v1.1.2
@@ -74,7 +74,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
-	github.com/prometheus/procfs v0.9.0 // indirect
+	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
 	github.com/quic-go/qtls-go1-19 v0.3.2 // indirect
 	github.com/quic-go/qtls-go1-20 v0.2.2 // indirect
