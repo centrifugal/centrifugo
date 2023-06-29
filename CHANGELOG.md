@@ -1,3 +1,12 @@
+v5.0.0
+======
+
+In Centrifugo v5 we're phasing out old client protocol support, introducing a more intuitive HTTP API, adjusting token management behaviour in SDKs, improving configuration process, and refactoring the history meta ttl option. As the result you get a cleaner, more user-friendly, and optimized Centrifugo experience.
+
+All the major details about the release may be found in [Centrifugo v5 release announcement](https://centrifugal.dev/blog/2023/06/29/centrifugo-v5-released) in our blog.
+
+We also prepared [Centrifugo v5 migration guide](https://centrifugal.dev/docs/getting-started/migration_v5) which has more specific details about changes.
+
 v4.1.3
 ======
 
