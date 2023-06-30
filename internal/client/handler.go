@@ -34,8 +34,8 @@ type ProxyMap struct {
 type Handler struct {
 	node              *centrifuge.Node
 	ruleContainer     *rule.Container
-	tokenVerifier     jwtverify.Verifier
-	subTokenVerifier  jwtverify.Verifier
+	tokenVerifier     *jwtverify.VerifierJWT
+	subTokenVerifier  *jwtverify.VerifierJWT
 	proxyMap          *ProxyMap
 	rpcExtension      map[string]RPCExtensionFunc
 	granularProxyMode bool
@@ -45,8 +45,8 @@ type Handler struct {
 func NewHandler(
 	node *centrifuge.Node,
 	ruleContainer *rule.Container,
-	tokenVerifier jwtverify.Verifier,
-	subTokenVerifier jwtverify.Verifier,
+	tokenVerifier *jwtverify.VerifierJWT,
+	subTokenVerifier *jwtverify.VerifierJWT,
 	proxyMap *ProxyMap,
 	granularProxyMode bool,
 ) *Handler {
