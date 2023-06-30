@@ -6,14 +6,8 @@ Several official client SDKs for browser and mobile development wrap the bidirec
 
 For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
-## What's changed in Centrifugo v5
+## What's changed
 
-In Centrifugo v5 we're phasing out old client protocol support, introducing a more intuitive HTTP API, adjusting token management behaviour in SDKs, improving configuration process, and refactoring the history meta ttl option. As the result you get a cleaner, more user-friendly, and optimized Centrifugo experience.
+## Fixes
 
-All the major details about the release may be found in [Centrifugo v5 release announcement](https://centrifugal.dev/blog/2023/06/29/centrifugo-v5-released) in our blog.
-
-We also prepared [Centrifugo v5 migration guide](https://centrifugal.dev/docs/getting-started/migration_v5) which has more specific details about changes.
-
-### Misc
-
-* This release is built with Go 1.20.5
+* Fix panic upon subscription token validation caused by nil interface comparison, [commit](https://github.com/centrifugal/centrifugo/commit/fe2a92da24d1e8a473e559224fc5c87895713f6a)

@@ -1,3 +1,8 @@
+v5.0.1
+======
+
+* Fix panic upon subscription token validation caused by nil interface comparison, [commit](https://github.com/centrifugal/centrifugo/commit/fe2a92da24d1e8a473e559224fc5c87895713f6a)
+
 v5.0.0
 ======
 
