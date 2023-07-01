@@ -20,7 +20,7 @@ require (
 	github.com/justinas/alice v1.2.0
 	github.com/mattn/go-isatty v0.0.19
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/nats-io/nats.go v1.26.0
+	github.com/nats-io/nats.go v1.27.1
 	github.com/prometheus/client_golang v1.16.0
 	github.com/quic-go/quic-go v0.34.0
 	github.com/quic-go/webtransport-go v0.5.3
