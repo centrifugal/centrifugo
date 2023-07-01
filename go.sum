@@ -262,8 +262,8 @@ github.com/quic-go/quic-go v0.34.0 h1:OvOJ9LFjTySgwOTYUZmNoq0FzVicP8YujpV0kB7m2l
 github.com/quic-go/quic-go v0.34.0/go.mod h1:+4CVgVppm0FNjpG3UcX8Joi/frKOH7/ciD5yGcwOO1g=
 github.com/quic-go/webtransport-go v0.5.3 h1:5XMlzemqB4qmOlgIus5zB45AcZ2kCgCy2EptUrfOPWU=
 github.com/quic-go/webtransport-go v0.5.3/go.mod h1:OhmmgJIzTTqXK5xvtuX0oBpLV2GkLWNDA+UeTGJXErU=
-github.com/rakutentech/jwk-go v1.1.2 h1:i+Msl+JkbB/GVBvQoczbPxGPZGKJ8yBRaHL8USGB4Kw=
-github.com/rakutentech/jwk-go v1.1.2/go.mod h1:LtzSv4/+Iti1nnNeVQiP6l5cI74GBStbhyXCYvgPZFk=
+github.com/rakutentech/jwk-go v1.1.3 h1:PiLwepKyUaW+QFG3ki78DIO2+b4IVK3nMhlxM70zrQ4=
+github.com/rakutentech/jwk-go v1.1.3/go.mod h1:LtzSv4/+Iti1nnNeVQiP6l5cI74GBStbhyXCYvgPZFk=
 github.com/redis/rueidis v1.0.10-go1.18 h1://Xn/ziz4PsLSZjiDIEyZL0UpI5jE3d57U7JOCAfPUM=
 github.com/redis/rueidis v1.0.10-go1.18/go.mod h1:897bvXAEc/mol6VWC0HhkwQZ42Z1Wav86aUcxm+7f44=
 github.com/rogpeppe/fastuuid v1.2.0/go.mod h1:jVj6XXZzXRy/MSR5jhDC/2q6DgLz+nrA6LYCDYWNEvQ=
