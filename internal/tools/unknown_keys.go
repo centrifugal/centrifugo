@@ -66,11 +66,30 @@ func checkEnvironmentConfigKeys(defaults map[string]interface{}) {
 			if !strings.HasPrefix(envKey, envPrefix) {
 				continue
 			}
+			// Kubernetes automatically adds some variables which are not used by Centrifugo
+			// itself. We skip warnings about them.
+			if isKubernetesEnvVar(envKey) {
+				continue
+			}
 			if !isKnownEnvKey(defaults, envPrefix, envKey) {
 				log.Warn().Str("key", envKey).Msg("unknown key found in the environment")
 			}
 		}
 	}
+}
+
+var k8sPrefixes = []string{
+	"CENTRIFUGO_PORT_",
+	"CENTRIFUGO_SERVICE_",
+}
+
+func isKubernetesEnvVar(envKey string) bool {
+	for _, k8sPrefix := range k8sPrefixes {
+		if strings.HasPrefix(envKey, k8sPrefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func isKnownEnvKey(defaults map[string]interface{}, envPrefix string, envKey string) bool {
