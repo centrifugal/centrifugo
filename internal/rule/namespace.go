@@ -132,5 +132,11 @@ type ChannelOptions struct {
 	// SubRefreshProxyName of proxy to use for sub refresh operations in namespace.
 	SubRefreshProxyName string `mapstructure:"sub_refresh_proxy_name" json:"sub_refresh_proxy_name"`
 
+	// ProxyStreamSubscribe enables using subscription stream proxy for the namespace.
+	ProxyStreamSubscribe bool `mapstructure:"proxy_stream_subscribe" json:"proxy_stream_subscribe"`
+
+	// ProxyStreamBidirectional enables using bidirectional stream proxy for the namespace.
+	ProxyStreamSubscribeBidirectional bool `mapstructure:"proxy_stream_subscribe_bidirectional" json:"proxy_stream_subscribe_bidirectional"`
+
 	Compiled
 }

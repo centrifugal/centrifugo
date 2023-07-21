@@ -49,6 +49,7 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/notify"
 	"github.com/centrifugal/centrifugo/v5/internal/origin"
 	"github.com/centrifugal/centrifugo/v5/internal/proxy"
+	"github.com/centrifugal/centrifugo/v5/internal/proxystream"
 	"github.com/centrifugal/centrifugo/v5/internal/rule"
 	"github.com/centrifugal/centrifugo/v5/internal/survey"
 	"github.com/centrifugal/centrifugo/v5/internal/swaggerui"
@@ -269,6 +270,24 @@ var defaults = map[string]any{
 	"proxy_binary_encoding":         false,
 	"proxy_include_connection_meta": false,
 	"proxy_grpc_cert_file":          "",
+
+	"proxy_stream_connect_endpoint":               "",
+	"proxy_stream_connect_timeout":                time.Second,
+	"proxy_stream_connect_grpc_metadata":          []string{},
+	"proxy_stream_connect_http_headers":           []string{},
+	"proxy_stream_connect_grpc_cert_file":         "",
+	"proxy_stream_connect_grpc_credentials_key":   "",
+	"proxy_stream_connect_grpc_credentials_value": "",
+	"proxy_stream_connect_bidirectional":          false,
+
+	"proxy_stream_subscribe_endpoint":                "",
+	"proxy_stream_subscribe_timeout":                 time.Second,
+	"proxy_stream_subscribe_grpc_metadata":           []string{},
+	"proxy_stream_subscribe_http_headers":            []string{},
+	"proxy_stream_subscribe_include_connection_meta": false,
+	"proxy_stream_subscribe_grpc_cert_file":          "",
+	"proxy_stream_subscribe_grpc_credentials_key":    "",
+	"proxy_stream_subscribe_grpc_credentials_value":  "",
 
 	"tarantool_mode":     "standalone",
 	"tarantool_address":  "tcp://127.0.0.1:3301",
@@ -528,9 +547,15 @@ func main() {
 				proxyMap, proxyEnabled = proxyMapConfig()
 			}
 
-			nodeConfig := nodeConfig(build.Version)
+			streamProxyMap, streamProxyEnabled := streamProxyMapConfig()
+			proxyMap.StreamProxyMap = streamProxyMap
+			if streamProxyEnabled {
+				proxyEnabled = true
+			}
 
-			node, err := centrifuge.New(nodeConfig)
+			nodeCfg := nodeConfig(build.Version)
+
+			node, err := centrifuge.New(nodeCfg)
 			if err != nil {
 				log.Fatal().Msgf("error creating Centrifuge Node: %v", err)
 			}
@@ -745,7 +770,7 @@ func main() {
 				exporter = graphite.New(graphite.Config{
 					Address:  net.JoinHostPort(viper.GetString("graphite_host"), strconv.Itoa(viper.GetInt("graphite_port"))),
 					Gatherer: prometheus.DefaultGatherer,
-					Prefix:   strings.TrimSuffix(viper.GetString("graphite_prefix"), ".") + "." + graphite.PreparePathComponent(nodeConfig.Name),
+					Prefix:   strings.TrimSuffix(viper.GetString("graphite_prefix"), ".") + "." + graphite.PreparePathComponent(nodeCfg.Name),
 					Interval: GetDuration("graphite_interval"),
 					Tags:     viper.GetBool("graphite_tags"),
 				})
@@ -1591,6 +1616,7 @@ func ruleConfig() rule.Config {
 	cfg.SubscribeProxyName = v.GetString("subscribe_proxy_name")
 	cfg.PublishProxyName = v.GetString("publish_proxy_name")
 	cfg.SubRefreshProxyName = v.GetString("sub_refresh_proxy_name")
+	cfg.ProxyStreamSubscribe = v.GetBool("proxy_stream_subscribe")
 
 	cfg.Namespaces = namespacesFromConfig(v)
 
@@ -1696,6 +1722,74 @@ func GetDuration(key string, secondsPrecision ...bool) time.Duration {
 	return duration
 }
 
+func streamProxyMapConfig() (*client.StreamProxyMap, bool) {
+	v := viper.GetViper()
+
+	cp := proxystream.Config{}
+
+	cp.GrpcMetadata = v.GetStringSlice("proxy_stream_connect_grpc_metadata")
+	cp.HttpHeaders = v.GetStringSlice("proxy_stream_connect_http_headers")
+	for i, header := range cp.HttpHeaders {
+		cp.HttpHeaders[i] = strings.ToLower(header)
+	}
+
+	cp.IncludeConnectionMeta = v.GetBool("proxy_stream_connect_include_connection_meta")
+	cp.GrpcCertFile = v.GetString("proxy_stream_connect_grpc_cert_file")
+	cp.GrpcCredentialsKey = v.GetString("proxy_stream_connect_grpc_credentials_key")
+	cp.GrpcCredentialsValue = v.GetString("proxy_stream_connect_grpc_credentials_value")
+
+	proxyStreamConnectEndpoint := v.GetString("proxy_stream_connect_endpoint")
+	proxyStreamConnectTimeout := GetDuration("proxy_stream_connect_timeout")
+
+	var connectProxy *proxystream.Proxy
+
+	if proxyStreamConnectEndpoint != "" {
+		cp.Endpoint = proxyStreamConnectEndpoint
+		cp.Timeout = tools.Duration(proxyStreamConnectTimeout)
+		streamProxy, err := proxystream.NewProxy(cp)
+		if err != nil {
+			log.Fatal().Msgf("error creating connect stream proxy: %v", err)
+		}
+		connectProxy = streamProxy
+		log.Info().Str("endpoint", proxyStreamConnectEndpoint).Msg("connect stream proxy enabled")
+	}
+
+	subscribeStreamProxies := map[string]*proxystream.Proxy{}
+
+	sp := proxystream.Config{}
+
+	sp.GrpcMetadata = v.GetStringSlice("proxy_stream_subscribe_grpc_metadata")
+	sp.HttpHeaders = v.GetStringSlice("proxy_stream_subscribe_http_headers")
+	for i, header := range sp.HttpHeaders {
+		sp.HttpHeaders[i] = strings.ToLower(header)
+	}
+
+	sp.IncludeConnectionMeta = v.GetBool("proxy_stream_subscribe_include_connection_meta")
+	sp.GrpcCertFile = v.GetString("proxy_stream_subscribe_grpc_cert_file")
+	sp.GrpcCredentialsKey = v.GetString("proxy_stream_subscribe_grpc_credentials_key")
+	sp.GrpcCredentialsValue = v.GetString("proxy_stream_subscribe_grpc_credentials_value")
+
+	proxyStreamSubscribeEndpoint := v.GetString("proxy_stream_subscribe_endpoint")
+	proxyStreamSubscribeTimeout := GetDuration("proxy_stream_subscribe_timeout")
+
+	if proxyStreamSubscribeEndpoint != "" {
+		sp.Endpoint = proxyStreamSubscribeEndpoint
+		sp.Timeout = tools.Duration(proxyStreamSubscribeTimeout)
+		streamProxy, err := proxystream.NewProxy(sp)
+		if err != nil {
+			log.Fatal().Msgf("error creating subscribe stream proxy: %v", err)
+		}
+		subscribeStreamProxies[""] = streamProxy
+		log.Info().Str("endpoint", proxyStreamSubscribeEndpoint).Msg("subscribe stream proxy enabled")
+	}
+
+	return &client.StreamProxyMap{
+		ConnectProxy:         connectProxy,
+		ConnectBidirectional: v.GetBool("proxy_stream_connect_bidirectional"),
+		SubscribeProxies:     subscribeStreamProxies,
+	}, len(subscribeStreamProxies) > 0 || connectProxy != nil
+}
+
 func proxyMapConfig() (*client.ProxyMap, bool) {
 	v := viper.GetViper()
 	proxyMap := &client.ProxyMap{
@@ -1798,7 +1892,8 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	}
 
 	proxyEnabled := connectEndpoint != "" || refreshEndpoint != "" ||
-		rpcEndpoint != "" || subscribeEndpoint != "" || publishEndpoint != "" || subRefreshEndpoint != ""
+		rpcEndpoint != "" || subscribeEndpoint != "" || publishEndpoint != "" ||
+		subRefreshEndpoint != ""
 
 	return proxyMap, proxyEnabled
 }

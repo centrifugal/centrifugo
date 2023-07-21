@@ -1,4 +1,4 @@
-package client
+package proxystream
 
 import (
 	"context"
@@ -6,14 +6,12 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
-// Client represents client connection.
 type Client interface {
 	ID() string
 	UserID() string
 	IsSubscribed(string) bool
 	Context() context.Context
 	Transport() centrifuge.TransportInfo
-	AcquireStorage() (map[string]any, func(map[string]any))
 	Send([]byte) error
 	Unsubscribe(ch string, unsubscribe ...centrifuge.Unsubscribe)
 	Disconnect(disconnect ...centrifuge.Disconnect)

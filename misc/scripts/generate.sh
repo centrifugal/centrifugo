@@ -15,6 +15,10 @@ cd internal/proxyproto
 bash generate.sh
 cd -
 
+cd internal/proxystreamproto
+bash generate.sh
+cd -
+
 cd internal/unigrpc/unistream
 bash generate.sh
 cd -

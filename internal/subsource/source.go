@@ -15,4 +15,5 @@ const (
 	UserPersonal      = 9
 	ServerAPI         = 10
 	ConnectionCap     = 11
+	StreamProxy       = 12
 )

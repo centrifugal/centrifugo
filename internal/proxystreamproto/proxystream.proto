@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package centrifugal.centrifugo.proxystream;
+
+option go_package = "./;proxystreamproto";
+
+// CentrifugoProxyStream allows proxying Centrifugo connections and channel subscriptions
+// to the application backend in form of unidirectional or bidirectional streams. This way
+// it's possible to achieve on-demand streaming when data is only exchanged while client is
+// connected or subscribed.
+service CentrifugoProxyStream {
+  // ConnectUnidirectional allows handling unidirectional connections.
+  rpc ConnectUnidirectional(ConnectRequest) returns (stream Response);
+  // ConnectBidirectional allows handling bidirectional connections.
+  rpc ConnectBidirectional(stream Request) returns (stream Response);
+
+  // SubscribeUnidirectional allows handling unidirectional subscription streams.
+  rpc SubscribeUnidirectional(SubscribeRequest) returns (stream ChannelResponse);
+  // SubscribeBidirectional allows handling bidirectional subscription streams.
+  rpc SubscribeBidirectional(stream ChannelRequest) returns (stream ChannelResponse);
+}
+
+message ConnectRequest {
+  reserved 4, 11, 14;
+  string client = 1;
+  string transport = 2;
+  string protocol = 3;
+
+  bytes data = 10;
+  string name = 12;
+  string version = 13;
+}
+
+message Response{
+  ConnectResponse connect_response = 1;
+  Message message = 2;
+}
+
+message ConnectResponse {
+  ConnectResult result = 1;
+  Error error = 2;
+  Disconnect disconnect = 3;
+}
+
+message ConnectResult {
+  reserved 2, 4, 6, 7, 8, 10;
+  string user = 1;
+  bytes info = 3;
+  bytes data = 5;
+  bytes meta = 9;
+}
+
+message Message {
+  bytes data = 1;
+}
+
+message Request {
+  ConnectRequest connect_request = 1;
+  Message message = 2;
+}
+
+// SubscribeRequest contains information about channel subscription.
+message SubscribeRequest {
+  reserved 4, 12, 15;
+
+  string client = 1;
+  string transport = 2;
+  string protocol = 3;
+
+  string user = 10;
+  string channel = 11;
+  bytes meta = 13;
+  bytes data = 14;
+}
+
+message ChannelRequest {
+  // Centrifugo always sends this within the first message upon user subscription request.
+  // It's always not set in the following StreamRequest messages from Centrifugo.
+  SubscribeRequest subscribe_request = 1;
+  // Publication may be set when client publishes to the on-demand stream. If you are using
+  // bidirectional stream then Centrifugo assumes publications from client-side are allowed.
+  Publication publication = 2;
+}
+
+message ChannelResponse {
+  // SubscribeResponse may optionally be set in the first message from backend to Centrifugo.
+  SubscribeResponse subscribe_response = 1;
+  // Publication goes to client. Can't be set in the first message from backend to Centrifugo.
+  Publication publication = 2;
+}
+
+// Publication is an event to be sent to a client.
+message Publication {
+  reserved 1, 2, 3, 5, 6;
+  bytes data = 4;
+  map<string, string> tags = 7;
+}
+
+message SubscribeResponse {
+  SubscribeResult result = 1;
+  Error error = 2;
+  Disconnect disconnect = 3;
+}
+
+message SubscribeResult {
+  reserved 1, 3, 5, 6, 7;
+  bytes info = 2;
+  bytes data = 4;
+}
+
+message Disconnect {
+  reserved 3;
+  uint32 code = 1;
+  string reason = 2;
+}
+
+message Error {
+  uint32 code = 1;
+  string message = 2;
+  bool temporary = 3;
+}

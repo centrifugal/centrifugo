@@ -50,8 +50,8 @@ export default function () {
 
     const response = ws.connect(url, {}, function (socket) {
         socket.on('open', () => {
-            const connectCommand = JSON.stringify({ id: 1, connect: { token: token } });
-            const subscribeCommand = JSON.stringify({ id: 2, subscribe: { channel: 'test' } });
+            const connectCommand = JSON.stringify({ id: 1, connect: { } });
+            const subscribeCommand = JSON.stringify({ id: 2, subscribe: { channel: 'chat:index' } });
             socket.send(connectCommand + "\n" + subscribeCommand);
         });
 
