@@ -1596,7 +1596,6 @@ func ruleConfig() rule.Config {
 	cfg.AllowPositioning = v.GetBool("allow_positioning")
 	cfg.AllowRecovery = v.GetBool("allow_recovery")
 	cfg.ForceRecovery = v.GetBool("force_recovery")
-	cfg.AllowRecovery = v.GetBool("allow_recovery")
 	cfg.SubscribeForAnonymous = v.GetBool("allow_subscribe_for_anonymous")
 	cfg.SubscribeForClient = v.GetBool("allow_subscribe_for_client")
 	cfg.PublishForAnonymous = v.GetBool("allow_publish_for_anonymous")
@@ -1617,6 +1616,7 @@ func ruleConfig() rule.Config {
 	cfg.PublishProxyName = v.GetString("publish_proxy_name")
 	cfg.SubRefreshProxyName = v.GetString("sub_refresh_proxy_name")
 	cfg.ProxyStreamSubscribe = v.GetBool("proxy_stream_subscribe")
+	cfg.ProxyStreamSubscribeBidirectional = v.GetBool("proxy_stream_subscribe_bidirectional")
 
 	cfg.Namespaces = namespacesFromConfig(v)
 
