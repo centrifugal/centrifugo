@@ -101,7 +101,7 @@ func (h *Handler) Setup() error {
 	}
 
 	var connectStreamHandler proxystream.ConnectHandlerFunc
-	if h.proxyMap.StreamProxyMap.ConnectProxy != nil {
+	if streamHandler != nil && h.proxyMap.StreamProxyMap.ConnectProxy != nil {
 		connectStreamHandler = streamHandler.HandleConnect(h.node)
 	}
 
@@ -138,7 +138,7 @@ func (h *Handler) Setup() error {
 	}
 
 	var proxySubscribeStreamHandler proxystream.SubscribeHandlerFunc
-	if len(h.proxyMap.StreamProxyMap.SubscribeProxies) > 0 {
+	if streamHandler != nil && len(h.proxyMap.StreamProxyMap.SubscribeProxies) > 0 {
 		proxySubscribeStreamHandler = streamHandler.HandleSubscribe(h.node)
 	}
 
