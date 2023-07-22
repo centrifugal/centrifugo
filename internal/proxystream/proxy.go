@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/proxystreamproto"
@@ -56,8 +55,6 @@ type Config struct {
 	GrpcCredentialsKey string `mapstructure:"grpc_credentials_key" json:"grpc_credentials_key,omitempty"`
 	// GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
 	GrpcCredentialsValue string `mapstructure:"grpc_credentials_value" json:"grpc_credentials_value,omitempty"`
-
-	testGrpcDialer func(context.Context, string) (net.Conn, error)
 }
 
 type PerCallData struct {
