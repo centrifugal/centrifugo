@@ -134,6 +134,9 @@ func ValidateChannelOptions(c ChannelOptions) error {
 			return fmt.Errorf("invalid channel regex %s: %w", c.ChannelRegex, err)
 		}
 	}
+	if c.ProxyStreamSubscribe && (c.ProxySubscribe || c.ProxyPublish || c.ProxySubRefresh) {
+		return fmt.Errorf("can't use stream proxy together with subscribe, publish or sub refresh proxies")
+	}
 	return nil
 }
 

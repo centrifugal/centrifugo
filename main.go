@@ -552,6 +552,9 @@ func main() {
 			if streamProxyEnabled {
 				proxyEnabled = true
 			}
+			if streamProxyMap.ConnectProxy != nil && (proxyMap.ConnectProxy != nil || proxyMap.RefreshProxy != nil) {
+				log.Fatal().Msg("can't use stream connect proxy with connect or refresh non-stream proxies")
+			}
 
 			nodeCfg := nodeConfig(build.Version)
 
