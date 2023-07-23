@@ -39,11 +39,11 @@ type Config struct {
 	// Timeout for proxy request.
 	Timeout tools.Duration `mapstructure:"timeout" json:"timeout,omitempty"`
 
-	// HTTPHeaders is a list of HTTP headers to proxy.  No headers used by proxy by default.
+	// HTTPHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.
 	// If GRPC proxy is used then request HTTP headers set to outgoing request metadata.
 	HttpHeaders []string `mapstructure:"http_headers" json:"http_headers,omitempty"`
 	// GRPCMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by
-	// default. If HTTP proxy is used then these keys become outgoing request HTTP headers.
+	// default.
 	GrpcMetadata []string `mapstructure:"grpc_metadata" json:"grpc_metadata,omitempty"`
 
 	// IncludeConnectionMeta to each proxy request.
