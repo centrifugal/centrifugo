@@ -21,11 +21,14 @@ func GenerateToken(config jwtverify.VerifierConfig, user string, ttlSeconds int6
 		return "", fmt.Errorf("error creating HMAC signer: %w", err)
 	}
 	builder := jwt.NewBuilder(signer)
-	token, err := builder.Build(jwt.RegisteredClaims{
-		Subject:   user,
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(ttlSeconds) * time.Second)),
-		IssuedAt:  jwt.NewNumericDate(time.Now()),
-	})
+	claims := jwt.RegisteredClaims{
+		Subject:  user,
+		IssuedAt: jwt.NewNumericDate(time.Now()),
+	}
+	if ttlSeconds > 0 {
+		claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Duration(ttlSeconds) * time.Second))
+	}
+	token, err := builder.Build(claims)
 	if err != nil {
 		return "", err
 	}
@@ -42,14 +45,17 @@ func GenerateSubToken(config jwtverify.VerifierConfig, user string, channel stri
 		return "", fmt.Errorf("error creating HMAC signer: %w", err)
 	}
 	builder := jwt.NewBuilder(signer)
+	claims := jwt.RegisteredClaims{
+		Subject:  user,
+		IssuedAt: jwt.NewNumericDate(time.Now()),
+	}
+	if ttlSeconds > 0 {
+		claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Duration(ttlSeconds) * time.Second))
+	}
 	token, err := builder.Build(
 		jwtverify.SubscribeTokenClaims{
-			RegisteredClaims: jwt.RegisteredClaims{
-				Subject:   user,
-				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(ttlSeconds) * time.Second)),
-				IssuedAt:  jwt.NewNumericDate(time.Now()),
-			},
-			Channel: channel,
+			RegisteredClaims: claims,
+			Channel:          channel,
 		},
 	)
 	if err != nil {

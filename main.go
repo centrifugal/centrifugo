@@ -926,6 +926,7 @@ func main() {
 	var genTokenConfigFile string
 	var genTokenUser string
 	var genTokenTTL int64
+	var genTokenQuiet bool
 
 	var genTokenCmd = &cobra.Command{
 		Use:   "gentoken",
@@ -948,17 +949,27 @@ func main() {
 			if genTokenUser == "" {
 				user = "anonymous user"
 			}
-			fmt.Printf("HMAC SHA-256 JWT for %s with expiration TTL %s:\n%s\n", user, time.Duration(genTokenTTL)*time.Second, token)
+			exp := "without expiration"
+			if genTokenTTL >= 0 {
+				exp = fmt.Sprintf("with expiration TTL %s", time.Duration(genTokenTTL)*time.Second)
+			}
+			if genTokenQuiet {
+				fmt.Print(token)
+				return
+			}
+			fmt.Printf("HMAC SHA-256 JWT for %s %s:\n%s\n", user, exp, token)
 		},
 	}
 	genTokenCmd.Flags().StringVarP(&genTokenConfigFile, "config", "c", "config.json", "path to config file")
-	genTokenCmd.Flags().StringVarP(&genTokenUser, "user", "u", "", "user ID")
-	genTokenCmd.Flags().Int64VarP(&genTokenTTL, "ttl", "t", 3600*24*7, "token TTL in seconds")
+	genTokenCmd.Flags().StringVarP(&genTokenUser, "user", "u", "", "user ID, by default anonymous")
+	genTokenCmd.Flags().Int64VarP(&genTokenTTL, "ttl", "t", 3600*24*7, "token TTL in seconds, use -1 for token without expiration")
+	genTokenCmd.Flags().BoolVarP(&genTokenQuiet, "quiet", "q", false, "only output the token without anything else")
 
 	var genSubTokenConfigFile string
 	var genSubTokenUser string
 	var genSubTokenChannel string
 	var genSubTokenTTL int64
+	var genSubTokenQuiet bool
 
 	var genSubTokenCmd = &cobra.Command{
 		Use:   "gensubtoken",
@@ -988,13 +999,22 @@ func main() {
 			if genSubTokenUser == "" {
 				user = "anonymous user"
 			}
-			fmt.Printf("HMAC SHA-256 JWT for %s and channel \"%s\" with expiration TTL %s:\n%s\n", user, genSubTokenChannel, time.Duration(genSubTokenTTL)*time.Second, token)
+			exp := "without expiration"
+			if genTokenTTL >= 0 {
+				exp = fmt.Sprintf("with expiration TTL %s", time.Duration(genTokenTTL)*time.Second)
+			}
+			if genSubTokenQuiet {
+				fmt.Print(token)
+				return
+			}
+			fmt.Printf("HMAC SHA-256 JWT for %s and channel \"%s\" %s:\n%s\n", user, genSubTokenChannel, exp, token)
 		},
 	}
 	genSubTokenCmd.Flags().StringVarP(&genSubTokenConfigFile, "config", "c", "config.json", "path to config file")
 	genSubTokenCmd.Flags().StringVarP(&genSubTokenUser, "user", "u", "", "user ID")
 	genSubTokenCmd.Flags().StringVarP(&genSubTokenChannel, "channel", "s", "", "channel")
-	genSubTokenCmd.Flags().Int64VarP(&genSubTokenTTL, "ttl", "t", 3600*24*7, "token TTL in seconds")
+	genSubTokenCmd.Flags().Int64VarP(&genSubTokenTTL, "ttl", "t", 3600*24*7, "token TTL in seconds, use -1 for token without expiration")
+	genSubTokenCmd.Flags().BoolVarP(&genSubTokenQuiet, "quiet", "q", false, "only output the token without anything else")
 
 	var checkTokenConfigFile string
 
@@ -2079,7 +2099,7 @@ func granularProxiesFromConfig(v *viper.Viper) []proxy.Proxy {
 	case string:
 		jsonData = []byte(val)
 		err = json.Unmarshal([]byte(val), &proxies)
-	case []interface{}:
+	case []any:
 		jsonData, _ = json.Marshal(val)
 		decoderCfg := tools.DecoderConfig(&proxies)
 		decoder, newErr := mapstructure.NewDecoder(decoderCfg)
@@ -2184,7 +2204,7 @@ func namespacesFromConfig(v *viper.Viper) []rule.ChannelNamespace {
 	case string:
 		jsonData = []byte(val)
 		err = json.Unmarshal([]byte(val), &ns)
-	case []interface{}:
+	case []any:
 		jsonData, _ = json.Marshal(val)
 		decoderCfg := tools.DecoderConfig(&ns)
 		decoder, newErr := mapstructure.NewDecoder(decoderCfg)
@@ -2216,7 +2236,7 @@ func rpcNamespacesFromConfig(v *viper.Viper) []rule.RpcNamespace {
 	case string:
 		jsonData, _ = json.Marshal(val)
 		err = json.Unmarshal([]byte(val), &ns)
-	case []interface{}:
+	case []any:
 		jsonData, _ = json.Marshal(val)
 		decoderCfg := tools.DecoderConfig(&ns)
 		decoder, newErr := mapstructure.NewDecoder(decoderCfg)

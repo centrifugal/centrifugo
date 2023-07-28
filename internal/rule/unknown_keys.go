@@ -9,7 +9,7 @@ import (
 )
 
 func WarnUnknownNamespaceKeys(jsonNamespaces []byte) {
-	var jsonMaps []map[string]interface{}
+	var jsonMaps []map[string]any
 	err := json.Unmarshal(jsonNamespaces, &jsonMaps)
 	if err != nil {
 		log.Warn().Err(err).Msg("error unmarshalling namespaces")
@@ -29,7 +29,7 @@ func WarnUnknownNamespaceKeys(jsonNamespaces []byte) {
 }
 
 func WarnUnknownRpcNamespaceKeys(jsonRpcNamespaces []byte) {
-	var jsonMaps []map[string]interface{}
+	var jsonMaps []map[string]any
 	err := json.Unmarshal(jsonRpcNamespaces, &jsonMaps)
 	if err != nil {
 		log.Warn().Err(err).Msg("error unmarshalling rpc namespaces")

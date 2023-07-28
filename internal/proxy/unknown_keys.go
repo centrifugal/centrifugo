@@ -10,7 +10,7 @@ import (
 
 // WarnUnknownProxyKeys is a helper to find keys not known by Centrifugo in proxy config.
 func WarnUnknownProxyKeys(jsonProxies []byte) {
-	var jsonMaps []map[string]interface{}
+	var jsonMaps []map[string]any
 	err := json.Unmarshal(jsonProxies, &jsonMaps)
 	if err != nil {
 		log.Warn().Err(err).Msg("error unmarshalling proxies")

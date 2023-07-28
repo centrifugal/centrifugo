@@ -15,7 +15,7 @@ import (
 
 type testKey struct {
 	Kid string
-	Key interface{}
+	Key any
 }
 
 func randomKeys() (*rsa.PrivateKey, *rsa.PublicKey, error) {

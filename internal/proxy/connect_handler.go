@@ -76,7 +76,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 			h.summary.Observe(duration)
 			h.histogram.Observe(duration)
 			h.errors.Inc()
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying connect", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying connect", map[string]any{"client": e.ClientID, "error": err.Error()}))
 			return centrifuge.ConnectReply{}, ConnectExtra{}, centrifuge.ErrorInternal
 		}
 		h.summary.Observe(duration)
@@ -97,7 +97,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 		if result.B64Info != "" {
 			decodedInfo, err := base64.StdEncoding.DecodeString(result.B64Info)
 			if err != nil {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
+				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]any{"client": e.ClientID, "error": err.Error()}))
 				return centrifuge.ConnectReply{}, ConnectExtra{}, centrifuge.ErrorInternal
 			}
 			info = decodedInfo
@@ -109,7 +109,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 		if result.B64Data != "" {
 			decodedData, err := base64.StdEncoding.DecodeString(result.B64Data)
 			if err != nil {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
+				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]any{"client": e.ClientID, "error": err.Error()}))
 				return centrifuge.ConnectReply{}, ConnectExtra{}, centrifuge.ErrorInternal
 			}
 			data = decodedData
