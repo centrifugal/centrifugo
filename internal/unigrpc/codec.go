@@ -12,7 +12,7 @@ type rawFrame []byte
 // additional wrapping and marshaling.
 type RawCodec struct{}
 
-func (c *RawCodec) Marshal(v interface{}) ([]byte, error) {
+func (c *RawCodec) Marshal(v any) ([]byte, error) {
 	out, ok := v.(rawFrame)
 	if !ok {
 		vv, ok := v.(proto.Message)
@@ -24,7 +24,7 @@ func (c *RawCodec) Marshal(v interface{}) ([]byte, error) {
 	return out, nil
 }
 
-func (c *RawCodec) Unmarshal(data []byte, v interface{}) error {
+func (c *RawCodec) Unmarshal(data []byte, v any) error {
 	vv, ok := v.(proto.Message)
 	if !ok {
 		return fmt.Errorf("failed to unmarshal, message is %T, want proto.Message", v)

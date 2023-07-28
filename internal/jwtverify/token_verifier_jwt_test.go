@@ -173,7 +173,7 @@ func getECDSASubscribeToken(channel string, client string, exp int64, ecdsaPriva
 
 func getJWKServer(pubKey *rsa.PublicKey, kty, use, kid string) *httptest.Server {
 	return httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := map[string]interface{}{
+		resp := map[string]any{
 			"keys": []map[string]string{
 				{
 					"alg": "RS256",

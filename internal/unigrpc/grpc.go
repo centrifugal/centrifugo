@@ -60,9 +60,9 @@ func (s *Service) Consume(req *unistream.ConnectRequest, stream unistream.Centri
 	defer func() { _ = closeFn() }()
 
 	if s.node.LogEnabled(centrifuge.LogLevelDebug) {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection established", map[string]interface{}{"transport": transport.Name(), "client": c.ID()}))
+		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection established", map[string]any{"transport": transport.Name(), "client": c.ID()}))
 		defer func(started time.Time) {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection completed", map[string]interface{}{"duration": time.Since(started), "transport": transport.Name(), "client": c.ID()}))
+			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection completed", map[string]any{"duration": time.Since(started), "transport": transport.Name(), "client": c.ID()}))
 		}(time.Now())
 	}
 

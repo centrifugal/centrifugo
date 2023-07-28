@@ -10,7 +10,7 @@ import (
 )
 
 // FindUnknownKeys returns a list of keys from map not existing in struct JSON tags.
-func FindUnknownKeys[T any](jsonMap map[string]interface{}, data T) []string {
+func FindUnknownKeys[T any](jsonMap map[string]any, data T) []string {
 	jsonKeys := make(map[string]bool)
 	for key := range jsonMap {
 		jsonKeys[key] = true
@@ -40,12 +40,12 @@ func FindUnknownKeys[T any](jsonMap map[string]interface{}, data T) []string {
 // CheckPlainConfigKeys warns users about unknown keys in the configuration. It does not
 // include warnings about some arrays we have in the configuration - like namespaces or proxies
 // configuration. Those are checked separately on decoding.
-func CheckPlainConfigKeys(defaults map[string]interface{}, allKeys []string) {
+func CheckPlainConfigKeys(defaults map[string]any, allKeys []string) {
 	checkFileConfigKeys(defaults, allKeys)
 	checkEnvironmentConfigKeys(defaults)
 }
 
-func checkFileConfigKeys(defaults map[string]interface{}, allKeys []string) {
+func checkFileConfigKeys(defaults map[string]any, allKeys []string) {
 	for _, key := range allKeys {
 		if _, ok := defaults[key]; !ok {
 			log.Warn().Str("key", key).Msg("unknown key found in the configuration file")
@@ -53,7 +53,7 @@ func checkFileConfigKeys(defaults map[string]interface{}, allKeys []string) {
 	}
 }
 
-func checkEnvironmentConfigKeys(defaults map[string]interface{}) {
+func checkEnvironmentConfigKeys(defaults map[string]any) {
 	envPrefix := "CENTRIFUGO_"
 	envVars := os.Environ()
 
@@ -92,7 +92,7 @@ func isKubernetesEnvVar(envKey string) bool {
 	return false
 }
 
-func isKnownEnvKey(defaults map[string]interface{}, envPrefix string, envKey string) bool {
+func isKnownEnvKey(defaults map[string]any, envPrefix string, envKey string) bool {
 	for defKey := range defaults {
 		defKeyEnvFormat := envPrefix + strings.ToUpper(strings.ReplaceAll(defKey, ".", "_"))
 		if defKeyEnvFormat == envKey {

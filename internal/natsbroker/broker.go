@@ -176,7 +176,7 @@ func (b *NatsBroker) handleClientMessage(data []byte) {
 	var push protocol.Push
 	err := push.UnmarshalVT(data)
 	if err != nil {
-		b.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "can't unmarshal push from Nats", map[string]interface{}{"error": err.Error()}))
+		b.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "can't unmarshal push from Nats", map[string]any{"error": err.Error()}))
 		return
 	}
 	if push.Pub != nil {
@@ -186,7 +186,7 @@ func (b *NatsBroker) handleClientMessage(data []byte) {
 	} else if push.Leave != nil {
 		_ = b.eventHandler.HandleLeave(push.Channel, infoFromProto(push.Leave.Info))
 	} else {
-		b.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "unknown push from Nats", map[string]interface{}{"push": fmt.Sprintf("%v", &push)}))
+		b.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "unknown push from Nats", map[string]any{"push": fmt.Sprintf("%v", &push)}))
 	}
 }
 

@@ -52,7 +52,7 @@ func (l *ConnLimit) Middleware(h http.Handler) http.Handler {
 			now := time.Now().UnixNano()
 			prevLoggedAt := atomic.LoadInt64(&connLimitReachedLoggedAt)
 			if prevLoggedAt == 0 || now-prevLoggedAt > connLimitReachedLogThrottle {
-				l.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "node connection limit reached", map[string]interface{}{"limit": connLimit}))
+				l.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "node connection limit reached", map[string]any{"limit": connLimit}))
 				atomic.StoreInt64(&connLimitReachedLoggedAt, now)
 			}
 			w.WriteHeader(http.StatusServiceUnavailable)
