@@ -76,7 +76,7 @@ func (h *SubRefreshHandler) Handle(node *centrifuge.Node) SubRefreshHandlerFunc 
 		if h.config.GranularProxyMode {
 			proxyName := chOpts.SubRefreshProxyName
 			if proxyName == "" {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "sub refresh proxy not configured for a channel", map[string]interface{}{"channel": e.Channel}))
+				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "sub refresh proxy not configured for a channel", map[string]any{"channel": e.Channel}))
 				return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, centrifuge.ErrorNotAvailable
 			}
 			p = h.config.Proxies[proxyName]
@@ -114,7 +114,7 @@ func (h *SubRefreshHandler) Handle(node *centrifuge.Node) SubRefreshHandlerFunc 
 			summary.Observe(duration)
 			histogram.Observe(duration)
 			errors.Inc()
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying sub refresh", map[string]interface{}{"error": err.Error()}))
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying sub refresh", map[string]any{"error": err.Error()}))
 			// In case of an error give connection one more minute to live and
 			// then try to check again. This way we gracefully handle temporary
 			// problems on application backend side.
@@ -130,7 +130,7 @@ func (h *SubRefreshHandler) Handle(node *centrifuge.Node) SubRefreshHandlerFunc 
 		result := refreshRep.Result
 		if result == nil {
 			// Subscription will be unsubscribed.
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "no sub refresh result found", map[string]interface{}{}))
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "no sub refresh result found", map[string]any{}))
 			return centrifuge.SubRefreshReply{
 				Expired: true,
 			}, SubRefreshExtra{}, nil
@@ -146,7 +146,7 @@ func (h *SubRefreshHandler) Handle(node *centrifuge.Node) SubRefreshHandlerFunc 
 		if result.B64Info != "" {
 			decodedInfo, err := base64.StdEncoding.DecodeString(result.B64Info)
 			if err != nil {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": client.ID(), "error": err.Error()}))
+				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]any{"client": client.ID(), "error": err.Error()}))
 				return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, centrifuge.ErrorInternal
 			}
 			info = decodedInfo

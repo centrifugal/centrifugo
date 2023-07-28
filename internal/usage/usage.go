@@ -129,7 +129,7 @@ func (s *Sender) isDev() bool {
 func (s *Sender) Start(ctx context.Context) {
 	firstTimeSend := time.Now().Add(initialDelay)
 	if s.isDev() {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: schedule next send", map[string]interface{}{"delay": initialDelay.String()}))
+		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: schedule next send", map[string]any{"delay": initialDelay.String()}))
 	}
 
 	// Wait 1/4 of a delay to randomize hourly ticks on different nodes.
@@ -140,7 +140,7 @@ func (s *Sender) Start(ctx context.Context) {
 	}
 
 	if s.isDev() {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: start periodic ticks", map[string]interface{}{}))
+		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: start periodic ticks", map[string]any{}))
 	}
 
 	for {
@@ -149,19 +149,19 @@ func (s *Sender) Start(ctx context.Context) {
 			return
 		case <-time.After(tickInterval):
 			if s.isDev() {
-				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: updating max values", map[string]interface{}{}))
+				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: updating max values", map[string]any{}))
 			}
 			err := s.updateMaxValues()
 			if err != nil {
 				if s.isDev() {
-					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error updating max values", map[string]interface{}{"error": err.Error()}))
+					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error updating max values", map[string]any{"error": err.Error()}))
 				}
 				continue
 			}
 
 			if time.Now().Before(firstTimeSend) {
 				if s.isDev() {
-					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: too early to send first time", map[string]interface{}{}))
+					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: too early to send first time", map[string]any{}))
 				}
 				continue
 			}
@@ -175,25 +175,25 @@ func (s *Sender) Start(ctx context.Context) {
 
 			if lastSentAt > 0 && time.Now().Unix() <= lastSentAt+int64(sendInterval.Seconds()) {
 				if s.isDev() {
-					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: too early to send", map[string]interface{}{}))
+					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: too early to send", map[string]any{}))
 				}
 				continue
 			}
 
 			if s.isDev() {
-				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: sending usage stats", map[string]interface{}{}))
+				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: sending usage stats", map[string]any{}))
 			}
 			metrics, err := s.prepareMetrics()
 			if err != nil {
 				if s.isDev() {
-					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error preparing metrics", map[string]interface{}{"error": err.Error()}))
+					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error preparing metrics", map[string]any{"error": err.Error()}))
 				}
 				continue
 			}
 			err = s.sendUsageStats(metrics, build.UsageStatsEndpoint, build.UsageStatsToken)
 			if err != nil {
 				if s.isDev() {
-					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error sending", map[string]interface{}{"error": err.Error()}))
+					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error sending", map[string]any{"error": err.Error()}))
 				}
 				continue
 			}
@@ -220,7 +220,7 @@ func (s *Sender) broadcastLastSentAt() {
 	if err := s.node.Notify(LastSentUpdateNotificationOp, data, ""); err != nil {
 		// Issue a single retry.
 		if err = s.node.Notify(LastSentUpdateNotificationOp, data, ""); err != nil {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error broadcasting stats lastSentAt", map[string]interface{}{"error": err.Error()}))
+			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error broadcasting stats lastSentAt", map[string]any{"error": err.Error()}))
 		}
 	}
 }
@@ -232,14 +232,14 @@ func (s *Sender) UpdateLastSentAt(data []byte) {
 	var envelope lastSentAtEnvelope
 	err := json.Unmarshal(data, &envelope)
 	if err != nil {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error decoding lastSentAtEnvelope", map[string]interface{}{"error": err.Error()}))
+		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error decoding lastSentAtEnvelope", map[string]any{"error": err.Error()}))
 		return
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if envelope.LastSentAt > s.lastSentAt {
 		if s.isDev() {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: updating last sent to value from another node", map[string]interface{}{}))
+			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: updating last sent to value from another node", map[string]any{}))
 		}
 		s.lastSentAt = envelope.LastSentAt
 		s.resetMaxValues()
@@ -526,9 +526,9 @@ func (s *Sender) sendUsageStats(metrics []*metric, statsEndpoint, statsToken str
 	}
 
 	if s.isDev() {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: sending usage stats", map[string]interface{}{"payload": string(data)}))
+		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: sending usage stats", map[string]any{"payload": string(data)}))
 	} else {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelTrace, "usage stats: sending usage stats", map[string]interface{}{"payload": string(data)}))
+		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelTrace, "usage stats: sending usage stats", map[string]any{"payload": string(data)}))
 	}
 
 	client := &http.Client{
@@ -537,14 +537,14 @@ func (s *Sender) sendUsageStats(metrics []*metric, statsEndpoint, statsToken str
 
 	if statsEndpoint == "" {
 		if s.isDev() {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: skip sending due to empty endpoint", map[string]interface{}{}))
+			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: skip sending due to empty endpoint", map[string]any{}))
 		}
 		return nil
 	}
 
 	if statsToken == "" {
 		if s.isDev() {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: skip sending due to empty token", map[string]interface{}{}))
+			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: skip sending due to empty token", map[string]any{}))
 		}
 		return nil
 	}
@@ -561,7 +561,7 @@ func (s *Sender) sendUsageStats(metrics []*metric, statsEndpoint, statsToken str
 		req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(data))
 		if err != nil {
 			if s.isDev() {
-				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: can't create send request", map[string]interface{}{"error": err.Error()}))
+				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: can't create send request", map[string]any{"error": err.Error()}))
 			}
 			continue
 		}
@@ -571,7 +571,7 @@ func (s *Sender) sendUsageStats(metrics []*metric, statsEndpoint, statsToken str
 		resp, err := client.Do(req)
 		if err != nil {
 			if s.isDev() {
-				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: error sending request", map[string]interface{}{"error": err.Error()}))
+				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: error sending request", map[string]any{"error": err.Error()}))
 			}
 			continue
 		}
@@ -580,7 +580,7 @@ func (s *Sender) sendUsageStats(metrics []*metric, statsEndpoint, statsToken str
 
 		if resp.StatusCode != http.StatusOK {
 			if s.isDev() {
-				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: unexpected response status code", map[string]interface{}{"status": resp.StatusCode}))
+				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: unexpected response status code", map[string]any{"status": resp.StatusCode}))
 			}
 			continue
 		}

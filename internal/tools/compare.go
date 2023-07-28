@@ -4,7 +4,7 @@ import "crypto/subtle"
 
 // SecureCompare use constant time function to compare the two given array.
 func SecureCompare(given, actual []byte) bool {
-	if subtle.ConstantTimeEq(int32(len(given)), int32(len(actual))) == 1{
+	if subtle.ConstantTimeEq(int32(len(given)), int32(len(actual))) == 1 {
 		return subtle.ConstantTimeCompare(given, actual) == 1
 	}
 	// Securely compare actual to itself to keep constant time, but always return false

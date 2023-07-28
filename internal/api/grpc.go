@@ -27,7 +27,7 @@ func authorize(ctx context.Context, key []byte) error {
 // `apikey <KEY>`.
 func GRPCKeyAuth(key string) grpc.ServerOption {
 	authKey := []byte("apikey " + key)
-	return grpc.UnaryInterceptor(func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	return grpc.UnaryInterceptor(func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		if err := authorize(ctx, authKey); err != nil {
 			return nil, err
 		}
