@@ -782,7 +782,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		return r, SubscribeExtra{}, err
 	} else if chOpts.ProxyStreamSubscribe && !isUserLimitedChannel {
 		if subscribeStreamHandlerFunc == nil {
-			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "stream proxy not enabled", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "stream proxy not enabled", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
 		}
 		r, publishFunc, cancelFunc, err := subscribeStreamHandlerFunc(c, chOpts.ProxyStreamSubscribeBidirectional, e, chOpts, getStreamPerCallData(c))
