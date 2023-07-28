@@ -18,7 +18,7 @@ const (
 )
 
 // colorize returns the string s wrapped in ANSI code c, unless disabled is true.
-func colorize(s interface{}, c int) string {
+func colorize(s any, c int) string {
 	return fmt.Sprintf("\x1b[%dm%v\x1b[0m", c, s)
 }
 
@@ -36,7 +36,7 @@ var unknownLabel = wrap(colorize("???", colorRed))
 
 // ConsoleFormatLevel returns a custom colorizer for zerolog console level output.
 func ConsoleFormatLevel() zerolog.Formatter {
-	return func(i interface{}) string {
+	return func(i any) string {
 		if ll, ok := i.(string); ok {
 			switch ll {
 			case "trace":
@@ -61,14 +61,14 @@ func ConsoleFormatLevel() zerolog.Formatter {
 
 // ConsoleFormatErrFieldName returns custom formatter for error field name.
 func ConsoleFormatErrFieldName() zerolog.Formatter {
-	return func(i interface{}) string {
+	return func(i any) string {
 		return fmt.Sprintf("%s=", i)
 	}
 }
 
 // ConsoleFormatErrFieldValue returns custom formatter for error value.
 func ConsoleFormatErrFieldValue() zerolog.Formatter {
-	return func(i interface{}) string {
+	return func(i any) string {
 		return fmt.Sprintf("%s", i)
 	}
 }

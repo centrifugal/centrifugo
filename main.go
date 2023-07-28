@@ -2001,7 +2001,7 @@ func granularProxiesFromConfig(v *viper.Viper) []proxy.Proxy {
 	case string:
 		jsonData = []byte(val)
 		err = json.Unmarshal([]byte(val), &proxies)
-	case []interface{}:
+	case []any:
 		jsonData, _ = json.Marshal(val)
 		decoderCfg := tools.DecoderConfig(&proxies)
 		decoder, newErr := mapstructure.NewDecoder(decoderCfg)
@@ -2106,7 +2106,7 @@ func namespacesFromConfig(v *viper.Viper) []rule.ChannelNamespace {
 	case string:
 		jsonData = []byte(val)
 		err = json.Unmarshal([]byte(val), &ns)
-	case []interface{}:
+	case []any:
 		jsonData, _ = json.Marshal(val)
 		decoderCfg := tools.DecoderConfig(&ns)
 		decoder, newErr := mapstructure.NewDecoder(decoderCfg)
@@ -2138,7 +2138,7 @@ func rpcNamespacesFromConfig(v *viper.Viper) []rule.RpcNamespace {
 	case string:
 		jsonData, _ = json.Marshal(val)
 		err = json.Unmarshal([]byte(val), &ns)
-	case []interface{}:
+	case []any:
 		jsonData, _ = json.Marshal(val)
 		decoderCfg := tools.DecoderConfig(&ns)
 		decoder, newErr := mapstructure.NewDecoder(decoderCfg)

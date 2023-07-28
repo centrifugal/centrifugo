@@ -12,7 +12,7 @@ import (
 
 // DecoderConfig returns default mapstructure.DecoderConfig with support
 // of time.Duration values & string slices & Duration
-func DecoderConfig(output interface{}) *mapstructure.DecoderConfig {
+func DecoderConfig(output any) *mapstructure.DecoderConfig {
 	return &mapstructure.DecoderConfig{
 		Metadata:         nil,
 		Result:           output,
@@ -33,7 +33,7 @@ func StringToDurationHookFunc() mapstructure.DecodeHookFunc {
 	return func(
 		f reflect.Type,
 		t reflect.Type,
-		data interface{}) (interface{}, error) {
+		data any) (any, error) {
 		if f.Kind() != reflect.String {
 			return data, nil
 		}
@@ -51,7 +51,7 @@ func (d Duration) MarshalJSON() ([]byte, error) {
 }
 
 func (d *Duration) UnmarshalJSON(b []byte) error {
-	var v interface{}
+	var v any
 	if err := json.Unmarshal(b, &v); err != nil {
 		return err
 	}

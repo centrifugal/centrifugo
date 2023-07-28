@@ -105,7 +105,7 @@ func (m *Manager) FetchKey(ctx context.Context, kid string, tokenVars map[string
 	}
 
 	// Otherwise fetch from public JWKS.
-	v, err, _ := m.group.Do(kid, func() (interface{}, error) {
+	v, err, _ := m.group.Do(kid, func() (any, error) {
 		return m.fetchKey(ctx, kid, tokenVars)
 	})
 	if err != nil {
