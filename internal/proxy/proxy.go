@@ -18,12 +18,17 @@ type Proxy struct {
 	// Timeout for proxy request.
 	Timeout tools.Duration `mapstructure:"timeout" json:"timeout,omitempty"`
 
-	// HTTPHeaders is a list of HTTP headers to proxy.  No headers used by proxy by default.
+	// HTTPHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.
 	// If GRPC proxy is used then request HTTP headers set to outgoing request metadata.
 	HttpHeaders []string `mapstructure:"http_headers" json:"http_headers,omitempty"`
 	// GRPCMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by
 	// default. If HTTP proxy is used then these keys become outgoing request HTTP headers.
 	GrpcMetadata []string `mapstructure:"grpc_metadata" json:"grpc_metadata,omitempty"`
+
+	// StaticHttpHeaders is a static set of key/value pairs to attach to HTTP proxy request as
+	// headers. Headers received from HTTP client request or metadata from GRPC client request
+	// both have priority over values set in StaticHttpHeaders map.
+	StaticHttpHeaders map[string]string `mapstructure:"static_http_headers" json:"static_http_headers,omitempty"`
 
 	// BinaryEncoding makes proxy send data as base64 string (assuming it contains custom
 	// non-JSON payload).

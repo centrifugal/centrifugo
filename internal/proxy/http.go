@@ -80,9 +80,12 @@ func (c *httpCaller) CallHTTP(ctx context.Context, endpoint string, header http.
 	return respData, nil
 }
 
-func getProxyHeader(allHeader http.Header, extraHeaders []string) http.Header {
+func getProxyHeader(allHeader http.Header, allowedHeaders []string, staticHeaders map[string]string) http.Header {
 	proxyHeader := http.Header{}
-	copyHeader(proxyHeader, allHeader, extraHeaders)
+	for k, v := range staticHeaders {
+		proxyHeader.Set(k, v)
+	}
+	copyHeader(proxyHeader, allHeader, allowedHeaders)
 	proxyHeader.Set("Content-Type", "application/json")
 	return proxyHeader
 }
