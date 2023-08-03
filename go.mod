@@ -25,7 +25,7 @@ require (
 	github.com/quic-go/quic-go v0.34.0
 	github.com/quic-go/webtransport-go v0.5.3
 	github.com/rakutentech/jwk-go v1.1.3
-	github.com/rs/zerolog v1.29.1
+	github.com/rs/zerolog v1.30.0
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.4
 	github.com/valyala/fasttemplate v1.2.2
