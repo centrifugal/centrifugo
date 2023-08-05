@@ -121,3 +121,29 @@ func ErrorMessageFromConfigError(err error, configPath string) string {
 	// Fallback if we can't construct a better one.
 	return fmt.Sprintf("configuration error: %v", err)
 }
+
+func MapStringString(v *viper.Viper, key string) (map[string]string, error) {
+	if !v.IsSet(key) {
+		return map[string]string{}, nil
+	}
+	var m map[string]string
+	var err error
+	switch val := v.Get(key).(type) {
+	case string:
+		err = json.Unmarshal([]byte(val), &m)
+	case map[string]string:
+		m = val
+	case map[string]any:
+		var jsonData []byte
+		jsonData, err = json.Marshal(val)
+		if err == nil {
+			err = json.Unmarshal(jsonData, &m)
+		}
+	default:
+		err = fmt.Errorf("unknown type: %T", val)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}

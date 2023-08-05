@@ -266,6 +266,7 @@ var defaults = map[string]any{
 	"proxy_sub_refresh_timeout":     time.Second,
 	"proxy_grpc_metadata":           []string{},
 	"proxy_http_headers":            []string{},
+	"proxy_static_http_headers":     map[string]string{},
 	"proxy_binary_encoding":         false,
 	"proxy_include_connection_meta": false,
 	"proxy_grpc_cert_file":          "",
@@ -1731,6 +1732,12 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	for i, header := range p.HttpHeaders {
 		p.HttpHeaders[i] = strings.ToLower(header)
 	}
+
+	staticHttpHeaders, err := tools.MapStringString(v, "proxy_static_http_headers")
+	if err != nil {
+		log.Fatal().Err(err).Msg("malformed configuration for proxy_static_http_headers")
+	}
+	p.StaticHttpHeaders = staticHttpHeaders
 
 	p.BinaryEncoding = v.GetBool("proxy_binary_encoding")
 	p.IncludeConnectionMeta = v.GetBool("proxy_include_connection_meta")
