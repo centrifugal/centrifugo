@@ -1,3 +1,21 @@
+v5.0.2
+======
+
+### Improvements
+
+* Quiet mode and no expiration for gentoken/gensubtoken cli commands [#681](https://github.com/centrifugal/centrifugo/pull/681) - so token generation using cli helpers is more flexible now
+* Add `proxy_static_http_headers` option and `static_http_headers` key for granular proxy [#687](https://github.com/centrifugal/centrifugo/pull/687) - so it's possible to append custom headers to HTTP proxy requests.
+
+### Fixes
+
+* Suppress warnings about k8s env vars, see [issue](https://github.com/centrifugal/centrifugo/issues/678)
+
+### Misc
+
+* Release is built with Go 1.20.7
+* Dependencies updated (rueidis, quic-go, crypto, etc)
+* Replace `interface{}` with `any` in code base, [#682](https://github.com/centrifugal/centrifugo/pull/682)
+
 v5.0.1
 ======
 
