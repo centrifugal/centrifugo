@@ -45,8 +45,27 @@ func CheckPlainConfigKeys(defaults map[string]any, allKeys []string) {
 	checkEnvironmentConfigKeys(defaults)
 }
 
+// Map[string]string keys require a special care because viper will return all the keys found
+// in map from allKeys method in a format like "proxy_static_http_headers.some_key". Since we
+// allow arbitrary keys for maps we have this slice of such configuration options here.
+var mapStringStringKeys = []string{
+	"proxy_static_http_headers",
+}
+
+func isMapStringStringKey(key string) bool {
+	for _, mapKey := range mapStringStringKeys {
+		if strings.HasPrefix(key, mapKey+".") {
+			return true
+		}
+	}
+	return false
+}
+
 func checkFileConfigKeys(defaults map[string]any, allKeys []string) {
 	for _, key := range allKeys {
+		if isMapStringStringKey(key) {
+			continue
+		}
 		if _, ok := defaults[key]; !ok {
 			log.Warn().Str("key", key).Msg("unknown key found in the configuration file")
 		}

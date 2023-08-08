@@ -79,7 +79,7 @@ func grpcRequestContext(ctx context.Context, proxy Proxy) context.Context {
 }
 
 func httpRequestHeaders(ctx context.Context, proxy Proxy) http.Header {
-	return requestHeaders(ctx, proxy.HttpHeaders, proxy.GrpcMetadata)
+	return requestHeaders(ctx, proxy.HttpHeaders, proxy.GrpcMetadata, proxy.StaticHttpHeaders)
 }
 
 func requestMetadata(ctx context.Context, allowedHeaders []string, allowedMetaKeys []string) metadata.MD {
@@ -101,10 +101,13 @@ func requestMetadata(ctx context.Context, allowedHeaders []string, allowedMetaKe
 	return requestMD
 }
 
-func requestHeaders(ctx context.Context, allowedHeaders []string, allowedMetaKeys []string) http.Header {
-	headers := http.Header{}
+func requestHeaders(ctx context.Context, allowedHeaders []string, allowedMetaKeys []string, staticHeaders map[string]string) http.Header {
 	if headers, ok := middleware.GetHeadersFromContext(ctx); ok {
-		return getProxyHeader(headers, allowedHeaders)
+		return getProxyHeader(headers, allowedHeaders, staticHeaders)
+	}
+	headers := http.Header{}
+	for k, v := range staticHeaders {
+		headers.Set(k, v)
 	}
 	headers.Set("Content-Type", "application/json")
 	md, _ := metadata.FromIncomingContext(ctx)

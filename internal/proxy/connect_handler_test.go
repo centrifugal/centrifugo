@@ -36,6 +36,9 @@ func getTestHttpProxy(commonProxyTestCase *tools.CommonHTTPProxyTestCase, endpoi
 	return Proxy{
 		Endpoint: commonProxyTestCase.Server.URL + endpoint,
 		Timeout:  tools.Duration(5 * time.Second),
+		StaticHttpHeaders: map[string]string{
+			"X-Test": "test",
+		},
 	}
 }
 
@@ -122,6 +125,7 @@ func TestHandleConnectWithEmptyReply(t *testing.T) {
 
 	httpTestCase := newConnHandleHTTPTestCase(context.Background(), "/proxy")
 	httpTestCase.Mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
+		require.Equal(t, "test", req.Header.Get("X-Test"))
 		_, _ = w.Write([]byte(`{}`))
 	})
 	defer httpTestCase.Teardown()
