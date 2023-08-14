@@ -9,9 +9,9 @@ option go_package = "./;proxystreamproto";
 // it's possible to achieve on-demand streaming when data is only exchanged while client is
 // connected or subscribed.
 service CentrifugoProxyStream {
-  // ConnectUnidirectional allows handling unidirectional connections.
+  // ConnectUnidirectional allows handling unidirectional connection streams.
   rpc ConnectUnidirectional(ConnectRequest) returns (stream Response);
-  // ConnectBidirectional allows handling bidirectional connections.
+  // ConnectBidirectional allows handling bidirectional connection streams.
   rpc ConnectBidirectional(stream Request) returns (stream Response);
 
   // SubscribeUnidirectional allows handling unidirectional subscription streams.
