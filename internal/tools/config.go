@@ -147,3 +147,24 @@ func MapStringString(v *viper.Viper, key string) (map[string]string, error) {
 	}
 	return m, nil
 }
+
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
+func OptionalStringChoice(v *viper.Viper, key string, choices []string) (string, error) {
+	val := v.GetString(key)
+	if val == "" {
+		// Empty value is valid for optional configuration key.
+		return val, nil
+	}
+	if !stringInSlice(val, choices) {
+		return "", fmt.Errorf("invalid value for %s: %s, possible choices are: %s", key, val, strings.Join(choices, ", "))
+	}
+	return val, nil
+}
