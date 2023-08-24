@@ -399,6 +399,16 @@ service CentrifugoApi {
       tags: ["push notification"];
     };
   }
+  rpc CancelPush (CancelPushRequest) returns (CancelPushResponse) {
+    option (google.api.http) = {
+      post: "/cancel_push",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Cancel delayed push notification";
+      tags: ["push notification"];
+    };
+  }
 }
 
 message Command {
@@ -433,6 +443,7 @@ message Command {
   UserTopicUpdateRequest user_topic_update = 32;
   SendPushNotificationRequest send_push_notification = 33;
   UpdatePushStatusRequest update_push_status = 34;
+  CancelPushRequest cancel_push = 35;
 }
 
 message Error {
@@ -472,6 +483,7 @@ message Reply {
   UserTopicUpdateResult user_topic_update = 32;
   SendPushNotificationResult send_push_notification = 33;
   UpdatePushStatusResult update_push_status = 34;
+  CancelPushResult cancel_push = 35;
 }
 
 message BoolValue {
@@ -1154,3 +1166,14 @@ message UpdatePushStatusResponse {
 }
 
 message UpdatePushStatusResult {}
+
+message CancelPushRequest {
+  string uid = 1;
+}
+
+message CancelPushResponse {
+  Error error = 1;
+  CancelPushResult result = 2;
+}
+
+message CancelPushResult {}
