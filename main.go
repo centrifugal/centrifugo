@@ -151,6 +151,7 @@ var defaults = map[string]any{
 	"allow_user_limited_channels":   false,
 	"channel_regex":                 "",
 	"proxy_subscribe":               false,
+	"proxy_unsubscribe":             false,
 	"proxy_publish":                 false,
 	"proxy_sub_refresh":             false,
 	"subscribe_proxy_name":          "",
@@ -255,6 +256,7 @@ var defaults = map[string]any{
 	"proxy_connect_endpoint":        "",
 	"proxy_refresh_endpoint":        "",
 	"proxy_subscribe_endpoint":      "",
+	"proxy_unsubscribe_endpoint":    "",
 	"proxy_publish_endpoint":        "",
 	"proxy_sub_refresh_endpoint":    "",
 	"proxy_rpc_endpoint":            "",
@@ -262,6 +264,7 @@ var defaults = map[string]any{
 	"proxy_rpc_timeout":             time.Second,
 	"proxy_refresh_timeout":         time.Second,
 	"proxy_subscribe_timeout":       time.Second,
+	"proxy_unsubscribe_timeout":     time.Second,
 	"proxy_publish_timeout":         time.Second,
 	"proxy_sub_refresh_timeout":     time.Second,
 	"proxy_grpc_metadata":           []string{},
@@ -1607,9 +1610,11 @@ func ruleConfig() rule.Config {
 	cfg.UserLimitedChannels = v.GetBool("allow_user_limited_channels")
 	cfg.ChannelRegex = v.GetString("channel_regex")
 	cfg.ProxySubscribe = v.GetBool("proxy_subscribe")
+	cfg.ProxyUnsubscribe = v.GetBool("proxy_unsubscribe")
 	cfg.ProxyPublish = v.GetBool("proxy_publish")
 	cfg.ProxySubRefresh = v.GetBool("proxy_sub_refresh")
 	cfg.SubscribeProxyName = v.GetString("subscribe_proxy_name")
+	cfg.UnsubscribeProxyName = v.GetString("unsubscribe_proxy_name")
 	cfg.PublishProxyName = v.GetString("publish_proxy_name")
 	cfg.SubRefreshProxyName = v.GetString("sub_refresh_proxy_name")
 
@@ -1720,10 +1725,11 @@ func GetDuration(key string, secondsPrecision ...bool) time.Duration {
 func proxyMapConfig() (*client.ProxyMap, bool) {
 	v := viper.GetViper()
 	proxyMap := &client.ProxyMap{
-		SubscribeProxies:  map[string]proxy.SubscribeProxy{},
-		PublishProxies:    map[string]proxy.PublishProxy{},
-		RpcProxies:        map[string]proxy.RPCProxy{},
-		SubRefreshProxies: map[string]proxy.SubRefreshProxy{},
+		SubscribeProxies:   map[string]proxy.SubscribeProxy{},
+		UnsubscribeProxies: map[string]proxy.UnsubscribeProxy{},
+		PublishProxies:     map[string]proxy.PublishProxy{},
+		RpcProxies:         map[string]proxy.RPCProxy{},
+		SubRefreshProxies:  map[string]proxy.SubRefreshProxy{},
 	}
 	p := proxy.Proxy{}
 	p.GrpcMetadata = v.GetStringSlice("proxy_grpc_metadata")
@@ -1753,6 +1759,8 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	rpcTimeout := GetDuration("proxy_rpc_timeout")
 	subscribeEndpoint := v.GetString("proxy_subscribe_endpoint")
 	subscribeTimeout := GetDuration("proxy_subscribe_timeout")
+	unsubscribeEndpoint := v.GetString("proxy_unsubscribe_endpoint")
+	unsubscribeTimeout := GetDuration("proxy_unsubscribe_timeout")
 	publishEndpoint := v.GetString("proxy_publish_endpoint")
 	publishTimeout := GetDuration("proxy_publish_timeout")
 	subRefreshEndpoint := v.GetString("proxy_sub_refresh_endpoint")
@@ -1789,6 +1797,17 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 		}
 		proxyMap.SubscribeProxies[""] = sp
 		log.Info().Str("endpoint", subscribeEndpoint).Msg("subscribe proxy enabled")
+	}
+
+	if unsubscribeEndpoint != "" {
+		p.Endpoint = unsubscribeEndpoint
+		p.Timeout = tools.Duration(unsubscribeTimeout)
+		sp, err := proxy.GetUnsubscribeProxy(p)
+		if err != nil {
+			log.Fatal().Msgf("error creating unsubscribe proxy: %v", err)
+		}
+		proxyMap.UnsubscribeProxies[""] = sp
+		log.Info().Str("endpoint", unsubscribeEndpoint).Msg("unsubscribe proxy enabled")
 	}
 
 	if publishEndpoint != "" {
@@ -1888,6 +1907,20 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		proxyEnabled = true
 	}
 
+	unsubscribeProxyName := ruleConfig.UnsubscribeProxyName
+	if unsubscribeProxyName != "" {
+		p, ok := proxies[unsubscribeProxyName]
+		if !ok {
+			log.Fatal().Msgf("unsubscribe proxy not found: %s", subscribeProxyName)
+		}
+		sp, err := proxy.GetUnsubscribeProxy(p)
+		if err != nil {
+			log.Fatal().Msgf("error creating unsubscribe proxy: %v", err)
+		}
+		proxyMap.UnsubscribeProxies[unsubscribeProxyName] = sp
+		proxyEnabled = true
+	}
+
 	publishProxyName := ruleConfig.PublishProxyName
 	if publishProxyName != "" {
 		p, ok := proxies[publishProxyName]
@@ -1918,6 +1951,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 
 	for _, ns := range ruleConfig.Namespaces {
 		subscribeProxyName := ns.SubscribeProxyName
+		unsubscribeProxyName := ns.UnsubscribeProxyName
 		publishProxyName := ns.PublishProxyName
 		subRefreshProxyName := ns.SubRefreshProxyName
 
@@ -1931,6 +1965,19 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 				log.Fatal().Msgf("error creating subscribe proxy: %v", err)
 			}
 			proxyMap.SubscribeProxies[subscribeProxyName] = sp
+			proxyEnabled = true
+		}
+
+		if unsubscribeProxyName != "" {
+			p, ok := proxies[unsubscribeProxyName]
+			if !ok {
+				log.Fatal().Msgf("unsubscribe proxy not found: %s", subscribeProxyName)
+			}
+			sp, err := proxy.GetUnsubscribeProxy(p)
+			if err != nil {
+				log.Fatal().Msgf("error creating unsubscribe proxy: %v", err)
+			}
+			proxyMap.UnsubscribeProxies[unsubscribeProxyName] = sp
 			proxyEnabled = true
 		}
 

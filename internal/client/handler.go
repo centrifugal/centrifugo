@@ -22,12 +22,13 @@ type RPCExtensionFunc func(c Client, e centrifuge.RPCEvent) (centrifuge.RPCReply
 // ProxyMap is a structure which contains all configured and already initialized
 // proxies which can be used from inside client event handlers.
 type ProxyMap struct {
-	ConnectProxy      proxy.ConnectProxy
-	RefreshProxy      proxy.RefreshProxy
-	RpcProxies        map[string]proxy.RPCProxy
-	PublishProxies    map[string]proxy.PublishProxy
-	SubscribeProxies  map[string]proxy.SubscribeProxy
-	SubRefreshProxies map[string]proxy.SubRefreshProxy
+	ConnectProxy       proxy.ConnectProxy
+	RefreshProxy       proxy.RefreshProxy
+	RpcProxies         map[string]proxy.RPCProxy
+	PublishProxies     map[string]proxy.PublishProxy
+	SubscribeProxies   map[string]proxy.SubscribeProxy
+	UnsubscribeProxies map[string]proxy.UnsubscribeProxy
+	SubRefreshProxies  map[string]proxy.SubRefreshProxy
 }
 
 // Handler ...
@@ -114,6 +115,14 @@ func (h *Handler) Setup() error {
 		}).Handle(h.node)
 	}
 
+	var unsubscribeProxyHandler proxy.UnsubscribeHandlerFunc
+	if len(h.proxyMap.UnsubscribeProxies) > 0 {
+		unsubscribeProxyHandler = proxy.NewUnsubscribeHandler(proxy.UnsubscribeHandlerConfig{
+			Proxies:           h.proxyMap.UnsubscribeProxies,
+			GranularProxyMode: h.granularProxyMode,
+		}).Handle(h.node)
+	}
+
 	var subRefreshProxyHandler proxy.SubRefreshHandlerFunc
 	if len(h.proxyMap.SubRefreshProxies) > 0 {
 		subRefreshProxyHandler = proxy.NewSubRefreshHandler(proxy.SubRefreshHandlerConfig{
@@ -189,6 +198,12 @@ func (h *Handler) Setup() error {
 			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
 				reply, _, err := h.OnSubscribe(client, event, subscribeProxyHandler)
 				cb(reply, err)
+			})
+		})
+
+		client.OnUnsubscribe(func(event centrifuge.UnsubscribeEvent) {
+			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
+				h.OnUnsubscribe(client, event, unsubscribeProxyHandler)
 			})
 		})
 
@@ -715,6 +730,31 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		Options:           options,
 		ClientSideRefresh: !chOpts.ProxySubRefresh && chOpts.SubRefreshProxyName == "",
 	}, SubscribeExtra{}, nil
+}
+
+// OnUnsubscribe ...
+func (h *Handler) OnUnsubscribe(c Client, e centrifuge.UnsubscribeEvent, unsubscribeProxyHandler proxy.UnsubscribeHandlerFunc) {
+	if e.Channel == "" {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "unsubscribe empty channel", map[string]any{"user": c.UserID(), "client": c.ID()}))
+		return
+	}
+
+	nsName, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	if err != nil {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "unsubscribe channel options error", map[string]any{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
+		return
+	}
+	if !found {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "unsubscribe unknown channel", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
+		return
+	}
+	if err = h.validateChannelName(c, nsName, rest, chOpts, e.Channel); err != nil {
+		return
+	}
+
+	if (chOpts.ProxyUnsubscribe || chOpts.UnsubscribeProxyName != "") && unsubscribeProxyHandler != nil {
+		unsubscribeProxyHandler(c, e, chOpts, getPerCallData(c))
+	}
 }
 
 // OnPublish ...

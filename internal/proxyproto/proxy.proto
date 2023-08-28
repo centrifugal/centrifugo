@@ -8,6 +8,7 @@ service CentrifugoProxy {
   rpc Connect(ConnectRequest) returns (ConnectResponse);
   rpc Refresh(RefreshRequest) returns (RefreshResponse);
   rpc Subscribe(SubscribeRequest) returns (SubscribeResponse);
+  rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
   rpc Publish(PublishRequest) returns (PublishResponse);
   rpc RPC(RPCRequest) returns (RPCResponse);
   rpc SubRefresh(SubRefreshRequest) returns (SubRefreshResponse);
@@ -142,6 +143,18 @@ message SubscribeResponse {
   Error error = 2;
   Disconnect disconnect = 3;
 }
+
+message UnsubscribeRequest {
+  string client = 1;
+  string transport = 2;
+  string protocol = 3;
+  string encoding = 4;
+
+  string user = 10;
+  string channel = 11;
+}
+
+message UnsubscribeResponse {}
 
 message PublishRequest {
   string client = 1;

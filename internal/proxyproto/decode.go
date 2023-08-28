@@ -51,6 +51,15 @@ func (e *JSONDecoder) DecodeSubscribeResponse(data []byte) (*SubscribeResponse, 
 	return &resp, nil
 }
 
+func (e *JSONDecoder) DecodeUnsubscribeResponse(data []byte) (*UnsubscribeResponse, error) {
+	var resp UnsubscribeResponse
+	err := json.Unmarshal(data, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
 func (e *JSONDecoder) DecodePublishResponse(data []byte) (*PublishResponse, error) {
 	var resp PublishResponse
 	err := json.Unmarshal(data, &resp)

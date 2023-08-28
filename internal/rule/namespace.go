@@ -117,6 +117,9 @@ type ChannelOptions struct {
 	// ProxySubscribe turns on proxying subscribe decision for channels.
 	ProxySubscribe bool `mapstructure:"proxy_subscribe" json:"proxy_subscribe"`
 
+	// ProxyUnsubscribe turns on proxying unsubscribe decision for channels.
+	ProxyUnsubscribe bool `mapstructure:"proxy_unsubscribe" json:"proxy_unsubscribe"`
+
 	// ProxyPublish turns on proxying publish decision for channels.
 	ProxyPublish bool `mapstructure:"proxy_publish" json:"proxy_publish"`
 
@@ -125,6 +128,9 @@ type ChannelOptions struct {
 
 	// SubscribeProxyName of proxy to use for subscribe operations in namespace.
 	SubscribeProxyName string `mapstructure:"subscribe_proxy_name" json:"subscribe_proxy_name"`
+
+	// UnsubscribeProxyName of proxy to use for unsubscribe operations in namespace.
+	UnsubscribeProxyName string `mapstructure:"unsubscribe_proxy_name" json:"unsubscribe_proxy_name"`
 
 	// PublishProxyName of proxy to use for publish operations in namespace.
 	PublishProxyName string `mapstructure:"publish_proxy_name" json:"publish_proxy_name"`

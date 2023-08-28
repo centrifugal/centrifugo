@@ -99,6 +99,13 @@ func GetSubscribeProxy(p Proxy) (SubscribeProxy, error) {
 	return NewGRPCSubscribeProxy(p)
 }
 
+func GetUnsubscribeProxy(p Proxy) (UnsubscribeProxy, error) {
+	if isHttpEndpoint(p.Endpoint) {
+		return NewHTTPUnsubscribeProxy(p)
+	}
+	return NewGRPCUnsubscribeProxy(p)
+}
+
 type PerCallData struct {
 	Meta json.RawMessage
 }
