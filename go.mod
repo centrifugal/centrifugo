@@ -22,7 +22,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nats-io/nats.go v1.28.0
 	github.com/prometheus/client_golang v1.16.0
-	github.com/quic-go/quic-go v0.37.3
+	github.com/quic-go/quic-go v0.38.1
 	github.com/quic-go/webtransport-go v0.5.3
 	github.com/rakutentech/jwk-go v1.1.3
 	github.com/rs/zerolog v1.30.0
@@ -76,7 +76,7 @@ require (
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
-	github.com/quic-go/qtls-go1-20 v0.3.1 // indirect
+	github.com/quic-go/qtls-go1-20 v0.3.3 // indirect
 	github.com/redis/rueidis v1.0.14-go1.18 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/segmentio/encoding v0.3.6 // indirect
