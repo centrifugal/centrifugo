@@ -2583,10 +2583,6 @@
         "apns": {
           "$ref": "#/definitions/ApnsPushNotification"
         },
-        "uid": {
-          "type": "string",
-          "description": "unique identifier for push notification, used for matching in Centrifugo analytics."
-        },
         "expire_at": {
           "type": "integer",
           "description": "timestamp in the future when Centrifugo should stop trying to send push notification."
@@ -2821,6 +2817,13 @@
         },
         "notification": {
           "$ref": "#/definitions/PushNotification"
+        },
+        "uid": {
+          "type": "string",
+          "description": "unique identifier for push notification, used for matching in Centrifugo analytics."
+        },
+        "send_at": {
+          "type": "integer"
         }
       }
     },
