@@ -1,3 +1,15 @@
+v5.0.3
+======
+
+### Improvements
+
+* Add support for GRPC exporter protocol in opentelemetry tracing, by @SinimaWath in [#691](https://github.com/centrifugal/centrifugo/pull/691)
+
+### Misc
+
+* Release is built with Go 1.20.7
+* Dependencies updated (rueidis, quic-go, opentelemetry, etc)
+
 v5.0.2
 ======
 

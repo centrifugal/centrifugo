@@ -37,6 +37,7 @@ service CentrifugoApi {
     rpc UserTopicUpdate (UserTopicUpdateRequest) returns (UserTopicUpdateResponse) {}
     rpc SendPushNotification (SendPushNotificationRequest) returns (SendPushNotificationResponse) {}
     rpc UpdatePushStatus (UpdatePushStatusRequest) returns (UpdatePushStatusResponse) {}
+    rpc CancelPush (CancelPushRequest) returns (CancelPushResponse) {}
 }
 
 message Command {
@@ -108,6 +109,7 @@ message Command {
     UserTopicUpdateRequest user_topic_update = 32;
     SendPushNotificationRequest send_push_notification = 33;
     UpdatePushStatusRequest update_push_status = 34;
+    CancelPushRequest cancel_push = 35;
 }
 
 message Error {
@@ -151,6 +153,7 @@ message Reply {
     UserTopicUpdateResult user_topic_update = 32;
     SendPushNotificationResult send_push_notification = 33;
     UpdatePushStatusResult update_push_status = 34;
+    CancelPushResult cancel_push = 35;
 }
 
 message BoolValue {
@@ -789,7 +792,6 @@ message PushNotification {
     HmsPushNotification hms = 2;
     ApnsPushNotification apns = 3;
 
-    string uid = 4;      // unique identifier for push notification, used for matching in Centrifugo analytics.
     int64 expire_at = 5; // timestamp in the future when Centrifugo should stop trying to send push notification.
 }
 
@@ -809,6 +811,8 @@ message ApnsPushNotification {
 message SendPushNotificationRequest {
     PushRecipient recipient = 1;
     PushNotification notification = 2;
+    string uid = 3; // unique identifier for push notification, used for matching in Centrifugo analytics.
+    int64 send_at = 4;
 }
 
 message SendPushNotificationResponse {
@@ -833,3 +837,14 @@ message UpdatePushStatusResponse {
 }
 
 message UpdatePushStatusResult {}
+
+message CancelPushRequest {
+    string uid = 1;
+}
+
+message CancelPushResponse {
+    Error error = 1;
+    CancelPushResult result = 2;
+}
+
+message CancelPushResult {}

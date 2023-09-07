@@ -161,6 +161,45 @@
         ]
       }
     },
+    "/cancel_push": {
+      "post": {
+        "summary": "Cancel delayed push notification",
+        "operationId": "CentrifugoApi_CancelPush",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/CancelPushResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CancelPushRequest"
+            }
+          }
+        ],
+        "tags": [
+          "push notification"
+        ]
+      }
+    },
     "/channels": {
       "post": {
         "summary": "Channels request",
@@ -1375,6 +1414,28 @@
         }
       }
     },
+    "CancelPushRequest": {
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string"
+        }
+      }
+    },
+    "CancelPushResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/CancelPushResult"
+        }
+      }
+    },
+    "CancelPushResult": {
+      "type": "object"
+    },
     "ChannelContext": {
       "type": "object",
       "properties": {
@@ -1535,6 +1596,9 @@
         },
         "update_push_status": {
           "$ref": "#/definitions/UpdatePushStatusRequest"
+        },
+        "cancel_push": {
+          "$ref": "#/definitions/CancelPushRequest"
         }
       }
     },
@@ -2519,10 +2583,6 @@
         "apns": {
           "$ref": "#/definitions/ApnsPushNotification"
         },
-        "uid": {
-          "type": "string",
-          "description": "unique identifier for push notification, used for matching in Centrifugo analytics."
-        },
         "expire_at": {
           "type": "integer",
           "description": "timestamp in the future when Centrifugo should stop trying to send push notification."
@@ -2718,6 +2778,9 @@
         },
         "update_push_status": {
           "$ref": "#/definitions/UpdatePushStatusResult"
+        },
+        "cancel_push": {
+          "$ref": "#/definitions/CancelPushResult"
         }
       }
     },
@@ -2754,6 +2817,13 @@
         },
         "notification": {
           "$ref": "#/definitions/PushNotification"
+        },
+        "uid": {
+          "type": "string",
+          "description": "unique identifier for push notification, used for matching in Centrifugo analytics."
+        },
+        "send_at": {
+          "type": "integer"
         }
       }
     },

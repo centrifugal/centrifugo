@@ -50,6 +50,7 @@ type CentrifugoApiClient interface {
 	UserTopicUpdate(ctx context.Context, in *UserTopicUpdateRequest, opts ...grpc.CallOption) (*UserTopicUpdateResponse, error)
 	SendPushNotification(ctx context.Context, in *SendPushNotificationRequest, opts ...grpc.CallOption) (*SendPushNotificationResponse, error)
 	UpdatePushStatus(ctx context.Context, in *UpdatePushStatusRequest, opts ...grpc.CallOption) (*UpdatePushStatusResponse, error)
+	CancelPush(ctx context.Context, in *CancelPushRequest, opts ...grpc.CallOption) (*CancelPushResponse, error)
 }
 
 type centrifugoApiClient struct {
@@ -348,6 +349,15 @@ func (c *centrifugoApiClient) UpdatePushStatus(ctx context.Context, in *UpdatePu
 	return out, nil
 }
 
+func (c *centrifugoApiClient) CancelPush(ctx context.Context, in *CancelPushRequest, opts ...grpc.CallOption) (*CancelPushResponse, error) {
+	out := new(CancelPushResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/CancelPush", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CentrifugoApiServer is the server API for CentrifugoApi service.
 // All implementations must embed UnimplementedCentrifugoApiServer
 // for forward compatibility
@@ -384,6 +394,7 @@ type CentrifugoApiServer interface {
 	UserTopicUpdate(context.Context, *UserTopicUpdateRequest) (*UserTopicUpdateResponse, error)
 	SendPushNotification(context.Context, *SendPushNotificationRequest) (*SendPushNotificationResponse, error)
 	UpdatePushStatus(context.Context, *UpdatePushStatusRequest) (*UpdatePushStatusResponse, error)
+	CancelPush(context.Context, *CancelPushRequest) (*CancelPushResponse, error)
 	mustEmbedUnimplementedCentrifugoApiServer()
 }
 
@@ -486,6 +497,9 @@ func (UnimplementedCentrifugoApiServer) SendPushNotification(context.Context, *S
 }
 func (UnimplementedCentrifugoApiServer) UpdatePushStatus(context.Context, *UpdatePushStatusRequest) (*UpdatePushStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdatePushStatus not implemented")
+}
+func (UnimplementedCentrifugoApiServer) CancelPush(context.Context, *CancelPushRequest) (*CancelPushResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CancelPush not implemented")
 }
 func (UnimplementedCentrifugoApiServer) mustEmbedUnimplementedCentrifugoApiServer() {}
 
@@ -1076,6 +1090,24 @@ func _CentrifugoApi_UpdatePushStatus_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CentrifugoApi_CancelPush_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelPushRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).CancelPush(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/CancelPush",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).CancelPush(ctx, req.(*CancelPushRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CentrifugoApi_ServiceDesc is the grpc.ServiceDesc for CentrifugoApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1210,6 +1242,10 @@ var CentrifugoApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdatePushStatus",
 			Handler:    _CentrifugoApi_UpdatePushStatus_Handler,
+		},
+		{
+			MethodName: "CancelPush",
+			Handler:    _CentrifugoApi_CancelPush_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
