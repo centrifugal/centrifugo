@@ -14,7 +14,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.52.1
+          version: v1.53.3
           args: --timeout 3m0s
   test:
     name: Test with Go ${{ matrix.go-version }}
@@ -23,7 +23,7 @@ jobs:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     strategy:
       matrix:
-        go-version: [1.20.7]
+        go-version: [1.21.1]
         tarantool-version: [2.7.2]
     steps:
       - name: Install Go
