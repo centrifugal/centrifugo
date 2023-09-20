@@ -38,6 +38,7 @@ service CentrifugoApi {
     rpc SendPushNotification (SendPushNotificationRequest) returns (SendPushNotificationResponse) {}
     rpc UpdatePushStatus (UpdatePushStatusRequest) returns (UpdatePushStatusResponse) {}
     rpc CancelPush (CancelPushRequest) returns (CancelPushResponse) {}
+    rpc RateLimit(RateLimitRequest) returns (RateLimitResponse) {}
 }
 
 message Command {
@@ -73,6 +74,8 @@ message Command {
         USER_TOPIC_UPDATE = 29;
         SEND_PUSH_NOTIFICATION = 30;
         UPDATE_PUSH_STATUS = 31;
+        CANCEL_PUSH = 32;
+        RATE_LIMIT = 47;
     }
     uint32 id = 1;
     MethodType method = 2;
@@ -110,6 +113,7 @@ message Command {
     SendPushNotificationRequest send_push_notification = 33;
     UpdatePushStatusRequest update_push_status = 34;
     CancelPushRequest cancel_push = 35;
+    RateLimitRequest rate_limit = 50;
 }
 
 message Error {
@@ -154,6 +158,7 @@ message Reply {
     SendPushNotificationResult send_push_notification = 33;
     UpdatePushStatusResult update_push_status = 34;
     CancelPushResult cancel_push = 35;
+    RateLimitResult rate_limit = 50;
 }
 
 message BoolValue {
@@ -848,3 +853,22 @@ message CancelPushResponse {
 }
 
 message CancelPushResult {}
+
+message RateLimitRequest {
+    //    string key = 1;
+    //    int64 rate = 2;
+    //    int64 interval = 3;
+    //    int64 score = 4;
+}
+
+message RateLimitResponse {
+    Error error = 1;
+    RateLimitResult result = 2;
+}
+
+message RateLimitResult {
+    //    bool allowed = 1;
+    //    int64 tokens_left = 2;
+    //    int64 allowed_in = 3;
+    //    int64 server_time = 4;
+}
