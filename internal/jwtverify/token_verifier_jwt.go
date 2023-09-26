@@ -368,7 +368,7 @@ func (verifier *VerifierJWT) verifySignatureByJWK(token *jwt.Token, tokenVars ma
 	return verifier.jwksManager.verify(token, tokenVars)
 }
 
-func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) {
+func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (ConnectToken, error) {
 	token, err := jwt.ParseNoVerify([]byte(t)) // Will be verified later.
 	if err != nil {
 		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
@@ -421,22 +421,26 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		}
 	}
 
-	if verifier.jwksManager != nil {
-		err = verifier.verifySignatureByJWK(token, tokenVars)
-	} else {
-		err = verifier.verifySignature(token)
-	}
-	if err != nil {
-		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+	if !skipVerify {
+		if verifier.jwksManager != nil {
+			err = verifier.verifySignatureByJWK(token, tokenVars)
+		} else {
+			err = verifier.verifySignature(token)
+		}
+		if err != nil {
+			return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+		}
 	}
 
 	if claims.Channel != "" {
 		return ConnectToken{}, ErrInvalidToken
 	}
 
-	now := time.Now()
-	if !claims.IsValidExpiresAt(now) || !claims.IsValidNotBefore(now) {
-		return ConnectToken{}, ErrTokenExpired
+	if !skipVerify {
+		now := time.Now()
+		if !claims.IsValidExpiresAt(now) || !claims.IsValidNotBefore(now) {
+			return ConnectToken{}, ErrTokenExpired
+		}
 	}
 
 	subs := map[string]centrifuge.SubscribeOptions{}
@@ -556,7 +560,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 	return ct, nil
 }
 
-func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, error) {
+func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (SubscribeToken, error) {
 	token, err := jwt.ParseNoVerify([]byte(t)) // Will be verified later.
 	if err != nil {
 		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
@@ -609,18 +613,22 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 		}
 	}
 
-	if verifier.jwksManager != nil {
-		err = verifier.verifySignatureByJWK(token, tokenVars)
-	} else {
-		err = verifier.verifySignature(token)
-	}
-	if err != nil {
-		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+	if !skipVerify {
+		if verifier.jwksManager != nil {
+			err = verifier.verifySignatureByJWK(token, tokenVars)
+		} else {
+			err = verifier.verifySignature(token)
+		}
+		if err != nil {
+			return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+		}
 	}
 
-	now := time.Now()
-	if !claims.IsValidExpiresAt(now) || !claims.IsValidNotBefore(now) {
-		return SubscribeToken{}, ErrTokenExpired
+	if !skipVerify {
+		now := time.Now()
+		if !claims.IsValidExpiresAt(now) || !claims.IsValidNotBefore(now) {
+			return SubscribeToken{}, ErrTokenExpired
+		}
 	}
 
 	if claims.Channel == "" {
