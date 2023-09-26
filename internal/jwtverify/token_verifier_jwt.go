@@ -436,11 +436,9 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 		return ConnectToken{}, ErrInvalidToken
 	}
 
-	if !skipVerify {
-		now := time.Now()
-		if !claims.IsValidExpiresAt(now) || !claims.IsValidNotBefore(now) {
-			return ConnectToken{}, ErrTokenExpired
-		}
+	now := time.Now()
+	if !claims.IsValidExpiresAt(now) || !claims.IsValidNotBefore(now) {
+		return ConnectToken{}, ErrTokenExpired
 	}
 
 	subs := map[string]centrifuge.SubscribeOptions{}
@@ -624,11 +622,9 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 		}
 	}
 
-	if !skipVerify {
-		now := time.Now()
-		if !claims.IsValidExpiresAt(now) || !claims.IsValidNotBefore(now) {
-			return SubscribeToken{}, ErrTokenExpired
-		}
+	now := time.Now()
+	if !claims.IsValidExpiresAt(now) || !claims.IsValidNotBefore(now) {
+		return SubscribeToken{}, ErrTokenExpired
 	}
 
 	if claims.Channel == "" {

@@ -322,7 +322,18 @@ func Test_tokenVerifierJWT_InvalidSignature(t *testing.T) {
 	require.Error(t, err)
 
 	// Test that skipVerify results into accepted token.
-	ct, err := verifier.VerifyConnectToken(jwtInvalidSignature, true)
+	ct, err := verifier.VerifyConnectToken(jwtValid+"xxx", true)
+	require.NoError(t, err)
+	require.Equal(t, "2694", ct.UserID)
+}
+
+func Test_tokenVerifierJWT_InvalidSignature_SkipVerify(t *testing.T) {
+	ruleConfig := rule.DefaultConfig
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", ""}, ruleContainer)
+	require.NoError(t, err)
+	ct, err := verifier.VerifyConnectToken(jwtValid+"xxx", true)
 	require.NoError(t, err)
 	require.Equal(t, "2694", ct.UserID)
 }
@@ -336,10 +347,9 @@ func Test_tokenVerifierJWT_WithNotBefore(t *testing.T) {
 	_, err = verifier.VerifyConnectToken(jwtNotBefore, false)
 	require.Error(t, err)
 
-	// Test that skipVerify results into accepted token.
-	ct, err := verifier.VerifyConnectToken(jwtNotBefore, true)
-	require.NoError(t, err)
-	require.Equal(t, "2694", ct.UserID)
+	// Test that skipVerify still results into unaccepted token if it's expired.
+	_, err = verifier.VerifyConnectToken(jwtNotBefore, true)
+	require.Error(t, err)
 }
 
 func Test_tokenVerifierJWT_StringAudience(t *testing.T) {
@@ -610,23 +620,6 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 			want:    SubscribeToken{},
 			wantErr: true,
 			expired: true,
-		}, {
-			name:     "Expired JWT but verify skipped",
-			verifier: verifierJWT,
-			args: args{
-				token: getRSASubscribeToken("channel1", "client1", _time.Add(-24*time.Hour).Unix(), nil),
-			},
-			want: SubscribeToken{
-				Client:  "client1",
-				Channel: "channel1",
-				Options: centrifuge.SubscribeOptions{
-					ExpireAt:    _time.Add(-24 * time.Hour).Unix(),
-					ChannelInfo: []byte("{}"),
-				},
-			},
-			wantErr:    false,
-			expired:    false,
-			skipVerify: true,
 		}, {
 			name:     "Valid JWT HS",
 			verifier: verifierJWT,

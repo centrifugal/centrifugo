@@ -286,7 +286,7 @@ func (h *Handler) OnClientConnecting(
 	storage := map[string]any{}
 
 	if e.Token != "" {
-		token, err := h.tokenVerifier.VerifyConnectToken(e.Token, h.ruleContainer.Config().ClientInsecureSkipTokenVerify)
+		token, err := h.tokenVerifier.VerifyConnectToken(e.Token, h.ruleContainer.Config().ClientInsecureSkipTokenSignatureVerify)
 		if err != nil {
 			if err == jwtverify.ErrTokenExpired {
 				return centrifuge.ConnectReply{}, centrifuge.ErrorTokenExpired
@@ -473,7 +473,7 @@ func (h *Handler) OnRefresh(c Client, e centrifuge.RefreshEvent, refreshProxyHan
 		}
 		return r, RefreshExtra{}, err
 	}
-	token, err := h.tokenVerifier.VerifyConnectToken(e.Token, h.ruleContainer.Config().ClientInsecureSkipTokenVerify)
+	token, err := h.tokenVerifier.VerifyConnectToken(e.Token, h.ruleContainer.Config().ClientInsecureSkipTokenSignatureVerify)
 	if err != nil {
 		if err == jwtverify.ErrTokenExpired {
 			return centrifuge.RefreshReply{Expired: true}, RefreshExtra{}, nil
@@ -531,7 +531,7 @@ func (h *Handler) OnSubRefresh(c Client, subRefreshProxyHandler proxy.SubRefresh
 	if h.subTokenVerifier != nil {
 		tokenVerifier = h.subTokenVerifier
 	}
-	token, err := tokenVerifier.VerifySubscribeToken(e.Token, h.ruleContainer.Config().ClientInsecureSkipTokenVerify)
+	token, err := tokenVerifier.VerifySubscribeToken(e.Token, h.ruleContainer.Config().ClientInsecureSkipTokenSignatureVerify)
 	if err != nil {
 		if err == jwtverify.ErrTokenExpired {
 			return centrifuge.SubRefreshReply{Expired: true}, SubRefreshExtra{}, nil
@@ -648,7 +648,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		if h.subTokenVerifier != nil {
 			tokenVerifier = h.subTokenVerifier
 		}
-		token, err := tokenVerifier.VerifySubscribeToken(e.Token, h.ruleContainer.Config().ClientInsecureSkipTokenVerify)
+		token, err := tokenVerifier.VerifySubscribeToken(e.Token, h.ruleContainer.Config().ClientInsecureSkipTokenSignatureVerify)
 		if err != nil {
 			if err == jwtverify.ErrTokenExpired {
 				return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorTokenExpired
