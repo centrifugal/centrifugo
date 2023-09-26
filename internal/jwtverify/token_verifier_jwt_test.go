@@ -320,6 +320,11 @@ func Test_tokenVerifierJWT_InvalidSignature(t *testing.T) {
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(jwtInvalidSignature, false)
 	require.Error(t, err)
+
+	// Test that skipVerify results into accepted token.
+	ct, err := verifier.VerifyConnectToken(jwtInvalidSignature, true)
+	require.NoError(t, err)
+	require.Equal(t, "2694", ct.UserID)
 }
 
 func Test_tokenVerifierJWT_WithNotBefore(t *testing.T) {
@@ -330,6 +335,11 @@ func Test_tokenVerifierJWT_WithNotBefore(t *testing.T) {
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(jwtNotBefore, false)
 	require.Error(t, err)
+
+	// Test that skipVerify results into accepted token.
+	ct, err := verifier.VerifyConnectToken(jwtNotBefore, true)
+	require.NoError(t, err)
+	require.Equal(t, "2694", ct.UserID)
 }
 
 func Test_tokenVerifierJWT_StringAudience(t *testing.T) {
@@ -567,12 +577,13 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 
 	_time := time.Now()
 	tests := []struct {
-		name     string
-		verifier Verifier
-		args     args
-		want     SubscribeToken
-		wantErr  bool
-		expired  bool
+		name       string
+		verifier   Verifier
+		args       args
+		want       SubscribeToken
+		wantErr    bool
+		expired    bool
+		skipVerify bool
 	}{
 		{
 			name:     "Empty JWT",
@@ -600,6 +611,23 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 			wantErr: true,
 			expired: true,
 		}, {
+			name:     "Expired JWT but verify skipped",
+			verifier: verifierJWT,
+			args: args{
+				token: getRSASubscribeToken("channel1", "client1", _time.Add(-24*time.Hour).Unix(), nil),
+			},
+			want: SubscribeToken{
+				Client:  "client1",
+				Channel: "channel1",
+				Options: centrifuge.SubscribeOptions{
+					ExpireAt:    _time.Add(-24 * time.Hour).Unix(),
+					ChannelInfo: []byte("{}"),
+				},
+			},
+			wantErr:    false,
+			expired:    false,
+			skipVerify: true,
+		}, {
 			name:     "Valid JWT HS",
 			verifier: verifierJWT,
 			args: args{
@@ -614,6 +642,31 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 				},
 			},
 			wantErr: false,
+		}, {
+			name:     "Invalid JWT HS",
+			verifier: verifierJWT,
+			args: args{
+				token: getRSASubscribeToken("channel1", "client1", _time.Add(24*time.Hour).Unix(), nil) + "xxx",
+			},
+			want:       SubscribeToken{},
+			wantErr:    true,
+			skipVerify: false,
+		}, {
+			name:     "Invalid JWT HS but verify skipped",
+			verifier: verifierJWT,
+			args: args{
+				token: getRSASubscribeToken("channel1", "client1", _time.Add(24*time.Hour).Unix(), nil) + "xxx",
+			},
+			want: SubscribeToken{
+				Client:  "client1",
+				Channel: "channel1",
+				Options: centrifuge.SubscribeOptions{
+					ExpireAt:    _time.Add(24 * time.Hour).Unix(),
+					ChannelInfo: []byte("{}"),
+				},
+			},
+			wantErr:    false,
+			skipVerify: true,
 		}, {
 			name:     "Valid JWT RS",
 			verifier: verifierJWT,
@@ -649,12 +702,12 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.verifier.VerifySubscribeToken(tt.args.token, false)
+			got, err := tt.verifier.VerifySubscribeToken(tt.args.token, tt.skipVerify)
 			if tt.wantErr && err == nil {
 				t.Errorf("VerifySubscribeToken() should return error")
 			}
 			if !tt.wantErr && err != nil {
-				t.Errorf("VerifySubscribeToken() should not return error")
+				t.Errorf("VerifySubscribeToken() should not return error, but returned: %v", err)
 			}
 			if tt.expired && err != ErrTokenExpired {
 				t.Errorf("VerifySubscribeToken() should return token expired error")
