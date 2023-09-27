@@ -101,7 +101,8 @@ var defaults = map[string]any{
 	"opentelemetry_api": false,
 
 	"client_insecure": false,
-	"api_insecure":    false,
+	"client_insecure_skip_token_signature_verify": false,
+	"api_insecure": false,
 
 	"token_hmac_secret_key":      "",
 	"token_rsa_public_key":       "",
@@ -1623,6 +1624,7 @@ func ruleConfig() rule.Config {
 	cfg.UserPersonalSingleConnection = v.GetBool("user_personal_single_connection")
 	cfg.UserPersonalChannelNamespace = v.GetString("user_personal_channel_namespace")
 	cfg.ClientInsecure = v.GetBool("client_insecure")
+	cfg.ClientInsecureSkipTokenSignatureVerify = v.GetBool("client_insecure_skip_token_signature_verify")
 	cfg.AnonymousConnectWithoutToken = v.GetBool("allow_anonymous_connect_without_token")
 	cfg.DisallowAnonymousConnectionTokens = v.GetBool("disallow_anonymous_connection_tokens")
 	cfg.ClientConcurrency = v.GetInt("client_concurrency")
