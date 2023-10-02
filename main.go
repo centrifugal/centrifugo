@@ -254,42 +254,28 @@ var defaults = map[string]any{
 	"refresh_proxy_name": "",
 	"rpc_proxy_name":     "",
 
-	"proxy_connect_endpoint":        "",
-	"proxy_refresh_endpoint":        "",
-	"proxy_subscribe_endpoint":      "",
-	"proxy_publish_endpoint":        "",
-	"proxy_sub_refresh_endpoint":    "",
-	"proxy_rpc_endpoint":            "",
-	"proxy_connect_timeout":         time.Second,
-	"proxy_rpc_timeout":             time.Second,
-	"proxy_refresh_timeout":         time.Second,
-	"proxy_subscribe_timeout":       time.Second,
-	"proxy_publish_timeout":         time.Second,
-	"proxy_sub_refresh_timeout":     time.Second,
+	"proxy_connect_endpoint":          "",
+	"proxy_refresh_endpoint":          "",
+	"proxy_subscribe_endpoint":        "",
+	"proxy_publish_endpoint":          "",
+	"proxy_sub_refresh_endpoint":      "",
+	"proxy_rpc_endpoint":              "",
+	"proxy_subscribe_stream_endpoint": "",
+
+	"proxy_connect_timeout":          time.Second,
+	"proxy_rpc_timeout":              time.Second,
+	"proxy_refresh_timeout":          time.Second,
+	"proxy_subscribe_timeout":        time.Second,
+	"proxy_publish_timeout":          time.Second,
+	"proxy_sub_refresh_timeout":      time.Second,
+	"proxy_subscribe_stream_timeout": time.Second,
+
 	"proxy_grpc_metadata":           []string{},
 	"proxy_http_headers":            []string{},
 	"proxy_static_http_headers":     map[string]string{},
 	"proxy_binary_encoding":         false,
 	"proxy_include_connection_meta": false,
 	"proxy_grpc_cert_file":          "",
-
-	"proxy_stream_connect_endpoint":               "",
-	"proxy_stream_connect_timeout":                time.Second,
-	"proxy_stream_connect_grpc_metadata":          []string{},
-	"proxy_stream_connect_http_headers":           []string{},
-	"proxy_stream_connect_grpc_cert_file":         "",
-	"proxy_stream_connect_grpc_credentials_key":   "",
-	"proxy_stream_connect_grpc_credentials_value": "",
-	"proxy_stream_connect_bidirectional":          false,
-
-	"proxy_stream_subscribe_endpoint":                "",
-	"proxy_stream_subscribe_timeout":                 time.Second,
-	"proxy_stream_subscribe_grpc_metadata":           []string{},
-	"proxy_stream_subscribe_http_headers":            []string{},
-	"proxy_stream_subscribe_include_connection_meta": false,
-	"proxy_stream_subscribe_grpc_cert_file":          "",
-	"proxy_stream_subscribe_grpc_credentials_key":    "",
-	"proxy_stream_subscribe_grpc_credentials_value":  "",
 
 	"tarantool_mode":     "standalone",
 	"tarantool_address":  "tcp://127.0.0.1:3301",
@@ -547,15 +533,6 @@ func main() {
 				log.Info().Msg("using granular proxy configuration")
 			} else {
 				proxyMap, proxyEnabled = proxyMapConfig()
-			}
-
-			streamProxyMap, streamProxyEnabled := streamProxyMapConfig()
-			proxyMap.StreamProxyMap = streamProxyMap
-			if streamProxyEnabled {
-				proxyEnabled = true
-			}
-			if streamProxyMap.ConnectProxy != nil && (proxyMap.ConnectProxy != nil || proxyMap.RefreshProxy != nil) {
-				log.Fatal().Msg("can't use stream connect proxy with connect or refresh non-stream proxies")
 			}
 
 			nodeCfg := nodeConfig(build.Version)
@@ -1640,8 +1617,8 @@ func ruleConfig() rule.Config {
 	cfg.SubscribeProxyName = v.GetString("subscribe_proxy_name")
 	cfg.PublishProxyName = v.GetString("publish_proxy_name")
 	cfg.SubRefreshProxyName = v.GetString("sub_refresh_proxy_name")
-	cfg.ProxyStreamSubscribe = v.GetBool("proxy_stream_subscribe")
-	cfg.ProxyStreamSubscribeBidirectional = v.GetBool("proxy_stream_subscribe_bidirectional")
+	cfg.ProxySubscribeStream = v.GetBool("proxy_stream_subscribe")
+	cfg.ProxySubscribeStreamBidirectional = v.GetBool("proxy_subscribe_stream_bidirectional")
 
 	cfg.Namespaces = namespacesFromConfig(v)
 
@@ -1748,55 +1725,30 @@ func GetDuration(key string, secondsPrecision ...bool) time.Duration {
 	return duration
 }
 
-func streamProxyMapConfig() (*client.StreamProxyMap, bool) {
+func streamProxyMapConfig() (map[string]*proxystream.Proxy, bool) {
 	v := viper.GetViper()
-
-	cp := proxystream.Config{}
-
-	cp.GrpcMetadata = v.GetStringSlice("proxy_stream_connect_grpc_metadata")
-	cp.HttpHeaders = v.GetStringSlice("proxy_stream_connect_http_headers")
-	for i, header := range cp.HttpHeaders {
-		cp.HttpHeaders[i] = strings.ToLower(header)
-	}
-
-	cp.IncludeConnectionMeta = v.GetBool("proxy_stream_connect_include_connection_meta")
-	cp.GrpcCertFile = v.GetString("proxy_stream_connect_grpc_cert_file")
-	cp.GrpcCredentialsKey = v.GetString("proxy_stream_connect_grpc_credentials_key")
-	cp.GrpcCredentialsValue = v.GetString("proxy_stream_connect_grpc_credentials_value")
-
-	proxyStreamConnectEndpoint := v.GetString("proxy_stream_connect_endpoint")
-	proxyStreamConnectTimeout := GetDuration("proxy_stream_connect_timeout")
-
-	var connectProxy *proxystream.Proxy
-
-	if proxyStreamConnectEndpoint != "" {
-		cp.Endpoint = proxyStreamConnectEndpoint
-		cp.Timeout = tools.Duration(proxyStreamConnectTimeout)
-		streamProxy, err := proxystream.NewProxy(cp)
-		if err != nil {
-			log.Fatal().Msgf("error creating connect stream proxy: %v", err)
-		}
-		connectProxy = streamProxy
-		log.Info().Str("endpoint", proxyStreamConnectEndpoint).Msg("connect stream proxy enabled")
-	}
 
 	subscribeStreamProxies := map[string]*proxystream.Proxy{}
 
-	sp := proxystream.Config{}
+	sp := proxy.Proxy{}
 
-	sp.GrpcMetadata = v.GetStringSlice("proxy_stream_subscribe_grpc_metadata")
-	sp.HttpHeaders = v.GetStringSlice("proxy_stream_subscribe_http_headers")
+	sp.GrpcMetadata = v.GetStringSlice("proxy_grpc_metadata")
+	sp.HttpHeaders = v.GetStringSlice("proxy_http_headers")
 	for i, header := range sp.HttpHeaders {
 		sp.HttpHeaders[i] = strings.ToLower(header)
 	}
 
-	sp.IncludeConnectionMeta = v.GetBool("proxy_stream_subscribe_include_connection_meta")
-	sp.GrpcCertFile = v.GetString("proxy_stream_subscribe_grpc_cert_file")
-	sp.GrpcCredentialsKey = v.GetString("proxy_stream_subscribe_grpc_credentials_key")
-	sp.GrpcCredentialsValue = v.GetString("proxy_stream_subscribe_grpc_credentials_value")
+	sp.IncludeConnectionMeta = v.GetBool("proxy_include_connection_meta")
+	sp.GrpcCertFile = v.GetString("proxy_grpc_cert_file")
+	sp.GrpcCredentialsKey = v.GetString("proxy_grpc_credentials_key")
+	sp.GrpcCredentialsValue = v.GetString("proxy_grpc_credentials_value")
 
-	proxyStreamSubscribeEndpoint := v.GetString("proxy_stream_subscribe_endpoint")
-	proxyStreamSubscribeTimeout := GetDuration("proxy_stream_subscribe_timeout")
+	proxyStreamSubscribeEndpoint := v.GetString("proxy_subscribe_stream_endpoint")
+	if strings.HasPrefix(proxyStreamSubscribeEndpoint, "http") {
+		log.Fatal().Msg("error creating subscribe stream proxy: only GRPC endpoints supported")
+	}
+
+	proxyStreamSubscribeTimeout := GetDuration("proxy_subscribe_stream_timeout")
 
 	if proxyStreamSubscribeEndpoint != "" {
 		sp.Endpoint = proxyStreamSubscribeEndpoint
@@ -1809,11 +1761,7 @@ func streamProxyMapConfig() (*client.StreamProxyMap, bool) {
 		log.Info().Str("endpoint", proxyStreamSubscribeEndpoint).Msg("subscribe stream proxy enabled")
 	}
 
-	return &client.StreamProxyMap{
-		ConnectProxy:         connectProxy,
-		ConnectBidirectional: v.GetBool("proxy_stream_connect_bidirectional"),
-		SubscribeProxies:     subscribeStreamProxies,
-	}, len(subscribeStreamProxies) > 0 || connectProxy != nil
+	return subscribeStreamProxies, len(subscribeStreamProxies) > 0
 }
 
 func proxyMapConfig() (*client.ProxyMap, bool) {
@@ -1923,19 +1871,23 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 		log.Info().Str("endpoint", subRefreshEndpoint).Msg("sub refresh proxy enabled")
 	}
 
+	subscribeStreamProxies, streamProxyEnabled := streamProxyMapConfig()
+	proxyMap.SubscribeStreamProxies = subscribeStreamProxies
+
 	proxyEnabled := connectEndpoint != "" || refreshEndpoint != "" ||
 		rpcEndpoint != "" || subscribeEndpoint != "" || publishEndpoint != "" ||
-		subRefreshEndpoint != ""
+		subRefreshEndpoint != "" || streamProxyEnabled
 
 	return proxyMap, proxyEnabled
 }
 
 func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 	proxyMap := &client.ProxyMap{
-		RpcProxies:        map[string]proxy.RPCProxy{},
-		PublishProxies:    map[string]proxy.PublishProxy{},
-		SubscribeProxies:  map[string]proxy.SubscribeProxy{},
-		SubRefreshProxies: map[string]proxy.SubRefreshProxy{},
+		RpcProxies:             map[string]proxy.RPCProxy{},
+		PublishProxies:         map[string]proxy.PublishProxy{},
+		SubscribeProxies:       map[string]proxy.SubscribeProxy{},
+		SubRefreshProxies:      map[string]proxy.SubRefreshProxy{},
+		SubscribeStreamProxies: map[string]*proxystream.Proxy{},
 	}
 	proxyList := granularProxiesFromConfig(viper.GetViper())
 	proxies := make(map[string]proxy.Proxy)
@@ -2016,10 +1968,28 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		proxyEnabled = true
 	}
 
+	subscribeStreamProxyName := ruleConfig.SubscribeStreamProxyName
+	if subscribeStreamProxyName != "" {
+		p, ok := proxies[subscribeStreamProxyName]
+		if !ok {
+			log.Fatal().Msgf("subscribe stream proxy not found: %s", subscribeStreamProxyName)
+		}
+		if strings.HasPrefix(p.Endpoint, "http") {
+			log.Fatal().Msgf("error creating subscribe stream proxy %s only GRPC endpoints supported", subscribeStreamProxyName)
+		}
+		sp, err := proxystream.NewProxy(p)
+		if err != nil {
+			log.Fatal().Msgf("error creating subscribe proxy: %v", err)
+		}
+		proxyMap.SubscribeStreamProxies[subscribeProxyName] = sp
+		proxyEnabled = true
+	}
+
 	for _, ns := range ruleConfig.Namespaces {
 		subscribeProxyName := ns.SubscribeProxyName
 		publishProxyName := ns.PublishProxyName
 		subRefreshProxyName := ns.SubRefreshProxyName
+		subscribeStreamProxyName := ns.SubscribeStreamProxyName
 
 		if subscribeProxyName != "" {
 			p, ok := proxies[subscribeProxyName]
@@ -2057,6 +2027,22 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 				log.Fatal().Msgf("error creating sub refresh proxy: %v", err)
 			}
 			proxyMap.SubRefreshProxies[subRefreshProxyName] = srp
+			proxyEnabled = true
+		}
+
+		if subscribeStreamProxyName != "" {
+			p, ok := proxies[subscribeStreamProxyName]
+			if !ok {
+				log.Fatal().Msgf("subscribe stream proxy not found: %s", subscribeStreamProxyName)
+			}
+			if strings.HasPrefix(p.Endpoint, "http") {
+				log.Fatal().Msgf("error creating subscribe stream proxy %s only GRPC endpoints supported", subscribeStreamProxyName)
+			}
+			ssp, err := proxystream.NewProxy(p)
+			if err != nil {
+				log.Fatal().Msgf("error creating subscribe stream proxy: %v", err)
+			}
+			proxyMap.SubscribeStreamProxies[subscribeStreamProxyName] = ssp
 			proxyEnabled = true
 		}
 	}

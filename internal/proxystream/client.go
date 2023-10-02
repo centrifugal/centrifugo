@@ -12,8 +12,6 @@ type Client interface {
 	IsSubscribed(string) bool
 	Context() context.Context
 	Transport() centrifuge.TransportInfo
-	Send([]byte) error
 	Unsubscribe(ch string, unsubscribe ...centrifuge.Unsubscribe)
-	Disconnect(disconnect ...centrifuge.Disconnect)
 	WritePublication(channel string, publication *centrifuge.Publication, sp centrifuge.StreamPosition) error
 }

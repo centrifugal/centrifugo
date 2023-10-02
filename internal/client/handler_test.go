@@ -147,7 +147,7 @@ func TestClientConnectingNoCredentialsNoToken(t *testing.T) {
 
 	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Transport: tools.NewTestTransport(),
-	}, nil, false, nil)
+	}, nil, false)
 	require.NoError(t, err)
 	require.Nil(t, reply.Credentials)
 }
@@ -162,7 +162,7 @@ func TestClientConnectingNoCredentialsNoTokenInsecure(t *testing.T) {
 	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, emptyJWTVerifier(t, ruleContainer), nil, &ProxyMap{}, false)
 
-	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, nil, false, nil)
+	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, nil, false)
 	require.NoError(t, err)
 
 	require.NotNil(t, reply.Credentials)
@@ -179,7 +179,7 @@ func TestClientConnectNoCredentialsNoTokenAnonymous(t *testing.T) {
 	require.NoError(t, err)
 	h := NewHandler(node, ruleContainer, emptyJWTVerifier(t, ruleContainer), nil, &ProxyMap{}, false)
 
-	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, nil, false, nil)
+	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, nil, false)
 	require.NoError(t, err)
 
 	require.NotNil(t, reply.Credentials)
@@ -198,7 +198,7 @@ func TestClientConnectWithMalformedToken(t *testing.T) {
 
 	_, err = h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Token: "bad bad token",
-	}, nil, false, nil)
+	}, nil, false)
 	require.Error(t, err)
 }
 
@@ -214,7 +214,7 @@ func TestClientConnectWithValidTokenHMAC(t *testing.T) {
 
 	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Token: getConnTokenHS("42", 0),
-	}, nil, false, nil)
+	}, nil, false)
 	require.NoError(t, err)
 
 	require.NotNil(t, reply.Credentials)
@@ -243,7 +243,7 @@ func TestClientConnectWithProxy(t *testing.T) {
 		}, proxy.ConnectExtra{}, nil
 	}
 
-	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, connectProxyHandler, true, nil)
+	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, connectProxyHandler, true)
 	require.NoError(t, err)
 
 	require.NotNil(t, reply.Credentials)
@@ -270,7 +270,7 @@ func TestClientConnectWithValidTokenRSA(t *testing.T) {
 
 	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Token: getConnToken("42", 0, privateKey),
-	}, nil, false, nil)
+	}, nil, false)
 	require.NoError(t, err)
 
 	require.NotNil(t, reply.Credentials)
@@ -291,7 +291,7 @@ func TestClientConnectWithExpiringToken(t *testing.T) {
 
 	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Token: getConnTokenHS("42", time.Now().Unix()+10),
-	}, nil, false, nil)
+	}, nil, false)
 	require.NoError(t, err)
 
 	require.NotNil(t, reply.Credentials)
@@ -312,7 +312,7 @@ func TestClientConnectWithExpiredToken(t *testing.T) {
 
 	_, err = h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Token: getConnTokenHS("42", 1525541722),
-	}, nil, false, nil)
+	}, nil, false)
 	require.Equal(t, centrifuge.ErrorTokenExpired, err)
 }
 
@@ -396,7 +396,7 @@ func TestClientUserPersonalChannel(t *testing.T) {
 			require.NoError(t, err)
 			reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 				Token: getConnTokenHS("42", 0),
-			}, nil, false, nil)
+			}, nil, false)
 			require.NoError(t, err)
 			require.Contains(t, reply.Subscriptions, ruleContainer.PersonalChannel("42"))
 		})

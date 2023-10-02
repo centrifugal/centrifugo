@@ -8,11 +8,11 @@ import (
 	"strings"
 
 	"github.com/centrifugal/centrifugo/v5/internal/middleware"
-	"google.golang.org/grpc/metadata"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
 func GetGrpcHost(endpoint string) (string, error) {
@@ -31,11 +31,9 @@ func GetGrpcHost(endpoint string) (string, error) {
 
 type DialConfig struct {
 	// GrpcCertFile is a path to GRPC cert file on disk.
-	GrpcCertFile string `mapstructure:"grpc_cert_file" json:"grpc_cert_file,omitempty"`
-
+	GrpcCertFile      string
 	PerRPCCredentials credentials.PerRPCCredentials
-
-	TestGrpcDialer func(context.Context, string) (net.Conn, error)
+	TestGrpcDialer    func(context.Context, string) (net.Conn, error)
 }
 
 func GetDialOpts(p DialConfig) ([]grpc.DialOption, error) {

@@ -23,20 +23,13 @@ type RPCExtensionFunc func(c Client, e centrifuge.RPCEvent) (centrifuge.RPCReply
 // ProxyMap is a structure which contains all configured and already initialized
 // proxies which can be used from inside client event handlers.
 type ProxyMap struct {
-	ConnectProxy      proxy.ConnectProxy
-	RefreshProxy      proxy.RefreshProxy
-	RpcProxies        map[string]proxy.RPCProxy
-	PublishProxies    map[string]proxy.PublishProxy
-	SubscribeProxies  map[string]proxy.SubscribeProxy
-	SubRefreshProxies map[string]proxy.SubRefreshProxy
-	StreamProxyMap    *StreamProxyMap
-}
-
-// StreamProxyMap ...
-type StreamProxyMap struct {
-	ConnectProxy         *proxystream.Proxy
-	ConnectBidirectional bool
-	SubscribeProxies     map[string]*proxystream.Proxy
+	ConnectProxy           proxy.ConnectProxy
+	RefreshProxy           proxy.RefreshProxy
+	RpcProxies             map[string]proxy.RPCProxy
+	PublishProxies         map[string]proxy.PublishProxy
+	SubscribeProxies       map[string]proxy.SubscribeProxy
+	SubRefreshProxies      map[string]proxy.SubRefreshProxy
+	SubscribeStreamProxies map[string]*proxystream.Proxy
 }
 
 // Handler ...
@@ -92,21 +85,14 @@ func (h *Handler) Setup() error {
 	}
 
 	var streamHandler *proxystream.Handler
-	if h.proxyMap.StreamProxyMap != nil {
+	if len(h.proxyMap.SubscribeProxies) > 0 {
 		streamHandler = proxystream.NewHandler(proxystream.HandlerConfig{
-			ConnectProxy:         h.proxyMap.StreamProxyMap.ConnectProxy,
-			ConnectBidirectional: h.proxyMap.StreamProxyMap.ConnectBidirectional,
-			SubscribeProxies:     h.proxyMap.StreamProxyMap.SubscribeProxies,
+			SubscribeProxies: h.proxyMap.SubscribeStreamProxies,
 		})
 	}
 
-	var connectStreamHandler proxystream.ConnectHandlerFunc
-	if streamHandler != nil && h.proxyMap.StreamProxyMap.ConnectProxy != nil {
-		connectStreamHandler = streamHandler.HandleConnect(h.node)
-	}
-
 	h.node.OnConnecting(func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
-		reply, err := h.OnClientConnecting(ctx, e, connectProxyHandler, refreshProxyHandler != nil, connectStreamHandler)
+		reply, err := h.OnClientConnecting(ctx, e, connectProxyHandler, refreshProxyHandler != nil)
 		if err != nil {
 			return centrifuge.ConnectReply{}, err
 		}
@@ -138,7 +124,7 @@ func (h *Handler) Setup() error {
 	}
 
 	var proxySubscribeStreamHandler proxystream.SubscribeHandlerFunc
-	if streamHandler != nil && len(h.proxyMap.StreamProxyMap.SubscribeProxies) > 0 {
+	if streamHandler != nil && len(h.proxyMap.SubscribeStreamProxies) > 0 {
 		proxySubscribeStreamHandler = streamHandler.HandleSubscribe(h.node)
 	}
 
@@ -255,22 +241,8 @@ func (h *Handler) Setup() error {
 			})
 		})
 
-		if h.proxyMap.StreamProxyMap != nil && h.proxyMap.StreamProxyMap.ConnectProxy != nil && h.proxyMap.StreamProxyMap.ConnectBidirectional {
-			client.OnMessage(func(e centrifuge.MessageEvent) {
-				storage, release := client.AcquireStorage()
-				streamSenderKey := "stream_sender"
-				sendFunc, ok := storage[streamSenderKey].(proxystream.SendFunc)
-				release(storage)
-				if ok {
-					_ = sendFunc(e.Data)
-				} else {
-					client.Disconnect(centrifuge.DisconnectNotAvailable)
-				}
-			})
-		}
-
 		client.OnUnsubscribe(func(e centrifuge.UnsubscribeEvent) {
-			if h.proxyMap.StreamProxyMap != nil && len(h.proxyMap.StreamProxyMap.SubscribeProxies) > 0 {
+			if len(h.proxyMap.SubscribeStreamProxies) > 0 {
 				storage, release := client.AcquireStorage()
 				streamCancelKey := "stream_cancel_" + e.Channel
 				cancelFunc, ok := storage[streamCancelKey].(func())
@@ -326,7 +298,6 @@ func (h *Handler) OnClientConnecting(
 	e centrifuge.ConnectEvent,
 	connectProxyHandler proxy.ConnectingHandlerFunc,
 	refreshProxyEnabled bool,
-	connectStreamHandler proxystream.ConnectHandlerFunc,
 ) (centrifuge.ConnectReply, error) {
 	var (
 		credentials *centrifuge.Credentials
@@ -392,29 +363,6 @@ func (h *Handler) OnClientConnecting(
 		newCtx = connectReply.Context
 		if connectReply.Storage != nil {
 			storage = connectReply.Storage
-		}
-	} else if connectStreamHandler != nil {
-		connectReply, sendFunc, err := connectStreamHandler(ctx, e)
-		if err != nil {
-			return centrifuge.ConnectReply{}, err
-		}
-		credentials = connectReply.Credentials
-		if connectReply.Subscriptions != nil {
-			subscriptions = connectReply.Subscriptions
-		}
-		if connectReply.ClientReady != nil {
-			clientReady = connectReply.ClientReady
-		}
-		data = connectReply.Data
-		newCtx = connectReply.Context
-		if connectReply.Storage != nil {
-			storage = connectReply.Storage
-		}
-		if h.proxyMap.StreamProxyMap.ConnectBidirectional {
-			if storage == nil {
-				storage = make(map[string]any)
-			}
-			storage["stream_sender"] = sendFunc
 		}
 	}
 
@@ -780,13 +728,13 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 			r.ClientSideRefresh = false
 		}
 		return r, SubscribeExtra{}, err
-	} else if chOpts.ProxyStreamSubscribe && !isUserLimitedChannel {
+	} else if chOpts.ProxySubscribeStream && !isUserLimitedChannel {
 		if subscribeStreamHandlerFunc == nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "stream proxy not enabled", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
 		}
-		r, publishFunc, cancelFunc, err := subscribeStreamHandlerFunc(c, chOpts.ProxyStreamSubscribeBidirectional, e, chOpts, getStreamPerCallData(c))
-		if chOpts.ProxyStreamSubscribeBidirectional {
+		r, publishFunc, cancelFunc, err := subscribeStreamHandlerFunc(c, chOpts.ProxySubscribeStreamBidirectional, e, chOpts, getStreamPerCallData(c))
+		if chOpts.ProxySubscribeStreamBidirectional {
 			storage, release := c.AcquireStorage()
 			storage["stream_cancel_"+e.Channel] = cancelFunc
 			storage["stream_publisher_"+e.Channel] = publishFunc
@@ -850,8 +798,8 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 			return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
 		}
 		return publishProxyHandler(c, e, chOpts, getPerCallData(c))
-	} else if chOpts.ProxyStreamSubscribe {
-		if !chOpts.ProxyStreamSubscribeBidirectional {
+	} else if chOpts.ProxySubscribeStream {
+		if !chOpts.ProxySubscribeStreamBidirectional {
 			return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
 		}
 		storage, release := c.AcquireStorage()
