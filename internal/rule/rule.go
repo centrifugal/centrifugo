@@ -55,6 +55,11 @@ type Config struct {
 	// anonymous access and publish allowed for all channels, no connection expire
 	// performed. This can be suitable for demonstration or personal usage.
 	ClientInsecure bool
+	// ClientInsecureSkipTokenSignatureVerify if on tells Centrifugo to ignore token
+	// signature verification errors - for both connection and subscription tokens.
+	// This is insecure and should only be used for development and testing purposes.
+	ClientInsecureSkipTokenSignatureVerify bool
+
 	// AnonymousConnectWithoutToken when set to true, allows connecting without specifying
 	// a connection token or setting Credentials in authentication middleware. The resulting
 	// user will have empty string for user ID (i.e. user is treated as anonymous).

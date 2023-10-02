@@ -1,3 +1,32 @@
+v5.0.4
+======
+
+### Improvements
+
+* Support `expire_at` field of SubscribeResult from Subscribe Proxy [#707](https://github.com/centrifugal/centrifugo/pull/707)
+* Option to skip client token signature verification [#708](https://github.com/centrifugal/centrifugo/pull/708)
+
+### Fixes
+
+* Fix connecting to Redis server over unix socket - inherited from [centrifugal/centrifuge#318](https://github.com/centrifugal/centrifuge/pull/318) by @tie
+
+### Misc
+
+* Release is built with Go 1.21.1
+* Dependencies updated (centrifuge, quic-go, grpc, and others)
+
+v5.0.3
+======
+
+### Improvements
+
+* Add support for GRPC exporter protocol in opentelemetry tracing, by @SinimaWath in [#691](https://github.com/centrifugal/centrifugo/pull/691)
+
+### Misc
+
+* Release is built with Go 1.20.7
+* Dependencies updated (rueidis, quic-go, opentelemetry, etc)
+
 v5.0.2
 ======
 

@@ -7,8 +7,8 @@ import (
 )
 
 type Verifier interface {
-	VerifyConnectToken(token string) (ConnectToken, error)
-	VerifySubscribeToken(token string) (SubscribeToken, error)
+	VerifyConnectToken(token string, skipVerify bool) (ConnectToken, error)
+	VerifySubscribeToken(token string, skipVerify bool) (SubscribeToken, error)
 }
 
 type ConnectToken struct {

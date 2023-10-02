@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/centrifugal/centrifugo/v5/internal/build"
@@ -9,6 +10,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -17,9 +20,12 @@ import (
 )
 
 func SetupTracing(ctx context.Context) (*trace.TracerProvider, error) {
-	exporter, err := otlptracehttp.New(
-		ctx,
-	)
+	exporterProtocol := os.Getenv("OTEL_EXPORTER_OTLP_PROTOCOL")
+	if exporterProtocol == "" {
+		exporterProtocol = "http/protobuf"
+	}
+
+	exporter, err := createExporter(ctx, exporterProtocol)
 	if err != nil {
 		return nil, err
 	}
@@ -57,4 +63,20 @@ type ErrorHandlerImpl struct{}
 
 func (e ErrorHandlerImpl) Handle(err error) {
 	log.Err(err).Msg("opentelemetry error")
+}
+
+func createExporter(ctx context.Context, exporterProtocol string) (*otlptrace.Exporter, error) {
+	if exporterProtocol == "grpc" {
+		return otlptracegrpc.New(
+			ctx,
+		)
+	}
+
+	if exporterProtocol == "http/protobuf" {
+		return otlptracehttp.New(
+			ctx,
+		)
+	}
+
+	return nil, fmt.Errorf("unsupported exporter protocol: %s", exporterProtocol)
 }
