@@ -63,14 +63,14 @@ func NewSubscribeStreamHandler(c SubscribeStreamHandlerConfig) *SubscribeStreamH
 	return h
 }
 
-type PublishFunc func(data []byte) error
+type StreamPublishFunc func(data []byte) error
 
 // SubscribeStreamHandlerFunc ...
-type SubscribeStreamHandlerFunc func(Client, bool, centrifuge.SubscribeEvent, rule.ChannelOptions, PerCallData) (centrifuge.SubscribeReply, PublishFunc, func(), error)
+type SubscribeStreamHandlerFunc func(Client, bool, centrifuge.SubscribeEvent, rule.ChannelOptions, PerCallData) (centrifuge.SubscribeReply, StreamPublishFunc, func(), error)
 
 // HandleSubscribeStream ...
 func (h *SubscribeStreamHandler) HandleSubscribeStream(node *centrifuge.Node) SubscribeStreamHandlerFunc {
-	return func(client Client, bidi bool, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions, pcd PerCallData) (centrifuge.SubscribeReply, PublishFunc, func(), error) {
+	return func(client Client, bidi bool, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions, pcd PerCallData) (centrifuge.SubscribeReply, StreamPublishFunc, func(), error) {
 		started := time.Now()
 
 		var p *SubscribeStreamProxy
@@ -269,12 +269,12 @@ func (p *SubscribeStreamProxy) SubscribeStream(
 	bidi bool,
 	sr *proxyproto.SubscribeRequest,
 	pubFunc OnPublication,
-) (*proxyproto.SubscribeResponse, PublishFunc, func(), error) {
+) (*proxyproto.SubscribeResponse, StreamPublishFunc, func(), error) {
 	ctx, cancel := context.WithCancel(ctx)
 
 	var stream ChannelStreamReader
 
-	var publishFunc PublishFunc
+	var publishFunc StreamPublishFunc
 
 	if bidi {
 		bidiStream, err := p.SubscribeBidirectional(ctx)

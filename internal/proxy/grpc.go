@@ -69,7 +69,6 @@ func getDialOpts(p Proxy) ([]grpc.DialOption, error) {
 		dialOpts = append(dialOpts, grpc.WithContextDialer(p.testGrpcDialer))
 	}
 
-	dialOpts = append(dialOpts, grpc.WithBlock())
 	return dialOpts, nil
 }
 

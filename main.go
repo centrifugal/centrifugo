@@ -49,7 +49,6 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/notify"
 	"github.com/centrifugal/centrifugo/v5/internal/origin"
 	"github.com/centrifugal/centrifugo/v5/internal/proxy"
-	"github.com/centrifugal/centrifugo/v5/internal/proxystream"
 	"github.com/centrifugal/centrifugo/v5/internal/rule"
 	"github.com/centrifugal/centrifugo/v5/internal/survey"
 	"github.com/centrifugal/centrifugo/v5/internal/swaggerui"
@@ -1725,10 +1724,10 @@ func GetDuration(key string, secondsPrecision ...bool) time.Duration {
 	return duration
 }
 
-func streamProxyMapConfig() (map[string]*proxystream.Proxy, bool) {
+func streamProxyMapConfig() (map[string]*proxy.SubscribeStreamProxy, bool) {
 	v := viper.GetViper()
 
-	subscribeStreamProxies := map[string]*proxystream.Proxy{}
+	subscribeStreamProxies := map[string]*proxy.SubscribeStreamProxy{}
 
 	sp := proxy.Proxy{}
 
@@ -1753,7 +1752,7 @@ func streamProxyMapConfig() (map[string]*proxystream.Proxy, bool) {
 	if proxyStreamSubscribeEndpoint != "" {
 		sp.Endpoint = proxyStreamSubscribeEndpoint
 		sp.Timeout = tools.Duration(proxyStreamSubscribeTimeout)
-		streamProxy, err := proxystream.NewProxy(sp)
+		streamProxy, err := proxy.NewSubscribeStreamProxy(sp)
 		if err != nil {
 			log.Fatal().Msgf("error creating subscribe stream proxy: %v", err)
 		}
@@ -1887,7 +1886,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		PublishProxies:         map[string]proxy.PublishProxy{},
 		SubscribeProxies:       map[string]proxy.SubscribeProxy{},
 		SubRefreshProxies:      map[string]proxy.SubRefreshProxy{},
-		SubscribeStreamProxies: map[string]*proxystream.Proxy{},
+		SubscribeStreamProxies: map[string]*proxy.SubscribeStreamProxy{},
 	}
 	proxyList := granularProxiesFromConfig(viper.GetViper())
 	proxies := make(map[string]proxy.Proxy)
@@ -1977,7 +1976,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		if strings.HasPrefix(p.Endpoint, "http") {
 			log.Fatal().Msgf("error creating subscribe stream proxy %s only GRPC endpoints supported", subscribeStreamProxyName)
 		}
-		sp, err := proxystream.NewProxy(p)
+		sp, err := proxy.NewSubscribeStreamProxy(p)
 		if err != nil {
 			log.Fatal().Msgf("error creating subscribe proxy: %v", err)
 		}
@@ -2038,7 +2037,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 			if strings.HasPrefix(p.Endpoint, "http") {
 				log.Fatal().Msgf("error creating subscribe stream proxy %s only GRPC endpoints supported", subscribeStreamProxyName)
 			}
-			ssp, err := proxystream.NewProxy(p)
+			ssp, err := proxy.NewSubscribeStreamProxy(p)
 			if err != nil {
 				log.Fatal().Msgf("error creating subscribe stream proxy: %v", err)
 			}

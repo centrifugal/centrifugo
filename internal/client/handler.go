@@ -10,7 +10,6 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/clientstorage"
 	"github.com/centrifugal/centrifugo/v5/internal/jwtverify"
 	"github.com/centrifugal/centrifugo/v5/internal/proxy"
-	"github.com/centrifugal/centrifugo/v5/internal/proxystream"
 	"github.com/centrifugal/centrifugo/v5/internal/rule"
 	"github.com/centrifugal/centrifugo/v5/internal/subsource"
 
@@ -29,7 +28,7 @@ type ProxyMap struct {
 	PublishProxies         map[string]proxy.PublishProxy
 	SubscribeProxies       map[string]proxy.SubscribeProxy
 	SubRefreshProxies      map[string]proxy.SubRefreshProxy
-	SubscribeStreamProxies map[string]*proxystream.Proxy
+	SubscribeStreamProxies map[string]*proxy.SubscribeStreamProxy
 }
 
 // Handler ...
@@ -84,13 +83,6 @@ func (h *Handler) Setup() error {
 		}).Handle(h.node)
 	}
 
-	var streamHandler *proxystream.Handler
-	if len(h.proxyMap.SubscribeProxies) > 0 {
-		streamHandler = proxystream.NewHandler(proxystream.HandlerConfig{
-			SubscribeProxies: h.proxyMap.SubscribeStreamProxies,
-		})
-	}
-
 	h.node.OnConnecting(func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
 		reply, err := h.OnClientConnecting(ctx, e, connectProxyHandler, refreshProxyHandler != nil)
 		if err != nil {
@@ -123,9 +115,17 @@ func (h *Handler) Setup() error {
 		}).Handle(h.node)
 	}
 
-	var proxySubscribeStreamHandler proxystream.SubscribeHandlerFunc
+	var streamHandler *proxy.SubscribeStreamHandler
+	if len(h.proxyMap.SubscribeStreamProxies) > 0 {
+		streamHandler = proxy.NewSubscribeStreamHandler(proxy.SubscribeStreamHandlerConfig{
+			Proxies:           h.proxyMap.SubscribeStreamProxies,
+			GranularProxyMode: h.granularProxyMode,
+		})
+	}
+
+	var proxySubscribeStreamHandler proxy.SubscribeStreamHandlerFunc
 	if streamHandler != nil && len(h.proxyMap.SubscribeStreamProxies) > 0 {
-		proxySubscribeStreamHandler = streamHandler.HandleSubscribe(h.node)
+		proxySubscribeStreamHandler = streamHandler.HandleSubscribeStream(h.node)
 	}
 
 	var subRefreshProxyHandler proxy.SubRefreshHandlerFunc
@@ -486,18 +486,6 @@ func getPerCallData(c Client) proxy.PerCallData {
 	return pcd
 }
 
-func getStreamPerCallData(c Client) proxystream.PerCallData {
-	storage, release := c.AcquireStorage()
-	var pcd proxystream.PerCallData
-	if meta, ok := storage[clientstorage.KeyMeta].(json.RawMessage); ok {
-		metaCopy := make([]byte, len(meta))
-		copy(metaCopy, meta)
-		pcd.Meta = metaCopy
-	}
-	release(storage)
-	return pcd
-}
-
 func setStorageMeta(c Client, meta json.RawMessage) {
 	storage, release := c.AcquireStorage()
 	defer release(storage)
@@ -643,7 +631,7 @@ type SubscribeExtra struct {
 }
 
 // OnSubscribe ...
-func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribeProxyHandler proxy.SubscribeHandlerFunc, subscribeStreamHandlerFunc proxystream.SubscribeHandlerFunc) (centrifuge.SubscribeReply, SubscribeExtra, error) {
+func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribeProxyHandler proxy.SubscribeHandlerFunc, subscribeStreamHandlerFunc proxy.SubscribeStreamHandlerFunc) (centrifuge.SubscribeReply, SubscribeExtra, error) {
 	ruleConfig := h.ruleContainer.Config()
 
 	if e.Channel == "" {
@@ -733,7 +721,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "stream proxy not enabled", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
 		}
-		r, publishFunc, cancelFunc, err := subscribeStreamHandlerFunc(c, chOpts.ProxySubscribeStreamBidirectional, e, chOpts, getStreamPerCallData(c))
+		r, publishFunc, cancelFunc, err := subscribeStreamHandlerFunc(c, chOpts.ProxySubscribeStreamBidirectional, e, chOpts, getPerCallData(c))
 		if chOpts.ProxySubscribeStreamBidirectional {
 			storage, release := c.AcquireStorage()
 			storage["stream_cancel_"+e.Channel] = cancelFunc
@@ -803,7 +791,7 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 			return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
 		}
 		storage, release := c.AcquireStorage()
-		publisher, ok := storage["stream_publisher_"+e.Channel].(proxystream.PublishFunc)
+		publisher, ok := storage["stream_publisher_"+e.Channel].(proxy.StreamPublishFunc)
 		release(storage)
 		if ok {
 			err = publisher(e.Data)
