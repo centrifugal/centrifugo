@@ -1729,7 +1729,7 @@ func streamProxyMapConfig() (map[string]*proxy.SubscribeStreamProxy, bool) {
 
 	subscribeStreamProxies := map[string]*proxy.SubscribeStreamProxy{}
 
-	sp := proxy.Proxy{}
+	sp := proxy.Config{}
 
 	sp.GrpcMetadata = v.GetStringSlice("proxy_grpc_metadata")
 	sp.HttpHeaders = v.GetStringSlice("proxy_http_headers")
@@ -1771,7 +1771,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 		RpcProxies:        map[string]proxy.RPCProxy{},
 		SubRefreshProxies: map[string]proxy.SubRefreshProxy{},
 	}
-	p := proxy.Proxy{}
+	p := proxy.Config{}
 	p.GrpcMetadata = v.GetStringSlice("proxy_grpc_metadata")
 
 	p.HttpHeaders = v.GetStringSlice("proxy_http_headers")
@@ -1889,7 +1889,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		SubscribeStreamProxies: map[string]*proxy.SubscribeStreamProxy{},
 	}
 	proxyList := granularProxiesFromConfig(viper.GetViper())
-	proxies := make(map[string]proxy.Proxy)
+	proxies := make(map[string]proxy.Config)
 	for _, p := range proxyList {
 		for i, header := range p.HttpHeaders {
 			p.HttpHeaders[i] = strings.ToLower(header)
@@ -2082,8 +2082,8 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 var proxyNamePattern = "^[-a-zA-Z0-9_.]{2,}$"
 var proxyNameRe = regexp.MustCompile(proxyNamePattern)
 
-func granularProxiesFromConfig(v *viper.Viper) []proxy.Proxy {
-	var proxies []proxy.Proxy
+func granularProxiesFromConfig(v *viper.Viper) []proxy.Config {
+	var proxies []proxy.Config
 	if !v.IsSet("proxies") {
 		return proxies
 	}

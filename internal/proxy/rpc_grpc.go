@@ -12,14 +12,14 @@ import (
 
 // GRPCRPCProxy ...
 type GRPCRPCProxy struct {
-	proxy  Proxy
+	config Config
 	client proxyproto.CentrifugoProxyClient
 }
 
 var _ RPCProxy = (*GRPCRPCProxy)(nil)
 
 // NewGRPCRPCProxy ...
-func NewGRPCRPCProxy(p Proxy) (*GRPCRPCProxy, error) {
+func NewGRPCRPCProxy(p Config) (*GRPCRPCProxy, error) {
 	host, err := getGrpcHost(p.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("error getting grpc host: %v", err)
@@ -35,16 +35,16 @@ func NewGRPCRPCProxy(p Proxy) (*GRPCRPCProxy, error) {
 		return nil, fmt.Errorf("error connecting to GRPC proxy server: %v", err)
 	}
 	return &GRPCRPCProxy{
-		proxy:  p,
+		config: p,
 		client: proxyproto.NewCentrifugoProxyClient(conn),
 	}, nil
 }
 
 // ProxyRPC ...
 func (p *GRPCRPCProxy) ProxyRPC(ctx context.Context, req *proxyproto.RPCRequest) (*proxyproto.RPCResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(p.proxy.Timeout))
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(p.config.Timeout))
 	defer cancel()
-	return p.client.RPC(grpcRequestContext(ctx, p.proxy), req, grpc.ForceCodec(grpcCodec))
+	return p.client.RPC(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
 }
 
 // Protocol ...
@@ -54,10 +54,10 @@ func (p *GRPCRPCProxy) Protocol() string {
 
 // UseBase64 ...
 func (p *GRPCRPCProxy) UseBase64() bool {
-	return p.proxy.BinaryEncoding
+	return p.config.BinaryEncoding
 }
 
 // IncludeMeta ...
 func (p *GRPCRPCProxy) IncludeMeta() bool {
-	return p.proxy.IncludeConnectionMeta
+	return p.config.IncludeConnectionMeta
 }

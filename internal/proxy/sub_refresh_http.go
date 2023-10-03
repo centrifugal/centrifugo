@@ -17,16 +17,16 @@ type SubRefreshRequestHTTP struct {
 
 // HTTPSubRefreshProxy ...
 type HTTPSubRefreshProxy struct {
-	proxy      Proxy
+	config     Config
 	httpCaller HTTPCaller
 }
 
 var _ SubRefreshProxy = (*HTTPSubRefreshProxy)(nil)
 
 // NewHTTPSubRefreshProxy ...
-func NewHTTPSubRefreshProxy(p Proxy) (*HTTPSubRefreshProxy, error) {
+func NewHTTPSubRefreshProxy(p Config) (*HTTPSubRefreshProxy, error) {
 	return &HTTPSubRefreshProxy{
-		proxy:      p,
+		config:     p,
 		httpCaller: NewHTTPCaller(proxyHTTPClient(time.Duration(p.Timeout))),
 	}, nil
 }
@@ -37,7 +37,7 @@ func (p *HTTPSubRefreshProxy) ProxySubRefresh(ctx context.Context, req *proxypro
 	if err != nil {
 		return nil, err
 	}
-	respData, err := p.httpCaller.CallHTTP(ctx, p.proxy.Endpoint, httpRequestHeaders(ctx, p.proxy), data)
+	respData, err := p.httpCaller.CallHTTP(ctx, p.config.Endpoint, httpRequestHeaders(ctx, p.config), data)
 	if err != nil {
 		return nil, err
 	}
@@ -51,10 +51,10 @@ func (p *HTTPSubRefreshProxy) Protocol() string {
 
 // UseBase64 ...
 func (p *HTTPSubRefreshProxy) UseBase64() bool {
-	return p.proxy.BinaryEncoding
+	return p.config.BinaryEncoding
 }
 
 // IncludeMeta ...
 func (p *HTTPSubRefreshProxy) IncludeMeta() bool {
-	return p.proxy.IncludeConnectionMeta
+	return p.config.IncludeConnectionMeta
 }

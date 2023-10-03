@@ -47,7 +47,7 @@ func getGrpcHost(endpoint string) (string, error) {
 	return host, nil
 }
 
-func getDialOpts(p Proxy) ([]grpc.DialOption, error) {
+func getDialOpts(p Config) ([]grpc.DialOption, error) {
 	var dialOpts []grpc.DialOption
 	if p.GrpcCredentialsKey != "" {
 		dialOpts = append(dialOpts, grpc.WithPerRPCCredentials(&rpcCredentials{
@@ -72,12 +72,12 @@ func getDialOpts(p Proxy) ([]grpc.DialOption, error) {
 	return dialOpts, nil
 }
 
-func grpcRequestContext(ctx context.Context, proxy Proxy) context.Context {
+func grpcRequestContext(ctx context.Context, proxy Config) context.Context {
 	md := requestMetadata(ctx, proxy.HttpHeaders, proxy.GrpcMetadata)
 	return metadata.NewOutgoingContext(ctx, md)
 }
 
-func httpRequestHeaders(ctx context.Context, proxy Proxy) http.Header {
+func httpRequestHeaders(ctx context.Context, proxy Config) http.Header {
 	return requestHeaders(ctx, proxy.HttpHeaders, proxy.GrpcMetadata, proxy.StaticHttpHeaders)
 }
 
