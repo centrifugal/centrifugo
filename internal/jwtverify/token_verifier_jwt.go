@@ -236,9 +236,9 @@ func (j *jwksManager) verify(token *jwt.Token, tokenVars map[string]any) error {
 		}
 
 		return verifier.Verify(token)
+	default:
+		return errUnsupportedAlgorithm
 	}
-
-	return errUnsupportedAlgorithm
 }
 
 type algorithms struct {
