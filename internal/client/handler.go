@@ -115,17 +115,12 @@ func (h *Handler) Setup() error {
 		}).Handle(h.node)
 	}
 
-	var streamHandler *proxy.SubscribeStreamHandler
+	var proxySubscribeStreamHandler proxy.SubscribeStreamHandlerFunc
 	if len(h.proxyMap.SubscribeStreamProxies) > 0 {
-		streamHandler = proxy.NewSubscribeStreamHandler(proxy.SubscribeStreamHandlerConfig{
+		proxySubscribeStreamHandler = proxy.NewSubscribeStreamHandler(proxy.SubscribeStreamHandlerConfig{
 			Proxies:           h.proxyMap.SubscribeStreamProxies,
 			GranularProxyMode: h.granularProxyMode,
-		})
-	}
-
-	var proxySubscribeStreamHandler proxy.SubscribeStreamHandlerFunc
-	if streamHandler != nil && len(h.proxyMap.SubscribeStreamProxies) > 0 {
-		proxySubscribeStreamHandler = streamHandler.HandleSubscribeStream(h.node)
+		}).Handle(h.node)
 	}
 
 	var subRefreshProxyHandler proxy.SubRefreshHandlerFunc

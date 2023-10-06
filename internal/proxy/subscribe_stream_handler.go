@@ -63,13 +63,14 @@ func NewSubscribeStreamHandler(c SubscribeStreamHandlerConfig) *SubscribeStreamH
 	return h
 }
 
+// StreamPublishFunc ...
 type StreamPublishFunc func(data []byte) error
 
 // SubscribeStreamHandlerFunc ...
 type SubscribeStreamHandlerFunc func(Client, bool, centrifuge.SubscribeEvent, rule.ChannelOptions, PerCallData) (centrifuge.SubscribeReply, StreamPublishFunc, func(), error)
 
-// HandleSubscribeStream ...
-func (h *SubscribeStreamHandler) HandleSubscribeStream(node *centrifuge.Node) SubscribeStreamHandlerFunc {
+// Handle ...
+func (h *SubscribeStreamHandler) Handle(node *centrifuge.Node) SubscribeStreamHandlerFunc {
 	return func(client Client, bidi bool, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions, pcd PerCallData) (centrifuge.SubscribeReply, StreamPublishFunc, func(), error) {
 		started := time.Now()
 
@@ -188,8 +189,6 @@ func (h *SubscribeStreamHandler) HandleSubscribeStream(node *centrifuge.Node) Su
 		presence := chOpts.Presence
 		joinLeave := chOpts.JoinLeave
 		pushJoinLeave := chOpts.ForcePushJoinLeave
-		recovery := chOpts.ForceRecovery
-		positioning := chOpts.ForcePositioning
 
 		var info []byte
 		var data []byte
@@ -228,12 +227,6 @@ func (h *SubscribeStreamHandler) HandleSubscribeStream(node *centrifuge.Node) Su
 			if result.Override != nil && result.Override.ForcePushJoinLeave != nil {
 				pushJoinLeave = result.Override.ForcePushJoinLeave.Value
 			}
-			if result.Override != nil && result.Override.ForceRecovery != nil {
-				recovery = result.Override.ForceRecovery.Value
-			}
-			if result.Override != nil && result.Override.ForcePositioning != nil {
-				positioning = result.Override.ForcePositioning.Value
-			}
 
 			expireAt = result.ExpireAt
 		}
@@ -245,11 +238,11 @@ func (h *SubscribeStreamHandler) HandleSubscribeStream(node *centrifuge.Node) Su
 				EmitPresence:      presence,
 				EmitJoinLeave:     joinLeave,
 				PushJoinLeave:     pushJoinLeave,
-				EnableRecovery:    recovery,
-				EnablePositioning: positioning,
+				EnableRecovery:    false, // Not used for subscribe stream proxy.
+				EnablePositioning: false, // Not used for subscribe stream proxy.
 				Data:              data,
 				Source:            subsource.StreamProxy,
-				HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
+				HistoryMetaTTL:    0, // Not used for subscribe stream proxy.
 			},
 			ClientSideRefresh: true,
 			SubscriptionReady: subscriptionReady,
