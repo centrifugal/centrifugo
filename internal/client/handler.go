@@ -298,7 +298,6 @@ func (h *Handler) OnClientConnecting(
 		credentials *centrifuge.Credentials
 		data        []byte
 		newCtx      context.Context
-		clientReady chan *centrifuge.Client
 	)
 
 	subscriptions := make(map[string]centrifuge.SubscribeOptions)
@@ -456,7 +455,6 @@ func (h *Handler) OnClientConnecting(
 		Subscriptions:     subscriptions,
 		Data:              data,
 		ClientSideRefresh: !refreshProxyEnabled,
-		ClientReady:       clientReady,
 	}
 	if newCtx != nil {
 		finalReply.Context = newCtx
