@@ -1964,6 +1964,8 @@ func (x *SubRefreshResponse) GetDisconnect() *Disconnect {
 }
 
 // Publication is an event to be sent to a client.
+// We intentionally make it use the same Protobuf numbers for fields as our client protocol
+// Publication - for now only for consistency.
 type Publication struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

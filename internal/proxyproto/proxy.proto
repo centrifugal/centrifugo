@@ -17,12 +17,15 @@ service CentrifugoProxy {
   rpc RPC(RPCRequest) returns (RPCResponse);
   // SubRefresh to proxy decision about subscription expiration to the app backend.
   rpc SubRefresh(SubRefreshRequest) returns (SubRefreshResponse);
-
-  // SubscribeUnidirectional allows handling unidirectional subscription streams.
-  // This is an EXPERIMENTAL method.
+  // SubscribeUnidirectional is an EXPERIMENTAL method which allows handling unidirectional
+  // subscription streams. Stream starts with SubscribeRequest similar to Subscribe rpc,
+  // then expects StreamChannelResponse with SubscribeResponse as first message, and
+  // StreamChannelResponse with Publication afterwards.
   rpc SubscribeUnidirectional(SubscribeRequest) returns (stream StreamChannelResponse);
-  // SubscribeBidirectional allows handling bidirectional subscription streams.
-  // This is an EXPERIMENTAL method.
+  // SubscribeBidirectional is an EXPERIMENTAL method which allows handling bidirectional
+  // subscription streams. Stream receives StreamChannelRequest. First StreamChannelRequest
+  // always contains SubscribeRequest, then StreamChannelRequest will contain data published
+  // by client. Reverse direction works the same way as in SubscribeUnidirectional.
   rpc SubscribeBidirectional(stream StreamChannelRequest) returns (stream StreamChannelResponse);
 }
 
@@ -230,6 +233,8 @@ message SubRefreshResponse {
 }
 
 // Publication is an event to be sent to a client.
+// We intentionally make it use the same Protobuf numbers for fields as our client protocol
+// Publication - for now only for consistency.
 message Publication {
   reserved 1, 2, 3, 5, 6;
   bytes data = 4;

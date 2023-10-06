@@ -1724,72 +1724,36 @@ func GetDuration(key string, secondsPrecision ...bool) time.Duration {
 	return duration
 }
 
-func streamProxyMapConfig() (map[string]*proxy.SubscribeStreamProxy, bool) {
-	v := viper.GetViper()
-
-	subscribeStreamProxies := map[string]*proxy.SubscribeStreamProxy{}
-
-	sp := proxy.Config{}
-
-	sp.GrpcMetadata = v.GetStringSlice("proxy_grpc_metadata")
-	sp.HttpHeaders = v.GetStringSlice("proxy_http_headers")
-	for i, header := range sp.HttpHeaders {
-		sp.HttpHeaders[i] = strings.ToLower(header)
-	}
-
-	sp.IncludeConnectionMeta = v.GetBool("proxy_include_connection_meta")
-	sp.GrpcCertFile = v.GetString("proxy_grpc_cert_file")
-	sp.GrpcCredentialsKey = v.GetString("proxy_grpc_credentials_key")
-	sp.GrpcCredentialsValue = v.GetString("proxy_grpc_credentials_value")
-
-	proxyStreamSubscribeEndpoint := v.GetString("proxy_subscribe_stream_endpoint")
-	if strings.HasPrefix(proxyStreamSubscribeEndpoint, "http") {
-		log.Fatal().Msg("error creating subscribe stream proxy: only GRPC endpoints supported")
-	}
-
-	proxyStreamSubscribeTimeout := GetDuration("proxy_subscribe_stream_timeout")
-
-	if proxyStreamSubscribeEndpoint != "" {
-		sp.Endpoint = proxyStreamSubscribeEndpoint
-		sp.Timeout = tools.Duration(proxyStreamSubscribeTimeout)
-		streamProxy, err := proxy.NewSubscribeStreamProxy(sp)
-		if err != nil {
-			log.Fatal().Msgf("error creating subscribe stream proxy: %v", err)
-		}
-		subscribeStreamProxies[""] = streamProxy
-		log.Info().Str("endpoint", proxyStreamSubscribeEndpoint).Msg("subscribe stream proxy enabled")
-	}
-
-	return subscribeStreamProxies, len(subscribeStreamProxies) > 0
-}
-
 func proxyMapConfig() (*client.ProxyMap, bool) {
 	v := viper.GetViper()
-	proxyMap := &client.ProxyMap{
-		SubscribeProxies:  map[string]proxy.SubscribeProxy{},
-		PublishProxies:    map[string]proxy.PublishProxy{},
-		RpcProxies:        map[string]proxy.RPCProxy{},
-		SubRefreshProxies: map[string]proxy.SubRefreshProxy{},
-	}
-	p := proxy.Config{}
-	p.GrpcMetadata = v.GetStringSlice("proxy_grpc_metadata")
 
-	p.HttpHeaders = v.GetStringSlice("proxy_http_headers")
-	for i, header := range p.HttpHeaders {
-		p.HttpHeaders[i] = strings.ToLower(header)
+	proxyMap := &client.ProxyMap{
+		SubscribeProxies:       map[string]proxy.SubscribeProxy{},
+		PublishProxies:         map[string]proxy.PublishProxy{},
+		RpcProxies:             map[string]proxy.RPCProxy{},
+		SubRefreshProxies:      map[string]proxy.SubRefreshProxy{},
+		SubscribeStreamProxies: map[string]*proxy.SubscribeStreamProxy{},
+	}
+
+	proxyConfig := proxy.Config{
+		BinaryEncoding:        v.GetBool("proxy_binary_encoding"),
+		IncludeConnectionMeta: v.GetBool("proxy_include_connection_meta"),
+		GrpcCertFile:          v.GetString("proxy_grpc_cert_file"),
+		GrpcCredentialsKey:    v.GetString("proxy_grpc_credentials_key"),
+		GrpcCredentialsValue:  v.GetString("proxy_grpc_credentials_value"),
+		GrpcMetadata:          v.GetStringSlice("proxy_grpc_metadata"),
+	}
+
+	proxyConfig.HttpHeaders = v.GetStringSlice("proxy_http_headers")
+	for i, header := range proxyConfig.HttpHeaders {
+		proxyConfig.HttpHeaders[i] = strings.ToLower(header)
 	}
 
 	staticHttpHeaders, err := tools.MapStringString(v, "proxy_static_http_headers")
 	if err != nil {
 		log.Fatal().Err(err).Msg("malformed configuration for proxy_static_http_headers")
 	}
-	p.StaticHttpHeaders = staticHttpHeaders
-
-	p.BinaryEncoding = v.GetBool("proxy_binary_encoding")
-	p.IncludeConnectionMeta = v.GetBool("proxy_include_connection_meta")
-	p.GrpcCertFile = v.GetString("proxy_grpc_cert_file")
-	p.GrpcCredentialsKey = v.GetString("proxy_grpc_credentials_key")
-	p.GrpcCredentialsValue = v.GetString("proxy_grpc_credentials_value")
+	proxyConfig.StaticHttpHeaders = staticHttpHeaders
 
 	connectEndpoint := v.GetString("proxy_connect_endpoint")
 	connectTimeout := GetDuration("proxy_connect_timeout")
@@ -1803,12 +1767,17 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	publishTimeout := GetDuration("proxy_publish_timeout")
 	subRefreshEndpoint := v.GetString("proxy_sub_refresh_endpoint")
 	subRefreshTimeout := GetDuration("proxy_sub_refresh_timeout")
+	proxyStreamSubscribeEndpoint := v.GetString("proxy_subscribe_stream_endpoint")
+	if strings.HasPrefix(proxyStreamSubscribeEndpoint, "http") {
+		log.Fatal().Msg("error creating subscribe stream proxy: only GRPC endpoints supported")
+	}
+	proxyStreamSubscribeTimeout := GetDuration("proxy_subscribe_stream_timeout")
 
 	if connectEndpoint != "" {
-		p.Endpoint = connectEndpoint
-		p.Timeout = tools.Duration(connectTimeout)
+		proxyConfig.Endpoint = connectEndpoint
+		proxyConfig.Timeout = tools.Duration(connectTimeout)
 		var err error
-		proxyMap.ConnectProxy, err = proxy.GetConnectProxy(p)
+		proxyMap.ConnectProxy, err = proxy.GetConnectProxy(proxyConfig)
 		if err != nil {
 			log.Fatal().Msgf("error creating connect proxy: %v", err)
 		}
@@ -1816,10 +1785,10 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	}
 
 	if refreshEndpoint != "" {
-		p.Endpoint = refreshEndpoint
-		p.Timeout = tools.Duration(refreshTimeout)
+		proxyConfig.Endpoint = refreshEndpoint
+		proxyConfig.Timeout = tools.Duration(refreshTimeout)
 		var err error
-		proxyMap.RefreshProxy, err = proxy.GetRefreshProxy(p)
+		proxyMap.RefreshProxy, err = proxy.GetRefreshProxy(proxyConfig)
 		if err != nil {
 			log.Fatal().Msgf("error creating refresh proxy: %v", err)
 		}
@@ -1827,9 +1796,9 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	}
 
 	if subscribeEndpoint != "" {
-		p.Endpoint = subscribeEndpoint
-		p.Timeout = tools.Duration(subscribeTimeout)
-		sp, err := proxy.GetSubscribeProxy(p)
+		proxyConfig.Endpoint = subscribeEndpoint
+		proxyConfig.Timeout = tools.Duration(subscribeTimeout)
+		sp, err := proxy.GetSubscribeProxy(proxyConfig)
 		if err != nil {
 			log.Fatal().Msgf("error creating subscribe proxy: %v", err)
 		}
@@ -1838,9 +1807,9 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	}
 
 	if publishEndpoint != "" {
-		p.Endpoint = publishEndpoint
-		p.Timeout = tools.Duration(publishTimeout)
-		pp, err := proxy.GetPublishProxy(p)
+		proxyConfig.Endpoint = publishEndpoint
+		proxyConfig.Timeout = tools.Duration(publishTimeout)
+		pp, err := proxy.GetPublishProxy(proxyConfig)
 		if err != nil {
 			log.Fatal().Msgf("error creating publish proxy: %v", err)
 		}
@@ -1849,9 +1818,9 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	}
 
 	if rpcEndpoint != "" {
-		p.Endpoint = rpcEndpoint
-		p.Timeout = tools.Duration(rpcTimeout)
-		rp, err := proxy.GetRpcProxy(p)
+		proxyConfig.Endpoint = rpcEndpoint
+		proxyConfig.Timeout = tools.Duration(rpcTimeout)
+		rp, err := proxy.GetRpcProxy(proxyConfig)
 		if err != nil {
 			log.Fatal().Msgf("error creating rpc proxy: %v", err)
 		}
@@ -1860,9 +1829,9 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	}
 
 	if subRefreshEndpoint != "" {
-		p.Endpoint = subRefreshEndpoint
-		p.Timeout = tools.Duration(subRefreshTimeout)
-		srp, err := proxy.GetSubRefreshProxy(p)
+		proxyConfig.Endpoint = subRefreshEndpoint
+		proxyConfig.Timeout = tools.Duration(subRefreshTimeout)
+		srp, err := proxy.GetSubRefreshProxy(proxyConfig)
 		if err != nil {
 			log.Fatal().Msgf("error creating sub refresh proxy: %v", err)
 		}
@@ -1870,12 +1839,20 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 		log.Info().Str("endpoint", subRefreshEndpoint).Msg("sub refresh proxy enabled")
 	}
 
-	subscribeStreamProxies, streamProxyEnabled := streamProxyMapConfig()
-	proxyMap.SubscribeStreamProxies = subscribeStreamProxies
+	if proxyStreamSubscribeEndpoint != "" {
+		proxyConfig.Endpoint = proxyStreamSubscribeEndpoint
+		proxyConfig.Timeout = tools.Duration(proxyStreamSubscribeTimeout)
+		streamProxy, err := proxy.NewSubscribeStreamProxy(proxyConfig)
+		if err != nil {
+			log.Fatal().Msgf("error creating subscribe stream proxy: %v", err)
+		}
+		proxyMap.SubscribeStreamProxies[""] = streamProxy
+		log.Info().Str("endpoint", proxyStreamSubscribeEndpoint).Msg("subscribe stream proxy enabled")
+	}
 
 	proxyEnabled := connectEndpoint != "" || refreshEndpoint != "" ||
 		rpcEndpoint != "" || subscribeEndpoint != "" || publishEndpoint != "" ||
-		subRefreshEndpoint != "" || streamProxyEnabled
+		subRefreshEndpoint != "" || proxyStreamSubscribeEndpoint != ""
 
 	return proxyMap, proxyEnabled
 }

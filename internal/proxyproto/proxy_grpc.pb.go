@@ -30,11 +30,15 @@ type CentrifugoProxyClient interface {
 	RPC(ctx context.Context, in *RPCRequest, opts ...grpc.CallOption) (*RPCResponse, error)
 	// SubRefresh to proxy decision about subscription expiration to the app backend.
 	SubRefresh(ctx context.Context, in *SubRefreshRequest, opts ...grpc.CallOption) (*SubRefreshResponse, error)
-	// SubscribeUnidirectional allows handling unidirectional subscription streams.
-	// This is an EXPERIMENTAL method.
+	// SubscribeUnidirectional is an EXPERIMENTAL method which allows handling unidirectional
+	// subscription streams. Stream starts with SubscribeRequest similar to Subscribe rpc,
+	// then expects StreamChannelResponse with SubscribeResponse as first message, and
+	// StreamChannelResponse with Publication afterwards.
 	SubscribeUnidirectional(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (CentrifugoProxy_SubscribeUnidirectionalClient, error)
-	// SubscribeBidirectional allows handling bidirectional subscription streams.
-	// This is an EXPERIMENTAL method.
+	// SubscribeBidirectional is an EXPERIMENTAL method which allows handling bidirectional
+	// subscription streams. Stream receives StreamChannelRequest. First StreamChannelRequest
+	// always contains SubscribeRequest, then StreamChannelRequest will contain data published
+	// by client. Reverse direction works the same way as in SubscribeUnidirectional.
 	SubscribeBidirectional(ctx context.Context, opts ...grpc.CallOption) (CentrifugoProxy_SubscribeBidirectionalClient, error)
 }
 
@@ -179,11 +183,15 @@ type CentrifugoProxyServer interface {
 	RPC(context.Context, *RPCRequest) (*RPCResponse, error)
 	// SubRefresh to proxy decision about subscription expiration to the app backend.
 	SubRefresh(context.Context, *SubRefreshRequest) (*SubRefreshResponse, error)
-	// SubscribeUnidirectional allows handling unidirectional subscription streams.
-	// This is an EXPERIMENTAL method.
+	// SubscribeUnidirectional is an EXPERIMENTAL method which allows handling unidirectional
+	// subscription streams. Stream starts with SubscribeRequest similar to Subscribe rpc,
+	// then expects StreamChannelResponse with SubscribeResponse as first message, and
+	// StreamChannelResponse with Publication afterwards.
 	SubscribeUnidirectional(*SubscribeRequest, CentrifugoProxy_SubscribeUnidirectionalServer) error
-	// SubscribeBidirectional allows handling bidirectional subscription streams.
-	// This is an EXPERIMENTAL method.
+	// SubscribeBidirectional is an EXPERIMENTAL method which allows handling bidirectional
+	// subscription streams. Stream receives StreamChannelRequest. First StreamChannelRequest
+	// always contains SubscribeRequest, then StreamChannelRequest will contain data published
+	// by client. Reverse direction works the same way as in SubscribeUnidirectional.
 	SubscribeBidirectional(CentrifugoProxy_SubscribeBidirectionalServer) error
 	mustEmbedUnimplementedCentrifugoProxyServer()
 }
