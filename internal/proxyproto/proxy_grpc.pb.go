@@ -32,12 +32,12 @@ type CentrifugoProxyClient interface {
 	SubRefresh(ctx context.Context, in *SubRefreshRequest, opts ...grpc.CallOption) (*SubRefreshResponse, error)
 	// SubscribeUnidirectional is an EXPERIMENTAL method which allows handling unidirectional
 	// subscription streams. Stream starts with SubscribeRequest similar to Subscribe rpc,
-	// then expects StreamChannelResponse with SubscribeResponse as first message, and
-	// StreamChannelResponse with Publication afterwards.
+	// then expects StreamSubscribeResponse with SubscribeResponse as first message, and
+	// StreamSubscribeResponse with Publication afterwards.
 	SubscribeUnidirectional(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (CentrifugoProxy_SubscribeUnidirectionalClient, error)
 	// SubscribeBidirectional is an EXPERIMENTAL method which allows handling bidirectional
-	// subscription streams. Stream receives StreamChannelRequest. First StreamChannelRequest
-	// always contains SubscribeRequest, then StreamChannelRequest will contain data published
+	// subscription streams. Stream receives StreamSubscribeRequest. First StreamSubscribeRequest
+	// always contains SubscribeRequest, then StreamSubscribeRequest will contain data published
 	// by client. Reverse direction works the same way as in SubscribeUnidirectional.
 	SubscribeBidirectional(ctx context.Context, opts ...grpc.CallOption) (CentrifugoProxy_SubscribeBidirectionalClient, error)
 }
@@ -120,7 +120,7 @@ func (c *centrifugoProxyClient) SubscribeUnidirectional(ctx context.Context, in 
 }
 
 type CentrifugoProxy_SubscribeUnidirectionalClient interface {
-	Recv() (*StreamChannelResponse, error)
+	Recv() (*StreamSubscribeResponse, error)
 	grpc.ClientStream
 }
 
@@ -128,8 +128,8 @@ type centrifugoProxySubscribeUnidirectionalClient struct {
 	grpc.ClientStream
 }
 
-func (x *centrifugoProxySubscribeUnidirectionalClient) Recv() (*StreamChannelResponse, error) {
-	m := new(StreamChannelResponse)
+func (x *centrifugoProxySubscribeUnidirectionalClient) Recv() (*StreamSubscribeResponse, error) {
+	m := new(StreamSubscribeResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -146,8 +146,8 @@ func (c *centrifugoProxyClient) SubscribeBidirectional(ctx context.Context, opts
 }
 
 type CentrifugoProxy_SubscribeBidirectionalClient interface {
-	Send(*StreamChannelRequest) error
-	Recv() (*StreamChannelResponse, error)
+	Send(*StreamSubscribeRequest) error
+	Recv() (*StreamSubscribeResponse, error)
 	grpc.ClientStream
 }
 
@@ -155,12 +155,12 @@ type centrifugoProxySubscribeBidirectionalClient struct {
 	grpc.ClientStream
 }
 
-func (x *centrifugoProxySubscribeBidirectionalClient) Send(m *StreamChannelRequest) error {
+func (x *centrifugoProxySubscribeBidirectionalClient) Send(m *StreamSubscribeRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *centrifugoProxySubscribeBidirectionalClient) Recv() (*StreamChannelResponse, error) {
-	m := new(StreamChannelResponse)
+func (x *centrifugoProxySubscribeBidirectionalClient) Recv() (*StreamSubscribeResponse, error) {
+	m := new(StreamSubscribeResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -185,12 +185,12 @@ type CentrifugoProxyServer interface {
 	SubRefresh(context.Context, *SubRefreshRequest) (*SubRefreshResponse, error)
 	// SubscribeUnidirectional is an EXPERIMENTAL method which allows handling unidirectional
 	// subscription streams. Stream starts with SubscribeRequest similar to Subscribe rpc,
-	// then expects StreamChannelResponse with SubscribeResponse as first message, and
-	// StreamChannelResponse with Publication afterwards.
+	// then expects StreamSubscribeResponse with SubscribeResponse as first message, and
+	// StreamSubscribeResponse with Publication afterwards.
 	SubscribeUnidirectional(*SubscribeRequest, CentrifugoProxy_SubscribeUnidirectionalServer) error
 	// SubscribeBidirectional is an EXPERIMENTAL method which allows handling bidirectional
-	// subscription streams. Stream receives StreamChannelRequest. First StreamChannelRequest
-	// always contains SubscribeRequest, then StreamChannelRequest will contain data published
+	// subscription streams. Stream receives StreamSubscribeRequest. First StreamSubscribeRequest
+	// always contains SubscribeRequest, then StreamSubscribeRequest will contain data published
 	// by client. Reverse direction works the same way as in SubscribeUnidirectional.
 	SubscribeBidirectional(CentrifugoProxy_SubscribeBidirectionalServer) error
 	mustEmbedUnimplementedCentrifugoProxyServer()
@@ -354,7 +354,7 @@ func _CentrifugoProxy_SubscribeUnidirectional_Handler(srv interface{}, stream gr
 }
 
 type CentrifugoProxy_SubscribeUnidirectionalServer interface {
-	Send(*StreamChannelResponse) error
+	Send(*StreamSubscribeResponse) error
 	grpc.ServerStream
 }
 
@@ -362,7 +362,7 @@ type centrifugoProxySubscribeUnidirectionalServer struct {
 	grpc.ServerStream
 }
 
-func (x *centrifugoProxySubscribeUnidirectionalServer) Send(m *StreamChannelResponse) error {
+func (x *centrifugoProxySubscribeUnidirectionalServer) Send(m *StreamSubscribeResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -371,8 +371,8 @@ func _CentrifugoProxy_SubscribeBidirectional_Handler(srv interface{}, stream grp
 }
 
 type CentrifugoProxy_SubscribeBidirectionalServer interface {
-	Send(*StreamChannelResponse) error
-	Recv() (*StreamChannelRequest, error)
+	Send(*StreamSubscribeResponse) error
+	Recv() (*StreamSubscribeRequest, error)
 	grpc.ServerStream
 }
 
@@ -380,12 +380,12 @@ type centrifugoProxySubscribeBidirectionalServer struct {
 	grpc.ServerStream
 }
 
-func (x *centrifugoProxySubscribeBidirectionalServer) Send(m *StreamChannelResponse) error {
+func (x *centrifugoProxySubscribeBidirectionalServer) Send(m *StreamSubscribeResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *centrifugoProxySubscribeBidirectionalServer) Recv() (*StreamChannelRequest, error) {
-	m := new(StreamChannelRequest)
+func (x *centrifugoProxySubscribeBidirectionalServer) Recv() (*StreamSubscribeRequest, error) {
+	m := new(StreamSubscribeRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}

@@ -19,14 +19,14 @@ service CentrifugoProxy {
   rpc SubRefresh(SubRefreshRequest) returns (SubRefreshResponse);
   // SubscribeUnidirectional is an EXPERIMENTAL method which allows handling unidirectional
   // subscription streams. Stream starts with SubscribeRequest similar to Subscribe rpc,
-  // then expects StreamChannelResponse with SubscribeResponse as first message, and
-  // StreamChannelResponse with Publication afterwards.
-  rpc SubscribeUnidirectional(SubscribeRequest) returns (stream StreamChannelResponse);
+  // then expects StreamSubscribeResponse with SubscribeResponse as first message, and
+  // StreamSubscribeResponse with Publication afterwards.
+  rpc SubscribeUnidirectional(SubscribeRequest) returns (stream StreamSubscribeResponse);
   // SubscribeBidirectional is an EXPERIMENTAL method which allows handling bidirectional
-  // subscription streams. Stream receives StreamChannelRequest. First StreamChannelRequest
-  // always contains SubscribeRequest, then StreamChannelRequest will contain data published
+  // subscription streams. Stream receives StreamSubscribeRequest. First StreamSubscribeRequest
+  // always contains SubscribeRequest, then StreamSubscribeRequest will contain data published
   // by client. Reverse direction works the same way as in SubscribeUnidirectional.
-  rpc SubscribeBidirectional(stream StreamChannelRequest) returns (stream StreamChannelResponse);
+  rpc SubscribeBidirectional(stream StreamSubscribeRequest) returns (stream StreamSubscribeResponse);
 }
 
 message Disconnect {
@@ -241,7 +241,7 @@ message Publication {
   map<string, string> tags = 7;
 }
 
-message StreamChannelRequest {
+message StreamSubscribeRequest {
   // Centrifugo always sends this within the first message upon user subscription request.
   // It's always not set in the following StreamRequest messages from Centrifugo.
   SubscribeRequest subscribe_request = 1;
@@ -250,7 +250,7 @@ message StreamChannelRequest {
   Publication publication = 2;
 }
 
-message StreamChannelResponse {
+message StreamSubscribeResponse {
   // SubscribeResponse may optionally be set in the first message from backend to Centrifugo.
   SubscribeResponse subscribe_response = 1;
   // Publication goes to client. Can't be set in the first message from backend to Centrifugo.

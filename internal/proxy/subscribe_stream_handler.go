@@ -253,7 +253,7 @@ func (h *SubscribeStreamHandler) Handle(node *centrifuge.Node) SubscribeStreamHa
 type OnPublication func(pub *proxyproto.Publication, err error)
 
 type ChannelStreamReader interface {
-	Recv() (*proxyproto.StreamChannelResponse, error)
+	Recv() (*proxyproto.StreamSubscribeResponse, error)
 }
 
 // SubscribeStream ...
@@ -275,7 +275,7 @@ func (p *SubscribeStreamProxy) SubscribeStream(
 			cancel()
 			return nil, nil, nil, err
 		}
-		err = bidiStream.Send(&proxyproto.StreamChannelRequest{
+		err = bidiStream.Send(&proxyproto.StreamSubscribeRequest{
 			SubscribeRequest: sr,
 		})
 		if err != nil {
@@ -284,7 +284,7 @@ func (p *SubscribeStreamProxy) SubscribeStream(
 		}
 		stream = bidiStream.(ChannelStreamReader)
 		publishFunc = func(data []byte) error {
-			return bidiStream.Send(&proxyproto.StreamChannelRequest{
+			return bidiStream.Send(&proxyproto.StreamSubscribeRequest{
 				Publication: &proxyproto.Publication{
 					Data: data,
 				},
