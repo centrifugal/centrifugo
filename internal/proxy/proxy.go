@@ -42,6 +42,8 @@ type Proxy struct {
 	GrpcCredentialsKey string `mapstructure:"grpc_credentials_key" json:"grpc_credentials_key,omitempty"`
 	// GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
 	GrpcCredentialsValue string `mapstructure:"grpc_credentials_value" json:"grpc_credentials_value,omitempty"`
+	// GrpcCompression enables compression for outgoing calls (gzip).
+	GrpcCompression bool `mapstructure:"grpc_compression" json:"grpc_compression,omitempty"`
 
 	testGrpcDialer func(context.Context, string) (net.Conn, error)
 }

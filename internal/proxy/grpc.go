@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strings"
 
+	"google.golang.org/grpc/encoding/gzip"
+
 	"github.com/centrifugal/centrifugo/v5/internal/middleware"
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 
@@ -63,6 +65,9 @@ func getDialOpts(p Proxy) ([]grpc.DialOption, error) {
 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(cred))
 	} else {
 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	}
+	if p.GrpcCompression {
+		dialOpts = append(dialOpts, grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)))
 	}
 
 	if p.testGrpcDialer != nil {
