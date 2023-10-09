@@ -9,7 +9,7 @@ require (
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/tarantool v0.3.1
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
-	github.com/centrifugal/centrifuge v0.30.3-0.20231006054005-96dae01ae87e
+	github.com/centrifugal/centrifuge v0.30.3-0.20231009162654-6036b763c9aa
 	github.com/centrifugal/protocol v0.10.0
 	github.com/cristalhq/jwt/v5 v5.1.0
 	github.com/gobwas/glob v0.2.3
@@ -38,7 +38,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.19.0
 	go.uber.org/automaxprocs v1.5.3
 	golang.org/x/crypto v0.13.0
-	golang.org/x/sync v0.3.0
+	golang.org/x/sync v0.4.0
 	golang.org/x/time v0.3.0
 	google.golang.org/grpc v1.58.2
 	google.golang.org/protobuf v1.31.0
