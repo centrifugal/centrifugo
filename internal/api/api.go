@@ -98,7 +98,7 @@ func (h *Executor) Batch(ctx context.Context, req *BatchRequest) *BatchResponse 
 			res := h.Channels(ctx, cmd.Channels)
 			replies[i].Channels, replies[i].Error = res.Result, res.Error
 		} else {
-			replies[i].Error = ErrorMethodNotFound
+			replies[i].Error = ErrorNotFound
 		}
 	}
 
@@ -705,7 +705,7 @@ func (h *Executor) RPC(ctx context.Context, cmd *RPCRequest) *RPCResponse {
 
 	handler, ok := h.rpcExtension[cmd.Method]
 	if !ok {
-		resp.Error = ErrorMethodNotFound
+		resp.Error = ErrorNotFound
 		return resp
 	}
 

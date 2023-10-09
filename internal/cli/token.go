@@ -73,7 +73,7 @@ func verify(config jwtverify.VerifierConfig, ruleConfig rule.Config, token strin
 	if err != nil {
 		return jwtverify.ConnectToken{}, err
 	}
-	return verifier.VerifyConnectToken(token)
+	return verifier.VerifyConnectToken(token, false)
 }
 
 func verifySub(config jwtverify.VerifierConfig, ruleConfig rule.Config, token string) (jwtverify.SubscribeToken, error) {
@@ -85,7 +85,7 @@ func verifySub(config jwtverify.VerifierConfig, ruleConfig rule.Config, token st
 	if err != nil {
 		return jwtverify.SubscribeToken{}, err
 	}
-	return verifier.VerifySubscribeToken(token)
+	return verifier.VerifySubscribeToken(token, false)
 }
 
 // CheckToken checks JWT for user.

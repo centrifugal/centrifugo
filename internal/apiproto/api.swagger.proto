@@ -49,6 +49,9 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
       name: "push notification"
     },
     {
+      name: "rate limiting"
+    },
+    {
       name: "batch"
     }
   ];
@@ -399,6 +402,26 @@ service CentrifugoApi {
       tags: ["push notification"];
     };
   }
+  rpc CancelPush (CancelPushRequest) returns (CancelPushResponse) {
+    option (google.api.http) = {
+      post: "/cancel_push",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Cancel delayed push notification";
+      tags: ["push notification"];
+    };
+  }
+  rpc RateLimit(RateLimitRequest) returns (RateLimitResponse) {
+    option (google.api.http) = {
+      post: "/rate_limit",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Generic distributed rate limiting (coming soon)";
+      tags: ["rate limiting"];
+    };
+  }
 }
 
 message Command {
@@ -433,6 +456,8 @@ message Command {
   UserTopicUpdateRequest user_topic_update = 32;
   SendPushNotificationRequest send_push_notification = 33;
   UpdatePushStatusRequest update_push_status = 34;
+  CancelPushRequest cancel_push = 35;
+  RateLimitRequest rate_limit = 50;
 }
 
 message Error {
@@ -472,6 +497,8 @@ message Reply {
   UserTopicUpdateResult user_topic_update = 32;
   SendPushNotificationResult send_push_notification = 33;
   UpdatePushStatusResult update_push_status = 34;
+  CancelPushResult cancel_push = 35;
+  RateLimitResult rate_limit = 50;
 }
 
 message BoolValue {
@@ -1110,7 +1137,6 @@ message PushNotification {
   HmsPushNotification hms = 2;
   ApnsPushNotification apns = 3;
 
-  string uid = 4;      // unique identifier for push notification, used for matching in Centrifugo analytics.
   int64 expire_at = 5; // timestamp in the future when Centrifugo should stop trying to send push notification.
 }
 
@@ -1130,6 +1156,8 @@ message ApnsPushNotification {
 message SendPushNotificationRequest {
   PushRecipient recipient = 1;
   PushNotification notification = 2;
+  string uid = 3; // unique identifier for push notification, used for matching in Centrifugo analytics.
+  int64 send_at = 4;
 }
 
 message SendPushNotificationResponse {
@@ -1154,3 +1182,33 @@ message UpdatePushStatusResponse {
 }
 
 message UpdatePushStatusResult {}
+
+message CancelPushRequest {
+  string uid = 1;
+}
+
+message CancelPushResponse {
+  Error error = 1;
+  CancelPushResult result = 2;
+}
+
+message CancelPushResult {}
+
+message RateLimitRequest {
+  //    string key = 1;
+  //    int64 rate = 2;
+  //    int64 interval = 3;
+  //    int64 score = 4;
+}
+
+message RateLimitResponse {
+  Error error = 1;
+  RateLimitResult result = 2;
+}
+
+message RateLimitResult {
+  //    bool allowed = 1;
+  //    int64 tokens_left = 2;
+  //    int64 allowed_in = 3;
+  //    int64 server_time = 4;
+}

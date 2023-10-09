@@ -24,10 +24,10 @@ var (
 		Code:    102,
 		Message: "unknown channel",
 	}
-	// ErrorMethodNotFound means that method sent in command does not exist.
-	ErrorMethodNotFound = &Error{
+	// ErrorNotFound means that method sent in command does not exist.
+	ErrorNotFound = &Error{
 		Code:    104,
-		Message: "method not found",
+		Message: "not found",
 	}
 	// ErrorBadRequest says that Centrifugo can not parse received data
 	// because it is malformed.
@@ -46,6 +46,11 @@ var (
 	ErrorUnrecoverablePosition = &Error{
 		Code:    112,
 		Message: "unrecoverable position",
+	}
+	// ErrorConflict ...
+	ErrorConflict = &Error{
+		Code:    113,
+		Message: "conflict",
 	}
 )
 

@@ -385,7 +385,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 			}
 		}
 	default:
-		rep.Error = ErrorMethodNotFound
+		rep.Error = ErrorNotFound
 	}
 
 	if replyRes != nil {

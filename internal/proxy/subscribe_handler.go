@@ -142,6 +142,7 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 
 		var info []byte
 		var data []byte
+		var expireAt int64
 		var extra SubscribeExtra
 		if subscribeRep.Result != nil {
 			if subscribeRep.Result.B64Info != "" {
@@ -182,10 +183,13 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 			if result.Override != nil && result.Override.ForcePositioning != nil {
 				positioning = result.Override.ForcePositioning.Value
 			}
+
+			expireAt = result.ExpireAt
 		}
 
 		return centrifuge.SubscribeReply{
 			Options: centrifuge.SubscribeOptions{
+				ExpireAt:          expireAt,
 				ChannelInfo:       info,
 				EmitPresence:      presence,
 				EmitJoinLeave:     joinLeave,
