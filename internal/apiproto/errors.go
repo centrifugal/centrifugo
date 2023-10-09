@@ -86,8 +86,8 @@ func MapErrorToGRPCCode(err *Error) codes.Code {
 	case ErrorConflict.Code:
 		return codes.AlreadyExists
 	default:
-		// Default to Internal Server Error for unmapped errors.
+		// Default to Internal Error for unmapped errors.
 		// In general should be avoided - all new API errors must be explicitly described here.
-		return http.StatusInternalServerError
+		return codes.Internal
 	}
 }
