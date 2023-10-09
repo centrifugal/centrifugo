@@ -140,7 +140,7 @@ func ValidateChannelOptions(c ChannelOptions) error {
 		}
 	}
 	if (c.ProxySubscribeStream || c.SubscribeStreamProxyName != "") && (c.ProxySubscribe || c.ProxyPublish || c.ProxySubRefresh) {
-		return fmt.Errorf("can't use stream proxy together with subscribe, publish or sub refresh proxies")
+		return fmt.Errorf("can't use subscribe stream proxy together with subscribe, publish or sub refresh proxies")
 	}
 	return nil
 }
