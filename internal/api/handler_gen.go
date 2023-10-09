@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 
+	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
+
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -53,6 +55,13 @@ func (s *Handler) handlePublish(w http.ResponseWriter, r *http.Request) {
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 
+	if resp.Error != nil && s.useTransportErrorMode(r) {
+		statusCode := MapErrorToHTTPCode(resp.Error)
+		data, _ = EncodeError(resp.Error)
+		s.writeJsonCustomStatus(w, statusCode, data)
+		return
+	}
+
 	data, err = responseEncoder.EncodePublish(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
@@ -79,6 +88,13 @@ func (s *Handler) handleBroadcast(w http.ResponseWriter, r *http.Request) {
 	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(r.Context())
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	if resp.Error != nil && s.useTransportErrorMode(r) {
+		statusCode := MapErrorToHTTPCode(resp.Error)
+		data, _ = EncodeError(resp.Error)
+		s.writeJsonCustomStatus(w, statusCode, data)
+		return
 	}
 
 	data, err = responseEncoder.EncodeBroadcast(resp)
@@ -109,6 +125,13 @@ func (s *Handler) handleSubscribe(w http.ResponseWriter, r *http.Request) {
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 
+	if resp.Error != nil && s.useTransportErrorMode(r) {
+		statusCode := MapErrorToHTTPCode(resp.Error)
+		data, _ = EncodeError(resp.Error)
+		s.writeJsonCustomStatus(w, statusCode, data)
+		return
+	}
+
 	data, err = responseEncoder.EncodeSubscribe(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
@@ -135,6 +158,13 @@ func (s *Handler) handleUnsubscribe(w http.ResponseWriter, r *http.Request) {
 	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(r.Context())
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	if resp.Error != nil && s.useTransportErrorMode(r) {
+		statusCode := MapErrorToHTTPCode(resp.Error)
+		data, _ = EncodeError(resp.Error)
+		s.writeJsonCustomStatus(w, statusCode, data)
+		return
 	}
 
 	data, err = responseEncoder.EncodeUnsubscribe(resp)
@@ -165,6 +195,13 @@ func (s *Handler) handleDisconnect(w http.ResponseWriter, r *http.Request) {
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 
+	if resp.Error != nil && s.useTransportErrorMode(r) {
+		statusCode := MapErrorToHTTPCode(resp.Error)
+		data, _ = EncodeError(resp.Error)
+		s.writeJsonCustomStatus(w, statusCode, data)
+		return
+	}
+
 	data, err = responseEncoder.EncodeDisconnect(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
@@ -191,6 +228,13 @@ func (s *Handler) handlePresence(w http.ResponseWriter, r *http.Request) {
 	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(r.Context())
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	if resp.Error != nil && s.useTransportErrorMode(r) {
+		statusCode := MapErrorToHTTPCode(resp.Error)
+		data, _ = EncodeError(resp.Error)
+		s.writeJsonCustomStatus(w, statusCode, data)
+		return
 	}
 
 	data, err = responseEncoder.EncodePresence(resp)
@@ -221,6 +265,13 @@ func (s *Handler) handlePresenceStats(w http.ResponseWriter, r *http.Request) {
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 
+	if resp.Error != nil && s.useTransportErrorMode(r) {
+		statusCode := MapErrorToHTTPCode(resp.Error)
+		data, _ = EncodeError(resp.Error)
+		s.writeJsonCustomStatus(w, statusCode, data)
+		return
+	}
+
 	data, err = responseEncoder.EncodePresenceStats(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
@@ -247,6 +298,13 @@ func (s *Handler) handleHistory(w http.ResponseWriter, r *http.Request) {
 	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(r.Context())
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	if resp.Error != nil && s.useTransportErrorMode(r) {
+		statusCode := MapErrorToHTTPCode(resp.Error)
+		data, _ = EncodeError(resp.Error)
+		s.writeJsonCustomStatus(w, statusCode, data)
+		return
 	}
 
 	data, err = responseEncoder.EncodeHistory(resp)
@@ -277,6 +335,13 @@ func (s *Handler) handleHistoryRemove(w http.ResponseWriter, r *http.Request) {
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 
+	if resp.Error != nil && s.useTransportErrorMode(r) {
+		statusCode := MapErrorToHTTPCode(resp.Error)
+		data, _ = EncodeError(resp.Error)
+		s.writeJsonCustomStatus(w, statusCode, data)
+		return
+	}
+
 	data, err = responseEncoder.EncodeHistoryRemove(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
@@ -303,6 +368,13 @@ func (s *Handler) handleInfo(w http.ResponseWriter, r *http.Request) {
 	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(r.Context())
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	if resp.Error != nil && s.useTransportErrorMode(r) {
+		statusCode := MapErrorToHTTPCode(resp.Error)
+		data, _ = EncodeError(resp.Error)
+		s.writeJsonCustomStatus(w, statusCode, data)
+		return
 	}
 
 	data, err = responseEncoder.EncodeInfo(resp)
@@ -333,6 +405,13 @@ func (s *Handler) handleRPC(w http.ResponseWriter, r *http.Request) {
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 
+	if resp.Error != nil && s.useTransportErrorMode(r) {
+		statusCode := MapErrorToHTTPCode(resp.Error)
+		data, _ = EncodeError(resp.Error)
+		s.writeJsonCustomStatus(w, statusCode, data)
+		return
+	}
+
 	data, err = responseEncoder.EncodeRPC(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
@@ -361,6 +440,13 @@ func (s *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 
+	if resp.Error != nil && s.useTransportErrorMode(r) {
+		statusCode := MapErrorToHTTPCode(resp.Error)
+		data, _ = EncodeError(resp.Error)
+		s.writeJsonCustomStatus(w, statusCode, data)
+		return
+	}
+
 	data, err = responseEncoder.EncodeRefresh(resp)
 	if err != nil {
 		s.handleMarshalError(r, w, err)
@@ -387,6 +473,13 @@ func (s *Handler) handleChannels(w http.ResponseWriter, r *http.Request) {
 	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(r.Context())
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	if resp.Error != nil && s.useTransportErrorMode(r) {
+		statusCode := MapErrorToHTTPCode(resp.Error)
+		data, _ = EncodeError(resp.Error)
+		s.writeJsonCustomStatus(w, statusCode, data)
+		return
 	}
 
 	data, err = responseEncoder.EncodeChannels(resp)

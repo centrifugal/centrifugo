@@ -281,7 +281,8 @@ var defaults = map[string]any{
 	"tarantool_user":     "",
 	"tarantool_password": "",
 
-	"api_key": "",
+	"api_key":        "",
+	"api_error_mode": "",
 
 	"uni_http_stream_max_request_body_size": 65536, // 64KB
 	"uni_sse_max_request_body_size":         65536, // 64KB
@@ -297,6 +298,7 @@ var defaults = map[string]any{
 	"tls_autocert_http_addr":      ":80",
 
 	"grpc_api":                          false,
+	"grpc_api_error_mode":               "",
 	"grpc_api_address":                  "",
 	"grpc_api_port":                     10000,
 	"grpc_api_key":                      "",
@@ -443,6 +445,8 @@ func bindCentrifugoConfig() {
 }
 
 const edition = "oss"
+
+const transportErrorMode = "transport"
 
 func main() {
 	var configFile string
@@ -673,11 +677,18 @@ func main() {
 				if tlsConfig != nil {
 					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
 				}
-				if viper.GetBool("opentelemetry") && viper.GetBool("opentelemetry_api") {
+				if useAPIOpentelemetry {
 					grpcOpts = append(grpcOpts, grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()))
 				}
+				grpcErrorMode, err := tools.OptionalStringChoice(viper.GetViper(), "grpc_api_error_mode", []string{transportErrorMode})
+				if err != nil {
+					log.Fatal().Msgf("error in config: %v", err)
+				}
 				grpcAPIServer = grpc.NewServer(grpcOpts...)
-				_ = api.RegisterGRPCServerAPI(node, grpcAPIExecutor, grpcAPIServer, api.GRPCAPIServiceConfig{}, useAPIOpentelemetry)
+				_ = api.RegisterGRPCServerAPI(node, grpcAPIExecutor, grpcAPIServer, api.GRPCAPIServiceConfig{
+					UseOpenTelemetry:      useAPIOpentelemetry,
+					UseTransportErrorMode: grpcErrorMode == transportErrorMode,
+				})
 				if viper.GetBool("grpc_api_reflection") {
 					reflection.Register(grpcAPIServer)
 				}
@@ -2867,8 +2878,15 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoints.
+		httpErrorMode, err := tools.OptionalStringChoice(viper.GetViper(), "api_error_mode", []string{transportErrorMode})
+		if err != nil {
+			log.Fatal().Msgf("error in config: %v", err)
+		}
 		useOpenTelemetry := viper.GetBool("opentelemetry") && viper.GetBool("opentelemetry_api")
-		apiHandler := api.NewHandler(n, apiExecutor, api.Config{UseOpenTelemetry: useOpenTelemetry})
+		apiHandler := api.NewHandler(n, apiExecutor, api.Config{
+			UseOpenTelemetry:      useOpenTelemetry,
+			UseTransportErrorMode: httpErrorMode == transportErrorMode,
+		})
 		apiPrefix := strings.TrimRight(v.GetString("api_handler_prefix"), "/")
 		if apiPrefix == "" {
 			apiPrefix = "/"

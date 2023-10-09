@@ -15,7 +15,8 @@ import (
 
 // Config configures APIHandler.
 type Config struct {
-	UseOpenTelemetry bool
+	UseOpenTelemetry      bool
+	UseTransportErrorMode bool
 }
 
 // Handler is responsible for processing API commands over HTTP.
@@ -412,4 +413,14 @@ func (s *Handler) handleMarshalError(r *http.Request, w http.ResponseWriter, err
 func (s *Handler) writeJson(w http.ResponseWriter, data []byte) {
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write(data)
+}
+
+func (s *Handler) writeJsonCustomStatus(w http.ResponseWriter, statusCode int, data []byte) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	_, _ = w.Write(data)
+}
+
+func (s *Handler) useTransportErrorMode(r *http.Request) bool {
+	return s.config.UseTransportErrorMode || r.Header.Get("X-Centrifugo-Error-Mode") == "transport"
 }

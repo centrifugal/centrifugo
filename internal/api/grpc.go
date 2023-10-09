@@ -36,11 +36,14 @@ func GRPCKeyAuth(key string) grpc.ServerOption {
 }
 
 // GRPCAPIServiceConfig for GRPC API Service.
-type GRPCAPIServiceConfig struct{}
+type GRPCAPIServiceConfig struct {
+	UseOpenTelemetry      bool
+	UseTransportErrorMode bool
+}
 
 // RegisterGRPCServerAPI registers GRPC API service in provided GRPC server.
-func RegisterGRPCServerAPI(n *centrifuge.Node, apiExecutor *Executor, server *grpc.Server, config GRPCAPIServiceConfig, useOpenTelemetry bool) error {
-	RegisterCentrifugoApiServer(server, newGRPCAPIService(n, apiExecutor, config, useOpenTelemetry))
+func RegisterGRPCServerAPI(n *centrifuge.Node, apiExecutor *Executor, server *grpc.Server, config GRPCAPIServiceConfig) error {
+	RegisterCentrifugoApiServer(server, newGRPCAPIService(n, apiExecutor, config))
 	return nil
 }
 
@@ -48,16 +51,25 @@ func RegisterGRPCServerAPI(n *centrifuge.Node, apiExecutor *Executor, server *gr
 type grpcAPIService struct {
 	UnimplementedCentrifugoApiServer
 
-	config           GRPCAPIServiceConfig
-	api              *Executor
-	useOpenTelemetry bool
+	config GRPCAPIServiceConfig
+	api    *Executor
 }
 
 // newGRPCAPIService creates new Service.
-func newGRPCAPIService(_ *centrifuge.Node, apiExecutor *Executor, c GRPCAPIServiceConfig, useOpenTelemetry bool) *grpcAPIService {
+func newGRPCAPIService(_ *centrifuge.Node, apiExecutor *Executor, c GRPCAPIServiceConfig) *grpcAPIService {
 	return &grpcAPIService{
-		config:           c,
-		api:              apiExecutor,
-		useOpenTelemetry: useOpenTelemetry,
+		config: c,
+		api:    apiExecutor,
 	}
+}
+
+func (s *grpcAPIService) useTransportErrorMode(ctx context.Context) bool {
+	if s.config.UseTransportErrorMode {
+		return true
+	}
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		errorMode := md.Get("x-centrifugo-error-mode")
+		return len(errorMode) > 0 && errorMode[0] == "transport"
+	}
+	return false
 }

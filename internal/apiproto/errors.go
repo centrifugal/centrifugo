@@ -2,6 +2,9 @@ package apiproto
 
 import (
 	"fmt"
+	"net/http"
+
+	"google.golang.org/grpc/codes"
 )
 
 func (x *Error) Error() string {
@@ -50,3 +53,41 @@ var (
 		Message: "conflict",
 	}
 )
+
+func MapErrorToHTTPCode(err *Error) int {
+	switch err.Code {
+	case ErrorInternal.Code:
+		return http.StatusInternalServerError
+	case ErrorUnknownChannel.Code, ErrorNotFound.Code:
+		return http.StatusNotFound
+	case ErrorBadRequest.Code, ErrorNotAvailable.Code:
+		return http.StatusBadRequest
+	case ErrorUnrecoverablePosition.Code:
+		return http.StatusRequestedRangeNotSatisfiable
+	case ErrorConflict.Code:
+		return http.StatusConflict
+	default:
+		// Default to Internal Server Error for unmapped errors.
+		// In general should be avoided - all new API errors must be explicitly described here.
+		return http.StatusInternalServerError
+	}
+}
+
+func MapErrorToGRPCCode(err *Error) codes.Code {
+	switch err.Code {
+	case ErrorInternal.Code:
+		return codes.Internal
+	case ErrorUnknownChannel.Code, ErrorNotFound.Code:
+		return codes.NotFound
+	case ErrorBadRequest.Code, ErrorNotAvailable.Code:
+		return codes.InvalidArgument
+	case ErrorUnrecoverablePosition.Code:
+		return codes.OutOfRange
+	case ErrorConflict.Code:
+		return codes.AlreadyExists
+	default:
+		// Default to Internal Error for unmapped errors.
+		// In general should be avoided - all new API errors must be explicitly described here.
+		return codes.Internal
+	}
+}

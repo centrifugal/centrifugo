@@ -68,6 +68,8 @@ import (
 	"io"
 	"net/http"
 
+	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
+
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -93,6 +95,13 @@ func (s *Handler) handle{{ .RequestCapitalized }}(w http.ResponseWriter, r *http
 	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(r.Context())
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	if resp.Error != nil && s.useTransportErrorMode(r) {
+		statusCode := MapErrorToHTTPCode(resp.Error)
+		data, _ = EncodeError(resp.Error)
+		s.writeJsonCustomStatus(w, statusCode, data)
+		return
 	}
 {{- end}}
 
@@ -121,6 +130,7 @@ import (
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/grpc/status"
 )
 `
 
@@ -129,9 +139,14 @@ var templateFuncHandlersGRPC = `
 func (s *grpcAPIService) {{ .RequestCapitalized }}(ctx context.Context, req *{{ .RequestCapitalized }}Request) (*{{ .RequestCapitalized }}Response, error) {
 	resp := s.api.{{ .RequestCapitalized }}(ctx, req)
 {{- if ne .RequestCapitalized "Batch" }}
-	if s.useOpenTelemetry && resp.Error != nil {
+	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
 	}
 {{- end}}
 	return resp, nil

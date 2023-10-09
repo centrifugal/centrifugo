@@ -9,6 +9,7 @@ import (
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/grpc/status"
 )
 
 // Batch ...
@@ -20,9 +21,14 @@ func (s *grpcAPIService) Batch(ctx context.Context, req *BatchRequest) (*BatchRe
 // Publish ...
 func (s *grpcAPIService) Publish(ctx context.Context, req *PublishRequest) (*PublishResponse, error) {
 	resp := s.api.Publish(ctx, req)
-	if s.useOpenTelemetry && resp.Error != nil {
+	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
 	}
 	return resp, nil
 }
@@ -30,9 +36,14 @@ func (s *grpcAPIService) Publish(ctx context.Context, req *PublishRequest) (*Pub
 // Broadcast ...
 func (s *grpcAPIService) Broadcast(ctx context.Context, req *BroadcastRequest) (*BroadcastResponse, error) {
 	resp := s.api.Broadcast(ctx, req)
-	if s.useOpenTelemetry && resp.Error != nil {
+	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
 	}
 	return resp, nil
 }
@@ -40,9 +51,14 @@ func (s *grpcAPIService) Broadcast(ctx context.Context, req *BroadcastRequest) (
 // Subscribe ...
 func (s *grpcAPIService) Subscribe(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error) {
 	resp := s.api.Subscribe(ctx, req)
-	if s.useOpenTelemetry && resp.Error != nil {
+	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
 	}
 	return resp, nil
 }
@@ -50,9 +66,14 @@ func (s *grpcAPIService) Subscribe(ctx context.Context, req *SubscribeRequest) (
 // Unsubscribe ...
 func (s *grpcAPIService) Unsubscribe(ctx context.Context, req *UnsubscribeRequest) (*UnsubscribeResponse, error) {
 	resp := s.api.Unsubscribe(ctx, req)
-	if s.useOpenTelemetry && resp.Error != nil {
+	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
 	}
 	return resp, nil
 }
@@ -60,9 +81,14 @@ func (s *grpcAPIService) Unsubscribe(ctx context.Context, req *UnsubscribeReques
 // Disconnect ...
 func (s *grpcAPIService) Disconnect(ctx context.Context, req *DisconnectRequest) (*DisconnectResponse, error) {
 	resp := s.api.Disconnect(ctx, req)
-	if s.useOpenTelemetry && resp.Error != nil {
+	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
 	}
 	return resp, nil
 }
@@ -70,9 +96,14 @@ func (s *grpcAPIService) Disconnect(ctx context.Context, req *DisconnectRequest)
 // Presence ...
 func (s *grpcAPIService) Presence(ctx context.Context, req *PresenceRequest) (*PresenceResponse, error) {
 	resp := s.api.Presence(ctx, req)
-	if s.useOpenTelemetry && resp.Error != nil {
+	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
 	}
 	return resp, nil
 }
@@ -80,9 +111,14 @@ func (s *grpcAPIService) Presence(ctx context.Context, req *PresenceRequest) (*P
 // PresenceStats ...
 func (s *grpcAPIService) PresenceStats(ctx context.Context, req *PresenceStatsRequest) (*PresenceStatsResponse, error) {
 	resp := s.api.PresenceStats(ctx, req)
-	if s.useOpenTelemetry && resp.Error != nil {
+	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
 	}
 	return resp, nil
 }
@@ -90,9 +126,14 @@ func (s *grpcAPIService) PresenceStats(ctx context.Context, req *PresenceStatsRe
 // History ...
 func (s *grpcAPIService) History(ctx context.Context, req *HistoryRequest) (*HistoryResponse, error) {
 	resp := s.api.History(ctx, req)
-	if s.useOpenTelemetry && resp.Error != nil {
+	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
 	}
 	return resp, nil
 }
@@ -100,9 +141,14 @@ func (s *grpcAPIService) History(ctx context.Context, req *HistoryRequest) (*His
 // HistoryRemove ...
 func (s *grpcAPIService) HistoryRemove(ctx context.Context, req *HistoryRemoveRequest) (*HistoryRemoveResponse, error) {
 	resp := s.api.HistoryRemove(ctx, req)
-	if s.useOpenTelemetry && resp.Error != nil {
+	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
 	}
 	return resp, nil
 }
@@ -110,9 +156,14 @@ func (s *grpcAPIService) HistoryRemove(ctx context.Context, req *HistoryRemoveRe
 // Info ...
 func (s *grpcAPIService) Info(ctx context.Context, req *InfoRequest) (*InfoResponse, error) {
 	resp := s.api.Info(ctx, req)
-	if s.useOpenTelemetry && resp.Error != nil {
+	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
 	}
 	return resp, nil
 }
@@ -120,9 +171,14 @@ func (s *grpcAPIService) Info(ctx context.Context, req *InfoRequest) (*InfoRespo
 // RPC ...
 func (s *grpcAPIService) RPC(ctx context.Context, req *RPCRequest) (*RPCResponse, error) {
 	resp := s.api.RPC(ctx, req)
-	if s.useOpenTelemetry && resp.Error != nil {
+	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
 	}
 	return resp, nil
 }
@@ -130,9 +186,14 @@ func (s *grpcAPIService) RPC(ctx context.Context, req *RPCRequest) (*RPCResponse
 // Refresh ...
 func (s *grpcAPIService) Refresh(ctx context.Context, req *RefreshRequest) (*RefreshResponse, error) {
 	resp := s.api.Refresh(ctx, req)
-	if s.useOpenTelemetry && resp.Error != nil {
+	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
 	}
 	return resp, nil
 }
@@ -140,9 +201,14 @@ func (s *grpcAPIService) Refresh(ctx context.Context, req *RefreshRequest) (*Ref
 // Channels ...
 func (s *grpcAPIService) Channels(ctx context.Context, req *ChannelsRequest) (*ChannelsResponse, error) {
 	resp := s.api.Channels(ctx, req)
-	if s.useOpenTelemetry && resp.Error != nil {
+	if s.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
 		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
 	}
 	return resp, nil
 }
