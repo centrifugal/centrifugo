@@ -10,16 +10,12 @@ import (
 	"google.golang.org/grpc"
 )
 
-// GRPCRPCProxy ...
-type GRPCRPCProxy struct {
+type SubscribeStreamProxy struct {
 	config Config
 	client proxyproto.CentrifugoProxyClient
 }
 
-var _ RPCProxy = (*GRPCRPCProxy)(nil)
-
-// NewGRPCRPCProxy ...
-func NewGRPCRPCProxy(p Config) (*GRPCRPCProxy, error) {
+func NewSubscribeStreamProxy(p Config) (*SubscribeStreamProxy, error) {
 	host, err := getGrpcHost(p.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("error getting grpc host: %v", err)
@@ -34,30 +30,19 @@ func NewGRPCRPCProxy(p Config) (*GRPCRPCProxy, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to GRPC proxy server: %v", err)
 	}
-	return &GRPCRPCProxy{
+
+	return &SubscribeStreamProxy{
 		config: p,
 		client: proxyproto.NewCentrifugoProxyClient(conn),
 	}, nil
 }
 
-// ProxyRPC ...
-func (p *GRPCRPCProxy) ProxyRPC(ctx context.Context, req *proxyproto.RPCRequest) (*proxyproto.RPCResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(p.config.Timeout))
-	defer cancel()
-	return p.client.RPC(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
+// SubscribeUnidirectional ...
+func (p *SubscribeStreamProxy) SubscribeUnidirectional(ctx context.Context, req *proxyproto.SubscribeRequest) (proxyproto.CentrifugoProxy_SubscribeUnidirectionalClient, error) {
+	return p.client.SubscribeUnidirectional(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
 }
 
-// Protocol ...
-func (p *GRPCRPCProxy) Protocol() string {
-	return "grpc"
-}
-
-// UseBase64 ...
-func (p *GRPCRPCProxy) UseBase64() bool {
-	return p.config.BinaryEncoding
-}
-
-// IncludeMeta ...
-func (p *GRPCRPCProxy) IncludeMeta() bool {
-	return p.config.IncludeConnectionMeta
+// SubscribeBidirectional ...
+func (p *SubscribeStreamProxy) SubscribeBidirectional(ctx context.Context) (proxyproto.CentrifugoProxy_SubscribeBidirectionalClient, error) {
+	return p.client.SubscribeBidirectional(grpcRequestContext(ctx, p.config), grpc.ForceCodec(grpcCodec))
 }

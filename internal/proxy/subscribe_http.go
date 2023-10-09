@@ -9,16 +9,16 @@ import (
 
 // HTTPSubscribeProxy ...
 type HTTPSubscribeProxy struct {
-	proxy      Proxy
+	config     Config
 	httpCaller HTTPCaller
 }
 
 var _ SubscribeProxy = (*HTTPSubscribeProxy)(nil)
 
 // NewHTTPSubscribeProxy ...
-func NewHTTPSubscribeProxy(p Proxy) (*HTTPSubscribeProxy, error) {
+func NewHTTPSubscribeProxy(p Config) (*HTTPSubscribeProxy, error) {
 	return &HTTPSubscribeProxy{
-		proxy:      p,
+		config:     p,
 		httpCaller: NewHTTPCaller(proxyHTTPClient(time.Duration(p.Timeout))),
 	}, nil
 }
@@ -29,7 +29,7 @@ func (p *HTTPSubscribeProxy) ProxySubscribe(ctx context.Context, req *proxyproto
 	if err != nil {
 		return nil, err
 	}
-	respData, err := p.httpCaller.CallHTTP(ctx, p.proxy.Endpoint, httpRequestHeaders(ctx, p.proxy), data)
+	respData, err := p.httpCaller.CallHTTP(ctx, p.config.Endpoint, httpRequestHeaders(ctx, p.config), data)
 	if err != nil {
 		return nil, err
 	}
@@ -43,10 +43,10 @@ func (p *HTTPSubscribeProxy) Protocol() string {
 
 // UseBase64 ...
 func (p *HTTPSubscribeProxy) UseBase64() bool {
-	return p.proxy.BinaryEncoding
+	return p.config.BinaryEncoding
 }
 
 // IncludeMeta ...
 func (p *HTTPSubscribeProxy) IncludeMeta() bool {
-	return p.proxy.IncludeConnectionMeta
+	return p.config.IncludeConnectionMeta
 }
