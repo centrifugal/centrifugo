@@ -17,7 +17,7 @@ func WarnUnknownProxyKeys(jsonProxies []byte) {
 		return
 	}
 	for _, jsonMap := range jsonMaps {
-		var data Proxy
+		var data Config
 		unknownKeys := tools.FindUnknownKeys(jsonMap, data)
 		for _, key := range unknownKeys {
 			if key == "name" {

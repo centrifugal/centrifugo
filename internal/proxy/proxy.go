@@ -9,8 +9,8 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/tools"
 )
 
-// Proxy model.
-type Proxy struct {
+// Config for proxy.
+type Config struct {
 	// Name is a unique name of proxy to reference.
 	Name string `mapstructure:"name" json:"name"`
 	// Endpoint - HTTP address or GRPC service endpoint.
@@ -59,42 +59,42 @@ func isHttpEndpoint(endpoint string) bool {
 	return strings.HasPrefix(endpoint, "http://") || strings.HasPrefix(endpoint, "https://")
 }
 
-func GetConnectProxy(p Proxy) (ConnectProxy, error) {
+func GetConnectProxy(p Config) (ConnectProxy, error) {
 	if isHttpEndpoint(p.Endpoint) {
 		return NewHTTPConnectProxy(p)
 	}
 	return NewGRPCConnectProxy(p)
 }
 
-func GetRefreshProxy(p Proxy) (RefreshProxy, error) {
+func GetRefreshProxy(p Config) (RefreshProxy, error) {
 	if isHttpEndpoint(p.Endpoint) {
 		return NewHTTPRefreshProxy(p)
 	}
 	return NewGRPCRefreshProxy(p)
 }
 
-func GetRpcProxy(p Proxy) (RPCProxy, error) {
+func GetRpcProxy(p Config) (RPCProxy, error) {
 	if isHttpEndpoint(p.Endpoint) {
 		return NewHTTPRPCProxy(p)
 	}
 	return NewGRPCRPCProxy(p)
 }
 
-func GetSubRefreshProxy(p Proxy) (SubRefreshProxy, error) {
+func GetSubRefreshProxy(p Config) (SubRefreshProxy, error) {
 	if isHttpEndpoint(p.Endpoint) {
 		return NewHTTPSubRefreshProxy(p)
 	}
 	return NewGRPCSubRefreshProxy(p)
 }
 
-func GetPublishProxy(p Proxy) (PublishProxy, error) {
+func GetPublishProxy(p Config) (PublishProxy, error) {
 	if isHttpEndpoint(p.Endpoint) {
 		return NewHTTPPublishProxy(p)
 	}
 	return NewGRPCPublishProxy(p)
 }
 
-func GetSubscribeProxy(p Proxy) (SubscribeProxy, error) {
+func GetSubscribeProxy(p Config) (SubscribeProxy, error) {
 	if isHttpEndpoint(p.Endpoint) {
 		return NewHTTPSubscribeProxy(p)
 	}

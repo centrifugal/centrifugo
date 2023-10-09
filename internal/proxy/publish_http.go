@@ -22,17 +22,17 @@ type PublishRequestHTTP struct {
 
 // HTTPPublishProxy ...
 type HTTPPublishProxy struct {
-	proxy      Proxy
+	config     Config
 	httpCaller HTTPCaller
 }
 
 var _ PublishProxy = (*HTTPPublishProxy)(nil)
 
 // NewHTTPPublishProxy ...
-func NewHTTPPublishProxy(p Proxy) (*HTTPPublishProxy, error) {
+func NewHTTPPublishProxy(p Config) (*HTTPPublishProxy, error) {
 	return &HTTPPublishProxy{
 		httpCaller: NewHTTPCaller(proxyHTTPClient(time.Duration(p.Timeout))),
-		proxy:      p,
+		config:     p,
 	}, nil
 }
 
@@ -42,7 +42,7 @@ func (p *HTTPPublishProxy) ProxyPublish(ctx context.Context, req *proxyproto.Pub
 	if err != nil {
 		return nil, err
 	}
-	respData, err := p.httpCaller.CallHTTP(ctx, p.proxy.Endpoint, httpRequestHeaders(ctx, p.proxy), data)
+	respData, err := p.httpCaller.CallHTTP(ctx, p.config.Endpoint, httpRequestHeaders(ctx, p.config), data)
 	if err != nil {
 		return nil, err
 	}
@@ -56,10 +56,10 @@ func (p *HTTPPublishProxy) Protocol() string {
 
 // UseBase64 ...
 func (p *HTTPPublishProxy) UseBase64() bool {
-	return p.proxy.BinaryEncoding
+	return p.config.BinaryEncoding
 }
 
 // IncludeMeta ...
 func (p *HTTPPublishProxy) IncludeMeta() bool {
-	return p.proxy.IncludeConnectionMeta
+	return p.config.IncludeConnectionMeta
 }

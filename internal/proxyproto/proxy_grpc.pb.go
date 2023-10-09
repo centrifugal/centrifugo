@@ -18,12 +18,28 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CentrifugoProxyClient interface {
+	// Connect to proxy connection authentication and communicate initial state.
 	Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (*ConnectResponse, error)
+	// Refresh to proxy decision about connection expiration to the app backend.
 	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error)
+	// Subscribe to proxy subscription attempts to channels.
 	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (*SubscribeResponse, error)
+	// Publish to proxy publication attempts to channels.
 	Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error)
+	// RPC to execute custom logic on the backend over request through the real-time connection.
 	RPC(ctx context.Context, in *RPCRequest, opts ...grpc.CallOption) (*RPCResponse, error)
+	// SubRefresh to proxy decision about subscription expiration to the app backend.
 	SubRefresh(ctx context.Context, in *SubRefreshRequest, opts ...grpc.CallOption) (*SubRefreshResponse, error)
+	// SubscribeUnidirectional is an EXPERIMENTAL method which allows handling unidirectional
+	// subscription streams. Stream starts with SubscribeRequest similar to Subscribe rpc,
+	// then expects StreamSubscribeResponse with SubscribeResponse as first message, and
+	// StreamSubscribeResponse with Publication afterwards.
+	SubscribeUnidirectional(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (CentrifugoProxy_SubscribeUnidirectionalClient, error)
+	// SubscribeBidirectional is an EXPERIMENTAL method which allows handling bidirectional
+	// subscription streams. Stream receives StreamSubscribeRequest. First StreamSubscribeRequest
+	// always contains SubscribeRequest, then StreamSubscribeRequest will contain data published
+	// by client. Reverse direction works the same way as in SubscribeUnidirectional.
+	SubscribeBidirectional(ctx context.Context, opts ...grpc.CallOption) (CentrifugoProxy_SubscribeBidirectionalClient, error)
 }
 
 type centrifugoProxyClient struct {
@@ -88,16 +104,95 @@ func (c *centrifugoProxyClient) SubRefresh(ctx context.Context, in *SubRefreshRe
 	return out, nil
 }
 
+func (c *centrifugoProxyClient) SubscribeUnidirectional(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (CentrifugoProxy_SubscribeUnidirectionalClient, error) {
+	stream, err := c.cc.NewStream(ctx, &CentrifugoProxy_ServiceDesc.Streams[0], "/centrifugal.centrifugo.proxy.CentrifugoProxy/SubscribeUnidirectional", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &centrifugoProxySubscribeUnidirectionalClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type CentrifugoProxy_SubscribeUnidirectionalClient interface {
+	Recv() (*StreamSubscribeResponse, error)
+	grpc.ClientStream
+}
+
+type centrifugoProxySubscribeUnidirectionalClient struct {
+	grpc.ClientStream
+}
+
+func (x *centrifugoProxySubscribeUnidirectionalClient) Recv() (*StreamSubscribeResponse, error) {
+	m := new(StreamSubscribeResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *centrifugoProxyClient) SubscribeBidirectional(ctx context.Context, opts ...grpc.CallOption) (CentrifugoProxy_SubscribeBidirectionalClient, error) {
+	stream, err := c.cc.NewStream(ctx, &CentrifugoProxy_ServiceDesc.Streams[1], "/centrifugal.centrifugo.proxy.CentrifugoProxy/SubscribeBidirectional", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &centrifugoProxySubscribeBidirectionalClient{stream}
+	return x, nil
+}
+
+type CentrifugoProxy_SubscribeBidirectionalClient interface {
+	Send(*StreamSubscribeRequest) error
+	Recv() (*StreamSubscribeResponse, error)
+	grpc.ClientStream
+}
+
+type centrifugoProxySubscribeBidirectionalClient struct {
+	grpc.ClientStream
+}
+
+func (x *centrifugoProxySubscribeBidirectionalClient) Send(m *StreamSubscribeRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *centrifugoProxySubscribeBidirectionalClient) Recv() (*StreamSubscribeResponse, error) {
+	m := new(StreamSubscribeResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // CentrifugoProxyServer is the server API for CentrifugoProxy service.
 // All implementations must embed UnimplementedCentrifugoProxyServer
 // for forward compatibility
 type CentrifugoProxyServer interface {
+	// Connect to proxy connection authentication and communicate initial state.
 	Connect(context.Context, *ConnectRequest) (*ConnectResponse, error)
+	// Refresh to proxy decision about connection expiration to the app backend.
 	Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error)
+	// Subscribe to proxy subscription attempts to channels.
 	Subscribe(context.Context, *SubscribeRequest) (*SubscribeResponse, error)
+	// Publish to proxy publication attempts to channels.
 	Publish(context.Context, *PublishRequest) (*PublishResponse, error)
+	// RPC to execute custom logic on the backend over request through the real-time connection.
 	RPC(context.Context, *RPCRequest) (*RPCResponse, error)
+	// SubRefresh to proxy decision about subscription expiration to the app backend.
 	SubRefresh(context.Context, *SubRefreshRequest) (*SubRefreshResponse, error)
+	// SubscribeUnidirectional is an EXPERIMENTAL method which allows handling unidirectional
+	// subscription streams. Stream starts with SubscribeRequest similar to Subscribe rpc,
+	// then expects StreamSubscribeResponse with SubscribeResponse as first message, and
+	// StreamSubscribeResponse with Publication afterwards.
+	SubscribeUnidirectional(*SubscribeRequest, CentrifugoProxy_SubscribeUnidirectionalServer) error
+	// SubscribeBidirectional is an EXPERIMENTAL method which allows handling bidirectional
+	// subscription streams. Stream receives StreamSubscribeRequest. First StreamSubscribeRequest
+	// always contains SubscribeRequest, then StreamSubscribeRequest will contain data published
+	// by client. Reverse direction works the same way as in SubscribeUnidirectional.
+	SubscribeBidirectional(CentrifugoProxy_SubscribeBidirectionalServer) error
 	mustEmbedUnimplementedCentrifugoProxyServer()
 }
 
@@ -122,6 +217,12 @@ func (UnimplementedCentrifugoProxyServer) RPC(context.Context, *RPCRequest) (*RP
 }
 func (UnimplementedCentrifugoProxyServer) SubRefresh(context.Context, *SubRefreshRequest) (*SubRefreshResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SubRefresh not implemented")
+}
+func (UnimplementedCentrifugoProxyServer) SubscribeUnidirectional(*SubscribeRequest, CentrifugoProxy_SubscribeUnidirectionalServer) error {
+	return status.Errorf(codes.Unimplemented, "method SubscribeUnidirectional not implemented")
+}
+func (UnimplementedCentrifugoProxyServer) SubscribeBidirectional(CentrifugoProxy_SubscribeBidirectionalServer) error {
+	return status.Errorf(codes.Unimplemented, "method SubscribeBidirectional not implemented")
 }
 func (UnimplementedCentrifugoProxyServer) mustEmbedUnimplementedCentrifugoProxyServer() {}
 
@@ -244,6 +345,53 @@ func _CentrifugoProxy_SubRefresh_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CentrifugoProxy_SubscribeUnidirectional_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(CentrifugoProxyServer).SubscribeUnidirectional(m, &centrifugoProxySubscribeUnidirectionalServer{stream})
+}
+
+type CentrifugoProxy_SubscribeUnidirectionalServer interface {
+	Send(*StreamSubscribeResponse) error
+	grpc.ServerStream
+}
+
+type centrifugoProxySubscribeUnidirectionalServer struct {
+	grpc.ServerStream
+}
+
+func (x *centrifugoProxySubscribeUnidirectionalServer) Send(m *StreamSubscribeResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _CentrifugoProxy_SubscribeBidirectional_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(CentrifugoProxyServer).SubscribeBidirectional(&centrifugoProxySubscribeBidirectionalServer{stream})
+}
+
+type CentrifugoProxy_SubscribeBidirectionalServer interface {
+	Send(*StreamSubscribeResponse) error
+	Recv() (*StreamSubscribeRequest, error)
+	grpc.ServerStream
+}
+
+type centrifugoProxySubscribeBidirectionalServer struct {
+	grpc.ServerStream
+}
+
+func (x *centrifugoProxySubscribeBidirectionalServer) Send(m *StreamSubscribeResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *centrifugoProxySubscribeBidirectionalServer) Recv() (*StreamSubscribeRequest, error) {
+	m := new(StreamSubscribeRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // CentrifugoProxy_ServiceDesc is the grpc.ServiceDesc for CentrifugoProxy service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -276,6 +424,18 @@ var CentrifugoProxy_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CentrifugoProxy_SubRefresh_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SubscribeUnidirectional",
+			Handler:       _CentrifugoProxy_SubscribeUnidirectional_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "SubscribeBidirectional",
+			Handler:       _CentrifugoProxy_SubscribeBidirectional_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "proxy.proto",
 }

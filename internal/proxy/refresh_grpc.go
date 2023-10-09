@@ -12,14 +12,14 @@ import (
 
 // GRPCRefreshProxy ...
 type GRPCRefreshProxy struct {
-	proxy  Proxy
+	config Config
 	client proxyproto.CentrifugoProxyClient
 }
 
 var _ RefreshProxy = (*GRPCRefreshProxy)(nil)
 
 // NewGRPCRefreshProxy ...
-func NewGRPCRefreshProxy(p Proxy) (*GRPCRefreshProxy, error) {
+func NewGRPCRefreshProxy(p Config) (*GRPCRefreshProxy, error) {
 	host, err := getGrpcHost(p.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("error getting grpc host: %v", err)
@@ -35,16 +35,16 @@ func NewGRPCRefreshProxy(p Proxy) (*GRPCRefreshProxy, error) {
 		return nil, fmt.Errorf("error connecting to GRPC proxy server: %v", err)
 	}
 	return &GRPCRefreshProxy{
-		proxy:  p,
+		config: p,
 		client: proxyproto.NewCentrifugoProxyClient(conn),
 	}, nil
 }
 
 // ProxyRefresh proxies refresh to application backend.
 func (p *GRPCRefreshProxy) ProxyRefresh(ctx context.Context, req *proxyproto.RefreshRequest) (*proxyproto.RefreshResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(p.proxy.Timeout))
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(p.config.Timeout))
 	defer cancel()
-	return p.client.Refresh(grpcRequestContext(ctx, p.proxy), req, grpc.ForceCodec(grpcCodec))
+	return p.client.Refresh(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
 }
 
 // Protocol ...
@@ -54,10 +54,10 @@ func (p *GRPCRefreshProxy) Protocol() string {
 
 // UseBase64 ...
 func (p *GRPCRefreshProxy) UseBase64() bool {
-	return p.proxy.BinaryEncoding
+	return p.config.BinaryEncoding
 }
 
 // IncludeMeta ...
 func (p *GRPCRefreshProxy) IncludeMeta() bool {
-	return p.proxy.IncludeConnectionMeta
+	return p.config.IncludeConnectionMeta
 }

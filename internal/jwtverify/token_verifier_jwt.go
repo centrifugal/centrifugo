@@ -202,7 +202,7 @@ func (j *jwksManager) verify(token *jwt.Token, tokenVars map[string]any) error {
 		return err
 	}
 
-	if key.Kty != "RSA" {
+	if key.Kty != "RSA" && key.Kty != "EC" {
 		return errUnsupportedAlgorithm
 	}
 
@@ -211,17 +211,34 @@ func (j *jwksManager) verify(token *jwt.Token, tokenVars map[string]any) error {
 		return err
 	}
 
-	pubKey, ok := spec.Key.(*rsa.PublicKey)
-	if !ok {
-		return errPublicKeyInvalid
-	}
+	switch key.Kty {
+	case "RSA":
+		pubKey, ok := spec.Key.(*rsa.PublicKey)
+		if !ok {
+			return errPublicKeyInvalid
+		}
 
-	verifier, err := jwt.NewVerifierRS(jwt.Algorithm(spec.Algorithm), pubKey)
-	if err != nil {
-		return fmt.Errorf("%w: %s", errUnsupportedAlgorithm, spec.Algorithm)
-	}
+		verifier, err := jwt.NewVerifierRS(jwt.Algorithm(spec.Algorithm), pubKey)
+		if err != nil {
+			return fmt.Errorf("%w: %s", errUnsupportedAlgorithm, spec.Algorithm)
+		}
 
-	return verifier.Verify(token)
+		return verifier.Verify(token)
+	case "EC":
+		pubKey, ok := spec.Key.(*ecdsa.PublicKey)
+		if !ok {
+			return errPublicKeyInvalid
+		}
+
+		verifier, err := jwt.NewVerifierES(jwt.Algorithm(spec.Algorithm), pubKey)
+		if err != nil {
+			return fmt.Errorf("%w: %s", errUnsupportedAlgorithm, spec.Algorithm)
+		}
+
+		return verifier.Verify(token)
+	default:
+		return errUnsupportedAlgorithm
+	}
 }
 
 type algorithms struct {
