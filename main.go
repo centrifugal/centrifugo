@@ -81,6 +81,7 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 )
@@ -275,6 +276,7 @@ var defaults = map[string]any{
 	"proxy_binary_encoding":         false,
 	"proxy_include_connection_meta": false,
 	"proxy_grpc_cert_file":          "",
+	"proxy_grpc_compression":        false,
 
 	"tarantool_mode":     "standalone",
 	"tarantool_address":  "tcp://127.0.0.1:3301",
@@ -1753,6 +1755,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 		GrpcCredentialsKey:    v.GetString("proxy_grpc_credentials_key"),
 		GrpcCredentialsValue:  v.GetString("proxy_grpc_credentials_value"),
 		GrpcMetadata:          v.GetStringSlice("proxy_grpc_metadata"),
+		GrpcCompression:       v.GetBool("proxy_grpc_compression"),
 	}
 
 	proxyConfig.HttpHeaders = v.GetStringSlice("proxy_http_headers")
