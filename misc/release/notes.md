@@ -17,5 +17,5 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Misc
 
-* Release is built with Go 1.21.2
+* Release is built with Go 1.21.3
 * Dependencies updated (crypto, otel, msgpack, etc)
