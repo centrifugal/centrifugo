@@ -10,14 +10,12 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Support `expire_at` field of SubscribeResult from Subscribe Proxy [#707](https://github.com/centrifugal/centrifugo/pull/707)
-* Option to skip client token signature verification [#708](https://github.com/centrifugal/centrifugo/pull/708)
-
-### Fixes
-
-* Fix connecting to Redis server over unix socket - inherited from [centrifugal/centrifuge#318](https://github.com/centrifugal/centrifuge/pull/318) by @tie
+* Support for EC keys in JWK sets and EC JWTs when using JWKS [#720](https://github.com/centrifugal/centrifugo/pull/720) by @shaunco
+* Experimental GRPC proxy subscription streams [#722](https://github.com/centrifugal/centrifugo/pull/722) - this is like `WebSocketd` but on network steroids 🔥 See [docs](https://centrifugal.dev/docs/server/proxy_streams)
+* Transport error mode for server HTTP and GRPC APIs [#690](https://github.com/centrifugal/centrifugo/pull/690) - read [more in docs](https://centrifugal.dev/docs/server/server_api#transport-error-mode)
+* Support GRPC gzip compression [#723](https://github.com/centrifugal/centrifugo/pull/723). GRPC servers Centrifugo has now recognize gzip compression, proxy request can optionally use compression for calls (see [updated proxy docs](https://centrifugal.dev/docs/server/proxy)).
 
 ### Misc
 
-* Release is built with Go 1.21.1
-* Dependencies updated (centrifuge, quic-go, grpc, and others)
+* Release is built with Go 1.21.2
+* Dependencies updated (crypto, otel, msgpack, etc)
