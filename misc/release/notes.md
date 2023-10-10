@@ -11,7 +11,7 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 ### Improvements
 
 * Support for EC keys in JWK sets and EC JWTs when using JWKS [#720](https://github.com/centrifugal/centrifugo/pull/720) by @shaunco, [JWKS docs updated](https://centrifugal.dev/docs/server/authentication#json-web-key-support)
-* Experimental GRPC proxy subscription streams [#722](https://github.com/centrifugal/centrifugo/pull/722) - this is like [Websocketd](https://github.com/joewalnes/websocketd) but on network steroids 🔥Streaming request semantics - both unidirectional and bidirectional – is now super-simple to achieve with Centrifugo and GRPC. See additional details about motivation, design and basic examples in [docs](https://centrifugal.dev/docs/server/proxy_streams)
+* Experimental GRPC proxy subscription streams [#722](https://github.com/centrifugal/centrifugo/pull/722) - this is like [Websocketd](https://github.com/joewalnes/websocketd) but on network steroids 🔥. Streaming request semantics - both unidirectional and bidirectional – is now super-simple to achieve with Centrifugo and GRPC. See additional details about motivation, design, scalability concerns and basic examples in [docs](https://centrifugal.dev/docs/server/proxy_streams)
 * Transport error mode for server HTTP and GRPC APIs [#690](https://github.com/centrifugal/centrifugo/pull/690) - read [more in docs](https://centrifugal.dev/docs/server/server_api#transport-error-mode)
 * Support GRPC gzip compression [#723](https://github.com/centrifugal/centrifugo/pull/723). GRPC servers Centrifugo has now recognize gzip compression, proxy requests can optionally use compression for calls (see [updated proxy docs](https://centrifugal.dev/docs/server/proxy)).
 
