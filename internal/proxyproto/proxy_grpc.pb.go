@@ -40,6 +40,9 @@ type CentrifugoProxyClient interface {
 	// always contains SubscribeRequest, then StreamSubscribeRequest will contain data published
 	// by client. Reverse direction works the same way as in SubscribeUnidirectional.
 	SubscribeBidirectional(ctx context.Context, opts ...grpc.CallOption) (CentrifugoProxy_SubscribeBidirectionalClient, error)
+	// NotifyChannelState can be used to receive channel events such as channel "occupied" and "vacated".
+	// This is a feature in a preview state and is only available in Centrifugo PRO.
+	NotifyChannelState(ctx context.Context, in *NotifyChannelStateRequest, opts ...grpc.CallOption) (*NotifyChannelStateResponse, error)
 }
 
 type centrifugoProxyClient struct {
@@ -167,6 +170,15 @@ func (x *centrifugoProxySubscribeBidirectionalClient) Recv() (*StreamSubscribeRe
 	return m, nil
 }
 
+func (c *centrifugoProxyClient) NotifyChannelState(ctx context.Context, in *NotifyChannelStateRequest, opts ...grpc.CallOption) (*NotifyChannelStateResponse, error) {
+	out := new(NotifyChannelStateResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.proxy.CentrifugoProxy/NotifyChannelState", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CentrifugoProxyServer is the server API for CentrifugoProxy service.
 // All implementations must embed UnimplementedCentrifugoProxyServer
 // for forward compatibility
@@ -193,6 +205,9 @@ type CentrifugoProxyServer interface {
 	// always contains SubscribeRequest, then StreamSubscribeRequest will contain data published
 	// by client. Reverse direction works the same way as in SubscribeUnidirectional.
 	SubscribeBidirectional(CentrifugoProxy_SubscribeBidirectionalServer) error
+	// NotifyChannelState can be used to receive channel events such as channel "occupied" and "vacated".
+	// This is a feature in a preview state and is only available in Centrifugo PRO.
+	NotifyChannelState(context.Context, *NotifyChannelStateRequest) (*NotifyChannelStateResponse, error)
 	mustEmbedUnimplementedCentrifugoProxyServer()
 }
 
@@ -223,6 +238,9 @@ func (UnimplementedCentrifugoProxyServer) SubscribeUnidirectional(*SubscribeRequ
 }
 func (UnimplementedCentrifugoProxyServer) SubscribeBidirectional(CentrifugoProxy_SubscribeBidirectionalServer) error {
 	return status.Errorf(codes.Unimplemented, "method SubscribeBidirectional not implemented")
+}
+func (UnimplementedCentrifugoProxyServer) NotifyChannelState(context.Context, *NotifyChannelStateRequest) (*NotifyChannelStateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NotifyChannelState not implemented")
 }
 func (UnimplementedCentrifugoProxyServer) mustEmbedUnimplementedCentrifugoProxyServer() {}
 
@@ -392,6 +410,24 @@ func (x *centrifugoProxySubscribeBidirectionalServer) Recv() (*StreamSubscribeRe
 	return m, nil
 }
 
+func _CentrifugoProxy_NotifyChannelState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NotifyChannelStateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoProxyServer).NotifyChannelState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.proxy.CentrifugoProxy/NotifyChannelState",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoProxyServer).NotifyChannelState(ctx, req.(*NotifyChannelStateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CentrifugoProxy_ServiceDesc is the grpc.ServiceDesc for CentrifugoProxy service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -422,6 +458,10 @@ var CentrifugoProxy_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SubRefresh",
 			Handler:    _CentrifugoProxy_SubRefresh_Handler,
+		},
+		{
+			MethodName: "NotifyChannelState",
+			Handler:    _CentrifugoProxy_NotifyChannelState_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
