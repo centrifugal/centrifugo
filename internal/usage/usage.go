@@ -81,11 +81,13 @@ type Features struct {
 	UniHTTPStream bool
 
 	// Proxies.
-	ConnectProxy   bool
-	RefreshProxy   bool
-	SubscribeProxy bool
-	PublishProxy   bool
-	RPCProxy       bool
+	ConnectProxy         bool
+	RefreshProxy         bool
+	SubscribeProxy       bool
+	PublishProxy         bool
+	RPCProxy             bool
+	SubRefreshProxy      bool
+	SubscribeStreamProxy bool
 
 	// Uses GRPC server API.
 	GrpcAPI bool
@@ -385,6 +387,12 @@ func (s *Sender) prepareMetrics() ([]*metric, error) {
 	if s.features.RPCProxy {
 		metrics = append(metrics, createPoint("proxies_enabled.rpc"))
 	}
+	if s.features.SubRefreshProxy {
+		metrics = append(metrics, createPoint("proxies_enabled.sub_refresh"))
+	}
+	if s.features.SubscribeStreamProxy {
+		metrics = append(metrics, createPoint("proxies_enabled.subscribe_stream"))
+	}
 	if s.features.GrpcAPI {
 		metrics = append(metrics, createPoint("features_enabled.grpc_api"))
 	}
@@ -461,8 +469,8 @@ func (s *Sender) prepareMetrics() ([]*metric, error) {
 		s.maxNumClients,
 		[]int{
 			0, 5, 10, 100, 1000, 10000, 50000, 100000,
-			500000, 1000000, 5000000, 10000000, 50000000,
-			100000000,
+			500000, 1000000, 2000000, 3000000, 4000000,
+			5000000, 10000000, 50000000, 100000000,
 		},
 		"num_clients.",
 	)
@@ -471,8 +479,8 @@ func (s *Sender) prepareMetrics() ([]*metric, error) {
 		s.maxNumChannels,
 		[]int{
 			0, 5, 10, 100, 1000, 10000, 50000, 100000,
-			500000, 1000000, 5000000, 10000000, 50000000,
-			100000000,
+			500000, 1000000, 2000000, 3000000, 4000000,
+			5000000, 10000000, 50000000, 100000000,
 		},
 		"num_channels.",
 	)

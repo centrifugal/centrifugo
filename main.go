@@ -793,11 +793,13 @@ func main() {
 					SubscribeToPersonal: viper.GetBool("user_subscribe_to_personal"),
 					Admin:               viper.GetBool("admin"),
 
-					ConnectProxy:   proxyMap.ConnectProxy != nil,
-					RefreshProxy:   proxyMap.RefreshProxy != nil,
-					SubscribeProxy: len(proxyMap.SubscribeProxies) > 0,
-					PublishProxy:   len(proxyMap.PublishProxies) > 0,
-					RPCProxy:       len(proxyMap.RpcProxies) > 0,
+					ConnectProxy:         proxyMap.ConnectProxy != nil,
+					RefreshProxy:         proxyMap.RefreshProxy != nil,
+					SubscribeProxy:       len(proxyMap.SubscribeProxies) > 0,
+					PublishProxy:         len(proxyMap.PublishProxies) > 0,
+					RPCProxy:             len(proxyMap.RpcProxies) > 0,
+					SubRefreshProxy:      len(proxyMap.SubRefreshProxies) > 0,
+					SubscribeStreamProxy: len(proxyMap.SubscribeStreamProxies) > 0,
 
 					ClickhouseAnalytics: false,
 					UserStatus:          false,
