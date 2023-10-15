@@ -3104,6 +3104,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "state": {
+          "type": "string"
         }
       }
     },
@@ -3132,6 +3135,9 @@
         },
         "online": {
           "type": "integer"
+        },
+        "state": {
+          "type": "string"
         }
       }
     },

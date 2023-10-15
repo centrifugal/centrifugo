@@ -820,6 +820,7 @@ message SubscriptionTokenInfo {
 
 message UpdateUserStatusRequest {
   repeated string users = 1;
+  string state = 4;
 }
 
 message UpdateUserStatusResponse {
@@ -846,6 +847,7 @@ message UserStatus {
   string user = 1;
   int64 active = 2;
   int64 online = 3;
+  string state = 4;
 }
 
 message DeleteUserStatusRequest {
