@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -185,7 +186,7 @@ func NewCommonGRPCProxyTestCase(ctx context.Context, srv proxyproto.CentrifugoPr
 	proxyproto.RegisterCentrifugoProxyServer(server, srv)
 
 	go func() {
-		if err := server.Serve(listener); err != nil {
+		if err := server.Serve(listener); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
 			log.Fatalf("GRPC server exited with error: %v", err)
 		}
 	}()
