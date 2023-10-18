@@ -6,39 +6,37 @@ import (
 	"time"
 )
 
-type CacheItem struct {
+type cacheItem struct {
 	channel string
 	value   channelOptionsResult
 	expires int64
 }
 
-type CacheShard struct {
+type cacheShard struct {
 	size   int
-	buffer []CacheItem
+	buffer []cacheItem
 	index  int32
 }
 
 type rollingCache struct {
-	shards []*CacheShard
+	shards []*cacheShard
 }
 
 func newRollingCache(size int, shardCount int) *rollingCache {
 	shardSize := size / shardCount
 	rc := &rollingCache{
-		shards: make([]*CacheShard, shardCount),
+		shards: make([]*cacheShard, shardCount),
 	}
-
 	for i := range rc.shards {
-		rc.shards[i] = &CacheShard{
+		rc.shards[i] = &cacheShard{
 			size:   shardSize,
-			buffer: make([]CacheItem, shardSize),
+			buffer: make([]cacheItem, shardSize),
 		}
 	}
-
 	return rc
 }
 
-func (c *rollingCache) shardForKey(key string) *CacheShard {
+func (c *rollingCache) shardForKey(key string) *cacheShard {
 	h := fnv.New64a()
 	_, _ = h.Write([]byte(key))
 	shardIndex := h.Sum64() % uint64(len(c.shards))
@@ -57,9 +55,8 @@ func (c *rollingCache) Get(channel string) (channelOptionsResult, bool) {
 
 func (c *rollingCache) Set(channel string, value channelOptionsResult, ttl time.Duration) {
 	shard := c.shardForKey(channel)
-
 	index := int(atomic.AddInt32(&shard.index, 1) % int32(shard.size))
-	item := CacheItem{
+	item := cacheItem{
 		channel: channel,
 		value:   value,
 		expires: time.Now().Add(ttl).UnixNano(),
