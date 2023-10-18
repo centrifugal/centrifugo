@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -208,9 +207,9 @@ func (c *Config) Validate() error {
 
 // Container ...
 type Container struct {
-	mu                  sync.RWMutex
-	configValue         atomic.Value
-	channelOptionsCache *rollingCache
+	configValue            atomic.Value
+	channelOptionsCache    *rollingCache
+	ChannelOptionsCacheTTL time.Duration
 }
 
 // NewContainer ...
@@ -291,8 +290,10 @@ type channelOptionsResult struct {
 
 // ChannelOptions returns channel options for channel using current channel config.
 func (n *Container) ChannelOptions(ch string) (string, string, ChannelOptions, bool, error) {
-	if res, ok := n.channelOptionsCache.Get(ch); ok {
-		return res.nsName, res.rest, res.chOpts, res.ok, res.err
+	if n.ChannelOptionsCacheTTL > 0 {
+		if res, ok := n.channelOptionsCache.Get(ch); ok {
+			return res.nsName, res.rest, res.chOpts, res.ok, res.err
+		}
 	}
 	config := n.configValue.Load().(Config)
 	nsName, rest := n.namespaceName(config, ch)
@@ -305,7 +306,9 @@ func (n *Container) ChannelOptions(ch string) (string, string, ChannelOptions, b
 		ok:     ok,
 		err:    err,
 	}
-	n.channelOptionsCache.Set(ch, res, 200*time.Millisecond)
+	if n.ChannelOptionsCacheTTL > 0 {
+		n.channelOptionsCache.Set(ch, res, n.ChannelOptionsCacheTTL)
+	}
 	return res.nsName, res.rest, res.chOpts, res.ok, res.err
 }
 

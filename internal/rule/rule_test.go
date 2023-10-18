@@ -2,6 +2,7 @@ package rule
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -179,6 +180,7 @@ func BenchmarkContainer_ChannelOptions(b *testing.B) {
 		},
 	}
 	c, _ := NewContainer(cfg)
+	c.ChannelOptionsCacheTTL = 200 * time.Millisecond
 
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
