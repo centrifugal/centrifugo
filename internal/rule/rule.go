@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // Config ...
@@ -207,8 +208,9 @@ func (c *Config) Validate() error {
 
 // Container ...
 type Container struct {
-	mu          sync.RWMutex
-	configValue atomic.Value
+	mu                  sync.RWMutex
+	configValue         atomic.Value
+	channelOptionsCache *rollingCache
 }
 
 // NewContainer ...
@@ -217,7 +219,9 @@ func NewContainer(config Config) (*Container, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &Container{}
+	c := &Container{
+		channelOptionsCache: newRollingCache(100, 16),
+	}
 	c.configValue.Store(*preparedConfig)
 	return c, nil
 }
@@ -277,12 +281,32 @@ func (n *Container) namespaceName(config Config, ch string) (string, string) {
 	return "", ch
 }
 
+type channelOptionsResult struct {
+	nsName string
+	rest   string
+	chOpts ChannelOptions
+	ok     bool
+	err    error
+}
+
 // ChannelOptions returns channel options for channel using current channel config.
 func (n *Container) ChannelOptions(ch string) (string, string, ChannelOptions, bool, error) {
+	if res, ok := n.channelOptionsCache.Get(ch); ok {
+		return res.nsName, res.rest, res.chOpts, res.ok, res.err
+	}
 	config := n.configValue.Load().(Config)
 	nsName, rest := n.namespaceName(config, ch)
 	chOpts, ok, err := config.channelOpts(nsName)
-	return nsName, rest, chOpts, ok, err
+
+	res := channelOptionsResult{
+		nsName: nsName,
+		rest:   rest,
+		chOpts: chOpts,
+		ok:     ok,
+		err:    err,
+	}
+	n.channelOptionsCache.Set(ch, res, 200*time.Millisecond)
+	return res.nsName, res.rest, res.chOpts, res.ok, res.err
 }
 
 // NumNamespaces returns number of configured namespaces.
