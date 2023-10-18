@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 // Config ...
@@ -206,8 +207,8 @@ func (c *Config) Validate() error {
 
 // Container ...
 type Container struct {
-	mu     sync.RWMutex
-	config Config
+	mu          sync.RWMutex
+	configValue atomic.Value
 }
 
 // NewContainer ...
@@ -216,9 +217,9 @@ func NewContainer(config Config) (*Container, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Container{
-		config: *preparedConfig,
-	}, nil
+	c := &Container{}
+	c.configValue.Store(*preparedConfig)
+	return c, nil
 }
 
 func getPreparedConfig(config Config) (*Config, error) {
@@ -238,9 +239,7 @@ func (n *Container) Reload(c Config) error {
 	if err != nil {
 		return err
 	}
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	n.config = *preparedConfig
+	n.configValue.Store(*preparedConfig)
 	return nil
 }
 
@@ -269,10 +268,10 @@ func buildCompiledRegexes(config Config) (Config, error) {
 }
 
 // namespaceName returns namespace name from channel if exists.
-func (n *Container) namespaceName(ch string) (string, string) {
-	cTrim := strings.TrimPrefix(ch, n.config.ChannelPrivatePrefix)
-	if n.config.ChannelNamespaceBoundary != "" && strings.Contains(cTrim, n.config.ChannelNamespaceBoundary) {
-		parts := strings.SplitN(cTrim, n.config.ChannelNamespaceBoundary, 2)
+func (n *Container) namespaceName(config Config, ch string) (string, string) {
+	cTrim := strings.TrimPrefix(ch, config.ChannelPrivatePrefix)
+	if config.ChannelNamespaceBoundary != "" && strings.Contains(cTrim, config.ChannelNamespaceBoundary) {
+		parts := strings.SplitN(cTrim, config.ChannelNamespaceBoundary, 2)
 		return parts[0], parts[1]
 	}
 	return "", ch
@@ -280,18 +279,16 @@ func (n *Container) namespaceName(ch string) (string, string) {
 
 // ChannelOptions returns channel options for channel using current channel config.
 func (n *Container) ChannelOptions(ch string) (string, string, ChannelOptions, bool, error) {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-	nsName, rest := n.namespaceName(ch)
-	chOpts, ok, err := n.config.channelOpts(nsName)
+	config := n.configValue.Load().(Config)
+	nsName, rest := n.namespaceName(config, ch)
+	chOpts, ok, err := config.channelOpts(nsName)
 	return nsName, rest, chOpts, ok, err
 }
 
 // NumNamespaces returns number of configured namespaces.
 func (n *Container) NumNamespaces() int {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-	return len(n.config.Namespaces)
+	c := n.configValue.Load().(Config)
+	return len(c.Namespaces)
 }
 
 // channelOpts searches for channel options for specified namespace key.
@@ -318,28 +315,23 @@ func (n *Container) PersonalChannel(user string) string {
 
 // Config returns a copy of node Config.
 func (n *Container) Config() Config {
-	n.mu.RLock()
-	c := n.config
-	n.mu.RUnlock()
-	return c
+	return n.configValue.Load().(Config)
 }
 
 // IsPrivateChannel checks if channel requires token to subscribe. In case of
 // token-protected channel subscription request must contain a proper token.
 func (n *Container) IsPrivateChannel(ch string) bool {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-	if n.config.ChannelPrivatePrefix == "" {
+	config := n.configValue.Load().(Config)
+	if config.ChannelPrivatePrefix == "" {
 		return false
 	}
-	return strings.HasPrefix(ch, n.config.ChannelPrivatePrefix)
+	return strings.HasPrefix(ch, config.ChannelPrivatePrefix)
 }
 
 // IsUserLimited returns whether channel is user-limited.
 func (n *Container) IsUserLimited(ch string) bool {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-	userBoundary := n.config.ChannelUserBoundary
+	config := n.configValue.Load().(Config)
+	userBoundary := config.ChannelUserBoundary
 	if userBoundary == "" {
 		return false
 	}
@@ -350,10 +342,9 @@ func (n *Container) IsUserLimited(ch string) bool {
 // can contain special part in the end to indicate which users allowed
 // to subscribe on it.
 func (n *Container) UserAllowed(ch string, user string) bool {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-	userBoundary := n.config.ChannelUserBoundary
-	userSeparator := n.config.ChannelUserSeparator
+	config := n.configValue.Load().(Config)
+	userBoundary := config.ChannelUserBoundary
+	userSeparator := config.ChannelUserSeparator
 	if userBoundary == "" {
 		return true
 	}
@@ -375,8 +366,9 @@ func (n *Container) UserAllowed(ch string, user string) bool {
 
 // rpcNamespaceName returns rpc namespace name from channel if exists.
 func (n *Container) rpcNamespaceName(method string) string {
-	if n.config.RpcNamespaceBoundary != "" && strings.Contains(method, n.config.RpcNamespaceBoundary) {
-		parts := strings.SplitN(method, n.config.RpcNamespaceBoundary, 2)
+	config := n.configValue.Load().(Config)
+	if config.RpcNamespaceBoundary != "" && strings.Contains(method, config.RpcNamespaceBoundary) {
+		parts := strings.SplitN(method, config.RpcNamespaceBoundary, 2)
 		return parts[0]
 	}
 	return ""
@@ -384,16 +376,14 @@ func (n *Container) rpcNamespaceName(method string) string {
 
 // RpcOptions returns rpc options for method using current config.
 func (n *Container) RpcOptions(method string) (RpcOptions, bool, error) {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-	return n.config.rpcOpts(n.rpcNamespaceName(method))
+	config := n.configValue.Load().(Config)
+	return config.rpcOpts(n.rpcNamespaceName(method))
 }
 
 // NumRpcNamespaces returns number of configured rpc namespaces.
 func (n *Container) NumRpcNamespaces() int {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-	return len(n.config.RpcNamespaces)
+	config := n.configValue.Load().(Config)
+	return len(config.RpcNamespaces)
 }
 
 // rpcOpts searches for channel options for specified namespace key.

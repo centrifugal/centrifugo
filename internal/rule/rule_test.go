@@ -137,6 +137,59 @@ func TestIsUserLimited(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, rules.IsUserLimited("#12"))
 	require.True(t, rules.IsUserLimited("test#12"))
-	rules.config.ChannelUserBoundary = ""
+	config := rules.Config()
+	config.ChannelUserBoundary = ""
+	err = rules.Reload(config)
+	require.NoError(t, err)
 	require.False(t, rules.IsUserLimited("#12"))
+}
+
+func BenchmarkContainer_ChannelOptions(b *testing.B) {
+	cfg := DefaultConfig
+	cfg.Namespaces = []ChannelNamespace{
+		{
+			Name: "test0",
+		},
+		{
+			Name: "test1",
+		},
+		{
+			Name: "test2",
+		},
+		{
+			Name: "test3",
+		},
+		{
+			Name: "test4",
+		},
+		{
+			Name: "test5",
+		},
+		{
+			Name: "test6",
+		},
+		{
+			Name: "test7",
+		},
+		{
+			Name: "test8",
+		},
+		{
+			Name: "test9",
+		},
+	}
+	c, _ := NewContainer(cfg)
+
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			nsName, _, _, ok, _ := c.ChannelOptions("test9:123")
+			if !ok {
+				b.Fatal("ns not found")
+			}
+			if nsName != "test9" {
+				b.Fatal("wrong ns name: " + nsName)
+			}
+		}
+	})
 }
