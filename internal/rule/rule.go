@@ -212,6 +212,11 @@ type Container struct {
 	ChannelOptionsCacheTTL time.Duration
 }
 
+const (
+	channelOptionsCacheSize   = 100
+	channelOptionsCacheShards = 16
+)
+
 // NewContainer ...
 func NewContainer(config Config) (*Container, error) {
 	preparedConfig, err := getPreparedConfig(config)
@@ -219,7 +224,7 @@ func NewContainer(config Config) (*Container, error) {
 		return nil, err
 	}
 	c := &Container{
-		channelOptionsCache: newRollingCache(100, 16),
+		channelOptionsCache: newRollingCache(channelOptionsCacheSize, channelOptionsCacheShards),
 	}
 	c.configValue.Store(*preparedConfig)
 	return c, nil

@@ -1,6 +1,7 @@
 package rule
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -147,50 +148,53 @@ func TestIsUserLimited(t *testing.T) {
 
 func BenchmarkContainer_ChannelOptions(b *testing.B) {
 	cfg := DefaultConfig
-	cfg.Namespaces = []ChannelNamespace{
-		{
-			Name: "test0",
-		},
-		{
-			Name: "test1",
-		},
-		{
-			Name: "test2",
-		},
-		{
-			Name: "test3",
-		},
-		{
-			Name: "test4",
-		},
-		{
-			Name: "test5",
-		},
-		{
-			Name: "test6",
-		},
-		{
-			Name: "test7",
-		},
-		{
-			Name: "test8",
-		},
-		{
-			Name: "test9",
-		},
+
+	var namespaces []ChannelNamespace
+
+	for i := 0; i < 100; i++ {
+		namespaces = append(namespaces, ChannelNamespace{
+			Name: "test" + strconv.Itoa(i),
+		})
 	}
+	cfg.Namespaces = namespaces
+
 	c, _ := NewContainer(cfg)
 	c.ChannelOptionsCacheTTL = 200 * time.Millisecond
 
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			nsName, _, _, ok, _ := c.ChannelOptions("test9:123")
+			nsName, _, _, ok, _ := c.ChannelOptions("test99:123")
 			if !ok {
 				b.Fatal("ns not found")
 			}
-			if nsName != "test9" {
+			if nsName != "test99" {
 				b.Fatal("wrong ns name: " + nsName)
+			}
+		}
+	})
+}
+
+var testConfig Config
+
+func BenchmarkContainer_Config(b *testing.B) {
+	cfg := DefaultConfig
+	var namespaces []ChannelNamespace
+	for i := 0; i < 100; i++ {
+		namespaces = append(namespaces, ChannelNamespace{
+			Name: "test" + strconv.Itoa(i),
+		})
+	}
+	cfg.Namespaces = namespaces
+	c, _ := NewContainer(cfg)
+	c.ChannelOptionsCacheTTL = 200 * time.Millisecond
+
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			testConfig = c.Config()
+			if len(testConfig.Namespaces) != 100 {
+				b.Fatal("wrong config")
 			}
 		}
 	})
