@@ -66,7 +66,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
-	github.com/nats-io/nats-server/v2 v2.8.1 // indirect
+	github.com/nats-io/nats-server/v2 v2.9.23 // indirect
 	github.com/nats-io/nkeys v0.4.5 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
