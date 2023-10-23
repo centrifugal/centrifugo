@@ -529,6 +529,7 @@ func main() {
 			if err != nil {
 				log.Fatal().Msgf("error creating config: %v", err)
 			}
+			ruleContainer.ChannelOptionsCacheTTL = 200 * time.Millisecond
 
 			granularProxyMode := viper.GetBool("granular_proxy_mode")
 			var proxyMap *client.ProxyMap

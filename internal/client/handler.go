@@ -396,7 +396,7 @@ func (h *Handler) OnClientConnecting(
 		// Subscribe only to channels client has permission to, so that it could theoretically
 		// just use client-side subscriptions to achieve the same.
 		for _, ch := range e.Channels {
-			nsName, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+			_, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 			if err != nil {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "channel options error", map[string]any{"error": err.Error(), "channel": ch}))
 				return centrifuge.ConnectReply{}, err
@@ -416,7 +416,7 @@ func (h *Handler) OnClientConnecting(
 				userID = credentials.UserID
 			}
 
-			validChannelName, err := h.validChannelName(nsName, rest, chOpts, ch)
+			validChannelName, err := h.validChannelName(rest, chOpts, ch)
 			if err != nil {
 				return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
 			}
@@ -595,7 +595,7 @@ func isASCII(s string) bool {
 	return true
 }
 
-func (h *Handler) validChannelName(_ string, rest string, chOpts rule.ChannelOptions, channel string) (bool, error) {
+func (h *Handler) validChannelName(rest string, chOpts rule.ChannelOptions, channel string) (bool, error) {
 	if chOpts.ChannelRegex != "" {
 		regex := chOpts.Compiled.CompiledChannelRegex
 		if !regex.MatchString(rest) {
@@ -607,8 +607,8 @@ func (h *Handler) validChannelName(_ string, rest string, chOpts rule.ChannelOpt
 	return true, nil
 }
 
-func (h *Handler) validateChannelName(c Client, nsName string, rest string, chOpts rule.ChannelOptions, channel string) error {
-	ok, err := h.validChannelName(nsName, rest, chOpts, channel)
+func (h *Handler) validateChannelName(c Client, rest string, chOpts rule.ChannelOptions, channel string) error {
+	ok, err := h.validChannelName(rest, chOpts, channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "error checking channel name", map[string]any{"channel": channel, "error": err.Error(), "client": c.ID(), "user": c.UserID()}))
 		return centrifuge.ErrorInternal
@@ -632,7 +632,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorUnknownChannel
 	}
 
-	nsName, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	_, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "subscribe channel options error", map[string]any{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.SubscribeReply{}, SubscribeExtra{}, err
@@ -641,7 +641,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe unknown channel", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorUnknownChannel
 	}
-	if err = h.validateChannelName(c, nsName, rest, chOpts, e.Channel); err != nil {
+	if err = h.validateChannelName(c, rest, chOpts, e.Channel); err != nil {
 		return centrifuge.SubscribeReply{}, SubscribeExtra{}, err
 	}
 
@@ -758,7 +758,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHandler proxy.PublishHandlerFunc) (centrifuge.PublishReply, error) {
 	ruleConfig := h.ruleContainer.Config()
 
-	nsName, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	_, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "publish channel options error", map[string]any{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PublishReply{}, err
@@ -767,7 +767,7 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "publish to unknown channel", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PublishReply{}, centrifuge.ErrorUnknownChannel
 	}
-	if err = h.validateChannelName(c, nsName, rest, chOpts, e.Channel); err != nil {
+	if err = h.validateChannelName(c, rest, chOpts, e.Channel); err != nil {
 		return centrifuge.PublishReply{}, err
 	}
 
@@ -833,7 +833,7 @@ func (h *Handler) hasAccessToPresence(c Client, channel string, chOpts rule.Chan
 
 // OnPresence ...
 func (h *Handler) OnPresence(c Client, e centrifuge.PresenceEvent) (centrifuge.PresenceReply, error) {
-	nsName, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	_, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "presence channel options error", map[string]any{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PresenceReply{}, err
@@ -842,7 +842,7 @@ func (h *Handler) OnPresence(c Client, e centrifuge.PresenceEvent) (centrifuge.P
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "presence for unknown channel", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PresenceReply{}, centrifuge.ErrorUnknownChannel
 	}
-	if err = h.validateChannelName(c, nsName, rest, chOpts, e.Channel); err != nil {
+	if err = h.validateChannelName(c, rest, chOpts, e.Channel); err != nil {
 		return centrifuge.PresenceReply{}, err
 	}
 	if !chOpts.Presence {
@@ -861,7 +861,7 @@ func (h *Handler) OnPresence(c Client, e centrifuge.PresenceEvent) (centrifuge.P
 
 // OnPresenceStats ...
 func (h *Handler) OnPresenceStats(c Client, e centrifuge.PresenceStatsEvent) (centrifuge.PresenceStatsReply, error) {
-	nsName, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	_, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "presence stats channel options error", map[string]any{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PresenceStatsReply{}, err
@@ -870,7 +870,7 @@ func (h *Handler) OnPresenceStats(c Client, e centrifuge.PresenceStatsEvent) (ce
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "presence stats for unknown channel", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PresenceStatsReply{}, centrifuge.ErrorUnknownChannel
 	}
-	if err = h.validateChannelName(c, nsName, rest, chOpts, e.Channel); err != nil {
+	if err = h.validateChannelName(c, rest, chOpts, e.Channel); err != nil {
 		return centrifuge.PresenceStatsReply{}, err
 	}
 	if !chOpts.Presence {
@@ -900,7 +900,7 @@ func (h *Handler) hasAccessToHistory(c Client, channel string, chOpts rule.Chann
 
 // OnHistory ...
 func (h *Handler) OnHistory(c Client, e centrifuge.HistoryEvent) (centrifuge.HistoryReply, error) {
-	nsName, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	_, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "history channel options error", map[string]any{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.HistoryReply{}, err
@@ -909,7 +909,7 @@ func (h *Handler) OnHistory(c Client, e centrifuge.HistoryEvent) (centrifuge.His
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "history for unknown channel", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.HistoryReply{}, centrifuge.ErrorUnknownChannel
 	}
-	if err = h.validateChannelName(c, nsName, rest, chOpts, e.Channel); err != nil {
+	if err = h.validateChannelName(c, rest, chOpts, e.Channel); err != nil {
 		return centrifuge.HistoryReply{}, err
 	}
 	if chOpts.HistorySize <= 0 || chOpts.HistoryTTL <= 0 {
