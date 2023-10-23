@@ -213,8 +213,8 @@ type Container struct {
 }
 
 const (
-	channelOptionsCacheSize   = 100
-	channelOptionsCacheShards = 16
+	channelOptionsCacheSize   = 8
+	channelOptionsCacheShards = 128
 )
 
 // NewContainer ...
