@@ -2,7 +2,6 @@ package rule
 
 import (
 	"hash/fnv"
-	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -14,26 +13,28 @@ type cacheItem struct {
 }
 
 type cacheShard struct {
-	mu     sync.RWMutex
-	size   int
-	buffer []cacheItem
 	index  int32
+	size   int32
+	buffer []atomic.Value
 }
 
 type rollingCache struct {
 	shards []*cacheShard
 }
 
-func newRollingCache(size int, shardCount int) *rollingCache {
-	shardSize := size / shardCount
+func newRollingCache(shardSize int, shardCount int) *rollingCache {
 	rc := &rollingCache{
 		shards: make([]*cacheShard, shardCount),
 	}
 	for i := range rc.shards {
-		rc.shards[i] = &cacheShard{
-			size:   shardSize,
-			buffer: make([]cacheItem, shardSize),
+		shard := &cacheShard{
+			size:   int32(shardSize),
+			buffer: make([]atomic.Value, shardSize),
 		}
+		for j := 0; j < shardSize; j++ {
+			shard.buffer[j].Store(cacheItem{}) // Initialize with zero value.
+		}
+		rc.shards[i] = shard
 	}
 	return rc
 }
@@ -47,10 +48,9 @@ func (c *rollingCache) shardForKey(key string) *cacheShard {
 
 func (c *rollingCache) Get(channel string) (channelOptionsResult, bool) {
 	shard := c.shardForKey(channel)
-	shard.mu.RLock()
-	defer shard.mu.RUnlock()
-	for _, item := range shard.buffer {
-		if item.channel == channel && time.Now().Before(time.Unix(0, item.expires)) {
+	for i := 0; i < int(shard.size); i++ {
+		item := shard.buffer[i].Load().(cacheItem)
+		if item.channel == channel && time.Now().UnixNano() < item.expires {
 			return item.value, true
 		}
 	}
@@ -59,13 +59,11 @@ func (c *rollingCache) Get(channel string) (channelOptionsResult, bool) {
 
 func (c *rollingCache) Set(channel string, value channelOptionsResult, ttl time.Duration) {
 	shard := c.shardForKey(channel)
-	shard.mu.Lock()
-	defer shard.mu.Unlock()
-	index := int(atomic.AddInt32(&shard.index, 1) % int32(shard.size))
+	index := int(atomic.AddInt32(&shard.index, 1) % shard.size)
 	item := cacheItem{
 		channel: channel,
 		value:   value,
 		expires: time.Now().Add(ttl).UnixNano(),
 	}
-	shard.buffer[index] = item
+	shard.buffer[index].Store(item)
 }

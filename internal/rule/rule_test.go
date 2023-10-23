@@ -2,6 +2,7 @@ package rule
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -149,12 +150,16 @@ func TestIsUserLimited(t *testing.T) {
 func BenchmarkContainer_ChannelOptions(b *testing.B) {
 	cfg := DefaultConfig
 
-	var namespaces []ChannelNamespace
+	const numNamespaces = 128
 
-	for i := 0; i < 100; i++ {
+	var channels []string
+
+	var namespaces []ChannelNamespace
+	for i := 0; i < numNamespaces; i++ {
 		namespaces = append(namespaces, ChannelNamespace{
 			Name: "test" + strconv.Itoa(i),
 		})
+		channels = append(channels, "test"+strconv.Itoa(i)+":123")
 	}
 	cfg.Namespaces = namespaces
 
@@ -163,12 +168,15 @@ func BenchmarkContainer_ChannelOptions(b *testing.B) {
 
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
+		i := 0
 		for pb.Next() {
-			nsName, _, _, ok, _ := c.ChannelOptions("test99:123")
+			i++
+			ch := channels[i%numNamespaces]
+			nsName, _, _, ok, _ := c.ChannelOptions(ch)
 			if !ok {
 				b.Fatal("ns not found")
 			}
-			if nsName != "test99" {
+			if !strings.HasPrefix(ch, nsName) {
 				b.Fatal("wrong ns name: " + nsName)
 			}
 		}
