@@ -22,7 +22,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nats-io/nats.go v1.31.0
 	github.com/prometheus/client_golang v1.17.0
-	github.com/quic-go/quic-go v0.39.1
+	github.com/quic-go/quic-go v0.39.2
 	github.com/quic-go/webtransport-go v0.6.0
 	github.com/rakutentech/jwk-go v1.1.3
 	github.com/rs/zerolog v1.31.0
