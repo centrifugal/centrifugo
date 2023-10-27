@@ -105,7 +105,7 @@ var defaults = map[string]any{
 	"client_insecure_skip_token_signature_verify": false,
 	"api_insecure": false,
 
-	"user_id_http_header": "",
+	"client_auth_user_id_http_header": "",
 
 	"token_hmac_secret_key":      "",
 	"token_rsa_public_key":       "",
@@ -2808,7 +2808,7 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 		connLimitMW := middleware.NewConnLimit(n, ruleContainer)
 		connMiddlewares = append(connMiddlewares, connLimitMW.Middleware)
 	}
-	userIDHTTPHeader := v.GetString("user_id_http_header")
+	userIDHTTPHeader := v.GetString("client_auth_user_id_http_header")
 	if userIDHTTPHeader != "" {
 		connMiddlewares = append(connMiddlewares, middleware.UserHeaderAuth(userIDHTTPHeader))
 	}
