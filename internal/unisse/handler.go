@@ -46,11 +46,11 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytesSize))
 		connectRequestData, err := io.ReadAll(r.Body)
 		if err != nil {
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "error reading uni sse request body", map[string]any{"error": err.Error()}))
 			if len(connectRequestData) >= maxBytesSize {
 				w.WriteHeader(http.StatusRequestEntityTooLarge)
 				return
 			}
-			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error reading body", map[string]any{"error": err.Error()}))
 			return
 		}
 		err = json.Unmarshal(connectRequestData, &req)
