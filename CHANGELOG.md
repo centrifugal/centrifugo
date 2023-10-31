@@ -14,6 +14,7 @@ v5.1.1
 ### Misc
 
 * Dependencies updated (rueidis, quic-go, etc)
+* Improved logging for bidirectional emulation transports and unidirectional transports - avoid unnecessary error logs
 
 v5.1.0
 ======

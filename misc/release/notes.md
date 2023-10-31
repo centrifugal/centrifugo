@@ -21,3 +21,4 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 ### Misc
 
 * Dependencies updated (rueidis, quic-go, etc)
+* Improved logging for bidirectional emulation transports and unidirectional transports - avoid unnecessary error logs
