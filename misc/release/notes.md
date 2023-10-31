@@ -10,12 +10,14 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Support for EC keys in JWK sets and EC JWTs when using JWKS [#720](https://github.com/centrifugal/centrifugo/pull/720) by @shaunco, [JWKS docs updated](https://centrifugal.dev/docs/server/authentication#json-web-key-support)
-* Experimental GRPC proxy subscription streams [#722](https://github.com/centrifugal/centrifugo/pull/722) - this is like [Websocketd](https://github.com/joewalnes/websocketd) but on network steroids 🔥. Streaming request semantics - both unidirectional and bidirectional – is now super-simple to achieve with Centrifugo and GRPC. See additional details about motivation, design, scalability concerns and basic examples in [docs](https://centrifugal.dev/docs/server/proxy_streams)
-* Transport error mode for server HTTP and GRPC APIs [#690](https://github.com/centrifugal/centrifugo/pull/690) - read [more in docs](https://centrifugal.dev/docs/server/server_api#transport-error-mode)
-* Support GRPC gzip compression [#723](https://github.com/centrifugal/centrifugo/pull/723). GRPC servers Centrifugo has now recognize gzip compression, proxy requests can optionally use compression for calls (see [updated proxy docs](https://centrifugal.dev/docs/server/proxy)).
+* Option to extract client connection user ID from HTTP header [#730](https://github.com/centrifugal/centrifugo/pull/730). See [documentation](https://centrifugal.dev/docs/server/configuration#client_user_id_http_header) for it.
+* Speed up channel config operations by using atomic.Value and reduce allocations upon channel namespace extraction by using channel options cache, [#727](https://github.com/centrifugal/centrifugo/pull/727)
+* New metrics for the size of messages sent and received by Centrifugo real-time transport. And we finally described all the metrics exposed by Centrifugo in docs - see [Server observability -> Exposed metrics](https://centrifugal.dev/docs/server/observability#exposed-metrics)
+
+### Fixes
+
+* Fix `Lua redis lib command arguments must be strings or integers script` error when calling Redis reversed history and the stream metadata key does not exist, [#732](https://github.com/centrifugal/centrifugo/issues/732)
 
 ### Misc
 
-* Release is built with Go 1.21.3
-* Dependencies updated (crypto, otel, msgpack, etc)
+* Dependencies updated (rueidis, quic-go, etc)
