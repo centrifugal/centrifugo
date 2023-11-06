@@ -16,6 +16,7 @@ docs/site
 internal/ultra
 misc/clickhouse_cluster/clickhouse*
 misc/clickhouse_cluster/zookeeper
+misc/redis_cluster/cluster_data
 vendor/
 *.orig
 tmp/
