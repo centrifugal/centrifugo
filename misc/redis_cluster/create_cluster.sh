@@ -36,7 +36,7 @@ start_redis_cluster() {
     # Start a Redis server with cluster enabled and no replicas
     redis-server --port "$port" --cluster-enabled yes \
                  --cluster-config-file "nodes.conf" \
-                 --cluster-node-timeout 5000 --appendonly yes \
+                 --cluster-node-timeout 5000 --save "" --appendonly no \
                  --appendfilename "appendonly.aof" \
                  --dbfilename "dump.rdb" \
                  --logfile "redis.log" &
