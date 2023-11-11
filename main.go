@@ -683,7 +683,7 @@ func main() {
 					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
 				}
 				if useAPIOpentelemetry {
-					grpcOpts = append(grpcOpts, grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()))
+					grpcOpts = append(grpcOpts, grpc.StatsHandler(otelgrpc.NewServerHandler()))
 				}
 				grpcErrorMode, err := tools.OptionalStringChoice(viper.GetViper(), "grpc_api_error_mode", []string{transportErrorMode})
 				if err != nil {
