@@ -1,3 +1,10 @@
+v5.1.2 and higher
+=================
+
+Since Centrifugo v5.1.2 we do not maintain CHANGELOG.md file.
+
+All changes may be found on [Centrifugo releases page](https://github.com/centrifugal/centrifugo/releases) on Github.
+
 v5.1.1
 ======
 

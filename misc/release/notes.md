@@ -10,15 +10,15 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Option to extract client connection user ID from HTTP header [#730](https://github.com/centrifugal/centrifugo/pull/730). See [documentation](https://centrifugal.dev/docs/server/configuration#client_user_id_http_header) for it.
-* Speed up channel config operations by using atomic.Value and reduce allocations upon channel namespace extraction by using channel options cache, [#727](https://github.com/centrifugal/centrifugo/pull/727)
-* New metrics for the size of messages sent and received by Centrifugo real-time transport. And we finally described all the metrics exposed by Centrifugo in docs - see [Server observability -> Exposed metrics](https://centrifugal.dev/docs/server/observability#exposed-metrics)
+* Avoid keeping zero offsets in history meta hash keys in Redis – slightly reduces memory consumption of Redis, see [centrifugal/centrifuge#332](https://github.com/centrifugal/centrifuge/pull/332)
 
 ### Fixes
 
-* Fix `Lua redis lib command arguments must be strings or integers script` error when calling Redis reversed history and the stream metadata key does not exist, [#732](https://github.com/centrifugal/centrifugo/issues/732)
+* Centrifugo v5.1.1 fixed `Lua redis lib command arguments must be strings or integers script` error for new Centrifugo setups and new keys in Redis, but have not provided solution to existing keys. In [centrifugal/centrifuge/#331](https://github.com/centrifugal/centrifuge/pull/331) we fixed it.
+* Updating `github.com/redis/rueidis` to v1.0.22 fixes unaligned atomics to run Centrifugo with Redis engine on 32-bit systems, [some details](https://github.com/centrifugal/centrifugo/pull/737) 
 
 ### Misc
 
-* Dependencies updated (rueidis, quic-go, etc)
-* Improved logging for bidirectional emulation transports and unidirectional transports - avoid unnecessary error logs
+* Release is built using Go v1.21.4
+* Opentelemetry dependencies updated
+* We now have a [bash script for quick local setup of Redis cluster](https://github.com/centrifugal/centrifugo/tree/master/misc/redis_cluster) - to simplify development
