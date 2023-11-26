@@ -197,6 +197,50 @@ func TestMakeTLSConfig(t *testing.T) {
 		},
 		errOK: true,
 	}, {
+		name: "clientCAPEM",
+		config: testConfigGetter{
+			"tls_client_ca_pem": testCertPEM,
+		},
+		expect: tls.Config{
+			ClientCAs:  testCertPool,
+			ClientAuth: tls.RequireAndVerifyClientCert,
+		},
+	}, {
+		name: "badClientCAPEM",
+		config: testConfigGetter{
+			"tls_client_ca_pem": "garbage",
+		},
+		errOK: true,
+	}, {
+		name: "clientCAFile",
+		config: testConfigGetter{
+			"tls_client_ca": "certs.pem",
+		},
+		fsys: fstest.MapFS{
+			"certs.pem": &fstest.MapFile{
+				Data: []byte(testCertPEM),
+			},
+		},
+		expect: tls.Config{
+			ClientCAs:  testCertPool,
+			ClientAuth: tls.RequireAndVerifyClientCert,
+		},
+	}, {
+		name: "missingClientCAFile",
+		config: testConfigGetter{
+			"tls_client_ca": "certs.pem",
+		},
+		errOK: true,
+	}, {
+		name: "badClientCAFile",
+		config: testConfigGetter{
+			"tls_client_ca": "certs.pem",
+		},
+		fsys: fstest.MapFS{
+			"certs.pem": &fstest.MapFile{},
+		},
+		errOK: true,
+	}, {
 		name: "prefixedWithAllFields",
 		config: testConfigGetter{
 			"test_tls_cert":                 "tls/centrifugo.cert",
@@ -205,6 +249,8 @@ func TestMakeTLSConfig(t *testing.T) {
 			"test_tls_key_pem":              "garbage",
 			"test_tls_root_ca":              "root.pem",
 			"test_tls_root_ca_pem":          "garbage",
+			"test_tls_client_ca":            "client.pem",
+			"test_tls_client_ca_pem":        "garbage",
 			"test_tls_server_name":          "example.com",
 			"test_tls_insecure_skip_verify": "true",
 		},
@@ -219,11 +265,16 @@ func TestMakeTLSConfig(t *testing.T) {
 			"root.pem": &fstest.MapFile{
 				Data: []byte(testCertPEM),
 			},
+			"client.pem": &fstest.MapFile{
+				Data: []byte(testCertPEM),
+			},
 		},
 		expect: tls.Config{
 			ServerName:         "example.com",
 			InsecureSkipVerify: true,
 			RootCAs:            testCertPool,
+			ClientCAs:          testCertPool,
+			ClientAuth:         tls.RequireAndVerifyClientCert,
 			Certificates:       []tls.Certificate{testCertificate},
 		},
 	}, {
@@ -232,6 +283,7 @@ func TestMakeTLSConfig(t *testing.T) {
 			"test_tls_cert_pem":             testCertPEM,
 			"test_tls_key_pem":              testKeyPEM,
 			"test_tls_root_ca_pem":          testCertPEM,
+			"test_tls_client_ca_pem":        testCertPEM,
 			"test_tls_server_name":          "example.com",
 			"test_tls_insecure_skip_verify": "true",
 		},
@@ -240,6 +292,8 @@ func TestMakeTLSConfig(t *testing.T) {
 			ServerName:         "example.com",
 			InsecureSkipVerify: true,
 			RootCAs:            testCertPool,
+			ClientCAs:          testCertPool,
+			ClientAuth:         tls.RequireAndVerifyClientCert,
 			Certificates:       []tls.Certificate{testCertificate},
 		},
 	}}
@@ -283,5 +337,14 @@ func checkTLSConfig(t *testing.T, a, b *tls.Config) {
 	}
 	if !a.RootCAs.Equal(b.RootCAs) {
 		t.Error("expected tls.Config.RootCAs to be equal")
+	}
+	if !a.ClientCAs.Equal(b.ClientCAs) {
+		t.Error("expected tls.Config.ClientCAs to be equal")
+	}
+	if a.ClientAuth != b.ClientAuth {
+		t.Errorf(
+			"expected tls.Config.ClientAuth length to be %s, but got %s",
+			a.ClientAuth, b.ClientAuth,
+		)
 	}
 }

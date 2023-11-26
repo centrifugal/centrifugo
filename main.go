@@ -236,6 +236,8 @@ var defaults = map[string]any{
 	"tls_key_pem":              "",
 	"tls_root_ca":              "",
 	"tls_root_ca_pem":          "",
+	"tls_client_ca":            "",
+	"tls_client_ca_pem":        "",
 	"tls_server_name":          "",
 	"tls_insecure_skip_verify": false,
 
@@ -315,6 +317,8 @@ var defaults = map[string]any{
 	"grpc_api_tls_key_pem":              "",
 	"grpc_api_tls_root_ca":              "",
 	"grpc_api_tls_root_ca_pem":          "",
+	"grpc_api_tls_client_ca":            "",
+	"grpc_api_tls_client_ca_pem":        "",
 	"grpc_api_tls_server_name":          "",
 	"grpc_api_tls_insecure_skip_verify": false,
 
@@ -357,6 +361,8 @@ var defaults = map[string]any{
 	"uni_grpc_tls_key_pem":              "",
 	"uni_grpc_tls_root_ca":              "",
 	"uni_grpc_tls_root_ca_pem":          "",
+	"uni_grpc_tls_client_ca":            "",
+	"uni_grpc_tls_client_ca_pem":        "",
 	"uni_grpc_tls_server_name":          "",
 	"uni_grpc_tls_insecure_skip_verify": false,
 
@@ -418,6 +424,8 @@ func init() {
 			prefix + "redis_tls_key_pem":                       "",
 			prefix + "redis_tls_root_ca":                       "",
 			prefix + "redis_tls_root_ca_pem":                   "",
+			prefix + "redis_tls_client_ca":                     "",
+			prefix + "redis_tls_client_ca_pem":                 "",
 			prefix + "redis_tls_server_name":                   "",
 			prefix + "redis_tls_insecure_skip_verify":          false,
 			prefix + "redis_sentinel_tls":                      false,
@@ -427,6 +435,8 @@ func init() {
 			prefix + "redis_sentinel_tls_key_pem":              "",
 			prefix + "redis_sentinel_tls_root_ca":              "",
 			prefix + "redis_sentinel_tls_root_ca_pem":          "",
+			prefix + "redis_sentinel_tls_client_ca":            "",
+			prefix + "redis_sentinel_tls_client_ca_pem":        "",
 			prefix + "redis_sentinel_tls_server_name":          "",
 			prefix + "redis_sentinel_tls_insecure_skip_verify": false,
 		}

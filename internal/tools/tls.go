@@ -27,6 +27,7 @@ func MakeTLSConfig(v ConfigGetter, keyPrefix string, readFile ReadFileFunc) (*tl
 	loaders := []tlsConfigLoader{
 		chainTLSConfigLoaders(loadCertFromFile, loadCertFromPEM),
 		chainTLSConfigLoaders(loadRootCAFromFile, loadRootCAFromPEM),
+		chainTLSConfigLoaders(loadMutualTLSFromFile, loadMutualTLSFromPEM),
 	}
 	for _, loadConfig := range loaders {
 		if _, err := loadConfig(tlsConfig, v, keyPrefix, readFile); err != nil {
@@ -149,6 +150,53 @@ func loadRootCAFromPEM(tlsConfig *tls.Config, v ConfigGetter, keyPrefix string, 
 	}
 
 	tlsConfig.RootCAs = caCertPool
+
+	return true, nil
+}
+
+// loadMutualTLSFromFile loads the TLS configuration for server-side mutual TLS
+// authentication from file containing PEM-encoded certificates.
+func loadMutualTLSFromFile(tlsConfig *tls.Config, v ConfigGetter, keyPrefix string, readFile ReadFileFunc) (bool, error) {
+	keyName := keyPrefix + "tls_client_ca"
+
+	clientCAFile := v.GetString(keyName)
+	if clientCAFile == "" {
+		return false, nil
+	}
+
+	caCert, err := readFile(clientCAFile)
+	if err != nil {
+		return true, fmt.Errorf("read the client CA certificate for %s: %w", keyName, err)
+	}
+
+	caCertPool, err := newCertPoolFromPEM(caCert)
+	if err != nil {
+		return true, fmt.Errorf("parse client CA certificate for %s: %w", keyName, err)
+	}
+
+	tlsConfig.ClientCAs = caCertPool
+	tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+
+	return true, nil
+}
+
+// loadMutualTLSFromFile loads the TLS configuration for server-side mutual TLS
+// authentication from string containing PEM-encoded certificates.
+func loadMutualTLSFromPEM(tlsConfig *tls.Config, v ConfigGetter, keyPrefix string, _ ReadFileFunc) (bool, error) {
+	keyName := keyPrefix + "tls_client_ca_pem"
+
+	clientCAPEM := v.GetString(keyName)
+	if clientCAPEM == "" {
+		return false, nil
+	}
+
+	caCertPool, err := newCertPoolFromPEM([]byte(clientCAPEM))
+	if err != nil {
+		return true, fmt.Errorf("parse client CA certificate for %s: %w", keyName, err)
+	}
+
+	tlsConfig.ClientCAs = caCertPool
+	tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 
 	return true, nil
 }
