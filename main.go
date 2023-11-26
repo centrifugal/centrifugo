@@ -1318,18 +1318,18 @@ func getTLSConfig() (*tls.Config, error) {
 
 	} else if tlsEnabled {
 		// Autocert disabled - just try to use provided SSL cert and key files.
-		return tools.MakeTLSConfig(viper.GetViper(), "")
+		return tools.MakeTLSConfig(viper.GetViper(), "", os.ReadFile)
 	}
 
 	return nil, nil
 }
 
 func tlsConfigForGRPC() (*tls.Config, error) {
-	return tools.MakeTLSConfig(viper.GetViper(), "grpc_api_")
+	return tools.MakeTLSConfig(viper.GetViper(), "grpc_api_", os.ReadFile)
 }
 
 func tlsConfigForUniGRPC() (*tls.Config, error) {
-	return tools.MakeTLSConfig(viper.GetViper(), "uni_grpc_")
+	return tools.MakeTLSConfig(viper.GetViper(), "uni_grpc_", os.ReadFile)
 }
 
 type httpErrorLogWriter struct {
@@ -2435,7 +2435,7 @@ func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
 	shardConf.ClientName = viper.GetString("redis_client_name")
 
 	if viper.GetBool("redis_tls") {
-		tlsConfig, err := tools.MakeTLSConfig(viper.GetViper(), "redis_")
+		tlsConfig, err := tools.MakeTLSConfig(viper.GetViper(), "redis_", os.ReadFile)
 		if err != nil {
 			log.Fatal().Msgf("error creating Redis TLS config: %v", err)
 		}
@@ -2498,7 +2498,7 @@ func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, string, error) {
 			}
 			conf.SentinelClientName = viper.GetString("redis_sentinel_client_name")
 			if viper.GetBool("redis_sentinel_tls") {
-				tlsConfig, err := tools.MakeTLSConfig(viper.GetViper(), "redis_sentinel_")
+				tlsConfig, err := tools.MakeTLSConfig(viper.GetViper(), "redis_sentinel_", os.ReadFile)
 				if err != nil {
 					log.Fatal().Msgf("error creating Redis Sentinel TLS config: %v", err)
 				}

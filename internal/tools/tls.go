@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"os"
 )
 
 type ConfigGetter interface {
@@ -13,10 +12,27 @@ type ConfigGetter interface {
 	GetString(name string) string
 }
 
-func MakeTLSConfig(v ConfigGetter, keyPrefix string) (*tls.Config, error) {
+// ReadFileFunc is an abstraction for os.ReadFile but also io/fs.ReadFile
+// wrapped with an io/fs.FS instance.
+//
+// Note that os.DirFS has slightly different semantics compared to the native
+// filesystem APIs, see https://go.dev/issue/44279
+type ReadFileFunc func(name string) ([]byte, error)
+
+// MakeTLSConfig constructs a tls.Config instance using the given configuration
+// scoped under key prefix.
+func MakeTLSConfig(v ConfigGetter, keyPrefix string, readFile ReadFileFunc) (*tls.Config, error) {
 	tlsConfig := &tls.Config{}
 	if v.GetString(keyPrefix+"tls_cert") != "" && v.GetString(keyPrefix+"tls_key") != "" {
-		cert, err := tls.LoadX509KeyPair(v.GetString(keyPrefix+"tls_cert"), v.GetString(keyPrefix+"tls_key"))
+		certPEMBlock, err := readFile(v.GetString(keyPrefix + "tls_cert"))
+		if err != nil {
+			return nil, err
+		}
+		keyPEMBlock, err := readFile(v.GetString(keyPrefix + "tls_key"))
+		if err != nil {
+			return nil, err
+		}
+		cert, err := tls.X509KeyPair(certPEMBlock, keyPEMBlock)
 		if err != nil {
 			return nil, fmt.Errorf("could not read the certificate/key: %s", err)
 		}
@@ -29,7 +45,7 @@ func MakeTLSConfig(v ConfigGetter, keyPrefix string) (*tls.Config, error) {
 		tlsConfig.Certificates = []tls.Certificate{cert}
 	}
 	if v.GetString(keyPrefix+"tls_root_ca") != "" {
-		caCert, err := os.ReadFile(v.GetString(keyPrefix + "tls_root_ca"))
+		caCert, err := readFile(v.GetString(keyPrefix + "tls_root_ca"))
 		if err != nil {
 			return nil, fmt.Errorf("can not read the CA certificate: %s", err)
 		}
