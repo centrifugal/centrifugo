@@ -2,8 +2,6 @@ package tools
 
 import (
 	"crypto/tls"
-	"crypto/x509"
-	"errors"
 	"strconv"
 	"testing"
 	"testing/fstest"
@@ -286,15 +284,4 @@ func checkTLSConfig(t *testing.T, a, b *tls.Config) {
 	if !a.RootCAs.Equal(b.RootCAs) {
 		t.Error("expected tls.Config.RootCAs to be equal")
 	}
-}
-
-// newCertPoolFromPEM returns certificate pool for the given PEM-encoded
-// certificate bundle. Note that it currently ignores invalid blocks.
-func newCertPoolFromPEM(pem []byte) (*x509.CertPool, error) {
-	certPool := x509.NewCertPool()
-	ok := certPool.AppendCertsFromPEM(pem)
-	if !ok {
-		return nil, errors.New("no valid certificates found")
-	}
-	return certPool, nil
 }
