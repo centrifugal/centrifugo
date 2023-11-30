@@ -1359,6 +1359,9 @@
             "type": "object",
             "$ref": "#/definitions/Command"
           }
+        },
+        "parallel": {
+          "type": "boolean"
         }
       }
     },
@@ -1430,6 +1433,9 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "idempotency_key": {
+          "type": "string"
         }
       }
     },
@@ -2591,6 +2597,9 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "idempotency_key": {
+          "type": "string"
         }
       }
     },

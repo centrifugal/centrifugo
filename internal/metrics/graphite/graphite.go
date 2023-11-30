@@ -1,6 +1,7 @@
 package graphite
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -57,15 +58,15 @@ func New(c Config) *Exporter {
 		Interval: c.Interval,
 		Sink:     exporter.sink,
 	})
-	go exporter.run()
 	return exporter
 }
 
-func (e *Exporter) run() {
+func (e *Exporter) Run(ctx context.Context) error {
+	defer func() { _ = e.close() }()
 	for {
 		select {
-		case <-e.closeCh:
-			return
+		case <-ctx.Done():
+			return ctx.Err()
 		case metrics := <-e.sink:
 			_ = e.exportOnce(metrics)
 		}
@@ -73,7 +74,7 @@ func (e *Exporter) run() {
 }
 
 // Close stops exporter.
-func (e *Exporter) Close() error {
+func (e *Exporter) close() error {
 	e.closeOnce.Do(func() {
 		close(e.closeCh)
 		_ = e.eagle.Close()
@@ -86,7 +87,7 @@ func (e *Exporter) exportOnce(metrics eagle.Metrics) error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	_ = e.write(conn, metrics)
 	return nil
 }

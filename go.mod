@@ -9,7 +9,7 @@ require (
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/tarantool v0.3.1
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
-	github.com/centrifugal/centrifuge v0.30.5
+	github.com/centrifugal/centrifuge v0.30.6-0.20231125064537-369064e01dec
 	github.com/centrifugal/protocol v0.11.0
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/gobwas/glob v0.2.3
@@ -17,6 +17,7 @@ require (
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/websocket v1.5.0
 	github.com/hashicorp/go-envparse v0.1.0
+	github.com/jackc/pgx/v5 v5.5.0
 	github.com/justinas/alice v1.2.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mitchellh/mapstructure v1.5.0
@@ -28,6 +29,8 @@ require (
 	github.com/rs/zerolog v1.31.0
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
+	github.com/twmb/franz-go v1.15.2
+	github.com/twmb/franz-go/pkg/kadm v1.10.0
 	github.com/valyala/fasttemplate v1.2.2
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.46.0
@@ -44,7 +47,14 @@ require (
 	google.golang.org/protobuf v1.31.0
 )
 
-require go.uber.org/mock v0.3.0 // indirect
+require (
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
+	github.com/jackc/puddle/v2 v2.2.1 // indirect
+	github.com/pierrec/lz4/v4 v4.1.18 // indirect
+	github.com/twmb/franz-go/pkg/kmsg v1.7.0 // indirect
+	go.uber.org/mock v0.3.0 // indirect
+)
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect

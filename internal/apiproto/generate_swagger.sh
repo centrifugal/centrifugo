@@ -9,7 +9,7 @@ protoc --openapiv2_out=disable_default_errors=true,disable_service_tags=true,ope
 search='(:\s+{\s+"type":\s)"string",\s+"format":\s"byte"'
 replace='\1"object"'
 
-python - << EOF
+python3 - << EOF
 import re
 
 #defining the replace method
@@ -34,7 +34,7 @@ EOF
 search='(:\s+{\s+"type":\s)"string",\s+"format":\s"uint64"'
 replace='\1"integer"'
 
-python - << EOF
+python3 - << EOF
 import re
 
 #defining the replace method
@@ -59,7 +59,7 @@ EOF
 search='(:\s+{\s+"type":\s)"string",\s+"format":\s"int64"'
 replace='\1"integer"'
 
-python - << EOF
+python3 - << EOF
 import re
 
 #defining the replace method

@@ -34,6 +34,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Start services
+        run: docker compose up -d --wait
+
       - name: Install rocks
         run: docker run --rm -v $(pwd)/misc/tnt:/opt/tarantool tarantool/tarantool:${{ matrix.tarantool-version }} tarantoolctl rocks install https://raw.githubusercontent.com/centrifugal/tarantool-centrifuge/main/centrifuge-scm-1.rockspec
 
