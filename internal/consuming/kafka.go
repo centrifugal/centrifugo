@@ -10,6 +10,7 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/pkg/kmsg"
 )
 
 type KafkaConfig struct {
@@ -25,6 +26,7 @@ type topicPartition struct {
 
 type KafkaConsumer struct {
 	client     *kgo.Client
+	nodeID     string
 	logger     Logger
 	dispatcher Dispatcher
 	config     KafkaConfig
@@ -61,8 +63,9 @@ type KafkaJSONEvent struct {
 	Payload JSONRawOrString `json:"payload"`
 }
 
-func NewKafkaConsumer(logger Logger, dispatcher Dispatcher, config KafkaConfig) (*KafkaConsumer, error) {
+func NewKafkaConsumer(nodeID string, logger Logger, dispatcher Dispatcher, config KafkaConfig) (*KafkaConsumer, error) {
 	consumer := &KafkaConsumer{
+		nodeID:     nodeID,
 		logger:     logger,
 		dispatcher: dispatcher,
 		config:     config,
@@ -76,6 +79,12 @@ func NewKafkaConsumer(logger Logger, dispatcher Dispatcher, config KafkaConfig) 
 	return consumer, nil
 }
 
+const kafkaClientID = "centrifugo"
+
+func (c *KafkaConsumer) getInstanceID() string {
+	return "centrifugo-" + c.nodeID
+}
+
 func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 	client, err := kgo.NewClient(
 		kgo.SeedBrokers(c.config.Brokers...),
@@ -86,6 +95,8 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 		kgo.OnPartitionsLost(c.lost),
 		kgo.AutoCommitMarks(),
 		kgo.BlockRebalanceOnPoll(),
+		kgo.ClientID(kafkaClientID),
+		kgo.InstanceID(c.getInstanceID()),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error initializing client: %w", err)
@@ -99,9 +110,30 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 	return client, nil
 }
 
+func (c *KafkaConsumer) leaveGroup(ctx context.Context, client *kgo.Client) error {
+	req := kmsg.NewPtrLeaveGroupRequest()
+	req.Group = c.config.ConsumerGroup
+	instanceID := c.getInstanceID()
+	reason := "shutdown"
+	req.Members = []kmsg.LeaveGroupRequestMember{
+		{
+			InstanceID: &instanceID,
+			Reason:     &reason,
+		},
+	}
+	_, err := req.RequestWith(ctx, client)
+	return err
+}
+
 func (c *KafkaConsumer) Run(ctx context.Context) error {
 	defer func() {
 		if c.client != nil {
+			leaveCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			err := c.leaveGroup(leaveCtx, c.client)
+			if err != nil {
+				c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error leaving consumer group", map[string]any{"error": err.Error()}))
+			}
 			c.client.CloseAllowingRebalance()
 		}
 	}()
@@ -132,26 +164,27 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			// PollRecords is strongly recommended when using
-			// BlockRebalanceOnPoll. You can tune how many records to
-			// process at once (upper bound -- could all be on one
-			// partition), ensuring that your processor loops complete fast
-			// enough to not block a rebalance too long.
+			// PollRecords is recommended when using BlockRebalanceOnPoll. You can tune how many records to
+			// Need to ensure that processor loop complete fast enough to not block a rebalance for too long.
 			fetches := c.client.PollRecords(ctx, 1000)
 			if fetches.IsClientClosed() {
 				return nil
 			}
-
 			fetchErrors := fetches.Errors()
 			if len(fetchErrors) > 0 {
-				// Non-retriable errors returned. We need to restart consumer.
-				for _, err := range fetchErrors {
-					if errors.Is(err.Err, context.Canceled) {
+				// Non-retriable errors returned. We will restart consumer client, but log errors first.
+				var errs []error
+				for _, fetchErr := range fetchErrors {
+					if errors.Is(fetchErr.Err, context.Canceled) {
 						return ctx.Err()
 					}
-					c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error while polling Kafka", map[string]any{"error": err.Err.Error(), "topic": err.Topic, "partition": err.Partition}))
+					errs = append(errs, fetchErr.Err)
+					c.logger.Log(centrifuge.NewLogEntry(
+						centrifuge.LogLevelError, "error while polling Kafka",
+						map[string]any{"error": fetchErr.Err.Error(), "topic": fetchErr.Topic, "partition": fetchErr.Partition}),
+					)
 				}
-				return fmt.Errorf("error fetching")
+				return fmt.Errorf("poll error: %w", errors.Join(errs...))
 			}
 
 			fetches.EachPartition(func(p kgo.FetchTopicPartition) {

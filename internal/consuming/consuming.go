@@ -38,7 +38,7 @@ type Logger interface {
 var consumerNamePattern = "^[-a-zA-Z0-9_.]{2,}$"
 var consumerNameRe = regexp.MustCompile(consumerNamePattern)
 
-func New(logger Logger, dispatcher Dispatcher, configs []ConsumerConfig) ([]service.Service, error) {
+func New(nodeID string, logger Logger, dispatcher Dispatcher, configs []ConsumerConfig) ([]service.Service, error) {
 	var services []service.Service
 	for _, config := range configs {
 		if !consumerNameRe.Match([]byte(config.Name)) {
@@ -58,7 +58,7 @@ func New(logger Logger, dispatcher Dispatcher, configs []ConsumerConfig) ([]serv
 			if !config.Enabled {
 				continue
 			}
-			consumer, err := NewKafkaConsumer(logger, dispatcher, *config.Kafka)
+			consumer, err := NewKafkaConsumer(nodeID, logger, dispatcher, *config.Kafka)
 			if err != nil {
 				return nil, fmt.Errorf("error initializing Kafka consumer: %w", err)
 			}

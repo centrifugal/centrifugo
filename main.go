@@ -633,7 +633,7 @@ func main() {
 			})
 
 			consumers := consumersFromConfig(viper.GetViper())
-			consumingServices, err := consuming.New(node, consumingHandler, consumers)
+			consumingServices, err := consuming.New(node.ID(), node, consumingHandler, consumers)
 			if err != nil {
 				log.Fatal().Msgf("error initializing consumers: %v", err)
 			}
