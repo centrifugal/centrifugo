@@ -100,8 +100,16 @@ func (h *Executor) processCmd(ctx context.Context, cmd *Command, i int, replies 
 	}
 }
 
+// batchRequestMaxConcurrency is applied for the parallel batch request.
+const batchRequestMaxConcurrency = 1024
+
 func (h *Executor) Batch(ctx context.Context, req *BatchRequest) *BatchResponse {
 	replies := make([]*Reply, len(req.Commands))
+
+	var sem chan struct{}
+	if req.Parallel {
+		sem = make(chan struct{}, batchRequestMaxConcurrency)
+	}
 
 	var wg sync.WaitGroup
 	for i, cmd := range req.Commands {
@@ -109,8 +117,10 @@ func (h *Executor) Batch(ctx context.Context, req *BatchRequest) *BatchResponse 
 		if !req.Parallel {
 			h.processCmd(ctx, cmd, i, replies)
 		} else {
+			sem <- struct{}{}
 			wg.Add(1)
 			go func(i int, cmd *Command) {
+				defer func() { <-sem }()
 				defer wg.Done()
 				h.processCmd(ctx, cmd, i, replies)
 			}(i, cmd)
@@ -194,6 +204,8 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 	return resp
 }
 
+const broadcastRequestMaxConcurrency = 1024
+
 // Broadcast publishes the same data into many channels.
 func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *BroadcastResponse {
 	defer observe(time.Now(), h.config.Protocol, "broadcast")
@@ -231,11 +243,15 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 		return resp
 	}
 
+	sem := make(chan struct{}, broadcastRequestMaxConcurrency)
+
 	responses := make([]*PublishResponse, len(channels))
 	var wg sync.WaitGroup
 	wg.Add(len(channels))
 	for i, ch := range channels {
+		sem <- struct{}{}
 		go func(i int, ch string) {
+			defer func() { <-sem }()
 			defer wg.Done()
 			if ch == "" {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "channel can not be blank in broadcast", nil))

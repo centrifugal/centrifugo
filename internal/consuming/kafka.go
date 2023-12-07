@@ -164,7 +164,7 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			// PollRecords is recommended when using BlockRebalanceOnPoll. You can tune how many records to
+			// PollRecords is recommended when using BlockRebalanceOnPoll.
 			// Need to ensure that processor loop complete fast enough to not block a rebalance for too long.
 			fetches := c.client.PollRecords(ctx, 1000)
 			if fetches.IsClientClosed() {
