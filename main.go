@@ -240,6 +240,8 @@ var defaults = map[string]any{
 	"tls_key_pem":              "",
 	"tls_root_ca":              "",
 	"tls_root_ca_pem":          "",
+	"tls_client_ca":            "",
+	"tls_client_ca_pem":        "",
 	"tls_server_name":          "",
 	"tls_insecure_skip_verify": false,
 
@@ -319,6 +321,8 @@ var defaults = map[string]any{
 	"grpc_api_tls_key_pem":              "",
 	"grpc_api_tls_root_ca":              "",
 	"grpc_api_tls_root_ca_pem":          "",
+	"grpc_api_tls_client_ca":            "",
+	"grpc_api_tls_client_ca_pem":        "",
 	"grpc_api_tls_server_name":          "",
 	"grpc_api_tls_insecure_skip_verify": false,
 
@@ -361,6 +365,8 @@ var defaults = map[string]any{
 	"uni_grpc_tls_key_pem":              "",
 	"uni_grpc_tls_root_ca":              "",
 	"uni_grpc_tls_root_ca_pem":          "",
+	"uni_grpc_tls_client_ca":            "",
+	"uni_grpc_tls_client_ca_pem":        "",
 	"uni_grpc_tls_server_name":          "",
 	"uni_grpc_tls_insecure_skip_verify": false,
 
@@ -424,6 +430,8 @@ func init() {
 			prefix + "redis_tls_key_pem":                       "",
 			prefix + "redis_tls_root_ca":                       "",
 			prefix + "redis_tls_root_ca_pem":                   "",
+			prefix + "redis_tls_client_ca":                     "",
+			prefix + "redis_tls_client_ca_pem":                 "",
 			prefix + "redis_tls_server_name":                   "",
 			prefix + "redis_tls_insecure_skip_verify":          false,
 			prefix + "redis_sentinel_tls":                      false,
@@ -433,6 +441,8 @@ func init() {
 			prefix + "redis_sentinel_tls_key_pem":              "",
 			prefix + "redis_sentinel_tls_root_ca":              "",
 			prefix + "redis_sentinel_tls_root_ca_pem":          "",
+			prefix + "redis_sentinel_tls_client_ca":            "",
+			prefix + "redis_sentinel_tls_client_ca_pem":        "",
 			prefix + "redis_sentinel_tls_server_name":          "",
 			prefix + "redis_sentinel_tls_insecure_skip_verify": false,
 		}
@@ -1380,18 +1390,18 @@ func getTLSConfig() (*tls.Config, error) {
 
 	} else if tlsEnabled {
 		// Autocert disabled - just try to use provided SSL cert and key files.
-		return tools.MakeTLSConfig(viper.GetViper(), "")
+		return tools.MakeTLSConfig(viper.GetViper(), "", os.ReadFile)
 	}
 
 	return nil, nil
 }
 
 func tlsConfigForGRPC() (*tls.Config, error) {
-	return tools.MakeTLSConfig(viper.GetViper(), "grpc_api_")
+	return tools.MakeTLSConfig(viper.GetViper(), "grpc_api_", os.ReadFile)
 }
 
 func tlsConfigForUniGRPC() (*tls.Config, error) {
-	return tools.MakeTLSConfig(viper.GetViper(), "uni_grpc_")
+	return tools.MakeTLSConfig(viper.GetViper(), "uni_grpc_", os.ReadFile)
 }
 
 type httpErrorLogWriter struct {
@@ -2529,7 +2539,7 @@ func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
 	shardConf.ClientName = viper.GetString("redis_client_name")
 
 	if viper.GetBool("redis_tls") {
-		tlsConfig, err := tools.MakeTLSConfig(viper.GetViper(), "redis_")
+		tlsConfig, err := tools.MakeTLSConfig(viper.GetViper(), "redis_", os.ReadFile)
 		if err != nil {
 			log.Fatal().Msgf("error creating Redis TLS config: %v", err)
 		}
@@ -2592,7 +2602,7 @@ func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, string, error) {
 			}
 			conf.SentinelClientName = viper.GetString("redis_sentinel_client_name")
 			if viper.GetBool("redis_sentinel_tls") {
-				tlsConfig, err := tools.MakeTLSConfig(viper.GetViper(), "redis_sentinel_")
+				tlsConfig, err := tools.MakeTLSConfig(viper.GetViper(), "redis_sentinel_", os.ReadFile)
 				if err != nil {
 					log.Fatal().Msgf("error creating Redis Sentinel TLS config: %v", err)
 				}
