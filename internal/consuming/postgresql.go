@@ -16,7 +16,27 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const (
+	defaultNumPartitions        = 1
+	defaultPartitionSelectLimit = 100
+)
+
 func NewPostgresConsumer(logger Logger, dispatcher Dispatcher, config PostgresConfig) (*PostgresConsumer, error) {
+	if config.DSN == "" {
+		return nil, errors.New("dsn is required")
+	}
+	if config.OutboxTableName == "" {
+		return nil, errors.New("outbox_table_name is required")
+	}
+	if config.NumPartitions == 0 {
+		config.NumPartitions = defaultNumPartitions
+	}
+	if config.PartitionSelectLimit == 0 {
+		config.PartitionSelectLimit = defaultPartitionSelectLimit
+	}
+	if time.Duration(config.PartitionPollInterval) == 0 {
+		config.PartitionPollInterval = tools.Duration(300 * time.Millisecond)
+	}
 	pool, err := pgxpool.New(context.Background(), config.DSN)
 	if err != nil {
 		return nil, err
@@ -38,8 +58,8 @@ func NewPostgresConsumer(logger Logger, dispatcher Dispatcher, config PostgresCo
 type PostgresConfig struct {
 	DSN                          string         `mapstructure:"dsn" json:"dsn"`
 	OutboxTableName              string         `mapstructure:"outbox_table_name" json:"outbox_table_name"`
-	SelectLimit                  int            `mapstructure:"select_limit" json:"select_limit"`
 	NumPartitions                int            `mapstructure:"num_partitions" json:"num_partitions"`
+	PartitionSelectLimit         int            `mapstructure:"partition_select_limit" json:"partition_select_limit"`
 	PartitionPollInterval        tools.Duration `mapstructure:"partition_poll_interval" json:"partition_poll_interval"`
 	PartitionNotificationChannel string         `mapstructure:"partition_notification_channel" json:"partition_notification_channel"`
 }
@@ -86,6 +106,7 @@ func (c *PostgresConsumer) listenForNotifications(ctx context.Context, triggerCh
 			c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error converting postgresql notification", map[string]any{"error": err.Error()}))
 			continue
 		}
+
 		if partition > len(triggerChannels)-1 {
 			continue
 		}
@@ -119,7 +140,7 @@ func (c *PostgresConsumer) processOnce(ctx context.Context, partition int) (int,
 	ORDER BY id ASC
 	LIMIT $2`
 
-	rows, err := tx.Query(ctx, fmt.Sprintf(sql, c.config.OutboxTableName), partition, c.config.SelectLimit)
+	rows, err := tx.Query(ctx, fmt.Sprintf(sql, c.config.OutboxTableName), partition, c.config.PartitionSelectLimit)
 	if err != nil {
 		return 0, fmt.Errorf("error selecting outbox events: %w", err)
 	}
@@ -212,9 +233,6 @@ func (c *PostgresConsumer) Run(ctx context.Context) error {
 	}
 
 	pollInterval := time.Duration(c.config.PartitionPollInterval)
-	if pollInterval == 0 {
-		pollInterval = 300 * time.Millisecond
-	}
 
 	for i := 0; i < c.config.NumPartitions; i++ {
 		i := i
@@ -244,7 +262,7 @@ func (c *PostgresConsumer) Run(ctx context.Context) error {
 				}
 				retries = 0
 				backoffDuration = 0
-				if numRows < c.config.SelectLimit {
+				if numRows < c.config.PartitionSelectLimit {
 					// Sleep until poll interval or notification for events in partition.
 					// If worker processed rows equal to the limit then we don't want to sleep
 					// here as there could be more events in the table potentially.

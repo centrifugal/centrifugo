@@ -127,7 +127,7 @@ func TestPostgresConsumer_GreenScenario(t *testing.T) {
 	config := PostgresConfig{
 		DSN:                          testPGDSN,
 		OutboxTableName:              testTableName,
-		SelectLimit:                  10,
+		PartitionSelectLimit:         10,
 		NumPartitions:                1,
 		PartitionPollInterval:        tools.Duration(300 * time.Millisecond),
 		PartitionNotificationChannel: testNotificationChannel,
@@ -179,7 +179,7 @@ func TestPostgresConsumer_SeveralConsumers(t *testing.T) {
 	config := PostgresConfig{
 		DSN:                          testPGDSN,
 		OutboxTableName:              testTableName,
-		SelectLimit:                  10,
+		PartitionSelectLimit:         10,
 		NumPartitions:                1,
 		PartitionPollInterval:        tools.Duration(300 * time.Millisecond),
 		PartitionNotificationChannel: testNotificationChannel,
@@ -239,7 +239,7 @@ func TestPostgresConsumer_NotificationTrigger(t *testing.T) {
 	config := PostgresConfig{
 		DSN:                          testPGDSN,
 		OutboxTableName:              testTableName,
-		SelectLimit:                  10,
+		PartitionSelectLimit:         1,
 		NumPartitions:                1,
 		PartitionPollInterval:        tools.Duration(300 * time.Hour), // Set a long poll interval
 		PartitionNotificationChannel: testNotificationChannel,
@@ -267,12 +267,14 @@ func TestPostgresConsumer_NotificationTrigger(t *testing.T) {
 	partition := 0
 
 	go func() {
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(200 * time.Millisecond):
-			err = insertEvent(ctx, consumer.pool, testTableName, testMethod, testPayload, partition)
-			require.NoError(t, err)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(200 * time.Millisecond):
+				err = insertEvent(ctx, consumer.pool, testTableName, testMethod, testPayload, partition)
+				require.NoError(t, err)
+			}
 		}
 	}()
 
@@ -303,7 +305,7 @@ func TestPostgresConsumer_DifferentPartitions(t *testing.T) {
 	config := PostgresConfig{
 		DSN:                          testPGDSN,
 		OutboxTableName:              testTableName,
-		SelectLimit:                  10,
+		PartitionSelectLimit:         10,
 		NumPartitions:                2,
 		PartitionPollInterval:        tools.Duration(300 * time.Hour), // Set a long poll interval
 		PartitionNotificationChannel: testNotificationChannel,

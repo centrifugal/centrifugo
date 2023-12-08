@@ -50,7 +50,7 @@ func New(nodeID string, logger Logger, dispatcher Dispatcher, configs []Consumer
 			}
 			consumer, err := NewPostgresConsumer(logger, dispatcher, *config.Postgres)
 			if err != nil {
-				return nil, fmt.Errorf("error initializing PostgreSQL consumer: %w", err)
+				return nil, fmt.Errorf("error initializing PostgreSQL consumer (%s): %w", config.Name, err)
 			}
 			log.Info().Str("consumer_name", config.Name).Msg("running consumer")
 			services = append(services, consumer)
@@ -60,7 +60,7 @@ func New(nodeID string, logger Logger, dispatcher Dispatcher, configs []Consumer
 			}
 			consumer, err := NewKafkaConsumer(nodeID, logger, dispatcher, *config.Kafka)
 			if err != nil {
-				return nil, fmt.Errorf("error initializing Kafka consumer: %w", err)
+				return nil, fmt.Errorf("error initializing Kafka consumer (%s): %w", config.Name, err)
 			}
 			log.Info().Str("consumer_name", config.Name).Msg("running consumer")
 			services = append(services, consumer)

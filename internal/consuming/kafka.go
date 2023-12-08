@@ -64,6 +64,15 @@ type KafkaJSONEvent struct {
 }
 
 func NewKafkaConsumer(nodeID string, logger Logger, dispatcher Dispatcher, config KafkaConfig) (*KafkaConsumer, error) {
+	if len(config.Brokers) == 0 {
+		return nil, errors.New("brokers required")
+	}
+	if len(config.Topics) == 0 {
+		return nil, errors.New("topics required")
+	}
+	if len(config.ConsumerGroup) == 0 {
+		return nil, errors.New("consumer_group required")
+	}
 	consumer := &KafkaConsumer{
 		nodeID:     nodeID,
 		logger:     logger,
