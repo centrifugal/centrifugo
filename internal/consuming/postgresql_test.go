@@ -265,13 +265,21 @@ func TestPostgresConsumer_NotificationTrigger(t *testing.T) {
 	}()
 
 	partition := 0
-	err = insertEvent(ctx, consumer.pool, testTableName, testMethod, testPayload, partition)
-	require.NoError(t, err)
-	waitCh(t, eventsReceived, 30*time.Second, "timeout waiting for event 1")
 
-	err = insertEvent(ctx, consumer.pool, testTableName, testMethod, testPayload, partition)
-	require.NoError(t, err)
+	go func() {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(200 * time.Millisecond):
+			err = insertEvent(ctx, consumer.pool, testTableName, testMethod, testPayload, partition)
+			require.NoError(t, err)
+		}
+	}()
+
+	waitCh(t, eventsReceived, 30*time.Second, "timeout waiting for event 1")
 	waitCh(t, eventsReceived, 30*time.Second, "timeout waiting for event 2")
+	waitCh(t, eventsReceived, 30*time.Second, "timeout waiting for event 3")
+
 	cancel()
 	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
 }
