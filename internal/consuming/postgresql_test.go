@@ -132,7 +132,7 @@ func TestPostgresConsumer_GreenScenario(t *testing.T) {
 		PartitionPollInterval:        tools.Duration(300 * time.Millisecond),
 		PartitionNotificationChannel: testNotificationChannel,
 	}
-	consumer, err := NewPostgresConsumer(&MockLogger{}, &MockDispatcher{
+	consumer, err := NewPostgresConsumer("test", &MockLogger{}, &MockDispatcher{
 		onDispatch: func(ctx context.Context, method string, data []byte) error {
 			require.Equal(t, testMethod, method)
 			require.Equal(t, testPayload, data)
@@ -188,7 +188,7 @@ func TestPostgresConsumer_SeveralConsumers(t *testing.T) {
 	var pool *pgxpool.Pool
 
 	for i := 0; i < 10; i++ {
-		consumer, err := NewPostgresConsumer(&MockLogger{}, &MockDispatcher{
+		consumer, err := NewPostgresConsumer("test", &MockLogger{}, &MockDispatcher{
 			onDispatch: func(ctx context.Context, method string, data []byte) error {
 				require.Equal(t, testMethod, method)
 				require.Equal(t, testPayload, data)
@@ -247,7 +247,7 @@ func TestPostgresConsumer_NotificationTrigger(t *testing.T) {
 
 	numEvents := 0
 
-	consumer, err := NewPostgresConsumer(&MockLogger{}, &MockDispatcher{
+	consumer, err := NewPostgresConsumer("test", &MockLogger{}, &MockDispatcher{
 		onDispatch: func(ctx context.Context, method string, data []byte) error {
 			require.Equal(t, testMethod, method)
 			require.Equal(t, testPayload, data)
@@ -313,7 +313,7 @@ func TestPostgresConsumer_DifferentPartitions(t *testing.T) {
 
 	numEvents := 0
 
-	consumer, err := NewPostgresConsumer(&MockLogger{}, &MockDispatcher{
+	consumer, err := NewPostgresConsumer("test", &MockLogger{}, &MockDispatcher{
 		onDispatch: func(ctx context.Context, method string, data []byte) error {
 			require.Equal(t, testMethod, method)
 			require.Equal(t, testPayload, data)

@@ -2,21 +2,35 @@ package consuming
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"os"
 	"sync"
 	"time"
+
+	"github.com/centrifugal/centrifugo/v5/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/twmb/franz-go/pkg/sasl/plain"
 )
 
 type KafkaConfig struct {
 	Brokers       []string `mapstructure:"brokers" json:"brokers"`
 	Topics        []string `mapstructure:"topics" json:"topics"`
 	ConsumerGroup string   `mapstructure:"consumer_group" json:"consumer_group"`
+
+	TLS              bool `mapstructure:"tls" json:"tls"`
+	tools.TLSOptions `mapstructure:",squash"`
+
+	// SASLMechanism is not empty enables SASL auth. For now, Centrifugo only supports "plain".
+	SASLMechanism string `mapstructure:"sasl_mechanism" json:"sasl_mechanism"`
+	SASLUser      string `mapstructure:"sasl_user" json:"sasl_user"`
+	SASLPassword  string `mapstructure:"sasl_password" json:"sasl_password"`
 }
 
 type topicPartition struct {
@@ -25,6 +39,7 @@ type topicPartition struct {
 }
 
 type KafkaConsumer struct {
+	name       string
 	client     *kgo.Client
 	nodeID     string
 	logger     Logger
@@ -63,7 +78,7 @@ type KafkaJSONEvent struct {
 	Payload JSONRawOrString `json:"payload"`
 }
 
-func NewKafkaConsumer(nodeID string, logger Logger, dispatcher Dispatcher, config KafkaConfig) (*KafkaConsumer, error) {
+func NewKafkaConsumer(name string, nodeID string, logger Logger, dispatcher Dispatcher, config KafkaConfig) (*KafkaConsumer, error) {
 	if len(config.Brokers) == 0 {
 		return nil, errors.New("brokers required")
 	}
@@ -74,6 +89,7 @@ func NewKafkaConsumer(nodeID string, logger Logger, dispatcher Dispatcher, confi
 		return nil, errors.New("consumer_group required")
 	}
 	consumer := &KafkaConsumer{
+		name:       name,
 		nodeID:     nodeID,
 		logger:     logger,
 		dispatcher: dispatcher,
@@ -95,7 +111,7 @@ func (c *KafkaConsumer) getInstanceID() string {
 }
 
 func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
-	client, err := kgo.NewClient(
+	opts := []kgo.Opt{
 		kgo.SeedBrokers(c.config.Brokers...),
 		kgo.ConsumeTopics(c.config.Topics...),
 		kgo.ConsumerGroup(c.config.ConsumerGroup),
@@ -106,7 +122,34 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 		kgo.BlockRebalanceOnPoll(),
 		kgo.ClientID(kafkaClientID),
 		kgo.InstanceID(c.getInstanceID()),
-	)
+	}
+	if c.config.TLS {
+		tlsOptionsMap, err := c.config.TLSOptions.ToMap()
+		if err != nil {
+			return nil, fmt.Errorf("error in TLS configuration: %w", err)
+		}
+		tlsConfig, err := tools.MakeTLSConfig(tlsOptionsMap, "", os.ReadFile)
+		if err != nil {
+			return nil, fmt.Errorf("error making TLS configuration: %w", err)
+		}
+		dialer := &tls.Dialer{
+			NetDialer: &net.Dialer{Timeout: 10 * time.Second},
+			Config:    tlsConfig,
+		}
+		opts = append(opts, kgo.Dialer(dialer.DialContext))
+	}
+
+	if c.config.SASLMechanism != "" {
+		if c.config.SASLMechanism != "plain" {
+			return nil, fmt.Errorf("only plain SASL auth mechanism is supported")
+		}
+		opts = append(opts, kgo.SASL(plain.Auth{
+			User: c.config.SASLUser,
+			Pass: c.config.SASLPassword,
+		}.AsMechanism()))
+	}
+
+	client, err := kgo.NewClient(opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error initializing client: %w", err)
 	}

@@ -120,7 +120,7 @@ func TestKafkaConsumer_GreenScenario(t *testing.T) {
 	eventReceived := make(chan struct{})
 	consumerClosed := make(chan struct{})
 
-	consumer, err := NewKafkaConsumer(uuid.NewString(), &MockLogger{}, &MockDispatcher{
+	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, &MockDispatcher{
 		onDispatch: func(ctx context.Context, method string, data []byte) error {
 			require.Equal(t, testMethod, method)
 			require.Equal(t, testPayload, data)
@@ -171,7 +171,7 @@ func TestKafkaConsumer_SeveralConsumers(t *testing.T) {
 	consumerClosed := make(chan struct{})
 
 	for i := 0; i < 3; i++ {
-		consumer, err := NewKafkaConsumer(uuid.NewString(), &MockLogger{}, &MockDispatcher{
+		consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, &MockDispatcher{
 			onDispatch: func(ctx context.Context, method string, data []byte) error {
 				require.Equal(t, testMethod, method)
 				require.Equal(t, testPayload, data)
@@ -237,7 +237,7 @@ func TestKafkaConsumer_RetryAfterDispatchError(t *testing.T) {
 			return nil
 		},
 	}
-	consumer, err := NewKafkaConsumer(uuid.NewString(), &MockLogger{}, mockDispatcher, config)
+	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config)
 	require.NoError(t, err)
 
 	go func() {

@@ -21,7 +21,7 @@ const (
 	defaultPartitionSelectLimit = 100
 )
 
-func NewPostgresConsumer(logger Logger, dispatcher Dispatcher, config PostgresConfig) (*PostgresConsumer, error) {
+func NewPostgresConsumer(name string, logger Logger, dispatcher Dispatcher, config PostgresConfig) (*PostgresConsumer, error) {
 	if config.DSN == "" {
 		return nil, errors.New("dsn is required")
 	}
@@ -48,6 +48,7 @@ func NewPostgresConsumer(logger Logger, dispatcher Dispatcher, config PostgresCo
 		return nil, err
 	}
 	return &PostgresConsumer{
+		name:       name,
 		pool:       pool,
 		logger:     logger,
 		dispatcher: dispatcher,
@@ -65,6 +66,7 @@ type PostgresConfig struct {
 }
 
 type PostgresConsumer struct {
+	name       string
 	pool       *pgxpool.Pool
 	logger     Logger
 	config     PostgresConfig

@@ -3,7 +3,10 @@ package consuming
 import (
 	"context"
 	"fmt"
+	"os"
 	"regexp"
+	"slices"
+	"strings"
 
 	"github.com/centrifugal/centrifugo/v5/internal/service"
 
@@ -19,11 +22,16 @@ const (
 )
 
 type ConsumerConfig struct {
-	Name     string          `mapstructure:"name" json:"name"`
-	Type     ConsumerType    `mapstructure:"type" json:"type"`
-	Enabled  bool            `mapstructure:"enabled" json:"enabled"`
+	// Name is a unique name required for each consumer.
+	Name string `mapstructure:"name" json:"name"`
+	// Enabled must be true to tell Centrifugo to run the consumer.
+	Enabled bool `mapstructure:"enabled" json:"enabled"`
+	// Type describes the type of consumer.
+	Type ConsumerType `mapstructure:"type" json:"type"`
+	// Postgres allows defining options for consumer of postgresql type.
 	Postgres *PostgresConfig `mapstructure:"postgresql" json:"postgresql,omitempty"`
-	Kafka    *KafkaConfig    `mapstructure:"kafka" json:"kafka,omitempty"`
+	// Kafka allows defining options for consumer of kafka type.
+	Kafka *KafkaConfig `mapstructure:"kafka" json:"kafka,omitempty"`
 }
 
 type Dispatcher interface {
@@ -35,20 +43,32 @@ type Logger interface {
 	Log(node centrifuge.LogEntry)
 }
 
-var consumerNamePattern = "^[-a-zA-Z0-9_.]{2,}$"
+var consumerNamePattern = "^[a-zA-Z0-9-_]{2,}$"
 var consumerNameRe = regexp.MustCompile(consumerNamePattern)
 
 func New(nodeID string, logger Logger, dispatcher Dispatcher, configs []ConsumerConfig) ([]service.Service, error) {
 	var services []service.Service
+	var names []string
 	for _, config := range configs {
 		if !consumerNameRe.Match([]byte(config.Name)) {
 			log.Fatal().Msgf("invalid consumer name: %s, must match %s regular expression", config.Name, consumerNamePattern)
 		}
+		if slices.Contains(names, config.Name) {
+			log.Fatal().Msgf("invalid consumer name: %s, must be unique", config.Name)
+		}
+		names = append(names, config.Name)
 		if config.Type == ConsumerTypePostgres {
 			if !config.Enabled { // Important to keep this check inside specific type for proper config validation.
 				continue
 			}
-			consumer, err := NewPostgresConsumer(logger, dispatcher, *config.Postgres)
+			if config.Postgres == nil {
+				config.Postgres = &PostgresConfig{}
+			}
+			dsn := os.Getenv("CENTRIFUGO_CONSUMERS_POSTGRESQL_" + strings.ToUpper(config.Name) + "_DSN")
+			if dsn != "" {
+				config.Postgres.DSN = dsn
+			}
+			consumer, err := NewPostgresConsumer(config.Name, logger, dispatcher, *config.Postgres)
 			if err != nil {
 				return nil, fmt.Errorf("error initializing PostgreSQL consumer (%s): %w", config.Name, err)
 			}
@@ -58,7 +78,22 @@ func New(nodeID string, logger Logger, dispatcher Dispatcher, configs []Consumer
 			if !config.Enabled {
 				continue
 			}
-			consumer, err := NewKafkaConsumer(nodeID, logger, dispatcher, *config.Kafka)
+			if config.Kafka == nil {
+				config.Kafka = &KafkaConfig{}
+			}
+			brokers := os.Getenv("CENTRIFUGO_CONSUMERS_KAFKA_" + strings.ToUpper(config.Name) + "_BROKERS")
+			if brokers != "" {
+				config.Kafka.Brokers = strings.Split(brokers, " ")
+			}
+			saslUser := os.Getenv("CENTRIFUGO_CONSUMERS_KAFKA_" + strings.ToUpper(config.Name) + "_SASL_USER")
+			if saslUser != "" {
+				config.Kafka.SASLUser = saslUser
+			}
+			saslPassword := os.Getenv("CENTRIFUGO_CONSUMERS_KAFKA_" + strings.ToUpper(config.Name) + "_SASL_PASSWORD")
+			if saslPassword != "" {
+				config.Kafka.SASLPassword = saslPassword
+			}
+			consumer, err := NewKafkaConsumer(config.Name, nodeID, logger, dispatcher, *config.Kafka)
 			if err != nil {
 				return nil, fmt.Errorf("error initializing Kafka consumer (%s): %w", config.Name, err)
 			}
