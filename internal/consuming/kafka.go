@@ -24,10 +24,12 @@ type KafkaConfig struct {
 	Topics        []string `mapstructure:"topics" json:"topics"`
 	ConsumerGroup string   `mapstructure:"consumer_group" json:"consumer_group"`
 
+	// TLS may be enabled, and mTLS auth may be configured.
 	TLS              bool `mapstructure:"tls" json:"tls"`
 	tools.TLSOptions `mapstructure:",squash"`
 
-	// SASLMechanism is not empty enables SASL auth. For now, Centrifugo only supports "plain".
+	// SASLMechanism when not empty enables SASL auth. For now, Centrifugo only
+	// supports "plain" SASL mechanism.
 	SASLMechanism string `mapstructure:"sasl_mechanism" json:"sasl_mechanism"`
 	SASLUser      string `mapstructure:"sasl_user" json:"sasl_user"`
 	SASLPassword  string `mapstructure:"sasl_password" json:"sasl_password"`
@@ -49,6 +51,9 @@ type KafkaConsumer struct {
 	doneCh     chan struct{}
 }
 
+// JSONRawOrString can decode payload from bytes and from JSON string. This gives
+// us better interoperability. For example, JSONB field is encoded as JSON string in
+// Debezium PostgreSQL connector.
 type JSONRawOrString json.RawMessage
 
 func (j *JSONRawOrString) UnmarshalJSON(data []byte) error {
@@ -186,9 +191,10 @@ func (c *KafkaConsumer) Run(ctx context.Context) error {
 			closeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 			// The reason we make CommitMarkedOffsets here is because franz-go does not send
-			// LeaveGroup request when instanceID is used. So we have to commit what we have
-			// at this point, and doneCh is closed. This allows partition consumers to not call
-			// CommitMarkedOffsets on revoke and getting "UNKNOWN_MEMBER_ID" error (as group left).
+			// LeaveGroup request when instanceID is used. So we leave manually. But we have
+			// to commit what we have at this point. The closed doneCh then allows partition
+			// consumers to skip calling CommitMarkedOffsets on revoke. Otherwise, we get
+			// "UNKNOWN_MEMBER_ID" error (since group already left).
 			if err := c.client.CommitMarkedOffsets(closeCtx); err != nil {
 				c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "commit marked offsets error on shutdown", map[string]any{"error": err.Error()}))
 			}
