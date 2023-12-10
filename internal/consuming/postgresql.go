@@ -99,9 +99,8 @@ func (c *PostgresConsumer) listenForNotifications(ctx context.Context, triggerCh
 			case <-ctx.Done():
 				return ctx.Err()
 			default:
+				return fmt.Errorf("error waiting postgresql notifications: %w", err)
 			}
-			c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error waiting postgresql notifications", map[string]any{"error": err.Error()}))
-			continue
 		}
 		partition, err := strconv.Atoi(notification.Payload)
 		if err != nil {
@@ -110,6 +109,7 @@ func (c *PostgresConsumer) listenForNotifications(ctx context.Context, triggerCh
 		}
 
 		if partition > len(triggerChannels)-1 {
+			c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "outbox partition is larger than configured number", map[string]any{"partition": partition}))
 			continue
 		}
 		select {
@@ -225,7 +225,7 @@ func (c *PostgresConsumer) Run(ctx context.Context) error {
 					}
 					c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error listening outbox notifications", map[string]any{"error": err.Error()}))
 					select {
-					case <-time.After(500 * time.Millisecond):
+					case <-time.After(time.Second):
 					case <-ctx.Done():
 						return ctx.Err()
 					}

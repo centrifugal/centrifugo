@@ -46,6 +46,7 @@ type KafkaConsumer struct {
 	dispatcher Dispatcher
 	config     KafkaConfig
 	consumers  map[topicPartition]*partitionConsumer
+	doneCh     chan struct{}
 }
 
 type JSONRawOrString json.RawMessage
@@ -95,6 +96,7 @@ func NewKafkaConsumer(name string, nodeID string, logger Logger, dispatcher Disp
 		dispatcher: dispatcher,
 		config:     config,
 		consumers:  make(map[topicPartition]*partitionConsumer),
+		doneCh:     make(chan struct{}),
 	}
 	cl, err := consumer.initClient()
 	if err != nil {
@@ -179,10 +181,18 @@ func (c *KafkaConsumer) leaveGroup(ctx context.Context, client *kgo.Client) erro
 
 func (c *KafkaConsumer) Run(ctx context.Context) error {
 	defer func() {
+		close(c.doneCh)
 		if c.client != nil {
-			leaveCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			closeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
-			err := c.leaveGroup(leaveCtx, c.client)
+			// The reason we make CommitMarkedOffsets here is because franz-go does not send
+			// LeaveGroup request when instanceID is used. So we have to commit what we have
+			// at this point, and doneCh is closed. This allows partition consumers to not call
+			// CommitMarkedOffsets on revoke and getting "UNKNOWN_MEMBER_ID" error (as group left).
+			if err := c.client.CommitMarkedOffsets(closeCtx); err != nil {
+				c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "commit marked offsets error on shutdown", map[string]any{"error": err.Error()}))
+			}
+			err := c.leaveGroup(closeCtx, c.client)
 			if err != nil {
 				c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error leaving consumer group", map[string]any{"error": err.Error()}))
 			}
@@ -313,8 +323,13 @@ func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned m
 
 func (c *KafkaConsumer) revoked(ctx context.Context, cl *kgo.Client, revoked map[string][]int32) {
 	c.killConsumers(revoked)
-	if err := cl.CommitMarkedOffsets(ctx); err != nil {
-		c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "revoke commit error", map[string]any{"error": err.Error()}))
+	select {
+	case <-c.doneCh:
+		// Do not try to CommitMarkedOffsets since on shutdown we call it manually.
+	default:
+		if err := cl.CommitMarkedOffsets(ctx); err != nil {
+			c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "commit error on revoked partitions", map[string]any{"error": err.Error()}))
+		}
 	}
 }
 
