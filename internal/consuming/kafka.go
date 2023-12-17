@@ -234,7 +234,7 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 		default:
 			// PollRecords is recommended when using BlockRebalanceOnPoll.
 			// Need to ensure that processor loop complete fast enough to not block a rebalance for too long.
-			fetches := c.client.PollRecords(ctx, 1000)
+			fetches := c.client.PollRecords(ctx, 10)
 			if fetches.IsClientClosed() {
 				return nil
 			}
@@ -404,12 +404,14 @@ func (pc *partitionConsumer) consume() {
 				var backoffDuration time.Duration = 0
 				retries := 0
 				for {
+					started := time.Now()
 					err := pc.dispatcher.Dispatch(pc.clientCtx, e.Method, e.Payload)
 					if err == nil {
 						if retries > 0 {
 							pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "OK processing events after errors", map[string]any{}))
 						}
 						pc.cl.MarkCommitRecords(record)
+						fmt.Println(time.Since(started))
 						break
 					}
 					retries++
