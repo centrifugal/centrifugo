@@ -1,0 +1,71 @@
+[87710] 2023/12/17 19:28:51.405947 [INF] Starting nats-server
+[87710] 2023/12/17 19:28:51.406135 [INF]   Version:  2.10.7
+[87710] 2023/12/17 19:28:51.406144 [INF]   Git:      [not set]
+[87710] 2023/12/17 19:28:51.406158 [INF]   Cluster:  UWI9WEzBn4xm5gyd9ZSktC
+[87710] 2023/12/17 19:28:51.406172 [INF]   Name:     ND2ZHQ46MTEVJHDUZEO3MQCM5JTVWYAEVAROW2R4J4IHKBQXZUP6DMRD
+[87710] 2023/12/17 19:28:51.406179 [INF]   ID:       ND2ZHQ46MTEVJHDUZEO3MQCM5JTVWYAEVAROW2R4J4IHKBQXZUP6DMRD
+[87710] 2023/12/17 19:28:51.406668 [INF] Listening for client connections on 0.0.0.0:4222
+[87710] 2023/12/17 19:28:51.406979 [INF] Server is ready
+[87710] 2023/12/17 19:28:51.407007 [INF] Cluster name is UWI9WEzBn4xm5gyd9ZSktC
+[87710] 2023/12/17 19:28:51.407024 [WRN] Cluster name was dynamically generated, consider setting one
+[87710] 2023/12/17 19:28:51.408420 [INF] Listening for route connections on localhost:5222
+[87710] 2023/12/17 19:28:51.410179 [INF] 127.0.0.1:54446 - rid:5 - Route connection created
+[87710] 2023/12/17 19:28:51.410573 [INF] Cluster name updated to itmrNYJQdiN5HCcdfeu3zh
+[87710] 2023/12/17 19:28:51.410595 [INF] 127.0.0.1:54446 - rid:5 - Router connection closed: Client Closed
+[87710] 2023/12/17 19:28:52.414809 [INF] 127.0.0.1:54458 - rid:6 - Route connection created
+[87710] 2023/12/17 19:28:52.414877 [INF] 127.0.0.1:54457 - rid:7 - Route connection created
+[87710] 2023/12/17 19:28:52.415331 [INF] Cluster name updated to tFQzV0Ejii3gethOTLKG9d
+[87710] 2023/12/17 19:28:52.415444 [INF] 127.0.0.1:54458 - rid:6 - Router connection closed: Client Closed
+[87710] 2023/12/17 19:28:52.415558 [INF] 127.0.0.1:54457 - rid:7 - Router connection closed: Cluster Name Conflict
+[87710] 2023/12/17 19:28:52.506952 [INF] 127.0.0.1:54463 - rid:9 - Route connection created
+[87710] 2023/12/17 19:28:52.507145 [ERR] 127.0.0.1:54463 - rid:9 - Rejecting connection, cluster name "itmrNYJQdiN5HCcdfeu3zh" does not match "tFQzV0Ejii3gethOTLKG9d"
+[87710] 2023/12/17 19:28:52.507177 [INF] 127.0.0.1:54463 - rid:9 - Router connection closed: Cluster Name Conflict
+[87710] 2023/12/17 19:28:52.507199 [ERR] 127.0.0.1:54463 - rid:9 - cluster name from remote server conflicts
+[87710] 2023/12/17 19:28:52.575928 [INF] 127.0.0.1:54466 - rid:10 - Route connection created
+[87710] 2023/12/17 19:28:53.414829 [INF] 127.0.0.1:54472 - rid:11 - Route connection created
+[87710] 2023/12/17 19:28:53.415443 [INF] 127.0.0.1:54473 - rid:12 - Route connection created
+[87710] 2023/12/17 19:28:53.416788 [INF] 127.0.0.1:54475 - rid:13 - Route connection created
+[87710] 2023/12/17 19:28:53.416969 [ERR] 127.0.0.1:54472 - rid:11 - Rejecting connection, cluster name "7w65shM6dwgya1ZcoR24kk" does not match "tFQzV0Ejii3gethOTLKG9d"
+[87710] 2023/12/17 19:28:53.416991 [INF] 127.0.0.1:54472 - rid:11 - Router connection closed: Cluster Name Conflict
+[87710] 2023/12/17 19:28:53.417024 [ERR] 127.0.0.1:54472 - rid:11 - cluster name from remote server conflicts
+[87710] 2023/12/17 19:28:53.417125 [ERR] 127.0.0.1:54473 - rid:12 - Rejecting connection, cluster name "jH1MN2uJUNY5qdozZpjNmR" does not match "tFQzV0Ejii3gethOTLKG9d"
+[87710] 2023/12/17 19:28:53.417142 [INF] 127.0.0.1:54473 - rid:12 - Router connection closed: Cluster Name Conflict
+[87710] 2023/12/17 19:28:53.417154 [ERR] 127.0.0.1:54473 - rid:12 - cluster name from remote server conflicts
+[87710] 2023/12/17 19:28:53.431789 [INF] 127.0.0.1:54477 - rid:14 - Route connection created
+[87710] 2023/12/17 19:28:53.490480 [INF] 127.0.0.1:54480 - rid:15 - Route connection created
+[87710] 2023/12/17 19:28:53.507078 [INF] 127.0.0.1:54482 - rid:16 - Route connection created
+[87710] 2023/12/17 19:28:53.555756 [INF] 127.0.0.1:54488 - rid:17 - Route connection created
+[87710] 2023/12/17 19:28:53.560134 [INF] 127.0.0.1:54489 - rid:18 - Route connection created
+[87710] 2023/12/17 19:28:53.576172 [INF] 127.0.0.1:54492 - rid:19 - Route connection created
+[87710] 2023/12/17 19:28:53.576533 [INF] 127.0.0.1:54492 - rid:19 - Router connection closed: Client Closed
+[87710] 2023/12/17 19:28:53.600855 [INF] 127.0.0.1:54495 - rid:20 - Route connection created
+[87710] 2023/12/17 19:28:53.601174 [INF] 127.0.0.1:54495 - rid:20 - Router connection closed: Client Closed
+[87710] 2023/12/17 19:28:54.490384 [INF] 127.0.0.1:54513 - rid:21 - Route connection created
+[87710] 2023/12/17 19:28:54.494664 [INF] 127.0.0.1:5224 - rid:22 - Route connection created
+[87710] 2023/12/17 19:28:54.498144 [INF] 127.0.0.1:54519 - rid:23 - Route connection created
+[87710] 2023/12/17 19:28:54.546316 [INF] 127.0.0.1:54520 - rid:24 - Route connection created
+[87710] 2023/12/17 19:28:55.450422 [INF] 127.0.0.1:54530 - rid:25 - Route connection created
+[87710] 2023/12/17 19:28:55.500071 [INF] 127.0.0.1:54539 - rid:26 - Route connection created
+[87710] 2023/12/17 19:28:55.501414 [INF] 127.0.0.1:54539 - rid:26 - Router connection closed: Duplicate Route
+[87710] 2023/12/17 19:28:55.676367 [INF] 127.0.0.1:54540 - rid:27 - Route connection created
+[87710] 2023/12/17 19:28:56.460083 [INF] 127.0.0.1:54545 - rid:28 - Route connection created
+[87710] 2023/12/17 19:28:56.528047 [INF] 127.0.0.1:54550 - rid:29 - Route connection created
+[87710] 2023/12/17 19:28:57.551982 [INF] 127.0.0.1:54561 - rid:30 - Route connection created
+[87710] 2023/12/17 19:30:44.671094 [INF] Initiating Shutdown...
+[87710] 2023/12/17 19:30:44.680311 [INF] 127.0.0.1:54519 - rid:23 - Router connection closed: Server Shutdown
+[87710] 2023/12/17 19:30:44.680417 [INF] 127.0.0.1:54520 - rid:24 - Router connection closed: Server Shutdown
+[87710] 2023/12/17 19:30:44.680441 [INF] 127.0.0.1:54489 - rid:18 - Router connection closed: Server Shutdown
+[87710] 2023/12/17 19:30:44.680476 [INF] 127.0.0.1:54550 - rid:29 - Router connection closed: Server Shutdown
+[87710] 2023/12/17 19:30:44.680489 [INF] 127.0.0.1:54475 - rid:13 - Router connection closed: Server Shutdown
+[87710] 2023/12/17 19:30:44.680505 [INF] 127.0.0.1:54482 - rid:16 - Router connection closed: Server Shutdown
+[87710] 2023/12/17 19:30:44.680517 [INF] 127.0.0.1:54480 - rid:15 - Router connection closed: Server Shutdown
+[87710] 2023/12/17 19:30:44.680527 [INF] 127.0.0.1:54488 - rid:17 - Router connection closed: Server Shutdown
+[87710] 2023/12/17 19:30:44.680540 [INF] 127.0.0.1:54561 - rid:30 - Router connection closed: Server Shutdown
+[87710] 2023/12/17 19:30:44.680558 [INF] 127.0.0.1:54513 - rid:21 - Router connection closed: Server Shutdown
+[87710] 2023/12/17 19:30:44.680578 [INF] 127.0.0.1:54530 - rid:25 - Router connection closed: Server Shutdown
+[87710] 2023/12/17 19:30:44.680588 [INF] 127.0.0.1:54466 - rid:10 - Router connection closed: Server Shutdown
+[87710] 2023/12/17 19:30:44.680627 [INF] 127.0.0.1:54477 - rid:14 - Router connection closed: Server Shutdown
+[87710] 2023/12/17 19:30:44.680639 [INF] 127.0.0.1:54540 - rid:27 - Router connection closed: Server Shutdown
+[87710] 2023/12/17 19:30:44.680701 [INF] 127.0.0.1:54545 - rid:28 - Router connection closed: Server Shutdown
+[87710] 2023/12/17 19:30:44.680713 [INF] 127.0.0.1:5224 - rid:22 - Router connection closed: Server Shutdown
+[87710] 2023/12/17 19:30:44.683290 [INF] Server Exiting..

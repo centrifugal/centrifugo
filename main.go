@@ -34,6 +34,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v5/internal/redisnatsbroker"
+
 	"github.com/centrifugal/centrifugo/v5/internal/admin"
 	"github.com/centrifugal/centrifugo/v5/internal/api"
 	"github.com/centrifugal/centrifugo/v5/internal/build"
@@ -575,7 +577,7 @@ func main() {
 			}
 
 			brokerName := viper.GetString("broker")
-			if brokerName != "" && brokerName != "nats" {
+			if brokerName != "" && (brokerName != "nats" && brokerName != "redisnats") {
 				log.Fatal().Msgf("unknown broker: %s", brokerName)
 			}
 
@@ -679,6 +681,25 @@ func main() {
 					log.Fatal().Msgf("Error creating broker: %v", err)
 				}
 				node.SetBroker(broker)
+			} else if brokerName == "redisnats" {
+				redisBroker, ok := broker.(*centrifuge.RedisBroker)
+				if !ok {
+					log.Fatal().Msg("redisnats broker requires redis engine configured")
+				}
+				natsBroker, err := natsbroker.New(node, natsbroker.Config{
+					URL:          viper.GetString("nats_url"),
+					Prefix:       viper.GetString("nats_prefix"),
+					DialTimeout:  GetDuration("nats_dial_timeout"),
+					WriteTimeout: GetDuration("nats_write_timeout"),
+				})
+				if err != nil {
+					log.Fatal().Msgf("Error creating Nats broker: %v", err)
+				}
+				redisNatsBroker, err := redisnatsbroker.New(natsBroker, redisBroker)
+				if err != nil {
+					log.Fatal().Msgf("Error creating Redis+Nats broker: %v", err)
+				}
+				node.SetBroker(redisNatsBroker)
 			}
 
 			if err = node.Run(); err != nil {
@@ -2657,9 +2678,10 @@ func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMana
 	}
 
 	broker, err := centrifuge.NewRedisBroker(n, centrifuge.RedisBrokerConfig{
-		Shards:   redisShards,
-		Prefix:   viper.GetString("redis_prefix"),
-		UseLists: viper.GetBool("redis_use_lists"),
+		Shards:     redisShards,
+		Prefix:     viper.GetString("redis_prefix"),
+		UseLists:   viper.GetBool("redis_use_lists"),
+		SkipPubSub: viper.GetString("broker") == "redisnats",
 	})
 	if err != nil {
 		return nil, nil, "", err

@@ -101,10 +101,10 @@ func isUnsupportedChannel(ch string) bool {
 }
 
 // Publish - see Broker interface description.
-func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOptions) (centrifuge.StreamPosition, error) {
+func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOptions) (centrifuge.StreamPosition, bool, error) {
 	if isUnsupportedChannel(ch) {
 		// Do not support wildcard subscriptions.
-		return centrifuge.StreamPosition{}, centrifuge.ErrorBadRequest
+		return centrifuge.StreamPosition{}, false, centrifuge.ErrorBadRequest
 	}
 	push := &protocol.Push{
 		Channel: ch,
@@ -116,9 +116,33 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 	}
 	byteMessage, err := push.MarshalVT()
 	if err != nil {
-		return centrifuge.StreamPosition{}, err
+		return centrifuge.StreamPosition{}, false, err
 	}
-	return centrifuge.StreamPosition{}, b.nc.Publish(string(b.clientChannel(ch)), byteMessage)
+	return centrifuge.StreamPosition{}, false, b.nc.Publish(string(b.clientChannel(ch)), byteMessage)
+}
+
+func (b *NatsBroker) PublishWithStreamPosition(ch string, data []byte, opts centrifuge.PublishOptions, sp *centrifuge.StreamPosition) error {
+	if isUnsupportedChannel(ch) {
+		// Do not support wildcard subscriptions.
+		return centrifuge.ErrorBadRequest
+	}
+	push := &protocol.Push{
+		Channel: ch,
+		Pub: &protocol.Publication{
+			Data: data,
+			Info: infoToProto(opts.ClientInfo),
+			Tags: opts.Tags,
+		},
+		StreamPosition: &protocol.StreamPosition{
+			Offset: sp.Offset,
+			Epoch:  sp.Epoch,
+		},
+	}
+	byteMessage, err := push.MarshalVT()
+	if err != nil {
+		return err
+	}
+	return b.nc.Publish(string(b.clientChannel(ch)), byteMessage)
 }
 
 // PublishJoin - see Broker interface description.
@@ -173,6 +197,7 @@ func (b *NatsBroker) RemoveHistory(_ string) error {
 }
 
 func (b *NatsBroker) handleClientMessage(data []byte) {
+	println(string(data))
 	var push protocol.Push
 	err := push.UnmarshalVT(data)
 	if err != nil {
@@ -180,7 +205,12 @@ func (b *NatsBroker) handleClientMessage(data []byte) {
 		return
 	}
 	if push.Pub != nil {
-		_ = b.eventHandler.HandlePublication(push.Channel, pubFromProto(push.Pub), centrifuge.StreamPosition{})
+		sp := centrifuge.StreamPosition{}
+		if push.StreamPosition != nil {
+			sp.Offset = push.StreamPosition.Offset
+			sp.Epoch = push.StreamPosition.Epoch
+		}
+		_ = b.eventHandler.HandlePublication(push.Channel, pubFromProto(push.Pub), sp)
 	} else if push.Join != nil {
 		_ = b.eventHandler.HandleJoin(push.Channel, infoFromProto(push.Join.Info))
 	} else if push.Leave != nil {
