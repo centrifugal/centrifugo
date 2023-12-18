@@ -32,7 +32,7 @@ start_nats_cluster() {
     local log_file="$log_dir/nats_node_${port}.log"
 
     # Start a NATS server
-    nats-server --port "$port" --cluster nats://localhost:"$cluster_port" \
+    nats-server --port "$port" --config server.conf --cluster nats://localhost:"$cluster_port" \
                 --routes nats://localhost:"$cluster_port_base" \
                 > "$log_file" 2>&1 &
     nats_pids[i]=$!

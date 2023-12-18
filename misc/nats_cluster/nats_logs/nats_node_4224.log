@@ -1,59 +1,31 @@
-[87712] 2023/12/17 19:28:51.398358 [INF] Starting nats-server
-[87712] 2023/12/17 19:28:51.398620 [INF]   Version:  2.10.7
-[87712] 2023/12/17 19:28:51.398634 [INF]   Git:      [not set]
-[87712] 2023/12/17 19:28:51.398644 [INF]   Cluster:  jH1MN2uJUNY5qdozZpjNmR
-[87712] 2023/12/17 19:28:51.398652 [INF]   Name:     NA4N2IAIUSVGTKLDHQLN5P3VBHEH7VVJDORW4Z3MIY36HORSMUW4Q3BP
-[87712] 2023/12/17 19:28:51.398660 [INF]   ID:       NA4N2IAIUSVGTKLDHQLN5P3VBHEH7VVJDORW4Z3MIY36HORSMUW4Q3BP
-[87712] 2023/12/17 19:28:51.399226 [INF] Listening for client connections on 0.0.0.0:4224
-[87712] 2023/12/17 19:28:51.399600 [INF] Server is ready
-[87712] 2023/12/17 19:28:51.399718 [INF] Cluster name is jH1MN2uJUNY5qdozZpjNmR
-[87712] 2023/12/17 19:28:51.399733 [WRN] Cluster name was dynamically generated, consider setting one
-[87712] 2023/12/17 19:28:51.403057 [INF] Listening for route connections on localhost:5224
-[87712] 2023/12/17 19:28:51.404809 [ERR] Error trying to connect to route (attempt 1): dial tcp [::1]:5222: connect: connection refused
-[87712] 2023/12/17 19:28:51.404857 [ERR] Error trying to connect to route (attempt 1): dial tcp 127.0.0.1:5222: connect: connection refused
-[87712] 2023/12/17 19:28:53.415707 [INF] 127.0.0.1:5222 - rid:6 - Route connection created
-[87712] 2023/12/17 19:28:53.415964 [INF] Cluster name updated to tFQzV0Ejii3gethOTLKG9d
-[87712] 2023/12/17 19:28:53.418173 [ERR] 127.0.0.1:5222 - rid:6 - Route Error 'Rejecting connection, cluster name "jH1MN2uJUNY5qdozZpjNmR" does not match "tFQzV0Ejii3gethOTLKG9d"'
-[87712] 2023/12/17 19:28:53.418227 [INF] 127.0.0.1:5222 - rid:6 - Router connection closed: Parse Error
-[87712] 2023/12/17 19:28:53.431788 [INF] 127.0.0.1:5222 - rid:7 - Route connection created
-[87712] 2023/12/17 19:28:53.432412 [INF] 127.0.0.1:54478 - rid:8 - Route connection created
-[87712] 2023/12/17 19:28:53.496633 [ERR] Error trying to connect to route (attempt 1): dial tcp [::1]:5222: connect: connection refused
-[87712] 2023/12/17 19:28:53.508664 [INF] 127.0.0.1:5225 - rid:9 - Route connection created
-[87712] 2023/12/17 19:28:53.513886 [INF] 127.0.0.1:5225 - rid:10 - Route connection created
-[87712] 2023/12/17 19:28:53.526771 [INF] 127.0.0.1:54486 - rid:11 - Route connection created
-[87712] 2023/12/17 19:28:53.572252 [INF] 127.0.0.1:5225 - rid:12 - Route connection created
-[87712] 2023/12/17 19:28:53.588898 [INF] 127.0.0.1:5225 - rid:13 - Route connection created
-[87712] 2023/12/17 19:28:53.589144 [INF] 127.0.0.1:5225 - rid:13 - Router connection closed: Duplicate Route
-[87712] 2023/12/17 19:28:53.593656 [INF] 127.0.0.1:54494 - rid:14 - Route connection created
-[87712] 2023/12/17 19:28:54.491749 [INF] 127.0.0.1:5226 - rid:15 - Route connection created
-[87712] 2023/12/17 19:28:54.494011 [INF] 127.0.0.1:54516 - rid:16 - Route connection created
-[87712] 2023/12/17 19:28:54.494422 [INF] 127.0.0.1:54515 - rid:17 - Route connection created
-[87712] 2023/12/17 19:28:54.496114 [INF] 127.0.0.1:54517 - rid:18 - Route connection created
-[87712] 2023/12/17 19:28:54.496382 [INF] 127.0.0.1:54517 - rid:18 - Router connection closed: Duplicate Route
-[87712] 2023/12/17 19:28:54.497679 [ERR] Error trying to connect to route (attempt 1): dial tcp [::1]:5222: connect: connection refused
-[87712] 2023/12/17 19:28:54.498035 [INF] 127.0.0.1:5222 - rid:19 - Route connection created
-[87712] 2023/12/17 19:28:54.546279 [INF] 127.0.0.1:5222 - rid:20 - Route connection created
-[87712] 2023/12/17 19:28:55.452840 [INF] 127.0.0.1:5223 - rid:21 - Route connection created
-[87712] 2023/12/17 19:28:55.500729 [INF] 127.0.0.1:5222 - rid:22 - Route connection created
-[87712] 2023/12/17 19:28:55.500986 [INF] 127.0.0.1:5222 - rid:22 - Router connection closed: Duplicate Route
-[87712] 2023/12/17 19:28:56.468909 [INF] 127.0.0.1:5223 - rid:23 - Route connection created
-[87712] 2023/12/17 19:28:56.539909 [INF] 127.0.0.1:5223 - rid:24 - Route connection created
-[87712] 2023/12/17 19:28:56.630815 [INF] 127.0.0.1:5223 - rid:25 - Route connection created
-[87712] 2023/12/17 19:30:44.670463 [INF] Initiating Shutdown...
-[87712] 2023/12/17 19:30:44.679987 [INF] 127.0.0.1:54516 - rid:16 - Router connection closed: Server Shutdown
-[87712] 2023/12/17 19:30:44.680804 [INF] 127.0.0.1:5222 - rid:7 - Router connection closed: Server Shutdown
-[87712] 2023/12/17 19:30:44.680873 [INF] 127.0.0.1:5222 - rid:19 - Router connection closed: Server Shutdown
-[87712] 2023/12/17 19:30:44.680891 [INF] 127.0.0.1:5222 - rid:20 - Router connection closed: Server Shutdown
-[87712] 2023/12/17 19:30:44.680907 [INF] 127.0.0.1:54486 - rid:11 - Router connection closed: Server Shutdown
-[87712] 2023/12/17 19:30:44.680920 [INF] 127.0.0.1:5225 - rid:9 - Router connection closed: Server Shutdown
-[87712] 2023/12/17 19:30:44.680935 [INF] 127.0.0.1:5223 - rid:25 - Router connection closed: Server Shutdown
-[87712] 2023/12/17 19:30:44.680950 [INF] 127.0.0.1:5223 - rid:21 - Router connection closed: Server Shutdown
-[87712] 2023/12/17 19:30:44.680958 [INF] 127.0.0.1:5226 - rid:15 - Router connection closed: Server Shutdown
-[87712] 2023/12/17 19:30:44.680965 [INF] 127.0.0.1:54515 - rid:17 - Router connection closed: Server Shutdown
-[87712] 2023/12/17 19:30:44.680977 [INF] 127.0.0.1:54478 - rid:8 - Router connection closed: Server Shutdown
-[87712] 2023/12/17 19:30:44.680988 [INF] 127.0.0.1:54494 - rid:14 - Router connection closed: Server Shutdown
-[87712] 2023/12/17 19:30:44.680996 [INF] 127.0.0.1:5225 - rid:10 - Router connection closed: Server Shutdown
-[87712] 2023/12/17 19:30:44.681002 [INF] 127.0.0.1:5225 - rid:12 - Router connection closed: Server Shutdown
-[87712] 2023/12/17 19:30:44.681010 [INF] 127.0.0.1:5223 - rid:23 - Router connection closed: Server Shutdown
-[87712] 2023/12/17 19:30:44.681016 [INF] 127.0.0.1:5223 - rid:24 - Router connection closed: Server Shutdown
-[87712] 2023/12/17 19:30:44.683215 [INF] Server Exiting..
+[97051] 2023/12/18 05:57:28.816295 [INF] Starting nats-server
+[97051] 2023/12/18 05:57:28.816542 [INF]   Version:  2.10.7
+[97051] 2023/12/18 05:57:28.816553 [INF]   Git:      [not set]
+[97051] 2023/12/18 05:57:28.816560 [INF]   Cluster:  ML97iT1FzE2gah3lIeLo7e
+[97051] 2023/12/18 05:57:28.816569 [INF]   Name:     NBIS2GGNKDFV6CAOVDAAX27BEKH7P5HHTYIFO37LBSV6WUAECAMNGS7E
+[97051] 2023/12/18 05:57:28.816575 [INF]   ID:       NBIS2GGNKDFV6CAOVDAAX27BEKH7P5HHTYIFO37LBSV6WUAECAMNGS7E
+[97051] 2023/12/18 05:57:28.816583 [WRN] Plaintext passwords detected, use nkeys or bcrypt
+[97051] 2023/12/18 05:57:28.816600 [INF] Using configuration file: server.conf
+[97051] 2023/12/18 05:57:28.817193 [INF] Listening for client connections on 0.0.0.0:4224
+[97051] 2023/12/18 05:57:28.818843 [INF] Server is ready
+[97051] 2023/12/18 05:57:28.818935 [INF] Cluster name is ML97iT1FzE2gah3lIeLo7e
+[97051] 2023/12/18 05:57:28.818947 [WRN] Cluster name was dynamically generated, consider setting one
+[97051] 2023/12/18 05:57:28.820493 [INF] Listening for route connections on localhost:5224
+[97051] 2023/12/18 05:57:28.821285 [ERR] Error trying to connect to route (attempt 1): dial tcp [::1]:5222: connect: connection refused
+[97051] 2023/12/18 05:57:28.821845 [INF] 127.0.0.1:5222 - rid:5 - Route connection created
+[97051] 2023/12/18 05:57:28.822175 [INF] 127.0.0.1:5222 - rid:5 - Router connection closed: Cluster Name Conflict
+[97051] 2023/12/18 05:57:29.844972 [INF] 127.0.0.1:5222 - rid:7 - Route connection created
+[97051] 2023/12/18 05:57:29.845581 [INF] Cluster name updated to kYyL0c1FNPu7D6g1jU3nW9
+[97051] 2023/12/18 05:57:29.845962 [ERR] 127.0.0.1:5222 - rid:7 - Route Error 'Rejecting connection, cluster name "ML97iT1FzE2gah3lIeLo7e" does not match "kYyL0c1FNPu7D6g1jU3nW9"'
+[97051] 2023/12/18 05:57:29.845981 [INF] 127.0.0.1:5222 - rid:7 - Router connection closed: Parse Error
+[97051] 2023/12/18 05:57:30.923555 [ERR] Error trying to connect to route (attempt 1): dial tcp [::1]:5222: connect: connection refused
+[97051] 2023/12/18 05:57:31.839132 [INF] 127.0.0.1:5222 - rid:9 - Route connection created
+[97051] 2023/12/18 05:57:31.842545 [INF] 127.0.0.1:56103 - rid:10 - Route connection created
+[97051] 2023/12/18 05:57:31.854641 [INF] 127.0.0.1:5222 - rid:11 - Route connection created
+[97051] 2023/12/18 05:57:31.907668 [INF] 127.0.0.1:5222 - rid:12 - Route connection created
+[97051] 2023/12/18 05:57:31.917985 [INF] 127.0.0.1:56106 - rid:13 - Route connection created
+[97051] 2023/12/18 05:57:31.927346 [ERR] Error trying to connect to route (attempt 2): dial tcp [::1]:5222: connect: connection refused
+[97051] 2023/12/18 05:57:31.931165 [INF] 127.0.0.1:56109 - rid:14 - Route connection created
+[97051] 2023/12/18 05:57:32.931022 [ERR] Error trying to connect to route (attempt 3): dial tcp [::1]:5222: connect: connection refused
+[97051] 2023/12/18 05:57:33.935575 [INF] 127.0.0.1:5222 - rid:15 - Route connection created
+[97051] 2023/12/18 05:57:33.937623 [INF] 127.0.0.1:56124 - rid:16 - Route connection created
