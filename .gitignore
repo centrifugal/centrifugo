@@ -16,7 +16,9 @@ docs/site
 internal/ultra
 misc/clickhouse_cluster/clickhouse*
 misc/clickhouse_cluster/zookeeper
+misc/redis_instances/redis_data
 misc/redis_cluster/cluster_data
+misc/nats_cluster/nats_logs
 vendor/
 *.orig
 tmp/

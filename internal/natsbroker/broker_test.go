@@ -27,7 +27,7 @@ func BenchmarkNatsEnginePublish(b *testing.B) {
 	rawData := []byte(`{"bench": true}`)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := broker.Publish("channel", rawData, centrifuge.PublishOptions{})
+		_, _, err := broker.Publish("channel", rawData, centrifuge.PublishOptions{})
 		if err != nil {
 			panic(err)
 		}
@@ -41,7 +41,7 @@ func BenchmarkNatsEnginePublishParallel(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err := broker.Publish("channel", rawData, centrifuge.PublishOptions{})
+			_, _, err := broker.Publish("channel", rawData, centrifuge.PublishOptions{})
 			if err != nil {
 				panic(err)
 			}
