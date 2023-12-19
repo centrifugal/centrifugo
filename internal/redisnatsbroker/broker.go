@@ -26,7 +26,7 @@ func (b *Broker) Publish(ch string, data []byte, opts centrifuge.PublishOptions)
 	if fromCache {
 		return sp, true, nil
 	}
-	_, _, _ = b.NatsBroker.Publish(ch, data, opts)
+	_ = b.NatsBroker.PublishWithStreamPosition(ch, data, opts, sp)
 	return sp, fromCache, nil
 }
 

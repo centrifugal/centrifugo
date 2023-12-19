@@ -121,7 +121,7 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 	return centrifuge.StreamPosition{}, false, b.nc.Publish(string(b.clientChannel(ch)), byteMessage)
 }
 
-func (b *NatsBroker) PublishWithStreamPosition(ch string, data []byte, opts centrifuge.PublishOptions, sp *centrifuge.StreamPosition) error {
+func (b *NatsBroker) PublishWithStreamPosition(ch string, data []byte, opts centrifuge.PublishOptions, sp centrifuge.StreamPosition) error {
 	if isUnsupportedChannel(ch) {
 		// Do not support wildcard subscriptions.
 		return centrifuge.ErrorBadRequest
@@ -129,9 +129,10 @@ func (b *NatsBroker) PublishWithStreamPosition(ch string, data []byte, opts cent
 	push := &protocol.Push{
 		Channel: ch,
 		Pub: &protocol.Publication{
-			Data: data,
-			Info: infoToProto(opts.ClientInfo),
-			Tags: opts.Tags,
+			Offset: sp.Offset,
+			Data:   data,
+			Info:   infoToProto(opts.ClientInfo),
+			Tags:   opts.Tags,
 		},
 		StreamPosition: &protocol.StreamPosition{
 			Offset: sp.Offset,
@@ -197,7 +198,6 @@ func (b *NatsBroker) RemoveHistory(_ string) error {
 }
 
 func (b *NatsBroker) handleClientMessage(data []byte) {
-	println(string(data))
 	var push protocol.Push
 	err := push.UnmarshalVT(data)
 	if err != nil {

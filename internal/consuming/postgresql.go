@@ -41,7 +41,7 @@ func NewPostgresConsumer(name string, logger Logger, dispatcher Dispatcher, conf
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	err = pool.Ping(ctx)
 	if err != nil {
@@ -53,6 +53,7 @@ func NewPostgresConsumer(name string, logger Logger, dispatcher Dispatcher, conf
 		logger:     logger,
 		dispatcher: dispatcher,
 		config:     config,
+		lockPrefix: "centrifugo_partition_lock_" + name,
 	}, nil
 }
 
@@ -71,6 +72,7 @@ type PostgresConsumer struct {
 	logger     Logger
 	config     PostgresConfig
 	dispatcher Dispatcher
+	lockPrefix string
 }
 
 type PostgresEvent struct {
@@ -128,7 +130,7 @@ func (c *PostgresConsumer) processOnce(ctx context.Context, partition int) (int,
 
 	// Acquire an advisory lock for partition. This allows us to process all the rows
 	// from partition in order.
-	lockName := strconv.Itoa(partition)
+	lockName := c.lockPrefix + strconv.Itoa(partition)
 	_, err = tx.Exec(ctx, "SELECT pg_advisory_xact_lock(hashtext($1))", lockName)
 	if err != nil {
 		return 0, fmt.Errorf("unable to acquire advisory lock: %w", err)

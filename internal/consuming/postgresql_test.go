@@ -166,7 +166,7 @@ func TestPostgresConsumer_SeveralConsumers(t *testing.T) {
 	testMethod := "method"
 	testPayload := []byte(`{"key":"value"}`)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	err := setupTestTable(ctx, testTableName, testNotificationChannel)
@@ -175,7 +175,6 @@ func TestPostgresConsumer_SeveralConsumers(t *testing.T) {
 	eventReceived := make(chan struct{})
 	consumerClosed := make(chan struct{})
 
-	// Setup consumer
 	config := PostgresConfig{
 		DSN:                          testPGDSN,
 		OutboxTableName:              testTableName,
@@ -187,7 +186,9 @@ func TestPostgresConsumer_SeveralConsumers(t *testing.T) {
 
 	var pool *pgxpool.Pool
 
-	for i := 0; i < 10; i++ {
+	numConsumers := 10
+
+	for i := 0; i < numConsumers; i++ {
 		consumer, err := NewPostgresConsumer("test", &MockLogger{}, &MockDispatcher{
 			onDispatch: func(ctx context.Context, method string, data []byte) error {
 				require.Equal(t, testMethod, method)
@@ -200,7 +201,6 @@ func TestPostgresConsumer_SeveralConsumers(t *testing.T) {
 
 		pool = consumer.pool
 
-		// Start the consumer
 		go func() {
 			err := consumer.Run(ctx)
 			require.ErrorIs(t, err, context.Canceled)
@@ -215,9 +215,9 @@ func TestPostgresConsumer_SeveralConsumers(t *testing.T) {
 	waitCh(t, eventReceived, 30*time.Second, "timeout waiting for event")
 	ensureEventsRemoved(ctx, t, testTableName, partition)
 	cancel()
-	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
-	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
-	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
+	for i := 0; i < numConsumers; i++ {
+		waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
+	}
 }
 
 func TestPostgresConsumer_NotificationTrigger(t *testing.T) {
@@ -307,7 +307,7 @@ func TestPostgresConsumer_DifferentPartitions(t *testing.T) {
 		OutboxTableName:              testTableName,
 		PartitionSelectLimit:         10,
 		NumPartitions:                2,
-		PartitionPollInterval:        tools.Duration(300 * time.Hour), // Set a long poll interval
+		PartitionPollInterval:        tools.Duration(100 * time.Millisecond),
 		PartitionNotificationChannel: testNotificationChannel,
 	}
 
