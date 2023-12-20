@@ -34,8 +34,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/redisnatsbroker"
-
 	"github.com/centrifugal/centrifugo/v5/internal/admin"
 	"github.com/centrifugal/centrifugo/v5/internal/api"
 	"github.com/centrifugal/centrifugo/v5/internal/build"
@@ -52,6 +50,7 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/notify"
 	"github.com/centrifugal/centrifugo/v5/internal/origin"
 	"github.com/centrifugal/centrifugo/v5/internal/proxy"
+	"github.com/centrifugal/centrifugo/v5/internal/redisnatsbroker"
 	"github.com/centrifugal/centrifugo/v5/internal/rule"
 	"github.com/centrifugal/centrifugo/v5/internal/service"
 	"github.com/centrifugal/centrifugo/v5/internal/survey"
@@ -577,7 +576,7 @@ func main() {
 			}
 
 			brokerName := viper.GetString("broker")
-			if brokerName != "" && (brokerName != "nats" && brokerName != "redisnats") {
+			if brokerName != "" && (brokerName != "nats" && brokerName != "experimental_redisnats") {
 				log.Fatal().Msgf("unknown broker: %s", brokerName)
 			}
 
@@ -681,7 +680,7 @@ func main() {
 					log.Fatal().Msgf("Error creating broker: %v", err)
 				}
 				node.SetBroker(broker)
-			} else if brokerName == "redisnats" {
+			} else if brokerName == "experimental_redisnats" {
 				redisBroker, ok := broker.(*centrifuge.RedisBroker)
 				if !ok {
 					log.Fatal().Msg("redisnats broker requires redis engine configured")
@@ -2681,7 +2680,7 @@ func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMana
 		Shards:     redisShards,
 		Prefix:     viper.GetString("redis_prefix"),
 		UseLists:   viper.GetBool("redis_use_lists"),
-		SkipPubSub: viper.GetString("broker") == "redisnats",
+		SkipPubSub: viper.GetString("broker") == "experimental_redisnats",
 	})
 	if err != nil {
 		return nil, nil, "", err

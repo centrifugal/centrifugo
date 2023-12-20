@@ -96,13 +96,13 @@ func (b *NatsBroker) Close(_ context.Context) error {
 	return nil
 }
 
-func isUnsupportedChannel(ch string) bool {
+func IsUnsupportedChannel(ch string) bool {
 	return strings.Contains(ch, "*") || strings.Contains(ch, ">")
 }
 
 // Publish - see Broker interface description.
 func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOptions) (centrifuge.StreamPosition, bool, error) {
-	if isUnsupportedChannel(ch) {
+	if IsUnsupportedChannel(ch) {
 		// Do not support wildcard subscriptions.
 		return centrifuge.StreamPosition{}, false, centrifuge.ErrorBadRequest
 	}
@@ -122,7 +122,7 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 }
 
 func (b *NatsBroker) PublishWithStreamPosition(ch string, data []byte, opts centrifuge.PublishOptions, sp centrifuge.StreamPosition) error {
-	if isUnsupportedChannel(ch) {
+	if IsUnsupportedChannel(ch) {
 		// Do not support wildcard subscriptions.
 		return centrifuge.ErrorBadRequest
 	}
@@ -230,7 +230,7 @@ func (b *NatsBroker) handleControl(m *nats.Msg) {
 
 // Subscribe - see Broker interface description.
 func (b *NatsBroker) Subscribe(ch string) error {
-	if isUnsupportedChannel(ch) {
+	if IsUnsupportedChannel(ch) {
 		// Do not support wildcard subscriptions.
 		return centrifuge.ErrorBadRequest
 	}
