@@ -12,6 +12,7 @@ import (
 // can't guarantee message ordering and stable behavior of clients with auto recovery on. The
 // benefit is more efficient fan-in in Nats PUB/SUB. Also, this allows scaling Redis Cluster
 // without PUB/SUB scalability restrictions.
+// This is EXPERIMENTAL.
 type Broker struct {
 	*natsbroker.NatsBroker
 	redis *centrifuge.RedisBroker

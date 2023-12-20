@@ -576,7 +576,7 @@ func main() {
 			}
 
 			brokerName := viper.GetString("broker")
-			if brokerName != "" && (brokerName != "nats" && brokerName != "experimental_redisnats") {
+			if brokerName != "" && (brokerName != "nats" && brokerName != "redisnats") {
 				log.Fatal().Msgf("unknown broker: %s", brokerName)
 			}
 
@@ -680,7 +680,7 @@ func main() {
 					log.Fatal().Msgf("Error creating broker: %v", err)
 				}
 				node.SetBroker(broker)
-			} else if brokerName == "experimental_redisnats" {
+			} else if brokerName == "redisnats" {
 				redisBroker, ok := broker.(*centrifuge.RedisBroker)
 				if !ok {
 					log.Fatal().Msg("redisnats broker requires redis engine configured")
@@ -2680,7 +2680,7 @@ func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMana
 		Shards:     redisShards,
 		Prefix:     viper.GetString("redis_prefix"),
 		UseLists:   viper.GetBool("redis_use_lists"),
-		SkipPubSub: viper.GetString("broker") == "experimental_redisnats",
+		SkipPubSub: viper.GetString("broker") == "redisnats",
 	})
 	if err != nil {
 		return nil, nil, "", err
