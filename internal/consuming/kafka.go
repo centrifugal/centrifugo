@@ -20,9 +20,10 @@ import (
 )
 
 type KafkaConfig struct {
-	Brokers       []string `mapstructure:"brokers" json:"brokers"`
-	Topics        []string `mapstructure:"topics" json:"topics"`
-	ConsumerGroup string   `mapstructure:"consumer_group" json:"consumer_group"`
+	Brokers        []string `mapstructure:"brokers" json:"brokers"`
+	Topics         []string `mapstructure:"topics" json:"topics"`
+	ConsumerGroup  string   `mapstructure:"consumer_group" json:"consumer_group"`
+	MaxPollRecords int      `mapstructure:"max_poll_records" json:"max_poll_records"`
 
 	// TLS may be enabled, and mTLS auth may be configured.
 	TLS              bool `mapstructure:"tls" json:"tls"`
@@ -93,6 +94,9 @@ func NewKafkaConsumer(name string, nodeID string, logger Logger, dispatcher Disp
 	}
 	if len(config.ConsumerGroup) == 0 {
 		return nil, errors.New("consumer_group required")
+	}
+	if config.MaxPollRecords == 0 {
+		config.MaxPollRecords = 100
 	}
 	consumer := &KafkaConsumer{
 		name:       name,
@@ -234,7 +238,7 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 		default:
 			// PollRecords is recommended when using BlockRebalanceOnPoll.
 			// Need to ensure that processor loop complete fast enough to not block a rebalance for too long.
-			fetches := c.client.PollRecords(ctx, 10)
+			fetches := c.client.PollRecords(ctx, c.config.MaxPollRecords)
 			if fetches.IsClientClosed() {
 				return nil
 			}

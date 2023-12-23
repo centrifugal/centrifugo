@@ -121,22 +121,26 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 	return centrifuge.StreamPosition{}, false, b.nc.Publish(string(b.clientChannel(ch)), byteMessage)
 }
 
+// We experimentally support attaching epoch to publication.
+const epochTagsKey = "__centrifugo_epoch"
+
 func (b *NatsBroker) PublishWithStreamPosition(ch string, data []byte, opts centrifuge.PublishOptions, sp centrifuge.StreamPosition) error {
 	if IsUnsupportedChannel(ch) {
 		// Do not support wildcard subscriptions.
 		return centrifuge.ErrorBadRequest
 	}
+	tags := opts.Tags
+	if tags == nil {
+		tags = map[string]string{}
+	}
+	tags[epochTagsKey] = sp.Epoch
 	push := &protocol.Push{
 		Channel: ch,
 		Pub: &protocol.Publication{
 			Offset: sp.Offset,
 			Data:   data,
 			Info:   infoToProto(opts.ClientInfo),
-			Tags:   opts.Tags,
-		},
-		StreamPosition: &protocol.StreamPosition{
-			Offset: sp.Offset,
-			Epoch:  sp.Epoch,
+			Tags:   tags,
 		},
 	}
 	byteMessage, err := push.MarshalVT()
@@ -206,9 +210,9 @@ func (b *NatsBroker) handleClientMessage(data []byte) {
 	}
 	if push.Pub != nil {
 		sp := centrifuge.StreamPosition{}
-		if push.StreamPosition != nil {
-			sp.Offset = push.StreamPosition.Offset
-			sp.Epoch = push.StreamPosition.Epoch
+		if push.Pub.Offset > 0 && push.Pub.Tags != nil {
+			sp.Offset = push.Pub.Offset
+			sp.Epoch = push.Pub.Tags[epochTagsKey]
 		}
 		_ = b.eventHandler.HandlePublication(push.Channel, pubFromProto(push.Pub), sp)
 	} else if push.Join != nil {

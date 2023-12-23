@@ -34,6 +34,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v5/internal/redisnatsbroker"
+
 	"github.com/centrifugal/centrifugo/v5/internal/admin"
 	"github.com/centrifugal/centrifugo/v5/internal/api"
 	"github.com/centrifugal/centrifugo/v5/internal/build"
@@ -50,7 +52,6 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/notify"
 	"github.com/centrifugal/centrifugo/v5/internal/origin"
 	"github.com/centrifugal/centrifugo/v5/internal/proxy"
-	"github.com/centrifugal/centrifugo/v5/internal/redisnatsbroker"
 	"github.com/centrifugal/centrifugo/v5/internal/rule"
 	"github.com/centrifugal/centrifugo/v5/internal/service"
 	"github.com/centrifugal/centrifugo/v5/internal/survey"
@@ -399,6 +400,8 @@ var defaults = map[string]any{
 	"proxy_grpc_credentials_key":   "",
 	"proxy_grpc_credentials_value": "",
 
+	"enable_unreleased_features": false,
+
 	"consumers": []any{},
 }
 
@@ -576,7 +579,7 @@ func main() {
 			}
 
 			brokerName := viper.GetString("broker")
-			if brokerName != "" && (brokerName != "nats" && brokerName != "redisnats") {
+			if brokerName != "" && brokerName != "nats" {
 				log.Fatal().Msgf("unknown broker: %s", brokerName)
 			}
 
@@ -591,11 +594,51 @@ func main() {
 				broker, presenceManager, engineMode, err = redisEngine(node)
 			} else if engineName == "tarantool" {
 				broker, presenceManager, engineMode, err = tarantoolEngine(node)
+			} else if engineName == "redisnats" {
+				if !viper.GetBool("enable_unreleased_features") {
+					log.Fatal().Msg("redisnats engine requires enable_unreleased_features on")
+				}
+				var natsBroker *natsbroker.NatsBroker
+				var redisBroker *centrifuge.RedisBroker
+				redisBroker, presenceManager, engineMode, err = redisEngine(node)
+				if err != nil {
+					log.Fatal().Msgf("error creating redis engine: %v", err)
+				}
+				natsBroker, err = initNatsBroker(node)
+				if err != nil {
+					log.Fatal().Msgf("error creating nats broker: %v", err)
+				}
+				broker, err = redisnatsbroker.New(natsBroker, redisBroker)
 			} else {
 				log.Fatal().Msgf("unknown engine: %s", engineName)
 			}
 			if err != nil {
 				log.Fatal().Msgf("error creating engine: %v", err)
+			}
+			node.SetBroker(broker)
+			node.SetPresenceManager(presenceManager)
+
+			if !configFound {
+				log.Warn().Msg("config file not found")
+			}
+
+			var disableHistoryPresence bool
+			if engineName == "memory" && brokerName == "nats" {
+				// Presence and History won't work with Memory engine in distributed case.
+				disableHistoryPresence = true
+				node.SetPresenceManager(nil)
+			}
+
+			if disableHistoryPresence {
+				log.Warn().Msgf("presence, history and recovery disabled with Memory engine and Nats broker")
+			}
+
+			if brokerName == "nats" {
+				broker, err = initNatsBroker(node)
+				if err != nil {
+					log.Fatal().Msgf("error creating broker: %v", err)
+				}
+				node.SetBroker(broker)
 			}
 
 			tokenVerifier, err := jwtverify.NewTokenVerifierJWT(jwtVerifierConfig(), ruleContainer)
@@ -650,56 +693,6 @@ func main() {
 			}
 
 			services = append(services, consumingServices...)
-
-			node.SetBroker(broker)
-			node.SetPresenceManager(presenceManager)
-
-			var disableHistoryPresence bool
-			if engineName == "memory" && brokerName == "nats" {
-				// Presence and History won't work with Memory engine in distributed case.
-				disableHistoryPresence = true
-				node.SetPresenceManager(nil)
-			}
-
-			if disableHistoryPresence {
-				log.Warn().Msgf("presence, history and recovery disabled with Memory engine and Nats broker")
-			}
-
-			if !configFound {
-				log.Warn().Msg("config file not found")
-			}
-
-			if brokerName == "nats" {
-				broker, err := natsbroker.New(node, natsbroker.Config{
-					URL:          viper.GetString("nats_url"),
-					Prefix:       viper.GetString("nats_prefix"),
-					DialTimeout:  GetDuration("nats_dial_timeout"),
-					WriteTimeout: GetDuration("nats_write_timeout"),
-				})
-				if err != nil {
-					log.Fatal().Msgf("Error creating broker: %v", err)
-				}
-				node.SetBroker(broker)
-			} else if brokerName == "redisnats" {
-				redisBroker, ok := broker.(*centrifuge.RedisBroker)
-				if !ok {
-					log.Fatal().Msg("redisnats broker requires redis engine configured")
-				}
-				natsBroker, err := natsbroker.New(node, natsbroker.Config{
-					URL:          viper.GetString("nats_url"),
-					Prefix:       viper.GetString("nats_prefix"),
-					DialTimeout:  GetDuration("nats_dial_timeout"),
-					WriteTimeout: GetDuration("nats_write_timeout"),
-				})
-				if err != nil {
-					log.Fatal().Msgf("Error creating Nats broker: %v", err)
-				}
-				redisNatsBroker, err := redisnatsbroker.New(natsBroker, redisBroker)
-				if err != nil {
-					log.Fatal().Msgf("Error creating Redis+Nats broker: %v", err)
-				}
-				node.SetBroker(redisNatsBroker)
-			}
 
 			if err = node.Run(); err != nil {
 				log.Fatal().Msgf("error running node: %v", err)
@@ -2670,7 +2663,16 @@ func getRedisShards(n *centrifuge.Node) ([]*centrifuge.RedisShard, string, error
 	return redisShards, mode, nil
 }
 
-func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceManager, string, error) {
+func initNatsBroker(node *centrifuge.Node) (*natsbroker.NatsBroker, error) {
+	return natsbroker.New(node, natsbroker.Config{
+		URL:          viper.GetString("nats_url"),
+		Prefix:       viper.GetString("nats_prefix"),
+		DialTimeout:  GetDuration("nats_dial_timeout"),
+		WriteTimeout: GetDuration("nats_write_timeout"),
+	})
+}
+
+func redisEngine(n *centrifuge.Node) (*centrifuge.RedisBroker, centrifuge.PresenceManager, string, error) {
 	redisShards, mode, err := getRedisShards(n)
 	if err != nil {
 		return nil, nil, "", err

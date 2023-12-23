@@ -31,7 +31,7 @@ func setupTestTable(ctx context.Context, tableName string, notificationChannel s
 	// Define the SQL for creating the table
 	createTableSQL := fmt.Sprintf(`
 CREATE TABLE IF NOT EXISTS %s (
-	id SERIAL PRIMARY KEY,
+	id BIGSERIAL PRIMARY KEY,
 	method text NOT NULL,
 	payload BYTEA NOT NULL,
 	partition INTEGER NOT NULL
