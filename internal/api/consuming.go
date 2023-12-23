@@ -3,8 +3,10 @@ package api
 import (
 	"context"
 	"errors"
-	"github.com/centrifugal/centrifuge"
+
 	"github.com/centrifugal/centrifugo/v5/internal/apiproto"
+
+	"github.com/centrifugal/centrifuge"
 )
 
 // ConsumingHandlerConfig configures ConsumingHandler.
@@ -47,6 +49,8 @@ func (h *ConsumingHandler) Dispatch(ctx context.Context, method string, data []b
 		}
 		return nil
 	case "broadcast":
+		// This one is special. Ideally we want to use code gen for Dispatch but
+		// keep broadcast special.
 		res, err := h.handleBroadcast(ctx, data)
 		if err != nil {
 			var apiError *apiproto.Error
@@ -62,6 +66,61 @@ func (h *ConsumingHandler) Dispatch(ctx context.Context, method string, data []b
 				// To prevent duplicate messages publishers may use idempotency keys.
 				return resp.Error
 			}
+		}
+		return nil
+	case "subscribe":
+		_, err := h.handleSubscribe(ctx, data)
+		if err != nil {
+			var apiError *apiproto.Error
+			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
+				return err
+			}
+			h.logNonInternalAPIError(err)
+			return nil
+		}
+		return nil
+	case "unsubscribe":
+		_, err := h.handleUnsubscribe(ctx, data)
+		if err != nil {
+			var apiError *apiproto.Error
+			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
+				return err
+			}
+			h.logNonInternalAPIError(err)
+			return nil
+		}
+		return nil
+	case "disconnect":
+		_, err := h.handleDisconnect(ctx, data)
+		if err != nil {
+			var apiError *apiproto.Error
+			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
+				return err
+			}
+			h.logNonInternalAPIError(err)
+			return nil
+		}
+		return nil
+	case "history_remove":
+		_, err := h.handleHistoryRemove(ctx, data)
+		if err != nil {
+			var apiError *apiproto.Error
+			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
+				return err
+			}
+			h.logNonInternalAPIError(err)
+			return nil
+		}
+		return nil
+	case "refresh":
+		_, err := h.handleRefresh(ctx, data)
+		if err != nil {
+			var apiError *apiproto.Error
+			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
+				return err
+			}
+			h.logNonInternalAPIError(err)
+			return nil
 		}
 		return nil
 	default:

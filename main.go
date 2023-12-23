@@ -598,6 +598,7 @@ func main() {
 				if !viper.GetBool("enable_unreleased_features") {
 					log.Fatal().Msg("redisnats engine requires enable_unreleased_features on")
 				}
+				log.Warn().Msg("redisnats engine is not released, it may be changed or removed at any point")
 				var natsBroker *natsbroker.NatsBroker
 				var redisBroker *centrifuge.RedisBroker
 				redisBroker, presenceManager, engineMode, err = redisEngine(node)

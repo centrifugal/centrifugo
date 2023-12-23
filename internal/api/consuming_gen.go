@@ -42,3 +42,83 @@ func (h *ConsumingHandler) handleBroadcast(ctx context.Context, data []byte) (*B
 	}
 	return resp.Result, nil
 }
+
+func (h *ConsumingHandler) handleSubscribe(ctx context.Context, data []byte) (*SubscribeResult, error) {
+	req, err := paramsDecoder.DecodeSubscribe(data)
+	if err != nil {
+		return nil, ErrInvalidData
+	}
+	resp := h.api.Subscribe(ctx, req)
+	if h.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	return resp.Result, nil
+}
+
+func (h *ConsumingHandler) handleUnsubscribe(ctx context.Context, data []byte) (*UnsubscribeResult, error) {
+	req, err := paramsDecoder.DecodeUnsubscribe(data)
+	if err != nil {
+		return nil, ErrInvalidData
+	}
+	resp := h.api.Unsubscribe(ctx, req)
+	if h.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	return resp.Result, nil
+}
+
+func (h *ConsumingHandler) handleDisconnect(ctx context.Context, data []byte) (*DisconnectResult, error) {
+	req, err := paramsDecoder.DecodeDisconnect(data)
+	if err != nil {
+		return nil, ErrInvalidData
+	}
+	resp := h.api.Disconnect(ctx, req)
+	if h.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	return resp.Result, nil
+}
+
+func (h *ConsumingHandler) handleHistoryRemove(ctx context.Context, data []byte) (*HistoryRemoveResult, error) {
+	req, err := paramsDecoder.DecodeHistoryRemove(data)
+	if err != nil {
+		return nil, ErrInvalidData
+	}
+	resp := h.api.HistoryRemove(ctx, req)
+	if h.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	return resp.Result, nil
+}
+
+func (h *ConsumingHandler) handleRefresh(ctx context.Context, data []byte) (*RefreshResult, error) {
+	req, err := paramsDecoder.DecodeRefresh(data)
+	if err != nil {
+		return nil, ErrInvalidData
+	}
+	resp := h.api.Refresh(ctx, req)
+	if h.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	return resp.Result, nil
+}
