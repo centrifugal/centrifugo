@@ -16,16 +16,7 @@ func FindUnknownKeys[T any](jsonMap map[string]any, data T) []string {
 		jsonKeys[key] = true
 	}
 
-	structKeys := make(map[string]bool)
-	s := reflect.ValueOf(data)
-	typeOfStruct := s.Type()
-
-	for i := 0; i < s.NumField(); i++ {
-		field := typeOfStruct.Field(i)
-		// Name extraction may be further improved but enough for our structs.
-		jsonKey := strings.TrimSuffix(field.Tag.Get("json"), ",omitempty")
-		structKeys[jsonKey] = true
-	}
+	structKeys := getStructJSONTags(reflect.TypeOf(data))
 
 	unknownKeys := make([]string, 0)
 	for key := range jsonKeys {
@@ -35,6 +26,31 @@ func FindUnknownKeys[T any](jsonMap map[string]any, data T) []string {
 	}
 
 	return unknownKeys
+}
+
+// getStructJSONTags returns a map of JSON tags found in the struct (including embedded structs).
+func getStructJSONTags(t reflect.Type) map[string]bool {
+	structKeys := make(map[string]bool)
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+
+		// Check if the field is an embedded struct and recursively get its fields.
+		if field.Anonymous && field.Type.Kind() == reflect.Struct {
+			embeddedFields := getStructJSONTags(field.Type)
+			for key := range embeddedFields {
+				structKeys[key] = true
+			}
+			continue
+		}
+
+		// Extract the JSON tag.
+		jsonKey := strings.TrimSuffix(field.Tag.Get("json"), ",omitempty")
+		if jsonKey != "" {
+			structKeys[jsonKey] = true
+		}
+	}
+
+	return structKeys
 }
 
 // CheckPlainConfigKeys warns users about unknown keys in the configuration. It does not
@@ -90,11 +106,29 @@ func checkEnvironmentConfigKeys(defaults map[string]any) {
 			if isKubernetesEnvVar(envKey) {
 				continue
 			}
+			// Also, there are env vars inside more complex config structures we also want to
+			// not warn about.
+			if isKnownEnvVarPrefix(envKey) {
+				continue
+			}
 			if !isKnownEnvKey(defaults, envPrefix, envKey) {
 				log.Warn().Str("key", envKey).Msg("unknown key found in the environment")
 			}
 		}
 	}
+}
+
+var knownPrefixes = []string{
+	"CENTRIFUGO_CONSUMERS_",
+}
+
+func isKnownEnvVarPrefix(envKey string) bool {
+	for _, prefix := range knownPrefixes {
+		if strings.HasPrefix(envKey, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 var k8sPrefixes = []string{

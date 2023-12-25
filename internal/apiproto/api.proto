@@ -179,6 +179,7 @@ message SubscribeOptionOverride {
 
 message BatchRequest {
     repeated Command commands = 1;
+    bool parallel = 2;
 }
 
 message BatchResponse {
@@ -191,6 +192,7 @@ message PublishRequest {
     string b64data = 3;
     bool skip_history = 4;
     map<string, string> tags = 5;
+    string idempotency_key = 6;
 }
 
 message PublishResponse {
@@ -209,6 +211,7 @@ message BroadcastRequest {
     string b64data = 3;
     bool skip_history = 4;
     map<string, string> tags = 5;
+    string idempotency_key = 6;
 }
 
 message BroadcastResponse {

@@ -1,5 +1,4 @@
 //go:build integration
-// +build integration
 
 package tntengine
 
@@ -291,7 +290,7 @@ func BenchmarkTarantoolPublish_1Ch(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err := broker.Publish("channel", rawData, centrifuge.PublishOptions{})
+			_, _, err := broker.Publish("channel", rawData, centrifuge.PublishOptions{})
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -321,7 +320,7 @@ func BenchmarkTarantoolRecover_1Ch(b *testing.B) {
 	numMessages := 1000
 	numMissing := 5
 	for i := 1; i <= numMessages; i++ {
-		_, err := broker.Publish("channel", rawData, centrifuge.PublishOptions{HistorySize: numMessages, HistoryTTL: 300 * time.Second})
+		_, _, err := broker.Publish("channel", rawData, centrifuge.PublishOptions{HistorySize: numMessages, HistoryTTL: 300 * time.Second})
 		require.NoError(b, err)
 	}
 	_, sp, err := broker.History("channel", centrifuge.HistoryOptions{})

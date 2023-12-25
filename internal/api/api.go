@@ -21,12 +21,11 @@ type RPCHandler func(ctx context.Context, params Raw) (Raw, error)
 
 // Executor can run API methods.
 type Executor struct {
-	node             *centrifuge.Node
-	ruleContainer    *rule.Container
-	protocol         string
-	rpcExtension     map[string]RPCHandler
-	surveyCaller     SurveyCaller
-	useOpenTelemetry bool
+	node          *centrifuge.Node
+	ruleContainer *rule.Container
+	config        ExecutorConfig
+	rpcExtension  map[string]RPCHandler
+	surveyCaller  SurveyCaller
 }
 
 // SurveyCaller can do surveys.
@@ -34,15 +33,19 @@ type SurveyCaller interface {
 	Channels(ctx context.Context, cmd *ChannelsRequest) (map[string]*ChannelInfo, error)
 }
 
+type ExecutorConfig struct {
+	Protocol         string
+	UseOpenTelemetry bool
+}
+
 // NewExecutor ...
-func NewExecutor(n *centrifuge.Node, ruleContainer *rule.Container, surveyCaller SurveyCaller, protocol string, useOpentelemetry bool) *Executor {
+func NewExecutor(n *centrifuge.Node, ruleContainer *rule.Container, surveyCaller SurveyCaller, config ExecutorConfig) *Executor {
 	e := &Executor{
-		node:             n,
-		ruleContainer:    ruleContainer,
-		protocol:         protocol,
-		surveyCaller:     surveyCaller,
-		rpcExtension:     make(map[string]RPCHandler),
-		useOpenTelemetry: useOpentelemetry,
+		node:          n,
+		ruleContainer: ruleContainer,
+		config:        config,
+		surveyCaller:  surveyCaller,
+		rpcExtension:  make(map[string]RPCHandler),
 	}
 	return e
 }
@@ -52,66 +55,89 @@ func (h *Executor) SetRPCExtension(method string, handler RPCHandler) {
 	h.rpcExtension[method] = handler
 }
 
+func (h *Executor) processCmd(ctx context.Context, cmd *Command, i int, replies []*Reply) {
+	if cmd.Publish != nil {
+		res := h.Publish(ctx, cmd.Publish)
+		replies[i].Publish, replies[i].Error = res.Result, res.Error
+	} else if cmd.Broadcast != nil {
+		res := h.Broadcast(ctx, cmd.Broadcast)
+		replies[i].Broadcast, replies[i].Error = res.Result, res.Error
+	} else if cmd.Subscribe != nil {
+		res := h.Subscribe(ctx, cmd.Subscribe)
+		replies[i].Subscribe, replies[i].Error = res.Result, res.Error
+	} else if cmd.Unsubscribe != nil {
+		res := h.Unsubscribe(ctx, cmd.Unsubscribe)
+		replies[i].Unsubscribe, replies[i].Error = res.Result, res.Error
+	} else if cmd.Disconnect != nil {
+		res := h.Disconnect(ctx, cmd.Disconnect)
+		replies[i].Disconnect, replies[i].Error = res.Result, res.Error
+	} else if cmd.History != nil {
+		res := h.History(ctx, cmd.History)
+		replies[i].History, replies[i].Error = res.Result, res.Error
+	} else if cmd.HistoryRemove != nil {
+		res := h.HistoryRemove(ctx, cmd.HistoryRemove)
+		replies[i].HistoryRemove, replies[i].Error = res.Result, res.Error
+	} else if cmd.Presence != nil {
+		res := h.Presence(ctx, cmd.Presence)
+		replies[i].Presence, replies[i].Error = res.Result, res.Error
+	} else if cmd.PresenceStats != nil {
+		res := h.PresenceStats(ctx, cmd.PresenceStats)
+		replies[i].PresenceStats, replies[i].Error = res.Result, res.Error
+	} else if cmd.Info != nil {
+		res := h.Info(ctx, cmd.Info)
+		replies[i].Info, replies[i].Error = res.Result, res.Error
+	} else if cmd.Rpc != nil {
+		res := h.RPC(ctx, cmd.Rpc)
+		replies[i].Rpc, replies[i].Error = res.Result, res.Error
+	} else if cmd.Refresh != nil {
+		res := h.Refresh(ctx, cmd.Refresh)
+		replies[i].Refresh, replies[i].Error = res.Result, res.Error
+	} else if cmd.Channels != nil {
+		res := h.Channels(ctx, cmd.Channels)
+		replies[i].Channels, replies[i].Error = res.Result, res.Error
+	} else {
+		replies[i].Error = ErrorNotFound
+	}
+}
+
+// batchRequestMaxConcurrency is applied for the parallel batch request.
+const batchRequestMaxConcurrency = 1024
+
 func (h *Executor) Batch(ctx context.Context, req *BatchRequest) *BatchResponse {
 	replies := make([]*Reply, len(req.Commands))
 
+	var sem chan struct{}
+	if req.Parallel {
+		sem = make(chan struct{}, batchRequestMaxConcurrency)
+	}
+
+	var wg sync.WaitGroup
 	for i, cmd := range req.Commands {
 		replies[i] = new(Reply)
-
-		if cmd.Publish != nil {
-			res := h.Publish(ctx, cmd.Publish)
-			replies[i].Publish, replies[i].Error = res.Result, res.Error
-		} else if cmd.Broadcast != nil {
-			res := h.Broadcast(ctx, cmd.Broadcast)
-			replies[i].Broadcast, replies[i].Error = res.Result, res.Error
-		} else if cmd.Subscribe != nil {
-			res := h.Subscribe(ctx, cmd.Subscribe)
-			replies[i].Subscribe, replies[i].Error = res.Result, res.Error
-		} else if cmd.Unsubscribe != nil {
-			res := h.Unsubscribe(ctx, cmd.Unsubscribe)
-			replies[i].Unsubscribe, replies[i].Error = res.Result, res.Error
-		} else if cmd.Disconnect != nil {
-			res := h.Disconnect(ctx, cmd.Disconnect)
-			replies[i].Disconnect, replies[i].Error = res.Result, res.Error
-		} else if cmd.History != nil {
-			res := h.History(ctx, cmd.History)
-			replies[i].History, replies[i].Error = res.Result, res.Error
-		} else if cmd.HistoryRemove != nil {
-			res := h.HistoryRemove(ctx, cmd.HistoryRemove)
-			replies[i].HistoryRemove, replies[i].Error = res.Result, res.Error
-		} else if cmd.Presence != nil {
-			res := h.Presence(ctx, cmd.Presence)
-			replies[i].Presence, replies[i].Error = res.Result, res.Error
-		} else if cmd.PresenceStats != nil {
-			res := h.PresenceStats(ctx, cmd.PresenceStats)
-			replies[i].PresenceStats, replies[i].Error = res.Result, res.Error
-		} else if cmd.Info != nil {
-			res := h.Info(ctx, cmd.Info)
-			replies[i].Info, replies[i].Error = res.Result, res.Error
-		} else if cmd.Rpc != nil {
-			res := h.RPC(ctx, cmd.Rpc)
-			replies[i].Rpc, replies[i].Error = res.Result, res.Error
-		} else if cmd.Refresh != nil {
-			res := h.Refresh(ctx, cmd.Refresh)
-			replies[i].Refresh, replies[i].Error = res.Result, res.Error
-		} else if cmd.Channels != nil {
-			res := h.Channels(ctx, cmd.Channels)
-			replies[i].Channels, replies[i].Error = res.Result, res.Error
+		if !req.Parallel {
+			h.processCmd(ctx, cmd, i, replies)
 		} else {
-			replies[i].Error = ErrorNotFound
+			sem <- struct{}{}
+			wg.Add(1)
+			go func(i int, cmd *Command) {
+				defer func() { <-sem }()
+				defer wg.Done()
+				h.processCmd(ctx, cmd, i, replies)
+			}(i, cmd)
 		}
 	}
+	wg.Wait()
 
 	return &BatchResponse{Replies: replies}
 }
 
 // Publish publishes data into channel.
 func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishResponse {
-	defer observe(time.Now(), h.protocol, "publish")
+	defer observe(time.Now(), h.config.Protocol, "publish")
 
 	ch := cmd.Channel
 
-	if h.useOpenTelemetry {
+	if h.config.UseOpenTelemetry {
 		span := trace.SpanFromContext(ctx)
 		span.SetAttributes(attribute.String("centrifugo.channel", ch))
 	}
@@ -164,6 +190,7 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 		cmd.Channel, data,
 		centrifuge.WithHistory(historySize, time.Duration(historyTTL), time.Duration(historyMetaTTL)),
 		centrifuge.WithTags(cmd.GetTags()),
+		centrifuge.WithIdempotencyKey(cmd.GetIdempotencyKey()),
 	)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error publishing message in engine", map[string]any{"error": err.Error(), "channel": cmd.Channel}))
@@ -177,15 +204,17 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 	return resp
 }
 
+const broadcastRequestMaxConcurrency = 1024
+
 // Broadcast publishes the same data into many channels.
 func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *BroadcastResponse {
-	defer observe(time.Now(), h.protocol, "broadcast")
+	defer observe(time.Now(), h.config.Protocol, "broadcast")
 
 	resp := &BroadcastResponse{}
 
 	channels := cmd.Channels
 
-	if h.useOpenTelemetry {
+	if h.config.UseOpenTelemetry {
 		span := trace.SpanFromContext(ctx)
 		span.SetAttributes(attribute.Int("centrifugo.num_channels", len(channels)))
 	}
@@ -214,11 +243,15 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 		return resp
 	}
 
+	sem := make(chan struct{}, broadcastRequestMaxConcurrency)
+
 	responses := make([]*PublishResponse, len(channels))
 	var wg sync.WaitGroup
 	wg.Add(len(channels))
 	for i, ch := range channels {
+		sem <- struct{}{}
 		go func(i int, ch string) {
+			defer func() { <-sem }()
 			defer wg.Done()
 			if ch == "" {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "channel can not be blank in broadcast", nil))
@@ -250,6 +283,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 				ch, data,
 				centrifuge.WithHistory(historySize, time.Duration(historyTTL), time.Duration(historyMetaTTL)),
 				centrifuge.WithTags(cmd.GetTags()),
+				centrifuge.WithIdempotencyKey(cmd.GetIdempotencyKey()),
 			)
 			resp := &PublishResponse{}
 			if err == nil {
@@ -272,7 +306,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 // Subscribe subscribes user to a channel and sends subscribe
 // control message to other nodes, so they could also subscribe user.
 func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *SubscribeResponse {
-	defer observe(time.Now(), h.protocol, "subscribe")
+	defer observe(time.Now(), h.config.Protocol, "subscribe")
 
 	resp := &SubscribeResponse{}
 
@@ -351,7 +385,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 // Unsubscribe unsubscribes user from channel and sends unsubscribe
 // control message to other nodes, so they could also unsubscribe user.
 func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *UnsubscribeResponse {
-	defer observe(time.Now(), h.protocol, "unsubscribe")
+	defer observe(time.Now(), h.config.Protocol, "unsubscribe")
 
 	resp := &UnsubscribeResponse{}
 
@@ -383,7 +417,7 @@ func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *Unsu
 // Disconnect disconnects user by its ID and sends disconnect
 // control message to other nodes, so they could also disconnect user.
 func (h *Executor) Disconnect(_ context.Context, cmd *DisconnectRequest) *DisconnectResponse {
-	defer observe(time.Now(), h.protocol, "disconnect")
+	defer observe(time.Now(), h.config.Protocol, "disconnect")
 
 	resp := &DisconnectResponse{}
 
@@ -414,7 +448,7 @@ func (h *Executor) Disconnect(_ context.Context, cmd *DisconnectRequest) *Discon
 
 // Refresh user connection by its ID.
 func (h *Executor) Refresh(_ context.Context, cmd *RefreshRequest) *RefreshResponse {
-	defer observe(time.Now(), h.protocol, "refresh")
+	defer observe(time.Now(), h.config.Protocol, "refresh")
 
 	resp := &RefreshResponse{}
 	user := cmd.User
@@ -438,7 +472,7 @@ func (h *Executor) Refresh(_ context.Context, cmd *RefreshRequest) *RefreshRespo
 
 // Presence returns response with presence information for channel.
 func (h *Executor) Presence(_ context.Context, cmd *PresenceRequest) *PresenceResponse {
-	defer observe(time.Now(), h.protocol, "presence")
+	defer observe(time.Now(), h.config.Protocol, "presence")
 
 	resp := &PresenceResponse{}
 
@@ -489,7 +523,7 @@ func (h *Executor) Presence(_ context.Context, cmd *PresenceRequest) *PresenceRe
 
 // PresenceStats returns response with presence stats information for channel.
 func (h *Executor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest) *PresenceStatsResponse {
-	defer observe(time.Now(), h.protocol, "presence_stats")
+	defer observe(time.Now(), h.config.Protocol, "presence_stats")
 
 	resp := &PresenceStatsResponse{}
 
@@ -532,7 +566,7 @@ func (h *Executor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest) *
 
 // History returns response with history information for channel.
 func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryResponse {
-	defer observe(time.Now(), h.protocol, "history")
+	defer observe(time.Now(), h.config.Protocol, "history")
 
 	resp := &HistoryResponse{}
 
@@ -614,7 +648,7 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 
 // HistoryRemove removes all history information for channel.
 func (h *Executor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest) *HistoryRemoveResponse {
-	defer observe(time.Now(), h.protocol, "history_remove")
+	defer observe(time.Now(), h.config.Protocol, "history_remove")
 
 	resp := &HistoryRemoveResponse{}
 
@@ -652,7 +686,7 @@ func (h *Executor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest) *
 
 // Info returns information about running nodes.
 func (h *Executor) Info(_ context.Context, _ *InfoRequest) *InfoResponse {
-	defer observe(time.Now(), h.protocol, "info")
+	defer observe(time.Now(), h.config.Protocol, "info")
 
 	resp := &InfoResponse{}
 
@@ -693,7 +727,7 @@ func (h *Executor) Info(_ context.Context, _ *InfoRequest) *InfoResponse {
 // RPC can call arbitrary methods.
 func (h *Executor) RPC(ctx context.Context, cmd *RPCRequest) *RPCResponse {
 	started := time.Now()
-	defer observe(started, h.protocol, "rpc")
+	defer observe(started, h.config.Protocol, "rpc")
 
 	resp := &RPCResponse{}
 
@@ -709,7 +743,7 @@ func (h *Executor) RPC(ctx context.Context, cmd *RPCRequest) *RPCResponse {
 		return resp
 	}
 
-	defer observeRPC(started, h.protocol, cmd.Method)
+	defer observeRPC(started, h.config.Protocol, cmd.Method)
 
 	data, err := handler(ctx, cmd.Params)
 	if err != nil {
@@ -728,7 +762,7 @@ func (h *Executor) RPC(ctx context.Context, cmd *RPCRequest) *RPCResponse {
 // Channels in the system.
 func (h *Executor) Channels(ctx context.Context, cmd *ChannelsRequest) *ChannelsResponse {
 	started := time.Now()
-	defer observe(started, h.protocol, "channels")
+	defer observe(started, h.config.Protocol, "channels")
 
 	resp := &ChannelsResponse{}
 

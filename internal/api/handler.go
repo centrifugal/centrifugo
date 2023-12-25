@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// Config configures APIHandler.
+// Config configures Handler.
 type Config struct {
 	UseOpenTelemetry      bool
 	UseTransportErrorMode bool
@@ -30,7 +30,7 @@ type Handler struct {
 var paramsDecoder = NewJSONRequestDecoder()
 var responseEncoder = NewJSONResponseEncoder()
 
-// NewHandler creates new APIHandler.
+// NewHandler creates new Handler.
 func NewHandler(n *centrifuge.Node, apiExecutor *Executor, c Config) *Handler {
 	m := new(http.ServeMux)
 	h := &Handler{

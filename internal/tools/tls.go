@@ -3,6 +3,7 @@ package tools
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 )
@@ -210,4 +211,43 @@ func newCertPoolFromPEM(pem []byte) (*x509.CertPool, error) {
 		return nil, errors.New("no valid certificates found")
 	}
 	return certPool, nil
+}
+
+type TLSOptions struct {
+	Cert    string `mapstructure:"tls_cert" json:"tls_cert"`
+	Key     string `mapstructure:"tls_key" json:"tls_key"`
+	CertPem string `mapstructure:"tls_cert_pem" json:"tls_cert_pem"`
+	KeyPem  string `mapstructure:"tls_key_pem" json:"tls_key_pem"`
+
+	RootCA    string `mapstructure:"tls_root_ca" json:"tls_root_ca"`
+	RootCAPem string `mapstructure:"tls_root_ca_pem" json:"tls_root_ca_pem"`
+
+	ClientCA    string `mapstructure:"tls_client_ca" json:"tls_client_ca"`
+	ClientCAPem string `mapstructure:"tls_client_ca_pem" json:"tls_client_ca_pem"`
+
+	InsecureSkipVerify bool   `mapstructure:"tls_insecure_skip_verify" json:"tls_insecure_skip_verify"`
+	ServerName         string `mapstructure:"server_name" json:"server_name"`
+}
+
+func (t TLSOptions) ToMap() (TLSOptionsMap, error) {
+	var m TLSOptionsMap
+	jsonData, _ := json.Marshal(m)
+	err := json.Unmarshal(jsonData, &m)
+	return m, err
+}
+
+type TLSOptionsMap map[string]any
+
+func (t TLSOptionsMap) GetBool(name string) bool {
+	if _, ok := t[name]; !ok {
+		return false
+	}
+	return t[name].(bool)
+}
+
+func (t TLSOptionsMap) GetString(name string) string {
+	if _, ok := t[name]; !ok {
+		return ""
+	}
+	return t[name].(string)
 }

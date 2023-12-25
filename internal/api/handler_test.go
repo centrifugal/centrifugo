@@ -20,7 +20,7 @@ func TestAPIHandler(t *testing.T) {
 	ruleConfig := rule.DefaultConfig
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(t, err)
-	apiExecutor := NewExecutor(n, ruleContainer, &testSurveyCaller{}, "test", false)
+	apiExecutor := NewExecutor(n, ruleContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test", UseOpenTelemetry: false})
 
 	mux := http.NewServeMux()
 	apiHandler := NewHandler(n, apiExecutor, Config{})
@@ -79,7 +79,10 @@ func BenchmarkAPIHandler(b *testing.B) {
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(b, err)
 
-	handler := NewHandler(n, NewExecutor(n, ruleContainer, nil, "http", false), Config{})
+	handler := NewHandler(n, NewExecutor(n, ruleContainer, nil, ExecutorConfig{
+		Protocol:         "http",
+		UseOpenTelemetry: false,
+	}), Config{})
 
 	payload := []byte(`{"method": "publish", "params": {"channel": "index", "data": 1}}`)
 
