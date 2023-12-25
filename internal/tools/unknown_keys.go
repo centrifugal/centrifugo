@@ -18,17 +18,6 @@ func FindUnknownKeys[T any](jsonMap map[string]any, data T) []string {
 
 	structKeys := getStructJSONTags(reflect.TypeOf(data))
 
-	//structKeys := make(map[string]bool)
-	//s := reflect.ValueOf(data)
-	//typeOfStruct := s.Type()
-	//
-	//for i := 0; i < s.NumField(); i++ {
-	//	field := typeOfStruct.Field(i)
-	//	// Name extraction may be further improved but enough for our structs.
-	//	jsonKey := strings.TrimSuffix(field.Tag.Get("json"), ",omitempty")
-	//	structKeys[jsonKey] = true
-	//}
-
 	unknownKeys := make([]string, 0)
 	for key := range jsonKeys {
 		if !structKeys[key] {
