@@ -14,7 +14,7 @@ services:
     healthcheck:
       test: [ "CMD", "pg_isready", "-U", "test" ]
       interval: 1s
-      timeout: 1s
+      timeout: 5s
       retries: 10
     command: ["postgres", "-c", "wal_level=logical", "-c", "wal_writer_delay=10ms"]
 
@@ -32,8 +32,8 @@ services:
       - "29092:29092"
     healthcheck:
       test: ["CMD", "kafka-topics", "--list", "--bootstrap-server", "localhost:9092"]
-      interval: 1s
-      timeout: 1s
+      interval: 2s
+      timeout: 5s
       retries: 10
     environment:
       KAFKA_BROKER_ID: 1
