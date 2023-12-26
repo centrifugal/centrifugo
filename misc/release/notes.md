@@ -10,15 +10,13 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Avoid keeping zero offsets in history meta hash keys in Redis – slightly reduces memory consumption of Redis, see [centrifugal/centrifuge#332](https://github.com/centrifugal/centrifuge/pull/332)
-
-### Fixes
-
-* Centrifugo v5.1.1 fixed `Lua redis lib command arguments must be strings or integers script` error for new Centrifugo setups and new keys in Redis, but have not provided solution to existing keys. In [centrifugal/centrifuge/#331](https://github.com/centrifugal/centrifuge/pull/331) we fixed it.
-* Updating `github.com/redis/rueidis` to v1.0.22 fixes unaligned atomics to run Centrifugo with Redis engine on 32-bit systems, [some details](https://github.com/centrifugal/centrifugo/pull/737) 
+* Launching the official tutorial showing the process of building complex real-time application with Centrifugo in detail. It's called [Grand Tutorial](https://centrifugal.dev/docs/tutorial/intro), and we have a special section on the site for it. In the tutorial we build a WebSocket chat (messenger) app with Django, React and Centrifugo. We cover various aspects of building a production-grade app with Centrifugo and going beyond basics usually shown in instant messaging app tutorials. The idea to keep it in a separate section on the site instead of a blog is to maintain the tutorial actual and extend as time goes.
+* Introducing built-in [asynchronous consumers](https://centrifugal.dev/docs/server/consumers). From [PostgreSQL outbox table](https://centrifugal.dev/docs/server/consumers#postgresql-outbox-consumer) (to natively support transactional outbox) and from [Kafka topics](https://centrifugal.dev/docs/server/consumers#kafka-consumer). Notably, the "Grand Tutorial" mentioned earlier demonstrates the practical use of both built-in consumers, including the Change Data Capture (CDC) approach for streaming data to Centrifugo using the Debezium connector for PostgreSQL with Kafka Connect.
+* Centrifugo now offers the capability to specify an `idempotency_key` when invoking `publish` or `broadcast` server API methods. This is a key Centrifugo will use to prevent duplicate sending of the same publication to a channel. This allows making effective retries when publishing to Centrifugo. Centrifugo maintains a cache of results associated with the used idempotency keys during publishing for a duration of 5 minutes. This cache is utilized to prevent the redundant publication of a message and its addition to the message history if it already exists in the cache. See updated docs for [publish](https://centrifugal.dev/docs/server/server_api#publish) and [broadcast](https://centrifugal.dev/docs/server/server_api#broadcast) server APIs.
+* Refactor `MakeTLSConfig` and support mTLS on server by @tie, see [#739](https://github.com/centrifugal/centrifugo/pull/739). This means mTLS is supported for all TLS configurations in Centrifugo – by using TLS options `tls_client_ca` or `tls_client_ca_pem`. 
+* Added possibility to set `parallel` boolean flag in [batch](https://centrifugal.dev/docs/server/server_api#batch) API – to make batch commands processing parallel on Centrifugo side, potentially reducing latency, especially when using the Redis engine, as there is no need to wait for N * RTT (Round Trip Time) for sequential command processing.
 
 ### Misc
 
-* Release is built using Go v1.21.4
-* Opentelemetry dependencies updated
-* We now have a [bash script for quick local setup of Redis cluster](https://github.com/centrifugal/centrifugo/tree/master/misc/redis_cluster) - to simplify development
+* Release is built using Go v1.21.5
+* Improvements to the code base by introducing the use of the `Service` interface with a `Run(ctx context.Context) error` method. This approach is now recommended for the proper initiation and termination of various extension services within Centrifugo.
