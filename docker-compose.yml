@@ -1,14 +1,22 @@
 version: "3.8"
 
 services:
-  db:
+  postgres:
     image: postgres:15
-    environment:
-      - POSTGRES_USER=test
-      - POSTGRES_PASSWORD=test
-      - POSTGRES_DB=test
     ports:
-      - 5432:5432
+      - '5432'
+    environment:
+      LC_ALL: C.UTF-8
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: test
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD", "pg_isready" ]
+      interval: 3s
+      timeout: 3s
+      retries: 5
     command: ["postgres", "-c", "wal_level=logical", "-c", "wal_writer_delay=10ms"]
 
   zookeeper:
