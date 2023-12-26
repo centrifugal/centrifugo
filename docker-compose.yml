@@ -6,17 +6,16 @@ services:
     ports:
       - "5432:5432"
     environment:
-      LC_ALL: C.UTF-8
       POSTGRES_USER: test
       POSTGRES_PASSWORD: test
       POSTGRES_DB: test
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD", "pg_isready" ]
-      interval: 3s
-      timeout: 3s
-      retries: 5
+      test: [ "CMD", "pg_isready", "-U", "test" ]
+      interval: 1s
+      timeout: 1s
+      retries: 10
     command: ["postgres", "-c", "wal_level=logical", "-c", "wal_writer_delay=10ms"]
 
   zookeeper:
@@ -31,6 +30,11 @@ services:
       - zookeeper
     ports:
       - "29092:29092"
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--list", "--bootstrap-server", "localhost:9092"]
+      interval: 1s
+      timeout: 1s
+      retries: 10
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
