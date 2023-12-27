@@ -1,6 +1,13 @@
 package usage
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/centrifugal/centrifugo/v5/internal/rule"
+
+	"github.com/centrifugal/centrifuge"
+	"github.com/stretchr/testify/require"
+)
 
 func Test_getHistogramMetric(t *testing.T) {
 	type args struct {
@@ -47,4 +54,29 @@ func Test_getHistogramMetric(t *testing.T) {
 			}
 		})
 	}
+}
+
+func nodeWithMemoryEngine(t *testing.T) *centrifuge.Node {
+	n, err := centrifuge.New(centrifuge.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = n.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return n
+}
+
+func TestPrepareMetrics(t *testing.T) {
+	node := nodeWithMemoryEngine(t)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
+	sender := NewSender(node, ruleContainer, Features{})
+	err = sender.updateMaxValues()
+	require.NoError(t, err)
+	metrics, err := sender.prepareMetrics()
+	require.NoError(t, err)
+	require.True(t, len(metrics) > 0)
 }
