@@ -849,6 +849,8 @@ func main() {
 					UniSSE:        viper.GetBool("uni_sse"),
 					UniGRPC:       viper.GetBool("uni_grpc"),
 
+					EnabledConsumers: usage.GetEnabledConsumers(consumers),
+
 					GrpcAPI:             viper.GetBool("grpc_api"),
 					SubscribeToPersonal: viper.GetBool("user_subscribe_to_personal"),
 					Admin:               viper.GetBool("admin"),

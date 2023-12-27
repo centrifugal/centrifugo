@@ -10,12 +10,14 @@ import (
 	"math/rand"
 	"net/http"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/build"
+	"github.com/centrifugal/centrifugo/v5/internal/consuming"
 	"github.com/centrifugal/centrifugo/v5/internal/rule"
 
 	"github.com/centrifugal/centrifuge"
@@ -88,6 +90,8 @@ type Features struct {
 	RPCProxy             bool
 	SubRefreshProxy      bool
 	SubscribeStreamProxy bool
+
+	EnabledConsumers []string
 
 	// Uses GRPC server API.
 	GrpcAPI bool
@@ -393,6 +397,12 @@ func (s *Sender) prepareMetrics() ([]*metric, error) {
 	if s.features.SubscribeStreamProxy {
 		metrics = append(metrics, createPoint("proxies_enabled.subscribe_stream"))
 	}
+	if len(s.features.EnabledConsumers) > 0 {
+		metrics = append(metrics, createPoint("features_enabled.consumers"))
+	}
+	for _, consumerType := range s.features.EnabledConsumers {
+		metrics = append(metrics, createPoint("consumers_enabled."+consumerType))
+	}
 	if s.features.GrpcAPI {
 		metrics = append(metrics, createPoint("features_enabled.grpc_api"))
 	}
@@ -601,4 +611,14 @@ func (s *Sender) sendUsageStats(metrics []*metric, statsEndpoint, statsToken str
 	}
 
 	return nil
+}
+
+func GetEnabledConsumers(consumers []consuming.ConsumerConfig) []string {
+	var enabledConsumers []string
+	for _, c := range consumers {
+		if !c.Disabled && !slices.Contains(enabledConsumers, string(c.Type)) {
+			enabledConsumers = append(enabledConsumers, string(c.Type))
+		}
+	}
+	return enabledConsumers
 }
