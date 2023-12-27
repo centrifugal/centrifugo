@@ -73,11 +73,11 @@ func (j *JSONRawOrString) UnmarshalJSON(data []byte) error {
 }
 
 // MarshalJSON returns m as the JSON encoding of m.
-func (m JSONRawOrString) MarshalJSON() ([]byte, error) {
-	if m == nil {
+func (j JSONRawOrString) MarshalJSON() ([]byte, error) {
+	if j == nil {
 		return []byte("null"), nil
 	}
-	return m, nil
+	return j, nil
 }
 
 type KafkaJSONEvent struct {
@@ -379,8 +379,6 @@ type partitionConsumer struct {
 
 func (pc *partitionConsumer) consume() {
 	defer close(pc.done)
-	//fmt.Printf("starting, t %s p %d\n", pc.topic, pc.partition)
-	//defer fmt.Printf("killing, t %s p %d\n", pc.topic, pc.partition)
 	for {
 		select {
 		case <-pc.clientCtx.Done():
@@ -418,7 +416,7 @@ func (pc *partitionConsumer) consume() {
 					}
 					retries++
 					backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-					pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing events", map[string]any{"error": err.Error(), "nextAttemptIn": backoffDuration.String()}))
+					pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing consumed event", map[string]any{"error": err.Error(), "method": e.Method, "nextAttemptIn": backoffDuration.String()}))
 					select {
 					case <-time.After(backoffDuration):
 					case <-pc.quit:

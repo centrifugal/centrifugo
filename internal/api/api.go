@@ -193,7 +193,7 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 		centrifuge.WithIdempotencyKey(cmd.GetIdempotencyKey()),
 	)
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error publishing message in engine", map[string]any{"error": err.Error(), "channel": cmd.Channel}))
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error publishing data to channel", map[string]any{"error": err.Error(), "channel": cmd.Channel}))
 		resp.Error = ErrorInternal
 		return resp
 	}
@@ -292,7 +292,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 					Epoch:  result.StreamPosition.Epoch,
 				}
 			} else {
-				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error publishing data to channel", map[string]any{"channel": ch, "error": err.Error()}))
+				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error publishing data to channel during broadcast", map[string]any{"channel": ch, "error": err.Error()}))
 				resp.Error = ErrorInternal
 			}
 			responses[i] = resp
