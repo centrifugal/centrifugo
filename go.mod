@@ -15,7 +15,7 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.5.0
 	github.com/gorilla/securecookie v1.1.1
-	github.com/gorilla/websocket v1.5.0
+	github.com/gorilla/websocket v1.5.1
 	github.com/hashicorp/go-envparse v0.1.0
 	github.com/jackc/pgx/v5 v5.5.1
 	github.com/justinas/alice v1.2.0
