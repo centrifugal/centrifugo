@@ -31,8 +31,8 @@ func NewConsumingHandler(n *centrifuge.Node, apiExecutor *Executor, c ConsumingH
 	return h
 }
 
-func (h *ConsumingHandler) logNonInternalAPIError(err error) {
-	h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "non retryable error during consuming", map[string]any{"error": err.Error()}))
+func (h *ConsumingHandler) logNonInternalAPIError(err error, data []byte) {
+	h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "non retryable error during consuming", map[string]any{"error": err.Error(), "data": string(data)}))
 }
 
 func (h *ConsumingHandler) Dispatch(ctx context.Context, method string, data []byte) error {
@@ -44,7 +44,7 @@ func (h *ConsumingHandler) Dispatch(ctx context.Context, method string, data []b
 			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
 				return err
 			}
-			h.logNonInternalAPIError(err)
+			h.logNonInternalAPIError(err, data)
 			return nil
 		}
 		return nil
@@ -57,7 +57,7 @@ func (h *ConsumingHandler) Dispatch(ctx context.Context, method string, data []b
 			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
 				return err
 			}
-			h.logNonInternalAPIError(err)
+			h.logNonInternalAPIError(err, data)
 			return nil
 		}
 		for _, resp := range res.Responses {
@@ -75,7 +75,7 @@ func (h *ConsumingHandler) Dispatch(ctx context.Context, method string, data []b
 			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
 				return err
 			}
-			h.logNonInternalAPIError(err)
+			h.logNonInternalAPIError(err, data)
 			return nil
 		}
 		return nil
@@ -86,7 +86,7 @@ func (h *ConsumingHandler) Dispatch(ctx context.Context, method string, data []b
 			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
 				return err
 			}
-			h.logNonInternalAPIError(err)
+			h.logNonInternalAPIError(err, data)
 			return nil
 		}
 		return nil
@@ -97,7 +97,7 @@ func (h *ConsumingHandler) Dispatch(ctx context.Context, method string, data []b
 			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
 				return err
 			}
-			h.logNonInternalAPIError(err)
+			h.logNonInternalAPIError(err, data)
 			return nil
 		}
 		return nil
@@ -108,7 +108,7 @@ func (h *ConsumingHandler) Dispatch(ctx context.Context, method string, data []b
 			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
 				return err
 			}
-			h.logNonInternalAPIError(err)
+			h.logNonInternalAPIError(err, data)
 			return nil
 		}
 		return nil
@@ -119,7 +119,7 @@ func (h *ConsumingHandler) Dispatch(ctx context.Context, method string, data []b
 			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
 				return err
 			}
-			h.logNonInternalAPIError(err)
+			h.logNonInternalAPIError(err, data)
 			return nil
 		}
 		return nil
