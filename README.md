@@ -10,6 +10,7 @@ Several official client SDKs for browser and mobile development wrap the bidirec
 * [Installation instructions](https://centrifugal.dev/docs/getting-started/installation)
 * [Getting started tutorial](https://centrifugal.dev/docs/getting-started/quickstart)
 * [Design overview and idiomatic usage](https://centrifugal.dev/docs/getting-started/design)
+* [Build a WebSocket chat/messenger app with Centrifugo](https://centrifugal.dev/docs/tutorial/intro) tutorial
 * [Centrifugal blog](https://centrifugal.dev/blog)
 * [FAQ](https://centrifugal.dev/docs/faq)
 
@@ -17,7 +18,7 @@ Several official client SDKs for browser and mobile development wrap the bidirec
 
 * [Telegram](https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ)
 * [Discord](https://discord.gg/tYgADKx)
-* [Twitter](https://twitter.com/centrifugal_dev)
+* [Twitter](https://twitter.com/centrifugalabs)
 
 ## Why Centrifugo
 
