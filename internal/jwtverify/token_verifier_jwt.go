@@ -509,6 +509,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 			if v.Override != nil && v.Override.ForcePositioning != nil {
 				positioning = v.Override.ForcePositioning.Value
 			}
+			recoveryMode := rule.GetRecoveryMode(chOpts.RecoveryMode)
 			subs[ch] = centrifuge.SubscribeOptions{
 				ChannelInfo:       info,
 				EmitPresence:      presence,
@@ -516,6 +517,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 				PushJoinLeave:     pushJoinLeave,
 				EnableRecovery:    recovery,
 				EnablePositioning: positioning,
+				RecoveryMode:      recoveryMode,
 				Data:              data,
 				Source:            subsource.ConnectionToken,
 				HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
@@ -536,6 +538,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 				PushJoinLeave:     chOpts.ForcePushJoinLeave,
 				EnableRecovery:    chOpts.ForceRecovery,
 				EnablePositioning: chOpts.ForcePositioning,
+				RecoveryMode:      rule.GetRecoveryMode(chOpts.RecoveryMode),
 				Source:            subsource.ConnectionToken,
 				HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
 			}
@@ -719,6 +722,7 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 			PushJoinLeave:     pushJoinLeave,
 			EnableRecovery:    recovery,
 			EnablePositioning: positioning,
+			RecoveryMode:      rule.GetRecoveryMode(chOpts.RecoveryMode),
 			Data:              data,
 		},
 	}

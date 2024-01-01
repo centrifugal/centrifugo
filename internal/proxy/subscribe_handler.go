@@ -196,6 +196,7 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 				PushJoinLeave:     pushJoinLeave,
 				EnableRecovery:    recovery,
 				EnablePositioning: positioning,
+				RecoveryMode:      rule.GetRecoveryMode(chOpts.RecoveryMode),
 				Data:              data,
 				Source:            subsource.SubscribeProxy,
 				HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),

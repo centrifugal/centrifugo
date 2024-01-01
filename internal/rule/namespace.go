@@ -72,6 +72,9 @@ type ChannelOptions struct {
 	// HistorySize and HistoryTTL configuration.
 	ForceRecovery bool `mapstructure:"force_recovery" json:"force_recovery"`
 
+	// RecoveryMode ...
+	RecoveryMode string `mapstructure:"recovery_mode" json:"recovery_mode"`
+
 	// AllowRecovery allows recovery when client asks about it.
 	AllowRecovery bool `mapstructure:"allow_recovery" json:"allow_recovery"`
 

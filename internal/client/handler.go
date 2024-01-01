@@ -386,6 +386,7 @@ func (h *Handler) OnClientConnecting(
 			PushJoinLeave:     chOpts.ForcePushJoinLeave,
 			EnableRecovery:    chOpts.ForceRecovery,
 			EnablePositioning: chOpts.ForcePositioning,
+			RecoveryMode:      rule.GetRecoveryMode(chOpts.RecoveryMode),
 			Source:            subsource.UserPersonal,
 			HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
 		}
@@ -437,6 +438,7 @@ func (h *Handler) OnClientConnecting(
 						PushJoinLeave:     chOpts.ForcePushJoinLeave,
 						EnableRecovery:    chOpts.ForceRecovery,
 						EnablePositioning: chOpts.ForcePositioning,
+						RecoveryMode:      rule.GetRecoveryMode(chOpts.RecoveryMode),
 						Source:            subsource.UniConnect,
 						HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
 					}
@@ -654,6 +656,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	options.PushJoinLeave = chOpts.ForcePushJoinLeave
 	options.EnablePositioning = chOpts.ForcePositioning
 	options.EnableRecovery = chOpts.ForceRecovery
+	options.RecoveryMode = rule.GetRecoveryMode(chOpts.RecoveryMode)
 	options.HistoryMetaTTL = time.Duration(chOpts.HistoryMetaTTL)
 
 	isPrivateChannel := h.ruleContainer.IsPrivateChannel(e.Channel)

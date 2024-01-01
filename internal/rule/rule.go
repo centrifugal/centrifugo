@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/centrifugal/centrifuge"
 )
 
 // Config ...
@@ -129,6 +131,9 @@ func ValidateRpcNamespace(ns RpcNamespace) error {
 }
 
 func ValidateChannelOptions(c ChannelOptions) error {
+	if c.RecoveryMode != "" && c.RecoveryMode != "stream" && c.RecoveryMode != "state" {
+		return fmt.Errorf("invalid recovery mode %s", c.RecoveryMode)
+	}
 	if (c.HistorySize != 0 && c.HistoryTTL == 0) || (c.HistorySize == 0 && c.HistoryTTL != 0) {
 		return errors.New("both history size and history ttl required for history")
 	}
@@ -148,6 +153,13 @@ func ValidateChannelOptions(c ChannelOptions) error {
 
 func ValidateRpcOptions(_ RpcOptions) error {
 	return nil
+}
+
+func GetRecoveryMode(mode string) centrifuge.RecoveryMode {
+	if mode == "state" {
+		return centrifuge.RecoveryModeState
+	}
+	return centrifuge.RecoveryModeStream
 }
 
 // Validate validates config and returns error if problems found
