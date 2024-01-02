@@ -134,8 +134,9 @@ var defaults = map[string]any{
 
 	"allowed_origins": []string{},
 
-	"global_history_meta_ttl": 30 * 24 * time.Hour,
-	"global_presence_ttl":     60 * time.Second,
+	"global_history_meta_ttl":            30 * 24 * time.Hour,
+	"global_presence_ttl":                60 * time.Second,
+	"global_redis_presence_user_mapping": false,
 
 	"presence":                      false,
 	"join_leave":                    false,
@@ -2691,11 +2692,18 @@ func redisEngine(n *centrifuge.Node) (*centrifuge.RedisBroker, centrifuge.Presen
 		return nil, nil, "", err
 	}
 
-	presenceManager, err := centrifuge.NewRedisPresenceManager(n, centrifuge.RedisPresenceManagerConfig{
+	presenceManagerConfig := centrifuge.RedisPresenceManagerConfig{
 		Shards:      redisShards,
 		Prefix:      viper.GetString("redis_prefix"),
 		PresenceTTL: GetDuration("global_presence_ttl", true),
-	})
+	}
+	if viper.GetBool("global_redis_presence_user_mapping") {
+		presenceManagerConfig.EnableUserMapping = func(_ string) bool {
+			return true
+		}
+	}
+
+	presenceManager, err := centrifuge.NewRedisPresenceManager(n, presenceManagerConfig)
 	if err != nil {
 		return nil, nil, "", err
 	}
