@@ -74,6 +74,7 @@ const (
 				"kid": "tested",
 				"kty": "OKP",
 				"use": "sig",
+				"alg" : "EdDSA",
 				"x": "KBbdGhSAMLXMh6zLMfGi4_4-npVhnEVnGVYdjSrOreI"
 			  }
 			]
