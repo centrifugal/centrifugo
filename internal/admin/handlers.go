@@ -62,6 +62,7 @@ func NewHandler(n *centrifuge.Node, apiExecutor *api.Executor, c Config) *Handle
 	}
 	mux := http.NewServeMux()
 	prefix := strings.TrimRight(h.config.Prefix, "/")
+	mux.Handle(prefix+"/admin/settings", http.HandlerFunc(h.settingsHandler))
 	mux.Handle(prefix+"/admin/auth", middleware.Post(http.HandlerFunc(h.authHandler)))
 	mux.Handle(prefix+"/admin/api", middleware.Post(h.adminSecureTokenAuth(api.NewHandler(n, apiExecutor, api.Config{}).OldRoute())))
 
@@ -130,22 +131,22 @@ func (s *Handler) adminSecureTokenAuth(h http.Handler) http.Handler {
 	})
 }
 
+// settingsHandler allows to get admin web interface settings.
+func (s *Handler) settingsHandler(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	resp := map[string]any{
+		"insecure": s.config.Insecure,
+		"edition":  "oss",
+	}
+	_ = json.NewEncoder(w).Encode(resp)
+}
+
 // authHandler allows to get admin web interface token.
 func (s *Handler) authHandler(w http.ResponseWriter, r *http.Request) {
 	formPassword := r.FormValue("password")
 
-	insecure := s.config.Insecure
 	password := s.config.Password
 	secret := s.config.Secret
-
-	if insecure {
-		w.Header().Set("Content-Type", "application/json")
-		resp := map[string]string{
-			"token": "insecure",
-		}
-		_ = json.NewEncoder(w).Encode(resp)
-		return
-	}
 
 	if password == "" || secret == "" {
 		log.Error().Msg("admin_password and admin_secret must be set in configuration")
