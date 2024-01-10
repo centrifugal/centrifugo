@@ -33,6 +33,29 @@ func TestConfigValidateInvalidNamespaceName(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestConfigCompiledChannelRegex(t *testing.T) {
+	c := DefaultConfig
+	c.ChannelRegex = "^test$"
+	c.Namespaces = []ChannelNamespace{
+		{
+			Name: "name1",
+			ChannelOptions: ChannelOptions{
+				ChannelRegex: "^test_ns$",
+			},
+		},
+		{
+			Name:           "name2",
+			ChannelOptions: ChannelOptions{},
+		},
+	}
+	ruleContainer, err := NewContainer(c)
+	require.NoError(t, err)
+
+	require.NotNil(t, ruleContainer.Config().CompiledChannelRegex)
+	require.NotNil(t, ruleContainer.Config().Namespaces[0].CompiledChannelRegex)
+	require.Nil(t, ruleContainer.Config().Namespaces[1].CompiledChannelRegex)
+}
+
 func TestConfigValidateDuplicateNamespaceName(t *testing.T) {
 	c := DefaultConfig
 	c.Namespaces = []ChannelNamespace{

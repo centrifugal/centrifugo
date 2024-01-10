@@ -252,7 +252,6 @@ func (n *Container) Reload(c Config) error {
 }
 
 func buildCompiledRegexes(config Config) (Config, error) {
-
 	if config.ChannelRegex != "" {
 		p, err := regexp.Compile(config.ChannelRegex)
 		if err != nil {
@@ -261,8 +260,10 @@ func buildCompiledRegexes(config Config) (Config, error) {
 		config.Compiled.CompiledChannelRegex = p
 	}
 
+	var namespaces []ChannelNamespace
 	for _, ns := range config.Namespaces {
 		if ns.ChannelRegex == "" {
+			namespaces = append(namespaces, ns)
 			continue
 		}
 		p, err := regexp.Compile(ns.ChannelRegex)
@@ -270,8 +271,9 @@ func buildCompiledRegexes(config Config) (Config, error) {
 			return config, err
 		}
 		ns.Compiled.CompiledChannelRegex = p
+		namespaces = append(namespaces, ns)
 	}
-
+	config.Namespaces = namespaces
 	return config, nil
 }
 
