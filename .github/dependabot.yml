@@ -4,6 +4,9 @@ updates:
     directory: "/"
     schedule:
       interval: monthly
+    groups:
+      go-packages:
+        patterns: '*'
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
