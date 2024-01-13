@@ -19,6 +19,7 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/cristalhq/jwt/v5"
+	"github.com/rakutentech/jwk-go/okp"
 	"github.com/rs/zerolog/log"
 )
 
@@ -202,13 +203,13 @@ func (j *jwksManager) verify(token *jwt.Token, tokenVars map[string]any) error {
 		return err
 	}
 
-	if key.Kty != "RSA" && key.Kty != "EC" {
+	if key.Kty != "RSA" && key.Kty != "EC" && key.Kty != "OKP" {
 		return errUnsupportedAlgorithm
 	}
 
 	spec, err := key.ParseKeySpec()
 	if err != nil {
-		return err
+		return fmt.Errorf("error parsing key spec: %w", err)
 	}
 
 	switch key.Kty {
@@ -233,6 +234,18 @@ func (j *jwksManager) verify(token *jwt.Token, tokenVars map[string]any) error {
 		verifier, err := jwt.NewVerifierES(jwt.Algorithm(spec.Algorithm), pubKey)
 		if err != nil {
 			return fmt.Errorf("%w: %s", errUnsupportedAlgorithm, spec.Algorithm)
+		}
+
+		return verifier.Verify(token)
+	case "OKP":
+		pubKey, ok := spec.Key.(okp.Ed25519)
+		if !ok {
+			return errPublicKeyInvalid
+		}
+
+		verifier, err := jwt.NewVerifierEdDSA(pubKey.PublicKey())
+		if err != nil {
+			return errUnsupportedAlgorithm
 		}
 
 		return verifier.Verify(token)

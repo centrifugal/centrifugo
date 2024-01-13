@@ -38,16 +38,18 @@ const (
 	// ```
 	// jwx jwk generate --type RSA --keysize 2048 --template '{"kid":"testrsa"}' > rsa.jwk
 	// jwx jwk generate --type EC --curve P-384 --template '{"kid":"testec"}' > ec.jwk
+	// jwx jwk generate --type OKP --curve Ed25519 --template '{"kid":"tested"}' > okp.jwk
 	// jwx jwk generate --type EC --curve P-384 --template '{"kid":"fakeid"}' > fakeid.jwk
 	// printf '{"sub":"2694","info":{"first_name":"Alexander","last_name":"Emelin"}}' > payload.txt
 	// ```
 
-	// JWK Set with RSA and EC keys:
+	// JWK Set with RSA, EC and OKP keys:
 	// ```
 	// jwx jwk fmt --public-key rsa.jwk
 	// jwx jwk fmt --public-key ec.jwk
+	// jwx jwk fmt --public-key okp.jwk
 	// ```
-	jwksRSAandEC = `{
+	jwksSet = `{
 		  "keys": [
 			  {
 				"e": "AQAB",
@@ -65,6 +67,15 @@ const (
 				"alg": "ES384",
 				"x": "W0A0VvKCnxs0trdgchvdkrEVfdjDYOeTdu_f0l3GE94LXBvVF_2O1Ng7vKZPE3cu",
 				"y": "thDvOCDapgLR4krw5KKzp9HrkzTVgVwmwP37aTSc20EXw3R2fZ7tSh1ws3V7NV5n"
+			  },
+			  {
+				"crv": "Ed25519",
+				"d": "hgIMcVff-mdWy5xYFBqrkleEGVSiQu81GQwNxGxhj9k",
+				"kid": "tested",
+				"kty": "OKP",
+				"use": "sig",
+				"alg" : "EdDSA",
+				"x": "KBbdGhSAMLXMh6zLMfGi4_4-npVhnEVnGVYdjSrOreI"
 			  }
 			]
 		}`
@@ -80,6 +91,12 @@ const (
 	// jwx jws sign --key ec.jwk --alg ES384 payload.txt
 	// ```
 	jwtECWithKID = "eyJhbGciOiJFUzM4NCIsImtpZCI6InRlc3RlYyJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn19.MFqUDsu8JjS99oROB_93JEwuGlWOnrmMK455UIjWDlSS62uwED7hE04ZcWyQClxnH88Z-oiU_qGnpTyi7zojMN9r3zBxXqdq-wyTqUH6P9NA5PIlXhh6pugLpGKwyfQG"
+
+	// JWT using `tested` key ID
+	// ```
+	// jwx jws sign --key okp.jwk --alg EdDSA payload.txt
+	// ```
+	jwtOKPWithKID = "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3RlZCJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn19.upmjjFmTOk9A-gtkA8fPqfj0YAsETvXYotLNFrf86AyHBpQNRMw2ScKbRx6BHnG0klCbJ0C2dfJt501zx5WhCA"
 
 	// JWT using `fakekid` key ID
 	// ```
@@ -782,7 +799,7 @@ func jwksHandler(json string) http.Handler {
 
 func TestJWKS(t *testing.T) {
 	// Create a test JWKS server.
-	ts := httptest.NewServer(jwksHandler(jwksRSAandEC))
+	ts := httptest.NewServer(jwksHandler(jwksSet))
 	defer ts.Close()
 
 	// Setup our token verifier, using the test JWKS endpoint
@@ -801,6 +818,13 @@ func TestJWKS(t *testing.T) {
 
 	// Validate an EC token
 	ct, err = verifier.VerifyConnectToken(jwtECWithKID, false)
+	require.NoError(t, err)
+	require.Equal(t, "2694", ct.UserID)
+	require.NotNil(t, ct.Info)
+	require.Equal(t, `{"first_name":"Alexander","last_name":"Emelin"}`, string(ct.Info))
+
+	// Validate OKP (based on EdDSA) token.
+	ct, err = verifier.VerifyConnectToken(jwtOKPWithKID, false)
 	require.NoError(t, err)
 	require.Equal(t, "2694", ct.UserID)
 	require.NotNil(t, ct.Info)
