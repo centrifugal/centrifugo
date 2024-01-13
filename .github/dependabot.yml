@@ -9,7 +9,8 @@ updates:
       - dependency-name: github.com/centrifugal/centrifuge # updates manually
     groups:
       go-packages:
-        patterns: '*'
+        patterns:
+          - '*'
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
