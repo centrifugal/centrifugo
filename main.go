@@ -34,8 +34,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/redisnatsbroker"
-
 	"github.com/centrifugal/centrifugo/v5/internal/admin"
 	"github.com/centrifugal/centrifugo/v5/internal/api"
 	"github.com/centrifugal/centrifugo/v5/internal/build"
@@ -52,8 +50,10 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/notify"
 	"github.com/centrifugal/centrifugo/v5/internal/origin"
 	"github.com/centrifugal/centrifugo/v5/internal/proxy"
+	"github.com/centrifugal/centrifugo/v5/internal/redisnatsbroker"
 	"github.com/centrifugal/centrifugo/v5/internal/rule"
 	"github.com/centrifugal/centrifugo/v5/internal/service"
+	"github.com/centrifugal/centrifugo/v5/internal/sockjs"
 	"github.com/centrifugal/centrifugo/v5/internal/survey"
 	"github.com/centrifugal/centrifugo/v5/internal/swaggerui"
 	"github.com/centrifugal/centrifugo/v5/internal/telemetry"
@@ -2488,9 +2488,9 @@ func uniGRPCHandlerConfig() unigrpc.Config {
 	return unigrpc.Config{}
 }
 
-func sockjsHandlerConfig() centrifuge.SockjsConfig {
+func sockjsHandlerConfig() sockjs.Config {
 	v := viper.GetViper()
-	cfg := centrifuge.SockjsConfig{}
+	cfg := sockjs.Config{}
 	cfg.URL = v.GetString("sockjs_url")
 	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WebsocketWriteBufferSize = v.GetInt("websocket_write_buffer_size")
@@ -2996,7 +2996,7 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 		sockjsConfig := sockjsHandlerConfig()
 		sockjsPrefix := strings.TrimRight(v.GetString("sockjs_handler_prefix"), "/")
 		sockjsConfig.HandlerPrefix = sockjsPrefix
-		mux.Handle(sockjsPrefix+"/", connChain.Then(centrifuge.NewSockjsHandler(n, sockjsConfig)))
+		mux.Handle(sockjsPrefix+"/", connChain.Then(sockjs.NewHandler(n, sockjsConfig)))
 	}
 
 	if flags&HandlerUniWebsocket != 0 {
