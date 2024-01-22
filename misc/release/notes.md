@@ -8,17 +8,6 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## What's changed
 
-### Improvements
-
-* Support for OKP JWKs based on Ed25519, [#756](https://github.com/centrifugal/centrifugo/pull/756)
-* New boolean option `global_redis_presence_user_mapping` to drastically improve presence stats performance for channels with large number of active subscribers when using Redis engine. See [#750](https://github.com/centrifugal/centrifugo/issues/750) for the motivation and implementation details. Also, see in [docs](https://centrifugal.dev/docs/server/engines#optimize-getting-presence-stats) 
-* Admin web UI now uses `/admin/api/settings` endpoint on start to load admin UI configuration options. Admin web UI status page now does not call `info` API periodically when browser window is not visible (using [visibility browser API](https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API)). Also, some minor CSS style improvements were made.
-
 ### Fixes
 
-* Fix nil pointer dereference upon channel regex check inside namespace, [#760](https://github.com/centrifugal/centrifugo/pull/760)
-
-### Misc
-
-* Release is built using Go v1.21.6
-* Use grouped dependabot version updates by @j178, [#762](https://github.com/centrifugal/centrifugo/pull/762)
+* Fix nil pointer dereference upon calling presence stats – fixes the regression introduced by v5.2.1, [centrifugal/centrifuge#117fa3e](centrifugal/centrifuge/commit/117fa3e02289f193afa16d8b4e90e0cc4376d6a0)
