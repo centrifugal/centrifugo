@@ -34,8 +34,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/redisnatsbroker"
-
 	"github.com/centrifugal/centrifugo/v5/internal/admin"
 	"github.com/centrifugal/centrifugo/v5/internal/api"
 	"github.com/centrifugal/centrifugo/v5/internal/build"
@@ -52,6 +50,7 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/notify"
 	"github.com/centrifugal/centrifugo/v5/internal/origin"
 	"github.com/centrifugal/centrifugo/v5/internal/proxy"
+	"github.com/centrifugal/centrifugo/v5/internal/redisnatsbroker"
 	"github.com/centrifugal/centrifugo/v5/internal/rule"
 	"github.com/centrifugal/centrifugo/v5/internal/service"
 	"github.com/centrifugal/centrifugo/v5/internal/survey"
@@ -1074,8 +1073,8 @@ func main() {
 				user = "anonymous user"
 			}
 			exp := "without expiration"
-			if genTokenTTL >= 0 {
-				exp = fmt.Sprintf("with expiration TTL %s", time.Duration(genTokenTTL)*time.Second)
+			if genSubTokenTTL >= 0 {
+				exp = fmt.Sprintf("with expiration TTL %s", time.Duration(genSubTokenTTL)*time.Second)
 			}
 			if genSubTokenQuiet {
 				fmt.Print(token)
