@@ -134,7 +134,7 @@ var defaults = map[string]any{
 
 	"allowed_origins": []string{},
 
-	"global_history_meta_ttl":            30 * 24 * time.Hour,
+	"global_history_meta_ttl":            rule.DefaultGlobalHistoryMetaTTL,
 	"global_presence_ttl":                60 * time.Second,
 	"global_redis_presence_user_mapping": false,
 
@@ -1726,6 +1726,8 @@ func ruleConfig() rule.Config {
 	cfg.SubRefreshProxyName = v.GetString("sub_refresh_proxy_name")
 	cfg.ProxySubscribeStream = v.GetBool("proxy_stream_subscribe")
 	cfg.ProxySubscribeStreamBidirectional = v.GetBool("proxy_subscribe_stream_bidirectional")
+	// GlobalHistoryMetaTTL is required here only for validation purposes.
+	cfg.GlobalHistoryMetaTTL = GetDuration("global_history_meta_ttl", true)
 
 	cfg.Namespaces = namespacesFromConfig(v)
 

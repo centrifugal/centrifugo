@@ -81,7 +81,12 @@ type Config struct {
 	// ClientConnectionRateLimit sets the maximum number of new connections a single Centrifugo
 	// node will accept per second.
 	ClientConnectionRateLimit int
+
+	// GlobalHistoryMetaTTL from here is used only for validation.
+	GlobalHistoryMetaTTL time.Duration
 }
+
+const DefaultGlobalHistoryMetaTTL = 30 * 24 * time.Hour
 
 // DefaultConfig has default config options.
 var DefaultConfig = Config{
@@ -90,6 +95,7 @@ var DefaultConfig = Config{
 	ChannelUserBoundary:      "#", // so user limited channel is "user#2694" where "2696" is user ID.
 	ChannelUserSeparator:     ",", // so several users limited channel is "dialog#2694,3019".
 	RpcNamespaceBoundary:     ":", // so rpc namespace "chat" can be used as "chat:get_user_info".
+	GlobalHistoryMetaTTL:     DefaultGlobalHistoryMetaTTL,
 }
 
 func stringInSlice(a string, list []string) bool {
@@ -104,13 +110,13 @@ func stringInSlice(a string, list []string) bool {
 var namePattern = "^[-a-zA-Z0-9_.]{2,}$"
 var nameRe = regexp.MustCompile(namePattern)
 
-func ValidateNamespace(ns ChannelNamespace) error {
+func ValidateNamespace(ns ChannelNamespace, globalHistoryMetaTTL time.Duration) error {
 	name := ns.Name
 	match := nameRe.MatchString(name)
 	if !match {
 		return fmt.Errorf("invalid namespace name – %s (must match %s regular expression)", name, namePattern)
 	}
-	if err := ValidateChannelOptions(ns.ChannelOptions); err != nil {
+	if err := ValidateChannelOptions(ns.ChannelOptions, globalHistoryMetaTTL); err != nil {
 		return err
 	}
 	return nil
@@ -128,9 +134,16 @@ func ValidateRpcNamespace(ns RpcNamespace) error {
 	return nil
 }
 
-func ValidateChannelOptions(c ChannelOptions) error {
+func ValidateChannelOptions(c ChannelOptions, globalHistoryMetaTTL time.Duration) error {
 	if (c.HistorySize != 0 && c.HistoryTTL == 0) || (c.HistorySize == 0 && c.HistoryTTL != 0) {
 		return errors.New("both history size and history ttl required for history")
+	}
+	historyMetaTTL := globalHistoryMetaTTL
+	if c.HistoryMetaTTL != 0 {
+		historyMetaTTL = time.Duration(c.HistoryMetaTTL)
+	}
+	if historyMetaTTL < time.Duration(c.HistoryTTL) {
+		return fmt.Errorf("history ttl (%s) can not be greater than history meta ttl (%s)", time.Duration(c.HistoryTTL), historyMetaTTL)
 	}
 	if c.ForceRecovery && (c.HistorySize == 0 || c.HistoryTTL == 0) {
 		return errors.New("both history size and history ttl required for recovery")
@@ -152,7 +165,7 @@ func ValidateRpcOptions(_ RpcOptions) error {
 
 // Validate validates config and returns error if problems found
 func (c *Config) Validate() error {
-	if err := ValidateChannelOptions(c.ChannelOptions); err != nil {
+	if err := ValidateChannelOptions(c.ChannelOptions, c.GlobalHistoryMetaTTL); err != nil {
 		return err
 	}
 	if err := ValidateRpcOptions(c.RpcOptions); err != nil {
@@ -175,7 +188,7 @@ func (c *Config) Validate() error {
 		if stringInSlice(n.Name, nss) {
 			return fmt.Errorf("namespace name must be unique: %s", n.Name)
 		}
-		if err := ValidateNamespace(n); err != nil {
+		if err := ValidateNamespace(n, c.GlobalHistoryMetaTTL); err != nil {
 			return fmt.Errorf("namespace %s: %v", n.Name, err)
 		}
 		if n.Name == personalChannelNamespace {
