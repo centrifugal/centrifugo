@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v5/internal/tools"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -98,6 +100,39 @@ func TestConfigValidatePersonalSingleConnectionOK(t *testing.T) {
 	c.Presence = true
 	err := c.Validate()
 	require.NoError(t, err)
+}
+
+func TestConfigValidateHistoryTTL(t *testing.T) {
+	t.Run("in_namespace", func(t *testing.T) {
+		c := DefaultConfig
+		c.Namespaces = []ChannelNamespace{
+			{
+				Name: "name1",
+				ChannelOptions: ChannelOptions{
+					HistorySize:    10,
+					HistoryTTL:     tools.Duration(20 * time.Second),
+					HistoryMetaTTL: tools.Duration(10 * time.Second),
+				},
+			},
+		}
+		err := c.Validate()
+		require.ErrorContains(t, err, "history meta ttl")
+	})
+	t.Run("on_top_level", func(t *testing.T) {
+		c := DefaultConfig
+		c.HistorySize = 10
+		c.HistoryTTL = tools.Duration(31 * 24 * time.Hour)
+		err := c.Validate()
+		require.ErrorContains(t, err, "history meta ttl")
+	})
+	t.Run("top_level_non_default_global", func(t *testing.T) {
+		c := DefaultConfig
+		c.GlobalHistoryMetaTTL = 10 * time.Hour
+		c.HistorySize = 10
+		c.HistoryTTL = tools.Duration(30 * 24 * time.Hour)
+		err := c.Validate()
+		require.ErrorContains(t, err, "history meta ttl")
+	})
 }
 
 func TestConfigValidatePersonalSingleConnectionNamespacedFail(t *testing.T) {
