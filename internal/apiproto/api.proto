@@ -38,7 +38,6 @@ service CentrifugoApi {
     rpc SendPushNotification (SendPushNotificationRequest) returns (SendPushNotificationResponse) {}
     rpc UpdatePushStatus (UpdatePushStatusRequest) returns (UpdatePushStatusResponse) {}
     rpc CancelPush (CancelPushRequest) returns (CancelPushResponse) {}
-    rpc RateLimit(RateLimitRequest) returns (RateLimitResponse) {}
 }
 
 message Command {
@@ -75,7 +74,6 @@ message Command {
         SEND_PUSH_NOTIFICATION = 30;
         UPDATE_PUSH_STATUS = 31;
         CANCEL_PUSH = 32;
-        RATE_LIMIT = 47;
     }
     uint32 id = 1;
     MethodType method = 2;
@@ -113,7 +111,6 @@ message Command {
     SendPushNotificationRequest send_push_notification = 33;
     UpdatePushStatusRequest update_push_status = 34;
     CancelPushRequest cancel_push = 35;
-    RateLimitRequest rate_limit = 50;
 }
 
 message Error {
@@ -158,7 +155,6 @@ message Reply {
     SendPushNotificationResult send_push_notification = 33;
     UpdatePushStatusResult update_push_status = 34;
     CancelPushResult cancel_push = 35;
-    RateLimitResult rate_limit = 50;
 }
 
 message BoolValue {
@@ -582,8 +578,8 @@ message DeviceRegisterRequest {
     string user = 5;
     map<string, string> meta = 6;
     repeated string topics = 7;
-    //map<string, string> labels = 8;
-    //map<string, int64> scores = 9;
+    string timezone = 8;
+    string language = 9;
 }
 
 message DeviceUpdateRequest {
@@ -593,8 +589,8 @@ message DeviceUpdateRequest {
     DeviceUserUpdate user_update = 4;
     DeviceMetaUpdate meta_update = 5;
     DeviceTopicsUpdate topics_update = 6;
-    //DeviceLabelsUpdate labels_update = 7;
-    //DeviceScoresUpdate scores_update = 8;
+    DeviceTimezoneUpdate timezone_update = 7;
+    DeviceLanguageUpdate language_update = 8;
 }
 
 message DeviceRemoveRequest {
@@ -604,6 +600,14 @@ message DeviceRemoveRequest {
 
 message DeviceUserUpdate {
     string user = 1;
+}
+
+message DeviceTimezoneUpdate {
+    string timezone = 1;
+}
+
+message DeviceLanguageUpdate {
+    string language = 1;
 }
 
 message DeviceMetaUpdate {
@@ -629,8 +633,6 @@ message DeviceListRequest {
     bool include_total_count = 2;
     bool include_meta = 3;
     bool include_topics = 4;
-    //bool include_labels = 5;
-    //bool include_scores = 6;
 
     string cursor = 10;
     int32 limit = 11;
@@ -749,8 +751,8 @@ message Device {
 
     map<string, string> meta = 10;
     repeated string topics = 11;
-    //map<string, string> labels = 12;
-    //map<string, int64> scores = 13;
+    string timezone = 12;
+    string language = 13;
 }
 
 message DeviceTopicListResult {
@@ -821,8 +823,35 @@ message ApnsPushNotification {
 message SendPushNotificationRequest {
     PushRecipient recipient = 1;
     PushNotification notification = 2;
-    string uid = 3; // unique identifier for push notification, used for matching in Centrifugo analytics.
-    int64 send_at = 4;
+    string uid = 3; // unique identifier for each push notification request, can be used to cancel push.
+    int64 send_at = 4; // Unix seconds, if set - push will be sent at this time, if not set - immediately.
+    bool optimize_for_reliability = 5; // makes processing heavier, but tolerates edge cases, like not loosing inflight pushes due to temporary queue unavailability.
+    PushLimitStrategy limit_strategy = 6; // strategy for sending push notifications. Applicable only for pushes with filter recipient. When using this field Centrifugo processes devices one by one.
+    string analytics_uid = 7; // uid for push notification analytics, if not set - Centrifugo will use uid field.
+    map<string, PushLocalization> localizations = 8; // optional per language localizations for push notification.
+    bool use_templating = 9; // if set - Centrifugo will use templating for push notification. Note that setting localizations enables templating automatically.
+    bool use_meta = 10; // if set - Centrifugo will additionally load device meta during push sending, this meta becomes available in templating.
+}
+
+message PushLocalization {
+    map<string, string> translations = 1; // variable name to value for the specific language.
+}
+
+message PushLimitStrategy {
+    PushRateLimitStrategy rate_limit = 1;
+    PushTimeLimitStrategy time_limit = 2;
+}
+
+message PushTimeLimitStrategy {
+    string send_after_time = 1;  // HH:MM:SS
+    string send_before_time = 2; // HH:MM:SS
+    bool no_tz_send_now = 3; // If device timezone is not set - send push now.
+}
+
+message PushRateLimitStrategy {
+    string key = 1; // key for rate limit policy, supports variables (user_id, device_id).
+    repeated RateLimitPolicy policies = 2;
+    bool drop_if_rate_limited = 3;
 }
 
 message SendPushNotificationResponse {
@@ -835,10 +864,10 @@ message SendPushNotificationResult {
 }
 
 message UpdatePushStatusRequest {
-    string uid = 1;        // uid of push notification (matches SendPushNotificationResult.uid)
-    string status = 2;     // failed | sent | delivered | interacted
-    string device_id = 3;  // Centrifugo device id.
-    string msg_id = 4;     // Provider issued message id.
+    string analytics_uid = 1; // analytics uid of push notification (should match SendPushNotificationRequest.analytics_uid)
+    string status = 2;        // delivered | interacted
+    string device_id = 3;     // Centrifugo device id.
+    string msg_id = 4;        // Provider issued message id.
 }
 
 message UpdatePushStatusResponse {
@@ -859,11 +888,17 @@ message CancelPushResponse {
 
 message CancelPushResult {}
 
+message RateLimitPolicy {
+    int64 rate = 1;
+    int32 interval_ms = 2;
+}
+
 message RateLimitRequest {
-    //    string key = 1;
-    //    int64 rate = 2;
-    //    int64 interval = 3;
-    //    int64 score = 4;
+    string key = 1;
+    int64 score = 2;
+    bool dry_run = 3;
+    repeated RateLimitPolicy policies = 4;
+    bool include_policy_evaluations = 5;
 }
 
 message RateLimitResponse {
@@ -871,9 +906,26 @@ message RateLimitResponse {
     RateLimitResult result = 2;
 }
 
-message RateLimitResult {
-    //    bool allowed = 1;
-    //    int64 tokens_left = 2;
-    //    int64 allowed_in = 3;
-    //    int64 server_time = 4;
+message RateLimitPolicyEvaluation {
+    bool allowed = 1;
+    int64 tokens_left = 2;
+    int32 allowed_in_ms = 3;
 }
+
+message RateLimitResult {
+    bool allowed = 1;
+    int32 allowed_in_ms = 2;
+    int64 server_time_ms = 3;
+    repeated RateLimitPolicyEvaluation policies = 4;
+}
+
+message ResetRateLimitRequest {
+    string key = 1;
+}
+
+message ResetRateLimitResponse {
+    Error error = 1;
+    ResetRateLimitResult result = 2;
+}
+
+message ResetRateLimitResult {}

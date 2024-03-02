@@ -52,7 +52,6 @@ const (
 	CentrifugoApi_SendPushNotification_FullMethodName = "/centrifugal.centrifugo.api.CentrifugoApi/SendPushNotification"
 	CentrifugoApi_UpdatePushStatus_FullMethodName     = "/centrifugal.centrifugo.api.CentrifugoApi/UpdatePushStatus"
 	CentrifugoApi_CancelPush_FullMethodName           = "/centrifugal.centrifugo.api.CentrifugoApi/CancelPush"
-	CentrifugoApi_RateLimit_FullMethodName            = "/centrifugal.centrifugo.api.CentrifugoApi/RateLimit"
 )
 
 // CentrifugoApiClient is the client API for CentrifugoApi service.
@@ -92,7 +91,6 @@ type CentrifugoApiClient interface {
 	SendPushNotification(ctx context.Context, in *SendPushNotificationRequest, opts ...grpc.CallOption) (*SendPushNotificationResponse, error)
 	UpdatePushStatus(ctx context.Context, in *UpdatePushStatusRequest, opts ...grpc.CallOption) (*UpdatePushStatusResponse, error)
 	CancelPush(ctx context.Context, in *CancelPushRequest, opts ...grpc.CallOption) (*CancelPushResponse, error)
-	RateLimit(ctx context.Context, in *RateLimitRequest, opts ...grpc.CallOption) (*RateLimitResponse, error)
 }
 
 type centrifugoApiClient struct {
@@ -400,15 +398,6 @@ func (c *centrifugoApiClient) CancelPush(ctx context.Context, in *CancelPushRequ
 	return out, nil
 }
 
-func (c *centrifugoApiClient) RateLimit(ctx context.Context, in *RateLimitRequest, opts ...grpc.CallOption) (*RateLimitResponse, error) {
-	out := new(RateLimitResponse)
-	err := c.cc.Invoke(ctx, CentrifugoApi_RateLimit_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // CentrifugoApiServer is the server API for CentrifugoApi service.
 // All implementations must embed UnimplementedCentrifugoApiServer
 // for forward compatibility
@@ -446,7 +435,6 @@ type CentrifugoApiServer interface {
 	SendPushNotification(context.Context, *SendPushNotificationRequest) (*SendPushNotificationResponse, error)
 	UpdatePushStatus(context.Context, *UpdatePushStatusRequest) (*UpdatePushStatusResponse, error)
 	CancelPush(context.Context, *CancelPushRequest) (*CancelPushResponse, error)
-	RateLimit(context.Context, *RateLimitRequest) (*RateLimitResponse, error)
 	mustEmbedUnimplementedCentrifugoApiServer()
 }
 
@@ -552,9 +540,6 @@ func (UnimplementedCentrifugoApiServer) UpdatePushStatus(context.Context, *Updat
 }
 func (UnimplementedCentrifugoApiServer) CancelPush(context.Context, *CancelPushRequest) (*CancelPushResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CancelPush not implemented")
-}
-func (UnimplementedCentrifugoApiServer) RateLimit(context.Context, *RateLimitRequest) (*RateLimitResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RateLimit not implemented")
 }
 func (UnimplementedCentrifugoApiServer) mustEmbedUnimplementedCentrifugoApiServer() {}
 
@@ -1163,24 +1148,6 @@ func _CentrifugoApi_CancelPush_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CentrifugoApi_RateLimit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RateLimitRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CentrifugoApiServer).RateLimit(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: CentrifugoApi_RateLimit_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugoApiServer).RateLimit(ctx, req.(*RateLimitRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // CentrifugoApi_ServiceDesc is the grpc.ServiceDesc for CentrifugoApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1319,10 +1286,6 @@ var CentrifugoApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CancelPush",
 			Handler:    _CentrifugoApi_CancelPush_Handler,
-		},
-		{
-			MethodName: "RateLimit",
-			Handler:    _CentrifugoApi_RateLimit_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
