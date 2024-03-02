@@ -1,5 +1,3 @@
-// +heroku goVersion go1.20
-
 module github.com/centrifugal/centrifugo/v5
 
 go 1.21
