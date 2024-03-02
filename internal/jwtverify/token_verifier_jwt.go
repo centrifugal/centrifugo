@@ -463,7 +463,8 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 	}
 
 	if claims.Channel != "" {
-		return ConnectToken{}, ErrInvalidToken
+		return ConnectToken{}, fmt.Errorf(
+			"%w: connection JWT can not contain channel claim, only subscription JWT can", ErrInvalidToken)
 	}
 
 	now := time.Now()
