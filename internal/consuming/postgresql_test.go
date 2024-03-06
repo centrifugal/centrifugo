@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -313,8 +314,12 @@ func TestPostgresConsumer_DifferentPartitions(t *testing.T) {
 
 	numEvents := 0
 
+	var dispatchMu sync.Mutex
+
 	consumer, err := NewPostgresConsumer("test", &MockLogger{}, &MockDispatcher{
 		onDispatch: func(ctx context.Context, method string, data []byte) error {
+			dispatchMu.Lock()
+			defer dispatchMu.Unlock()
 			require.Equal(t, testMethod, method)
 			require.Equal(t, testPayload, data)
 			numEvents++
