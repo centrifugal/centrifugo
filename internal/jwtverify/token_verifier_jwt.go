@@ -23,8 +23,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const alternativeUserIDClaim = "user_id"
-
 type VerifierConfig struct {
 	// HMACSecretKey is a secret key used to validate connection and subscription
 	// tokens generated using HMAC. Zero value means that HMAC tokens won't be allowed.

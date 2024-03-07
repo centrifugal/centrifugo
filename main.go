@@ -645,7 +645,12 @@ func main() {
 				node.SetBroker(broker)
 			}
 
-			tokenVerifier, err := jwtverify.NewTokenVerifierJWT(jwtVerifierConfig(), ruleContainer)
+			verifierConfig, err := jwtVerifierConfig()
+			if err != nil {
+				log.Fatal().Msgf("error creating JWT verifier config: %v", err)
+			}
+
+			tokenVerifier, err := jwtverify.NewTokenVerifierJWT(verifierConfig, ruleContainer)
 			if err != nil {
 				log.Fatal().Msgf("error creating token verifier: %v", err)
 			}
@@ -654,7 +659,13 @@ func main() {
 			if viper.GetBool("separate_subscription_token_config") {
 				log.Info().Msg("initializing separate verifier for subscription tokens")
 				var err error
-				subTokenVerifier, err = jwtverify.NewTokenVerifierJWT(subJWTVerifierConfig(), ruleContainer)
+
+				subVerifier, err := subJWTVerifierConfig()
+				if err != nil {
+					log.Fatal().Msgf("error creating subscription JWT verifier config: %v", err)
+				}
+
+				subTokenVerifier, err = jwtverify.NewTokenVerifierJWT(subVerifier, ruleContainer)
 				if err != nil {
 					log.Fatal().Msgf("error creating token verifier: %v", err)
 				}
@@ -1015,7 +1026,11 @@ func main() {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
-			jwtVerifierConfig := jwtVerifierConfig()
+			jwtVerifierConfig, err := jwtVerifierConfig()
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
 			token, err := cli.GenerateToken(jwtVerifierConfig, genTokenUser, genTokenTTL)
 			if err != nil {
 				fmt.Printf("error: %v\n", err)
@@ -1062,9 +1077,17 @@ func main() {
 				fmt.Println("channel is required")
 				os.Exit(1)
 			}
-			verifierConfig := jwtVerifierConfig()
+			verifierConfig, err := jwtVerifierConfig()
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
 			if viper.GetBool("separate_subscription_token_config") {
-				verifierConfig = subJWTVerifierConfig()
+				verifierConfig, err = subJWTVerifierConfig()
+				if err != nil {
+					fmt.Printf("error: %v\n", err)
+					os.Exit(1)
+				}
 			}
 			token, err := cli.GenerateSubToken(verifierConfig, genSubTokenUser, genSubTokenChannel, genSubTokenTTL)
 			if err != nil {
@@ -1105,7 +1128,11 @@ func main() {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
-			verifierConfig := jwtVerifierConfig()
+			verifierConfig, err := jwtVerifierConfig()
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
 			if len(args) != 1 {
 				fmt.Printf("error: provide token to check [centrifugo checktoken <TOKEN>]\n")
 				os.Exit(1)
@@ -1137,9 +1164,17 @@ func main() {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
-			verifierConfig := jwtVerifierConfig()
+			verifierConfig, err := jwtVerifierConfig()
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
 			if viper.GetBool("separate_subscription_token_config") {
-				verifierConfig = subJWTVerifierConfig()
+				verifierConfig, err = subJWTVerifierConfig()
+				if err != nil {
+					fmt.Printf("error: %v\n", err)
+					os.Exit(1)
+				}
 			}
 			if len(args) != 1 {
 				fmt.Printf("error: provide token to check [centrifugo checksubtoken <TOKEN>]\n")
@@ -1270,12 +1305,25 @@ func handleSignals(
 				continue
 			}
 			ruleConfig := ruleConfig()
-			if err := tokenVerifier.Reload(jwtVerifierConfig()); err != nil {
+
+			verifierConfig, err := jwtVerifierConfig()
+			if err != nil {
+				log.Error().Msgf("error reloading: %v", err)
+				continue
+			}
+
+			if err := tokenVerifier.Reload(verifierConfig); err != nil {
 				log.Error().Msgf("error reloading: %v", err)
 				continue
 			}
 			if subTokenVerifier != nil {
-				if err := subTokenVerifier.Reload(subJWTVerifierConfig()); err != nil {
+				subVerifierConfig, err := subJWTVerifierConfig()
+				if err != nil {
+					log.Error().Msgf("error reloading: %v", err)
+					continue
+				}
+
+				if err := subTokenVerifier.Reload(subVerifierConfig); err != nil {
 					log.Error().Msgf("error reloading: %v", err)
 					continue
 				}
@@ -1900,7 +1948,7 @@ func consumersFromConfig(v *viper.Viper) []consuming.ConsumerConfig {
 	return consumers
 }
 
-func jwtVerifierConfig() jwtverify.VerifierConfig {
+func jwtVerifierConfig() (jwtverify.VerifierConfig, error) {
 	v := viper.GetViper()
 	cfg := jwtverify.VerifierConfig{}
 
@@ -1910,7 +1958,7 @@ func jwtVerifierConfig() jwtverify.VerifierConfig {
 	if rsaPublicKey != "" {
 		pubKey, err := jwtutils.ParseRSAPublicKeyFromPEM([]byte(rsaPublicKey))
 		if err != nil {
-			log.Fatal().Msgf("error parsing RSA public key: %v", err)
+			return jwtverify.VerifierConfig{}, fmt.Errorf("error parsing RSA public key: %w", err)
 		}
 		cfg.RSAPublicKey = pubKey
 	}
@@ -1919,7 +1967,7 @@ func jwtVerifierConfig() jwtverify.VerifierConfig {
 	if ecdsaPublicKey != "" {
 		pubKey, err := jwtutils.ParseECDSAPublicKeyFromPEM([]byte(ecdsaPublicKey))
 		if err != nil {
-			log.Fatal().Msgf("error parsing ECDSA public key: %v", err)
+			return jwtverify.VerifierConfig{}, fmt.Errorf("error parsing ECDSA public key: %w", err)
 		}
 		cfg.ECDSAPublicKey = pubKey
 	}
@@ -1932,12 +1980,12 @@ func jwtVerifierConfig() jwtverify.VerifierConfig {
 	var err error
 	cfg.UserIDClaim, err = tools.OptionalStringChoice(v, "token_user_id_claim", []string{"user_id"})
 	if err != nil {
-		log.Fatal().Msgf(err.Error())
+		return jwtverify.VerifierConfig{}, err
 	}
-	return cfg
+	return cfg, nil
 }
 
-func subJWTVerifierConfig() jwtverify.VerifierConfig {
+func subJWTVerifierConfig() (jwtverify.VerifierConfig, error) {
 	v := viper.GetViper()
 	cfg := jwtverify.VerifierConfig{}
 
@@ -1947,7 +1995,7 @@ func subJWTVerifierConfig() jwtverify.VerifierConfig {
 	if rsaPublicKey != "" {
 		pubKey, err := jwtutils.ParseRSAPublicKeyFromPEM([]byte(rsaPublicKey))
 		if err != nil {
-			log.Fatal().Msgf("error parsing RSA public key: %v", err)
+			return jwtverify.VerifierConfig{}, fmt.Errorf("error parsing RSA public key: %w", err)
 		}
 		cfg.RSAPublicKey = pubKey
 	}
@@ -1956,7 +2004,7 @@ func subJWTVerifierConfig() jwtverify.VerifierConfig {
 	if ecdsaPublicKey != "" {
 		pubKey, err := jwtutils.ParseECDSAPublicKeyFromPEM([]byte(ecdsaPublicKey))
 		if err != nil {
-			log.Fatal().Msgf("error parsing ECDSA public key: %v", err)
+			return jwtverify.VerifierConfig{}, fmt.Errorf("error parsing ECDSA public key: %w", err)
 		}
 		cfg.ECDSAPublicKey = pubKey
 	}
@@ -1969,9 +2017,9 @@ func subJWTVerifierConfig() jwtverify.VerifierConfig {
 	var err error
 	cfg.UserIDClaim, err = tools.OptionalStringChoice(v, "subscription_token_user_id_claim", []string{"user_id"})
 	if err != nil {
-		log.Fatal().Msgf(err.Error())
+		return jwtverify.VerifierConfig{}, err
 	}
-	return cfg
+	return cfg, nil
 }
 
 func GetDuration(key string, secondsPrecision ...bool) time.Duration {
