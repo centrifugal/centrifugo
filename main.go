@@ -121,6 +121,7 @@ var defaults = map[string]any{
 	"token_audience_regex":       "",
 	"token_issuer":               "",
 	"token_issuer_regex":         "",
+	"token_user_id_claim":        "",
 
 	"separate_subscription_token_config":      false,
 	"subscription_token_hmac_secret_key":      "",
@@ -131,6 +132,7 @@ var defaults = map[string]any{
 	"subscription_token_audience_regex":       "",
 	"subscription_token_issuer":               "",
 	"subscription_token_issuer_regex":         "",
+	"subscription_token_user_id_claim":        "",
 
 	"allowed_origins": []string{},
 
@@ -1927,6 +1929,11 @@ func jwtVerifierConfig() jwtverify.VerifierConfig {
 	cfg.AudienceRegex = v.GetString("token_audience_regex")
 	cfg.Issuer = v.GetString("token_issuer")
 	cfg.IssuerRegex = v.GetString("token_issuer_regex")
+	var err error
+	cfg.UserIDClaim, err = tools.OptionalStringChoice(v, "token_user_id_claim", []string{"user_id"})
+	if err != nil {
+		log.Fatal().Msgf(err.Error())
+	}
 	return cfg
 }
 
@@ -1959,6 +1966,11 @@ func subJWTVerifierConfig() jwtverify.VerifierConfig {
 	cfg.AudienceRegex = v.GetString("subscription_token_audience_regex")
 	cfg.Issuer = v.GetString("subscription_token_issuer")
 	cfg.IssuerRegex = v.GetString("subscription_token_issuer_regex")
+	var err error
+	cfg.UserIDClaim, err = tools.OptionalStringChoice(v, "subscription_token_user_id_claim", []string{"user_id"})
+	if err != nil {
+		log.Fatal().Msgf(err.Error())
+	}
 	return cfg
 }
 
