@@ -25,12 +25,14 @@ import (
 // Use https://jwt.io to look at token contents.
 // noinspection ALL
 const (
-	jwtValid            = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn19.m-TaS80RxkAiP9jH_s_h2NrKS_TDuPxJ8-z6gI7UewI"
-	jwtExpired          = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn0sImV4cCI6MTU4ODM1MTcwNH0.LTc0p5YlrwJcxXPETrjhm9qyYUBKCR5fSROmfCE4TD8"
-	jwtNotBefore        = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn0sImV4cCI6MzE3NjgyMDU3MCwibmJmIjozMTc2ODIwNTYwfQ.gfsQeznFw6g44OEnCTSBW7AkmLy92GBfXL_Bdvzs7vc"
-	jwtInvalidSignature = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn0sImV4cCI6MTU4ODQxOTY5MywibmJmIjoxNTg4NDE4NjkzfQ.05Xj9adbLukdhSJFyiVUEgbxCHTajXuotmalFgYviCo"
-	jwtArrayAud         = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn0sImF1ZCI6WyJmb28iLCJiYXIiXX0.iY4pCPEQwstfNmPkLr7r7DrLZDo42q3E9jMc-TefI6g"
-	jwtStringAud        = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn0sImF1ZCI6ImZvbyJ9.jym6CG5haHME3ZQbb9jlnV1E0hSwwEjZycBZSygRzO0"
+	jwtValid                   = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn19.m-TaS80RxkAiP9jH_s_h2NrKS_TDuPxJ8-z6gI7UewI"
+	jwtExpired                 = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn0sImV4cCI6MTU4ODM1MTcwNH0.LTc0p5YlrwJcxXPETrjhm9qyYUBKCR5fSROmfCE4TD8"
+	jwtNotBefore               = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn0sImV4cCI6MzE3NjgyMDU3MCwibmJmIjozMTc2ODIwNTYwfQ.gfsQeznFw6g44OEnCTSBW7AkmLy92GBfXL_Bdvzs7vc"
+	jwtInvalidSignature        = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn0sImV4cCI6MTU4ODQxOTY5MywibmJmIjoxNTg4NDE4NjkzfQ.05Xj9adbLukdhSJFyiVUEgbxCHTajXuotmalFgYviCo"
+	jwtArrayAud                = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn0sImF1ZCI6WyJmb28iLCJiYXIiXX0.iY4pCPEQwstfNmPkLr7r7DrLZDo42q3E9jMc-TefI6g"
+	jwtStringAud               = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn0sImF1ZCI6ImZvbyJ9.jym6CG5haHME3ZQbb9jlnV1E0hSwwEjZycBZSygRzO0"
+	jwtValidCustomUserClaim    = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidGVzdCIsImV4cCI6MTcxMDQ0Nzc5NywiaWF0IjoxNzA5ODQyOTk3fQ.FQV-b69lNEknascibq-YgMLS9Vr0TBYuPgVwgWLTRRs"
+	subJWTValidCustomUserClaim = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTA0NDc4MTksImlhdCI6MTcwOTg0MzAxOSwiY2hhbm5lbCI6ImNoYW5uZWwiLCJ1c2VyX2lkIjoidGVzdCJ9.KlZUzBFxxZLdpmQr67-NnaxFJrLspCl1OdoMgYGCxI4"
 
 	//
 	// Generated with: https://github.com/lestrrat-go/jwx/tree/main/cmd/jwx
@@ -280,7 +282,7 @@ func Test_tokenVerifierJWT_Valid(t *testing.T) {
 	ruleConfig := rule.DefaultConfig
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", ""}, ruleContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, ruleContainer)
 	require.NoError(t, err)
 	ct, err := verifier.VerifyConnectToken(jwtValid, false)
 	require.NoError(t, err)
@@ -289,11 +291,45 @@ func Test_tokenVerifierJWT_Valid(t *testing.T) {
 	require.Equal(t, `{"first_name":"Alexander","last_name":"Emelin"}`, string(ct.Info))
 }
 
+func Test_tokenVerifierJWT_Valid_CustomClaim(t *testing.T) {
+	ruleConfig := rule.DefaultConfig
+	ruleContainer, err := rule.NewContainer(ruleConfig)
+	require.NoError(t, err)
+
+	// Test that by default `user_id` claim is ignored.
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, ruleContainer)
+	require.NoError(t, err)
+	ct, err := verifier.VerifyConnectToken(jwtValidCustomUserClaim, false)
+	require.NoError(t, err)
+	require.Equal(t, "", ct.UserID)
+
+	// Now test that custom `user_id` claim works for connection token.
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", "user_id"}, ruleContainer)
+	require.NoError(t, err)
+	ct, err = verifier.VerifyConnectToken(jwtValidCustomUserClaim, false)
+	require.NoError(t, err)
+	require.Equal(t, "test", ct.UserID)
+
+	// And the same for subscription token.
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, ruleContainer)
+	require.NoError(t, err)
+	st, err := verifier.VerifySubscribeToken(subJWTValidCustomUserClaim, false)
+	require.NoError(t, err)
+	require.Equal(t, "", st.UserID)
+	require.Equal(t, "channel", st.Channel)
+
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", "user_id"}, ruleContainer)
+	require.NoError(t, err)
+	st, err = verifier.VerifySubscribeToken(subJWTValidCustomUserClaim, false)
+	require.NoError(t, err)
+	require.Equal(t, "test", st.UserID)
+}
+
 func Test_tokenVerifierJWT_Audience(t *testing.T) {
 	ruleConfig := rule.DefaultConfig
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "test2", "", "", ""}, ruleContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "test2", "", "", "", ""}, ruleContainer)
 	require.NoError(t, err)
 
 	// Token without aud.
@@ -304,26 +340,26 @@ func Test_tokenVerifierJWT_Audience(t *testing.T) {
 	token := getRSAConnToken("user", time.Now().Add(time.Hour).Unix(), nil)
 
 	// Verifier with audience which does not match aud in token.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "test2", "", "", ""}, ruleContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "test2", "", "", "", ""}, ruleContainer)
 	require.NoError(t, err)
 
 	_, err = verifier.VerifyConnectToken(token, false)
 	require.ErrorIs(t, err, ErrInvalidToken)
 
 	// Verifier with token audience.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "test", "", "", ""}, ruleContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "test", "", "", "", ""}, ruleContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(token, false)
 	require.NoError(t, err)
 
 	// Verifier with token audience - valid.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "test", "", ""}, ruleContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "test", "", "", ""}, ruleContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(token, false)
 	require.NoError(t, err)
 
 	// Verifier with token audience - invalid.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "test2", "", ""}, ruleContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "test2", "", "", ""}, ruleContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(token, false)
 	require.Error(t, err)
@@ -333,7 +369,7 @@ func Test_tokenVerifierJWT_Issuer(t *testing.T) {
 	ruleConfig := rule.DefaultConfig
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "test2", ""}, ruleContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "test2", "", ""}, ruleContainer)
 	require.NoError(t, err)
 
 	// Token without iss.
@@ -344,25 +380,25 @@ func Test_tokenVerifierJWT_Issuer(t *testing.T) {
 	token := getRSAConnToken("user", time.Now().Add(time.Hour).Unix(), nil)
 
 	// Verifier with issuer which does not match token iss.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "test2", ""}, ruleContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "test2", "", ""}, ruleContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(token, false)
 	require.ErrorIs(t, err, ErrInvalidToken)
 
 	// Verifier with token issuer.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "test", ""}, ruleContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "test", "", ""}, ruleContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(token, false)
 	require.NoError(t, err)
 
 	// Verifier with token issuer regex - valid.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "test"}, ruleContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "test", ""}, ruleContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(token, false)
 	require.NoError(t, err)
 
 	// Verifier with token issuer regex - invalid.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "test2"}, ruleContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "test2", ""}, ruleContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(token, false)
 	require.Error(t, err)
@@ -372,7 +408,7 @@ func Test_tokenVerifierJWT_Expired(t *testing.T) {
 	ruleConfig := rule.DefaultConfig
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", ""}, ruleContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, ruleContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(jwtExpired, false)
 	require.Error(t, err)
@@ -383,7 +419,7 @@ func Test_tokenVerifierJWT_DisabledAlgorithm(t *testing.T) {
 	ruleConfig := rule.DefaultConfig
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, "", "", "", "", ""}, ruleContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, "", "", "", "", "", ""}, ruleContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(jwtExpired, false)
 	require.Error(t, err)
@@ -394,7 +430,7 @@ func Test_tokenVerifierJWT_InvalidSignature(t *testing.T) {
 	ruleConfig := rule.DefaultConfig
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", ""}, ruleContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, ruleContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(jwtInvalidSignature, false)
 	require.Error(t, err)
@@ -409,7 +445,7 @@ func Test_tokenVerifierJWT_InvalidSignature_SkipVerify(t *testing.T) {
 	ruleConfig := rule.DefaultConfig
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", ""}, ruleContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, ruleContainer)
 	require.NoError(t, err)
 	ct, err := verifier.VerifyConnectToken(jwtValid+"xxx", true)
 	require.NoError(t, err)
@@ -420,7 +456,7 @@ func Test_tokenVerifierJWT_WithNotBefore(t *testing.T) {
 	ruleConfig := rule.DefaultConfig
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", ""}, ruleContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, ruleContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(jwtNotBefore, false)
 	require.Error(t, err)
@@ -434,7 +470,7 @@ func Test_tokenVerifierJWT_StringAudience(t *testing.T) {
 	ruleConfig := rule.DefaultConfig
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", ""}, ruleContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, ruleContainer)
 	require.NoError(t, err)
 	ct, err := verifier.VerifyConnectToken(jwtStringAud, false)
 	require.NoError(t, err)
@@ -445,7 +481,7 @@ func Test_tokenVerifierJWT_ArrayAudience(t *testing.T) {
 	ruleConfig := rule.DefaultConfig
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", ""}, ruleContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, ruleContainer)
 	require.NoError(t, err)
 	ct, err := verifier.VerifyConnectToken(jwtArrayAud, false)
 	require.NoError(t, err)
@@ -464,7 +500,7 @@ func Test_tokenVerifierJWT_VerifyConnectToken(t *testing.T) {
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(t, err)
 
-	verifierJWT, err := NewTokenVerifierJWT(VerifierConfig{"secret", rsaPubKey, ecdsaPubKey, "", "", "", "", ""}, ruleContainer)
+	verifierJWT, err := NewTokenVerifierJWT(VerifierConfig{"secret", rsaPubKey, ecdsaPubKey, "", "", "", "", "", ""}, ruleContainer)
 	require.NoError(t, err)
 
 	_time := time.Now()
@@ -546,7 +582,7 @@ func Test_tokenVerifierJWT_VerifyConnectToken(t *testing.T) {
 			if !tt.wantErr && err != nil {
 				t.Errorf("VerifyConnectToken() should not return error")
 			}
-			if tt.expired && err != ErrTokenExpired {
+			if tt.expired && !errors.Is(err, ErrTokenExpired) {
 				t.Errorf("VerifyConnectToken() should return token expired error")
 			}
 			require.Equal(t, tt.want, got)
@@ -626,7 +662,7 @@ func Test_tokenVerifierJWT_VerifyConnectTokenWithJWK(t *testing.T) {
 			ruleContainer, err := rule.NewContainer(ruleConfig)
 			require.NoError(t, err)
 
-			verifier, err := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, ts.URL, "", "", "", ""}, ruleContainer)
+			verifier, err := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, ts.URL, "", "", "", "", ""}, ruleContainer)
 			require.NoError(t, err)
 
 			token := getRSAConnToken(tt.token.user, tt.token.exp, privKey, jwt.WithKeyID(tt.jwk.kid))
@@ -660,7 +696,7 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(t, err)
 
-	verifierJWT, err := NewTokenVerifierJWT(VerifierConfig{"secret", rsaPubKey, ecdsaPubKey, "", "", "", "", ""}, ruleContainer)
+	verifierJWT, err := NewTokenVerifierJWT(VerifierConfig{"secret", rsaPubKey, ecdsaPubKey, "", "", "", "", "", ""}, ruleContainer)
 	require.NoError(t, err)
 
 	_time := time.Now()
@@ -780,7 +816,7 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 			if !tt.wantErr && err != nil {
 				t.Errorf("VerifySubscribeToken() should not return error, but returned: %v", err)
 			}
-			if tt.expired && err != ErrTokenExpired {
+			if tt.expired && !errors.Is(err, ErrTokenExpired) {
 				t.Errorf("VerifySubscribeToken() should return token expired error")
 			}
 			if !reflect.DeepEqual(got, tt.want) {
@@ -806,7 +842,7 @@ func TestJWKS(t *testing.T) {
 	ruleConfig := rule.DefaultConfig
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, ts.URL, "", "", "", ""}, ruleContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, ts.URL, "", "", "", "", ""}, ruleContainer)
 	require.NoError(t, err)
 
 	// Validate an RSA token
@@ -843,7 +879,7 @@ func BenchmarkConnectTokenVerify_Valid(b *testing.B) {
 	ruleConfig := rule.DefaultConfig
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(b, err)
-	verifierJWT, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", ""}, ruleContainer)
+	verifierJWT, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, ruleContainer)
 	require.NoError(b, err)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -860,7 +896,7 @@ func BenchmarkConnectTokenVerify_Expired(b *testing.B) {
 	ruleConfig := rule.DefaultConfig
 	ruleContainer, err := rule.NewContainer(ruleConfig)
 	require.NoError(b, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", ""}, ruleContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, ruleContainer)
 	require.NoError(b, err)
 	for i := 0; i < b.N; i++ {
 		_, err := verifier.VerifyConnectToken(jwtExpired, false)

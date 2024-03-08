@@ -56,6 +56,11 @@ type VerifierConfig struct {
 	// IssuerRegex allows setting Issuer in form of Go language regex pattern. Regex groups
 	// may be then used in constructing JWKSPublicEndpoint.
 	IssuerRegex string
+
+	// UserIDClaim allows overriding default claim used to extract user ID from token. At this
+	// moment only "user_id" alternative claim is supported due to how tokens are parsed.
+	// By default, Centrifugo uses "sub".
+	UserIDClaim string
 }
 
 func (c VerifierConfig) Validate() error {
@@ -94,6 +99,7 @@ func NewTokenVerifierJWT(config VerifierConfig, ruleContainer *rule.Container) (
 		issuerRe:      issuerRe,
 		audience:      config.Audience,
 		audienceRe:    audienceRe,
+		userIDClaim:   config.UserIDClaim,
 	}
 
 	algorithms, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey, config.ECDSAPublicKey)
@@ -122,6 +128,7 @@ type VerifierJWT struct {
 	audienceRe    *regexp.Regexp
 	issuer        string
 	issuerRe      *regexp.Regexp
+	userIDClaim   string
 }
 
 var (
@@ -180,6 +187,8 @@ type ConnectTokenClaims struct {
 	Channels   []string                    `json:"channels,omitempty"`
 	Subs       map[string]SubscribeOptions `json:"subs,omitempty"`
 	Meta       json.RawMessage             `json:"meta,omitempty"`
+	// UserID is only used instead of jwt.RegisteredClaims.Subject when explicitly configured.
+	UserID string `json:"user_id,omitempty"`
 	// Channel must never be set in connection tokens. We check this on verifying.
 	Channel string `json:"channel,omitempty"`
 	jwt.RegisteredClaims
@@ -191,6 +200,8 @@ type SubscribeTokenClaims struct {
 	Channel  string `json:"channel,omitempty"`
 	Client   string `json:"client,omitempty"`
 	ExpireAt *int64 `json:"expire_at,omitempty"`
+	// UserID is only used instead of jwt.RegisteredClaims.Subject when explicitly configured.
+	UserID string `json:"user_id,omitempty"`
 }
 
 type jwksManager struct{ *jwks.Manager }
@@ -579,13 +590,16 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 	}
 
 	ct := ConnectToken{
-		UserID:   claims.RegisteredClaims.Subject,
 		Info:     info,
 		Subs:     subs,
 		ExpireAt: expireAt,
 		Meta:     claims.Meta,
 	}
-
+	if verifier.userIDClaim != "" {
+		ct.UserID = claims.UserID
+	} else {
+		ct.UserID = claims.RegisteredClaims.Subject
+	}
 	return ct, nil
 }
 
@@ -736,6 +750,11 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 			Data:              data,
 		},
 	}
+	if verifier.userIDClaim != "" {
+		st.UserID = claims.UserID
+	} else {
+		st.UserID = claims.RegisteredClaims.Subject
+	}
 	return st, nil
 }
 
@@ -766,11 +785,11 @@ func (verifier *VerifierJWT) Reload(config VerifierConfig) error {
 			return fmt.Errorf("error compiling issuer regex: %w", err)
 		}
 	}
-
 	verifier.algorithms = alg
 	verifier.audience = config.Audience
 	verifier.audienceRe = audienceRe
 	verifier.issuer = config.Issuer
 	verifier.issuerRe = issuerRe
+	verifier.userIDClaim = config.UserIDClaim
 	return nil
 }
