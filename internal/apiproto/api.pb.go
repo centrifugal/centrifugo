@@ -8165,7 +8165,7 @@ type PushTimeLimitStrategy struct {
 
 	SendAfterTime  string `protobuf:"bytes,1,opt,name=send_after_time,json=sendAfterTime,proto3" json:"send_after_time,omitempty"`    // HH:MM:SS
 	SendBeforeTime string `protobuf:"bytes,2,opt,name=send_before_time,json=sendBeforeTime,proto3" json:"send_before_time,omitempty"` // HH:MM:SS
-	NoTzSendNow    bool   `protobuf:"varint,3,opt,name=no_tz_send_now,json=noTzSendNow,proto3" json:"no_tz_send_now,omitempty"`       // If device timezone is not set - send push now.
+	NoTzSendNow    bool   `protobuf:"varint,3,opt,name=no_tz_send_now,json=noTzSendNow,proto3" json:"no_tz_send_now,omitempty"`       // If device timezone is not set - send push now, by default will be dropped.
 }
 
 func (x *PushTimeLimitStrategy) Reset() {
@@ -8226,7 +8226,7 @@ type PushRateLimitStrategy struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Key               string             `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"` // key for rate limit policy, supports variables (user_id, device_id).
+	Key               string             `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"` // optional key for rate limit policy, supports variables.
 	Policies          []*RateLimitPolicy `protobuf:"bytes,2,rep,name=policies,proto3" json:"policies,omitempty"`
 	DropIfRateLimited bool               `protobuf:"varint,3,opt,name=drop_if_rate_limited,json=dropIfRateLimited,proto3" json:"drop_if_rate_limited,omitempty"`
 }
