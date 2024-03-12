@@ -8884,9 +8884,9 @@ type RateLimitPolicyEvaluation struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Allowed     bool  `protobuf:"varint,1,opt,name=allowed,proto3" json:"allowed,omitempty"`
-	TokensLeft  int64 `protobuf:"varint,2,opt,name=tokens_left,json=tokensLeft,proto3" json:"tokens_left,omitempty"`
-	AllowedInMs int32 `protobuf:"varint,3,opt,name=allowed_in_ms,json=allowedInMs,proto3" json:"allowed_in_ms,omitempty"`
+	Allowed     bool  `protobuf:"varint,1,opt,name=allowed,proto3" json:"allowed"`
+	TokensLeft  int64 `protobuf:"varint,2,opt,name=tokens_left,json=tokensLeft,proto3" json:"tokens_left"`
+	AllowedInMs int32 `protobuf:"varint,3,opt,name=allowed_in_ms,json=allowedInMs,proto3" json:"allowed_in_ms"`
 }
 
 func (x *RateLimitPolicyEvaluation) Reset() {
@@ -8947,8 +8947,8 @@ type RateLimitResult struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Allowed      bool                         `protobuf:"varint,1,opt,name=allowed,proto3" json:"allowed,omitempty"`
-	AllowedInMs  int32                        `protobuf:"varint,2,opt,name=allowed_in_ms,json=allowedInMs,proto3" json:"allowed_in_ms,omitempty"`
+	Allowed      bool                         `protobuf:"varint,1,opt,name=allowed,proto3" json:"allowed"`
+	AllowedInMs  int32                        `protobuf:"varint,2,opt,name=allowed_in_ms,json=allowedInMs,proto3" json:"allowed_in_ms"`
 	ServerTimeMs int64                        `protobuf:"varint,3,opt,name=server_time_ms,json=serverTimeMs,proto3" json:"server_time_ms,omitempty"`
 	Policies     []*RateLimitPolicyEvaluation `protobuf:"bytes,4,rep,name=policies,proto3" json:"policies,omitempty"`
 }
