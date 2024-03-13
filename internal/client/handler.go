@@ -29,6 +29,7 @@ type ProxyMap struct {
 	SubscribeProxies       map[string]proxy.SubscribeProxy
 	SubRefreshProxies      map[string]proxy.SubRefreshProxy
 	SubscribeStreamProxies map[string]*proxy.SubscribeStreamProxy
+	DocumentProxies        map[string]proxy.DocumentProxy
 }
 
 // Handler ...
@@ -131,6 +132,14 @@ func (h *Handler) Setup() error {
 		}).Handle(h.node)
 	}
 
+	var proxyDocumentHandler proxy.DocumentHandlerFunc
+	if len(h.proxyMap.DocumentProxies) > 0 {
+		proxyDocumentHandler = proxy.NewDocumentHandler(proxy.DocumentHandlerConfig{
+			Proxies:           h.proxyMap.DocumentProxies,
+			GranularProxyMode: h.granularProxyMode,
+		}).Handle(h.node)
+	}
+
 	ruleConfig := h.ruleContainer.Config()
 	usePersonalChannel := ruleConfig.UserSubscribeToPersonal
 	singleConnection := ruleConfig.UserPersonalSingleConnection
@@ -196,7 +205,7 @@ func (h *Handler) Setup() error {
 
 		client.OnSubscribe(func(event centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
 			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-				reply, _, err := h.OnSubscribe(client, event, subscribeProxyHandler, proxySubscribeStreamHandler)
+				reply, _, err := h.OnSubscribe(client, event, subscribeProxyHandler, proxySubscribeStreamHandler, proxyDocumentHandler)
 				cb(reply, err)
 			})
 		})
@@ -624,7 +633,7 @@ type SubscribeExtra struct {
 }
 
 // OnSubscribe ...
-func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribeProxyHandler proxy.SubscribeHandlerFunc, subscribeStreamHandlerFunc proxy.SubscribeStreamHandlerFunc) (centrifuge.SubscribeReply, SubscribeExtra, error) {
+func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribeProxyHandler proxy.SubscribeHandlerFunc, subscribeStreamHandlerFunc proxy.SubscribeStreamHandlerFunc, proxyDocumentHandler proxy.DocumentHandlerFunc) (centrifuge.SubscribeReply, SubscribeExtra, error) {
 	ruleConfig := h.ruleContainer.Config()
 
 	if e.Channel == "" {

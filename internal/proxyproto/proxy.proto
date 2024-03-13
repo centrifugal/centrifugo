@@ -27,6 +27,8 @@ service CentrifugoProxy {
   // always contains SubscribeRequest, then StreamSubscribeRequest will contain data published
   // by client. Reverse direction works the same way as in SubscribeUnidirectional.
   rpc SubscribeBidirectional(stream StreamSubscribeRequest) returns (stream StreamSubscribeResponse);
+  // LoadDocuments is an EXPERIMENTAL method which allows to load documents from the backend.
+  rpc LoadDocuments(LoadDocumentsRequest) returns (LoadDocumentsResponse);
   // NotifyChannelState can be used to receive channel events such as channel "occupied" and "vacated".
   // This is a feature in a preview state and is only available in Centrifugo PRO.
   rpc NotifyChannelState(NotifyChannelStateRequest) returns (NotifyChannelStateResponse);
@@ -258,6 +260,24 @@ message StreamSubscribeResponse {
   SubscribeResponse subscribe_response = 1;
   // Publication goes to client. Can't be set in the first message from backend to Centrifugo.
   Publication publication = 2;
+}
+
+message LoadDocumentsRequest {
+  repeated string ids = 1;
+}
+
+message LoadDocumentsResponse {
+  LoadDocumentsResult result = 1;
+  Error error = 2;
+}
+
+message LoadDocumentsResult {
+  map<string, Document> documents = 1;
+}
+
+message Document {
+  bytes data = 1;
+  int64 version = 2;
 }
 
 message NotifyChannelStateRequest {

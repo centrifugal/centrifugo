@@ -161,6 +161,7 @@ var defaults = map[string]any{
 	"allow_history_for_subscriber":  false,
 	"allow_user_limited_channels":   false,
 	"channel_regex":                 "",
+	"document":                      false,
 	"proxy_subscribe":               false,
 	"proxy_publish":                 false,
 	"proxy_sub_refresh":             false,
@@ -557,12 +558,12 @@ func main() {
 
 			granularProxyMode := viper.GetBool("granular_proxy_mode")
 			var proxyMap *client.ProxyMap
-			var proxyEnabled bool
+			var keepHeadersInContext bool
 			if granularProxyMode {
-				proxyMap, proxyEnabled = granularProxyMapConfig(ruleConfig)
+				proxyMap, keepHeadersInContext = granularProxyMapConfig(ruleConfig)
 				log.Info().Msg("using granular proxy configuration")
 			} else {
-				proxyMap, proxyEnabled = proxyMapConfig()
+				proxyMap, keepHeadersInContext = proxyMapConfig()
 			}
 
 			nodeCfg := nodeConfig(build.Version)
@@ -813,7 +814,6 @@ func main() {
 				log.Info().Msgf("serving unidirectional GRPC on %s", grpcUniAddr)
 			}
 
-			keepHeadersInContext := proxyEnabled
 			httpServers, err := runHTTPServers(node, ruleContainer, httpAPIExecutor, keepHeadersInContext)
 			if err != nil {
 				log.Fatal().Msgf("error running HTTP server: %v", err)
@@ -1718,6 +1718,7 @@ func ruleConfig() rule.Config {
 	cfg.HistoryForSubscriber = v.GetBool("allow_history_for_subscriber")
 	cfg.UserLimitedChannels = v.GetBool("allow_user_limited_channels")
 	cfg.ChannelRegex = v.GetString("channel_regex")
+	cfg.Document = v.GetBool("document")
 	cfg.ProxySubscribe = v.GetBool("proxy_subscribe")
 	cfg.ProxyPublish = v.GetBool("proxy_publish")
 	cfg.ProxySubRefresh = v.GetBool("proxy_sub_refresh")
@@ -2012,6 +2013,8 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	}
 	proxyConfig.StaticHttpHeaders = staticHttpHeaders
 
+	documentEndpoint := v.GetString("proxy_document_endpoint")
+	documentTimeout := GetDuration("proxy_document_timeout")
 	connectEndpoint := v.GetString("proxy_connect_endpoint")
 	connectTimeout := GetDuration("proxy_connect_timeout")
 	refreshEndpoint := v.GetString("proxy_refresh_endpoint")
@@ -2107,11 +2110,23 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 		log.Info().Str("endpoint", proxyStreamSubscribeEndpoint).Msg("subscribe stream proxy enabled")
 	}
 
-	proxyEnabled := connectEndpoint != "" || refreshEndpoint != "" ||
+	if documentEndpoint != "" {
+		proxyConfig.Endpoint = documentEndpoint
+		proxyConfig.Timeout = tools.Duration(documentTimeout)
+		var err error
+		dp, err := proxy.GetDocumentProxy(proxyConfig)
+		if err != nil {
+			log.Fatal().Msgf("error creating document proxy: %v", err)
+		}
+		proxyMap.DocumentProxies[""] = dp
+		log.Info().Str("endpoint", documentEndpoint).Msg("document proxy enabled")
+	}
+
+	keepHeadersInContext := connectEndpoint != "" || refreshEndpoint != "" ||
 		rpcEndpoint != "" || subscribeEndpoint != "" || publishEndpoint != "" ||
 		subRefreshEndpoint != "" || proxyStreamSubscribeEndpoint != ""
 
-	return proxyMap, proxyEnabled
+	return proxyMap, keepHeadersInContext
 }
 
 func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
@@ -2131,7 +2146,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		proxies[p.Name] = p
 	}
 
-	var proxyEnabled bool
+	var keepHeadersInContext bool
 
 	connectProxyName := viper.GetString("connect_proxy_name")
 	if connectProxyName != "" {
@@ -2144,7 +2159,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		if err != nil {
 			log.Fatal().Msgf("error creating connect proxy: %v", err)
 		}
-		proxyEnabled = true
+		keepHeadersInContext = true
 	}
 	refreshProxyName := viper.GetString("refresh_proxy_name")
 	if refreshProxyName != "" {
@@ -2157,7 +2172,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		if err != nil {
 			log.Fatal().Msgf("error creating refresh proxy: %v", err)
 		}
-		proxyEnabled = true
+		keepHeadersInContext = true
 	}
 	subscribeProxyName := ruleConfig.SubscribeProxyName
 	if subscribeProxyName != "" {
@@ -2170,7 +2185,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 			log.Fatal().Msgf("error creating subscribe proxy: %v", err)
 		}
 		proxyMap.SubscribeProxies[subscribeProxyName] = sp
-		proxyEnabled = true
+		keepHeadersInContext = true
 	}
 
 	publishProxyName := ruleConfig.PublishProxyName
@@ -2184,7 +2199,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 			log.Fatal().Msgf("error creating publish proxy: %v", err)
 		}
 		proxyMap.PublishProxies[publishProxyName] = pp
-		proxyEnabled = true
+		keepHeadersInContext = true
 	}
 
 	subRefreshProxyName := ruleConfig.SubRefreshProxyName
@@ -2198,7 +2213,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 			log.Fatal().Msgf("error creating publish proxy: %v", err)
 		}
 		proxyMap.SubRefreshProxies[subRefreshProxyName] = srp
-		proxyEnabled = true
+		keepHeadersInContext = true
 	}
 
 	subscribeStreamProxyName := ruleConfig.SubscribeStreamProxyName
@@ -2215,7 +2230,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 			log.Fatal().Msgf("error creating subscribe proxy: %v", err)
 		}
 		proxyMap.SubscribeStreamProxies[subscribeProxyName] = sp
-		proxyEnabled = true
+		keepHeadersInContext = true
 	}
 
 	for _, ns := range ruleConfig.Namespaces {
@@ -2234,7 +2249,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 				log.Fatal().Msgf("error creating subscribe proxy: %v", err)
 			}
 			proxyMap.SubscribeProxies[subscribeProxyName] = sp
-			proxyEnabled = true
+			keepHeadersInContext = true
 		}
 
 		if publishProxyName != "" {
@@ -2247,7 +2262,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 				log.Fatal().Msgf("error creating publish proxy: %v", err)
 			}
 			proxyMap.PublishProxies[publishProxyName] = pp
-			proxyEnabled = true
+			keepHeadersInContext = true
 		}
 
 		if subRefreshProxyName != "" {
@@ -2260,7 +2275,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 				log.Fatal().Msgf("error creating sub refresh proxy: %v", err)
 			}
 			proxyMap.SubRefreshProxies[subRefreshProxyName] = srp
-			proxyEnabled = true
+			keepHeadersInContext = true
 		}
 
 		if subscribeStreamProxyName != "" {
@@ -2276,7 +2291,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 				log.Fatal().Msgf("error creating subscribe stream proxy: %v", err)
 			}
 			proxyMap.SubscribeStreamProxies[subscribeStreamProxyName] = ssp
-			proxyEnabled = true
+			keepHeadersInContext = true
 		}
 	}
 
@@ -2291,7 +2306,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 			log.Fatal().Msgf("error creating rpc proxy: %v", err)
 		}
 		proxyMap.RpcProxies[rpcProxyName] = rp
-		proxyEnabled = true
+		keepHeadersInContext = true
 	}
 
 	for _, ns := range ruleConfig.RpcNamespaces {
@@ -2306,11 +2321,11 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 				log.Fatal().Msgf("error creating rpc proxy: %v", err)
 			}
 			proxyMap.RpcProxies[rpcProxyName] = rp
-			proxyEnabled = true
+			keepHeadersInContext = true
 		}
 	}
 
-	return proxyMap, proxyEnabled
+	return proxyMap, keepHeadersInContext
 }
 
 func nodeConfig(version string) centrifuge.Config {

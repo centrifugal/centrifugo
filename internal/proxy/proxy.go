@@ -101,6 +101,13 @@ func GetSubscribeProxy(p Config) (SubscribeProxy, error) {
 	return NewGRPCSubscribeProxy(p)
 }
 
+func GetDocumentProxy(p Config) (DocumentProxy, error) {
+	if isHttpEndpoint(p.Endpoint) {
+		return NewHTTPDocumentProxy(p)
+	}
+	return NewHTTPDocumentProxy(p)
+}
+
 type PerCallData struct {
 	Meta json.RawMessage
 }

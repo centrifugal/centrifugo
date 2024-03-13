@@ -114,6 +114,9 @@ type ChannelOptions struct {
 	// ChannelRegex ...
 	ChannelRegex string `mapstructure:"channel_regex" json:"channel_regex"`
 
+	// Document enables document semantics for the namespace.
+	Document bool `mapstructure:"document" json:"document"`
+
 	// ProxySubscribe turns on proxying subscribe decision for channels.
 	ProxySubscribe bool `mapstructure:"proxy_subscribe" json:"proxy_subscribe"`
 
