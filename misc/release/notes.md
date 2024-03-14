@@ -17,6 +17,7 @@ This release adds validation of proper `history_ttl` and `history_meta_ttl` conf
 ### Fixes
 
 * ❗Add validation on Centrifugo start for `history_meta_ttl` option to be greater than or equal to `history_ttl` option. Without this validation your history streams may eventually return error `The ID specified in XADD is equal or smaller than the target stream top item` during publish operation. See [#768](https://github.com/centrifugal/centrifugo/issues/768) for the details. This change won't affect you if you don't have `history_ttl` more than 30 days. Also, documentation about `history_meta_ttl` option was fixed since it contained different default values in different parts of the doc (the default changed in v5 together with [history meta ttl refactoring](https://centrifugal.dev/blog/2023/06/29/centrifugo-v5-released#history_meta_ttl-refactoring), but the doc was not properly updated). 
+* When using in-memory broker (default) history meta TTL was not properly inherited from channel namespace configuration – the global one was used instead. Fixed in [centrifugal/centrifuge#366](https://github.com/centrifugal/centrifuge/pull/366)
 * Web UI: redirect to the login screen in case of unauthorized errors from server, this fixes a regression introduced by Centrifugo v5.2.1
 * Fix setting custom TTL in `gensubtoken` cli, see [#769](https://github.com/centrifugal/centrifugo/pull/769)
 
