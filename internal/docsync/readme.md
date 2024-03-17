@@ -146,5 +146,3 @@ Centrifugo receives document, saves it to history stream, then sends it to all c
 
 If there is no previous document Centrifuge provides a hook to load it from the backend. When document is loaded
 it is sent to a channel. This way we automatically cache it and client receives it almost immediately.
-
-When client unsubscribes from a document channel it stops receiving updates for this document.
