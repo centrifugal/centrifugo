@@ -32,6 +32,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/centrifugal/centrifugo/v5/internal/admin"
 	"github.com/centrifugal/centrifugo/v5/internal/api"
@@ -49,6 +51,7 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/notify"
 	"github.com/centrifugal/centrifugo/v5/internal/origin"
 	"github.com/centrifugal/centrifugo/v5/internal/proxy"
+	"github.com/centrifugal/centrifugo/v5/internal/pulsarbroker"
 	"github.com/centrifugal/centrifugo/v5/internal/redisnatsbroker"
 	"github.com/centrifugal/centrifugo/v5/internal/rule"
 	"github.com/centrifugal/centrifugo/v5/internal/service"
@@ -342,6 +345,13 @@ var defaults = map[string]any{
 	"nats_dial_timeout":  time.Second,
 	"nats_write_timeout": time.Second,
 
+	"pulsar_prefix":             "centrifugo",
+	"pulsar_url":                "pulsar://127.0.0.1:6650",
+	"pulsar_tenant":             "my-tenant",
+	"pulsar_namespace":          "my-namespace",
+	"pulsar_operation_timeout":  30 * time.Second,
+	"pulsar_connection_timeout": 30 * time.Second,
+
 	"websocket_disable": false,
 	"api_disable":       false,
 
@@ -486,7 +496,7 @@ func main() {
 				"admin_external", "client_insecure", "admin_insecure", "api_insecure", "api_external",
 				"port", "address", "tls", "tls_cert", "tls_key", "tls_external", "internal_port",
 				"internal_address", "prometheus", "health", "redis_address", "tarantool_address",
-				"broker", "nats_url", "grpc_api", "grpc_api_tls", "grpc_api_tls_disable",
+				"broker", "nats_url", "pulsar_url", "grpc_api", "grpc_api_tls", "grpc_api_tls_disable",
 				"grpc_api_tls_cert", "grpc_api_tls_key", "grpc_api_port", "sockjs", "uni_grpc",
 				"uni_grpc_port", "uni_websocket", "uni_sse", "uni_http_stream", "sse", "http_stream",
 				"swagger",
@@ -578,8 +588,8 @@ func main() {
 			}
 
 			brokerName := viper.GetString("broker")
-			if brokerName != "" && brokerName != "nats" {
-				log.Fatal().Msgf("unknown broker: %s", brokerName)
+			if brokerName != "" && brokerName != "nats" && brokerName != "pulsar" {
+				log.Fatal().Msgf("unknown broker: %s", uppercaseFirstLetter(brokerName))
 			}
 
 			var broker centrifuge.Broker
@@ -623,18 +633,28 @@ func main() {
 			}
 
 			var disableHistoryPresence bool
-			if engineName == "memory" && brokerName == "nats" {
-				// Presence and History won't work with Memory engine in distributed case.
-				disableHistoryPresence = true
-				node.SetPresenceManager(nil)
+			if engineName == "memory" {
+				if brokerName == "nats" || brokerName == "pulsar" {
+					// Presence and History won't work with Memory engine in distributed case.
+					disableHistoryPresence = true
+					node.SetPresenceManager(nil)
+				}
 			}
 
 			if disableHistoryPresence {
-				log.Warn().Msgf("presence, history and recovery disabled with Memory engine and Nats broker")
+				log.Warn().Msgf("presence, history and recovery disabled with Memory engine and %s broker", uppercaseFirstLetter(brokerName))
 			}
 
 			if brokerName == "nats" {
 				broker, err = initNatsBroker(node)
+				if err != nil {
+					log.Fatal().Msgf("error creating broker: %v", err)
+				}
+				node.SetBroker(broker)
+			}
+
+			if brokerName == "pulsar" {
+				broker, err = initPulsarBroker(node)
 				if err != nil {
 					log.Fatal().Msgf("error creating broker: %v", err)
 				}
@@ -945,6 +965,7 @@ func main() {
 	rootCmd.Flags().StringP("redis_address", "", "redis://127.0.0.1:6379", "Redis connection address (Redis engine)")
 	rootCmd.Flags().StringP("tarantool_address", "", "tcp://127.0.0.1:3301", "Tarantool connection address (Tarantool engine)")
 	rootCmd.Flags().StringP("nats_url", "", "nats://127.0.0.1:4222", "Nats connection URL in format nats://user:pass@localhost:4222 (Nats broker)")
+	rootCmd.Flags().StringP("pulsar_url", "", "pulsar://127.0.0.1:6650", "Pulsar connection URL in format pulsar://localhost:6650 (Pulsar broker)")
 
 	var versionCmd = &cobra.Command{
 		Use:   "version",
@@ -1185,6 +1206,18 @@ func main() {
 	rootCmd.AddCommand(checkTokenCmd)
 	rootCmd.AddCommand(checkSubTokenCmd)
 	_ = rootCmd.Execute()
+}
+
+func uppercaseFirstLetter(word string) string {
+	if len(word) == 0 {
+		return word
+	}
+	r, size := utf8.DecodeRuneInString(word)
+	if r == utf8.RuneError {
+		// Handle error, for example, by returning the original word
+		return word
+	}
+	return string(unicode.ToUpper(r)) + word[size:]
 }
 
 func writePidFile(pidFile string) error {
@@ -2591,6 +2624,17 @@ func initNatsBroker(node *centrifuge.Node) (*natsbroker.NatsBroker, error) {
 		Prefix:       viper.GetString("nats_prefix"),
 		DialTimeout:  GetDuration("nats_dial_timeout"),
 		WriteTimeout: GetDuration("nats_write_timeout"),
+	})
+}
+
+func initPulsarBroker(node *centrifuge.Node) (*pulsarbroker.PulsarBroker, error) {
+	return pulsarbroker.New(node, pulsarbroker.Config{
+		URL:               viper.GetString("pulsar_url"),
+		Prefix:            viper.GetString("pulsar_prefix"),
+		Tenant:            viper.GetString("pulsar_tenant"),
+		Namespace:         viper.GetString("pulsar_namespace"),
+		OperationTimeout:  GetDuration("pulsar_operation_timeout"),
+		ConnectionTimeout: GetDuration("pulsar_connection_timeout"),
 	})
 }
 
