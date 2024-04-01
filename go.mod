@@ -8,7 +8,7 @@ require (
 	github.com/FZambia/tarantool v0.3.1
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
 	github.com/centrifugal/centrifuge v0.32.0
-	github.com/centrifugal/protocol v0.12.0
+	github.com/centrifugal/protocol v0.12.1
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.6.0
@@ -19,10 +19,10 @@ require (
 	github.com/justinas/alice v1.2.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/nats-io/nats.go v1.33.1
+	github.com/nats-io/nats.go v1.34.0
 	github.com/prometheus/client_golang v1.19.0
-	github.com/quic-go/quic-go v0.41.0
-	github.com/quic-go/webtransport-go v0.6.0
+	github.com/quic-go/quic-go v0.42.0
+	github.com/quic-go/webtransport-go v0.7.0
 	github.com/rakutentech/jwk-go v1.1.3
 	github.com/rs/zerolog v1.32.0
 	github.com/spf13/cobra v1.8.0
@@ -51,7 +51,7 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.19 // indirect
-	go.uber.org/mock v0.3.0 // indirect
+	go.uber.org/mock v0.4.0 // indirect
 )
 
 require (
