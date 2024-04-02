@@ -21,7 +21,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nats-io/nats.go v1.33.1
 	github.com/prometheus/client_golang v1.19.0
-	github.com/quic-go/quic-go v0.41.0
+	github.com/quic-go/quic-go v0.42.0
 	github.com/quic-go/webtransport-go v0.6.0
 	github.com/rakutentech/jwk-go v1.1.3
 	github.com/rs/zerolog v1.32.0
@@ -51,7 +51,7 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.19 // indirect
-	go.uber.org/mock v0.3.0 // indirect
+	go.uber.org/mock v0.4.0 // indirect
 )
 
 require (
