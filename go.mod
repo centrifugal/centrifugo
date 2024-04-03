@@ -2,9 +2,7 @@ module github.com/centrifugal/centrifugo/v5
 
 go 1.21
 
-replace (
-	github.com/centrifugal/centrifuge => ../centrifuge
-)
+replace github.com/centrifugal/centrifuge => ../centrifuge
 
 require (
 	github.com/FZambia/eagle v0.1.0
@@ -13,7 +11,7 @@ require (
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
 	github.com/Yiling-J/theine-go v0.3.2
 	github.com/centrifugal/centrifuge v0.31.0
-	github.com/centrifugal/protocol v0.12.0
+	github.com/centrifugal/protocol v0.12.1-0.20240330085231-151d7a9a3b26
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/evanphx/json-patch/v5 v5.9.0
 	github.com/gobwas/glob v0.2.3
@@ -49,7 +47,7 @@ require (
 	golang.org/x/sync v0.6.0
 	golang.org/x/time v0.5.0
 	google.golang.org/grpc v1.62.1
-	google.golang.org/protobuf v1.32.0
+	google.golang.org/protobuf v1.33.0
 )
 
 require (

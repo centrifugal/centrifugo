@@ -146,3 +146,101 @@ Centrifugo receives document, saves it to history stream, then sends it to all c
 
 If there is no previous document Centrifuge provides a hook to load it from the backend. When document is loaded
 it is sent to a channel. This way we automatically cache it and client receives it almost immediately.
+
+## Example on client-side and configuration
+
+```javascript
+const centrifuge = new Centrifuge('ws://localhost:8000/connection/websocket')
+centrifuge.connect()
+const subscription = centrifuge.newSubscription('documents:document:1')
+subscription.on('publication', (ctx) => {
+    console.log(ctx.data)
+})
+subscription.subscribe()
+```
+
+Centrifugo configuration:
+
+```json
+{
+  "namespaces": [
+    {
+      "name": "documents",
+      "history_size": 1,
+      "history_ttl": "30m",
+      "force_recovery": true,
+      "document": true
+    }
+  ]
+}
+```
+
+With delta calculation:
+
+```json
+{
+  "namespaces": [
+    {
+      "name": "documents",
+      "history_size": 1,
+      "history_ttl": "30m",
+      "force_recovery": true,
+      "document": true,
+      "delta": "jsonpatch"
+    }
+  ]
+}
+```
+
+What will come to a client in the subscribe response on first connect?
+
+Always a document/state field with the entire document no matter client requested. In `publications`. If it's not
+possible to load document then `recovered` will be false. Otherwise - true.
+
+If client provides epoch/offset then we can avoid sending the entire document in `publications` to client on reconnect.
+
+What will come to the client in subscribe response on successful recovery?
+
+Same as on first connect.
+
+What will come to client in subscribe response on unsuccessful recovery?
+
+In this mode unsuccessful recovery is possible when no data in Redis and no document proxy configured. If error on
+calling Redis - internal error. If document proxy configured but not able to load document then internal error will
+be returned too.
+
+If no value in Redis history and we load it from the backend over document proxy - what to do with the returned
+document? Should we put it into history stream? Or just send to client?
+
+It seems we should put it into history stream. This way we will have a consistent way to recover missed updates.
+But we don't need to send it to PUB/SUB to not have duplicate documents on subscribing client side.
+
+When recovering client will receive the document from the history stream. And it will be sent in `publications` field?
+
+Yes. It will be sent in `publications` field.
+
+What about always sending in `publications`? This way we will have a consistent way to handle initial state and
+recovered state. Also, we will send tags due that.
+
+Yes, it seems we should always send in `publications` field. This way we will have a consistent way to handle initial
+state and recovered state. Also, we will send tags due that and no new protocol field needed.
+
+What if client provides epoch/offset, and we have document in Redis, but we understand it has same offset?
+
+This means client has some cached document. We can then return `recovered: true` and skip sending document
+in `publications`.
+
+What if client provides epoch/offset, and we have document in Redis, but we understand it has same offset + 1?
+
+This means client has some cached document. We can then return `recovered: true` and send new document
+in `publications`.
+
+What if client provides epoch/offset, and we have document in Redis, but we understand it has same offset + 2?
+
+This means client has some cached document. We can then return `recovered: true` and send only latest document.
+
+What if client provides epoch/offset, and we have document in Redis, but we understand it has same offset - 1 or
+different epoch?
+
+This means client has some cached document, but it's outdated. We can then return `recovered: true` and send new
+document in `publications`.
