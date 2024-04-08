@@ -135,7 +135,7 @@ func loadRootCAFromFile(tlsConfig *tls.Config, v ConfigGetter, keyPrefix string,
 	return true, nil
 }
 
-// loadRootCAFromFile loads the TLS configuration with root CA bundle from
+// loadRootCAFromPEM loads the TLS configuration with root CA bundle from
 // string containing PEM-encoded certificates.
 func loadRootCAFromPEM(tlsConfig *tls.Config, v ConfigGetter, keyPrefix string, _ ReadFileFunc) (bool, error) {
 	keyName := keyPrefix + "tls_root_ca_pem"
@@ -181,7 +181,7 @@ func loadMutualTLSFromFile(tlsConfig *tls.Config, v ConfigGetter, keyPrefix stri
 	return true, nil
 }
 
-// loadMutualTLSFromFile loads the TLS configuration for server-side mutual TLS
+// loadMutualTLSFromPEM loads the TLS configuration for server-side mutual TLS
 // authentication from string containing PEM-encoded certificates.
 func loadMutualTLSFromPEM(tlsConfig *tls.Config, v ConfigGetter, keyPrefix string, _ ReadFileFunc) (bool, error) {
 	keyName := keyPrefix + "tls_client_ca_pem"
