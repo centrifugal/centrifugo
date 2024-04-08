@@ -8,22 +8,17 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## What's changed
 
-This release adds validation of proper `history_ttl` and `history_meta_ttl` configuration. Adding validation means possible errors on Centrifugo start if you have improperly configured history meta TTL expiration. See more details below.
-
 ### Improvements
 
-* Better error message for invalid connection token with channel claim, see [#776](https://github.com/centrifugal/centrifugo/issues/776)
+* Minor performance optimization – reuse connection timer, see [centrifugal/centrifuge#349](https://github.com/centrifugal/centrifuge/pull/349) 
 
 ### Fixes
 
-* ❗Add validation on Centrifugo start for `history_meta_ttl` option to be greater than or equal to `history_ttl` option. Without this validation your history streams may eventually return error `The ID specified in XADD is equal or smaller than the target stream top item` during publish operation. See [#768](https://github.com/centrifugal/centrifugo/issues/768) for the details. This change won't affect you if you don't have `history_ttl` more than 30 days. Also, documentation about `history_meta_ttl` option was fixed since it contained different default values in different parts of the doc (the default changed in v5 together with [history meta ttl refactoring](https://centrifugal.dev/blog/2023/06/29/centrifugo-v5-released#history_meta_ttl-refactoring), but the doc was not properly updated). 
-* When using in-memory broker (default) history meta TTL was not properly inherited from channel namespace configuration – the global one was used instead. Fixed in [centrifugal/centrifuge#366](https://github.com/centrifugal/centrifuge/pull/366)
-* Web UI: redirect to the login screen in case of unauthorized errors from server, this fixes a regression introduced by Centrifugo v5.2.1
-* Fix setting custom TTL in `gensubtoken` cli, see [#769](https://github.com/centrifugal/centrifugo/pull/769)
+* Fix WebSocket compression (`io: read/write on closed pipe` error) in JSON protocol case, see [commit in centrifugal/protocol](https://github.com/centrifugal/protocol/commit/a9e11df2c5fccf8c3f0397fea0321ac09555265c)
+* Fix unmarshaling slice of objects in yaml config [#786](https://github.com/centrifugal/centrifugo/pull/786)
 
 ### Misc
 
-* Release is built with Go 1.22.1
+* Release is built with Go 1.22.2
 * All dependencies were updated to latest versions
-* Built-in integration with Heroku was removed [#779](https://github.com/centrifugal/centrifugo/pull/779)
-* ❗If you use SockJS – pay attention to [#765](https://github.com/centrifugal/centrifugo/issues/765) – in Centrifugo v6 SockJS support will be removed
+* If you use `centrifuge-js` and have dynamic subscribe/unsubscribe calls – take a look at `centrifuge-js` [v5.1.0](https://github.com/centrifugal/centrifuge-js/releases/tag/5.1.0) – it contains changes for a proper processing of unsubscribe frames.
