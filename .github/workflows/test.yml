@@ -14,8 +14,8 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v4
         with:
-          version: v1.54.2
-          args: --timeout 3m0s
+          version: v1.57.2
+          args: --timeout 3m0s --verbose
   test:
     name: Test with Go ${{ matrix.go-version }}
     runs-on: ubuntu-latest
