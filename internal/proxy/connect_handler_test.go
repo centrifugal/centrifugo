@@ -24,7 +24,9 @@ type grpcConnHandleTestCase struct {
 
 func getTestGrpcProxy(commonProxyTestCase *tools.CommonGRPCProxyTestCase) Config {
 	return Config{
-		Endpoint: commonProxyTestCase.Listener.Addr().String(),
+		// Using passthrough is required for in-memory bufconn since grpc-go v1.63.0.
+		// See https://github.com/grpc/grpc-go/issues/7091.
+		Endpoint: "passthrough:///" + commonProxyTestCase.Listener.Addr().String(),
 		Timeout:  tools.Duration(5 * time.Second),
 		testGrpcDialer: func(ctx context.Context, s string) (net.Conn, error) {
 			return commonProxyTestCase.Listener.Dial()

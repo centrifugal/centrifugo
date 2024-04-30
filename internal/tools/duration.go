@@ -10,21 +10,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-// DecoderConfig returns default mapstructure.DecoderConfig with support
-// of time.Duration values & string slices & Duration
-func DecoderConfig(output any) *mapstructure.DecoderConfig {
-	return &mapstructure.DecoderConfig{
-		Metadata:         nil,
-		Result:           output,
-		WeaklyTypedInput: true,
-		DecodeHook: mapstructure.ComposeDecodeHookFunc(
-			StringToDurationHookFunc(),
-			mapstructure.StringToTimeDurationHookFunc(),
-			mapstructure.StringToSliceHookFunc(","),
-		),
-	}
-}
-
 type Duration time.Duration
 
 // StringToDurationHookFunc returns a DecodeHookFunc that converts

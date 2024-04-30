@@ -1766,7 +1766,7 @@
         "timezone": {
           "type": "string"
         },
-        "language": {
+        "locale": {
           "type": "string"
         }
       }
@@ -1803,14 +1803,6 @@
           "items": {
             "type": "string"
           }
-        }
-      }
-    },
-    "DeviceLanguageUpdate": {
-      "type": "object",
-      "properties": {
-        "language": {
-          "type": "string"
         }
       }
     },
@@ -1867,6 +1859,14 @@
         }
       }
     },
+    "DeviceLocaleUpdate": {
+      "type": "object",
+      "properties": {
+        "locale": {
+          "type": "string"
+        }
+      }
+    },
     "DeviceMetaUpdate": {
       "type": "object",
       "properties": {
@@ -1911,7 +1911,7 @@
         "timezone": {
           "type": "string"
         },
-        "language": {
+        "locale": {
           "type": "string"
         }
       }
@@ -2150,8 +2150,8 @@
         "timezone_update": {
           "$ref": "#/definitions/DeviceTimezoneUpdate"
         },
-        "language_update": {
-          "$ref": "#/definitions/DeviceLanguageUpdate"
+        "locale_update": {
+          "$ref": "#/definitions/DeviceLocaleUpdate"
         }
       }
     },
@@ -2632,7 +2632,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "variable name to value for the specific language."
+          "description": "variable name to value for the specific language/locale."
         }
       }
     },
@@ -2659,7 +2659,7 @@
       "properties": {
         "key": {
           "type": "string",
-          "description": "key for rate limit policy, supports variables (user_id, device_id)."
+          "description": "optional key for rate limit policy, supports variables."
         },
         "policies": {
           "type": "array",
@@ -2724,7 +2724,7 @@
         },
         "no_tz_send_now": {
           "type": "boolean",
-          "description": "If device timezone is not set - send push now."
+          "description": "If device timezone is not set - send push now, by default will be dropped."
         }
       }
     },
@@ -2799,6 +2799,16 @@
     "Reply": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "type": "object"
+        },
         "publish": {
           "$ref": "#/definitions/PublishResult"
         },
@@ -2956,7 +2966,7 @@
           "additionalProperties": {
             "$ref": "#/definitions/PushLocalization"
           },
-          "description": "optional per language localizations for push notification."
+          "description": "optional per language/locale localizations for push notification."
         },
         "use_templating": {
           "type": "boolean",

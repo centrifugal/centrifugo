@@ -579,7 +579,7 @@ message DeviceRegisterRequest {
     map<string, string> meta = 6;
     repeated string topics = 7;
     string timezone = 8;
-    string language = 9;
+    string locale = 9;
 }
 
 message DeviceUpdateRequest {
@@ -590,7 +590,7 @@ message DeviceUpdateRequest {
     DeviceMetaUpdate meta_update = 5;
     DeviceTopicsUpdate topics_update = 6;
     DeviceTimezoneUpdate timezone_update = 7;
-    DeviceLanguageUpdate language_update = 8;
+    DeviceLocaleUpdate locale_update = 8;
 }
 
 message DeviceRemoveRequest {
@@ -606,8 +606,8 @@ message DeviceTimezoneUpdate {
     string timezone = 1;
 }
 
-message DeviceLanguageUpdate {
-    string language = 1;
+message DeviceLocaleUpdate {
+    string locale = 1;
 }
 
 message DeviceMetaUpdate {
@@ -752,7 +752,7 @@ message Device {
     map<string, string> meta = 10;
     repeated string topics = 11;
     string timezone = 12;
-    string language = 13;
+    string locale = 13;
 }
 
 message DeviceTopicListResult {
@@ -828,13 +828,13 @@ message SendPushNotificationRequest {
     bool optimize_for_reliability = 5; // makes processing heavier, but tolerates edge cases, like not loosing inflight pushes due to temporary queue unavailability.
     PushLimitStrategy limit_strategy = 6; // strategy for sending push notifications. Applicable only for pushes with filter recipient. When using this field Centrifugo processes devices one by one.
     string analytics_uid = 7; // uid for push notification analytics, if not set - Centrifugo will use uid field.
-    map<string, PushLocalization> localizations = 8; // optional per language localizations for push notification.
+    map<string, PushLocalization> localizations = 8; // optional per language/locale localizations for push notification.
     bool use_templating = 9; // if set - Centrifugo will use templating for push notification. Note that setting localizations enables templating automatically.
     bool use_meta = 10; // if set - Centrifugo will additionally load device meta during push sending, this meta becomes available in templating.
 }
 
 message PushLocalization {
-    map<string, string> translations = 1; // variable name to value for the specific language.
+    map<string, string> translations = 1; // variable name to value for the specific language/locale.
 }
 
 message PushLimitStrategy {
@@ -845,11 +845,11 @@ message PushLimitStrategy {
 message PushTimeLimitStrategy {
     string send_after_time = 1;  // HH:MM:SS
     string send_before_time = 2; // HH:MM:SS
-    bool no_tz_send_now = 3; // If device timezone is not set - send push now.
+    bool no_tz_send_now = 3; // If device timezone is not set - send push now, by default will be dropped.
 }
 
 message PushRateLimitStrategy {
-    string key = 1; // key for rate limit policy, supports variables (user_id, device_id).
+    string key = 1; // optional key for rate limit policy, supports variables.
     repeated RateLimitPolicy policies = 2;
     bool drop_if_rate_limited = 3;
 }

@@ -24,13 +24,11 @@ func NewGRPCSubRefreshProxy(p Config) (*GRPCSubRefreshProxy, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting grpc host: %v", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(p.Timeout))
-	defer cancel()
 	dialOpts, err := getDialOpts(p)
 	if err != nil {
 		return nil, fmt.Errorf("error creating GRPC dial options: %v", err)
 	}
-	conn, err := grpc.DialContext(ctx, host, dialOpts...)
+	conn, err := grpc.NewClient(host, dialOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to GRPC proxy server: %v", err)
 	}

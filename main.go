@@ -16,7 +16,6 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"fmt"
 	stdlog "log"
@@ -71,7 +70,6 @@ import (
 	"github.com/centrifugal/centrifuge"
 	"github.com/justinas/alice"
 	"github.com/mattn/go-isatty"
-	"github.com/mitchellh/mapstructure"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/quic-go/quic-go/http3"
@@ -1759,28 +1757,7 @@ func rpcNamespacesFromConfig(v *viper.Viper) []rule.RpcNamespace {
 	if !v.IsSet("rpc_namespaces") {
 		return ns
 	}
-	var jsonData []byte
-	var err error
-	switch val := v.Get("rpc_namespaces").(type) {
-	case string:
-		jsonData, _ = json.Marshal(val)
-		err = json.Unmarshal([]byte(val), &ns)
-	case []any:
-		jsonData, _ = json.Marshal(val)
-		decoderCfg := tools.DecoderConfig(&ns)
-		decoder, newErr := mapstructure.NewDecoder(decoderCfg)
-		if newErr != nil {
-			log.Fatal().Msg(newErr.Error())
-			return ns
-		}
-		err = decoder.Decode(v.Get("rpc_namespaces"))
-	default:
-		err = fmt.Errorf("unknown rpc_namespaces type: %T", val)
-	}
-	if err != nil {
-		log.Error().Err(err).Msg("malformed rpc_namespaces")
-		os.Exit(1)
-	}
+	jsonData := tools.DecodeSlice(v, &ns, "rpc_namespaces")
 	rule.WarnUnknownRpcNamespaceKeys(jsonData)
 	return ns
 }
@@ -1791,28 +1768,7 @@ func namespacesFromConfig(v *viper.Viper) []rule.ChannelNamespace {
 	if !v.IsSet("namespaces") {
 		return ns
 	}
-	var jsonData []byte
-	var err error
-	switch val := v.Get("namespaces").(type) {
-	case string:
-		jsonData = []byte(val)
-		err = json.Unmarshal([]byte(val), &ns)
-	case []any:
-		jsonData, _ = json.Marshal(val)
-		decoderCfg := tools.DecoderConfig(&ns)
-		decoder, newErr := mapstructure.NewDecoder(decoderCfg)
-		if newErr != nil {
-			log.Fatal().Msg(newErr.Error())
-			return ns
-		}
-		err = decoder.Decode(v.Get("namespaces"))
-	default:
-		err = fmt.Errorf("unknown namespaces type: %T", val)
-	}
-	if err != nil {
-		log.Error().Err(err).Msg("malformed namespaces")
-		os.Exit(1)
-	}
+	jsonData := tools.DecodeSlice(v, &ns, "namespaces")
 	rule.WarnUnknownNamespaceKeys(jsonData)
 	return ns
 }
@@ -1825,27 +1781,9 @@ func granularProxiesFromConfig(v *viper.Viper) []proxy.Config {
 	if !v.IsSet("proxies") {
 		return proxies
 	}
-	var jsonData []byte
-	var err error
-	switch val := v.Get("proxies").(type) {
-	case string:
-		jsonData = []byte(val)
-		err = json.Unmarshal([]byte(val), &proxies)
-	case []any:
-		jsonData, _ = json.Marshal(val)
-		decoderCfg := tools.DecoderConfig(&proxies)
-		decoder, newErr := mapstructure.NewDecoder(decoderCfg)
-		if newErr != nil {
-			log.Fatal().Msg(newErr.Error())
-			return proxies
-		}
-		err = decoder.Decode(v.Get("proxies"))
-	default:
-		err = fmt.Errorf("unknown proxies type: %T", val)
-	}
-	if err != nil {
-		log.Fatal().Err(err).Msg("malformed proxies")
-	}
+	jsonData := tools.DecodeSlice(v, &proxies, "proxies")
+	proxy.WarnUnknownProxyKeys(jsonData)
+
 	names := map[string]struct{}{}
 	for _, p := range proxies {
 		if !proxyNameRe.Match([]byte(p.Name)) {
@@ -1863,8 +1801,6 @@ func granularProxiesFromConfig(v *viper.Viper) []proxy.Config {
 		names[p.Name] = struct{}{}
 	}
 
-	proxy.WarnUnknownProxyKeys(jsonData)
-
 	return proxies
 }
 
@@ -1874,27 +1810,7 @@ func consumersFromConfig(v *viper.Viper) []consuming.ConsumerConfig {
 	if !v.IsSet("consumers") {
 		return consumers
 	}
-	var jsonData []byte
-	var err error
-	switch val := v.Get("consumers").(type) {
-	case string:
-		jsonData, _ = json.Marshal(val)
-		err = json.Unmarshal([]byte(val), &consumers)
-	case []any:
-		jsonData, _ = json.Marshal(val)
-		decoderCfg := tools.DecoderConfig(&consumers)
-		decoder, newErr := mapstructure.NewDecoder(decoderCfg)
-		if newErr != nil {
-			log.Fatal().Msg(newErr.Error())
-		}
-		err = decoder.Decode(v.Get("consumers"))
-	default:
-		err = fmt.Errorf("unknown consumers type: %T", val)
-	}
-	if err != nil {
-		log.Error().Err(err).Msg("malformed consumers")
-		os.Exit(1)
-	}
+	jsonData := tools.DecodeSlice(v, &consumers, "consumers")
 	consuming.WarnUnknownConsumerConfigKeys(jsonData)
 	return consumers
 }
