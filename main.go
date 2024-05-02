@@ -1579,7 +1579,7 @@ func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecut
 
 		if useHTTP3 {
 			server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				_ = wtServer.H3.SetQuicHeaders(w.Header())
+				_ = wtServer.H3.SetQUICHeaders(w.Header())
 				mux.ServeHTTP(w, r)
 			})
 		}
