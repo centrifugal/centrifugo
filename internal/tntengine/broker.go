@@ -728,7 +728,10 @@ func (b *Broker) handleMessage(eventHandler centrifuge.BrokerEventHandler, msg p
 		if err == nil {
 			publication := pubFromProto(&pub)
 			publication.Offset = msg.Offset
-			_ = eventHandler.HandlePublication(msg.Channel, publication, centrifuge.StreamPosition{Offset: msg.Offset, Epoch: msg.Epoch})
+			_ = eventHandler.HandlePublication(
+				msg.Channel, publication,
+				centrifuge.StreamPosition{Offset: msg.Offset, Epoch: msg.Epoch},
+				false, nil)
 		}
 	case "j":
 		var info protocol.ClientInfo

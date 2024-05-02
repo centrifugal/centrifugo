@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sync"
 	"time"
 	"unicode"
+
+	"golang.org/x/sync/singleflight"
 
 	"github.com/centrifugal/centrifugo/v5/internal/clientstorage"
 	"github.com/centrifugal/centrifugo/v5/internal/jwtverify"
@@ -29,7 +32,7 @@ type ProxyMap struct {
 	SubscribeProxies       map[string]proxy.SubscribeProxy
 	SubRefreshProxies      map[string]proxy.SubRefreshProxy
 	SubscribeStreamProxies map[string]*proxy.SubscribeStreamProxy
-	DocumentProxies        map[string]proxy.DocumentProxy
+	CacheEmptyProxies      map[string]proxy.CacheEmptyProxy
 }
 
 // Handler ...
@@ -41,6 +44,8 @@ type Handler struct {
 	proxyMap          *ProxyMap
 	rpcExtension      map[string]RPCExtensionFunc
 	granularProxyMode bool
+	cacheEmptyGroup   singleflight.Group
+	cacheEmptyMu      sync.Mutex // Possibly make it sharded (per channel).
 }
 
 // NewHandler ...
@@ -132,12 +137,14 @@ func (h *Handler) Setup() error {
 		}).Handle(h.node)
 	}
 
-	var proxyDocumentHandler proxy.DocumentHandlerFunc
-	if len(h.proxyMap.DocumentProxies) > 0 {
-		proxyDocumentHandler = proxy.NewDocumentHandler(proxy.DocumentHandlerConfig{
-			Proxies:           h.proxyMap.DocumentProxies,
+	if len(h.proxyMap.CacheEmptyProxies) > 0 {
+		cacheEmptyHandler := proxy.NewCacheHandler(proxy.CacheHandlerConfig{
+			Proxies:           h.proxyMap.CacheEmptyProxies,
 			GranularProxyMode: h.granularProxyMode,
 		}).Handle(h.node)
+		h.node.OnCacheEmpty(func(e centrifuge.CacheEmptyEvent) (centrifuge.CacheEmptyReply, error) {
+			return h.OnCacheEmpty(e.Channel, cacheEmptyHandler)
+		})
 	}
 
 	ruleConfig := h.ruleContainer.Config()
@@ -205,7 +212,7 @@ func (h *Handler) Setup() error {
 
 		client.OnSubscribe(func(event centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
 			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-				reply, _, err := h.OnSubscribe(client, event, subscribeProxyHandler, proxySubscribeStreamHandler, proxyDocumentHandler)
+				reply, _, err := h.OnSubscribe(client, event, subscribeProxyHandler, proxySubscribeStreamHandler)
 				cb(reply, err)
 			})
 		})
@@ -294,6 +301,31 @@ func (h *Handler) runConcurrentlyIfNeeded(ctx context.Context, concurrency int, 
 	} else {
 		fn()
 	}
+}
+
+func (h *Handler) OnCacheEmpty(channel string, cacheEmptyHandler proxy.CacheEmptyHandlerFunc) (centrifuge.CacheEmptyReply, error) {
+	result, err, _ := h.cacheEmptyGroup.Do(channel, func() (interface{}, error) {
+		h.cacheEmptyMu.Lock()
+		defer h.cacheEmptyMu.Unlock()
+		_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(channel)
+		if err != nil {
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "cache empty channel options error", map[string]any{"error": err.Error(), "channel": channel}))
+			return centrifuge.CacheEmptyReply{}, err
+		}
+		if !found {
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "cache empty unknown channel", map[string]any{"channel": channel}))
+			return centrifuge.CacheEmptyReply{}, centrifuge.ErrorUnknownChannel
+		}
+		reply, err := cacheEmptyHandler(context.Background(), channel, chOpts)
+		if errors.Is(err, centrifuge.ErrorNotAvailable) {
+			return centrifuge.CacheEmptyReply{}, nil
+		}
+		return reply, err
+	})
+	if err != nil {
+		return centrifuge.CacheEmptyReply{}, err
+	}
+	return result.(centrifuge.CacheEmptyReply), nil
 }
 
 // OnClientConnecting ...
@@ -395,6 +427,7 @@ func (h *Handler) OnClientConnecting(
 			PushJoinLeave:     chOpts.ForcePushJoinLeave,
 			EnableRecovery:    chOpts.ForceRecovery,
 			EnablePositioning: chOpts.ForcePositioning,
+			RecoveryMode:      chOpts.GetRecoveryMode(),
 			Source:            subsource.UserPersonal,
 			HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
 		}
@@ -446,6 +479,7 @@ func (h *Handler) OnClientConnecting(
 						PushJoinLeave:     chOpts.ForcePushJoinLeave,
 						EnableRecovery:    chOpts.ForceRecovery,
 						EnablePositioning: chOpts.ForcePositioning,
+						RecoveryMode:      chOpts.GetRecoveryMode(),
 						Source:            subsource.UniConnect,
 						HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
 					}
@@ -633,7 +667,7 @@ type SubscribeExtra struct {
 }
 
 // OnSubscribe ...
-func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribeProxyHandler proxy.SubscribeHandlerFunc, subscribeStreamHandlerFunc proxy.SubscribeStreamHandlerFunc, proxyDocumentHandler proxy.DocumentHandlerFunc) (centrifuge.SubscribeReply, SubscribeExtra, error) {
+func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribeProxyHandler proxy.SubscribeHandlerFunc, subscribeStreamHandlerFunc proxy.SubscribeStreamHandlerFunc) (centrifuge.SubscribeReply, SubscribeExtra, error) {
 	ruleConfig := h.ruleContainer.Config()
 
 	if e.Channel == "" {
@@ -663,6 +697,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	options.PushJoinLeave = chOpts.ForcePushJoinLeave
 	options.EnablePositioning = chOpts.ForcePositioning
 	options.EnableRecovery = chOpts.ForceRecovery
+	options.RecoveryMode = chOpts.GetRecoveryMode()
 	options.HistoryMetaTTL = time.Duration(chOpts.HistoryMetaTTL)
 
 	isPrivateChannel := h.ruleContainer.IsPrivateChannel(e.Channel)
@@ -680,7 +715,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		}
 		token, err := tokenVerifier.VerifySubscribeToken(e.Token, h.ruleContainer.Config().ClientInsecureSkipTokenSignatureVerify)
 		if err != nil {
-			if err == jwtverify.ErrTokenExpired {
+			if errors.Is(err, jwtverify.ErrTokenExpired) {
 				return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorTokenExpired
 			}
 			if errors.Is(err, jwtverify.ErrInvalidToken) {

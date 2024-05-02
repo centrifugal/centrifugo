@@ -101,11 +101,11 @@ func GetSubscribeProxy(p Config) (SubscribeProxy, error) {
 	return NewGRPCSubscribeProxy(p)
 }
 
-func GetDocumentProxy(p Config) (DocumentProxy, error) {
+func GetCacheEmptyProxy(p Config) (CacheEmptyProxy, error) {
 	if isHttpEndpoint(p.Endpoint) {
-		return NewHTTPDocumentProxy(p)
+		return NewHTTPCacheEmptyProxy(p)
 	}
-	return NewHTTPDocumentProxy(p)
+	return NewGRPCCacheEmptyProxy(p)
 }
 
 type PerCallData struct {

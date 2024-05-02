@@ -214,7 +214,7 @@ func (b *NatsBroker) handleClientMessage(data []byte) {
 			sp.Offset = push.Pub.Offset
 			sp.Epoch = push.Pub.Tags[epochTagsKey]
 		}
-		_ = b.eventHandler.HandlePublication(push.Channel, pubFromProto(push.Pub), sp)
+		_ = b.eventHandler.HandlePublication(push.Channel, pubFromProto(push.Pub), sp, false, nil)
 	} else if push.Join != nil {
 		_ = b.eventHandler.HandleJoin(push.Channel, infoFromProto(push.Join.Info))
 	} else if push.Leave != nil {

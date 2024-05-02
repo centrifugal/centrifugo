@@ -27,6 +27,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -135,6 +136,8 @@ var defaults = map[string]any{
 	"global_history_meta_ttl":            rule.DefaultGlobalHistoryMetaTTL,
 	"global_presence_ttl":                60 * time.Second,
 	"global_redis_presence_user_mapping": false,
+
+	"allowed_delta_types": []string{},
 
 	"presence":                      false,
 	"join_leave":                    false,
@@ -271,6 +274,7 @@ var defaults = map[string]any{
 	"proxy_sub_refresh_endpoint":      "",
 	"proxy_rpc_endpoint":              "",
 	"proxy_subscribe_stream_endpoint": "",
+	"proxy_cache_empty_endpoint":      "",
 
 	"proxy_connect_timeout":          time.Second,
 	"proxy_rpc_timeout":              time.Second,
@@ -279,6 +283,7 @@ var defaults = map[string]any{
 	"proxy_publish_timeout":          time.Second,
 	"proxy_sub_refresh_timeout":      time.Second,
 	"proxy_subscribe_stream_timeout": time.Second,
+	"proxy_cache_empty_timeout":      time.Second,
 
 	"proxy_grpc_metadata":           []string{},
 	"proxy_http_headers":            []string{},
@@ -1703,6 +1708,8 @@ func ruleConfig() rule.Config {
 	cfg.AllowPositioning = v.GetBool("allow_positioning")
 	cfg.AllowRecovery = v.GetBool("allow_recovery")
 	cfg.ForceRecovery = v.GetBool("force_recovery")
+	cfg.RecoveryModeCache = v.GetBool("recovery_mode_cache")
+	cfg.DeltaPublish = v.GetBool("delta_publish")
 	cfg.SubscribeForAnonymous = v.GetBool("allow_subscribe_for_anonymous")
 	cfg.SubscribeForClient = v.GetBool("allow_subscribe_for_client")
 	cfg.PublishForAnonymous = v.GetBool("allow_publish_for_anonymous")
@@ -1716,7 +1723,7 @@ func ruleConfig() rule.Config {
 	cfg.HistoryForSubscriber = v.GetBool("allow_history_for_subscriber")
 	cfg.UserLimitedChannels = v.GetBool("allow_user_limited_channels")
 	cfg.ChannelRegex = v.GetString("channel_regex")
-	cfg.Document = v.GetBool("document")
+	cfg.ProxyCacheEmpty = v.GetBool("proxy_cache_empty")
 	cfg.ProxySubscribe = v.GetBool("proxy_subscribe")
 	cfg.ProxyPublish = v.GetBool("proxy_publish")
 	cfg.ProxySubRefresh = v.GetBool("proxy_sub_refresh")
@@ -1929,8 +1936,8 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	}
 	proxyConfig.StaticHttpHeaders = staticHttpHeaders
 
-	documentEndpoint := v.GetString("proxy_document_endpoint")
-	documentTimeout := GetDuration("proxy_document_timeout")
+	cacheEmptyEndpoint := v.GetString("proxy_cache_empty_endpoint")
+	cacheEmptyTimeout := GetDuration("proxy_cache_empty_timeout")
 	connectEndpoint := v.GetString("proxy_connect_endpoint")
 	connectTimeout := GetDuration("proxy_connect_timeout")
 	refreshEndpoint := v.GetString("proxy_refresh_endpoint")
@@ -2026,16 +2033,16 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 		log.Info().Str("endpoint", proxyStreamSubscribeEndpoint).Msg("subscribe stream proxy enabled")
 	}
 
-	if documentEndpoint != "" {
-		proxyConfig.Endpoint = documentEndpoint
-		proxyConfig.Timeout = tools.Duration(documentTimeout)
+	if cacheEmptyEndpoint != "" {
+		proxyConfig.Endpoint = cacheEmptyEndpoint
+		proxyConfig.Timeout = tools.Duration(cacheEmptyTimeout)
 		var err error
-		dp, err := proxy.GetDocumentProxy(proxyConfig)
+		dp, err := proxy.GetCacheEmptyProxy(proxyConfig)
 		if err != nil {
 			log.Fatal().Msgf("error creating document proxy: %v", err)
 		}
-		proxyMap.DocumentProxies[""] = dp
-		log.Info().Str("endpoint", documentEndpoint).Msg("document proxy enabled")
+		proxyMap.CacheEmptyProxies[""] = dp
+		log.Info().Str("endpoint", cacheEmptyEndpoint).Msg("cache empty proxy enabled")
 	}
 
 	keepHeadersInContext := connectEndpoint != "" || refreshEndpoint != "" ||
@@ -2052,6 +2059,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		SubscribeProxies:       map[string]proxy.SubscribeProxy{},
 		SubRefreshProxies:      map[string]proxy.SubRefreshProxy{},
 		SubscribeStreamProxies: map[string]*proxy.SubscribeStreamProxy{},
+		CacheEmptyProxies:      map[string]proxy.CacheEmptyProxy{},
 	}
 	proxyList := granularProxiesFromConfig(viper.GetViper())
 	proxies := make(map[string]proxy.Config)
@@ -2132,6 +2140,21 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		keepHeadersInContext = true
 	}
 
+	cacheEmptyProxyName := ruleConfig.CacheEmptyProxyName
+	if cacheEmptyProxyName != "" {
+		p, ok := proxies[cacheEmptyProxyName]
+		if !ok {
+			log.Fatal().Msgf("sub refresh proxy not found: %s", subRefreshProxyName)
+		}
+		cp, err := proxy.GetCacheEmptyProxy(p)
+		if err != nil {
+			log.Fatal().Msgf("error creating publish proxy: %v", err)
+		}
+		proxyMap.CacheEmptyProxies[cacheEmptyProxyName] = cp
+		// No need to keep headers in context for cache empty proxy since it's
+		// not related to a specific client context.
+	}
+
 	subscribeStreamProxyName := ruleConfig.SubscribeStreamProxyName
 	if subscribeStreamProxyName != "" {
 		p, ok := proxies[subscribeStreamProxyName]
@@ -2154,6 +2177,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		publishProxyName := ns.PublishProxyName
 		subRefreshProxyName := ns.SubRefreshProxyName
 		subscribeStreamProxyName := ns.SubscribeStreamProxyName
+		cacheEmptyProxyName := ns.CacheEmptyProxyName
 
 		if subscribeProxyName != "" {
 			p, ok := proxies[subscribeProxyName]
@@ -2192,6 +2216,20 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 			}
 			proxyMap.SubRefreshProxies[subRefreshProxyName] = srp
 			keepHeadersInContext = true
+		}
+
+		if cacheEmptyProxyName != "" {
+			p, ok := proxies[connectProxyName]
+			if !ok {
+				log.Fatal().Msgf("cache empty proxy not found: %s", cacheEmptyProxyName)
+			}
+			cp, err := proxy.GetCacheEmptyProxy(p)
+			if err != nil {
+				log.Fatal().Msgf("error creating cache empty proxy: %v", err)
+			}
+			proxyMap.CacheEmptyProxies[cacheEmptyProxyName] = cp
+			// No need to keep headers in context for cache empty proxy since it's
+			// not related to a specific client context.
 		}
 
 		if subscribeStreamProxyName != "" {
@@ -2263,6 +2301,16 @@ func nodeConfig(version string) centrifuge.Config {
 	cfg.HistoryMaxPublicationLimit = v.GetInt("client_history_max_publication_limit")
 	cfg.RecoveryMaxPublicationLimit = v.GetInt("client_recovery_max_publication_limit")
 	cfg.HistoryMetaTTL = GetDuration("global_history_meta_ttl", true)
+	allowedDeltaTypes := v.GetStringSlice("allowed_delta_types")
+	for _, dt := range allowedDeltaTypes {
+		if !slices.Contains([]centrifuge.DeltaType{centrifuge.DeltaTypeFossil}, centrifuge.DeltaType(dt)) {
+			log.Fatal().Msgf("unknown allowed delta type: %s", dt)
+		}
+		cfg.AllowedDeltaTypes = append(cfg.AllowedDeltaTypes, centrifuge.DeltaType(dt))
+	}
+	if len(cfg.AllowedDeltaTypes) > 0 {
+		log.Info().Any("allowed_delta_types", allowedDeltaTypes).Msg("delta types allowed")
+	}
 
 	level, ok := logStringToLevel[strings.ToLower(v.GetString("log_level"))]
 	if !ok {

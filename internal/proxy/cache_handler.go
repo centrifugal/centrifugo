@@ -11,15 +11,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// DocumentHandlerConfig ...
-type DocumentHandlerConfig struct {
-	Proxies           map[string]DocumentProxy
+// CacheHandlerConfig ...
+type CacheHandlerConfig struct {
+	Proxies           map[string]CacheEmptyProxy
 	GranularProxyMode bool
 }
 
-// DocumentHandler ...
-type DocumentHandler struct {
-	config            DocumentHandlerConfig
+// CacheHandler ...
+type CacheHandler struct {
+	config            CacheHandlerConfig
 	summary           prometheus.Observer
 	histogram         prometheus.Observer
 	errors            prometheus.Counter
@@ -28,9 +28,9 @@ type DocumentHandler struct {
 	granularErrors    map[string]prometheus.Counter
 }
 
-// NewDocumentHandler ...
-func NewDocumentHandler(c DocumentHandlerConfig) *DocumentHandler {
-	h := &DocumentHandler{
+// NewCacheHandler ...
+func NewCacheHandler(c CacheHandlerConfig) *CacheHandler {
+	h := &CacheHandler{
 		config: c,
 	}
 	if h.config.GranularProxyMode {
@@ -57,32 +57,32 @@ func NewDocumentHandler(c DocumentHandlerConfig) *DocumentHandler {
 	return h
 }
 
-type DocumentExtra struct {
-}
-
-// DocumentHandlerFunc ...
-type DocumentHandlerFunc func(ctx context.Context, id string, chOpts rule.ChannelOptions) (*proxyproto.Document, error)
+// CacheEmptyHandlerFunc ...
+type CacheEmptyHandlerFunc func(ctx context.Context, channel string, chOpts rule.ChannelOptions) (centrifuge.CacheEmptyReply, error)
 
 // Handle Document.
-func (h *DocumentHandler) Handle(node *centrifuge.Node) DocumentHandlerFunc {
-	return func(ctx context.Context, id string, chOpts rule.ChannelOptions) (*proxyproto.Document, error) {
+func (h *CacheHandler) Handle(node *centrifuge.Node) CacheEmptyHandlerFunc {
+	return func(ctx context.Context, channel string, chOpts rule.ChannelOptions) (centrifuge.CacheEmptyReply, error) {
 		started := time.Now()
 
-		var p DocumentProxy
+		var p CacheEmptyProxy
 		var summary prometheus.Observer
 		var histogram prometheus.Observer
 		var errors prometheus.Counter
 
 		if h.config.GranularProxyMode {
-			//proxyName := chOpts.DocumentProxyName
-			//if proxyName == "" {
-			//	node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe proxy not configured for a channel", map[string]any{"channel": e.Channel}))
-			//	return centrifuge.DocumentReply{}, DocumentExtra{}, centrifuge.ErrorNotAvailable
-			//}
-			//p = h.config.Proxies[proxyName]
-			//summary = h.granularSummary[proxyName]
-			//histogram = h.granularHistogram[proxyName]
-			//errors = h.granularErrors[proxyName]
+			proxyName := chOpts.CacheEmptyProxyName
+			if proxyName == "" {
+				node.Log(centrifuge.NewLogEntry(
+					centrifuge.LogLevelInfo,
+					"cache proxy not configured for a channel",
+					map[string]any{"channel": channel}))
+				return centrifuge.CacheEmptyReply{}, centrifuge.ErrorNotAvailable
+			}
+			p = h.config.Proxies[proxyName]
+			summary = h.granularSummary[proxyName]
+			histogram = h.granularHistogram[proxyName]
+			errors = h.granularErrors[proxyName]
 		} else {
 			p = h.config.Proxies[""]
 			summary = h.summary
@@ -90,27 +90,28 @@ func (h *DocumentHandler) Handle(node *centrifuge.Node) DocumentHandlerFunc {
 			errors = h.errors
 		}
 
-		req := &proxyproto.LoadDocumentsRequest{
-			Ids: []string{id},
+		req := &proxyproto.NotifyCacheEmptyRequest{
+			Channel: channel,
 		}
-		resp, err := p.LoadDocuments(ctx, req)
+		resp, err := p.NotifyCacheEmpty(ctx, req)
 		duration := time.Since(started).Seconds()
 		if err != nil {
 			select {
 			case <-ctx.Done():
 				// Client connection already closed.
-				return nil, ctx.Err()
+				return centrifuge.CacheEmptyReply{}, ctx.Err()
 			default:
 			}
 			summary.Observe(duration)
 			histogram.Observe(duration)
 			errors.Inc()
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error loading documents", map[string]any{"error": err.Error()}))
-			return nil, centrifuge.ErrorInternal
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error notifying about empty cache", map[string]any{"channel": channel, "error": err.Error()}))
+			return centrifuge.CacheEmptyReply{}, centrifuge.ErrorInternal
 		}
 		summary.Observe(duration)
 		histogram.Observe(duration)
-		// TODO: handle missing id in result.
-		return resp.Result.Documents[id], nil
+		return centrifuge.CacheEmptyReply{
+			Populated: resp.Result.Populated,
+		}, nil
 	}
 }

@@ -7,8 +7,7 @@ require (
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/tarantool v0.3.1
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
-	github.com/Yiling-J/theine-go v0.3.2
-	github.com/centrifugal/centrifuge v0.32.2-0.20240429160900-ddd8e2efac42
+	github.com/centrifugal/centrifuge v0.32.2-0.20240501054446-d4699c79d655
 	github.com/centrifugal/protocol v0.12.2-0.20240429145950-b906e73562fe
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/gobwas/glob v0.2.3
@@ -48,14 +47,11 @@ require (
 )
 
 require (
-	github.com/gammazero/deque v0.2.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
-	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/pierrec/lz4/v4 v4.1.19 // indirect
 	github.com/shadowspore/fossil-delta v0.0.0-20240102155221-e3a8590b820b // indirect
-	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.uber.org/mock v0.4.0 // indirect
 )
 
