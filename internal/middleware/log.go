@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/quic-go/quic-go/http3"
 	"github.com/rs/zerolog/log"
 )
 
@@ -62,10 +61,10 @@ func (lrw *logResponseWriter) Flush() {
 	lrw.ResponseWriter.(http.Flusher).Flush()
 }
 
-// StreamCreator for WebTransport.
-func (lrw *logResponseWriter) StreamCreator() http3.StreamCreator {
-	return lrw.ResponseWriter.(http3.Hijacker).StreamCreator()
-}
+// // StreamCreator for WebTransport.
+// func (lrw *logResponseWriter) StreamCreator() http3.StreamCreator {
+// 	return lrw.ResponseWriter.(http3.Hijacker).StreamCreator()
+// }
 
 // CloseNotify as SockJS uses http.CloseNotifier.
 //
