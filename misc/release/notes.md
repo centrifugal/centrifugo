@@ -8,17 +8,10 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## What's changed
 
-### Improvements
-
-* Minor performance optimization – reuse connection timer, see [centrifugal/centrifuge#349](https://github.com/centrifugal/centrifuge/pull/349) 
-
 ### Fixes
 
-* Fix WebSocket compression (`io: read/write on closed pipe` error) in JSON protocol case, see [commit in centrifugal/protocol](https://github.com/centrifugal/protocol/commit/a9e11df2c5fccf8c3f0397fea0321ac09555265c)
-* Fix unmarshaling slice of objects in yaml config [#786](https://github.com/centrifugal/centrifugo/pull/786)
+* Fix unsubscribe during inflight subscribe in goroutine, see [centrifugal/centrifuge#372](https://github.com/centrifugal/centrifuge/pull/372). This is only relevant for those who use `client_concurrency` option.
 
 ### Misc
 
-* Release is built with Go 1.22.2
 * All dependencies were updated to latest versions
-* If you use `centrifuge-js` and have dynamic subscribe/unsubscribe calls – take a look at `centrifuge-js` [v5.1.0](https://github.com/centrifugal/centrifuge-js/releases/tag/5.1.0) – it contains changes for a proper processing of unsubscribe frames.

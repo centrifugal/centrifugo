@@ -260,20 +260,39 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 			}
 
 			fetches.EachPartition(func(p kgo.FetchTopicPartition) {
+				if len(p.Records) == 0 {
+					return
+				}
+
 				tp := topicPartition{p.Topic, p.Partition}
+
+				partitionsToPause := map[string][]int32{p.Topic: {p.Partition}}
+				// PauseFetchPartitions here to not poll partition until records are processed.
+				// This allows parallel processing of records from different partitions, without
+				// keeping records in memory and blocking rebalance. Resume will be called after
+				// records are processed by c.consumers[tp].
+				c.client.PauseFetchPartitions(partitionsToPause)
+
+				// resumeConsuming is a helper function to be called if context is done or partition
+				// consumer is closed before records were sent to it. It's not strictly necessary
+				// to resume consuming upon context done since we do not re-use the client after that,
+				// but it seems a good thing to do from the cleanup perspective.
+				resumeConsuming := func() {
+					c.client.ResumeFetchPartitions(partitionsToPause)
+				}
 
 				// Since we are using BlockRebalanceOnPoll, we can be
 				// sure this partition consumer exists:
-				//
 				// * onAssigned is guaranteed to be called before we
 				// fetch offsets for newly added partitions
-				//
 				// * onRevoked waits for partition consumers to quit
 				// and be deleted before re-allowing polling.
 				select {
 				case <-ctx.Done():
+					resumeConsuming()
 					return
 				case <-c.consumers[tp].quit:
+					resumeConsuming()
 					return
 				case c.consumers[tp].recs <- p:
 				}
@@ -377,8 +396,56 @@ type partitionConsumer struct {
 	recs chan kgo.FetchTopicPartition
 }
 
+func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
+	for _, record := range records {
+		select {
+		case <-pc.clientCtx.Done():
+			return
+		case <-pc.quit:
+			return
+		default:
+		}
+
+		var e KafkaJSONEvent
+		err := json.Unmarshal(record.Value, &e)
+		if err != nil {
+			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error unmarshalling event from Kafka", map[string]any{"error": err.Error(), "topic": record.Topic, "partition": record.Partition}))
+			pc.cl.MarkCommitRecords(record)
+			continue
+		}
+
+		var backoffDuration time.Duration = 0
+		retries := 0
+		for {
+			err := pc.dispatcher.Dispatch(pc.clientCtx, e.Method, e.Payload)
+			if err == nil {
+				if retries > 0 {
+					pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "OK processing events after errors", map[string]any{}))
+				}
+				pc.cl.MarkCommitRecords(record)
+				break
+			}
+			retries++
+			backoffDuration = getNextBackoffDuration(backoffDuration, retries)
+			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing consumed event", map[string]any{"error": err.Error(), "method": e.Method, "nextAttemptIn": backoffDuration.String()}))
+			select {
+			case <-time.After(backoffDuration):
+			case <-pc.quit:
+				return
+			case <-pc.clientCtx.Done():
+				return
+			}
+		}
+	}
+}
+
 func (pc *partitionConsumer) consume() {
 	defer close(pc.done)
+	partitionsToResume := map[string][]int32{pc.topic: {pc.partition}}
+	resumeConsuming := func() {
+		pc.cl.ResumeFetchPartitions(partitionsToResume)
+	}
+	defer resumeConsuming()
 	for {
 		select {
 		case <-pc.clientCtx.Done():
@@ -386,46 +453,9 @@ func (pc *partitionConsumer) consume() {
 		case <-pc.quit:
 			return
 		case p := <-pc.recs:
-			for _, record := range p.Records {
-				select {
-				case <-pc.clientCtx.Done():
-					return
-				case <-pc.quit:
-					return
-				default:
-				}
-
-				var e KafkaJSONEvent
-				err := json.Unmarshal(record.Value, &e)
-				if err != nil {
-					pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error unmarshalling event from Kafka", map[string]any{"error": err.Error(), "topic": record.Topic, "partition": record.Partition}))
-					pc.cl.MarkCommitRecords(record)
-					continue
-				}
-
-				var backoffDuration time.Duration = 0
-				retries := 0
-				for {
-					err := pc.dispatcher.Dispatch(pc.clientCtx, e.Method, e.Payload)
-					if err == nil {
-						if retries > 0 {
-							pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "OK processing events after errors", map[string]any{}))
-						}
-						pc.cl.MarkCommitRecords(record)
-						break
-					}
-					retries++
-					backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-					pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing consumed event", map[string]any{"error": err.Error(), "method": e.Method, "nextAttemptIn": backoffDuration.String()}))
-					select {
-					case <-time.After(backoffDuration):
-					case <-pc.quit:
-						return
-					case <-pc.clientCtx.Done():
-						return
-					}
-				}
-			}
+			pc.processRecords(p.Records)
+			// At this point we are ready to consume the next batch from partition, thus resume.
+			resumeConsuming()
 		}
 	}
 }
