@@ -316,6 +316,9 @@ func (h *Handler) OnCacheEmpty(channel string, cacheEmptyHandler proxy.CacheEmpt
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "cache empty unknown channel", map[string]any{"channel": channel}))
 			return centrifuge.CacheEmptyReply{}, centrifuge.ErrorUnknownChannel
 		}
+		if !chOpts.ProxyCacheEmpty {
+			return centrifuge.CacheEmptyReply{}, nil
+		}
 		reply, err := cacheEmptyHandler(context.Background(), channel, chOpts)
 		if errors.Is(err, centrifuge.ErrorNotAvailable) {
 			return centrifuge.CacheEmptyReply{}, nil
