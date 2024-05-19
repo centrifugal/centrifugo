@@ -84,10 +84,10 @@ type ChannelOptions struct {
 	// AllowRecovery allows recovery when client asks about it.
 	AllowRecovery bool `mapstructure:"allow_recovery" json:"allow_recovery"`
 
-	// RecoveryModeCache ...
+	// RecoveryModeCache enables centrifuge.RecoveryModeCache for channels in namespace.
 	RecoveryModeCache bool `mapstructure:"recovery_mode_cache" json:"recovery_mode_cache"`
 
-	// AllowedDeltaTypes ...
+	// AllowedDeltaTypes is non-empty contains slice of allowed delta types for subscribers to use.
 	AllowedDeltaTypes []centrifuge.DeltaType `mapstructure:"allowed_delta_types" json:"allowed_delta_types"`
 
 	// DeltaPublish enables delta publish mechanism for all messages published in namespace channels

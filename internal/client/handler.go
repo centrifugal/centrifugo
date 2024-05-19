@@ -8,8 +8,6 @@ import (
 	"time"
 	"unicode"
 
-	"golang.org/x/sync/singleflight"
-
 	"github.com/centrifugal/centrifugo/v5/internal/clientstorage"
 	"github.com/centrifugal/centrifugo/v5/internal/jwtverify"
 	"github.com/centrifugal/centrifugo/v5/internal/proxy"
@@ -17,6 +15,7 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
+	"golang.org/x/sync/singleflight"
 )
 
 // RPCExtensionFunc ...
