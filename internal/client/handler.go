@@ -699,6 +699,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	options.EnableRecovery = chOpts.ForceRecovery
 	options.RecoveryMode = chOpts.GetRecoveryMode()
 	options.HistoryMetaTTL = time.Duration(chOpts.HistoryMetaTTL)
+	options.AllowedDeltaTypes = chOpts.AllowedDeltaTypes
 
 	isPrivateChannel := h.ruleContainer.IsPrivateChannel(e.Channel)
 	isUserLimitedChannel := chOpts.UserLimitedChannels && h.ruleContainer.IsUserLimited(e.Channel)

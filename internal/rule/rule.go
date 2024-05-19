@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/centrifugal/centrifuge"
 )
 
 // Config ...
@@ -155,6 +158,13 @@ func ValidateChannelOptions(c ChannelOptions, globalHistoryMetaTTL time.Duration
 	}
 	if (c.ProxySubscribeStream || c.SubscribeStreamProxyName != "") && (c.ProxySubscribe || c.ProxyPublish || c.ProxySubRefresh) {
 		return fmt.Errorf("can't use subscribe stream proxy together with subscribe, publish or sub refresh proxies")
+	}
+	if len(c.AllowedDeltaTypes) > 0 {
+		for _, dt := range c.AllowedDeltaTypes {
+			if !slices.Contains([]centrifuge.DeltaType{centrifuge.DeltaTypeFossil}, dt) {
+				return fmt.Errorf("unknown allowed delta type: %s", dt)
+			}
+		}
 	}
 	return nil
 }

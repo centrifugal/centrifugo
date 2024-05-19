@@ -198,6 +198,7 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 				EnableRecovery:    recovery,
 				EnablePositioning: positioning,
 				RecoveryMode:      recoveryMode,
+				AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
 				Data:              data,
 				Source:            subsource.SubscribeProxy,
 				HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),

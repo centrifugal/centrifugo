@@ -109,9 +109,10 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 	push := &protocol.Push{
 		Channel: ch,
 		Pub: &protocol.Publication{
-			Data: data,
-			Info: infoToProto(opts.ClientInfo),
-			Tags: opts.Tags,
+			Data:  data,
+			Info:  infoToProto(opts.ClientInfo),
+			Tags:  opts.Tags,
+			Delta: opts.UseDelta, // Will be cleaned up before passing to Node.
 		},
 	}
 	byteMessage, err := push.MarshalVT()
@@ -141,6 +142,7 @@ func (b *NatsBroker) PublishWithStreamPosition(ch string, data []byte, opts cent
 			Data:   data,
 			Info:   infoToProto(opts.ClientInfo),
 			Tags:   tags,
+			Delta:  opts.UseDelta, // Will be cleaned up before passing to Node.
 		},
 	}
 	byteMessage, err := push.MarshalVT()
@@ -214,7 +216,9 @@ func (b *NatsBroker) handleClientMessage(data []byte) {
 			sp.Offset = push.Pub.Offset
 			sp.Epoch = push.Pub.Tags[epochTagsKey]
 		}
-		_ = b.eventHandler.HandlePublication(push.Channel, pubFromProto(push.Pub), sp, false, nil)
+		delta := push.Pub.Delta
+		push.Pub.Delta = false
+		_ = b.eventHandler.HandlePublication(push.Channel, pubFromProto(push.Pub), sp, delta, nil)
 	} else if push.Join != nil {
 		_ = b.eventHandler.HandleJoin(push.Channel, infoFromProto(push.Join.Info))
 	} else if push.Leave != nil {

@@ -27,7 +27,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -137,7 +136,7 @@ var defaults = map[string]any{
 	"global_presence_ttl":                60 * time.Second,
 	"global_redis_presence_user_mapping": false,
 
-	"allowed_delta_types": []string{},
+	"allowed_delta_types": []centrifuge.DeltaType{},
 
 	"presence":                      false,
 	"join_leave":                    false,
@@ -1735,6 +1734,11 @@ func ruleConfig() rule.Config {
 	// GlobalHistoryMetaTTL is required here only for validation purposes.
 	cfg.GlobalHistoryMetaTTL = GetDuration("global_history_meta_ttl", true)
 
+	allowedDeltaTypes := v.GetStringSlice("allowed_delta_types")
+	for _, dt := range allowedDeltaTypes {
+		cfg.AllowedDeltaTypes = append(cfg.AllowedDeltaTypes, centrifuge.DeltaType(dt))
+	}
+
 	cfg.Namespaces = namespacesFromConfig(v)
 
 	cfg.ChannelPrivatePrefix = v.GetString("channel_private_prefix")
@@ -2301,16 +2305,6 @@ func nodeConfig(version string) centrifuge.Config {
 	cfg.HistoryMaxPublicationLimit = v.GetInt("client_history_max_publication_limit")
 	cfg.RecoveryMaxPublicationLimit = v.GetInt("client_recovery_max_publication_limit")
 	cfg.HistoryMetaTTL = GetDuration("global_history_meta_ttl", true)
-	allowedDeltaTypes := v.GetStringSlice("allowed_delta_types")
-	for _, dt := range allowedDeltaTypes {
-		if !slices.Contains([]centrifuge.DeltaType{centrifuge.DeltaTypeFossil}, centrifuge.DeltaType(dt)) {
-			log.Fatal().Msgf("unknown allowed delta type: %s", dt)
-		}
-		cfg.AllowedDeltaTypes = append(cfg.AllowedDeltaTypes, centrifuge.DeltaType(dt))
-	}
-	if len(cfg.AllowedDeltaTypes) > 0 {
-		log.Info().Any("allowed_delta_types", allowedDeltaTypes).Msg("delta types allowed")
-	}
 
 	level, ok := logStringToLevel[strings.ToLower(v.GetString("log_level"))]
 	if !ok {

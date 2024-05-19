@@ -738,6 +738,7 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 			EnableRecovery:    recovery,
 			EnablePositioning: positioning,
 			RecoveryMode:      recoveryMode,
+			AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
 			Data:              data,
 		},
 	}

@@ -87,8 +87,13 @@ type ChannelOptions struct {
 	// RecoveryModeCache ...
 	RecoveryModeCache bool `mapstructure:"recovery_mode_cache" json:"recovery_mode_cache"`
 
-	// DeltaPublish enables delta publish mechanism for all messages published in channels
-	// without explicit setting in publish API request.
+	// AllowedDeltaTypes ...
+	AllowedDeltaTypes []centrifuge.DeltaType `mapstructure:"allowed_delta_types" json:"allowed_delta_types"`
+
+	// DeltaPublish enables delta publish mechanism for all messages published in namespace channels
+	// without explicit flag usage in publish API request. Setting this option does not guarantee that
+	// publication will be compressed when going towards subscribers – it still depends on subscriber
+	// connection options and whether Centrifugo Node is able to find previous publication in channel.
 	DeltaPublish bool `mapstructure:"delta_publish" json:"delta_publish"`
 
 	// SubscribeForAnonymous ...
