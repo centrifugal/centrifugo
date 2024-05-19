@@ -861,6 +861,7 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 		e.Channel, e.Data,
 		centrifuge.WithClientInfo(e.ClientInfo),
 		centrifuge.WithHistory(chOpts.HistorySize, time.Duration(chOpts.HistoryTTL), time.Duration(chOpts.HistoryMetaTTL)),
+		centrifuge.WithDelta(chOpts.DeltaPublish),
 	)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "publish error", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID(), "error": err.Error()}))
