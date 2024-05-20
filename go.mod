@@ -7,8 +7,8 @@ require (
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/tarantool v0.3.1
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
-	github.com/centrifugal/centrifuge v0.32.3-0.20240519062831-c9273ebdd8d9
-	github.com/centrifugal/protocol v0.13.0
+	github.com/centrifugal/centrifuge v0.32.3-0.20240520113710-d53083e9956a
+	github.com/centrifugal/protocol v0.13.2
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.6.0
@@ -54,6 +54,7 @@ require (
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/pierrec/lz4/v4 v4.1.19 // indirect
+	github.com/planetscale/vtprotobuf v0.6.0 // indirect
 	github.com/shadowspore/fossil-delta v0.0.0-20240102155221-e3a8590b820b // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.uber.org/mock v0.4.0 // indirect

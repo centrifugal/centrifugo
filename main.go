@@ -185,6 +185,7 @@ var defaults = map[string]any{
 	"client_channel_position_check_delay": 40 * time.Second,
 	"client_connection_limit":             0,
 	"client_connection_rate_limit":        0,
+	"client_connect_include_server_time":  false,
 
 	"channel_max_length":         255,
 	"channel_private_prefix":     "$",
@@ -2305,6 +2306,7 @@ func nodeConfig(version string) centrifuge.Config {
 	cfg.HistoryMaxPublicationLimit = v.GetInt("client_history_max_publication_limit")
 	cfg.RecoveryMaxPublicationLimit = v.GetInt("client_recovery_max_publication_limit")
 	cfg.HistoryMetaTTL = GetDuration("global_history_meta_ttl", true)
+	cfg.ClientConnectIncludeServerTime = v.GetBool("client_connect_include_server_time")
 
 	level, ok := logStringToLevel[strings.ToLower(v.GetString("log_level"))]
 	if !ok {
