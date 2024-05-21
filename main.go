@@ -162,7 +162,6 @@ var defaults = map[string]any{
 	"allow_history_for_subscriber":  false,
 	"allow_user_limited_channels":   false,
 	"channel_regex":                 "",
-	"document":                      false,
 	"proxy_subscribe":               false,
 	"proxy_publish":                 false,
 	"proxy_sub_refresh":             false,
