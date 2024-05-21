@@ -1397,6 +1397,9 @@
         },
         "idempotency_key": {
           "type": "string"
+        },
+        "delta": {
+          "type": "boolean"
         }
       }
     },
@@ -2588,6 +2591,9 @@
         },
         "idempotency_key": {
           "type": "string"
+        },
+        "delta": {
+          "type": "boolean"
         }
       }
     },

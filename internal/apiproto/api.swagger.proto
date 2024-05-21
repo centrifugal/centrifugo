@@ -525,6 +525,7 @@ message PublishRequest {
   bool skip_history = 4;
   map<string, string> tags = 5;
   string idempotency_key = 6;
+  bool delta = 7;
 }
 
 message PublishResponse {
@@ -544,6 +545,7 @@ message BroadcastRequest {
   bool skip_history = 4;
   map<string, string> tags = 5;
   string idempotency_key = 6;
+  bool delta = 7;
 }
 
 message BroadcastResponse {
