@@ -148,6 +148,7 @@ var defaults = map[string]any{
 	"allow_positioning":             false,
 	"force_recovery":                false,
 	"allow_recovery":                false,
+	"force_recovery_mode":           "",
 	"allow_subscribe_for_anonymous": false,
 	"allow_subscribe_for_client":    false,
 	"allow_publish_for_anonymous":   false,
@@ -1708,7 +1709,7 @@ func ruleConfig() rule.Config {
 	cfg.AllowPositioning = v.GetBool("allow_positioning")
 	cfg.AllowRecovery = v.GetBool("allow_recovery")
 	cfg.ForceRecovery = v.GetBool("force_recovery")
-	cfg.RecoveryModeCache = v.GetBool("recovery_mode_cache")
+	cfg.ForceRecoveryMode = v.GetString("force_recovery_mode")
 	cfg.DeltaPublish = v.GetBool("delta_publish")
 	cfg.SubscribeForAnonymous = v.GetBool("allow_subscribe_for_anonymous")
 	cfg.SubscribeForClient = v.GetBool("allow_subscribe_for_client")

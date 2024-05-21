@@ -58,7 +58,8 @@ func NewCacheHandler(c CacheHandlerConfig) *CacheHandler {
 }
 
 // CacheEmptyHandlerFunc ...
-type CacheEmptyHandlerFunc func(ctx context.Context, channel string, chOpts rule.ChannelOptions) (centrifuge.CacheEmptyReply, error)
+type CacheEmptyHandlerFunc func(
+	ctx context.Context, channel string, chOpts rule.ChannelOptions) (centrifuge.CacheEmptyReply, error)
 
 // Handle Document.
 func (h *CacheHandler) Handle(node *centrifuge.Node) CacheEmptyHandlerFunc {

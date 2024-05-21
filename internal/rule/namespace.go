@@ -23,7 +23,7 @@ type Compiled struct {
 }
 
 func (o ChannelOptions) GetRecoveryMode() centrifuge.RecoveryMode {
-	if o.RecoveryModeCache {
+	if o.ForceRecoveryMode == "cache" {
 		return centrifuge.RecoveryModeCache
 	}
 	return centrifuge.RecoveryModeStream
@@ -84,8 +84,8 @@ type ChannelOptions struct {
 	// AllowRecovery allows recovery when client asks about it.
 	AllowRecovery bool `mapstructure:"allow_recovery" json:"allow_recovery"`
 
-	// RecoveryModeCache enables centrifuge.RecoveryModeCache for channels in namespace.
-	RecoveryModeCache bool `mapstructure:"recovery_mode_cache" json:"recovery_mode_cache"`
+	// ForceRecoveryMode can set the recovery mode for all channel subscribers in the namespace which use recovery.
+	ForceRecoveryMode string `mapstructure:"force_recovery_mode" json:"force_recovery_mode"`
 
 	// AllowedDeltaTypes is non-empty contains slice of allowed delta types for subscribers to use.
 	AllowedDeltaTypes []centrifuge.DeltaType `mapstructure:"allowed_delta_types" json:"allowed_delta_types"`

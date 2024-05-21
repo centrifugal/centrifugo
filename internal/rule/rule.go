@@ -166,6 +166,9 @@ func ValidateChannelOptions(c ChannelOptions, globalHistoryMetaTTL time.Duration
 			}
 		}
 	}
+	if !slices.Contains([]string{"", "stream", "cache"}, c.ForceRecoveryMode) {
+		return fmt.Errorf("unknown recovery mode: %s", c.ForceRecoveryMode)
+	}
 	return nil
 }
 
