@@ -168,6 +168,7 @@ var defaults = map[string]any{
 	"subscribe_proxy_name":          "",
 	"publish_proxy_name":            "",
 	"sub_refresh_proxy_name":        "",
+	"cache_empty_proxy_name":        "",
 
 	"node_info_metrics_aggregate_interval": 60 * time.Second,
 
@@ -1709,7 +1710,6 @@ func ruleConfig() rule.Config {
 	cfg.AllowRecovery = v.GetBool("allow_recovery")
 	cfg.ForceRecovery = v.GetBool("force_recovery")
 	cfg.ForceRecoveryMode = v.GetString("force_recovery_mode")
-	cfg.DeltaPublish = v.GetBool("delta_publish")
 	cfg.SubscribeForAnonymous = v.GetBool("allow_subscribe_for_anonymous")
 	cfg.SubscribeForClient = v.GetBool("allow_subscribe_for_client")
 	cfg.PublishForAnonymous = v.GetBool("allow_publish_for_anonymous")
@@ -1730,11 +1730,12 @@ func ruleConfig() rule.Config {
 	cfg.SubscribeProxyName = v.GetString("subscribe_proxy_name")
 	cfg.PublishProxyName = v.GetString("publish_proxy_name")
 	cfg.SubRefreshProxyName = v.GetString("sub_refresh_proxy_name")
+	cfg.CacheEmptyProxyName = v.GetString("cache_empty_proxy_name")
 	cfg.ProxySubscribeStream = v.GetBool("proxy_stream_subscribe")
 	cfg.ProxySubscribeStreamBidirectional = v.GetBool("proxy_subscribe_stream_bidirectional")
 	// GlobalHistoryMetaTTL is required here only for validation purposes.
 	cfg.GlobalHistoryMetaTTL = GetDuration("global_history_meta_ttl", true)
-
+	cfg.DeltaPublish = v.GetBool("delta_publish")
 	allowedDeltaTypes := v.GetStringSlice("allowed_delta_types")
 	for _, dt := range allowedDeltaTypes {
 		cfg.AllowedDeltaTypes = append(cfg.AllowedDeltaTypes, centrifuge.DeltaType(dt))
