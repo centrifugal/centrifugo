@@ -186,11 +186,17 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 		historyTTL = 0
 	}
 
+	delta := cmd.Delta
+	if chOpts.DeltaPublish {
+		delta = true
+	}
+
 	result, err := h.node.Publish(
 		cmd.Channel, data,
 		centrifuge.WithHistory(historySize, time.Duration(historyTTL), time.Duration(historyMetaTTL)),
 		centrifuge.WithTags(cmd.GetTags()),
 		centrifuge.WithIdempotencyKey(cmd.GetIdempotencyKey()),
+		centrifuge.WithDelta(delta),
 	)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error publishing data to channel", map[string]any{"error": err.Error(), "channel": cmd.Channel}))
@@ -279,11 +285,17 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 				historyTTL = 0
 			}
 
+			delta := cmd.Delta
+			if chOpts.DeltaPublish {
+				delta = true
+			}
+
 			result, err := h.node.Publish(
 				ch, data,
 				centrifuge.WithHistory(historySize, time.Duration(historyTTL), time.Duration(historyMetaTTL)),
 				centrifuge.WithTags(cmd.GetTags()),
 				centrifuge.WithIdempotencyKey(cmd.GetIdempotencyKey()),
+				centrifuge.WithDelta(delta),
 			)
 			resp := &PublishResponse{}
 			if err == nil {
@@ -781,7 +793,8 @@ func (h *Executor) Channels(ctx context.Context, cmd *ChannelsRequest) *Channels
 }
 
 func toAPIErr(err error) *Error {
-	if apiErr, ok := err.(*Error); ok {
+	var apiErr *Error
+	if errors.As(err, &apiErr) {
 		return apiErr
 	}
 	return ErrorInternal

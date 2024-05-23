@@ -3,6 +3,8 @@ package rule
 import (
 	"regexp"
 
+	"github.com/centrifugal/centrifuge"
+
 	"github.com/centrifugal/centrifugo/v5/internal/tools"
 )
 
@@ -18,6 +20,13 @@ type ChannelNamespace struct {
 
 type Compiled struct {
 	CompiledChannelRegex *regexp.Regexp
+}
+
+func (o ChannelOptions) GetRecoveryMode() centrifuge.RecoveryMode {
+	if o.ForceRecoveryMode == "cache" {
+		return centrifuge.RecoveryModeCache
+	}
+	return centrifuge.RecoveryModeStream
 }
 
 // ChannelOptions represent channel specific configuration for namespace
@@ -75,6 +84,18 @@ type ChannelOptions struct {
 	// AllowRecovery allows recovery when client asks about it.
 	AllowRecovery bool `mapstructure:"allow_recovery" json:"allow_recovery"`
 
+	// ForceRecoveryMode can set the recovery mode for all channel subscribers in the namespace which use recovery.
+	ForceRecoveryMode string `mapstructure:"force_recovery_mode" json:"force_recovery_mode"`
+
+	// AllowedDeltaTypes is non-empty contains slice of allowed delta types for subscribers to use.
+	AllowedDeltaTypes []centrifuge.DeltaType `mapstructure:"allowed_delta_types" json:"allowed_delta_types"`
+
+	// DeltaPublish enables delta publish mechanism for all messages published in namespace channels
+	// without explicit flag usage in publish API request. Setting this option does not guarantee that
+	// publication will be compressed when going towards subscribers – it still depends on subscriber
+	// connection options and whether Centrifugo Node is able to find previous publication in channel.
+	DeltaPublish bool `mapstructure:"delta_publish" json:"delta_publish"`
+
 	// SubscribeForAnonymous ...
 	SubscribeForAnonymous bool `mapstructure:"allow_subscribe_for_anonymous" json:"allow_subscribe_for_anonymous"`
 
@@ -120,6 +141,9 @@ type ChannelOptions struct {
 	// ProxyPublish turns on proxying publish decision for channels.
 	ProxyPublish bool `mapstructure:"proxy_publish" json:"proxy_publish"`
 
+	// ProxyCacheEmpty turns on proxying cache empty events for channels.
+	ProxyCacheEmpty bool `mapstructure:"proxy_cache_empty" json:"proxy_cache_empty"`
+
 	// ProxySubRefresh turns on proxying sub refresh for channels.
 	ProxySubRefresh bool `mapstructure:"proxy_sub_refresh" json:"proxy_sub_refresh"`
 
@@ -140,6 +164,9 @@ type ChannelOptions struct {
 
 	// SubscribeStreamProxyName of proxy to use for subscribe stream operations in namespace.
 	SubscribeStreamProxyName string `mapstructure:"subscribe_stream_proxy_name" json:"subscribe_stream_proxy_name"`
+
+	// CacheEmptyProxyName of proxy to use for cache empty operations in namespace.
+	CacheEmptyProxyName string `mapstructure:"cache_empty_proxy_name" json:"cache_empty_proxy_name"`
 
 	Compiled
 }

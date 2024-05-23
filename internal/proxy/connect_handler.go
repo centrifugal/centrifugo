@@ -143,6 +143,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 					PushJoinLeave:     chOpts.ForcePushJoinLeave,
 					EnableRecovery:    chOpts.ForceRecovery,
 					EnablePositioning: chOpts.ForcePositioning,
+					RecoveryMode:      chOpts.GetRecoveryMode(),
 					Source:            subsource.ConnectProxy,
 					HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
 				}

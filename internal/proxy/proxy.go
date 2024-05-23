@@ -101,6 +101,13 @@ func GetSubscribeProxy(p Config) (SubscribeProxy, error) {
 	return NewGRPCSubscribeProxy(p)
 }
 
+func GetCacheEmptyProxy(p Config) (CacheEmptyProxy, error) {
+	if isHttpEndpoint(p.Endpoint) {
+		return NewHTTPCacheEmptyProxy(p)
+	}
+	return NewGRPCCacheEmptyProxy(p)
+}
+
 type PerCallData struct {
 	Meta json.RawMessage
 }
