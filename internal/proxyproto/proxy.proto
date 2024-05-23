@@ -274,11 +274,6 @@ message NotifyCacheEmptyResult {
   bool populated = 1;
 }
 
-message Document {
-  bytes data = 1;
-  int64 version = 2;
-}
-
 message NotifyChannelStateRequest {
   repeated ChannelEvent events = 1;
 }
