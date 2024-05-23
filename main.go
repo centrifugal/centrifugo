@@ -168,7 +168,6 @@ var defaults = map[string]any{
 	"subscribe_proxy_name":          "",
 	"publish_proxy_name":            "",
 	"sub_refresh_proxy_name":        "",
-	"cache_empty_proxy_name":        "",
 
 	"node_info_metrics_aggregate_interval": 60 * time.Second,
 
@@ -275,7 +274,6 @@ var defaults = map[string]any{
 	"proxy_sub_refresh_endpoint":      "",
 	"proxy_rpc_endpoint":              "",
 	"proxy_subscribe_stream_endpoint": "",
-	"proxy_cache_empty_endpoint":      "",
 
 	"proxy_connect_timeout":          time.Second,
 	"proxy_rpc_timeout":              time.Second,
@@ -284,7 +282,6 @@ var defaults = map[string]any{
 	"proxy_publish_timeout":          time.Second,
 	"proxy_sub_refresh_timeout":      time.Second,
 	"proxy_subscribe_stream_timeout": time.Second,
-	"proxy_cache_empty_timeout":      time.Second,
 
 	"proxy_grpc_metadata":           []string{},
 	"proxy_http_headers":            []string{},
@@ -1723,14 +1720,12 @@ func ruleConfig() rule.Config {
 	cfg.HistoryForSubscriber = v.GetBool("allow_history_for_subscriber")
 	cfg.UserLimitedChannels = v.GetBool("allow_user_limited_channels")
 	cfg.ChannelRegex = v.GetString("channel_regex")
-	cfg.ProxyCacheEmpty = v.GetBool("proxy_cache_empty")
 	cfg.ProxySubscribe = v.GetBool("proxy_subscribe")
 	cfg.ProxyPublish = v.GetBool("proxy_publish")
 	cfg.ProxySubRefresh = v.GetBool("proxy_sub_refresh")
 	cfg.SubscribeProxyName = v.GetString("subscribe_proxy_name")
 	cfg.PublishProxyName = v.GetString("publish_proxy_name")
 	cfg.SubRefreshProxyName = v.GetString("sub_refresh_proxy_name")
-	cfg.CacheEmptyProxyName = v.GetString("cache_empty_proxy_name")
 	cfg.ProxySubscribeStream = v.GetBool("proxy_stream_subscribe")
 	cfg.ProxySubscribeStreamBidirectional = v.GetBool("proxy_subscribe_stream_bidirectional")
 	// GlobalHistoryMetaTTL is required here only for validation purposes.
@@ -1942,8 +1937,6 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	}
 	proxyConfig.StaticHttpHeaders = staticHttpHeaders
 
-	cacheEmptyEndpoint := v.GetString("proxy_cache_empty_endpoint")
-	cacheEmptyTimeout := GetDuration("proxy_cache_empty_timeout")
 	connectEndpoint := v.GetString("proxy_connect_endpoint")
 	connectTimeout := GetDuration("proxy_connect_timeout")
 	refreshEndpoint := v.GetString("proxy_refresh_endpoint")
@@ -2037,18 +2030,6 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 		}
 		proxyMap.SubscribeStreamProxies[""] = streamProxy
 		log.Info().Str("endpoint", proxyStreamSubscribeEndpoint).Msg("subscribe stream proxy enabled")
-	}
-
-	if cacheEmptyEndpoint != "" {
-		proxyConfig.Endpoint = cacheEmptyEndpoint
-		proxyConfig.Timeout = tools.Duration(cacheEmptyTimeout)
-		var err error
-		dp, err := proxy.GetCacheEmptyProxy(proxyConfig)
-		if err != nil {
-			log.Fatal().Msgf("error creating document proxy: %v", err)
-		}
-		proxyMap.CacheEmptyProxies[""] = dp
-		log.Info().Str("endpoint", cacheEmptyEndpoint).Msg("cache empty proxy enabled")
 	}
 
 	keepHeadersInContext := connectEndpoint != "" || refreshEndpoint != "" ||
@@ -2146,21 +2127,6 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		keepHeadersInContext = true
 	}
 
-	cacheEmptyProxyName := ruleConfig.CacheEmptyProxyName
-	if cacheEmptyProxyName != "" {
-		p, ok := proxies[cacheEmptyProxyName]
-		if !ok {
-			log.Fatal().Msgf("sub refresh proxy not found: %s", subRefreshProxyName)
-		}
-		cp, err := proxy.GetCacheEmptyProxy(p)
-		if err != nil {
-			log.Fatal().Msgf("error creating publish proxy: %v", err)
-		}
-		proxyMap.CacheEmptyProxies[cacheEmptyProxyName] = cp
-		// No need to keep headers in context for cache empty proxy since it's
-		// not related to a specific client context.
-	}
-
 	subscribeStreamProxyName := ruleConfig.SubscribeStreamProxyName
 	if subscribeStreamProxyName != "" {
 		p, ok := proxies[subscribeStreamProxyName]
@@ -2183,7 +2149,6 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		publishProxyName := ns.PublishProxyName
 		subRefreshProxyName := ns.SubRefreshProxyName
 		subscribeStreamProxyName := ns.SubscribeStreamProxyName
-		cacheEmptyProxyName := ns.CacheEmptyProxyName
 
 		if subscribeProxyName != "" {
 			p, ok := proxies[subscribeProxyName]
@@ -2222,20 +2187,6 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 			}
 			proxyMap.SubRefreshProxies[subRefreshProxyName] = srp
 			keepHeadersInContext = true
-		}
-
-		if cacheEmptyProxyName != "" {
-			p, ok := proxies[connectProxyName]
-			if !ok {
-				log.Fatal().Msgf("cache empty proxy not found: %s", cacheEmptyProxyName)
-			}
-			cp, err := proxy.GetCacheEmptyProxy(p)
-			if err != nil {
-				log.Fatal().Msgf("error creating cache empty proxy: %v", err)
-			}
-			proxyMap.CacheEmptyProxies[cacheEmptyProxyName] = cp
-			// No need to keep headers in context for cache empty proxy since it's
-			// not related to a specific client context.
 		}
 
 		if subscribeStreamProxyName != "" {
