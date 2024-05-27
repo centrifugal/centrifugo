@@ -174,18 +174,19 @@ var defaults = map[string]any{
 	"allow_anonymous_connect_without_token": false,
 	"disallow_anonymous_connection_tokens":  false,
 
-	"client_expired_close_delay":          25 * time.Second,
-	"client_expired_sub_close_delay":      25 * time.Second,
-	"client_stale_close_delay":            10 * time.Second,
-	"client_channel_limit":                128,
-	"client_queue_max_size":               1048576, // 1 MB
-	"client_presence_update_interval":     27 * time.Second,
-	"client_user_connection_limit":        0,
-	"client_concurrency":                  0,
-	"client_channel_position_check_delay": 40 * time.Second,
-	"client_connection_limit":             0,
-	"client_connection_rate_limit":        0,
-	"client_connect_include_server_time":  false,
+	"client_expired_close_delay":           25 * time.Second,
+	"client_expired_sub_close_delay":       25 * time.Second,
+	"client_stale_close_delay":             10 * time.Second,
+	"client_channel_limit":                 128,
+	"client_queue_max_size":                1048576, // 1 MB
+	"client_presence_update_interval":      27 * time.Second,
+	"client_user_connection_limit":         0,
+	"client_concurrency":                   0,
+	"client_channel_position_check_delay":  40 * time.Second,
+	"client_channel_position_max_time_lag": 0,
+	"client_connection_limit":              0,
+	"client_connection_rate_limit":         0,
+	"client_connect_include_server_time":   false,
 
 	"channel_max_length":         255,
 	"channel_private_prefix":     "$",
@@ -2253,6 +2254,7 @@ func nodeConfig(version string) centrifuge.Config {
 	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
 	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
 	cfg.ClientChannelPositionCheckDelay = GetDuration("client_channel_position_check_delay")
+	cfg.ClientChannelPositionMaxTimeLag = GetDuration("client_channel_position_max_time_lag")
 	cfg.UserConnectionLimit = v.GetInt("client_user_connection_limit")
 	cfg.NodeInfoMetricsAggregateInterval = GetDuration("node_info_metrics_aggregate_interval")
 	cfg.HistoryMaxPublicationLimit = v.GetInt("client_history_max_publication_limit")
