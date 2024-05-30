@@ -113,6 +113,7 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 			Info:  infoToProto(opts.ClientInfo),
 			Tags:  opts.Tags,
 			Delta: opts.UseDelta, // Will be cleaned up before passing to Node.
+			Time:  time.Now().UnixMilli(),
 		},
 	}
 	byteMessage, err := push.MarshalVT()

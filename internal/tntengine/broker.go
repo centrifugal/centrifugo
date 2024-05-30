@@ -146,6 +146,7 @@ func (b *Broker) Publish(ch string, data []byte, opts centrifuge.PublishOptions)
 		Info:  infoToProto(opts.ClientInfo),
 		Tags:  opts.Tags,
 		Delta: opts.UseDelta, // Will be cleaned up before passing to Node.
+		Time:  time.Now().UnixMilli(),
 	}
 	byteMessage, err := protoPub.MarshalVT()
 	if err != nil {
