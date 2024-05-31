@@ -36,6 +36,7 @@ The hard part is to make this concept production-ready, efficient, flexible and 
 * Different types of subscriptions: client-side and server-side
 * Various channel permission strategies, channel namespace concept
 * Hot message history in channels, with automatic message recovery upon reconnect
+* Delta compression in channels based on Fossil algorithm
 * Online channel presence information, with join/leave notifications
 * A way to send RPC calls to the backend over the real-time connection
 * Strict and effective client protocol wrapped by several official SDKs
