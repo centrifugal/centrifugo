@@ -61,16 +61,10 @@ func produceTestMessage(topic string, message []byte) error {
 }
 
 func produceTestMessageToPartition(topic string, message []byte, partition int32) error {
-	partitioner := kgo.BasicConsistentPartitioner(func(topic string) func(*kgo.Record, int) int {
-		return func(r *kgo.Record, n int) int {
-			return int(r.Partition)
-		}
-	})
-
 	// Create a new client.
 	client, err := kgo.NewClient(
 		kgo.SeedBrokers(testKafkaBrokerURL),
-		kgo.RecordPartitioner(partitioner),
+		kgo.RecordPartitioner(kgo.ManualPartitioner()),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create Kafka client: %w", err)
