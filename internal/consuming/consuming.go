@@ -25,7 +25,7 @@ type ConsumerConfig struct {
 	// Name is a unique name required for each consumer.
 	Name string `mapstructure:"name" json:"name"`
 	// Disabled can be true to tell Centrifugo to not run configured consumer.
-	Disabled bool `mapstructure:"enabled" json:"enabled"`
+	Disabled bool `mapstructure:"disabled" json:"disabled"`
 	// Type describes the type of consumer.
 	Type ConsumerType `mapstructure:"type" json:"type"`
 	// Postgres allows defining options for consumer of postgresql type.
