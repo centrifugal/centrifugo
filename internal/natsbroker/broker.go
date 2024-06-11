@@ -24,6 +24,38 @@ type Config struct {
 	Prefix       string
 	DialTimeout  time.Duration
 	WriteTimeout time.Duration
+
+	// RawMode enables raw communication with Nats. When on, Centrifugo subscribes to channels without
+	// adding any prefixes to channel name. Proper prefixes must be managed by the application in this case.
+	// Data consumed from Nats is sent directly to subscribers without any processing. When publishing
+	// to Nats Centrifugo does not add any prefixes to channel names also. Centrifugo features like
+	// Publication tags, Publication ClientInfo, join/leave events are not supported in raw mode.
+	RawMode       bool
+	RawModeConfig RawModeConfig
+}
+
+type RawModeConfig struct {
+	// ChannelReplacements is a map where keys are strings to replace and values are replacements.
+	// For example, you have Centrifugo namespace "chat" and using channel "chat:index", but you want to
+	// use channel "chat.index" in Nats. Then you can define SymbolReplacements map like this: {":": "."}.
+	// In this case Centrifugo will replace all ":" symbols in channel name with "." before sending to Nats.
+	// Broker keeps reverse mapping to the original channel to broadcast to proper channels when processing
+	// messages received from Nats.
+	ChannelReplacements map[string]string
+
+	// AllowWildcards allows to enable wildcard subscriptions in raw mode. By default, wildcard subscriptions
+	// are not allowed in raw mode.
+	AllowWildcards bool
+
+	// Prefix is a string that will be added to all channels when publishing messages to Nats, subscribing
+	// to channels in Nats. It's also stripped from channel name when processing messages received from Nats.
+	// By default, no prefix is used.
+	Prefix string
+}
+
+type subWrapper struct {
+	sub         *nats.Subscription
+	origChannel string
 }
 
 // NatsBroker is a broker on top of Nats messaging system.
@@ -31,10 +63,12 @@ type NatsBroker struct {
 	node   *centrifuge.Node
 	config Config
 
-	nc           *nats.Conn
-	subsMu       sync.Mutex
-	subs         map[channelID]*nats.Subscription
-	eventHandler centrifuge.BrokerEventHandler
+	nc                  *nats.Conn
+	subsMu              sync.RWMutex
+	subs                map[channelID]subWrapper
+	eventHandler        centrifuge.BrokerEventHandler
+	clientChannelPrefix string
+	rawModeReplacer     *strings.Replacer
 }
 
 var _ centrifuge.Broker = (*NatsBroker)(nil)
@@ -42,9 +76,19 @@ var _ centrifuge.Broker = (*NatsBroker)(nil)
 // New creates NatsBroker.
 func New(n *centrifuge.Node, conf Config) (*NatsBroker, error) {
 	b := &NatsBroker{
-		node:   n,
-		config: conf,
-		subs:   make(map[channelID]*nats.Subscription),
+		node:                n,
+		config:              conf,
+		subs:                make(map[channelID]subWrapper),
+		clientChannelPrefix: conf.Prefix + ".client.",
+	}
+	if conf.RawMode {
+		if len(conf.RawModeConfig.ChannelReplacements) > 0 {
+			var replacerArgs []string
+			for k, v := range conf.RawModeConfig.ChannelReplacements {
+				replacerArgs = append(replacerArgs, k, v)
+			}
+			b.rawModeReplacer = strings.NewReplacer(replacerArgs...)
+		}
 	}
 	return b, nil
 }
@@ -58,7 +102,13 @@ func (b *NatsBroker) nodeChannel(nodeID string) channelID {
 }
 
 func (b *NatsBroker) clientChannel(ch string) channelID {
-	return channelID(b.config.Prefix + ".client." + ch)
+	if b.config.RawMode {
+		if b.rawModeReplacer != nil {
+			ch = b.rawModeReplacer.Replace(ch)
+		}
+		return channelID(b.config.RawModeConfig.Prefix + ch)
+	}
+	return channelID(b.clientChannelPrefix + ch)
 }
 
 // Run runs engine after node initialized.
@@ -91,20 +141,27 @@ func (b *NatsBroker) Run(h centrifuge.BrokerEventHandler) error {
 	return nil
 }
 
-// Close is not implemented.
+// Close ...
 func (b *NatsBroker) Close(_ context.Context) error {
+	b.nc.Close()
 	return nil
 }
 
-func IsUnsupportedChannel(ch string) bool {
+func (b *NatsBroker) IsUnsupportedChannel(ch string) bool {
+	if b.config.RawMode && b.config.RawModeConfig.AllowWildcards {
+		return false
+	}
 	return strings.Contains(ch, "*") || strings.Contains(ch, ">")
 }
 
 // Publish - see Broker interface description.
 func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOptions) (centrifuge.StreamPosition, bool, error) {
-	if IsUnsupportedChannel(ch) {
+	if b.IsUnsupportedChannel(ch) {
 		// Do not support wildcard subscriptions.
 		return centrifuge.StreamPosition{}, false, centrifuge.ErrorBadRequest
+	}
+	if b.config.RawMode {
+		return centrifuge.StreamPosition{}, false, b.nc.Publish(b.config.RawModeConfig.Prefix+ch, data)
 	}
 	push := &protocol.Push{
 		Channel: ch,
@@ -127,8 +184,12 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 const epochTagsKey = "__centrifugo_epoch"
 
 func (b *NatsBroker) PublishWithStreamPosition(ch string, data []byte, opts centrifuge.PublishOptions, sp centrifuge.StreamPosition) error {
-	if IsUnsupportedChannel(ch) {
+	if b.IsUnsupportedChannel(ch) {
 		// Do not support wildcard subscriptions.
+		return centrifuge.ErrorBadRequest
+	}
+	if b.config.RawMode {
+		// Do not support stream positions in raw mode.
 		return centrifuge.ErrorBadRequest
 	}
 	tags := opts.Tags
@@ -155,6 +216,9 @@ func (b *NatsBroker) PublishWithStreamPosition(ch string, data []byte, opts cent
 
 // PublishJoin - see Broker interface description.
 func (b *NatsBroker) PublishJoin(ch string, info *centrifuge.ClientInfo) error {
+	if b.config.RawMode {
+		return nil
+	}
 	push := &protocol.Push{
 		Channel: ch,
 		Join: &protocol.Join{
@@ -170,6 +234,9 @@ func (b *NatsBroker) PublishJoin(ch string, info *centrifuge.ClientInfo) error {
 
 // PublishLeave - see Broker interface description.
 func (b *NatsBroker) PublishLeave(ch string, info *centrifuge.ClientInfo) error {
+	if b.config.RawMode {
+		return nil
+	}
 	push := &protocol.Push{
 		Channel: ch,
 		Leave: &protocol.Leave{
@@ -204,7 +271,22 @@ func (b *NatsBroker) RemoveHistory(_ string) error {
 	return centrifuge.ErrorNotAvailable
 }
 
-func (b *NatsBroker) handleClientMessage(data []byte) {
+func (b *NatsBroker) handleClientMessage(subject string, data []byte, sub *nats.Subscription) {
+	if b.config.RawMode {
+		b.subsMu.RLock()
+		subWrap, ok := b.subs[channelID(sub.Subject)]
+		b.subsMu.RUnlock()
+		if !ok {
+			return
+		}
+		channel := subWrap.origChannel
+		_ = b.eventHandler.HandlePublication(
+			channel,
+			&centrifuge.Publication{Data: data, Channel: strings.TrimPrefix(subject, b.config.RawModeConfig.Prefix)},
+			centrifuge.StreamPosition{}, false, nil)
+		return
+	}
+
 	var push protocol.Push
 	err := push.UnmarshalVT(data)
 	if err != nil {
@@ -230,7 +312,7 @@ func (b *NatsBroker) handleClientMessage(data []byte) {
 }
 
 func (b *NatsBroker) handleClient(m *nats.Msg) {
-	b.handleClientMessage(m.Data)
+	b.handleClientMessage(m.Subject, m.Data, m.Sub)
 }
 
 func (b *NatsBroker) handleControl(m *nats.Msg) {
@@ -239,38 +321,46 @@ func (b *NatsBroker) handleControl(m *nats.Msg) {
 
 // Subscribe - see Broker interface description.
 func (b *NatsBroker) Subscribe(ch string) error {
-	if IsUnsupportedChannel(ch) {
+	if b.IsUnsupportedChannel(ch) {
 		// Do not support wildcard subscriptions.
 		return centrifuge.ErrorBadRequest
 	}
-	b.subsMu.Lock()
-	defer b.subsMu.Unlock()
-	clientChannel := b.clientChannel(ch)
-	if _, ok := b.subs[clientChannel]; ok {
+	b.subsMu.RLock()
+	_, ok := b.subs[b.clientChannel(ch)]
+	b.subsMu.RUnlock()
+	if ok {
 		return nil
 	}
-	subClient, err := b.nc.Subscribe(string(b.clientChannel(ch)), b.handleClient)
+	clientChannel := b.clientChannel(ch)
+	subscription, err := b.nc.Subscribe(string(clientChannel), b.handleClient)
 	if err != nil {
 		return err
 	}
-	b.subs[clientChannel] = subClient
+	b.subsMu.Lock()
+	defer b.subsMu.Unlock()
+	b.subs[clientChannel] = subWrapper{
+		sub:         subscription,
+		origChannel: ch,
+	}
 	return nil
 }
 
 // Unsubscribe - see Broker interface description.
 func (b *NatsBroker) Unsubscribe(ch string) error {
-	b.subsMu.Lock()
-	defer b.subsMu.Unlock()
-	if sub, ok := b.subs[b.clientChannel(ch)]; ok {
-		_ = sub.Unsubscribe()
-		delete(b.subs, b.clientChannel(ch))
+	clientChannel := b.clientChannel(ch)
+	b.subsMu.RLock()
+	subWrap, ok := b.subs[clientChannel]
+	b.subsMu.RUnlock()
+	if ok {
+		err := subWrap.sub.Unsubscribe()
+		if err != nil {
+			return err
+		}
+		b.subsMu.Lock()
+		defer b.subsMu.Unlock()
+		delete(b.subs, clientChannel)
 	}
 	return nil
-}
-
-// Channels - see Broker interface description.
-func (b *NatsBroker) Channels() ([]string, error) {
-	return nil, nil
 }
 
 func infoFromProto(v *protocol.ClientInfo) *centrifuge.ClientInfo {

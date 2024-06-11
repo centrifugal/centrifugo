@@ -347,6 +347,11 @@ var defaults = map[string]any{
 	"nats_dial_timeout":  time.Second,
 	"nats_write_timeout": time.Second,
 
+	"nats_raw_mode":                      false,
+	"nats_raw_mode_channel_replacements": map[string]string{},
+	"nats_raw_mode_allow_wildcards":      false,
+	"nats_raw_mode_prefix":               "",
+
 	"websocket_disable": false,
 	"api_disable":       false,
 
@@ -2599,11 +2604,21 @@ func getRedisShards(n *centrifuge.Node) ([]*centrifuge.RedisShard, string, error
 }
 
 func initNatsBroker(node *centrifuge.Node) (*natsbroker.NatsBroker, error) {
+	replacements, err := tools.MapStringString(viper.GetViper(), "nats_raw_mode_channel_replacements")
+	if err != nil {
+		return nil, fmt.Errorf("error parsing nats_raw_mode_channel_replacements: %v", err)
+	}
 	return natsbroker.New(node, natsbroker.Config{
 		URL:          viper.GetString("nats_url"),
 		Prefix:       viper.GetString("nats_prefix"),
 		DialTimeout:  GetDuration("nats_dial_timeout"),
 		WriteTimeout: GetDuration("nats_write_timeout"),
+		RawMode:      viper.GetBool("nats_raw_mode"),
+		RawModeConfig: natsbroker.RawModeConfig{
+			ChannelReplacements: replacements,
+			AllowWildcards:      viper.GetBool("nats_raw_mode_allow_wildcards"),
+			Prefix:              viper.GetString("nats_raw_mode_prefix"),
+		},
 	})
 }
 

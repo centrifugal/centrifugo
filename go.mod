@@ -2,6 +2,11 @@ module github.com/centrifugal/centrifugo/v5
 
 go 1.21
 
+replace github.com/centrifugal/centrifuge => ../centrifuge
+replace (
+	github.com/centrifugal/protocol => ../protocol
+)
+
 require (
 	github.com/FZambia/eagle v0.1.0
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
@@ -88,7 +93,7 @@ require (
 	github.com/prometheus/common v0.48.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
-	github.com/redis/rueidis v1.0.37 // indirect
+	github.com/redis/rueidis v1.0.38 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/segmentio/encoding v0.4.0 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
