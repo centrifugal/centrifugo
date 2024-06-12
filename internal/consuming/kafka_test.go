@@ -357,66 +357,73 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherTopic(t *testing.T) {
 // is stuck on it. We want to make sure that the consumer is not blocked and can still process
 // messages from other topic partitions.
 func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherPartition(t *testing.T) {
-	t.Parallel()
-	testKafkaTopic1 := "consumer_test_1_" + uuid.New().String()
+	partitionBufferSizes := []int{-1, 0}
 
-	testPayload1 := []byte(`{"key":"value1"}`)
-	testPayload2 := []byte(`{"key":"value2"}`)
+	for _, partitionBufferSize := range partitionBufferSizes {
+		t.Run(fmt.Sprintf("partition_buffer_size_%d", partitionBufferSize), func(t *testing.T) {
+			t.Parallel()
+			testKafkaTopic1 := "consumer_test_1_" + uuid.New().String()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+			testPayload1 := []byte(`{"key":"value1"}`)
+			testPayload2 := []byte(`{"key":"value2"}`)
 
-	err := createTestTopic(ctx, testKafkaTopic1, 2, 1)
-	require.NoError(t, err)
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
 
-	event1Received := make(chan struct{})
-	event2Received := make(chan struct{})
-	consumerClosed := make(chan struct{})
-	doneCh := make(chan struct{})
+			err := createTestTopic(ctx, testKafkaTopic1, 2, 1)
+			require.NoError(t, err)
 
-	config := KafkaConfig{
-		Brokers:       []string{testKafkaBrokerURL},
-		Topics:        []string{testKafkaTopic1},
-		ConsumerGroup: uuid.New().String(),
-	}
+			event1Received := make(chan struct{})
+			event2Received := make(chan struct{})
+			consumerClosed := make(chan struct{})
+			doneCh := make(chan struct{})
 
-	numCalls := 0
-
-	mockDispatcher := &MockDispatcher{
-		onDispatch: func(ctx context.Context, method string, data []byte) error {
-			if numCalls == 0 {
-				numCalls++
-				close(event1Received)
-				// Block till the event2 received. This must not block the consumer and event2
-				// must still be processed successfully.
-				<-event2Received
-				return nil
+			config := KafkaConfig{
+				Brokers:             []string{testKafkaBrokerURL},
+				Topics:              []string{testKafkaTopic1},
+				ConsumerGroup:       uuid.New().String(),
+				PartitionBufferSize: partitionBufferSize,
 			}
-			close(event2Received)
-			return nil
-		},
+
+			numCalls := 0
+
+			mockDispatcher := &MockDispatcher{
+				onDispatch: func(ctx context.Context, method string, data []byte) error {
+					if numCalls == 0 {
+						numCalls++
+						close(event1Received)
+						// Block till the event2 received. This must not block the consumer and event2
+						// must still be processed successfully.
+						<-event2Received
+						return nil
+					}
+					close(event2Received)
+					return nil
+				},
+			}
+			consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config)
+			require.NoError(t, err)
+
+			go func() {
+				err = produceTestMessageToPartition(testKafkaTopic1, testPayload1, 0)
+				require.NoError(t, err)
+
+				// Wait until the first message is received to make sure messages read by separate PollRecords calls.
+				<-event1Received
+				err = produceTestMessageToPartition(testKafkaTopic1, testPayload2, 1)
+				require.NoError(t, err)
+			}()
+
+			go func() {
+				err := consumer.Run(ctx)
+				require.ErrorIs(t, err, context.Canceled)
+				close(consumerClosed)
+			}()
+
+			waitCh(t, event2Received, 30*time.Second, "timeout waiting for event 2")
+			cancel()
+			waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
+			close(doneCh)
+		})
 	}
-	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config)
-	require.NoError(t, err)
-
-	go func() {
-		err = produceTestMessageToPartition(testKafkaTopic1, testPayload1, 0)
-		require.NoError(t, err)
-
-		// Wait until the first message is received to make sure messages read by separate PollRecords calls.
-		<-event1Received
-		err = produceTestMessageToPartition(testKafkaTopic1, testPayload2, 1)
-		require.NoError(t, err)
-	}()
-
-	go func() {
-		err := consumer.Run(ctx)
-		require.ErrorIs(t, err, context.Canceled)
-		close(consumerClosed)
-	}()
-
-	waitCh(t, event2Received, 30*time.Second, "timeout waiting for event 2")
-	cancel()
-	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
-	close(doneCh)
 }
