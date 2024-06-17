@@ -20,17 +20,30 @@ type (
 
 // Config of NatsBroker.
 type Config struct {
-	URL          string
-	Prefix       string
-	DialTimeout  time.Duration
+	// URL is a Nats server URL.
+	URL string
+	// Prefix allows customizing channel prefix in Nats to work with a single Nats from different
+	// unrelated Centrifugo setups.
+	Prefix string
+	// DialTimeout is a timeout for establishing connection to Nats.
+	DialTimeout time.Duration
+	// WriteTimeout is a timeout for write operation to Nats.
 	WriteTimeout time.Duration
+
+	// AllowWildcards allows to enable wildcard subscriptions. By default, wildcard subscriptions
+	// are not allowed. Using wildcard subscriptions can't be combined with join/leave events and
+	// presence. It's required to use channels without wildcards to for mentioned features to work
+	// properly. Using wildcard subscriptions can be dangerous in terms of security - be sure that
+	// you understand what you are doing and proper permission management is used.
+	AllowWildcards bool
 
 	// RawMode enables raw communication with Nats. When on, Centrifugo subscribes to channels without
 	// adding any prefixes to channel name. Proper prefixes must be managed by the application in this case.
 	// Data consumed from Nats is sent directly to subscribers without any processing. When publishing
 	// to Nats Centrifugo does not add any prefixes to channel names also. Centrifugo features like
 	// Publication tags, Publication ClientInfo, join/leave events are not supported in raw mode.
-	RawMode       bool
+	RawMode bool
+	// RawModeConfig contains configuration for raw mode.
 	RawModeConfig RawModeConfig
 }
 
@@ -42,10 +55,6 @@ type RawModeConfig struct {
 	// Broker keeps reverse mapping to the original channel to broadcast to proper channels when processing
 	// messages received from Nats.
 	ChannelReplacements map[string]string
-
-	// AllowWildcards allows to enable wildcard subscriptions in raw mode. By default, wildcard subscriptions
-	// are not allowed in raw mode.
-	AllowWildcards bool
 
 	// Prefix is a string that will be added to all channels when publishing messages to Nats, subscribing
 	// to channels in Nats. It's also stripped from channel name when processing messages received from Nats.
@@ -147,16 +156,26 @@ func (b *NatsBroker) Close(_ context.Context) error {
 	return nil
 }
 
-func (b *NatsBroker) IsUnsupportedChannel(ch string) bool {
-	if b.config.RawMode && b.config.RawModeConfig.AllowWildcards {
+func (b *NatsBroker) IsSupportedSubscribeChannel(ch string) bool {
+	if b.config.AllowWildcards {
+		return true
+	}
+	if strings.Contains(ch, "*") || strings.Contains(ch, ">") {
 		return false
 	}
-	return strings.Contains(ch, "*") || strings.Contains(ch, ">")
+	return true
+}
+
+func (b *NatsBroker) IsSupportedPublishChannel(ch string) bool {
+	if strings.Contains(ch, "*") || strings.Contains(ch, ">") {
+		return false
+	}
+	return true
 }
 
 // Publish - see Broker interface description.
 func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOptions) (centrifuge.StreamPosition, bool, error) {
-	if b.IsUnsupportedChannel(ch) {
+	if !b.IsSupportedPublishChannel(ch) {
 		// Do not support wildcard subscriptions.
 		return centrifuge.StreamPosition{}, false, centrifuge.ErrorBadRequest
 	}
@@ -184,7 +203,7 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 const epochTagsKey = "__centrifugo_epoch"
 
 func (b *NatsBroker) PublishWithStreamPosition(ch string, data []byte, opts centrifuge.PublishOptions, sp centrifuge.StreamPosition) error {
-	if b.IsUnsupportedChannel(ch) {
+	if !b.IsSupportedPublishChannel(ch) {
 		// Do not support wildcard subscriptions.
 		return centrifuge.ErrorBadRequest
 	}
@@ -293,7 +312,14 @@ func (b *NatsBroker) handleClientMessage(subject string, data []byte, sub *nats.
 		b.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "can't unmarshal push from Nats", map[string]any{"error": err.Error()}))
 		return
 	}
+
 	if push.Pub != nil {
+		var subChannel = push.Channel
+		var specificChannel string
+		if b.config.AllowWildcards {
+			subChannel = strings.TrimPrefix(sub.Subject, b.clientChannelPrefix)
+			specificChannel = push.Channel
+		}
 		sp := centrifuge.StreamPosition{}
 		if push.Pub.Offset > 0 && push.Pub.Tags != nil {
 			sp.Offset = push.Pub.Offset
@@ -301,7 +327,7 @@ func (b *NatsBroker) handleClientMessage(subject string, data []byte, sub *nats.
 		}
 		delta := push.Pub.Delta
 		push.Pub.Delta = false
-		_ = b.eventHandler.HandlePublication(push.Channel, pubFromProto(push.Pub), sp, delta, nil)
+		_ = b.eventHandler.HandlePublication(subChannel, pubFromProto(push.Pub, specificChannel), sp, delta, nil)
 	} else if push.Join != nil {
 		_ = b.eventHandler.HandleJoin(push.Channel, infoFromProto(push.Join.Info))
 	} else if push.Leave != nil {
@@ -321,17 +347,17 @@ func (b *NatsBroker) handleControl(m *nats.Msg) {
 
 // Subscribe - see Broker interface description.
 func (b *NatsBroker) Subscribe(ch string) error {
-	if b.IsUnsupportedChannel(ch) {
+	if !b.IsSupportedSubscribeChannel(ch) {
 		// Do not support wildcard subscriptions.
 		return centrifuge.ErrorBadRequest
 	}
+	clientChannel := b.clientChannel(ch)
 	b.subsMu.RLock()
-	_, ok := b.subs[b.clientChannel(ch)]
+	_, ok := b.subs[clientChannel]
 	b.subsMu.RUnlock()
 	if ok {
 		return nil
 	}
-	clientChannel := b.clientChannel(ch)
 	subscription, err := b.nc.Subscribe(string(clientChannel), b.handleClient)
 	if err != nil {
 		return err
@@ -397,13 +423,14 @@ func infoToProto(v *centrifuge.ClientInfo) *protocol.ClientInfo {
 	return info
 }
 
-func pubFromProto(pub *protocol.Publication) *centrifuge.Publication {
+func pubFromProto(pub *protocol.Publication, specificChannel string) *centrifuge.Publication {
 	if pub == nil {
 		return nil
 	}
 	return &centrifuge.Publication{
-		Offset: pub.GetOffset(),
-		Data:   pub.Data,
-		Info:   infoFromProto(pub.GetInfo()),
+		Offset:  pub.GetOffset(),
+		Data:    pub.Data,
+		Info:    infoFromProto(pub.GetInfo()),
+		Channel: specificChannel,
 	}
 }

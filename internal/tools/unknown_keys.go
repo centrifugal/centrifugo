@@ -66,6 +66,7 @@ func CheckPlainConfigKeys(defaults map[string]any, allKeys []string) {
 // allow arbitrary keys for maps we have this slice of such configuration options here.
 var mapStringStringKeys = []string{
 	"proxy_static_http_headers",
+	"nats_raw_mode_channel_replacements",
 }
 
 func isMapStringStringKey(key string) bool {

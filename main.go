@@ -342,14 +342,14 @@ var defaults = map[string]any{
 	"graphite_interval": 10 * time.Second,
 	"graphite_tags":     false,
 
-	"nats_prefix":        "centrifugo",
-	"nats_url":           "nats://127.0.0.1:4222",
-	"nats_dial_timeout":  time.Second,
-	"nats_write_timeout": time.Second,
+	"nats_prefix":          "centrifugo",
+	"nats_url":             "nats://127.0.0.1:4222",
+	"nats_dial_timeout":    time.Second,
+	"nats_write_timeout":   time.Second,
+	"nats_allow_wildcards": false,
 
 	"nats_raw_mode":                      false,
 	"nats_raw_mode_channel_replacements": map[string]string{},
-	"nats_raw_mode_allow_wildcards":      false,
 	"nats_raw_mode_prefix":               "",
 
 	"websocket_disable": false,
@@ -2609,14 +2609,14 @@ func initNatsBroker(node *centrifuge.Node) (*natsbroker.NatsBroker, error) {
 		return nil, fmt.Errorf("error parsing nats_raw_mode_channel_replacements: %v", err)
 	}
 	return natsbroker.New(node, natsbroker.Config{
-		URL:          viper.GetString("nats_url"),
-		Prefix:       viper.GetString("nats_prefix"),
-		DialTimeout:  GetDuration("nats_dial_timeout"),
-		WriteTimeout: GetDuration("nats_write_timeout"),
-		RawMode:      viper.GetBool("nats_raw_mode"),
+		URL:            viper.GetString("nats_url"),
+		Prefix:         viper.GetString("nats_prefix"),
+		DialTimeout:    GetDuration("nats_dial_timeout"),
+		WriteTimeout:   GetDuration("nats_write_timeout"),
+		AllowWildcards: viper.GetBool("nats_allow_wildcards"),
+		RawMode:        viper.GetBool("nats_raw_mode"),
 		RawModeConfig: natsbroker.RawModeConfig{
 			ChannelReplacements: replacements,
-			AllowWildcards:      viper.GetBool("nats_raw_mode_allow_wildcards"),
 			Prefix:              viper.GetString("nats_raw_mode_prefix"),
 		},
 	})
