@@ -8,25 +8,20 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## What's changed
 
-Centrifugo v5.4.0 is now available, featuring several notable improvements.
+Centrifugo v5.4.1 comes with useful improvements and fixes.
 
 ### Improvements
 
-* [Delta Compression](https://centrifugal.dev/docs/server/delta_compression) in channels. Utilizing the Fossil delta algorithm, this feature reduces bandwidth costs by sending only the differences from the previous publication. The effectiveness of delta compression varies depending on the data within the channels. It requires support from the Centrifugo SDK and is only available in the Centrifugo JavaScript SDK at this point (starting from centrifuge-js v5.2.0), and only for client-side subscriptions. For more insights about delta compression, and also other compression configurations within different Centrifugo protocol formats, read our new blog post [Experimenting with Real-Time Data Compression by Simulating Football Match Events](https://centrifugal.dev/blog/2024/05/27/real-time-data-compression-experiments).
-* [Cache Recovery Mode](https://centrifugal.dev/docs/server/cache_recovery) in channels. This allows Centrifugo to function as a real-time key-value store. When a client first subscribes to a channel with recovery enabled and recover flag on, the latest publication from the history stream is immediately sent to the subscriber. On resubscription, the latest publication is also delivered (only if needed, based on the provided offset). This improvement addresses [#745](https://github.com/centrifugal/centrifugo/issues/745).
-* Add new option: [client_connect_include_server_time](https://centrifugal.dev/docs/server/configuration#client_connect_include_server_time). When enabled – Centrifugo includes server `time` in the connection reply/push [#817], resolves [#787](https://github.com/centrifugal/centrifugo/issues/787). The time is sent as a Unix timestamp in milliseconds. Currently, SDK support is not available since the use case in the issue involves unidirectional transport, we can add time to the `connected` event context in future SDK releases, let us know if you need it.
-* Add new metric: [centrifugo_client_num_server_unsubscribes](https://centrifugal.dev/docs/server/observability#centrifugo_client_num_server_unsubscribes) (counter), shows server-initiated unsubscribe pushes with the `code` label.
-* Add new metric: [centrifugo_node_pub_sub_lag_seconds](https://centrifugal.dev/docs/server/observability#centrifugo_node_pub_sub_lag_seconds) (histogram) to monitor PUB/SUB timings: from time since publication was published till time it reached broadcast (does not include broadcast itself, see another metric below).
-* Add new metric: [centrifugo_node_broadcast_duration_seconds](https://centrifugal.dev/docs/server/observability#centrifugo_node_broadcast_duration_seconds) (histogram) to monitor how much time publication broadcast takes.
-* Performance optimizations for WebSocket Upgrade. The number of allocations per Upgrade operation has been reduced, making connection establishment stage slightly more efficient.
-* Many improvements in documentation - more clear description of features, new diagrams, several typos fixed. Also, one Easter Egg (tip: set `lights` to `up` in localStorage, use dark theme).
+* Improving [delta compression](https://centrifugal.dev/docs/server/delta_compression) - if the size of delta patch is greater than full publication payload – skip sending delta, just use the full payload.
+* Kafka Consumer: add partition buffer to optimize processing, [#829](https://github.com/centrifugal/centrifugo/pull/829).
+* Support release for Debian 12 Bookworm [#827](https://github.com/centrifugal/centrifugo/pull/827)
 
 ### Fixes
 
-* Kafka Consumer: Proper parallelism for partition processing [#814](https://github.com/centrifugal/centrifugo/pull/814) – ensures that the processing of all partitions is not blocked when a single partition is blocked for some reason.
-* More careful positioning: avoid subscriber insufficient state due to PUB/SUB lag. Centrifugo now skips publications coming from PUB/SUB layer to positioned connection with the correct epoch but with offset smaller than position offset. This should prevent occasional insufficient states upon subscribing.
+* Fix panic on already subscribed error - `panic: close of closed channel` could happen in case due to the race upon already subscribed error. See [centrifugal/centrifuge#390](https://github.com/centrifugal/centrifuge/pull/390).
+* [Async consumers](https://centrifugal.dev/docs/server/consumers): fix disabling consumer by using proper mapstructure and JSON tags, [#828](https://github.com/centrifugal/centrifugo/pull/828).
 
 ### Miscellaneous
 
-* Release is built with Go 1.22.3
+* Release is built with Go 1.22.4
 * All dependencies were updated to latest versions
