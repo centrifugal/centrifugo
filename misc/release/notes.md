@@ -12,13 +12,13 @@ Centrifugo v5.4.1 comes with useful improvements and fixes.
 
 ### Improvements
 
-* Improving [delta compression](https://centrifugal.dev/docs/server/delta_compression) - if the size of delta patch is greater than full publication payload – skip sending delta, just use the full payload.
-* Kafka Consumer: add partition buffer to optimize processing, [#829](https://github.com/centrifugal/centrifugo/pull/829).
+* Improving [delta compression](https://centrifugal.dev/docs/server/delta_compression) – if the delta patch size exceeds the full publication payload size, the full payload will be sent instead of the delta patch.
+* Kafka Consumer: a partition buffer has been added to enhance processing efficiency, [#829](https://github.com/centrifugal/centrifugo/pull/829).
 * Support release for Debian 12 Bookworm [#827](https://github.com/centrifugal/centrifugo/pull/827)
 
 ### Fixes
 
-* Fix panic on already subscribed error - `panic: close of closed channel` could happen in case due to the race upon already subscribed error. See [centrifugal/centrifuge#390](https://github.com/centrifugal/centrifuge/pull/390).
+* Resolved a panic issue (`panic: close of closed channel`) caused by a race condition during an already subscribed error. See [centrifugal/centrifuge#390](https://github.com/centrifugal/centrifuge/pull/390).
 * [Async consumers](https://centrifugal.dev/docs/server/consumers): fix disabling consumer by using proper mapstructure and JSON tags, [#828](https://github.com/centrifugal/centrifugo/pull/828).
 
 ### Miscellaneous
