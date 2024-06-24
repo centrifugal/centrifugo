@@ -1450,7 +1450,7 @@ func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecut
 	httpInternalPort := viper.GetString("internal_port")
 
 	if httpInternalAddress == "" && httpAddress != "" {
-		// If custom internal address not explicitly set we try to reuse main
+		// If custom internal address not explicitly set we reuse main
 		// address for internal endpoints too.
 		httpInternalAddress = httpAddress
 	}
@@ -1468,6 +1468,10 @@ func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecut
 	var portFlags HandlerFlag
 
 	externalAddr := net.JoinHostPort(httpAddress, httpPort)
+	if strings.HasPrefix(httpAddress, "unix:") {
+		externalAddr = httpAddress
+	}
+
 	portFlags = addrToHandlerFlags[externalAddr]
 	if !viper.GetBool("websocket_disable") {
 		portFlags |= HandlerWebsocket
@@ -1508,6 +1512,10 @@ func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecut
 	addrToHandlerFlags[externalAddr] = portFlags
 
 	internalAddr := net.JoinHostPort(httpInternalAddress, httpInternalPort)
+	if strings.HasPrefix(httpInternalAddress, "unix:") {
+		internalAddr = httpInternalAddress
+	}
+
 	portFlags = addrToHandlerFlags[internalAddr]
 	if !apiDisabled && !apiExternal {
 		portFlags |= HandlerAPI
@@ -1642,16 +1650,33 @@ func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecut
 					log.Fatal().Msgf("ListenAndServe HTTP/3: %v", err)
 				}
 			} else {
+				var listener net.Listener
+				if strings.HasPrefix(server.Addr, "unix:") {
+					unixPath := strings.TrimPrefix(server.Addr, "unix:")
+					if err := os.RemoveAll(unixPath); err != nil {
+						log.Fatal().Msgf("error removing unix socket: %v", err)
+					}
+					listener, err = net.Listen("unix", unixPath)
+					if err != nil {
+						log.Fatal().Msgf("Listen unix: %v", err)
+					}
+				} else {
+					var err error
+					listener, err = net.Listen("tcp", server.Addr)
+					if err != nil {
+						log.Fatal().Msgf("Listen tcp: %v", err)
+					}
+				}
 				if addrTLSConfig != nil {
-					if err := server.ListenAndServeTLS("", ""); err != nil {
+					if err := server.ServeTLS(listener, "", ""); err != nil {
 						if !errors.Is(err, http.ErrServerClosed) {
-							log.Fatal().Msgf("ListenAndServe: %v", err)
+							log.Fatal().Msgf("ServeTLS: %v", err)
 						}
 					}
 				} else {
-					if err := server.ListenAndServe(); err != nil {
+					if err := server.Serve(listener); err != nil {
 						if !errors.Is(err, http.ErrServerClosed) {
-							log.Fatal().Msgf("ListenAndServe: %v", err)
+							log.Fatal().Msgf("Serve: %v", err)
 						}
 					}
 				}
