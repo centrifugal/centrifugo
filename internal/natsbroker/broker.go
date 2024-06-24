@@ -33,8 +33,8 @@ type Config struct {
 	// AllowWildcards allows to enable wildcard subscriptions. By default, wildcard subscriptions
 	// are not allowed. Using wildcard subscriptions can't be combined with join/leave events and
 	// presence. It's required to use channels without wildcards to for mentioned features to work
-	// properly. Using wildcard subscriptions can be dangerous in terms of security - be sure that
-	// you understand what you are doing and proper permission management is used.
+	// properly. When using wildcard subscriptions a special care is needed regarding security - pay
+	// additional attention to a proper permission management.
 	AllowWildcards bool
 
 	// RawMode enables raw communication with Nats. When on, Centrifugo subscribes to channels without

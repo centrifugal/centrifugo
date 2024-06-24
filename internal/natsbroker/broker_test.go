@@ -97,7 +97,7 @@ type natsTest struct {
 var natsTests = []natsTest{
 	{"default_mode", Config{}, true, false},
 	{"raw_mode", Config{RawMode: true, RawModeConfig: RawModeConfig{}}, false, false},
-	{"raw_mode_wildcards", Config{RawMode: true, RawModeConfig: RawModeConfig{AllowWildcards: true}}, false, true},
+	{"raw_mode_wildcards", Config{AllowWildcards: true, RawMode: true, RawModeConfig: RawModeConfig{}}, false, true},
 }
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
