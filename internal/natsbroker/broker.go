@@ -3,6 +3,7 @@ package natsbroker
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"strings"
 	"sync"
@@ -29,25 +30,31 @@ type Config struct {
 	DialTimeout time.Duration
 	// WriteTimeout is a timeout for write operation to Nats.
 	WriteTimeout time.Duration
+	// TLS for the Nats connection. TLS is not used if nil.
+	TLS *tls.Config
 
 	// AllowWildcards allows to enable wildcard subscriptions. By default, wildcard subscriptions
-	// are not allowed. Using wildcard subscriptions can't be combined with join/leave events and
-	// presence. It's required to use channels without wildcards to for mentioned features to work
-	// properly. When using wildcard subscriptions a special care is needed regarding security - pay
-	// additional attention to a proper permission management.
+	// are not allowed. Using wildcard subscriptions can't be combined with join/leave events and presence
+	// because subscriptions do not belong to a concrete channel after with wildcards, while join/leave events
+	// require concrete channel to be published. And presence does not make a lot of sense for wildcard
+	// subscriptions - there could be subscribers which use different mask, but still receive subset of updates.
+	// It's required to use channels without wildcards to for mentioned features to work properly. When
+	// using wildcard subscriptions a special care is needed regarding security - pay additional
+	// attention to a proper permission management.
 	AllowWildcards bool
 
-	// RawMode enables raw communication with Nats. When on, Centrifugo subscribes to channels without
-	// adding any prefixes to channel name. Proper prefixes must be managed by the application in this case.
-	// Data consumed from Nats is sent directly to subscribers without any processing. When publishing
-	// to Nats Centrifugo does not add any prefixes to channel names also. Centrifugo features like
-	// Publication tags, Publication ClientInfo, join/leave events are not supported in raw mode.
-	RawMode bool
-	// RawModeConfig contains configuration for raw mode.
-	RawModeConfig RawModeConfig
+	// RawMode allows enabling raw communication with Nats. When on, Centrifugo subscribes to channels
+	// without adding any prefixes to channel name. Proper prefixes must be managed by the application in this
+	// case. Data consumed from Nats is sent directly to subscribers without any processing. When publishing
+	// to Nats Centrifugo does not add any prefixes to channel names also. Centrifugo features like Publication
+	// tags, Publication ClientInfo, join/leave events are not supported in raw mode.
+	RawMode RawModeConfig
 }
 
 type RawModeConfig struct {
+	// Enabled enables raw mode when true.
+	Enabled bool
+
 	// ChannelReplacements is a map where keys are strings to replace and values are replacements.
 	// For example, you have Centrifugo namespace "chat" and using channel "chat:index", but you want to
 	// use channel "chat.index" in Nats. Then you can define SymbolReplacements map like this: {":": "."}.
@@ -90,10 +97,10 @@ func New(n *centrifuge.Node, conf Config) (*NatsBroker, error) {
 		subs:                make(map[channelID]subWrapper),
 		clientChannelPrefix: conf.Prefix + ".client.",
 	}
-	if conf.RawMode {
-		if len(conf.RawModeConfig.ChannelReplacements) > 0 {
+	if conf.RawMode.Enabled {
+		if len(conf.RawMode.ChannelReplacements) > 0 {
 			var replacerArgs []string
-			for k, v := range conf.RawModeConfig.ChannelReplacements {
+			for k, v := range conf.RawMode.ChannelReplacements {
 				replacerArgs = append(replacerArgs, k, v)
 			}
 			b.rawModeReplacer = strings.NewReplacer(replacerArgs...)
@@ -111,11 +118,11 @@ func (b *NatsBroker) nodeChannel(nodeID string) channelID {
 }
 
 func (b *NatsBroker) clientChannel(ch string) channelID {
-	if b.config.RawMode {
+	if b.config.RawMode.Enabled {
 		if b.rawModeReplacer != nil {
 			ch = b.rawModeReplacer.Replace(ch)
 		}
-		return channelID(b.config.RawModeConfig.Prefix + ch)
+		return channelID(b.config.RawMode.Prefix + ch)
 	}
 	return channelID(b.clientChannelPrefix + ch)
 }
@@ -127,13 +134,16 @@ func (b *NatsBroker) Run(h centrifuge.BrokerEventHandler) error {
 	if url == "" {
 		url = nats.DefaultURL
 	}
-	nc, err := nats.Connect(
-		url,
+	options := []nats.Option{
 		nats.ReconnectBufSize(-1),
 		nats.MaxReconnects(-1),
 		nats.Timeout(b.config.DialTimeout),
 		nats.FlusherTimeout(b.config.WriteTimeout),
-	)
+	}
+	if b.config.TLS != nil {
+		options = append(options, nats.Secure(b.config.TLS))
+	}
+	nc, err := nats.Connect(url, options...)
 	if err != nil {
 		return fmt.Errorf("error connecting to %s: %w", url, err)
 	}
@@ -179,8 +189,8 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 		// Do not support wildcard subscriptions.
 		return centrifuge.StreamPosition{}, false, centrifuge.ErrorBadRequest
 	}
-	if b.config.RawMode {
-		return centrifuge.StreamPosition{}, false, b.nc.Publish(b.config.RawModeConfig.Prefix+ch, data)
+	if b.config.RawMode.Enabled {
+		return centrifuge.StreamPosition{}, false, b.nc.Publish(b.config.RawMode.Prefix+ch, data)
 	}
 	push := &protocol.Push{
 		Channel: ch,
@@ -207,7 +217,7 @@ func (b *NatsBroker) PublishWithStreamPosition(ch string, data []byte, opts cent
 		// Do not support wildcard subscriptions.
 		return centrifuge.ErrorBadRequest
 	}
-	if b.config.RawMode {
+	if b.config.RawMode.Enabled {
 		// Do not support stream positions in raw mode.
 		return centrifuge.ErrorBadRequest
 	}
@@ -235,7 +245,7 @@ func (b *NatsBroker) PublishWithStreamPosition(ch string, data []byte, opts cent
 
 // PublishJoin - see Broker interface description.
 func (b *NatsBroker) PublishJoin(ch string, info *centrifuge.ClientInfo) error {
-	if b.config.RawMode {
+	if b.config.RawMode.Enabled {
 		return nil
 	}
 	push := &protocol.Push{
@@ -253,7 +263,7 @@ func (b *NatsBroker) PublishJoin(ch string, info *centrifuge.ClientInfo) error {
 
 // PublishLeave - see Broker interface description.
 func (b *NatsBroker) PublishLeave(ch string, info *centrifuge.ClientInfo) error {
-	if b.config.RawMode {
+	if b.config.RawMode.Enabled {
 		return nil
 	}
 	push := &protocol.Push{
@@ -291,7 +301,7 @@ func (b *NatsBroker) RemoveHistory(_ string) error {
 }
 
 func (b *NatsBroker) handleClientMessage(subject string, data []byte, sub *nats.Subscription) {
-	if b.config.RawMode {
+	if b.config.RawMode.Enabled {
 		b.subsMu.RLock()
 		subWrap, ok := b.subs[channelID(sub.Subject)]
 		b.subsMu.RUnlock()
@@ -301,7 +311,7 @@ func (b *NatsBroker) handleClientMessage(subject string, data []byte, sub *nats.
 		channel := subWrap.origChannel
 		_ = b.eventHandler.HandlePublication(
 			channel,
-			&centrifuge.Publication{Data: data, Channel: strings.TrimPrefix(subject, b.config.RawModeConfig.Prefix)},
+			&centrifuge.Publication{Data: data, Channel: strings.TrimPrefix(subject, b.config.RawMode.Prefix)},
 			centrifuge.StreamPosition{}, false, nil)
 		return
 	}

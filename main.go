@@ -2615,7 +2615,7 @@ func initNatsBroker(node *centrifuge.Node) (*natsbroker.NatsBroker, error) {
 		WriteTimeout:   GetDuration("nats_write_timeout"),
 		AllowWildcards: viper.GetBool("nats_allow_wildcards"),
 		RawMode:        viper.GetBool("nats_raw_mode"),
-		RawModeConfig: natsbroker.RawModeConfig{
+		RawMode: natsbroker.RawModeConfig{
 			ChannelReplacements: replacements,
 			Prefix:              viper.GetString("nats_raw_mode_prefix"),
 		},

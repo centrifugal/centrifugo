@@ -96,8 +96,8 @@ type natsTest struct {
 
 var natsTests = []natsTest{
 	{"default_mode", Config{}, true, false},
-	{"raw_mode", Config{RawMode: true, RawModeConfig: RawModeConfig{}}, false, false},
-	{"raw_mode_wildcards", Config{AllowWildcards: true, RawMode: true, RawModeConfig: RawModeConfig{}}, false, true},
+	{"raw_mode", Config{RawMode: RawModeConfig{Enabled: true}}, false, false},
+	{"raw_mode_wildcards", Config{AllowWildcards: true, RawMode: RawModeConfig{Enabled: true}}, false, true},
 }
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -124,7 +124,7 @@ func TestNatsPubSubTwoNodes(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			prefix := getUniquePrefix()
 			tt.BrokerConfig.Prefix = prefix
-			tt.BrokerConfig.RawModeConfig.Prefix = prefix
+			tt.BrokerConfig.RawMode.Prefix = prefix
 
 			node1, err := centrifuge.New(centrifuge.Config{})
 			require.NoError(t, err)
