@@ -410,11 +410,11 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 	}
 
 	if verifier.audience != "" && !claims.IsForAudience(verifier.audience) {
-		return ConnectToken{}, ErrInvalidToken
+		return ConnectToken{}, fmt.Errorf("%w: invalid audience", ErrInvalidToken)
 	}
 
 	if verifier.issuer != "" && !claims.IsIssuer(verifier.issuer) {
-		return ConnectToken{}, ErrInvalidToken
+		return ConnectToken{}, fmt.Errorf("%w: invalid issuer", ErrInvalidToken)
 	}
 
 	tokenVars := map[string]any{}
@@ -422,7 +422,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 	if verifier.issuerRe != nil {
 		match := verifier.issuerRe.FindStringSubmatch(claims.Issuer)
 		if len(match) == 0 {
-			return ConnectToken{}, ErrInvalidToken
+			return ConnectToken{}, fmt.Errorf("%w: issuer not matched", ErrInvalidToken)
 		}
 		for i, name := range verifier.issuerRe.SubexpNames() {
 			if i != 0 && name != "" {
@@ -447,7 +447,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 			break
 		}
 		if !matched {
-			return ConnectToken{}, ErrInvalidToken
+			return ConnectToken{}, fmt.Errorf("%w: audience not matched", ErrInvalidToken)
 		}
 	}
 
@@ -604,11 +604,11 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 	}
 
 	if verifier.audience != "" && !claims.IsForAudience(verifier.audience) {
-		return SubscribeToken{}, ErrInvalidToken
+		return SubscribeToken{}, fmt.Errorf("%w: invalid audience", ErrInvalidToken)
 	}
 
 	if verifier.issuer != "" && !claims.IsIssuer(verifier.issuer) {
-		return SubscribeToken{}, ErrInvalidToken
+		return SubscribeToken{}, fmt.Errorf("%w: invalid issuer", ErrInvalidToken)
 	}
 
 	tokenVars := map[string]any{}
@@ -616,7 +616,7 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 	if verifier.issuerRe != nil {
 		match := verifier.issuerRe.FindStringSubmatch(claims.Issuer)
 		if len(match) == 0 {
-			return SubscribeToken{}, ErrInvalidToken
+			return SubscribeToken{}, fmt.Errorf("%w: issuer not matched", ErrInvalidToken)
 		}
 		for i, name := range verifier.issuerRe.SubexpNames() {
 			if i != 0 && name != "" {
@@ -641,7 +641,7 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 			break
 		}
 		if !matched {
-			return SubscribeToken{}, ErrInvalidToken
+			return SubscribeToken{}, fmt.Errorf("%w: audience not matched", ErrInvalidToken)
 		}
 	}
 
@@ -662,7 +662,7 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 	}
 
 	if claims.Channel == "" {
-		return SubscribeToken{}, ErrInvalidToken
+		return SubscribeToken{}, fmt.Errorf("%w: channel claim is required for subscription JWT", ErrInvalidToken)
 	}
 
 	_, _, chOpts, found, err := verifier.ruleContainer.ChannelOptions(claims.Channel)
