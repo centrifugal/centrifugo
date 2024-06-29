@@ -1954,8 +1954,6 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 		log.Fatal().Msgf("error extracting TLS config for proxy GRPC: %v", err)
 	}
 
-	fmt.Println(tlsConfig.KeyPem)
-
 	proxyConfig := proxy.Config{
 		BinaryEncoding:        v.GetBool("proxy_binary_encoding"),
 		IncludeConnectionMeta: v.GetBool("proxy_include_connection_meta"),
