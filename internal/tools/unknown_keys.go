@@ -66,7 +66,7 @@ func CheckPlainConfigKeys(defaults map[string]any, allKeys []string) {
 // allow arbitrary keys for maps we have this slice of such configuration options here.
 var mapStringStringKeys = []string{
 	"proxy_static_http_headers",
-	"nats_raw_mode_channel_replacements",
+	"nats_raw_mode.channel_replacements",
 }
 
 func isMapStringStringKey(key string) bool {
@@ -121,6 +121,7 @@ func checkEnvironmentConfigKeys(defaults map[string]any) {
 
 var knownPrefixes = []string{
 	"CENTRIFUGO_CONSUMERS_",
+	"CENTRIFUGO_NATS_TLS_",
 }
 
 func isKnownEnvVarPrefix(envKey string) bool {

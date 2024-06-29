@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
 	"github.com/nats-io/nats.go"
@@ -98,6 +100,7 @@ func New(n *centrifuge.Node, conf Config) (*NatsBroker, error) {
 		clientChannelPrefix: conf.Prefix + ".client.",
 	}
 	if conf.RawMode.Enabled {
+		log.Info().Str("rawModePrefix", conf.RawMode.Prefix).Msg("Nats raw mode enabled")
 		if len(conf.RawMode.ChannelReplacements) > 0 {
 			var replacerArgs []string
 			for k, v := range conf.RawMode.ChannelReplacements {

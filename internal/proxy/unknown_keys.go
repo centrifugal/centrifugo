@@ -25,5 +25,13 @@ func WarnUnknownProxyKeys(jsonProxies []byte) {
 			}
 			log.Warn().Str("key", key).Any("proxy_name", jsonMap["name"]).Msg("unknown key found in the proxy object")
 		}
+		tls, ok := jsonMap["grpc_tls"].(map[string]any)
+		if ok {
+			var TLSConfig tools.TLSConfig
+			unknownKeys := tools.FindUnknownKeys(tls, TLSConfig)
+			for _, key := range unknownKeys {
+				log.Warn().Str("key", key).Any("proxy_name", jsonMap["name"]).Msg("unknown key found in the proxy tls config object")
+			}
+		}
 	}
 }
