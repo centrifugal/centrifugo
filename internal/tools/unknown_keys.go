@@ -121,7 +121,6 @@ func checkEnvironmentConfigKeys(defaults map[string]any) {
 
 var knownPrefixes = []string{
 	"CENTRIFUGO_CONSUMERS_",
-	"CENTRIFUGO_NATS_TLS_",
 }
 
 func isKnownEnvVarPrefix(envKey string) bool {
