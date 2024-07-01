@@ -21,7 +21,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nats-io/nats.go v1.36.0
 	github.com/prometheus/client_golang v1.19.1
-	github.com/quic-go/quic-go v0.45.0
+	github.com/quic-go/quic-go v0.45.1
 	github.com/quic-go/webtransport-go v0.8.0
 	github.com/rakutentech/jwk-go v1.1.3
 	github.com/rs/zerolog v1.33.0
@@ -43,7 +43,7 @@ require (
 	golang.org/x/sync v0.7.0
 	golang.org/x/time v0.5.0
 	google.golang.org/grpc v1.64.0
-	google.golang.org/protobuf v1.34.1
+	google.golang.org/protobuf v1.34.2
 )
 
 require (
