@@ -41,7 +41,7 @@ jobs:
           STATS_TOKEN: ${{ secrets.STATS_TOKEN }}
 
       - name: Release on Github
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
           args: release --rm-dist --release-notes=misc/release/notes.md
