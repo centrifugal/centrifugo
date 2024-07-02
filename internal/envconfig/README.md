@@ -1,10 +1,10 @@
 # envconfig
 
-This is a copy of https://github.com/kelseyhightower/envconfig due to this issue: https://github.com/kelseyhightower/envconfig/issues/148.
+This is a fork of https://github.com/kelseyhightower/envconfig, original license left unchanged.
 
-Once there is a native way to disable Alt env vars we can switch back to the original package.
+First reason is this issue: https://github.com/kelseyhightower/envconfig/issues/148.
 
-So the main change is:
+Basically, we are not using ALT names here, so the main change is:
 
 ```
 name := strings.ToUpper(ftype.Tag.Get("envconfig"))
@@ -21,4 +21,4 @@ info := varInfo{
 }
 ```
 
-In the code here.
+The second reason of fork is that we use exported `VarInfo` here instead of `varInfo`. This helps Centrifugo to find unknown configuration options.
