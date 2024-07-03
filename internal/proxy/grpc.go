@@ -56,7 +56,13 @@ func getDialOpts(p Config) ([]grpc.DialOption, error) {
 			value: p.GrpcCredentialsValue,
 		}))
 	}
-	if p.GrpcCertFile != "" {
+	if p.GrpcTLS.Enabled {
+		tlsConfig, err := p.GrpcTLS.ToGoTLSConfig()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create TLS config %v", err)
+		}
+		dialOpts = append(dialOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+	} else if p.GrpcCertFile != "" {
 		cred, err := credentials.NewClientTLSFromFile(p.GrpcCertFile, "")
 		if err != nil {
 			return nil, fmt.Errorf("failed to create TLS credentials %v", err)

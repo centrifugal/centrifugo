@@ -226,7 +226,7 @@ type TLSOptions struct {
 	ClientCAPem string `mapstructure:"tls_client_ca_pem" json:"tls_client_ca_pem"`
 
 	InsecureSkipVerify bool   `mapstructure:"tls_insecure_skip_verify" json:"tls_insecure_skip_verify"`
-	ServerName         string `mapstructure:"server_name" json:"server_name"`
+	ServerName         string `mapstructure:"tls_server_name" json:"tls_server_name"`
 }
 
 func (t TLSOptions) ToMap() (TLSOptionsMap, error) {

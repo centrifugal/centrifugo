@@ -1,6 +1,13 @@
 version: "3.8"
 
 services:
+  nats:
+    image: nats:2.9-alpine
+    container_name: nats_server
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+
   postgres:
     image: postgres:15
     ports:

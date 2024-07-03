@@ -291,6 +291,7 @@ var defaults = map[string]any{
 	"proxy_include_connection_meta": false,
 	"proxy_grpc_cert_file":          "",
 	"proxy_grpc_compression":        false,
+	"proxy_grpc_tls":                tools.TLSConfig{},
 
 	"tarantool_mode":     "standalone",
 	"tarantool_address":  "tcp://127.0.0.1:3301",
@@ -342,10 +343,15 @@ var defaults = map[string]any{
 	"graphite_interval": 10 * time.Second,
 	"graphite_tags":     false,
 
-	"nats_prefix":        "centrifugo",
-	"nats_url":           "nats://127.0.0.1:4222",
-	"nats_dial_timeout":  time.Second,
-	"nats_write_timeout": time.Second,
+	"nats_prefix":          "centrifugo",
+	"nats_url":             "nats://127.0.0.1:4222",
+	"nats_dial_timeout":    time.Second,
+	"nats_write_timeout":   time.Second,
+	"nats_allow_wildcards": false,
+
+	"nats_raw_mode.enabled":              false,
+	"nats_raw_mode.channel_replacements": map[string]string{},
+	"nats_raw_mode.prefix":               "",
 
 	"websocket_disable": false,
 	"api_disable":       false,
@@ -453,6 +459,32 @@ func init() {
 			prefix + "redis_sentinel_tls_client_ca_pem":        "",
 			prefix + "redis_sentinel_tls_server_name":          "",
 			prefix + "redis_sentinel_tls_insecure_skip_verify": false,
+		}
+		for k, v := range keyMap {
+			defaults[k] = v
+		}
+	}
+	tlsConfigPrefixes := []string{
+		"nats_tls.",
+		"proxy_grpc_tls.",
+	}
+	for _, prefix := range tlsConfigPrefixes {
+		keyMap := map[string]any{
+			prefix + "enabled":              false,
+			prefix + "cert_pem":             "",
+			prefix + "cert_pem_file":        "",
+			prefix + "cert_pem_b64":         "",
+			prefix + "key_pem":              "",
+			prefix + "key_pem_file":         "",
+			prefix + "key_pem_b64":          "",
+			prefix + "server_ca_pem":        "",
+			prefix + "server_ca_pem_file":   "",
+			prefix + "server_ca_pem_b64":    "",
+			prefix + "client_ca_pem":        "",
+			prefix + "client_ca_pem_file":   "",
+			prefix + "client_ca_pem_b64":    "",
+			prefix + "server_name":          "",
+			prefix + "insecure_skip_verify": false,
 		}
 		for k, v := range keyMap {
 			defaults[k] = v
@@ -1917,10 +1949,16 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 		SubscribeStreamProxies: map[string]*proxy.SubscribeStreamProxy{},
 	}
 
+	tlsConfig, err := tools.ExtractTLSConfig(viper.GetViper(), "proxy_grpc_tls")
+	if err != nil {
+		log.Fatal().Msgf("error extracting TLS config for proxy GRPC: %v", err)
+	}
+
 	proxyConfig := proxy.Config{
 		BinaryEncoding:        v.GetBool("proxy_binary_encoding"),
 		IncludeConnectionMeta: v.GetBool("proxy_include_connection_meta"),
 		GrpcCertFile:          v.GetString("proxy_grpc_cert_file"),
+		GrpcTLS:               tlsConfig,
 		GrpcCredentialsKey:    v.GetString("proxy_grpc_credentials_key"),
 		GrpcCredentialsValue:  v.GetString("proxy_grpc_credentials_value"),
 		GrpcMetadata:          v.GetStringSlice("proxy_grpc_metadata"),
@@ -2599,11 +2637,26 @@ func getRedisShards(n *centrifuge.Node) ([]*centrifuge.RedisShard, string, error
 }
 
 func initNatsBroker(node *centrifuge.Node) (*natsbroker.NatsBroker, error) {
+	replacements, err := tools.MapStringString(viper.GetViper(), "nats_raw_mode.channel_replacements")
+	if err != nil {
+		return nil, fmt.Errorf("error parsing nats_raw_mode_channel_replacements: %v", err)
+	}
+	tlsConfig, err := tools.ExtractGoTLSConfig(viper.GetViper(), "nats_tls")
+	if err != nil {
+		return nil, fmt.Errorf("error configuring nats tls: %v", err)
+	}
 	return natsbroker.New(node, natsbroker.Config{
-		URL:          viper.GetString("nats_url"),
-		Prefix:       viper.GetString("nats_prefix"),
-		DialTimeout:  GetDuration("nats_dial_timeout"),
-		WriteTimeout: GetDuration("nats_write_timeout"),
+		URL:            viper.GetString("nats_url"),
+		Prefix:         viper.GetString("nats_prefix"),
+		DialTimeout:    GetDuration("nats_dial_timeout"),
+		WriteTimeout:   GetDuration("nats_write_timeout"),
+		AllowWildcards: viper.GetBool("nats_allow_wildcards"),
+		TLS:            tlsConfig,
+		RawMode: natsbroker.RawModeConfig{
+			Enabled:             viper.GetBool("nats_raw_mode.enabled"),
+			Prefix:              viper.GetString("nats_raw_mode.prefix"),
+			ChannelReplacements: replacements,
+		},
 	})
 }
 
