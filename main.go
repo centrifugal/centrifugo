@@ -196,6 +196,9 @@ var defaults = map[string]any{
 
 	"rpc_namespace_boundary": ":",
 
+	"rpc_ping":        false,
+	"rpc_ping_method": "ping",
+
 	"user_subscribe_to_personal":      false,
 	"user_personal_channel_namespace": "",
 	"user_personal_single_connection": false,
@@ -697,6 +700,13 @@ func main() {
 			err = clientHandler.Setup()
 			if err != nil {
 				log.Fatal().Msgf("error setting up client handler: %v", err)
+			}
+			if viper.GetBool("rpc_ping") {
+				pingMethod := viper.GetString("rpc_ping_method")
+				log.Info().Str("method", pingMethod).Msg("RPC ping extension enabled")
+				clientHandler.SetRPCExtension(pingMethod, func(c client.Client, e centrifuge.RPCEvent) (centrifuge.RPCReply, error) {
+					return centrifuge.RPCReply{}, nil
+				})
 			}
 
 			surveyCaller := survey.NewCaller(node)
