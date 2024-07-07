@@ -785,13 +785,15 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorPermissionDenied
 	}
 
-	if e.Positioned && (chOpts.AllowPositioning || h.hasAccessToHistory(c, e.Channel, chOpts)) {
+	// Note, using forceSubscribed here because all checks are passed but connection is not yet
+	// subscribed in Centrifuge registry.
+	if e.Positioned && (chOpts.AllowPositioning || h.hasAccessToHistory(c, e.Channel, chOpts, true)) {
 		options.EnablePositioning = true
 	}
-	if e.Recoverable && (chOpts.AllowRecovery || h.hasAccessToHistory(c, e.Channel, chOpts)) {
+	if e.Recoverable && (chOpts.AllowRecovery || h.hasAccessToHistory(c, e.Channel, chOpts, true)) {
 		options.EnableRecovery = true
 	}
-	if e.JoinLeave && chOpts.JoinLeave && h.hasAccessToPresence(c, e.Channel, chOpts) {
+	if e.JoinLeave && chOpts.JoinLeave && h.hasAccessToPresence(c, e.Channel, chOpts, true) {
 		options.PushJoinLeave = true
 	}
 
@@ -868,10 +870,10 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 	return centrifuge.PublishReply{Result: &result}, err
 }
 
-func (h *Handler) hasAccessToPresence(c Client, channel string, chOpts rule.ChannelOptions) bool {
+func (h *Handler) hasAccessToPresence(c Client, channel string, chOpts rule.ChannelOptions, forceSubscribed bool) bool {
 	if chOpts.PresenceForClient && (c.UserID() != "" || chOpts.PresenceForAnonymous) {
 		return true
-	} else if chOpts.PresenceForSubscriber && c.IsSubscribed(channel) && (c.UserID() != "" || chOpts.PresenceForAnonymous) {
+	} else if chOpts.PresenceForSubscriber && (forceSubscribed || c.IsSubscribed(channel)) && (c.UserID() != "" || chOpts.PresenceForAnonymous) {
 		return true
 	} else if h.ruleContainer.Config().ClientInsecure {
 		return true
@@ -897,7 +899,7 @@ func (h *Handler) OnPresence(c Client, e centrifuge.PresenceEvent) (centrifuge.P
 		return centrifuge.PresenceReply{}, centrifuge.ErrorNotAvailable
 	}
 
-	allowed := h.hasAccessToPresence(c, e.Channel, chOpts)
+	allowed := h.hasAccessToPresence(c, e.Channel, chOpts, false)
 
 	if !allowed {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "attempt to call presence without sufficient permission", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
@@ -925,7 +927,7 @@ func (h *Handler) OnPresenceStats(c Client, e centrifuge.PresenceStatsEvent) (ce
 		return centrifuge.PresenceStatsReply{}, centrifuge.ErrorNotAvailable
 	}
 
-	allowed := h.hasAccessToPresence(c, e.Channel, chOpts)
+	allowed := h.hasAccessToPresence(c, e.Channel, chOpts, false)
 
 	if !allowed {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "attempt to call presence stats without sufficient permission", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
@@ -935,10 +937,10 @@ func (h *Handler) OnPresenceStats(c Client, e centrifuge.PresenceStatsEvent) (ce
 	return centrifuge.PresenceStatsReply{}, nil
 }
 
-func (h *Handler) hasAccessToHistory(c Client, channel string, chOpts rule.ChannelOptions) bool {
+func (h *Handler) hasAccessToHistory(c Client, channel string, chOpts rule.ChannelOptions, forceSubscribed bool) bool {
 	if chOpts.HistoryForClient && (c.UserID() != "" || chOpts.HistoryForAnonymous) {
 		return true
-	} else if chOpts.HistoryForSubscriber && c.IsSubscribed(channel) && (c.UserID() != "" || chOpts.HistoryForAnonymous) {
+	} else if chOpts.HistoryForSubscriber && (forceSubscribed || c.IsSubscribed(channel)) && (c.UserID() != "" || chOpts.HistoryForAnonymous) {
 		return true
 	} else if h.ruleContainer.Config().ClientInsecure {
 		return true
@@ -964,7 +966,7 @@ func (h *Handler) OnHistory(c Client, e centrifuge.HistoryEvent) (centrifuge.His
 		return centrifuge.HistoryReply{}, centrifuge.ErrorNotAvailable
 	}
 
-	allowed := h.hasAccessToHistory(c, e.Channel, chOpts)
+	allowed := h.hasAccessToHistory(c, e.Channel, chOpts, false)
 
 	if !allowed {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "attempt to call history without sufficient permission", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
