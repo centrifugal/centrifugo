@@ -22,7 +22,7 @@ Centrifugo v5.4.2 comes with useful improvements and fixes.
 
 ### Fixes
 
-* Fix occasional deadlock leading to memory leak, the deadlock was introduced in Centrifugo v5.3.2, see [#856](https://github.com/centrifugal/centrifugo/issues/856)
+* Fix occasional deadlock leading to memory leak, the deadlock was introduced in Centrifugo v5.3.2, see [#856](https://github.com/centrifugal/centrifugo/issues/856). While fixing an issue we've also found a scenario in which the number of clients and subscribers could be incorrect – subscribers could go away, but the subscriber counter is not decremented. Fixed this alongside the deadlock, both issues do not reproduce with our test load anymore.
 * Fix non-working `allow_presence_for_subscriber` option to enable join/leave events when requested by client, see [#849](https://github.com/centrifugal/centrifugo/issues/849)
 
 ### Miscellaneous
