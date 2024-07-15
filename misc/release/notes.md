@@ -8,20 +8,24 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## What's changed
 
-Centrifugo v5.4.1 comes with useful improvements and fixes.
+Centrifugo v5.4.2 comes with useful improvements and important fix.
 
 ### Improvements
 
-* Improving [delta compression](https://centrifugal.dev/docs/server/delta_compression) – if the delta patch size exceeds the full publication payload size, the full payload will be sent instead of the delta patch.
-* Kafka Consumer: a partition buffer has been added to enhance processing efficiency, [#829](https://github.com/centrifugal/centrifugo/pull/829).
-* Support release for Debian 12 Bookworm [#827](https://github.com/centrifugal/centrifugo/pull/827)
+* [Raw mode for Nats broker](https://centrifugal.dev/docs/server/engines#nats-raw-mode) – in this mode Centrifugo just consumes core Nats topics and does not expect any Centrifugo internal wrapping.
+* Option to [use wildcard subscriptions](https://centrifugal.dev/docs/server/engines#nats_allow_wildcards) with Nats broker. allows subscribing to [wildcard Nats subjects](https://docs.nats.io/nats-concepts/subjects#wildcards) (containing `*` and `>` symbols). This way client can receive messages from many channels while only having a single subscription.
+* Support configuring [client TLS in GRPC proxy](https://centrifugal.dev/docs/server/proxy#proxy_grpc_tls), here we started migration to [unified TLS config object](https://centrifugal.dev/docs/server/tls#unified-tls-config-object) – using it here. See more details about revisiting TLS configuration in [this issue](https://github.com/centrifugal/centrifugo/issues/831). TLS object is also supported for [granular proxy configuration](https://centrifugal.dev/docs/server/proxy#defining-a-list-of-proxies).
+* Support configuring [client TLS in Nats broker](https://centrifugal.dev/docs/server/engines#nats_tls) (for Nats client). Also uses unified TLS config object.
+* [RPC ping extension](https://centrifugal.dev/docs/server/configuration#enable-rpc-ping-extension) to check if connection is alive at any point, measure RTT time.
+* New histogram metric [centrifugo_client_ping_pong_duration_seconds](https://centrifugal.dev/docs/server/observability#centrifugo_client_ping_pong_duration_seconds) to track the duration of ping/pong – i.e. time between sending ping to client and receiving pong from client.
 
 ### Fixes
 
-* Resolved a panic issue (`panic: close of closed channel`) caused by a race condition during an already subscribed error. See [centrifugal/centrifuge#390](https://github.com/centrifugal/centrifuge/pull/390).
-* [Async consumers](https://centrifugal.dev/docs/server/consumers): fix disabling consumer by using proper mapstructure and JSON tags, [#828](https://github.com/centrifugal/centrifugo/pull/828).
+* Fix occasional deadlock leading to memory leak, the deadlock was introduced in Centrifugo v5.3.2, see [#856](https://github.com/centrifugal/centrifugo/issues/856)
+* Fix non-working `allow_presence_for_subscriber` option to enable join/leave events when requested by client, see [#849](https://github.com/centrifugal/centrifugo/issues/849)
 
 ### Miscellaneous
 
-* Release is built with Go 1.22.4
+* Release is built with Go 1.22.5
 * All dependencies were updated to latest versions
+* Check out [Centrifugo v6 roadmap](https://github.com/centrifugal/centrifugo/issues/856) issue. It outlines some important changes planned for the next major release. The date of the v6 release is not yet specified. 
