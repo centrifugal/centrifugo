@@ -8,7 +8,7 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## What's changed
 
-Centrifugo v5.4.2 comes with useful improvements and important fix.
+Centrifugo v5.4.2 comes with useful improvements and fixes.
 
 ### Improvements
 
