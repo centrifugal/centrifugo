@@ -18,6 +18,7 @@ Centrifugo v5.4.2 comes with useful improvements and fixes.
 * Support configuring [client TLS in Nats broker](https://centrifugal.dev/docs/server/engines#nats_tls) (for Nats client). Also uses unified TLS config object.
 * [RPC ping extension](https://centrifugal.dev/docs/server/configuration#enable-rpc-ping-extension) to check if connection is alive at any point, measure RTT time.
 * New histogram metric [centrifugo_client_ping_pong_duration_seconds](https://centrifugal.dev/docs/server/observability#centrifugo_client_ping_pong_duration_seconds) to track the duration of ping/pong – i.e. time between sending ping to client and receiving pong from client.
+* More descriptive JWT check error messages [#838](https://github.com/centrifugal/centrifugo/pull/838).
 
 ### Fixes
 
