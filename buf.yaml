@@ -1,0 +1,16 @@
+version: v2
+modules:
+  - path: internal/apiproto
+    name: buf.build/centrifugal/apiproto
+    excludes:
+      - internal/apiproto/swagger
+  - path: internal/unigrpc/unistream
+    name: buf.build/centrifugal/unistream
+lint:
+  use:
+    - DEFAULT
+  ignore:
+    - internal/apiproto/swagger/api.swagger.proto
+breaking:
+  use:
+    - FILE

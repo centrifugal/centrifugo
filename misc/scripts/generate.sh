@@ -8,6 +8,9 @@ fi
 
 cd internal/apiproto
 bash generate.sh
+cd -
+
+cd internal/apiproto/swagger
 bash generate_swagger.sh
 cd -
 
