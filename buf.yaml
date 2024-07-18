@@ -4,6 +4,8 @@ modules:
     name: buf.build/centrifugo/apiproto
     excludes:
       - internal/apiproto/swagger
+  - path: internal/proxyproto
+    name: buf.build/centrifugo/proxyproto
   - path: internal/unigrpc/unistream
     name: buf.build/centrifugo/unistream
 lint:
