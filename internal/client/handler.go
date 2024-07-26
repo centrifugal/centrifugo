@@ -352,7 +352,7 @@ func (h *Handler) OnClientConnecting(
 	if e.Token != "" {
 		token, err := h.tokenVerifier.VerifyConnectToken(e.Token, h.ruleContainer.Config().ClientInsecureSkipTokenSignatureVerify)
 		if err != nil {
-			if err == jwtverify.ErrTokenExpired {
+			if errors.Is(err, jwtverify.ErrTokenExpired) {
 				return centrifuge.ConnectReply{}, centrifuge.ErrorTokenExpired
 			}
 			if errors.Is(err, jwtverify.ErrInvalidToken) {
@@ -541,7 +541,7 @@ func (h *Handler) OnRefresh(c Client, e centrifuge.RefreshEvent, refreshProxyHan
 	}
 	token, err := h.tokenVerifier.VerifyConnectToken(e.Token, h.ruleContainer.Config().ClientInsecureSkipTokenSignatureVerify)
 	if err != nil {
-		if err == jwtverify.ErrTokenExpired {
+		if errors.Is(err, jwtverify.ErrTokenExpired) {
 			return centrifuge.RefreshReply{Expired: true}, RefreshExtra{}, nil
 		}
 		if errors.Is(err, jwtverify.ErrInvalidToken) {
@@ -599,7 +599,7 @@ func (h *Handler) OnSubRefresh(c Client, subRefreshProxyHandler proxy.SubRefresh
 	}
 	token, err := tokenVerifier.VerifySubscribeToken(e.Token, h.ruleContainer.Config().ClientInsecureSkipTokenSignatureVerify)
 	if err != nil {
-		if err == jwtverify.ErrTokenExpired {
+		if errors.Is(err, jwtverify.ErrTokenExpired) {
 			return centrifuge.SubRefreshReply{Expired: true}, SubRefreshExtra{}, nil
 		}
 		if errors.Is(err, jwtverify.ErrInvalidToken) {
