@@ -335,6 +335,7 @@ var defaults = map[string]any{
 	"grpc_api_tls_client_ca_pem":        "",
 	"grpc_api_tls_server_name":          "",
 	"grpc_api_tls_insecure_skip_verify": false,
+	"grpc_api_max_receive_message_size": 0,
 
 	"shutdown_timeout":           30 * time.Second,
 	"shutdown_termination_delay": 0,
@@ -772,6 +773,9 @@ func main() {
 
 				if viper.GetString("grpc_api_key") != "" {
 					grpcOpts = append(grpcOpts, api.GRPCKeyAuth(viper.GetString("grpc_api_key")))
+				}
+				if viper.GetInt("grpc_api_max_receive_message_size") > 0 {
+					grpcOpts = append(grpcOpts, grpc.MaxRecvMsgSize(viper.GetInt("grpc_api_max_receive_message_size")))
 				}
 				if viper.GetBool("grpc_api_tls") {
 					tlsConfig, tlsErr = tlsConfigForGRPC()
