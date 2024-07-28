@@ -14,7 +14,7 @@ cleanup_exit() {
 }
 
 git clone -c advice.detachedHead=false --depth 1 --branch v4.18.1 --single-branch https://github.com/swagger-api/swagger-ui.git "$TMP_WORK_DIR"
-cp internal/apiproto/api.swagger.json "$TMP_WORK_DIR"/dist/swagger.json
+cp internal/apiproto/swagger/api.swagger.json "$TMP_WORK_DIR"/dist/swagger.json
 
 oldString="https://petstore.swagger.io/v2/"
 newString="./"

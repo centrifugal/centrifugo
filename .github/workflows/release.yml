@@ -17,6 +17,10 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: "1.34.0"
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -55,3 +59,7 @@ jobs:
         env:
           PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN }}
         run: misc/scripts/release_packagecloud.sh
+
+      - uses: bufbuild/buf-push-action@v1
+        with:
+          buf_token: ${{ secrets.BUF_TOKEN }}

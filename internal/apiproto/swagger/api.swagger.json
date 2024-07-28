@@ -33,9 +33,6 @@
       "name": "push notification"
     },
     {
-      "name": "rate limiting"
-    },
-    {
       "name": "batch"
     }
   ],

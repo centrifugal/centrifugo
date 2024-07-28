@@ -49,9 +49,6 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
       name: "push notification"
     },
     {
-      name: "rate limiting"
-    },
-    {
       name: "batch"
     }
   ];
