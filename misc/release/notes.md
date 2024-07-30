@@ -13,7 +13,7 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 * Publish Centrifugo Protobuf definitions to [Buf Schema Registry](https://buf.build/product/bsr) [#863](https://github.com/centrifugal/centrifugo/pull/863). This means that to use Centrifugo GRPC APIs it's now possible to depend on pre-generated Protobuf definitions instead of manually generating them from the schema file.
   * [apiproto](https://buf.build/centrifugo/apiproto/docs/main:centrifugal.centrifugo.api) - definitions of server GRPC API
   * [unistream](https://buf.build/centrifugo/unistream/docs/main:centrifugal.centrifugo.unistream) - definitions of unidirectional GRPC stream
-  * [proxyproto](https://buf.build/centrifugo/proxyproto/docs/main:centrifugal.centrifugo.proxyproto) - definitions of proxy GRPC API
+  * [proxyproto](https://buf.build/centrifugo/proxyproto/docs/main:centrifugal.centrifugo.proxy) - definitions of proxy GRPC API
 * New integer option `grpc_api_max_receive_message_size` (number of bytes). If set to a value > 0 allows setting `grpc.MaxRecvMsgSize` option for GRPC API server. The option controls the max size of message GRPC server can receive. By default, GRPC library uses 4194304 bytes (4MB).
 
 ### Fixes
