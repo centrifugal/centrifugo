@@ -135,6 +135,7 @@ var defaults = map[string]any{
 	"global_history_meta_ttl":            rule.DefaultGlobalHistoryMetaTTL,
 	"global_presence_ttl":                60 * time.Second,
 	"global_redis_presence_user_mapping": false,
+	"redis_presence_hash_field_ttl":      false,
 
 	"allowed_delta_types": []centrifuge.DeltaType{},
 
@@ -2691,9 +2692,10 @@ func redisEngine(n *centrifuge.Node) (*centrifuge.RedisBroker, centrifuge.Presen
 	}
 
 	presenceManagerConfig := centrifuge.RedisPresenceManagerConfig{
-		Shards:      redisShards,
-		Prefix:      viper.GetString("redis_prefix"),
-		PresenceTTL: GetDuration("global_presence_ttl", true),
+		Shards:          redisShards,
+		Prefix:          viper.GetString("redis_prefix"),
+		PresenceTTL:     GetDuration("global_presence_ttl", true),
+		UseHashFieldTTL: viper.GetBool("redis_presence_hash_field_ttl"),
 	}
 	if viper.GetBool("global_redis_presence_user_mapping") {
 		presenceManagerConfig.EnableUserMapping = func(_ string) bool {
