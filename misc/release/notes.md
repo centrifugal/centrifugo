@@ -10,18 +10,14 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Publish Centrifugo Protobuf definitions to [Buf Schema Registry](https://buf.build/product/bsr) [#863](https://github.com/centrifugal/centrifugo/pull/863). This means that to use Centrifugo GRPC APIs it's now possible to depend on pre-generated Protobuf definitions instead of manually generating them from the schema file.
-  * [apiproto](https://buf.build/centrifugo/apiproto/docs/main:centrifugal.centrifugo.api) - definitions of server GRPC API
-  * [unistream](https://buf.build/centrifugo/unistream/docs/main:centrifugal.centrifugo.unistream) - definitions of unidirectional GRPC stream
-  * [proxyproto](https://buf.build/centrifugo/proxyproto/docs/main:centrifugal.centrifugo.proxy) - definitions of proxy GRPC API
-* New integer option `grpc_api_max_receive_message_size` (number of bytes). If set to a value > 0 allows setting `grpc.MaxRecvMsgSize` option for GRPC API server. The option controls the max size of message GRPC server can receive. By default, GRPC library uses 4194304 bytes (4MB).
+* Added an option to use Redis 7.4 hash field TTL for online presence [#872](https://github.com/centrifugal/centrifugo/pull/872). Redis 7.4 introduced the [per HASH field TTL](https://redis.io/blog/announcing-redis-community-edition-and-redis-stack-74/#:~:text=You%20can%20now%20set%20an%20expiration%20for%20hash%20fields.), which we now use for presence information by adding a new boolean option `redis_presence_hash_field_ttl`. One potential benefit is reduced memory usage in Redis for presence information, as fewer data needs to be stored (no separate ZSET structure to maintain). Depending on your presence data, you can achieve up to a 1.6x reduction in memory usage with this option. This also showed slightly better CPU utilization on the Redis side, as there are fewer keys to manage in LUA scripts during presence get, add, and remove operations. By default, Centrifugo will continue using the current presence implementation with ZSET, as the new option only works with Redis >= 7.4 and requires explicit configuration. See also the description of the new option in the [Centrifugo documentation](https://centrifugal.dev/docs/server/engines#redis_presence_hash_field_ttl).
 
 ### Fixes
 
-* Fix occasional `panic: DedicatedClient should not be used after recycled` panic which could happen under load during problems with Redis connection.
+* Process connect proxy result subs [#874](https://github.com/centrifugal/centrifugo/pull/874), fixes [#873](https://github.com/centrifugal/centrifugo/issues/873). Also, the documentation contained wrong description of subscribe options override object, this was fixed in terms of [centrifugal/centrifugal.dev#52](https://github.com/centrifugal/centrifugal.dev/pull/52).
 
 ### Miscellaneous
 
-* Release is built with Go 1.22.5
-* All dependencies were updated to latest versions
-* Check out [Centrifugo v6 roadmap](https://github.com/centrifugal/centrifugo/issues/856) issue. It outlines some important changes planned for the next major release. The date of the v6 release is not yet specified. 
+* Release is built with Go 1.22.6
+* Check out [Centrifugo v6 roadmap](https://github.com/centrifugal/centrifugo/issues/832) issue. It outlines some important changes planned for the next major release. The date of the v6 release is not yet specified.
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v5.4.6).
