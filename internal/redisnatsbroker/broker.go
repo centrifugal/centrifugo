@@ -26,7 +26,7 @@ func New(nats *natsbroker.NatsBroker, redis *centrifuge.RedisBroker) (*Broker, e
 }
 
 func (b *Broker) Publish(ch string, data []byte, opts centrifuge.PublishOptions) (centrifuge.StreamPosition, bool, error) {
-	if natsbroker.IsUnsupportedChannel(ch) {
+	if !b.NatsBroker.IsSupportedPublishChannel(ch) {
 		// Do not support wildcard subscriptions just like natsbroker.NatsBroker.
 		return centrifuge.StreamPosition{}, false, centrifuge.ErrorBadRequest
 	}

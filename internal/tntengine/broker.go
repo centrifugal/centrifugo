@@ -142,9 +142,11 @@ func (b *Broker) Publish(ch string, data []byte, opts centrifuge.PublishOptions)
 	s := consistentShard(ch, b.shards)
 
 	protoPub := &protocol.Publication{
-		Data: data,
-		Info: infoToProto(opts.ClientInfo),
-		Tags: opts.Tags,
+		Data:  data,
+		Info:  infoToProto(opts.ClientInfo),
+		Tags:  opts.Tags,
+		Delta: opts.UseDelta, // Will be cleaned up before passing to Node.
+		Time:  time.Now().UnixMilli(),
 	}
 	byteMessage, err := protoPub.MarshalVT()
 	if err != nil {
@@ -726,9 +728,14 @@ func (b *Broker) handleMessage(eventHandler centrifuge.BrokerEventHandler, msg p
 		var pub protocol.Publication
 		err := pub.UnmarshalVT(msg.Data)
 		if err == nil {
+			delta := pub.Delta
+			pub.Delta = false
 			publication := pubFromProto(&pub)
 			publication.Offset = msg.Offset
-			_ = eventHandler.HandlePublication(msg.Channel, publication, centrifuge.StreamPosition{Offset: msg.Offset, Epoch: msg.Epoch})
+			_ = eventHandler.HandlePublication(
+				msg.Channel, publication,
+				centrifuge.StreamPosition{Offset: msg.Offset, Epoch: msg.Epoch},
+				delta, nil)
 		}
 	case "j":
 		var info protocol.ClientInfo

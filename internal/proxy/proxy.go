@@ -36,6 +36,8 @@ type Config struct {
 	// IncludeConnectionMeta to each proxy request (except connect where it's obtained).
 	IncludeConnectionMeta bool `mapstructure:"include_connection_meta" json:"include_connection_meta,omitempty"`
 
+	// GrpcTLS is a common configuration for GRPC TLS.
+	GrpcTLS tools.TLSConfig `mapstructure:"grpc_tls" json:"grpc_tls,omitempty"`
 	// GrpcCertFile is a path to GRPC cert file on disk.
 	GrpcCertFile string `mapstructure:"grpc_cert_file" json:"grpc_cert_file,omitempty"`
 	// GrpcCredentialsKey is a custom key to add into per-RPC credentials.
@@ -99,6 +101,13 @@ func GetSubscribeProxy(p Config) (SubscribeProxy, error) {
 		return NewHTTPSubscribeProxy(p)
 	}
 	return NewGRPCSubscribeProxy(p)
+}
+
+func GetCacheEmptyProxy(p Config) (CacheEmptyProxy, error) {
+	if isHttpEndpoint(p.Endpoint) {
+		return NewHTTPCacheEmptyProxy(p)
+	}
+	return NewGRPCCacheEmptyProxy(p)
 }
 
 type PerCallData struct {

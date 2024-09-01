@@ -34,6 +34,12 @@ type KafkaConfig struct {
 	SASLMechanism string `mapstructure:"sasl_mechanism" json:"sasl_mechanism"`
 	SASLUser      string `mapstructure:"sasl_user" json:"sasl_user"`
 	SASLPassword  string `mapstructure:"sasl_password" json:"sasl_password"`
+
+	// PartitionBufferSize is the size of the buffer for each partition consumer.
+	// This is the number of records that can be buffered before the consumer
+	// will pause fetching records from Kafka. By default, this is 16.
+	// Set to -1 to use non-buffered channel.
+	PartitionBufferSize int `mapstructure:"partition_buffer_size" json:"partition_buffer_size"`
 }
 
 type topicPartition struct {
@@ -260,14 +266,16 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 			}
 
 			fetches.EachPartition(func(p kgo.FetchTopicPartition) {
+				if len(p.Records) == 0 {
+					return
+				}
+
 				tp := topicPartition{p.Topic, p.Partition}
 
 				// Since we are using BlockRebalanceOnPoll, we can be
 				// sure this partition consumer exists:
-				//
 				// * onAssigned is guaranteed to be called before we
 				// fetch offsets for newly added partitions
-				//
 				// * onRevoked waits for partition consumers to quit
 				// and be deleted before re-allowing polling.
 				select {
@@ -276,6 +284,13 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 				case <-c.consumers[tp].quit:
 					return
 				case c.consumers[tp].recs <- p:
+				default:
+					partitionsToPause := map[string][]int32{p.Topic: {p.Partition}}
+					// PauseFetchPartitions here to not poll partition until records are processed.
+					// This allows parallel processing of records from different partitions, without
+					// keeping records in memory and blocking rebalance. Resume will be called after
+					// records are processed by c.consumers[tp].
+					c.client.PauseFetchPartitions(partitionsToPause)
 				}
 			})
 			c.client.AllowRebalance()
@@ -310,7 +325,15 @@ func (c *KafkaConsumer) reInitClient(ctx context.Context) error {
 	return nil
 }
 
+const defaultPartitionBufferSize = 16
+
 func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned map[string][]int32) {
+	bufferSize := c.config.PartitionBufferSize
+	if bufferSize == -1 {
+		bufferSize = 0
+	} else if bufferSize == 0 {
+		bufferSize = defaultPartitionBufferSize
+	}
 	for topic, partitions := range assigned {
 		for _, partition := range partitions {
 			pc := &partitionConsumer{
@@ -323,7 +346,7 @@ func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned m
 
 				quit: make(chan struct{}),
 				done: make(chan struct{}),
-				recs: make(chan kgo.FetchTopicPartition),
+				recs: make(chan kgo.FetchTopicPartition, bufferSize),
 			}
 			c.consumers[topicPartition{topic, partition}] = pc
 			go pc.consume()
@@ -377,8 +400,56 @@ type partitionConsumer struct {
 	recs chan kgo.FetchTopicPartition
 }
 
+func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
+	for _, record := range records {
+		select {
+		case <-pc.clientCtx.Done():
+			return
+		case <-pc.quit:
+			return
+		default:
+		}
+
+		var e KafkaJSONEvent
+		err := json.Unmarshal(record.Value, &e)
+		if err != nil {
+			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error unmarshalling event from Kafka", map[string]any{"error": err.Error(), "topic": record.Topic, "partition": record.Partition}))
+			pc.cl.MarkCommitRecords(record)
+			continue
+		}
+
+		var backoffDuration time.Duration = 0
+		retries := 0
+		for {
+			err := pc.dispatcher.Dispatch(pc.clientCtx, e.Method, e.Payload)
+			if err == nil {
+				if retries > 0 {
+					pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "OK processing events after errors", map[string]any{}))
+				}
+				pc.cl.MarkCommitRecords(record)
+				break
+			}
+			retries++
+			backoffDuration = getNextBackoffDuration(backoffDuration, retries)
+			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing consumed event", map[string]any{"error": err.Error(), "method": e.Method, "nextAttemptIn": backoffDuration.String()}))
+			select {
+			case <-time.After(backoffDuration):
+			case <-pc.quit:
+				return
+			case <-pc.clientCtx.Done():
+				return
+			}
+		}
+	}
+}
+
 func (pc *partitionConsumer) consume() {
 	defer close(pc.done)
+	partitionsToResume := map[string][]int32{pc.topic: {pc.partition}}
+	resumeConsuming := func() {
+		pc.cl.ResumeFetchPartitions(partitionsToResume)
+	}
+	defer resumeConsuming()
 	for {
 		select {
 		case <-pc.clientCtx.Done():
@@ -386,46 +457,9 @@ func (pc *partitionConsumer) consume() {
 		case <-pc.quit:
 			return
 		case p := <-pc.recs:
-			for _, record := range p.Records {
-				select {
-				case <-pc.clientCtx.Done():
-					return
-				case <-pc.quit:
-					return
-				default:
-				}
-
-				var e KafkaJSONEvent
-				err := json.Unmarshal(record.Value, &e)
-				if err != nil {
-					pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error unmarshalling event from Kafka", map[string]any{"error": err.Error(), "topic": record.Topic, "partition": record.Partition}))
-					pc.cl.MarkCommitRecords(record)
-					continue
-				}
-
-				var backoffDuration time.Duration = 0
-				retries := 0
-				for {
-					err := pc.dispatcher.Dispatch(pc.clientCtx, e.Method, e.Payload)
-					if err == nil {
-						if retries > 0 {
-							pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "OK processing events after errors", map[string]any{}))
-						}
-						pc.cl.MarkCommitRecords(record)
-						break
-					}
-					retries++
-					backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-					pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing consumed event", map[string]any{"error": err.Error(), "method": e.Method, "nextAttemptIn": backoffDuration.String()}))
-					select {
-					case <-time.After(backoffDuration):
-					case <-pc.quit:
-						return
-					case <-pc.clientCtx.Done():
-						return
-					}
-				}
-			}
+			pc.processRecords(p.Records)
+			// At this point we are ready to consume the next batch from partition, thus resume.
+			resumeConsuming()
 		}
 	}
 }

@@ -1,4 +1,4 @@
-Centrifugo is an open-source scalable real-time messaging server. Centrifugo can instantly deliver messages to application online users connected over supported transports (WebSocket, HTTP-streaming, SSE/EventSource, GRPC, SockJS, WebTransport). Centrifugo has the concept of channel subscriptions – so it's a user-facing PUB/SUB server.
+Centrifugo is an open-source scalable real-time messaging server. Centrifugo can instantly deliver messages to application online users connected over supported transports (WebSocket, HTTP-streaming, SSE/EventSource, GRPC, WebTransport). Centrifugo has the concept of channel subscriptions – so it's a user-facing PUB/SUB server.
 
 Centrifugo is language-agnostic and can be used to build chat apps, live comments, multiplayer games, real-time data visualizations, collaborative tools, etc. in combination with any backend. It is well suited for modern architectures and allows decoupling the business logic from the real-time transport layer.
 
@@ -28,14 +28,15 @@ The core idea of Centrifugo is simple – it's a PUB/SUB server on top of modern
 
 The hard part is to make this concept production-ready, efficient, flexible and available from different application environments. Centrifugo is a mature solution that already helped many projects with adding real-time features and scale towards many concurrent connections. Centrifugo provides a set of features not available in other open-source solutions in the area:
 
-* Real-time transports: WebSocket, HTTP-streaming, Server-Sent Events (SSE), GRPC, SockJS, WebTransport
-* Built-in scalability to many machines with Redis, KeyDB, Nats, Tarantool
+* Efficient real-time transports: WebSocket, HTTP-streaming, Server-Sent Events (SSE), GRPC, WebTransport
+* Built-in scalability with Redis (or Redis Cluster, or Redis-compatible storage – ex. AWS Elasticache, KeyDB, DragonflyDB, etc), or Nats.
 * Simple HTTP and GRPC server API to communicate with Centrifugo from the app backend
 * Flexible connection authentication mechanisms: JWT and proxy-like
 * Channel subscription multiplexing over a single connection
 * Different types of subscriptions: client-side and server-side
 * Various channel permission strategies, channel namespace concept
-* Hot message history in channels, with automatic message recovery upon reconnect
+* Hot message history in channels, with automatic message recovery upon reconnect, cache recovery mode (deliver latest publication immediately upon subscription)
+* Delta compression in channels based on Fossil algorithm
 * Online channel presence information, with join/leave notifications
 * A way to send RPC calls to the backend over the real-time connection
 * Strict and effective client protocol wrapped by several official SDKs

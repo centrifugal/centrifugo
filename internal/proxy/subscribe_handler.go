@@ -139,6 +139,7 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 		pushJoinLeave := chOpts.ForcePushJoinLeave
 		recovery := chOpts.ForceRecovery
 		positioning := chOpts.ForcePositioning
+		recoveryMode := chOpts.GetRecoveryMode()
 
 		var info []byte
 		var data []byte
@@ -196,6 +197,8 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 				PushJoinLeave:     pushJoinLeave,
 				EnableRecovery:    recovery,
 				EnablePositioning: positioning,
+				RecoveryMode:      recoveryMode,
+				AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
 				Data:              data,
 				Source:            subsource.SubscribeProxy,
 				HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),

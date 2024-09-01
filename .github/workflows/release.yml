@@ -10,12 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [1.21.6]
+        go-version: [1.22.6]
     steps:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
+
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: "1.34.0"
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -55,3 +59,7 @@ jobs:
         env:
           PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN }}
         run: misc/scripts/release_packagecloud.sh
+
+      - uses: bufbuild/buf-push-action@v1
+        with:
+          buf_token: ${{ secrets.BUF_TOKEN }}
