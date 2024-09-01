@@ -1921,6 +1921,11 @@ func consumersFromConfig(v *viper.Viper) []consuming.ConsumerConfig {
 	return consumers
 }
 
+// Now Centrifugo uses https://github.com/tidwall/gjson to extract custom claims from JWT. So technically
+// we could support extracting from nested objects using dot syntax, like "centrifugo.user". But for now
+// not using this feature to keep things simple until necessary.
+var customClaimRe = regexp.MustCompile("^[a-zA-Z_]+$")
+
 func jwtVerifierConfig() (jwtverify.VerifierConfig, error) {
 	v := viper.GetViper()
 	cfg := jwtverify.VerifierConfig{}
@@ -1950,11 +1955,15 @@ func jwtVerifierConfig() (jwtverify.VerifierConfig, error) {
 	cfg.AudienceRegex = v.GetString("token_audience_regex")
 	cfg.Issuer = v.GetString("token_issuer")
 	cfg.IssuerRegex = v.GetString("token_issuer_regex")
-	var err error
-	cfg.UserIDClaim, err = tools.OptionalStringChoice(v, "token_user_id_claim", []string{"user_id"})
-	if err != nil {
-		return jwtverify.VerifierConfig{}, err
+
+	if v.GetString("token_user_id_claim") != "" {
+		customUserIDClaim := v.GetString("token_user_id_claim")
+		if !customClaimRe.MatchString(customUserIDClaim) {
+			return jwtverify.VerifierConfig{}, fmt.Errorf("invalid user ID claim: %s, must match %s regular expression", customUserIDClaim, customClaimRe.String())
+		}
+		cfg.UserIDClaim = customUserIDClaim
 	}
+
 	return cfg, nil
 }
 
@@ -1987,11 +1996,15 @@ func subJWTVerifierConfig() (jwtverify.VerifierConfig, error) {
 	cfg.AudienceRegex = v.GetString("subscription_token_audience_regex")
 	cfg.Issuer = v.GetString("subscription_token_issuer")
 	cfg.IssuerRegex = v.GetString("subscription_token_issuer_regex")
-	var err error
-	cfg.UserIDClaim, err = tools.OptionalStringChoice(v, "subscription_token_user_id_claim", []string{"user_id"})
-	if err != nil {
-		return jwtverify.VerifierConfig{}, err
+
+	if v.GetString("subscription_token_user_id_claim") != "" {
+		customUserIDClaim := v.GetString("subscription_token_user_id_claim")
+		if !customClaimRe.MatchString(customUserIDClaim) {
+			return jwtverify.VerifierConfig{}, fmt.Errorf("invalid user ID claim: %s, must match %s regular expression", customUserIDClaim, customClaimRe.String())
+		}
+		cfg.UserIDClaim = customUserIDClaim
 	}
+
 	return cfg, nil
 }
 

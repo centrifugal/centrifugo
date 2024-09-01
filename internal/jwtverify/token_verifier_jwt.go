@@ -21,6 +21,7 @@ import (
 	"github.com/cristalhq/jwt/v5"
 	"github.com/rakutentech/jwk-go/okp"
 	"github.com/rs/zerolog/log"
+	"github.com/tidwall/gjson"
 )
 
 type VerifierConfig struct {
@@ -187,8 +188,6 @@ type ConnectTokenClaims struct {
 	Channels   []string                    `json:"channels,omitempty"`
 	Subs       map[string]SubscribeOptions `json:"subs,omitempty"`
 	Meta       json.RawMessage             `json:"meta,omitempty"`
-	// UserID is only used instead of jwt.RegisteredClaims.Subject when explicitly configured.
-	UserID string `json:"user_id,omitempty"`
 	// Channel must never be set in connection tokens. We check this on verifying.
 	Channel string `json:"channel,omitempty"`
 	jwt.RegisteredClaims
@@ -200,8 +199,6 @@ type SubscribeTokenClaims struct {
 	Channel  string `json:"channel,omitempty"`
 	Client   string `json:"client,omitempty"`
 	ExpireAt *int64 `json:"expire_at,omitempty"`
-	// UserID is only used instead of jwt.RegisteredClaims.Subject when explicitly configured.
-	UserID string `json:"user_id,omitempty"`
 }
 
 type jwksManager struct{ *jwks.Manager }
@@ -599,7 +596,8 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 		Meta:     claims.Meta,
 	}
 	if verifier.userIDClaim != "" {
-		ct.UserID = claims.UserID
+		value := gjson.GetBytes(token.Claims(), verifier.userIDClaim)
+		ct.UserID = value.String()
 	} else {
 		ct.UserID = claims.RegisteredClaims.Subject
 	}
@@ -757,7 +755,8 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 		},
 	}
 	if verifier.userIDClaim != "" {
-		st.UserID = claims.UserID
+		value := gjson.GetBytes(token.Claims(), verifier.userIDClaim)
+		st.UserID = value.String()
 	} else {
 		st.UserID = claims.RegisteredClaims.Subject
 	}

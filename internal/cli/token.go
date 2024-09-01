@@ -9,6 +9,7 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/jwtverify"
 	"github.com/centrifugal/centrifugo/v5/internal/rule"
 	"github.com/cristalhq/jwt/v5"
+	"github.com/tidwall/sjson"
 )
 
 // GenerateToken generates sample JWT for user.
@@ -24,17 +25,25 @@ func GenerateToken(config jwtverify.VerifierConfig, user string, ttlSeconds int6
 	claims := jwtverify.ConnectTokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt: jwt.NewNumericDate(time.Now()),
+			Subject:  user,
 		},
-	}
-	if config.UserIDClaim != "" {
-		claims.UserID = user
-	} else {
-		claims.Subject = user
 	}
 	if ttlSeconds > 0 {
 		claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Duration(ttlSeconds) * time.Second))
 	}
-	token, err := builder.Build(claims)
+
+	encodedClaims, err := json.Marshal(claims)
+	if err != nil {
+		return "", err
+	}
+	if config.UserIDClaim != "" {
+		encodedClaims, err = sjson.SetBytes(encodedClaims, config.UserIDClaim, user)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	token, err := builder.Build(encodedClaims)
 	if err != nil {
 		return "", err
 	}
@@ -54,18 +63,26 @@ func GenerateSubToken(config jwtverify.VerifierConfig, user string, channel stri
 	claims := jwtverify.SubscribeTokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt: jwt.NewNumericDate(time.Now()),
+			Subject:  user,
 		},
 		Channel: channel,
-	}
-	if config.UserIDClaim != "" {
-		claims.UserID = user
-	} else {
-		claims.Subject = user
 	}
 	if ttlSeconds > 0 {
 		claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Duration(ttlSeconds) * time.Second))
 	}
-	token, err := builder.Build(claims)
+
+	encodedClaims, err := json.Marshal(claims)
+	if err != nil {
+		return "", err
+	}
+	if config.UserIDClaim != "" {
+		encodedClaims, err = sjson.SetBytes(encodedClaims, config.UserIDClaim, user)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	token, err := builder.Build(encodedClaims)
 	if err != nil {
 		return "", err
 	}
