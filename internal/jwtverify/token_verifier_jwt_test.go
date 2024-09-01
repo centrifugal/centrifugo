@@ -31,8 +31,8 @@ const (
 	jwtInvalidSignature        = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn0sImV4cCI6MTU4ODQxOTY5MywibmJmIjoxNTg4NDE4NjkzfQ.05Xj9adbLukdhSJFyiVUEgbxCHTajXuotmalFgYviCo"
 	jwtArrayAud                = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn0sImF1ZCI6WyJmb28iLCJiYXIiXX0.iY4pCPEQwstfNmPkLr7r7DrLZDo42q3E9jMc-TefI6g"
 	jwtStringAud               = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn0sImF1ZCI6ImZvbyJ9.jym6CG5haHME3ZQbb9jlnV1E0hSwwEjZycBZSygRzO0"
-	jwtValidCustomUserClaim    = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidGVzdCIsImV4cCI6MTcxMDQ0Nzc5NywiaWF0IjoxNzA5ODQyOTk3fQ.FQV-b69lNEknascibq-YgMLS9Vr0TBYuPgVwgWLTRRs"
-	subJWTValidCustomUserClaim = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTA0NDc4MTksImlhdCI6MTcwOTg0MzAxOSwiY2hhbm5lbCI6ImNoYW5uZWwiLCJ1c2VyX2lkIjoidGVzdCJ9.KlZUzBFxxZLdpmQr67-NnaxFJrLspCl1OdoMgYGCxI4"
+	jwtValidCustomUserClaim    = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoidGVzdCJ9.Mdh4PGRnqKD-8_cKCJOYKfi9KNLJz2PCKl3qEi0n0-w"
+	subJWTValidCustomUserClaim = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoidGVzdCIsImNoYW5uZWwiOiJjaGFubmVsIn0.vMA6Ee2eq3d8ApAhbXmVv5LmArbrjFZgU2FUbK93EnQ"
 
 	//
 	// Generated with: https://github.com/lestrrat-go/jwx/tree/main/cmd/jwx
