@@ -58,9 +58,8 @@ type VerifierConfig struct {
 	// may be then used in constructing JWKSPublicEndpoint.
 	IssuerRegex string
 
-	// UserIDClaim allows overriding default claim used to extract user ID from token. At this
-	// moment only "user_id" alternative claim is supported due to how tokens are parsed.
-	// By default, Centrifugo uses "sub".
+	// UserIDClaim allows overriding default claim used to extract user ID from token.
+	// By default, Centrifugo uses "sub" and we recommend keeping the default if possible.
 	UserIDClaim string
 }
 
