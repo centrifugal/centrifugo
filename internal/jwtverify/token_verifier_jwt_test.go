@@ -33,6 +33,7 @@ const (
 	jwtStringAud               = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyNjk0IiwiaW5mbyI6eyJmaXJzdF9uYW1lIjoiQWxleGFuZGVyIiwibGFzdF9uYW1lIjoiRW1lbGluIn0sImF1ZCI6ImZvbyJ9.jym6CG5haHME3ZQbb9jlnV1E0hSwwEjZycBZSygRzO0"
 	jwtValidCustomUserClaim    = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoidGVzdCJ9.Mdh4PGRnqKD-8_cKCJOYKfi9KNLJz2PCKl3qEi0n0-w"
 	subJWTValidCustomUserClaim = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoidGVzdCIsImNoYW5uZWwiOiJjaGFubmVsIn0.vMA6Ee2eq3d8ApAhbXmVv5LmArbrjFZgU2FUbK93EnQ"
+	emptyObjectClaimsJWT       = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.e30.DMCAvRgzrcf5w0Z879BsqzcrnDFKBY_GN6c3qKOUFtQ"
 
 	//
 	// Generated with: https://github.com/lestrrat-go/jwx/tree/main/cmd/jwx
@@ -323,6 +324,13 @@ func Test_tokenVerifierJWT_Valid_CustomClaim(t *testing.T) {
 	st, err = verifier.VerifySubscribeToken(subJWTValidCustomUserClaim, false)
 	require.NoError(t, err)
 	require.Equal(t, "test", st.UserID)
+
+	// Also make sure custom claim returns empty user ID from empty object claims token.
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", "user_id"}, ruleContainer)
+	require.NoError(t, err)
+	ct, err = verifier.VerifyConnectToken(emptyObjectClaimsJWT, false)
+	require.NoError(t, err)
+	require.Equal(t, "", ct.UserID)
 }
 
 func Test_tokenVerifierJWT_Audience(t *testing.T) {
