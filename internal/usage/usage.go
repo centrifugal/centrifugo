@@ -76,7 +76,6 @@ type Features struct {
 	Websocket     bool
 	HTTPStream    bool
 	SSE           bool
-	SockJS        bool
 	UniWebsocket  bool
 	UniGRPC       bool
 	UniSSE        bool
@@ -360,9 +359,6 @@ func (s *Sender) prepareMetrics() ([]*metric, error) {
 	}
 	if s.features.SSE {
 		metrics = append(metrics, createPoint("transports_enabled.sse"))
-	}
-	if s.features.SockJS {
-		metrics = append(metrics, createPoint("transports_enabled.sockjs"))
 	}
 	if s.features.UniWebsocket {
 		metrics = append(metrics, createPoint("transports_enabled.uni_websocket"))

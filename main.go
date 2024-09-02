@@ -52,11 +52,9 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/redisnatsbroker"
 	"github.com/centrifugal/centrifugo/v5/internal/rule"
 	"github.com/centrifugal/centrifugo/v5/internal/service"
-	"github.com/centrifugal/centrifugo/v5/internal/sockjs"
 	"github.com/centrifugal/centrifugo/v5/internal/survey"
 	"github.com/centrifugal/centrifugo/v5/internal/swaggerui"
 	"github.com/centrifugal/centrifugo/v5/internal/telemetry"
-	"github.com/centrifugal/centrifugo/v5/internal/tntengine"
 	"github.com/centrifugal/centrifugo/v5/internal/tools"
 	"github.com/centrifugal/centrifugo/v5/internal/unigrpc"
 	"github.com/centrifugal/centrifugo/v5/internal/unihttpstream"
@@ -217,9 +215,6 @@ var defaults = map[string]any{
 	"admin_web_path":          "",
 	"admin_web_proxy_address": "",
 
-	"sockjs":     false,
-	"sockjs_url": "https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js",
-
 	"websocket_compression":           false,
 	"websocket_compression_min_size":  0,
 	"websocket_compression_level":     1,
@@ -299,11 +294,6 @@ var defaults = map[string]any{
 	"proxy_grpc_compression":        false,
 	"proxy_grpc_tls":                tools.TLSConfig{},
 
-	"tarantool_mode":     "standalone",
-	"tarantool_address":  "tcp://127.0.0.1:3301",
-	"tarantool_user":     "",
-	"tarantool_password": "",
-
 	"api_key":        "",
 	"api_error_mode": "",
 
@@ -365,7 +355,6 @@ var defaults = map[string]any{
 
 	"websocket_handler_prefix":       "/connection/websocket",
 	"webtransport_handler_prefix":    "/connection/webtransport",
-	"sockjs_handler_prefix":          "/connection/sockjs",
 	"http_stream_handler_prefix":     "/connection/http_stream",
 	"sse_handler_prefix":             "/connection/sse",
 	"uni_websocket_handler_prefix":   "/connection/uni_websocket",
@@ -529,9 +518,9 @@ func main() {
 				"engine", "log_level", "log_file", "pid_file", "debug", "name", "admin",
 				"admin_external", "client_insecure", "admin_insecure", "api_insecure", "api_external",
 				"port", "address", "tls", "tls_cert", "tls_key", "tls_external", "internal_port",
-				"internal_address", "prometheus", "health", "redis_address", "tarantool_address",
+				"internal_address", "prometheus", "health", "redis_address",
 				"broker", "nats_url", "grpc_api", "grpc_api_tls", "grpc_api_tls_disable",
-				"grpc_api_tls_cert", "grpc_api_tls_key", "grpc_api_port", "sockjs", "uni_grpc",
+				"grpc_api_tls_cert", "grpc_api_tls_key", "grpc_api_port", "uni_grpc",
 				"uni_grpc_port", "uni_websocket", "uni_sse", "uni_http_stream", "sse", "http_stream",
 				"swagger",
 			}
@@ -635,8 +624,6 @@ func main() {
 				broker, presenceManager, engineMode, err = memoryEngine(node)
 			} else if engineName == "redis" {
 				broker, presenceManager, engineMode, err = redisEngine(node)
-			} else if engineName == "tarantool" {
-				broker, presenceManager, engineMode, err = tarantoolEngine(node)
 			} else if engineName == "redisnats" {
 				if !viper.GetBool("enable_unreleased_features") {
 					log.Fatal().Msg("redisnats engine requires enable_unreleased_features on")
@@ -906,7 +893,6 @@ func main() {
 					Websocket:     !viper.GetBool("websocket_disable"),
 					HTTPStream:    viper.GetBool("http_stream"),
 					SSE:           viper.GetBool("sse"),
-					SockJS:        viper.GetBool("sockjs"),
 					UniWebsocket:  viper.GetBool("uni_websocket"),
 					UniHTTPStream: viper.GetBool("uni_http_stream"),
 					UniSSE:        viper.GetBool("uni_sse"),
@@ -974,7 +960,6 @@ func main() {
 	rootCmd.Flags().BoolP("prometheus", "", false, "enable Prometheus metrics endpoint")
 	rootCmd.Flags().BoolP("swagger", "", false, "enable Swagger UI endpoint describing server HTTP API")
 	rootCmd.Flags().BoolP("health", "", false, "enable health check endpoint")
-	rootCmd.Flags().BoolP("sockjs", "", false, "enable SockJS endpoint")
 	rootCmd.Flags().BoolP("uni_websocket", "", false, "enable unidirectional websocket endpoint")
 	rootCmd.Flags().BoolP("uni_sse", "", false, "enable unidirectional SSE (EventSource) endpoint")
 	rootCmd.Flags().BoolP("uni_http_stream", "", false, "enable unidirectional HTTP-streaming endpoint")
@@ -1007,7 +992,6 @@ func main() {
 	rootCmd.Flags().IntP("uni_grpc_port", "", 11000, "port to bind unidirectional GRPC server to")
 
 	rootCmd.Flags().StringP("redis_address", "", "redis://127.0.0.1:6379", "Redis connection address (Redis engine)")
-	rootCmd.Flags().StringP("tarantool_address", "", "tcp://127.0.0.1:3301", "Tarantool connection address (Tarantool engine)")
 	rootCmd.Flags().StringP("nats_url", "", "nats://127.0.0.1:4222", "Nats connection URL in format nats://user:pass@localhost:4222 (Nats broker)")
 
 	var versionCmd = &cobra.Command{
@@ -1574,9 +1558,6 @@ func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecut
 			log.Fatal().Msg("can not enable webtransport without experimental HTTP/3")
 		}
 		portFlags |= HandlerWebtransport
-	}
-	if viper.GetBool("sockjs") {
-		portFlags |= HandlerSockJS
 	}
 	if viper.GetBool("sse") {
 		portFlags |= HandlerSSE
@@ -2545,20 +2526,6 @@ func uniGRPCHandlerConfig() unigrpc.Config {
 	return unigrpc.Config{}
 }
 
-func sockjsHandlerConfig() sockjs.Config {
-	v := viper.GetViper()
-	cfg := sockjs.Config{}
-	cfg.URL = v.GetString("sockjs_url")
-	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
-	cfg.WebsocketWriteBufferSize = v.GetInt("websocket_write_buffer_size")
-	cfg.WebsocketUseWriteBufferPool = v.GetBool("websocket_use_write_buffer_pool")
-	cfg.WebsocketWriteTimeout = GetDuration("websocket_write_timeout")
-	cfg.CheckOrigin = getCheckOrigin()
-	cfg.WebsocketCheckOrigin = getCheckOrigin()
-	cfg.PingPongConfig = getPingPongConfig()
-	return cfg
-}
-
 func webTransportHandlerConfig() wt.Config {
 	return wt.Config{
 		PingPongConfig: getPingPongConfig(),
@@ -2784,85 +2751,6 @@ func redisEngine(n *centrifuge.Node) (*centrifuge.RedisBroker, centrifuge.Presen
 	return broker, presenceManager, mode, nil
 }
 
-func getTarantoolShardConfigs() ([]tntengine.ShardConfig, string, error) {
-	var shardConfigs []tntengine.ShardConfig
-
-	mode := tntengine.ConnectionModeSingleInstance
-	if viper.IsSet("tarantool_mode") {
-		switch viper.GetString("tarantool_mode") {
-		case "standalone":
-			// default.
-		case "leader-follower":
-			mode = tntengine.ConnectionModeLeaderFollower
-		case "leader-follower-raft":
-			mode = tntengine.ConnectionModeLeaderFollowerRaft
-		default:
-			return nil, "", fmt.Errorf("unknown Tarantool mode: %s", viper.GetString("tarantool_mode"))
-		}
-	}
-
-	var shardAddresses [][]string
-
-	tarantoolAddresses := viper.GetStringSlice("tarantool_address")
-	for _, shardPart := range tarantoolAddresses {
-		shardAddresses = append(shardAddresses, strings.Split(shardPart, ","))
-	}
-
-	for _, tarantoolAddresses := range shardAddresses {
-		conf := &tntengine.ShardConfig{
-			Addresses:      tarantoolAddresses,
-			User:           viper.GetString("tarantool_user"),
-			Password:       viper.GetString("tarantool_password"),
-			ConnectionMode: mode,
-		}
-		shardConfigs = append(shardConfigs, *conf)
-	}
-	return shardConfigs, string(mode), nil
-}
-
-func getTarantoolShards() ([]*tntengine.Shard, string, error) {
-	tarantoolShardConfigs, mode, err := getTarantoolShardConfigs()
-	if err != nil {
-		return nil, mode, err
-	}
-	tarantoolShards := make([]*tntengine.Shard, 0, len(tarantoolShardConfigs))
-
-	for _, tarantoolConf := range tarantoolShardConfigs {
-		tarantoolShard, err := tntengine.NewShard(tarantoolConf)
-		if err != nil {
-			return nil, mode, err
-		}
-		tarantoolShards = append(tarantoolShards, tarantoolShard)
-	}
-
-	if len(tarantoolShards) > 1 {
-		mode += "_sharded"
-	}
-
-	return tarantoolShards, mode, nil
-}
-
-func tarantoolEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceManager, string, error) {
-	tarantoolShards, mode, err := getTarantoolShards()
-	if err != nil {
-		return nil, nil, "", err
-	}
-	broker, err := tntengine.NewBroker(n, tntengine.BrokerConfig{
-		Shards: tarantoolShards,
-	})
-	if err != nil {
-		return nil, nil, "", err
-	}
-	presenceManager, err := tntengine.NewPresenceManager(n, tntengine.PresenceManagerConfig{
-		Shards:      tarantoolShards,
-		PresenceTTL: GetDuration("global_presence_ttl", true),
-	})
-	if err != nil {
-		return nil, nil, "", err
-	}
-	return broker, presenceManager, mode, nil
-}
-
 type logHandler struct {
 	entries chan centrifuge.LogEntry
 }
@@ -2914,8 +2802,6 @@ type HandlerFlag int
 const (
 	// HandlerWebsocket enables Raw Websocket handler.
 	HandlerWebsocket HandlerFlag = 1 << iota
-	// HandlerSockJS enables SockJS handler.
-	HandlerSockJS
 	// HandlerWebtransport enables Webtransport handler (requires HTTP/3)
 	HandlerWebtransport
 	// HandlerAPI enables API handler.
@@ -2946,7 +2832,6 @@ const (
 
 var handlerText = map[HandlerFlag]string{
 	HandlerWebsocket:     "websocket",
-	HandlerSockJS:        "sockjs",
 	HandlerWebtransport:  "webtransport",
 	HandlerAPI:           "api",
 	HandlerAdmin:         "admin",
@@ -2963,7 +2848,7 @@ var handlerText = map[HandlerFlag]string{
 }
 
 func (flags HandlerFlag) String() string {
-	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerWebtransport, HandlerHTTPStream, HandlerSSE, HandlerEmulation, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniHTTPStream, HandlerSwagger}
+	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerWebtransport, HandlerHTTPStream, HandlerSSE, HandlerEmulation, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniHTTPStream, HandlerSwagger}
 	var endpoints []string
 	for _, flag := range flagsOrdered {
 		text, ok := handlerText[flag]
@@ -3062,14 +2947,6 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 			ssePrefix = "/"
 		}
 		mux.Handle(ssePrefix, connChain.Then(centrifuge.NewSSEHandler(n, sseHandlerConfig())))
-	}
-
-	if flags&HandlerSockJS != 0 {
-		// register SockJS connection endpoints.
-		sockjsConfig := sockjsHandlerConfig()
-		sockjsPrefix := strings.TrimRight(v.GetString("sockjs_handler_prefix"), "/")
-		sockjsConfig.HandlerPrefix = sockjsPrefix
-		mux.Handle(sockjsPrefix+"/", connChain.Then(sockjs.NewHandler(n, sockjsConfig)))
 	}
 
 	if flags&HandlerUniWebsocket != 0 {

@@ -57,7 +57,7 @@ func (lrw *logResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return hijacker.Hijack()
 }
 
-// Flush as SockJS uses http.Flusher.
+// Flush implements http.Flusher.
 func (lrw *logResponseWriter) Flush() {
 	lrw.ResponseWriter.(http.Flusher).Flush()
 }
@@ -72,7 +72,7 @@ func (lrw *logResponseWriter) HTTPStream() http3.Stream {
 	return lrw.ResponseWriter.(http3.HTTPStreamer).HTTPStream()
 }
 
-// CloseNotify as SockJS uses http.CloseNotifier.
+// CloseNotify implements http.CloseNotifier.
 //
 //goland:noinspection GoDeprecation
 func (lrw *logResponseWriter) CloseNotify() <-chan bool {
