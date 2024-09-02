@@ -119,6 +119,7 @@ var defaults = map[string]any{
 	"token_audience_regex":       "",
 	"token_issuer":               "",
 	"token_issuer_regex":         "",
+	"token_user_id_claim":        "",
 
 	"separate_subscription_token_config":      false,
 	"subscription_token_hmac_secret_key":      "",
@@ -129,6 +130,7 @@ var defaults = map[string]any{
 	"subscription_token_audience_regex":       "",
 	"subscription_token_issuer":               "",
 	"subscription_token_issuer_regex":         "",
+	"subscription_token_user_id_claim":        "",
 
 	"allowed_origins": []string{},
 
@@ -683,7 +685,12 @@ func main() {
 				node.SetBroker(broker)
 			}
 
-			tokenVerifier, err := jwtverify.NewTokenVerifierJWT(jwtVerifierConfig(), ruleContainer)
+			verifierConfig, err := jwtVerifierConfig()
+			if err != nil {
+				log.Fatal().Msgf("error creating JWT verifier config: %v", err)
+			}
+
+			tokenVerifier, err := jwtverify.NewTokenVerifierJWT(verifierConfig, ruleContainer)
 			if err != nil {
 				log.Fatal().Msgf("error creating token verifier: %v", err)
 			}
@@ -692,7 +699,13 @@ func main() {
 			if viper.GetBool("separate_subscription_token_config") {
 				log.Info().Msg("initializing separate verifier for subscription tokens")
 				var err error
-				subTokenVerifier, err = jwtverify.NewTokenVerifierJWT(subJWTVerifierConfig(), ruleContainer)
+
+				subVerifier, err := subJWTVerifierConfig()
+				if err != nil {
+					log.Fatal().Msgf("error creating subscription JWT verifier config: %v", err)
+				}
+
+				subTokenVerifier, err = jwtverify.NewTokenVerifierJWT(subVerifier, ruleContainer)
 				if err != nil {
 					log.Fatal().Msgf("error creating token verifier: %v", err)
 				}
@@ -1062,7 +1075,11 @@ func main() {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
-			jwtVerifierConfig := jwtVerifierConfig()
+			jwtVerifierConfig, err := jwtVerifierConfig()
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
 			token, err := cli.GenerateToken(jwtVerifierConfig, genTokenUser, genTokenTTL)
 			if err != nil {
 				fmt.Printf("error: %v\n", err)
@@ -1109,9 +1126,17 @@ func main() {
 				fmt.Println("channel is required")
 				os.Exit(1)
 			}
-			verifierConfig := jwtVerifierConfig()
+			verifierConfig, err := jwtVerifierConfig()
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
 			if viper.GetBool("separate_subscription_token_config") {
-				verifierConfig = subJWTVerifierConfig()
+				verifierConfig, err = subJWTVerifierConfig()
+				if err != nil {
+					fmt.Printf("error: %v\n", err)
+					os.Exit(1)
+				}
 			}
 			token, err := cli.GenerateSubToken(verifierConfig, genSubTokenUser, genSubTokenChannel, genSubTokenTTL)
 			if err != nil {
@@ -1152,7 +1177,11 @@ func main() {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
-			verifierConfig := jwtVerifierConfig()
+			verifierConfig, err := jwtVerifierConfig()
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
 			if len(args) != 1 {
 				fmt.Printf("error: provide token to check [centrifugo checktoken <TOKEN>]\n")
 				os.Exit(1)
@@ -1184,9 +1213,17 @@ func main() {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
-			verifierConfig := jwtVerifierConfig()
+			verifierConfig, err := jwtVerifierConfig()
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
 			if viper.GetBool("separate_subscription_token_config") {
-				verifierConfig = subJWTVerifierConfig()
+				verifierConfig, err = subJWTVerifierConfig()
+				if err != nil {
+					fmt.Printf("error: %v\n", err)
+					os.Exit(1)
+				}
 			}
 			if len(args) != 1 {
 				fmt.Printf("error: provide token to check [centrifugo checksubtoken <TOKEN>]\n")
@@ -1317,12 +1354,25 @@ func handleSignals(
 				continue
 			}
 			ruleConfig := ruleConfig()
-			if err := tokenVerifier.Reload(jwtVerifierConfig()); err != nil {
+
+			verifierConfig, err := jwtVerifierConfig()
+			if err != nil {
+				log.Error().Msgf("error reloading: %v", err)
+				continue
+			}
+
+			if err := tokenVerifier.Reload(verifierConfig); err != nil {
 				log.Error().Msgf("error reloading: %v", err)
 				continue
 			}
 			if subTokenVerifier != nil {
-				if err := subTokenVerifier.Reload(subJWTVerifierConfig()); err != nil {
+				subVerifierConfig, err := subJWTVerifierConfig()
+				if err != nil {
+					log.Error().Msgf("error reloading: %v", err)
+					continue
+				}
+
+				if err := subTokenVerifier.Reload(subVerifierConfig); err != nil {
 					log.Error().Msgf("error reloading: %v", err)
 					continue
 				}
@@ -1871,7 +1921,12 @@ func consumersFromConfig(v *viper.Viper) []consuming.ConsumerConfig {
 	return consumers
 }
 
-func jwtVerifierConfig() jwtverify.VerifierConfig {
+// Now Centrifugo uses https://github.com/tidwall/gjson to extract custom claims from JWT. So technically
+// we could support extracting from nested objects using dot syntax, like "centrifugo.user". But for now
+// not using this feature to keep things simple until necessary.
+var customClaimRe = regexp.MustCompile("^[a-zA-Z_]+$")
+
+func jwtVerifierConfig() (jwtverify.VerifierConfig, error) {
 	v := viper.GetViper()
 	cfg := jwtverify.VerifierConfig{}
 
@@ -1881,7 +1936,7 @@ func jwtVerifierConfig() jwtverify.VerifierConfig {
 	if rsaPublicKey != "" {
 		pubKey, err := jwtutils.ParseRSAPublicKeyFromPEM([]byte(rsaPublicKey))
 		if err != nil {
-			log.Fatal().Msgf("error parsing RSA public key: %v", err)
+			return jwtverify.VerifierConfig{}, fmt.Errorf("error parsing RSA public key: %w", err)
 		}
 		cfg.RSAPublicKey = pubKey
 	}
@@ -1890,7 +1945,7 @@ func jwtVerifierConfig() jwtverify.VerifierConfig {
 	if ecdsaPublicKey != "" {
 		pubKey, err := jwtutils.ParseECDSAPublicKeyFromPEM([]byte(ecdsaPublicKey))
 		if err != nil {
-			log.Fatal().Msgf("error parsing ECDSA public key: %v", err)
+			return jwtverify.VerifierConfig{}, fmt.Errorf("error parsing ECDSA public key: %w", err)
 		}
 		cfg.ECDSAPublicKey = pubKey
 	}
@@ -1900,10 +1955,19 @@ func jwtVerifierConfig() jwtverify.VerifierConfig {
 	cfg.AudienceRegex = v.GetString("token_audience_regex")
 	cfg.Issuer = v.GetString("token_issuer")
 	cfg.IssuerRegex = v.GetString("token_issuer_regex")
-	return cfg
+
+	if v.GetString("token_user_id_claim") != "" {
+		customUserIDClaim := v.GetString("token_user_id_claim")
+		if !customClaimRe.MatchString(customUserIDClaim) {
+			return jwtverify.VerifierConfig{}, fmt.Errorf("invalid user ID claim: %s, must match %s regular expression", customUserIDClaim, customClaimRe.String())
+		}
+		cfg.UserIDClaim = customUserIDClaim
+	}
+
+	return cfg, nil
 }
 
-func subJWTVerifierConfig() jwtverify.VerifierConfig {
+func subJWTVerifierConfig() (jwtverify.VerifierConfig, error) {
 	v := viper.GetViper()
 	cfg := jwtverify.VerifierConfig{}
 
@@ -1913,7 +1977,7 @@ func subJWTVerifierConfig() jwtverify.VerifierConfig {
 	if rsaPublicKey != "" {
 		pubKey, err := jwtutils.ParseRSAPublicKeyFromPEM([]byte(rsaPublicKey))
 		if err != nil {
-			log.Fatal().Msgf("error parsing RSA public key: %v", err)
+			return jwtverify.VerifierConfig{}, fmt.Errorf("error parsing RSA public key: %w", err)
 		}
 		cfg.RSAPublicKey = pubKey
 	}
@@ -1922,7 +1986,7 @@ func subJWTVerifierConfig() jwtverify.VerifierConfig {
 	if ecdsaPublicKey != "" {
 		pubKey, err := jwtutils.ParseECDSAPublicKeyFromPEM([]byte(ecdsaPublicKey))
 		if err != nil {
-			log.Fatal().Msgf("error parsing ECDSA public key: %v", err)
+			return jwtverify.VerifierConfig{}, fmt.Errorf("error parsing ECDSA public key: %w", err)
 		}
 		cfg.ECDSAPublicKey = pubKey
 	}
@@ -1932,7 +1996,16 @@ func subJWTVerifierConfig() jwtverify.VerifierConfig {
 	cfg.AudienceRegex = v.GetString("subscription_token_audience_regex")
 	cfg.Issuer = v.GetString("subscription_token_issuer")
 	cfg.IssuerRegex = v.GetString("subscription_token_issuer_regex")
-	return cfg
+
+	if v.GetString("subscription_token_user_id_claim") != "" {
+		customUserIDClaim := v.GetString("subscription_token_user_id_claim")
+		if !customClaimRe.MatchString(customUserIDClaim) {
+			return jwtverify.VerifierConfig{}, fmt.Errorf("invalid user ID claim: %s, must match %s regular expression", customUserIDClaim, customClaimRe.String())
+		}
+		cfg.UserIDClaim = customUserIDClaim
+	}
+
+	return cfg, nil
 }
 
 func GetDuration(key string, secondsPrecision ...bool) time.Duration {

@@ -21,6 +21,7 @@ import (
 	"github.com/cristalhq/jwt/v5"
 	"github.com/rakutentech/jwk-go/okp"
 	"github.com/rs/zerolog/log"
+	"github.com/tidwall/gjson"
 )
 
 type VerifierConfig struct {
@@ -56,6 +57,10 @@ type VerifierConfig struct {
 	// IssuerRegex allows setting Issuer in form of Go language regex pattern. Regex groups
 	// may be then used in constructing JWKSPublicEndpoint.
 	IssuerRegex string
+
+	// UserIDClaim allows overriding default claim used to extract user ID from token.
+	// By default, Centrifugo uses "sub" and we recommend keeping the default if possible.
+	UserIDClaim string
 }
 
 func (c VerifierConfig) Validate() error {
@@ -94,6 +99,7 @@ func NewTokenVerifierJWT(config VerifierConfig, ruleContainer *rule.Container) (
 		issuerRe:      issuerRe,
 		audience:      config.Audience,
 		audienceRe:    audienceRe,
+		userIDClaim:   config.UserIDClaim,
 	}
 
 	algorithms, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey, config.ECDSAPublicKey)
@@ -122,6 +128,7 @@ type VerifierJWT struct {
 	audienceRe    *regexp.Regexp
 	issuer        string
 	issuerRe      *regexp.Regexp
+	userIDClaim   string
 }
 
 var (
@@ -582,13 +589,17 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 	}
 
 	ct := ConnectToken{
-		UserID:   claims.RegisteredClaims.Subject,
 		Info:     info,
 		Subs:     subs,
 		ExpireAt: expireAt,
 		Meta:     claims.Meta,
 	}
-
+	if verifier.userIDClaim != "" {
+		value := gjson.GetBytes(token.Claims(), verifier.userIDClaim)
+		ct.UserID = value.String()
+	} else {
+		ct.UserID = claims.RegisteredClaims.Subject
+	}
 	return ct, nil
 }
 
@@ -742,6 +753,12 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 			Data:              data,
 		},
 	}
+	if verifier.userIDClaim != "" {
+		value := gjson.GetBytes(token.Claims(), verifier.userIDClaim)
+		st.UserID = value.String()
+	} else {
+		st.UserID = claims.RegisteredClaims.Subject
+	}
 	return st, nil
 }
 
@@ -772,11 +789,11 @@ func (verifier *VerifierJWT) Reload(config VerifierConfig) error {
 			return fmt.Errorf("error compiling issuer regex: %w", err)
 		}
 	}
-
 	verifier.algorithms = alg
 	verifier.audience = config.Audience
 	verifier.audienceRe = audienceRe
 	verifier.issuer = config.Issuer
 	verifier.issuerRe = issuerRe
+	verifier.userIDClaim = config.UserIDClaim
 	return nil
 }
