@@ -240,17 +240,8 @@ var defaults = map[string]any{
 	"log_level": "info",
 	"log_file":  "",
 
-	"tls":                      false,
-	"tls_key":                  "",
-	"tls_cert":                 "",
-	"tls_cert_pem":             "",
-	"tls_key_pem":              "",
-	"tls_root_ca":              "",
-	"tls_root_ca_pem":          "",
-	"tls_client_ca":            "",
-	"tls_client_ca_pem":        "",
-	"tls_server_name":          "",
-	"tls_insecure_skip_verify": false,
+	"tls":          tools.TLSConfig{},
+	"tls_external": false,
 
 	"swagger":          false,
 	"admin_external":   false,
@@ -262,8 +253,6 @@ var defaults = map[string]any{
 
 	"webtransport": false,
 	"http3":        false,
-
-	"tls_external": false,
 
 	"connect_proxy_name": "",
 	"refresh_proxy_name": "",
@@ -293,6 +282,8 @@ var defaults = map[string]any{
 	"proxy_grpc_cert_file":          "",
 	"proxy_grpc_compression":        false,
 	"proxy_grpc_tls":                tools.TLSConfig{},
+	"proxy_grpc_credentials_key":    "",
+	"proxy_grpc_credentials_value":  "",
 
 	"api_key":        "",
 	"api_error_mode": "",
@@ -315,19 +306,8 @@ var defaults = map[string]any{
 	"grpc_api_address":                  "",
 	"grpc_api_port":                     10000,
 	"grpc_api_key":                      "",
-	"grpc_api_tls_disable":              false,
+	"grpc_api_tls":                      tools.TLSConfig{},
 	"grpc_api_reflection":               false,
-	"grpc_api_tls":                      false,
-	"grpc_api_tls_key":                  "",
-	"grpc_api_tls_cert":                 "",
-	"grpc_api_tls_cert_pem":             "",
-	"grpc_api_tls_key_pem":              "",
-	"grpc_api_tls_root_ca":              "",
-	"grpc_api_tls_root_ca_pem":          "",
-	"grpc_api_tls_client_ca":            "",
-	"grpc_api_tls_client_ca_pem":        "",
-	"grpc_api_tls_server_name":          "",
-	"grpc_api_tls_insecure_skip_verify": false,
 	"grpc_api_max_receive_message_size": 0,
 
 	"shutdown_timeout":           30 * time.Second,
@@ -345,6 +325,7 @@ var defaults = map[string]any{
 	"nats_dial_timeout":    time.Second,
 	"nats_write_timeout":   time.Second,
 	"nats_allow_wildcards": false,
+	"nats_tls":             tools.TLSConfig{},
 
 	"nats_raw_mode.enabled":              false,
 	"nats_raw_mode.channel_replacements": map[string]string{},
@@ -365,18 +346,7 @@ var defaults = map[string]any{
 	"uni_grpc_address":                  "",
 	"uni_grpc_port":                     11000,
 	"uni_grpc_max_receive_message_size": 65536,
-	"uni_grpc_tls_disable":              false,
-	"uni_grpc_tls":                      false,
-	"uni_grpc_tls_key":                  "",
-	"uni_grpc_tls_cert":                 "",
-	"uni_grpc_tls_cert_pem":             "",
-	"uni_grpc_tls_key_pem":              "",
-	"uni_grpc_tls_root_ca":              "",
-	"uni_grpc_tls_root_ca_pem":          "",
-	"uni_grpc_tls_client_ca":            "",
-	"uni_grpc_tls_client_ca_pem":        "",
-	"uni_grpc_tls_server_name":          "",
-	"uni_grpc_tls_insecure_skip_verify": false,
+	"uni_grpc_tls":                      tools.TLSConfig{},
 
 	"http_stream": false,
 	"sse":         false,
@@ -403,9 +373,6 @@ var defaults = map[string]any{
 
 	"proxies": []any{},
 
-	"proxy_grpc_credentials_key":   "",
-	"proxy_grpc_credentials_value": "",
-
 	"enable_unreleased_features": false,
 
 	"consumers": []any{},
@@ -417,70 +384,24 @@ func init() {
 	}
 	for _, prefix := range redisConfigPrefixes {
 		keyMap := map[string]any{
-			prefix + "redis_address":                           "redis://127.0.0.1:6379",
-			prefix + "redis_prefix":                            "centrifugo",
-			prefix + "redis_connect_timeout":                   time.Second,
-			prefix + "redis_io_timeout":                        4 * time.Second,
-			prefix + "redis_use_lists":                         false,
-			prefix + "redis_db":                                0,
-			prefix + "redis_user":                              "",
-			prefix + "redis_password":                          "",
-			prefix + "redis_client_name":                       "",
-			prefix + "redis_force_resp2":                       false,
-			prefix + "redis_cluster_address":                   []string{},
-			prefix + "redis_sentinel_address":                  []string{},
-			prefix + "redis_sentinel_user":                     "",
-			prefix + "redis_sentinel_password":                 "",
-			prefix + "redis_sentinel_master_name":              "",
-			prefix + "redis_sentinel_client_name":              "",
-			prefix + "redis_tls":                               false,
-			prefix + "redis_tls_key":                           "",
-			prefix + "redis_tls_cert":                          "",
-			prefix + "redis_tls_cert_pem":                      "",
-			prefix + "redis_tls_key_pem":                       "",
-			prefix + "redis_tls_root_ca":                       "",
-			prefix + "redis_tls_root_ca_pem":                   "",
-			prefix + "redis_tls_client_ca":                     "",
-			prefix + "redis_tls_client_ca_pem":                 "",
-			prefix + "redis_tls_server_name":                   "",
-			prefix + "redis_tls_insecure_skip_verify":          false,
-			prefix + "redis_sentinel_tls":                      false,
-			prefix + "redis_sentinel_tls_key":                  "",
-			prefix + "redis_sentinel_tls_cert":                 "",
-			prefix + "redis_sentinel_tls_cert_pem":             "",
-			prefix + "redis_sentinel_tls_key_pem":              "",
-			prefix + "redis_sentinel_tls_root_ca":              "",
-			prefix + "redis_sentinel_tls_root_ca_pem":          "",
-			prefix + "redis_sentinel_tls_client_ca":            "",
-			prefix + "redis_sentinel_tls_client_ca_pem":        "",
-			prefix + "redis_sentinel_tls_server_name":          "",
-			prefix + "redis_sentinel_tls_insecure_skip_verify": false,
-		}
-		for k, v := range keyMap {
-			defaults[k] = v
-		}
-	}
-	tlsConfigPrefixes := []string{
-		"nats_tls.",
-		"proxy_grpc_tls.",
-	}
-	for _, prefix := range tlsConfigPrefixes {
-		keyMap := map[string]any{
-			prefix + "enabled":              false,
-			prefix + "cert_pem":             "",
-			prefix + "cert_pem_file":        "",
-			prefix + "cert_pem_b64":         "",
-			prefix + "key_pem":              "",
-			prefix + "key_pem_file":         "",
-			prefix + "key_pem_b64":          "",
-			prefix + "server_ca_pem":        "",
-			prefix + "server_ca_pem_file":   "",
-			prefix + "server_ca_pem_b64":    "",
-			prefix + "client_ca_pem":        "",
-			prefix + "client_ca_pem_file":   "",
-			prefix + "client_ca_pem_b64":    "",
-			prefix + "server_name":          "",
-			prefix + "insecure_skip_verify": false,
+			prefix + "redis_address":              "redis://127.0.0.1:6379",
+			prefix + "redis_prefix":               "centrifugo",
+			prefix + "redis_connect_timeout":      time.Second,
+			prefix + "redis_io_timeout":           4 * time.Second,
+			prefix + "redis_use_lists":            false,
+			prefix + "redis_db":                   0,
+			prefix + "redis_user":                 "",
+			prefix + "redis_password":             "",
+			prefix + "redis_client_name":          "",
+			prefix + "redis_force_resp2":          false,
+			prefix + "redis_cluster_address":      []string{},
+			prefix + "redis_sentinel_address":     []string{},
+			prefix + "redis_sentinel_user":        "",
+			prefix + "redis_sentinel_password":    "",
+			prefix + "redis_sentinel_master_name": "",
+			prefix + "redis_sentinel_client_name": "",
+			prefix + "redis_tls":                  tools.TLSConfig{},
+			prefix + "redis_sentinel_tls":         tools.TLSConfig{},
 		}
 		for k, v := range keyMap {
 			defaults[k] = v
@@ -517,10 +438,8 @@ func main() {
 			bindPFlags := []string{
 				"engine", "log_level", "log_file", "pid_file", "debug", "name", "admin",
 				"admin_external", "client_insecure", "admin_insecure", "api_insecure", "api_external",
-				"port", "address", "tls", "tls_cert", "tls_key", "tls_external", "internal_port",
-				"internal_address", "prometheus", "health", "redis_address",
-				"broker", "nats_url", "grpc_api", "grpc_api_tls", "grpc_api_tls_disable",
-				"grpc_api_tls_cert", "grpc_api_tls_key", "grpc_api_port", "uni_grpc",
+				"port", "address", "internal_port", "internal_address", "prometheus", "health", "redis_address",
+				"broker", "nats_url", "grpc_api", "grpc_api_port", "uni_grpc",
 				"uni_grpc_port", "uni_websocket", "uni_sse", "uni_http_stream", "sse", "http_stream",
 				"swagger",
 			}
@@ -780,8 +699,6 @@ func main() {
 				}
 				if viper.GetBool("grpc_api_tls") {
 					tlsConfig, tlsErr = tlsConfigForGRPC()
-				} else if !viper.GetBool("grpc_api_tls_disable") {
-					tlsConfig, tlsErr = getTLSConfig()
 				}
 				if tlsErr != nil {
 					log.Fatal().Msgf("error getting TLS config: %v", tlsErr)
@@ -832,8 +749,6 @@ func main() {
 
 				if viper.GetBool("uni_grpc_tls") {
 					tlsConfig, tlsErr = tlsConfigForUniGRPC()
-				} else if !viper.GetBool("uni_grpc_tls_disable") {
-					tlsConfig, tlsErr = getTLSConfig()
 				}
 				if tlsErr != nil {
 					log.Fatal().Msgf("error getting TLS config: %v", tlsErr)
@@ -976,17 +891,8 @@ func main() {
 	rootCmd.Flags().StringP("internal_address", "", "", "custom interface address to listen on for internal endpoints")
 	rootCmd.Flags().StringP("internal_port", "", "", "custom port for internal endpoints")
 
-	rootCmd.Flags().BoolP("tls", "", false, "enable TLS, requires an X509 certificate and a key file")
-	rootCmd.Flags().StringP("tls_cert", "", "", "path to an X509 certificate file")
-	rootCmd.Flags().StringP("tls_key", "", "", "path to an X509 certificate key")
-	rootCmd.Flags().BoolP("tls_external", "", false, "enable TLS only for external endpoints")
-
 	rootCmd.Flags().BoolP("grpc_api", "", false, "enable GRPC API server")
 	rootCmd.Flags().IntP("grpc_api_port", "", 10000, "port to bind GRPC API server to")
-	rootCmd.Flags().BoolP("grpc_api_tls", "", false, "enable TLS for GRPC API server, requires an X509 certificate and a key file")
-	rootCmd.Flags().StringP("grpc_api_tls_cert", "", "", "path to an X509 certificate file for GRPC API server")
-	rootCmd.Flags().StringP("grpc_api_tls_key", "", "", "path to an X509 certificate key for GRPC API server")
-	rootCmd.Flags().BoolP("grpc_api_tls_disable", "", false, "disable general TLS for GRPC API server")
 
 	rootCmd.Flags().BoolP("uni_grpc", "", false, "enable unidirectional GRPC endpoint")
 	rootCmd.Flags().IntP("uni_grpc_port", "", 11000, "port to bind unidirectional GRPC server to")

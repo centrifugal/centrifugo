@@ -25,9 +25,8 @@ type KafkaConfig struct {
 	ConsumerGroup  string   `mapstructure:"consumer_group" json:"consumer_group"`
 	MaxPollRecords int      `mapstructure:"max_poll_records" json:"max_poll_records"`
 
-	// TLS may be enabled, and mTLS auth may be configured.
-	TLS              bool `mapstructure:"tls" json:"tls"`
-	tools.TLSOptions `mapstructure:",squash"`
+	// TLS for client connection.
+	TLS tools.TLSConfig `mapstructure:"tls" json:"tls"`
 
 	// SASLMechanism when not empty enables SASL auth. For now, Centrifugo only
 	// supports "plain" SASL mechanism.
@@ -140,7 +139,7 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 		kgo.ClientID(kafkaClientID),
 		kgo.InstanceID(c.getInstanceID()),
 	}
-	if c.config.TLS {
+	if c.config.TLS.Enabled {
 		tlsOptionsMap, err := c.config.TLSOptions.ToMap()
 		if err != nil {
 			return nil, fmt.Errorf("error in TLS configuration: %w", err)

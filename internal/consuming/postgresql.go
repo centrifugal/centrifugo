@@ -37,9 +37,20 @@ func NewPostgresConsumer(name string, logger Logger, dispatcher Dispatcher, conf
 	if time.Duration(config.PartitionPollInterval) == 0 {
 		config.PartitionPollInterval = tools.Duration(300 * time.Millisecond)
 	}
-	pool, err := pgxpool.New(context.Background(), config.DSN)
+	conf, err := pgxpool.ParseConfig(config.DSN)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error parsing postgresql DSN: %w", err)
+	}
+	if config.TLS.Enabled {
+		tlsConfig, err := config.TLS.ToGoTLSConfig()
+		if err != nil {
+			return nil, fmt.Errorf("error creating postgresql TLS config: %w", err)
+		}
+		conf.ConnConfig.TLSConfig = tlsConfig
+	}
+	pool, err := pgxpool.NewWithConfig(context.Background(), conf)
+	if err != nil {
+		return nil, fmt.Errorf("error creating postgresql pool: %w", err)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -58,12 +69,13 @@ func NewPostgresConsumer(name string, logger Logger, dispatcher Dispatcher, conf
 }
 
 type PostgresConfig struct {
-	DSN                          string         `mapstructure:"dsn" json:"dsn"`
-	OutboxTableName              string         `mapstructure:"outbox_table_name" json:"outbox_table_name"`
-	NumPartitions                int            `mapstructure:"num_partitions" json:"num_partitions"`
-	PartitionSelectLimit         int            `mapstructure:"partition_select_limit" json:"partition_select_limit"`
-	PartitionPollInterval        tools.Duration `mapstructure:"partition_poll_interval" json:"partition_poll_interval"`
-	PartitionNotificationChannel string         `mapstructure:"partition_notification_channel" json:"partition_notification_channel"`
+	DSN                          string          `mapstructure:"dsn" json:"dsn"`
+	OutboxTableName              string          `mapstructure:"outbox_table_name" json:"outbox_table_name"`
+	NumPartitions                int             `mapstructure:"num_partitions" json:"num_partitions"`
+	PartitionSelectLimit         int             `mapstructure:"partition_select_limit" json:"partition_select_limit"`
+	PartitionPollInterval        tools.Duration  `mapstructure:"partition_poll_interval" json:"partition_poll_interval"`
+	PartitionNotificationChannel string          `mapstructure:"partition_notification_channel" json:"partition_notification_channel"`
+	TLS                          tools.TLSConfig `mapstructure:"tls" json:"tls"`
 }
 
 type PostgresConsumer struct {
