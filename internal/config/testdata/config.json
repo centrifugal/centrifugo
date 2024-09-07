@@ -1,0 +1,46 @@
+{
+  "tls": {
+    "enabled": true
+  },
+  "client": {
+    "allowed_origins": ["http://localhost:3000"],
+    "token": {
+      "enabled": true
+    },
+    "ping_interval": "12s"
+  },
+  "channel": {
+    "presence": true,
+    "namespaces": [
+      {
+        "name": "ns1",
+        "presence": true
+      },
+      {
+        "name": "ns2",
+        "presence": false
+      }
+    ]
+  },
+  "proxies": [
+    {
+      "name": "ppp"
+    }
+  ],
+  "consumers": [
+    {
+      "name": "kafka",
+      "enabled": true,
+      "type": "kafka",
+      "kafka": {
+        "brokers": ["localhost:9092"],
+        "topics": ["postgres.public.chat_cdc"],
+        "consumer_group": "centrifugo",
+        "tls": {
+          "enabled": true,
+          "cert_pem": "xxx"
+        }
+      }
+    }
+  ]
+}
