@@ -20,25 +20,25 @@ import (
 )
 
 type KafkaConfig struct {
-	Brokers        []string `mapstructure:"brokers" json:"brokers"`
-	Topics         []string `mapstructure:"topics" json:"topics"`
-	ConsumerGroup  string   `mapstructure:"consumer_group" json:"consumer_group"`
-	MaxPollRecords int      `mapstructure:"max_poll_records" json:"max_poll_records"`
+	Brokers        []string `mapstructure:"brokers" json:"brokers" envconfig:"brokers"`
+	Topics         []string `mapstructure:"topics" json:"topics" envconfig:"topics"`
+	ConsumerGroup  string   `mapstructure:"consumer_group" json:"consumer_group" envconfig:"consumer_group"`
+	MaxPollRecords int      `mapstructure:"max_poll_records" json:"max_poll_records" envconfig:"max_poll_records" default:"100"`
 
 	// TLS for client connection.
-	TLS tools.TLSConfig `mapstructure:"tls" json:"tls"`
+	TLS tools.TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls"`
 
 	// SASLMechanism when not empty enables SASL auth. For now, Centrifugo only
 	// supports "plain" SASL mechanism.
-	SASLMechanism string `mapstructure:"sasl_mechanism" json:"sasl_mechanism"`
-	SASLUser      string `mapstructure:"sasl_user" json:"sasl_user"`
-	SASLPassword  string `mapstructure:"sasl_password" json:"sasl_password"`
+	SASLMechanism string `mapstructure:"sasl_mechanism" json:"sasl_mechanism" envconfig:"sasl_mechanism"`
+	SASLUser      string `mapstructure:"sasl_user" json:"sasl_user" envconfig:"sasl_user"`
+	SASLPassword  string `mapstructure:"sasl_password" json:"sasl_password" envconfig:"sasl_password"`
 
 	// PartitionBufferSize is the size of the buffer for each partition consumer.
 	// This is the number of records that can be buffered before the consumer
 	// will pause fetching records from Kafka. By default, this is 16.
 	// Set to -1 to use non-buffered channel.
-	PartitionBufferSize int `mapstructure:"partition_buffer_size" json:"partition_buffer_size"`
+	PartitionBufferSize int `mapstructure:"partition_buffer_size" json:"partition_buffer_size" envconfig:"partition_buffer_size" default:"16"`
 }
 
 type topicPartition struct {
@@ -140,7 +140,7 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 		kgo.InstanceID(c.getInstanceID()),
 	}
 	if c.config.TLS.Enabled {
-		tlsOptionsMap, err := c.config.TLSOptions.ToMap()
+		tlsOptionsMap, err := c.config.TLS.ToMap()
 		if err != nil {
 			return nil, fmt.Errorf("error in TLS configuration: %w", err)
 		}

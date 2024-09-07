@@ -1,0 +1,37 @@
+[tls]
+enabled = true
+
+[client]
+allowed_origins = [ "http://localhost:3000" ]
+ping_interval = "12s"
+
+  [client.token]
+  enabled = true
+
+[channel]
+presence = true
+
+  [[channel.namespaces]]
+  name = "ns1"
+  presence = true
+
+  [[channel.namespaces]]
+  name = "ns2"
+  presence = false
+
+[[proxies]]
+name = "ppp"
+
+[[consumers]]
+name = "kafka"
+enabled = true
+type = "kafka"
+
+  [consumers.kafka]
+  brokers = [ "localhost:9092" ]
+  topics = [ "postgres.public.chat_cdc" ]
+  consumer_group = "centrifugo"
+
+    [consumers.kafka.tls]
+    enabled = true
+    cert_pem = "xxx"

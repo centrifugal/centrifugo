@@ -35,7 +35,7 @@ func NewPostgresConsumer(name string, logger Logger, dispatcher Dispatcher, conf
 		config.PartitionSelectLimit = defaultPartitionSelectLimit
 	}
 	if time.Duration(config.PartitionPollInterval) == 0 {
-		config.PartitionPollInterval = tools.Duration(300 * time.Millisecond)
+		config.PartitionPollInterval = 300 * time.Millisecond
 	}
 	conf, err := pgxpool.ParseConfig(config.DSN)
 	if err != nil {
@@ -69,13 +69,13 @@ func NewPostgresConsumer(name string, logger Logger, dispatcher Dispatcher, conf
 }
 
 type PostgresConfig struct {
-	DSN                          string          `mapstructure:"dsn" json:"dsn"`
-	OutboxTableName              string          `mapstructure:"outbox_table_name" json:"outbox_table_name"`
-	NumPartitions                int             `mapstructure:"num_partitions" json:"num_partitions"`
-	PartitionSelectLimit         int             `mapstructure:"partition_select_limit" json:"partition_select_limit"`
-	PartitionPollInterval        tools.Duration  `mapstructure:"partition_poll_interval" json:"partition_poll_interval"`
-	PartitionNotificationChannel string          `mapstructure:"partition_notification_channel" json:"partition_notification_channel"`
-	TLS                          tools.TLSConfig `mapstructure:"tls" json:"tls"`
+	DSN                          string          `mapstructure:"dsn" json:"dsn" envconfig:"dsn"`
+	OutboxTableName              string          `mapstructure:"outbox_table_name" json:"outbox_table_name" envconfig:"outbox_table_name"`
+	NumPartitions                int             `mapstructure:"num_partitions" json:"num_partitions" envconfig:"num_partitions" default:"1"`
+	PartitionSelectLimit         int             `mapstructure:"partition_select_limit" json:"partition_select_limit" envconfig:"partition_select_limit" default:"100"`
+	PartitionPollInterval        time.Duration   `mapstructure:"partition_poll_interval" json:"partition_poll_interval" envconfig:"partition_poll_interval" default:"300ms"`
+	PartitionNotificationChannel string          `mapstructure:"partition_notification_channel" json:"partition_notification_channel" envconfig:"partition_notification_channel"`
+	TLS                          tools.TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls"`
 }
 
 type PostgresConsumer struct {

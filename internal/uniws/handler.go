@@ -16,15 +16,18 @@ import (
 // communication. Here we utilize only one direction - giving users an additional
 // option for unidirectional transport.
 type Handler struct {
-	node    *centrifuge.Node
-	upgrade *websocket.Upgrader
-	config  Config
+	node     *centrifuge.Node
+	upgrade  *websocket.Upgrader
+	config   Config
+	pingPong centrifuge.PingPongConfig
 }
 
 var writeBufferPool = &sync.Pool{}
 
 // NewHandler creates new Handler.
-func NewHandler(n *centrifuge.Node, c Config) *Handler {
+func NewHandler(
+	n *centrifuge.Node, c Config, CheckOrigin func(r *http.Request) bool, pingPong centrifuge.PingPongConfig,
+) *Handler {
 	upgrade := &websocket.Upgrader{
 		ReadBufferSize:    c.ReadBufferSize,
 		EnableCompression: c.Compression,
@@ -34,15 +37,16 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 	} else {
 		upgrade.WriteBufferSize = c.WriteBufferSize
 	}
-	if c.CheckOrigin != nil {
-		upgrade.CheckOrigin = c.CheckOrigin
+	if CheckOrigin != nil {
+		upgrade.CheckOrigin = CheckOrigin
 	} else {
 		upgrade.CheckOrigin = sameHostOriginCheck()
 	}
 	return &Handler{
-		node:    n,
-		config:  c,
-		upgrade: upgrade,
+		node:     n,
+		config:   c,
+		upgrade:  upgrade,
+		pingPong: pingPong,
 	}
 }
 
@@ -78,7 +82,7 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	pingInterval := s.config.PingInterval
+	pingInterval := s.pingPong.PingInterval
 	if pingInterval == 0 {
 		pingInterval = DefaultWebsocketPingInterval
 	}
@@ -109,7 +113,7 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			pingInterval:       pingInterval,
 			writeTimeout:       writeTimeout,
 			compressionMinSize: compressionMinSize,
-			pingPongConfig:     s.config.PingPongConfig,
+			pingPongConfig:     s.pingPong,
 		}
 
 		graceCh := make(chan struct{})

@@ -6,8 +6,6 @@ import (
 	"net/url"
 	"strings"
 	"time"
-
-	"github.com/centrifugal/centrifuge"
 )
 
 // Defaults.
@@ -19,47 +17,16 @@ const (
 
 // Config represents config for Handler.
 type Config struct {
-	// CompressionLevel sets a level for websocket compression.
-	// See possible value description at https://golang.org/pkg/compress/flate/#NewWriter
-	CompressionLevel int
-
-	// CompressionMinSize allows to set minimal limit in bytes for
-	// message to use compression when writing it into client connection.
-	// By default, it's 0 - i.e. all messages will be compressed when
-	// WebsocketCompression enabled and compression negotiated with client.
-	CompressionMinSize int
-
-	// ReadBufferSize is a parameter that is used for raw websocket Upgrader.
-	// If set to zero reasonable default value will be used.
-	ReadBufferSize int
-
-	// WriteBufferSize is a parameter that is used for raw websocket Upgrader.
-	// If set to zero reasonable default value will be used.
-	WriteBufferSize int
-
-	// MessageSizeLimit sets the maximum size in bytes of allowed message from client.
-	// By default, DefaultWebsocketMaxMessageSize will be used.
-	MessageSizeLimit int
-
-	// CheckOrigin func to provide custom origin check logic.
-	// nil means allow all origins.
-	CheckOrigin func(r *http.Request) bool
-
-	// WriteTimeout is maximum time of write message operation.
-	// Slow client will be disconnected.
-	// By default, DefaultWebsocketWriteTimeout will be used.
-	WriteTimeout time.Duration
-
-	// Compression allows to enable websocket permessage-deflate
-	// compression support for raw websocket connections. It does
-	// not guarantee that compression will be used - i.e. it only
-	// says that server will try to negotiate it with client.
-	Compression bool
-
-	// UseWriteBufferPool enables using buffer pool for writes.
-	UseWriteBufferPool bool
-
-	centrifuge.PingPongConfig
+	Enabled            bool          `mapstructure:"enabled" json:"enabled" envconfig:"enabled"`
+	HandlerPrefix      string        `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/uni_websocket"`
+	Compression        bool          `mapstructure:"compression" json:"compression" envconfig:"compression"`
+	CompressionMinSize int           `mapstructure:"compression_min_size" json:"compression_min_size" envconfig:"compression_min_size"`
+	CompressionLevel   int           `mapstructure:"compression_level" json:"compression_level" envconfig:"compression_level" default:"1"`
+	ReadBufferSize     int           `mapstructure:"read_buffer_size" json:"read_buffer_size" envconfig:"read_buffer_size"`
+	UseWriteBufferPool bool          `mapstructure:"use_write_buffer_pool" json:"use_write_buffer_pool" envconfig:"use_write_buffer_pool"`
+	WriteBufferSize    int           `mapstructure:"write_buffer_size" json:"write_buffer_size" envconfig:"write_buffer_size"`
+	WriteTimeout       time.Duration `mapstructure:"write_timeout" json:"write_timeout" envconfig:"write_timeout" default:"1000ms"`
+	MessageSizeLimit   int           `mapstructure:"message_size_limit" json:"message_size_limit" envconfig:"message_size_limit" default:"65536"`
 }
 
 func sameHostOriginCheck() func(r *http.Request) bool {

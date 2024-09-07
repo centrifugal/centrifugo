@@ -11,14 +11,16 @@ import (
 )
 
 type Handler struct {
-	node   *centrifuge.Node
-	config Config
+	node     *centrifuge.Node
+	config   Config
+	pingPong centrifuge.PingPongConfig
 }
 
-func NewHandler(n *centrifuge.Node, c Config) *Handler {
+func NewHandler(n *centrifuge.Node, c Config, pingPong centrifuge.PingPongConfig) *Handler {
 	return &Handler{
-		node:   n,
-		config: c,
+		node:     n,
+		config:   c,
+		pingPong: pingPong,
 	}
 }
 
@@ -65,7 +67,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	transport := newEventsourceTransport(r, h.config.PingPongConfig)
+	transport := newEventsourceTransport(r, h.pingPong)
 	c, closeFn, err := centrifuge.NewClient(r.Context(), h.node, transport)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error create client", map[string]any{"error": err.Error(), "transport": "uni_sse"}))

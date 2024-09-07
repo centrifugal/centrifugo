@@ -3,11 +3,12 @@ package natsbroker
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 
 	"github.com/rs/zerolog/log"
 
@@ -24,16 +25,16 @@ type (
 // Config of NatsBroker.
 type Config struct {
 	// URL is a Nats server URL.
-	URL string
+	URL string `mapstructure:"url" json:"url" envconfig:"url"`
 	// Prefix allows customizing channel prefix in Nats to work with a single Nats from different
 	// unrelated Centrifugo setups.
-	Prefix string
+	Prefix string `mapstructure:"prefix" json:"prefix" envconfig:"prefix"`
 	// DialTimeout is a timeout for establishing connection to Nats.
-	DialTimeout time.Duration
+	DialTimeout time.Duration `mapstructure:"dial_timeout" json:"dial_timeout" envconfig:"dial_timeout"`
 	// WriteTimeout is a timeout for write operation to Nats.
-	WriteTimeout time.Duration
+	WriteTimeout time.Duration `mapstructure:"write_timeout" json:"write_timeout" envconfig:"write_timeout"`
 	// TLS for the Nats connection. TLS is not used if nil.
-	TLS *tls.Config
+	TLS configtypes.TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls"`
 
 	// AllowWildcards allows to enable wildcard subscriptions. By default, wildcard subscriptions
 	// are not allowed. Using wildcard subscriptions can't be combined with join/leave events and presence
@@ -43,19 +44,19 @@ type Config struct {
 	// It's required to use channels without wildcards to for mentioned features to work properly. When
 	// using wildcard subscriptions a special care is needed regarding security - pay additional
 	// attention to a proper permission management.
-	AllowWildcards bool
+	AllowWildcards bool `mapstructure:"allow_wildcards" json:"allow_wildcards" envconfig:"allow_wildcards"`
 
 	// RawMode allows enabling raw communication with Nats. When on, Centrifugo subscribes to channels
 	// without adding any prefixes to channel name. Proper prefixes must be managed by the application in this
 	// case. Data consumed from Nats is sent directly to subscribers without any processing. When publishing
 	// to Nats Centrifugo does not add any prefixes to channel names also. Centrifugo features like Publication
 	// tags, Publication ClientInfo, join/leave events are not supported in raw mode.
-	RawMode RawModeConfig
+	RawMode RawModeConfig `mapstructure:"raw_mode" json:"raw_mode" envconfig:"raw_mode"`
 }
 
 type RawModeConfig struct {
 	// Enabled enables raw mode when true.
-	Enabled bool
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled"`
 
 	// ChannelReplacements is a map where keys are strings to replace and values are replacements.
 	// For example, you have Centrifugo namespace "chat" and using channel "chat:index", but you want to
@@ -63,12 +64,12 @@ type RawModeConfig struct {
 	// In this case Centrifugo will replace all ":" symbols in channel name with "." before sending to Nats.
 	// Broker keeps reverse mapping to the original channel to broadcast to proper channels when processing
 	// messages received from Nats.
-	ChannelReplacements map[string]string
+	ChannelReplacements map[string]string `mapstructure:"channel_replacements" json:"channel_replacements" envconfig:"channel_replacements"`
 
 	// Prefix is a string that will be added to all channels when publishing messages to Nats, subscribing
 	// to channels in Nats. It's also stripped from channel name when processing messages received from Nats.
 	// By default, no prefix is used.
-	Prefix string
+	Prefix string `mapstructure:"prefix" json:"prefix" envconfig:"prefix"`
 }
 
 type subWrapper struct {
@@ -143,8 +144,12 @@ func (b *NatsBroker) Run(h centrifuge.BrokerEventHandler) error {
 		nats.Timeout(b.config.DialTimeout),
 		nats.FlusherTimeout(b.config.WriteTimeout),
 	}
-	if b.config.TLS != nil {
-		options = append(options, nats.Secure(b.config.TLS))
+	if b.config.TLS.Enabled {
+		tlsConfig, err := b.config.TLS.ToGoTLSConfig()
+		if err != nil {
+			return fmt.Errorf("error creating TLS config: %w", err)
+		}
+		options = append(options, nats.Secure(tlsConfig))
 	}
 	nc, err := nats.Connect(url, options...)
 	if err != nil {

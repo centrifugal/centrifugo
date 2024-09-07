@@ -1,10 +1,10 @@
 package unisse
 
-import "github.com/centrifugal/centrifuge"
-
 type Config struct {
-	// MaxRequestBodySize for POST requests when used.
-	MaxRequestBodySize int
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled"`
 
-	centrifuge.PingPongConfig
+	HandlerPrefix string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/uni_sse"`
+
+	// MaxRequestBodySize for initial POST requests (when POST is used).
+	MaxRequestBodySize int `mapstructure:"max_request_body_size" json:"max_request_body_size" envconfig:"max_request_body_size" default:"65536"`
 }

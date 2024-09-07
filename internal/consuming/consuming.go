@@ -23,15 +23,18 @@ const (
 
 type ConsumerConfig struct {
 	// Name is a unique name required for each consumer.
-	Name string `mapstructure:"name" json:"name"`
-	// Disabled can be true to tell Centrifugo to not run configured consumer.
-	Disabled bool `mapstructure:"disabled" json:"disabled"`
+	Name string `mapstructure:"name" json:"name" envconfig:"name"`
+
+	// Enabled must be true to tell Centrifugo to run configured consumer.
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled"`
+
 	// Type describes the type of consumer.
-	Type ConsumerType `mapstructure:"type" json:"type"`
+	Type ConsumerType `mapstructure:"type" json:"type" envconfig:"type"`
+
 	// Postgres allows defining options for consumer of postgresql type.
-	Postgres *PostgresConfig `mapstructure:"postgresql" json:"postgresql,omitempty"`
+	Postgres *PostgresConfig `mapstructure:"postgresql" json:"postgresql,omitempty" envconfig:"postgresql"`
 	// Kafka allows defining options for consumer of kafka type.
-	Kafka *KafkaConfig `mapstructure:"kafka" json:"kafka,omitempty"`
+	Kafka *KafkaConfig `mapstructure:"kafka" json:"kafka,omitempty" envconfig:"kafka"`
 }
 
 type Dispatcher interface {
@@ -58,7 +61,7 @@ func New(nodeID string, logger Logger, dispatcher Dispatcher, configs []Consumer
 		}
 		names = append(names, config.Name)
 		if config.Type == ConsumerTypePostgres {
-			if config.Disabled { // Important to keep this check inside specific type for proper config validation.
+			if !config.Enabled { // Important to keep this check inside specific type for proper config validation.
 				continue
 			}
 			if config.Postgres == nil {
@@ -75,7 +78,7 @@ func New(nodeID string, logger Logger, dispatcher Dispatcher, configs []Consumer
 			log.Info().Str("consumer_name", config.Name).Msg("running consumer")
 			services = append(services, consumer)
 		} else if config.Type == ConsumerTypeKafka {
-			if config.Disabled {
+			if !config.Enabled {
 				continue
 			}
 			if config.Kafka == nil {

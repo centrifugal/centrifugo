@@ -12,14 +12,15 @@ import (
 
 // Handler for WebTransport.
 type Handler struct {
-	config Config
-	server *webtransport.Server
-	node   *centrifuge.Node
+	config   Config
+	server   *webtransport.Server
+	node     *centrifuge.Node
+	pingPong centrifuge.PingPongConfig
 }
 
 // NewHandler creates new Handler.
-func NewHandler(node *centrifuge.Node, wtServer *webtransport.Server, config Config) *Handler {
-	return &Handler{config: config, server: wtServer, node: node}
+func NewHandler(node *centrifuge.Node, wtServer *webtransport.Server, config Config, pingPong centrifuge.PingPongConfig) *Handler {
+	return &Handler{config: config, server: wtServer, node: node, pingPong: pingPong}
 }
 
 const bidiStreamAcceptTimeout = 10 * time.Second
@@ -49,7 +50,7 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		protoType = centrifuge.ProtocolTypeProtobuf
 	}
 
-	transport := newWebtransportTransport(protoType, conn, stream, s.config.PingPongConfig)
+	transport := newWebtransportTransport(protoType, conn, stream, s.pingPong)
 	c, closeFn, err := centrifuge.NewClient(r.Context(), s.node, transport)
 	if err != nil {
 		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error creating client", map[string]any{"transport": transportName}))

@@ -15,7 +15,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Config ...
+// Config for admin UI handler.
 type Config struct {
 	// Prefix is a custom prefix to handle admin endpoints on.
 	Prefix string
@@ -47,7 +47,7 @@ type Config struct {
 	Insecure bool
 }
 
-// Handler handles admin web interface endpoints.
+// Handler handles admin web UI endpoints.
 type Handler struct {
 	mux    *http.ServeMux
 	node   *centrifuge.Node

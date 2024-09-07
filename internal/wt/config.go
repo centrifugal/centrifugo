@@ -1,10 +1,7 @@
 package wt
 
-import (
-	"github.com/centrifugal/centrifuge"
-)
-
 // Config for Handler.
 type Config struct {
-	centrifuge.PingPongConfig
+	Enabled       bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled"`
+	HandlerPrefix string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/webtransport"`
 }
