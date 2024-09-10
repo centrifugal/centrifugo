@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/tools"
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/jackc/pgx/v5"
@@ -68,15 +68,7 @@ func NewPostgresConsumer(name string, logger Logger, dispatcher Dispatcher, conf
 	}, nil
 }
 
-type PostgresConfig struct {
-	DSN                          string          `mapstructure:"dsn" json:"dsn" envconfig:"dsn"`
-	OutboxTableName              string          `mapstructure:"outbox_table_name" json:"outbox_table_name" envconfig:"outbox_table_name"`
-	NumPartitions                int             `mapstructure:"num_partitions" json:"num_partitions" envconfig:"num_partitions" default:"1"`
-	PartitionSelectLimit         int             `mapstructure:"partition_select_limit" json:"partition_select_limit" envconfig:"partition_select_limit" default:"100"`
-	PartitionPollInterval        time.Duration   `mapstructure:"partition_poll_interval" json:"partition_poll_interval" envconfig:"partition_poll_interval" default:"300ms"`
-	PartitionNotificationChannel string          `mapstructure:"partition_notification_channel" json:"partition_notification_channel" envconfig:"partition_notification_channel"`
-	TLS                          tools.TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls"`
-}
+type PostgresConfig = configtypes.PostgresConsumerConfig
 
 type PostgresConsumer struct {
 	name       string

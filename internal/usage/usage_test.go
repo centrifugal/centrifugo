@@ -3,7 +3,7 @@ package usage
 import (
 	"testing"
 
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
+	"github.com/centrifugal/centrifugo/v5/internal/config"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"
@@ -70,10 +70,10 @@ func nodeWithMemoryEngine(t *testing.T) *centrifuge.Node {
 
 func TestPrepareMetrics(t *testing.T) {
 	node := nodeWithMemoryEngine(t)
-	ruleConfig := rule.DefaultConfig
-	ruleContainer, err := rule.NewContainer(ruleConfig)
+	cfg := config.DefaultConfig()
+	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
-	sender := NewSender(node, ruleContainer, Features{})
+	sender := NewSender(node, cfgContainer, Features{})
 	err = sender.updateMaxValues()
 	require.NoError(t, err)
 	metrics, err := sender.prepareMetrics()

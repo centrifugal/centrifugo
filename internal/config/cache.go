@@ -1,4 +1,4 @@
-package rule
+package config
 
 import (
 	"hash/fnv"

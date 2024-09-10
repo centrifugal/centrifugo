@@ -73,7 +73,7 @@ func (c VerifierConfig) Validate() error {
 	return nil
 }
 
-func NewTokenVerifierJWT(config VerifierConfig, ruleContainer *rule.Container) (*VerifierJWT, error) {
+func NewTokenVerifierJWT(config VerifierConfig, cfgContainer *rule.Container) (*VerifierJWT, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("error validating token verifier config: %w", err)
 	}
@@ -94,12 +94,12 @@ func NewTokenVerifierJWT(config VerifierConfig, ruleContainer *rule.Container) (
 	}
 
 	verifier := &VerifierJWT{
-		ruleContainer: ruleContainer,
-		issuer:        config.Issuer,
-		issuerRe:      issuerRe,
-		audience:      config.Audience,
-		audienceRe:    audienceRe,
-		userIDClaim:   config.UserIDClaim,
+		cfgContainer: cfgContainer,
+		issuer:       config.Issuer,
+		issuerRe:     issuerRe,
+		audience:     config.Audience,
+		audienceRe:   audienceRe,
+		userIDClaim:  config.UserIDClaim,
 	}
 
 	algorithms, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey, config.ECDSAPublicKey)
@@ -120,15 +120,15 @@ func NewTokenVerifierJWT(config VerifierConfig, ruleContainer *rule.Container) (
 }
 
 type VerifierJWT struct {
-	mu            sync.RWMutex
-	jwksManager   *jwksManager
-	algorithms    *algorithms
-	ruleContainer *rule.Container
-	audience      string
-	audienceRe    *regexp.Regexp
-	issuer        string
-	issuerRe      *regexp.Regexp
-	userIDClaim   string
+	mu           sync.RWMutex
+	jwksManager  *jwksManager
+	algorithms   *algorithms
+	cfgContainer *rule.Container
+	audience     string
+	audienceRe   *regexp.Regexp
+	issuer       string
+	issuerRe     *regexp.Regexp
+	userIDClaim  string
 }
 
 var (
@@ -483,7 +483,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 
 	if len(claims.Subs) > 0 {
 		for ch, v := range claims.Subs {
-			_, _, chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
+			_, _, chOpts, found, err := verifier.cfgContainer.ChannelOptions(ch)
 			if err != nil {
 				return ConnectToken{}, err
 			}
@@ -546,7 +546,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 		}
 	} else if len(claims.Channels) > 0 {
 		for _, ch := range claims.Channels {
-			_, _, chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
+			_, _, chOpts, found, err := verifier.cfgContainer.ChannelOptions(ch)
 			if err != nil {
 				return ConnectToken{}, err
 			}
@@ -676,7 +676,7 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 		return SubscribeToken{}, fmt.Errorf("%w: channel claim is required for subscription JWT", ErrInvalidToken)
 	}
 
-	_, _, chOpts, found, err := verifier.ruleContainer.ChannelOptions(claims.Channel)
+	_, _, chOpts, found, err := verifier.cfgContainer.ChannelOptions(claims.Channel)
 	if err != nil {
 		return SubscribeToken{}, err
 	}

@@ -2,6 +2,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -10,14 +11,8 @@ import (
 
 	"github.com/centrifugal/centrifugo/v5/internal/config/envconfig"
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
-	"github.com/centrifugal/centrifugo/v5/internal/natsbroker"
-	"github.com/centrifugal/centrifugo/v5/internal/unigrpc"
-	"github.com/centrifugal/centrifugo/v5/internal/unihttpstream"
-	"github.com/centrifugal/centrifugo/v5/internal/unisse"
-	"github.com/centrifugal/centrifugo/v5/internal/uniws"
-	"github.com/centrifugal/centrifugo/v5/internal/wt"
-
 	"github.com/hashicorp/go-envparse"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
@@ -45,10 +40,6 @@ type Config struct {
 	Engine string `mapstructure:"engine" json:"engine" envconfig:"engine" default:"memory"`
 	// Broker to use: the only option is nats.
 	Broker string `mapstructure:"broker" json:"broker" envconfig:"broker"`
-	// Name is a human-readable name of Centrifugo node. This must be unique for each running node in a cluster.
-	// By default, Centrifugo uses hostname and port. Name is shown in admin web interface. For communication
-	// between nodes in a cluster, Centrifugo uses another identifier – unique ID generated on node start.
-	Name string `mapstructure:"name" json:"name" envconfig:"name"`
 
 	// TLS configuration for HTTP server.
 	TLS configtypes.TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls"`
@@ -67,15 +58,15 @@ type Config struct {
 	// HTTPStream is a configuration for HTTP streaming based bidirectional emulation transport.
 	HTTPStream configtypes.HTTPStream `mapstructure:"http_stream" json:"http_stream" envconfig:"http_stream"`
 	// WebTransport is a configuration for WebTransport transport. EXPERIMENTAL.
-	WebTransport wt.Config `mapstructure:"webtransport" json:"webtransport" envconfig:"webtransport"`
+	WebTransport configtypes.WebTransport `mapstructure:"webtransport" json:"webtransport" envconfig:"webtransport"`
 	// UniSSE is a configuration for unidirectional Server-Sent Events transport.
-	UniSSE unisse.Config `mapstructure:"uni_sse" json:"uni_sse" envconfig:"uni_sse"`
+	UniSSE configtypes.UniSSE `mapstructure:"uni_sse" json:"uni_sse" envconfig:"uni_sse"`
 	// UniHTTPStream is a configuration for unidirectional HTTP streaming transport.
-	UniHTTPStream unihttpstream.Config `mapstructure:"uni_http_stream" json:"uni_http_stream" envconfig:"uni_http_stream"`
+	UniHTTPStream configtypes.UniHTTPStream `mapstructure:"uni_http_stream" json:"uni_http_stream" envconfig:"uni_http_stream"`
 	// UniWS is a configuration for unidirectional WebSocket transport.
-	UniWS uniws.Config `mapstructure:"uni_websocket" json:"uni_websocket" envconfig:"uni_websocket"`
+	UniWS configtypes.UniWebSocket `mapstructure:"uni_websocket" json:"uni_websocket" envconfig:"uni_websocket"`
 	// UniGRPC is a configuration for unidirectional gRPC transport.
-	UniGRPC unigrpc.Config `mapstructure:"uni_grpc" json:"uni_grpc" envconfig:"uni_grpc"`
+	UniGRPC configtypes.UniGRPC `mapstructure:"uni_grpc" json:"uni_grpc" envconfig:"uni_grpc"`
 	// Emulation endpoint is enabled automatically when at least one bidirectional emulation transport
 	// is configured (SSE or HTTP Stream).
 	Emulation configtypes.Emulation `mapstructure:"emulation" json:"emulation" envconfig:"emulation"`
@@ -92,7 +83,7 @@ type Config struct {
 
 	// Consumers is a configuration for message queue consumers. For example, Centrifugo can consume
 	// messages from PostgreSQL transactional outbox table, or from Kafka topics.
-	Consumers configtypes.ConsumerConfigs `mapstructure:"consumers" json:"consumers" envconfig:"consumers"`
+	Consumers configtypes.Consumers `mapstructure:"consumers" json:"consumers" envconfig:"consumers"`
 
 	// GlobalHistoryTTL is a time how long to keep history meta information. This is a global option for all channels,
 	// but it can be overridden in channel namespace.
@@ -118,15 +109,15 @@ type Config struct {
 	// Redis is a configuration for Redis engine.
 	Redis configtypes.RedisEngine `mapstructure:"redis" json:"redis" envconfig:"redis"`
 	// Nats is a configuration for NATS broker.
-	Nats natsbroker.Config `mapstructure:"nats" json:"nats" envconfig:"nats"`
+	Nats configtypes.NatsBroker `mapstructure:"nats" json:"nats" envconfig:"nats"`
 
 	// Proxy is a configuration for global events proxy. See also GranularProxyMode.
-	Proxy configtypes.Proxy `mapstructure:"proxy" json:"proxy" envconfig:"proxy"`
+	Proxy configtypes.GlobalProxy `mapstructure:"proxy" json:"proxy" envconfig:"proxy"`
 	// GranularProxyMode enables granular proxy mode. Using this mode, it's possible to configure separate
 	// proxies for different types of events. And separate proxies for different channel namespaces.
 	GranularProxyMode bool `mapstructure:"granular_proxy_mode" json:"granular_proxy_mode" envconfig:"granular_proxy_mode"`
 	// Proxies is a configuration for granular events proxies. See also GranularProxyMode.
-	Proxies configtypes.ProxyConfigs `mapstructure:"proxies" json:"proxies" envconfig:"proxies"`
+	Proxies configtypes.Proxies `mapstructure:"proxies" json:"proxies" envconfig:"proxies"`
 	// ConnectProxyName is a name of proxy to use for connect events when GranularProxyMode is used.
 	ConnectProxyName string `mapstructure:"connect_proxy_name" json:"connect_proxy_name" envconfig:"connect_proxy_name"`
 	// RefreshProxyName is a name of proxy to use for refresh events when GranularProxyMode is used.
@@ -143,6 +134,10 @@ type Config struct {
 	UsageStats configtypes.UsageStats `mapstructure:"usage_stats" json:"usage_stats" envconfig:"usage_stats"`
 	// Shutdown is a configuration for graceful shutdown.
 	Shutdown configtypes.Shutdown `mapstructure:"shutdown" json:"shutdown" envconfig:"shutdown"`
+	// Name is a human-readable name of Centrifugo node. This must be unique for each running node in a cluster.
+	// By default, Centrifugo uses hostname and port. Name is shown in admin web interface. For communication
+	// between nodes in a cluster, Centrifugo uses another identifier – unique ID generated on node start.
+	Name string `mapstructure:"name" json:"name" envconfig:"name"`
 
 	// EnableUnreleasedFeatures enables unreleased features. These features are not stable and may be removed even
 	// in minor release update. Evaluate and share feedback if you find some feature useful and want it to be stabilized.
@@ -150,17 +145,70 @@ type Config struct {
 }
 
 type Meta struct {
-	UnknownKeys []string
-	UnknownEnvs []string
+	FileNotFound bool
+	UnknownKeys  []string
+	UnknownEnvs  []string
 }
 
-func GetConfig(configFile string) (Config, Meta, error) {
+func DefineFlags(rootCmd *cobra.Command) {
+	rootCmd.Flags().StringP("address", "a", "", "interface address to listen on")
+	rootCmd.Flags().StringP("port", "p", "8000", "port to bind HTTP server to")
+	rootCmd.Flags().StringP("internal_address", "", "", "custom interface address to listen on for internal endpoints")
+	rootCmd.Flags().StringP("internal_port", "", "", "custom port for internal endpoints")
+	rootCmd.Flags().StringP("engine", "e", "memory", "engine to use: memory or redis")
+	rootCmd.Flags().StringP("broker", "", "", "custom broker to use: ex. nats")
+	rootCmd.Flags().StringP("log_level", "", "info", "set the log level: trace, debug, info, error, fatal or none")
+	rootCmd.Flags().StringP("log_file", "", "", "optional log file - if not specified logs go to STDOUT")
+	rootCmd.Flags().StringP("pid_file", "", "", "optional path to create PID file")
+	rootCmd.Flags().BoolP("debug.enabled", "", false, "enable debug endpoints")
+	rootCmd.Flags().BoolP("admin.enabled", "", false, "enable admin web interface")
+	rootCmd.Flags().BoolP("admin.external", "", false, "expose admin web interface on external port")
+	rootCmd.Flags().BoolP("prometheus.enabled", "", false, "enable Prometheus metrics endpoint")
+	rootCmd.Flags().BoolP("swagger.enabled", "", false, "enable Swagger UI endpoint describing server HTTP API")
+	rootCmd.Flags().BoolP("health.enabled", "", false, "enable health check endpoint")
+	rootCmd.Flags().BoolP("uni_websocket.enabled", "", false, "enable unidirectional websocket endpoint")
+	rootCmd.Flags().BoolP("uni_sse.enabled", "", false, "enable unidirectional SSE (EventSource) endpoint")
+	rootCmd.Flags().BoolP("uni_http_stream.enabled", "", false, "enable unidirectional HTTP-streaming endpoint")
+	rootCmd.Flags().BoolP("sse.enabled", "", false, "enable bidirectional SSE (EventSource) endpoint (with emulation layer)")
+	rootCmd.Flags().BoolP("http_stream.enabled", "", false, "enable bidirectional HTTP-streaming endpoint (with emulation layer)")
+	rootCmd.Flags().BoolP("client.insecure", "", false, "start in insecure client mode")
+	rootCmd.Flags().BoolP("http_api.insecure", "", false, "use insecure API mode")
+	rootCmd.Flags().BoolP("http_api.external", "", false, "expose API handler on external port")
+	rootCmd.Flags().BoolP("admin.insecure", "", false, "use insecure admin mode – no auth required for admin socket")
+	rootCmd.Flags().BoolP("grpc_api.enabled", "", false, "enable GRPC API server")
+	rootCmd.Flags().IntP("grpc_api.port", "", 10000, "port to bind GRPC API server to")
+	rootCmd.Flags().BoolP("uni_grpc.enabled", "", false, "enable unidirectional GRPC endpoint")
+	rootCmd.Flags().IntP("uni_grpc.port", "", 11000, "port to bind unidirectional GRPC server to")
+}
+
+func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 	v := viper.NewWithOptions()
 
+	if cmd != nil {
+		bindPFlags := []string{
+			"port", "address", "internal_port", "internal_address", "log_level", "log_file", "pid_file",
+			"engine", "broker", "debug.enabled", "admin.enabled", "admin.external", "admin.insecure",
+			"client.insecure", "http_api.insecure", "http_api.external", "prometheus.enabled", "health.enabled",
+			"grpc_api.enabled", "grpc_api.port", "uni_grpc.enabled", "uni_grpc.port", "uni_websocket.enabled",
+			"uni_sse.enabled", "uni_http_stream.enabled", "sse.enabled", "http_stream.enabled", "swagger.enabled",
+		}
+		for _, flag := range bindPFlags {
+			_ = v.BindPFlag(flag, cmd.Flags().Lookup(flag))
+		}
+	}
+
 	v.SetConfigFile(configFile)
+
+	meta := Meta{}
+
 	err := v.ReadInConfig()
 	if err != nil {
-		return Config{}, Meta{}, fmt.Errorf("error reading config file: %w", err)
+		var configFileNotFoundError viper.ConfigFileNotFoundError
+		if !errors.As(err, &configFileNotFoundError) {
+			meta.FileNotFound = true
+		} else {
+			return Config{}, Meta{}, fmt.Errorf("error reading config file: %w", err)
+		}
 	}
 
 	conf := &Config{}
@@ -213,13 +261,14 @@ func GetConfig(configFile string) (Config, Meta, error) {
 		extendKnownEnvVars(knownEnvVars, varInfo)
 	}
 
-	unknownKeys := findUnknownKeys(v.AllSettings(), conf, "")
-	unknownEnvs := checkEnvironmentVars(knownEnvVars)
+	for i, header := range conf.Proxy.HttpHeaders {
+		conf.Proxy.HttpHeaders[i] = strings.ToLower(header)
+	}
 
-	return *conf, Meta{
-		UnknownKeys: unknownKeys,
-		UnknownEnvs: unknownEnvs,
-	}, nil
+	meta.UnknownKeys = findUnknownKeys(v.AllSettings(), conf, "")
+	meta.UnknownEnvs = checkEnvironmentVars(knownEnvVars)
+
+	return *conf, meta, nil
 }
 
 func extendKnownEnvVars(knownEnvVars map[string]struct{}, varInfo []envconfig.VarInfo) {
@@ -354,4 +403,13 @@ func isKubernetesEnvVar(envKey string) bool {
 		}
 	}
 	return false
+}
+
+// DefaultConfig is a helper to be used in tests.
+func DefaultConfig() Config {
+	conf, _, err := GetConfig(nil, "-")
+	if err != nil {
+		panic("error during getting default config: " + err.Error())
+	}
+	return conf
 }

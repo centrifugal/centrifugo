@@ -38,11 +38,13 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/build"
 	"github.com/centrifugal/centrifugo/v5/internal/cli"
 	"github.com/centrifugal/centrifugo/v5/internal/client"
+	"github.com/centrifugal/centrifugo/v5/internal/config"
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/consuming"
 	"github.com/centrifugal/centrifugo/v5/internal/health"
 	"github.com/centrifugal/centrifugo/v5/internal/jwtutils"
 	"github.com/centrifugal/centrifugo/v5/internal/jwtverify"
-	"github.com/centrifugal/centrifugo/v5/internal/logutils"
+	"github.com/centrifugal/centrifugo/v5/internal/logging"
 	"github.com/centrifugal/centrifugo/v5/internal/metrics/graphite"
 	"github.com/centrifugal/centrifugo/v5/internal/middleware"
 	"github.com/centrifugal/centrifugo/v5/internal/natsbroker"
@@ -50,7 +52,6 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/origin"
 	"github.com/centrifugal/centrifugo/v5/internal/proxy"
 	"github.com/centrifugal/centrifugo/v5/internal/redisnatsbroker"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
 	"github.com/centrifugal/centrifugo/v5/internal/service"
 	"github.com/centrifugal/centrifugo/v5/internal/survey"
 	"github.com/centrifugal/centrifugo/v5/internal/swaggerui"
@@ -64,10 +65,8 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/webui"
 	"github.com/centrifugal/centrifugo/v5/internal/wt"
 
-	"github.com/FZambia/viper-lite"
 	"github.com/centrifugal/centrifuge"
 	"github.com/justinas/alice"
-	"github.com/mattn/go-isatty"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/quic-go/quic-go/http3"
@@ -89,338 +88,6 @@ import (
 
 //go:generate go run internal/gen/api/main.go
 
-var defaults = map[string]any{
-	"gomaxprocs": 0,
-	"name":       "",
-	"engine":     "memory",
-	"broker":     "",
-
-	"pid_file": "",
-
-	"granular_proxy_mode": false,
-
-	"opentelemetry":           false,
-	"opentelemetry_api":       false,
-	"opentelemetry_consuming": false,
-
-	"client_insecure": false,
-	"client_insecure_skip_token_signature_verify": false,
-	"api_insecure": false,
-
-	"client_user_id_http_header": "",
-
-	"token_hmac_secret_key":      "",
-	"token_rsa_public_key":       "",
-	"token_ecdsa_public_key":     "",
-	"token_jwks_public_endpoint": "",
-	"token_audience":             "",
-	"token_audience_regex":       "",
-	"token_issuer":               "",
-	"token_issuer_regex":         "",
-	"token_user_id_claim":        "",
-
-	"separate_subscription_token_config":      false,
-	"subscription_token_hmac_secret_key":      "",
-	"subscription_token_rsa_public_key":       "",
-	"subscription_token_ecdsa_public_key":     "",
-	"subscription_token_jwks_public_endpoint": "",
-	"subscription_token_audience":             "",
-	"subscription_token_audience_regex":       "",
-	"subscription_token_issuer":               "",
-	"subscription_token_issuer_regex":         "",
-	"subscription_token_user_id_claim":        "",
-
-	"allowed_origins": []string{},
-
-	"global_history_meta_ttl":            rule.DefaultGlobalHistoryMetaTTL,
-	"global_presence_ttl":                60 * time.Second,
-	"global_redis_presence_user_mapping": false,
-	"redis_presence_hash_field_ttl":      false,
-
-	"allowed_delta_types": []centrifuge.DeltaType{},
-
-	"presence":                      false,
-	"join_leave":                    false,
-	"force_push_join_leave":         false,
-	"history_size":                  0,
-	"history_ttl":                   0,
-	"history_meta_ttl":              0,
-	"force_positioning":             false,
-	"allow_positioning":             false,
-	"force_recovery":                false,
-	"allow_recovery":                false,
-	"force_recovery_mode":           "",
-	"allow_subscribe_for_anonymous": false,
-	"allow_subscribe_for_client":    false,
-	"allow_publish_for_anonymous":   false,
-	"allow_publish_for_client":      false,
-	"allow_publish_for_subscriber":  false,
-	"allow_presence_for_anonymous":  false,
-	"allow_presence_for_client":     false,
-	"allow_presence_for_subscriber": false,
-	"allow_history_for_anonymous":   false,
-	"allow_history_for_client":      false,
-	"allow_history_for_subscriber":  false,
-	"allow_user_limited_channels":   false,
-	"channel_regex":                 "",
-	"proxy_subscribe":               false,
-	"proxy_publish":                 false,
-	"proxy_sub_refresh":             false,
-	"subscribe_proxy_name":          "",
-	"publish_proxy_name":            "",
-	"sub_refresh_proxy_name":        "",
-
-	"node_info_metrics_aggregate_interval": 60 * time.Second,
-
-	"allow_anonymous_connect_without_token": false,
-	"disallow_anonymous_connection_tokens":  false,
-
-	"client_expired_close_delay":           25 * time.Second,
-	"client_expired_sub_close_delay":       25 * time.Second,
-	"client_stale_close_delay":             10 * time.Second,
-	"client_channel_limit":                 128,
-	"client_queue_max_size":                1048576, // 1 MB
-	"client_presence_update_interval":      27 * time.Second,
-	"client_user_connection_limit":         0,
-	"client_concurrency":                   0,
-	"client_channel_position_check_delay":  40 * time.Second,
-	"client_channel_position_max_time_lag": 0,
-	"client_connection_limit":              0,
-	"client_connection_rate_limit":         0,
-	"client_connect_include_server_time":   false,
-
-	"channel_max_length":         255,
-	"channel_private_prefix":     "$",
-	"channel_namespace_boundary": ":",
-	"channel_user_boundary":      "#",
-	"channel_user_separator":     ",",
-
-	"rpc_namespace_boundary": ":",
-
-	"rpc_ping":        false,
-	"rpc_ping_method": "ping",
-
-	"user_subscribe_to_personal":      false,
-	"user_personal_channel_namespace": "",
-	"user_personal_single_connection": false,
-
-	"debug":      false,
-	"prometheus": false,
-	"health":     false,
-
-	"admin":                   false,
-	"admin_password":          "",
-	"admin_secret":            "",
-	"admin_insecure":          false,
-	"admin_web_path":          "",
-	"admin_web_proxy_address": "",
-
-	"websocket_compression":           false,
-	"websocket_compression_min_size":  0,
-	"websocket_compression_level":     1,
-	"websocket_read_buffer_size":      0,
-	"websocket_use_write_buffer_pool": false,
-	"websocket_write_buffer_size":     0,
-	"websocket_write_timeout":         time.Second,
-	"websocket_message_size_limit":    65536, // 64KB
-
-	"uni_websocket":                       false,
-	"uni_websocket_compression":           false,
-	"uni_websocket_compression_min_size":  0,
-	"uni_websocket_compression_level":     1,
-	"uni_websocket_read_buffer_size":      0,
-	"uni_websocket_use_write_buffer_pool": false,
-	"uni_websocket_write_buffer_size":     0,
-	"uni_websocket_write_timeout":         time.Second,
-	"uni_websocket_message_size_limit":    65536, // 64KB
-
-	"uni_sse":         false,
-	"uni_http_stream": false,
-
-	"log_level": "info",
-	"log_file":  "",
-
-	"tls":          tools.TLSConfig{},
-	"tls_external": false,
-
-	"swagger":          false,
-	"admin_external":   false,
-	"api_external":     false,
-	"address":          "",
-	"port":             "8000",
-	"internal_address": "",
-	"internal_port":    "",
-
-	"webtransport": false,
-	"http3":        false,
-
-	"connect_proxy_name": "",
-	"refresh_proxy_name": "",
-	"rpc_proxy_name":     "",
-
-	"proxy_connect_endpoint":          "",
-	"proxy_refresh_endpoint":          "",
-	"proxy_subscribe_endpoint":        "",
-	"proxy_publish_endpoint":          "",
-	"proxy_sub_refresh_endpoint":      "",
-	"proxy_rpc_endpoint":              "",
-	"proxy_subscribe_stream_endpoint": "",
-
-	"proxy_connect_timeout":          time.Second,
-	"proxy_rpc_timeout":              time.Second,
-	"proxy_refresh_timeout":          time.Second,
-	"proxy_subscribe_timeout":        time.Second,
-	"proxy_publish_timeout":          time.Second,
-	"proxy_sub_refresh_timeout":      time.Second,
-	"proxy_subscribe_stream_timeout": time.Second,
-
-	"proxy_grpc_metadata":           []string{},
-	"proxy_http_headers":            []string{},
-	"proxy_static_http_headers":     map[string]string{},
-	"proxy_binary_encoding":         false,
-	"proxy_include_connection_meta": false,
-	"proxy_grpc_cert_file":          "",
-	"proxy_grpc_compression":        false,
-	"proxy_grpc_tls":                tools.TLSConfig{},
-	"proxy_grpc_credentials_key":    "",
-	"proxy_grpc_credentials_value":  "",
-
-	"api_key":        "",
-	"api_error_mode": "",
-
-	"uni_http_stream_max_request_body_size": 65536, // 64KB
-	"uni_sse_max_request_body_size":         65536, // 64KB
-	"http_stream_max_request_body_size":     65536, // 64KB
-	"sse_max_request_body_size":             65536, // 64KB
-
-	"tls_autocert":                false,
-	"tls_autocert_host_whitelist": "",
-	"tls_autocert_cache_dir":      "",
-	"tls_autocert_email":          "",
-	"tls_autocert_server_name":    "",
-	"tls_autocert_http":           false,
-	"tls_autocert_http_addr":      ":80",
-
-	"grpc_api":                          false,
-	"grpc_api_error_mode":               "",
-	"grpc_api_address":                  "",
-	"grpc_api_port":                     10000,
-	"grpc_api_key":                      "",
-	"grpc_api_tls":                      tools.TLSConfig{},
-	"grpc_api_reflection":               false,
-	"grpc_api_max_receive_message_size": 0,
-
-	"shutdown_timeout":           30 * time.Second,
-	"shutdown_termination_delay": 0,
-
-	"graphite":          false,
-	"graphite_host":     "localhost",
-	"graphite_port":     2003,
-	"graphite_prefix":   "centrifugo",
-	"graphite_interval": 10 * time.Second,
-	"graphite_tags":     false,
-
-	"nats_prefix":          "centrifugo",
-	"nats_url":             "nats://127.0.0.1:4222",
-	"nats_dial_timeout":    time.Second,
-	"nats_write_timeout":   time.Second,
-	"nats_allow_wildcards": false,
-	"nats_tls":             tools.TLSConfig{},
-
-	"nats_raw_mode.enabled":              false,
-	"nats_raw_mode.channel_replacements": map[string]string{},
-	"nats_raw_mode.prefix":               "",
-
-	"websocket_disable": false,
-	"api_disable":       false,
-
-	"websocket_handler_prefix":       "/connection/websocket",
-	"webtransport_handler_prefix":    "/connection/webtransport",
-	"http_stream_handler_prefix":     "/connection/http_stream",
-	"sse_handler_prefix":             "/connection/sse",
-	"uni_websocket_handler_prefix":   "/connection/uni_websocket",
-	"uni_sse_handler_prefix":         "/connection/uni_sse",
-	"uni_http_stream_handler_prefix": "/connection/uni_http_stream",
-
-	"uni_grpc":                          false,
-	"uni_grpc_address":                  "",
-	"uni_grpc_port":                     11000,
-	"uni_grpc_max_receive_message_size": 65536,
-	"uni_grpc_tls":                      tools.TLSConfig{},
-
-	"http_stream": false,
-	"sse":         false,
-
-	"emulation_handler_prefix":        "/emulation",
-	"emulation_max_request_body_size": 65536, // 64KB
-
-	"admin_handler_prefix":      "",
-	"api_handler_prefix":        "/api",
-	"prometheus_handler_prefix": "/metrics",
-	"health_handler_prefix":     "/health",
-	"swagger_handler_prefix":    "/swagger",
-
-	"client_history_max_publication_limit":  300,
-	"client_recovery_max_publication_limit": 300,
-
-	"usage_stats_disable": false,
-
-	"ping_interval": 25 * time.Second,
-	"pong_timeout":  8 * time.Second,
-
-	"namespaces":     []any{},
-	"rpc_namespaces": []any{},
-
-	"proxies": []any{},
-
-	"enable_unreleased_features": false,
-
-	"consumers": []any{},
-}
-
-func init() {
-	redisConfigPrefixes := []string{
-		"",
-	}
-	for _, prefix := range redisConfigPrefixes {
-		keyMap := map[string]any{
-			prefix + "redis_address":              "redis://127.0.0.1:6379",
-			prefix + "redis_prefix":               "centrifugo",
-			prefix + "redis_connect_timeout":      time.Second,
-			prefix + "redis_io_timeout":           4 * time.Second,
-			prefix + "redis_use_lists":            false,
-			prefix + "redis_db":                   0,
-			prefix + "redis_user":                 "",
-			prefix + "redis_password":             "",
-			prefix + "redis_client_name":          "",
-			prefix + "redis_force_resp2":          false,
-			prefix + "redis_cluster_address":      []string{},
-			prefix + "redis_sentinel_address":     []string{},
-			prefix + "redis_sentinel_user":        "",
-			prefix + "redis_sentinel_password":    "",
-			prefix + "redis_sentinel_master_name": "",
-			prefix + "redis_sentinel_client_name": "",
-			prefix + "redis_tls":                  tools.TLSConfig{},
-			prefix + "redis_sentinel_tls":         tools.TLSConfig{},
-		}
-		for k, v := range keyMap {
-			defaults[k] = v
-		}
-	}
-}
-
-func bindCentrifugoConfig() {
-	viper.SetEnvPrefix("centrifugo")
-
-	for k, v := range defaults {
-		viper.SetDefault(k, v)
-	}
-
-	replacer := strings.NewReplacer(".", "_")
-	viper.SetEnvKeyReplacer(replacer)
-	viper.AutomaticEnv()
-}
-
 const edition = "oss"
 
 const transportErrorMode = "transport"
@@ -433,57 +100,29 @@ func main() {
 		Short: "Centrifugo",
 		Long:  "Centrifugo – scalable real-time messaging server in language-agnostic way",
 		Run: func(cmd *cobra.Command, args []string) {
-			bindCentrifugoConfig()
-
-			bindPFlags := []string{
-				"engine", "log_level", "log_file", "pid_file", "debug", "name", "admin",
-				"admin_external", "client_insecure", "admin_insecure", "api_insecure", "api_external",
-				"port", "address", "internal_port", "internal_address", "prometheus", "health", "redis_address",
-				"broker", "nats_url", "grpc_api", "grpc_api_port", "uni_grpc",
-				"uni_grpc_port", "uni_websocket", "uni_sse", "uni_http_stream", "sse", "http_stream",
-				"swagger",
-			}
-			for _, flag := range bindPFlags {
-				_ = viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
-			}
-			viper.SetConfigFile(configFile)
-
-			absConfPath, err := filepath.Abs(configFile)
+			cfg, cfgMeta, err := config.GetConfig(cmd, configFile)
 			if err != nil {
-				log.Fatal().Msgf("error retrieving config file absolute path: %v", err)
+				log.Fatal().Msgf("error reading config: %v", err)
 			}
-
-			err = viper.ReadInConfig()
-			configFound := true
-			if err != nil {
-				var configParseError viper.ConfigParseError
-				switch {
-				case errors.As(err, &configParseError):
-					log.Fatal().Msg(tools.ErrorMessageFromConfigError(err, absConfPath))
-				default:
-					configFound = false
-				}
+			logFileHandler := logging.Setup(cfg)
+			if logFileHandler != nil {
+				defer func() { _ = logFileHandler.Close() }()
 			}
-
-			file := setupLogging()
-			if file != nil {
-				defer func() { _ = file.Close() }()
+			if cfgMeta.FileNotFound {
+				log.Warn().Msg("config file not found, continue using environment and flag options")
+			} else {
+				absConfPath, _ := filepath.Abs(configFile)
+				log.Info().Str("path", absConfPath).Msg("using config file")
 			}
-
-			err = writePidFile(viper.GetString("pid_file"))
+			err = tools.WritePidFile(cfg.PidFile)
 			if err != nil {
 				log.Fatal().Msgf("error writing PID: %v", err)
 			}
-
 			if os.Getenv("GOMAXPROCS") == "" {
-				if viper.IsSet("gomaxprocs") && viper.GetInt("gomaxprocs") > 0 {
-					runtime.GOMAXPROCS(viper.GetInt("gomaxprocs"))
-				} else {
-					_, _ = maxprocs.Set()
-				}
+				_, _ = maxprocs.Set()
 			}
 
-			engineName := viper.GetString("engine")
+			engineName := cfg.Engine
 
 			log.Info().
 				Str("version", build.Version).
@@ -492,44 +131,40 @@ func main() {
 				Str("engine", engineName).
 				Int("gomaxprocs", runtime.GOMAXPROCS(0)).Msg("starting Centrifugo")
 
-			log.Info().Str("path", absConfPath).Msg("using config file")
-
-			ruleConfig := ruleConfig()
-			err = ruleConfig.Validate()
+			err = cfg.Validate()
 			if err != nil {
 				log.Fatal().Msgf("error validating config: %v", err)
 			}
-			ruleContainer, err := rule.NewContainer(ruleConfig)
+			cfgContainer, err := config.NewContainer(cfg)
 			if err != nil {
 				log.Fatal().Msgf("error creating config: %v", err)
 			}
-			ruleContainer.ChannelOptionsCacheTTL = 200 * time.Millisecond
+			cfgContainer.ChannelOptionsCacheTTL = 200 * time.Millisecond
 
-			granularProxyMode := viper.GetBool("granular_proxy_mode")
 			var proxyMap *client.ProxyMap
 			var keepHeadersInContext bool
-			if granularProxyMode {
-				proxyMap, keepHeadersInContext = granularProxyMapConfig(ruleConfig)
+			if cfg.GranularProxyMode {
+				proxyMap, keepHeadersInContext = granularProxyMapConfig(cfg)
 				log.Info().Msg("using granular proxy configuration")
 			} else {
-				proxyMap, keepHeadersInContext = proxyMapConfig()
+				proxyMap, keepHeadersInContext = proxyMapConfig(cfg)
 			}
 
-			nodeCfg := nodeConfig(build.Version)
+			nodeCfg := centrifugeConfig(build.Version, cfg)
 
 			node, err := centrifuge.New(nodeCfg)
 			if err != nil {
 				log.Fatal().Msgf("error creating Centrifuge Node: %v", err)
 			}
 
-			if viper.GetBool("opentelemetry") {
+			if cfg.OpenTelemetry.Enabled {
 				_, err := telemetry.SetupTracing(context.Background())
 				if err != nil {
 					log.Fatal().Msgf("error setting up opentelemetry tracing: %v", err)
 				}
 			}
 
-			brokerName := viper.GetString("broker")
+			brokerName := cfg.Broker
 			if brokerName != "" && brokerName != "nats" {
 				log.Fatal().Msgf("unknown broker: %s", brokerName)
 			}
@@ -542,19 +177,19 @@ func main() {
 			if engineName == "memory" {
 				broker, presenceManager, engineMode, err = memoryEngine(node)
 			} else if engineName == "redis" {
-				broker, presenceManager, engineMode, err = redisEngine(node)
+				broker, presenceManager, engineMode, err = redisEngine(node, cfg)
 			} else if engineName == "redisnats" {
-				if !viper.GetBool("enable_unreleased_features") {
+				if !cfg.EnableUnreleasedFeatures {
 					log.Fatal().Msg("redisnats engine requires enable_unreleased_features on")
 				}
 				log.Warn().Msg("redisnats engine is not released, it may be changed or removed at any point")
 				var natsBroker *natsbroker.NatsBroker
 				var redisBroker *centrifuge.RedisBroker
-				redisBroker, presenceManager, engineMode, err = redisEngine(node)
+				redisBroker, presenceManager, engineMode, err = redisEngine(node, cfg)
 				if err != nil {
 					log.Fatal().Msgf("error creating redis engine: %v", err)
 				}
-				natsBroker, err = initNatsBroker(node)
+				natsBroker, err = initNatsBroker(node, cfg)
 				if err != nil {
 					log.Fatal().Msgf("error creating nats broker: %v", err)
 				}
@@ -563,14 +198,10 @@ func main() {
 				log.Fatal().Msgf("unknown engine: %s", engineName)
 			}
 			if err != nil {
-				log.Fatal().Msgf("error creating engine: %v", err)
+				log.Fatal().Msgf("error creating %s engine: %v", engineName, err)
 			}
 			node.SetBroker(broker)
 			node.SetPresenceManager(presenceManager)
-
-			if !configFound {
-				log.Warn().Msg("config file not found")
-			}
 
 			var disableHistoryPresence bool
 			if engineName == "memory" && brokerName == "nats" {
@@ -584,66 +215,62 @@ func main() {
 			}
 
 			if brokerName == "nats" {
-				broker, err = initNatsBroker(node)
+				broker, err = initNatsBroker(node, cfg)
 				if err != nil {
 					log.Fatal().Msgf("error creating broker: %v", err)
 				}
 				node.SetBroker(broker)
 			}
 
-			verifierConfig, err := jwtVerifierConfig()
+			verifierConfig, err := jwtVerifierConfig(cfg)
 			if err != nil {
 				log.Fatal().Msgf("error creating JWT verifier config: %v", err)
 			}
 
-			tokenVerifier, err := jwtverify.NewTokenVerifierJWT(verifierConfig, ruleContainer)
+			tokenVerifier, err := jwtverify.NewTokenVerifierJWT(verifierConfig, cfgContainer)
 			if err != nil {
 				log.Fatal().Msgf("error creating token verifier: %v", err)
 			}
 
 			var subTokenVerifier *jwtverify.VerifierJWT
-			if viper.GetBool("separate_subscription_token_config") {
+			if cfg.Client.SubscriptionToken.Enabled {
 				log.Info().Msg("initializing separate verifier for subscription tokens")
-				var err error
-
-				subVerifier, err := subJWTVerifierConfig()
+				subVerifier, err := subJWTVerifierConfig(cfg)
 				if err != nil {
 					log.Fatal().Msgf("error creating subscription JWT verifier config: %v", err)
 				}
-
-				subTokenVerifier, err = jwtverify.NewTokenVerifierJWT(subVerifier, ruleContainer)
+				subTokenVerifier, err = jwtverify.NewTokenVerifierJWT(subVerifier, cfgContainer)
 				if err != nil {
 					log.Fatal().Msgf("error creating token verifier: %v", err)
 				}
 			}
 
-			clientHandler := client.NewHandler(node, ruleContainer, tokenVerifier, subTokenVerifier, proxyMap, granularProxyMode)
+			clientHandler := client.NewHandler(node, cfgContainer, tokenVerifier, subTokenVerifier, proxyMap, cfg.GranularProxyMode)
 			err = clientHandler.Setup()
 			if err != nil {
 				log.Fatal().Msgf("error setting up client handler: %v", err)
 			}
-			if viper.GetBool("rpc_ping") {
-				pingMethod := viper.GetString("rpc_ping_method")
-				log.Info().Str("method", pingMethod).Msg("RPC ping extension enabled")
-				clientHandler.SetRPCExtension(pingMethod, func(c client.Client, e centrifuge.RPCEvent) (centrifuge.RPCReply, error) {
+			if cfg.RPC.Ping {
+				log.Info().Str("method", cfg.RPC.PingMethod).Msg("RPC ping extension enabled")
+				clientHandler.SetRPCExtension(cfg.RPC.PingMethod, func(c client.Client, e centrifuge.RPCEvent) (centrifuge.RPCReply, error) {
 					return centrifuge.RPCReply{}, nil
 				})
 			}
 
 			surveyCaller := survey.NewCaller(node)
 
-			useAPIOpentelemetry := viper.GetBool("opentelemetry") && viper.GetBool("opentelemetry_api")
-			useConsumingOpentelemetry := viper.GetBool("opentelemetry") && viper.GetBool("opentelemetry_consuming")
+			useAPIOpentelemetry := cfg.OpenTelemetry.Enabled && cfg.OpenTelemetry.API
+			useConsumingOpentelemetry := cfg.OpenTelemetry.Enabled && cfg.OpenTelemetry.Consuming
 
-			httpAPIExecutor := api.NewExecutor(node, ruleContainer, surveyCaller, api.ExecutorConfig{
+			httpAPIExecutor := api.NewExecutor(node, cfgContainer, surveyCaller, api.ExecutorConfig{
 				Protocol:         "http",
 				UseOpenTelemetry: useAPIOpentelemetry,
 			})
-			grpcAPIExecutor := api.NewExecutor(node, ruleContainer, surveyCaller, api.ExecutorConfig{
+			grpcAPIExecutor := api.NewExecutor(node, cfgContainer, surveyCaller, api.ExecutorConfig{
 				Protocol:         "grpc",
 				UseOpenTelemetry: useAPIOpentelemetry,
 			})
-			consumingAPIExecutor := api.NewExecutor(node, ruleContainer, surveyCaller, api.ExecutorConfig{
+			consumingAPIExecutor := api.NewExecutor(node, cfgContainer, surveyCaller, api.ExecutorConfig{
 				Protocol:         "consuming",
 				UseOpenTelemetry: useConsumingOpentelemetry,
 			})
@@ -654,8 +281,7 @@ func main() {
 				UseOpenTelemetry: useConsumingOpentelemetry,
 			})
 
-			consumers := consumersFromConfig(viper.GetViper())
-			consumingServices, err := consuming.New(node.ID(), node, consumingHandler, consumers)
+			consumingServices, err := consuming.New(node.ID(), node, consumingHandler, cfg.Consumers)
 			if err != nil {
 				log.Fatal().Msgf("error initializing consumers: %v", err)
 			}
@@ -666,59 +292,58 @@ func main() {
 				log.Fatal().Msgf("error running node: %v", err)
 			}
 
-			if viper.GetBool("client_insecure") {
+			if cfg.Client.Insecure {
 				log.Warn().Msg("INSECURE client mode enabled, make sure you understand risks")
 			}
-			if viper.GetBool("api_insecure") {
-				log.Warn().Msg("INSECURE API mode enabled, make sure you understand risks")
+			if cfg.HttpAPI.Insecure {
+				log.Warn().Msg("INSECURE HTTP API mode enabled, make sure you understand risks")
 			}
-			if viper.GetBool("admin_insecure") {
+			if cfg.Admin.Insecure {
 				log.Warn().Msg("INSECURE admin mode enabled, make sure you understand risks")
 			}
-			if viper.GetBool("debug") {
-				log.Warn().Msg("DEBUG mode enabled, see /debug/pprof")
+			if cfg.Debug.Enabled {
+				log.Warn().Msg("DEBUG mode enabled, see on " + cfg.Debug.HandlerPrefix)
 			}
 
 			var grpcAPIServer *grpc.Server
 			var grpcAPIAddr string
-			if viper.GetBool("grpc_api") {
-				grpcAPIAddr = net.JoinHostPort(viper.GetString("grpc_api_address"), viper.GetString("grpc_api_port"))
+			if cfg.GrpcAPI.Enabled {
+				grpcAPIAddr = net.JoinHostPort(cfg.GrpcAPI.Address, strconv.Itoa(cfg.GrpcAPI.Port))
 				grpcAPIConn, err := net.Listen("tcp", grpcAPIAddr)
 				if err != nil {
 					log.Fatal().Msgf("cannot listen to address %s", grpcAPIAddr)
 				}
 				var grpcOpts []grpc.ServerOption
-				var tlsConfig *tls.Config
-				var tlsErr error
 
-				if viper.GetString("grpc_api_key") != "" {
-					grpcOpts = append(grpcOpts, api.GRPCKeyAuth(viper.GetString("grpc_api_key")))
+				if cfg.GrpcAPI.Key != "" {
+					grpcOpts = append(grpcOpts, api.GRPCKeyAuth(cfg.GrpcAPI.Key))
 				}
-				if viper.GetInt("grpc_api_max_receive_message_size") > 0 {
-					grpcOpts = append(grpcOpts, grpc.MaxRecvMsgSize(viper.GetInt("grpc_api_max_receive_message_size")))
+				if cfg.GrpcAPI.MaxReceiveMessageSize > 0 {
+					grpcOpts = append(grpcOpts, grpc.MaxRecvMsgSize(cfg.GrpcAPI.MaxReceiveMessageSize))
 				}
-				if viper.GetBool("grpc_api_tls") {
-					tlsConfig, tlsErr = tlsConfigForGRPC()
+				var grpcAPITLSConfig *tls.Config
+				if cfg.GrpcAPI.TLS.Enabled {
+					grpcAPITLSConfig, err = cfg.GrpcAPI.TLS.ToGoTLSConfig()
+					if err != nil {
+						log.Fatal().Msgf("error getting TLS config for GRPC API: %v", err)
+					}
 				}
-				if tlsErr != nil {
-					log.Fatal().Msgf("error getting TLS config: %v", tlsErr)
-				}
-				if tlsConfig != nil {
-					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
+				if grpcAPITLSConfig != nil {
+					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(grpcAPITLSConfig)))
 				}
 				if useAPIOpentelemetry {
 					grpcOpts = append(grpcOpts, grpc.StatsHandler(otelgrpc.NewServerHandler()))
 				}
-				grpcErrorMode, err := tools.OptionalStringChoice(viper.GetViper(), "grpc_api_error_mode", []string{transportErrorMode})
+				grpcErrorMode, err := tools.OptionalStringChoice(cfg.GrpcAPI.ErrorMode, []string{transportErrorMode})
 				if err != nil {
-					log.Fatal().Msgf("error in config: %v", err)
+					log.Fatal().Msgf("can't extract grpc error mode: %v", err)
 				}
 				grpcAPIServer = grpc.NewServer(grpcOpts...)
 				_ = api.RegisterGRPCServerAPI(node, grpcAPIExecutor, grpcAPIServer, api.GRPCAPIServiceConfig{
 					UseOpenTelemetry:      useAPIOpentelemetry,
 					UseTransportErrorMode: grpcErrorMode == transportErrorMode,
 				})
-				if viper.GetBool("grpc_api_reflection") {
+				if cfg.GrpcAPI.Reflection {
 					reflection.Register(grpcAPIServer)
 				}
 				go func() {
@@ -734,8 +359,8 @@ func main() {
 
 			var grpcUniServer *grpc.Server
 			var grpcUniAddr string
-			if viper.GetBool("uni_grpc") {
-				grpcUniAddr = net.JoinHostPort(viper.GetString("uni_grpc_address"), viper.GetString("uni_grpc_port"))
+			if cfg.UniGRPC.Enabled {
+				grpcUniAddr = net.JoinHostPort(cfg.UniGRPC.Address, strconv.Itoa(cfg.UniGRPC.Port))
 				grpcUniConn, err := net.Listen("tcp", grpcUniAddr)
 				if err != nil {
 					log.Fatal().Msgf("cannot listen to address %s", grpcUniAddr)
@@ -743,18 +368,17 @@ func main() {
 				var grpcOpts []grpc.ServerOption
 				//nolint:staticcheck
 				//goland:noinspection GoDeprecation
-				grpcOpts = append(grpcOpts, grpc.CustomCodec(&unigrpc.RawCodec{}), grpc.MaxRecvMsgSize(viper.GetInt("uni_grpc_max_receive_message_size")))
-				var tlsConfig *tls.Config
-				var tlsErr error
+				grpcOpts = append(grpcOpts, grpc.CustomCodec(&unigrpc.RawCodec{}), grpc.MaxRecvMsgSize(cfg.UniGRPC.MaxReceiveMessageSize))
 
-				if viper.GetBool("uni_grpc_tls") {
-					tlsConfig, tlsErr = tlsConfigForUniGRPC()
+				var uniGrpcTLSConfig *tls.Config
+				if cfg.GrpcAPI.TLS.Enabled {
+					uniGrpcTLSConfig, err = cfg.GrpcAPI.TLS.ToGoTLSConfig()
+					if err != nil {
+						log.Fatal().Msgf("error getting TLS config for uni GRPC: %v", err)
+					}
 				}
-				if tlsErr != nil {
-					log.Fatal().Msgf("error getting TLS config: %v", tlsErr)
-				}
-				if tlsConfig != nil {
-					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
+				if uniGrpcTLSConfig != nil {
+					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(uniGrpcTLSConfig)))
 				}
 				keepAliveEnforcementPolicy := keepalive.EnforcementPolicy{
 					MinTime: 5 * time.Second,
@@ -766,7 +390,7 @@ func main() {
 				grpcOpts = append(grpcOpts, grpc.KeepaliveEnforcementPolicy(keepAliveEnforcementPolicy))
 				grpcOpts = append(grpcOpts, grpc.KeepaliveParams(keepAliveServerParams))
 				grpcUniServer = grpc.NewServer(grpcOpts...)
-				_ = unigrpc.RegisterService(grpcUniServer, unigrpc.NewService(node, uniGRPCHandlerConfig()))
+				_ = unigrpc.RegisterService(grpcUniServer, unigrpc.NewService(node, cfg.UniGRPC))
 				go func() {
 					if err := grpcUniServer.Serve(grpcUniConn); err != nil {
 						log.Fatal().Msgf("serve uni GRPC: %v", err)
@@ -778,26 +402,26 @@ func main() {
 				log.Info().Msgf("serving unidirectional GRPC on %s", grpcUniAddr)
 			}
 
-			httpServers, err := runHTTPServers(node, ruleContainer, httpAPIExecutor, keepHeadersInContext)
+			httpServers, err := runHTTPServers(node, cfgContainer, httpAPIExecutor, keepHeadersInContext)
 			if err != nil {
 				log.Fatal().Msgf("error running HTTP server: %v", err)
 			}
 
 			var exporter *graphite.Exporter
-			if viper.GetBool("graphite") {
+			if cfg.Graphite.Enabled {
 				exporter = graphite.New(graphite.Config{
-					Address:  net.JoinHostPort(viper.GetString("graphite_host"), strconv.Itoa(viper.GetInt("graphite_port"))),
+					Address:  net.JoinHostPort(cfg.Graphite.Host, strconv.Itoa(cfg.Graphite.Port)),
 					Gatherer: prometheus.DefaultGatherer,
-					Prefix:   strings.TrimSuffix(viper.GetString("graphite_prefix"), ".") + "." + graphite.PreparePathComponent(nodeCfg.Name),
-					Interval: GetDuration("graphite_interval"),
-					Tags:     viper.GetBool("graphite_tags"),
+					Prefix:   strings.TrimSuffix(cfg.Graphite.Prefix, ".") + "." + graphite.PreparePathComponent(nodeCfg.Name),
+					Interval: cfg.Graphite.Interval,
+					Tags:     cfg.Graphite.Tags,
 				})
 				services = append(services, exporter)
 			}
 
 			var statsSender *usage.Sender
-			if !viper.GetBool("usage_stats_disable") {
-				statsSender = usage.NewSender(node, ruleContainer, usage.Features{
+			if !cfg.UsageStats.Disabled {
+				statsSender = usage.NewSender(node, cfgContainer, usage.Features{
 					Edition:    edition,
 					Version:    build.Version,
 					Engine:     engineName,
@@ -805,19 +429,19 @@ func main() {
 					Broker:     brokerName,
 					BrokerMode: "",
 
-					Websocket:     !viper.GetBool("websocket_disable"),
-					HTTPStream:    viper.GetBool("http_stream"),
-					SSE:           viper.GetBool("sse"),
-					UniWebsocket:  viper.GetBool("uni_websocket"),
-					UniHTTPStream: viper.GetBool("uni_http_stream"),
-					UniSSE:        viper.GetBool("uni_sse"),
-					UniGRPC:       viper.GetBool("uni_grpc"),
+					Websocket:     !cfg.WebSocket.Disabled,
+					HTTPStream:    cfg.HTTPStream.Enabled,
+					SSE:           cfg.SSE.Enabled,
+					UniWebsocket:  cfg.UniWS.Enabled,
+					UniHTTPStream: cfg.UniHTTPStream.Enabled,
+					UniSSE:        cfg.UniSSE.Enabled,
+					UniGRPC:       cfg.UniGRPC.Enabled,
 
-					EnabledConsumers: usage.GetEnabledConsumers(consumers),
+					EnabledConsumers: usage.GetEnabledConsumers(cfg.Consumers),
 
-					GrpcAPI:             viper.GetBool("grpc_api"),
-					SubscribeToPersonal: viper.GetBool("user_subscribe_to_personal"),
-					Admin:               viper.GetBool("admin"),
+					GrpcAPI:             cfg.GrpcAPI.Enabled,
+					SubscribeToPersonal: cfg.UserSubscribeToPersonal.Enabled,
+					Admin:               cfg.Admin.Enabled,
 
 					ConnectProxy:         proxyMap.ConnectProxy != nil,
 					RefreshProxy:         proxyMap.RefreshProxy != nil,
@@ -837,8 +461,6 @@ func main() {
 
 			notify.RegisterHandlers(node, statsSender)
 
-			tools.CheckPlainConfigKeys(defaults, viper.AllKeys())
-
 			var serviceGroup *errgroup.Group
 			serviceCancel := func() {}
 			if len(services) > 0 {
@@ -853,52 +475,22 @@ func main() {
 				}
 			}
 
+			for _, key := range cfgMeta.UnknownKeys {
+				log.Warn().Str("key", key).Msg("unknown key in configuration file")
+			}
+			for _, key := range cfgMeta.UnknownEnvs {
+				log.Warn().Str("var", key).Msg("unknown var in environment")
+			}
+
 			handleSignals(
-				configFile, node, ruleContainer, tokenVerifier, subTokenVerifier,
+				cmd, configFile, node, cfgContainer, tokenVerifier, subTokenVerifier,
 				httpServers, grpcAPIServer, grpcUniServer,
 				serviceGroup, serviceCancel,
 			)
 		},
 	}
-
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
-	rootCmd.Flags().StringP("engine", "e", "memory", "engine to use: memory or redis")
-	rootCmd.Flags().StringP("broker", "", "", "custom broker to use: ex. nats")
-	rootCmd.Flags().StringP("log_level", "", "info", "set the log level: trace, debug, info, error, fatal or none")
-	rootCmd.Flags().StringP("log_file", "", "", "optional log file - if not specified logs go to STDOUT")
-	rootCmd.Flags().StringP("pid_file", "", "", "optional path to create PID file")
-	rootCmd.Flags().StringP("name", "n", "", "unique node name")
-
-	rootCmd.Flags().BoolP("debug", "", false, "enable debug endpoints")
-	rootCmd.Flags().BoolP("admin", "", false, "enable admin web interface")
-	rootCmd.Flags().BoolP("admin_external", "", false, "expose admin web interface on external port")
-	rootCmd.Flags().BoolP("prometheus", "", false, "enable Prometheus metrics endpoint")
-	rootCmd.Flags().BoolP("swagger", "", false, "enable Swagger UI endpoint describing server HTTP API")
-	rootCmd.Flags().BoolP("health", "", false, "enable health check endpoint")
-	rootCmd.Flags().BoolP("uni_websocket", "", false, "enable unidirectional websocket endpoint")
-	rootCmd.Flags().BoolP("uni_sse", "", false, "enable unidirectional SSE (EventSource) endpoint")
-	rootCmd.Flags().BoolP("uni_http_stream", "", false, "enable unidirectional HTTP-streaming endpoint")
-	rootCmd.Flags().BoolP("sse", "", false, "enable bidirectional SSE (EventSource) endpoint (with emulation layer)")
-	rootCmd.Flags().BoolP("http_stream", "", false, "enable bidirectional HTTP-streaming endpoint (with emulation layer)")
-
-	rootCmd.Flags().BoolP("client_insecure", "", false, "start in insecure client mode")
-	rootCmd.Flags().BoolP("api_insecure", "", false, "use insecure API mode")
-	rootCmd.Flags().BoolP("api_external", "", false, "expose API handler on external port")
-	rootCmd.Flags().BoolP("admin_insecure", "", false, "use insecure admin mode – no auth required for admin socket")
-
-	rootCmd.Flags().StringP("address", "a", "", "interface address to listen on")
-	rootCmd.Flags().StringP("port", "p", "8000", "port to bind HTTP server to")
-	rootCmd.Flags().StringP("internal_address", "", "", "custom interface address to listen on for internal endpoints")
-	rootCmd.Flags().StringP("internal_port", "", "", "custom port for internal endpoints")
-
-	rootCmd.Flags().BoolP("grpc_api", "", false, "enable GRPC API server")
-	rootCmd.Flags().IntP("grpc_api_port", "", 10000, "port to bind GRPC API server to")
-
-	rootCmd.Flags().BoolP("uni_grpc", "", false, "enable unidirectional GRPC endpoint")
-	rootCmd.Flags().IntP("uni_grpc_port", "", 11000, "port to bind unidirectional GRPC server to")
-
-	rootCmd.Flags().StringP("redis_address", "", "redis://127.0.0.1:6379", "Redis connection address (Redis engine)")
-	rootCmd.Flags().StringP("nats_url", "", "nats://127.0.0.1:4222", "Nats connection URL in format nats://user:pass@localhost:4222 (Nats broker)")
+	config.DefineFlags(rootCmd)
 
 	var versionCmd = &cobra.Command{
 		Use:   "version",
@@ -916,8 +508,16 @@ func main() {
 		Short: "Check configuration file",
 		Long:  `Check Centrifugo configuration file`,
 		Run: func(cmd *cobra.Command, args []string) {
-			bindCentrifugoConfig()
-			err := validateConfig(checkConfigFile)
+			cfg, cfgMeta, err := config.GetConfig(cmd, configFile)
+			if err != nil {
+				fmt.Printf("error reading config: %v\n", err)
+				os.Exit(1)
+			}
+			if cfgMeta.FileNotFound {
+				fmt.Println("config file not found")
+				os.Exit(1)
+			}
+			err = cfg.Validate()
 			if err != nil {
 				fmt.Printf("%s\n", tools.ErrorMessageFromConfigError(err, checkConfigFile))
 				os.Exit(1)
@@ -938,8 +538,13 @@ func main() {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
-			bindCentrifugoConfig()
-			err = validateConfig(outputConfigFile)
+			cfg, _, err := config.GetConfig(cmd, outputConfigFile)
+			if err != nil {
+				_ = os.Remove(outputConfigFile)
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			err = cfg.Validate()
 			if err != nil {
 				_ = os.Remove(outputConfigFile)
 				fmt.Printf("error: %v\n", err)
@@ -959,18 +564,17 @@ func main() {
 		Short: "Generate sample connection JWT for user",
 		Long:  `Generate sample connection JWT for user`,
 		Run: func(cmd *cobra.Command, args []string) {
-			bindCentrifugoConfig()
-			err := readConfig(genTokenConfigFile)
-			if err != nil && !errors.Is(err, errConfigFileNotFound) {
-				fmt.Printf("error: %v\n", err)
+			cfg, _, err := config.GetConfig(cmd, genTokenConfigFile)
+			if err != nil {
+				fmt.Printf("error reading config: %v\n", err)
 				os.Exit(1)
 			}
-			jwtVerifierConfig, err := jwtVerifierConfig()
+			verifierConfig, err := jwtVerifierConfig(cfg)
 			if err != nil {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
-			token, err := cli.GenerateToken(jwtVerifierConfig, genTokenUser, genTokenTTL)
+			token, err := cli.GenerateToken(verifierConfig, genTokenUser, genTokenTTL)
 			if err != nil {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
@@ -1006,23 +610,22 @@ func main() {
 		Short: "Generate sample subscription JWT for user",
 		Long:  `Generate sample subscription JWT for user`,
 		Run: func(cmd *cobra.Command, args []string) {
-			bindCentrifugoConfig()
-			err := readConfig(genSubTokenConfigFile)
-			if err != nil && !errors.Is(err, errConfigFileNotFound) {
-				fmt.Printf("error: %v\n", err)
+			cfg, _, err := config.GetConfig(cmd, genSubTokenConfigFile)
+			if err != nil {
+				fmt.Printf("error reading config: %v\n", err)
 				os.Exit(1)
 			}
 			if genSubTokenChannel == "" {
 				fmt.Println("channel is required")
 				os.Exit(1)
 			}
-			verifierConfig, err := jwtVerifierConfig()
+			verifierConfig, err := jwtVerifierConfig(cfg)
 			if err != nil {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
-			if viper.GetBool("separate_subscription_token_config") {
-				verifierConfig, err = subJWTVerifierConfig()
+			if cfg.Client.SubscriptionToken.Enabled {
+				verifierConfig, err = subJWTVerifierConfig(cfg)
 				if err != nil {
 					fmt.Printf("error: %v\n", err)
 					os.Exit(1)
@@ -1061,13 +664,16 @@ func main() {
 		Short: "Check connection JWT",
 		Long:  `Check connection JWT`,
 		Run: func(cmd *cobra.Command, args []string) {
-			bindCentrifugoConfig()
-			err := readConfig(checkTokenConfigFile)
-			if err != nil && !errors.Is(err, errConfigFileNotFound) {
+			cfg, _, err := config.GetConfig(cmd, checkTokenConfigFile)
+			if err != nil {
+				fmt.Printf("error reading config: %v\n", err)
+				os.Exit(1)
+			}
+			if err != nil {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
-			verifierConfig, err := jwtVerifierConfig()
+			verifierConfig, err := jwtVerifierConfig(cfg)
 			if err != nil {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
@@ -1076,7 +682,7 @@ func main() {
 				fmt.Printf("error: provide token to check [centrifugo checktoken <TOKEN>]\n")
 				os.Exit(1)
 			}
-			subject, claims, err := cli.CheckToken(verifierConfig, ruleConfig(), args[0])
+			subject, claims, err := cli.CheckToken(verifierConfig, cfg, args[0])
 			if err != nil {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
@@ -1097,19 +703,18 @@ func main() {
 		Short: "Check subscription JWT",
 		Long:  `Check subscription JWT`,
 		Run: func(cmd *cobra.Command, args []string) {
-			bindCentrifugoConfig()
-			err := readConfig(checkSubTokenConfigFile)
-			if err != nil && !errors.Is(err, errConfigFileNotFound) {
-				fmt.Printf("error: %v\n", err)
+			cfg, _, err := config.GetConfig(cmd, checkSubTokenConfigFile)
+			if err != nil {
+				fmt.Printf("error reading config: %v\n", err)
 				os.Exit(1)
 			}
-			verifierConfig, err := jwtVerifierConfig()
+			verifierConfig, err := jwtVerifierConfig(cfg)
 			if err != nil {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
-			if viper.GetBool("separate_subscription_token_config") {
-				verifierConfig, err = subJWTVerifierConfig()
+			if cfg.Client.SubscriptionToken.Enabled {
+				verifierConfig, err = subJWTVerifierConfig(cfg)
 				if err != nil {
 					fmt.Printf("error: %v\n", err)
 					os.Exit(1)
@@ -1119,7 +724,7 @@ func main() {
 				fmt.Printf("error: provide token to check [centrifugo checksubtoken <TOKEN>]\n")
 				os.Exit(1)
 			}
-			subject, channel, claims, err := cli.CheckSubToken(verifierConfig, ruleConfig(), args[0])
+			subject, channel, claims, err := cli.CheckSubToken(verifierConfig, cfg, args[0])
 			if err != nil {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
@@ -1165,68 +770,12 @@ func main() {
 	_ = rootCmd.Execute()
 }
 
-func writePidFile(pidFile string) error {
-	if pidFile == "" {
-		return nil
-	}
-	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
-	return os.WriteFile(pidFile, pid, 0644)
-}
-
-var logLevelMatches = map[string]zerolog.Level{
-	"NONE":  zerolog.NoLevel,
-	"TRACE": zerolog.TraceLevel,
-	"DEBUG": zerolog.DebugLevel,
-	"INFO":  zerolog.InfoLevel,
-	"WARN":  zerolog.WarnLevel,
-	"ERROR": zerolog.ErrorLevel,
-	"FATAL": zerolog.FatalLevel,
-}
-
-func configureConsoleWriter() {
-	if isTerminalAttached() {
-		log.Logger = log.Output(zerolog.ConsoleWriter{
-			Out:                 os.Stdout,
-			TimeFormat:          "2006-01-02 15:04:05",
-			FormatLevel:         logutils.ConsoleFormatLevel(),
-			FormatErrFieldName:  logutils.ConsoleFormatErrFieldName(),
-			FormatErrFieldValue: logutils.ConsoleFormatErrFieldValue(),
-		})
-	}
-}
-
-func isTerminalAttached() bool {
-	//goland:noinspection GoBoolExpressions – Goland is not smart enough here.
-	return isatty.IsTerminal(os.Stdout.Fd()) && runtime.GOOS != "windows"
-}
-
-func setupLogging() *os.File {
-	configureConsoleWriter()
-
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	logLevel, ok := logLevelMatches[strings.ToUpper(viper.GetString("log_level"))]
-	if !ok {
-		logLevel = zerolog.InfoLevel
-	}
-	zerolog.SetGlobalLevel(logLevel)
-
-	if viper.IsSet("log_file") && viper.GetString("log_file") != "" {
-		f, err := os.OpenFile(viper.GetString("log_file"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-		if err != nil {
-			log.Fatal().Msgf("error opening log file: %v", err)
-		}
-		log.Logger = log.Output(f)
-		return f
-	}
-
-	return nil
-}
-
 func handleSignals(
-	configFile string, n *centrifuge.Node, ruleContainer *rule.Container, tokenVerifier *jwtverify.VerifierJWT,
+	cmd *cobra.Command, configFile string, n *centrifuge.Node, cfgContainer *config.Container, tokenVerifier *jwtverify.VerifierJWT,
 	subTokenVerifier *jwtverify.VerifierJWT, httpServers []*http.Server, grpcAPIServer *grpc.Server, grpcUniServer *grpc.Server,
 	serviceGroup *errgroup.Group, serviceCancel context.CancelFunc,
 ) {
+	cfg := cfgContainer.Config()
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -1238,44 +787,44 @@ func handleSignals(
 			// Note that Centrifugo can't reload config for everything – just best effort to reload what's possible.
 			// We can now reload channel options and token verifiers.
 			log.Info().Msg("reloading configuration")
-			err := validateConfig(configFile)
+			newCfg, _, err := config.GetConfig(cmd, configFile)
 			if err != nil {
 				log.Error().Msg(tools.ErrorMessageFromConfigError(err, configFile))
 				continue
 			}
-			ruleConfig := ruleConfig()
-
-			verifierConfig, err := jwtVerifierConfig()
+			if err = newCfg.Validate(); err != nil {
+				log.Error().Msgf("error validating config: %v", err)
+				continue
+			}
+			verifierConfig, err := jwtVerifierConfig(newCfg)
 			if err != nil {
 				log.Error().Msgf("error reloading: %v", err)
 				continue
 			}
-
-			if err := tokenVerifier.Reload(verifierConfig); err != nil {
+			if err = tokenVerifier.Reload(verifierConfig); err != nil {
 				log.Error().Msgf("error reloading: %v", err)
 				continue
 			}
 			if subTokenVerifier != nil {
-				subVerifierConfig, err := subJWTVerifierConfig()
+				subVerifierConfig, err := subJWTVerifierConfig(newCfg)
 				if err != nil {
 					log.Error().Msgf("error reloading: %v", err)
 					continue
 				}
-
 				if err := subTokenVerifier.Reload(subVerifierConfig); err != nil {
 					log.Error().Msgf("error reloading: %v", err)
 					continue
 				}
 			}
-			if err := ruleContainer.Reload(ruleConfig); err != nil {
+			if err = cfgContainer.Reload(newCfg); err != nil {
 				log.Error().Msgf("error reloading: %v", err)
 				continue
 			}
 			log.Info().Msg("configuration successfully reloaded")
 		case syscall.SIGINT, os.Interrupt, syscall.SIGTERM:
 			log.Info().Msg("shutting down ...")
-			pidFile := viper.GetString("pid_file")
-			shutdownTimeout := GetDuration("shutdown_timeout")
+			pidFile := cfg.PidFile
+			shutdownTimeout := cfg.Shutdown.Timeout
 			go time.AfterFunc(shutdownTimeout, func() {
 				if pidFile != "" {
 					_ = os.Remove(pidFile)
@@ -1328,7 +877,6 @@ func handleSignals(
 			if pidFile != "" {
 				_ = os.Remove(pidFile)
 			}
-			time.Sleep(GetDuration("shutdown_termination_delay"))
 			os.Exit(0)
 		}
 	}
@@ -1336,21 +884,15 @@ func handleSignals(
 
 var startHTTPChallengeServerOnce sync.Once
 
-func getTLSConfig() (*tls.Config, error) {
-	tlsEnabled := viper.GetBool("tls")
-	tlsAutocertEnabled := viper.GetBool("tls_autocert")
-	autocertHostWhitelist := viper.GetString("tls_autocert_host_whitelist")
-	var tlsAutocertHostWhitelist []string
-	if autocertHostWhitelist != "" {
-		tlsAutocertHostWhitelist = strings.Split(autocertHostWhitelist, ",")
-	} else {
-		tlsAutocertHostWhitelist = nil
-	}
-	tlsAutocertCacheDir := viper.GetString("tls_autocert_cache_dir")
-	tlsAutocertEmail := viper.GetString("tls_autocert_email")
-	tlsAutocertServerName := viper.GetString("tls_autocert_server_name")
-	tlsAutocertHTTP := viper.GetBool("tls_autocert_http")
-	tlsAutocertHTTPAddr := viper.GetString("tls_autocert_http_addr")
+func getTLSConfig(cfg config.Config) (*tls.Config, error) {
+	tlsEnabled := cfg.TLS.Enabled
+	tlsAutocertEnabled := cfg.TLSAutocert.Enabled
+	tlsAutocertHostWhitelist := cfg.TLSAutocert.HostWhitelist
+	tlsAutocertCacheDir := cfg.TLSAutocert.CacheDir
+	tlsAutocertEmail := cfg.TLSAutocert.Email
+	tlsAutocertServerName := cfg.TLSAutocert.ServerName
+	tlsAutocertHTTP := cfg.TLSAutocert.HTTP
+	tlsAutocertHTTPAddr := cfg.TLSAutocert.HTTPAddr
 
 	if tlsAutocertEnabled {
 		certManager := autocert.Manager{
@@ -1396,18 +938,10 @@ func getTLSConfig() (*tls.Config, error) {
 
 	} else if tlsEnabled {
 		// Autocert disabled - just try to use provided SSL cert and key files.
-		return tools.MakeTLSConfig(viper.GetViper(), "", os.ReadFile)
+		return cfg.TLS.ToGoTLSConfig()
 	}
 
 	return nil, nil
-}
-
-func tlsConfigForGRPC() (*tls.Config, error) {
-	return tools.MakeTLSConfig(viper.GetViper(), "grpc_api_", os.ReadFile)
-}
-
-func tlsConfigForUniGRPC() (*tls.Config, error) {
-	return tools.MakeTLSConfig(viper.GetViper(), "uni_grpc_", os.ReadFile)
 }
 
 type httpErrorLogWriter struct {
@@ -1419,22 +953,24 @@ func (w *httpErrorLogWriter) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Executor, keepHeadersInContext bool) ([]*http.Server, error) {
-	debug := viper.GetBool("debug")
-	useAdmin := viper.GetBool("admin")
-	usePrometheus := viper.GetBool("prometheus")
-	useHealth := viper.GetBool("health")
-	useSwagger := viper.GetBool("swagger")
+func runHTTPServers(n *centrifuge.Node, cfgContainer *config.Container, apiExecutor *api.Executor, keepHeadersInContext bool) ([]*http.Server, error) {
+	cfg := cfgContainer.Config()
 
-	adminExternal := viper.GetBool("admin_external")
-	apiExternal := viper.GetBool("api_external")
+	debug := cfg.Debug.Enabled
+	useAdmin := cfg.Admin.Enabled
+	usePrometheus := cfg.Prometheus.Enabled
+	useHealth := cfg.Health.Enabled
+	useSwagger := cfg.Swagger.Enabled
 
-	apiDisabled := viper.GetBool("api_disable")
+	adminExternal := cfg.Admin.External
+	apiExternal := cfg.HttpAPI.External
 
-	httpAddress := viper.GetString("address")
-	httpPort := viper.GetString("port")
-	httpInternalAddress := viper.GetString("internal_address")
-	httpInternalPort := viper.GetString("internal_port")
+	apiDisabled := cfg.HttpAPI.Disabled
+
+	httpAddress := cfg.Address
+	httpPort := strconv.Itoa(cfg.Port)
+	httpInternalAddress := cfg.InternalAddress
+	httpInternalPort := cfg.InternalPort
 
 	if httpInternalAddress == "" && httpAddress != "" {
 		// If custom internal address not explicitly set we try to reuse main
@@ -1456,22 +992,22 @@ func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecut
 
 	externalAddr := net.JoinHostPort(httpAddress, httpPort)
 	portFlags = addrToHandlerFlags[externalAddr]
-	if !viper.GetBool("websocket_disable") {
+	if !cfg.WebSocket.Disabled {
 		portFlags |= HandlerWebsocket
 	}
-	if viper.GetBool("webtransport") {
-		if !viper.GetBool("http3") {
+	if cfg.WebTransport.Enabled {
+		if !cfg.HTTP3 {
 			log.Fatal().Msg("can not enable webtransport without experimental HTTP/3")
 		}
 		portFlags |= HandlerWebtransport
 	}
-	if viper.GetBool("sse") {
+	if cfg.SSE.Enabled {
 		portFlags |= HandlerSSE
 	}
-	if viper.GetBool("http_stream") {
+	if cfg.HTTPStream.Enabled {
 		portFlags |= HandlerHTTPStream
 	}
-	if viper.GetBool("sse") || viper.GetBool("http_stream") {
+	if cfg.SSE.Enabled || cfg.HTTPStream.Enabled {
 		portFlags |= HandlerEmulation
 	}
 	if useAdmin && adminExternal {
@@ -1480,13 +1016,13 @@ func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecut
 	if !apiDisabled && apiExternal {
 		portFlags |= HandlerAPI
 	}
-	if viper.GetBool("uni_websocket") {
+	if cfg.UniWS.Enabled {
 		portFlags |= HandlerUniWebsocket
 	}
-	if viper.GetBool("uni_sse") {
+	if cfg.UniSSE.Enabled {
 		portFlags |= HandlerUniSSE
 	}
-	if viper.GetBool("uni_http_stream") {
+	if cfg.UniHTTPStream.Enabled {
 		portFlags |= HandlerUniHTTPStream
 	}
 	addrToHandlerFlags[externalAddr] = portFlags
@@ -1516,7 +1052,7 @@ func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecut
 
 	var servers []*http.Server
 
-	tlsConfig, err := getTLSConfig()
+	tlsConfig, err := getTLSConfig(cfg)
 	if err != nil {
 		log.Fatal().Msgf("can not get TLS config: %v", err)
 	}
@@ -1529,20 +1065,20 @@ func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecut
 			continue
 		}
 		var addrTLSConfig *tls.Config
-		if !viper.GetBool("tls_external") || addr == externalAddr {
+		if !cfg.TLSExternal || addr == externalAddr {
 			addrTLSConfig = tlsConfig
 		}
 
-		useHTTP3 := viper.GetBool("http3") && addr == externalAddr
+		useHTTP3 := cfg.HTTP3 && addr == externalAddr
 
 		var wtServer *webtransport.Server
 		if useHTTP3 {
 			wtServer = &webtransport.Server{
-				CheckOrigin: getCheckOrigin(),
+				CheckOrigin: getCheckOrigin(cfg),
 			}
 		}
 
-		mux := Mux(n, ruleContainer, apiExecutor, handlerFlags, keepHeadersInContext, wtServer)
+		mux := Mux(n, cfgContainer, apiExecutor, handlerFlags, keepHeadersInContext, wtServer)
 
 		if useHTTP3 {
 			wtServer.H3 = http3.Server{
@@ -1579,7 +1115,7 @@ func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecut
 				if addrTLSConfig == nil {
 					log.Fatal().Msgf("HTTP/3 requires TLS configured")
 				}
-				if viper.GetBool("tls_autocert") {
+				if cfg.TLSAutocert.Enabled {
 					log.Fatal().Msgf("can not use HTTP/3 with autocert")
 				}
 
@@ -1646,180 +1182,17 @@ func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.Container, apiExecut
 	return servers, nil
 }
 
-var errConfigFileNotFound = errors.New("unable to find configuration file")
-
-// readConfig reads config.
-func readConfig(f string) error {
-	viper.SetConfigFile(f)
-	err := viper.ReadInConfig()
-	if err != nil {
-		var configParseError viper.ConfigParseError
-		switch {
-		case errors.As(err, &configParseError):
-			return err
-		default:
-			return errConfigFileNotFound
-		}
-	}
-	return nil
-}
-
-// validateConfig validates config file located at provided path.
-func validateConfig(f string) error {
-	err := readConfig(f)
-	if err != nil {
-		return err
-	}
-	ruleConfig := ruleConfig()
-	if err := ruleConfig.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func ruleConfig() rule.Config {
-	v := viper.GetViper()
-	cfg := rule.Config{}
-
-	cfg.Presence = v.GetBool("presence")
-	cfg.JoinLeave = v.GetBool("join_leave")
-	cfg.ForcePushJoinLeave = v.GetBool("force_push_join_leave")
-	cfg.HistorySize = v.GetInt("history_size")
-	cfg.HistoryTTL = tools.Duration(GetDuration("history_ttl", true))
-	cfg.HistoryMetaTTL = tools.Duration(GetDuration("history_meta_ttl", true))
-	cfg.ForcePositioning = v.GetBool("force_positioning")
-	cfg.AllowPositioning = v.GetBool("allow_positioning")
-	cfg.AllowRecovery = v.GetBool("allow_recovery")
-	cfg.ForceRecovery = v.GetBool("force_recovery")
-	cfg.ForceRecoveryMode = v.GetString("force_recovery_mode")
-	cfg.SubscribeForAnonymous = v.GetBool("allow_subscribe_for_anonymous")
-	cfg.SubscribeForClient = v.GetBool("allow_subscribe_for_client")
-	cfg.PublishForAnonymous = v.GetBool("allow_publish_for_anonymous")
-	cfg.PublishForClient = v.GetBool("allow_publish_for_client")
-	cfg.PublishForSubscriber = v.GetBool("allow_publish_for_subscriber")
-	cfg.PresenceForAnonymous = v.GetBool("allow_presence_for_anonymous")
-	cfg.PresenceForClient = v.GetBool("allow_presence_for_client")
-	cfg.PresenceForSubscriber = v.GetBool("allow_presence_for_subscriber")
-	cfg.HistoryForAnonymous = v.GetBool("allow_history_for_anonymous")
-	cfg.HistoryForClient = v.GetBool("allow_history_for_client")
-	cfg.HistoryForSubscriber = v.GetBool("allow_history_for_subscriber")
-	cfg.UserLimitedChannels = v.GetBool("allow_user_limited_channels")
-	cfg.ChannelRegex = v.GetString("channel_regex")
-	cfg.ProxySubscribe = v.GetBool("proxy_subscribe")
-	cfg.ProxyPublish = v.GetBool("proxy_publish")
-	cfg.ProxySubRefresh = v.GetBool("proxy_sub_refresh")
-	cfg.SubscribeProxyName = v.GetString("subscribe_proxy_name")
-	cfg.PublishProxyName = v.GetString("publish_proxy_name")
-	cfg.SubRefreshProxyName = v.GetString("sub_refresh_proxy_name")
-	cfg.ProxySubscribeStream = v.GetBool("proxy_stream_subscribe")
-	cfg.ProxySubscribeStreamBidirectional = v.GetBool("proxy_subscribe_stream_bidirectional")
-	// GlobalHistoryMetaTTL is required here only for validation purposes.
-	cfg.GlobalHistoryMetaTTL = GetDuration("global_history_meta_ttl", true)
-	cfg.DeltaPublish = v.GetBool("delta_publish")
-	allowedDeltaTypes := v.GetStringSlice("allowed_delta_types")
-	for _, dt := range allowedDeltaTypes {
-		cfg.AllowedDeltaTypes = append(cfg.AllowedDeltaTypes, centrifuge.DeltaType(dt))
-	}
-
-	cfg.Namespaces = namespacesFromConfig(v)
-
-	cfg.ChannelPrivatePrefix = v.GetString("channel_private_prefix")
-	cfg.ChannelNamespaceBoundary = v.GetString("channel_namespace_boundary")
-	cfg.ChannelUserBoundary = v.GetString("channel_user_boundary")
-	cfg.ChannelUserSeparator = v.GetString("channel_user_separator")
-	cfg.UserSubscribeToPersonal = v.GetBool("user_subscribe_to_personal")
-	cfg.UserPersonalSingleConnection = v.GetBool("user_personal_single_connection")
-	cfg.UserPersonalChannelNamespace = v.GetString("user_personal_channel_namespace")
-	cfg.ClientInsecure = v.GetBool("client_insecure")
-	cfg.ClientInsecureSkipTokenSignatureVerify = v.GetBool("client_insecure_skip_token_signature_verify")
-	cfg.AnonymousConnectWithoutToken = v.GetBool("allow_anonymous_connect_without_token")
-	cfg.DisallowAnonymousConnectionTokens = v.GetBool("disallow_anonymous_connection_tokens")
-	cfg.ClientConcurrency = v.GetInt("client_concurrency")
-	cfg.RpcNamespaceBoundary = v.GetString("rpc_namespace_boundary")
-	cfg.RpcProxyName = v.GetString("rpc_proxy_name")
-	cfg.RpcNamespaces = rpcNamespacesFromConfig(v)
-	cfg.ClientConnectionLimit = v.GetInt("client_connection_limit")
-	cfg.ClientConnectionRateLimit = v.GetInt("client_connection_rate_limit")
-
-	return cfg
-}
-
-// rpcNamespacesFromConfig allows to unmarshal rpc namespaces.
-func rpcNamespacesFromConfig(v *viper.Viper) []rule.RpcNamespace {
-	var ns []rule.RpcNamespace
-	if !v.IsSet("rpc_namespaces") {
-		return ns
-	}
-	jsonData := tools.DecodeSlice(v, &ns, "rpc_namespaces")
-	rule.WarnUnknownRpcNamespaceKeys(jsonData)
-	return ns
-}
-
-// namespacesFromConfig allows to unmarshal channel namespaces.
-func namespacesFromConfig(v *viper.Viper) []rule.ChannelNamespace {
-	var ns []rule.ChannelNamespace
-	if !v.IsSet("namespaces") {
-		return ns
-	}
-	jsonData := tools.DecodeSlice(v, &ns, "namespaces")
-	rule.WarnUnknownNamespaceKeys(jsonData)
-	return ns
-}
-
-var proxyNamePattern = "^[-a-zA-Z0-9_.]{2,}$"
-var proxyNameRe = regexp.MustCompile(proxyNamePattern)
-
-func granularProxiesFromConfig(v *viper.Viper) []proxy.Config {
-	var proxies []proxy.Config
-	if !v.IsSet("proxies") {
-		return proxies
-	}
-	jsonData := tools.DecodeSlice(v, &proxies, "proxies")
-	proxy.WarnUnknownProxyKeys(jsonData)
-
-	names := map[string]struct{}{}
-	for _, p := range proxies {
-		if !proxyNameRe.Match([]byte(p.Name)) {
-			log.Fatal().Msgf("invalid proxy name: %s, must match %s regular expression", p.Name, proxyNamePattern)
-		}
-		if _, ok := names[p.Name]; ok {
-			log.Fatal().Msgf("duplicate proxy name: %s", p.Name)
-		}
-		if p.Timeout == 0 {
-			p.Timeout = tools.Duration(time.Second)
-		}
-		if p.Endpoint == "" {
-			log.Fatal().Msgf("no endpoint set for proxy %s", p.Name)
-		}
-		names[p.Name] = struct{}{}
-	}
-
-	return proxies
-}
-
-// consumersFromConfig allows to unmarshal rpc namespaces.
-func consumersFromConfig(v *viper.Viper) []consuming.ConsumerConfig {
-	var consumers []consuming.ConsumerConfig
-	if !v.IsSet("consumers") {
-		return consumers
-	}
-	jsonData := tools.DecodeSlice(v, &consumers, "consumers")
-	consuming.WarnUnknownConsumerConfigKeys(jsonData)
-	return consumers
-}
-
 // Now Centrifugo uses https://github.com/tidwall/gjson to extract custom claims from JWT. So technically
 // we could support extracting from nested objects using dot syntax, like "centrifugo.user". But for now
 // not using this feature to keep things simple until necessary.
 var customClaimRe = regexp.MustCompile("^[a-zA-Z_]+$")
 
-func jwtVerifierConfig() (jwtverify.VerifierConfig, error) {
-	v := viper.GetViper()
+func makeVerifierConfig(tokenConf configtypes.Token) (jwtverify.VerifierConfig, error) {
 	cfg := jwtverify.VerifierConfig{}
 
-	cfg.HMACSecretKey = v.GetString("token_hmac_secret_key")
+	cfg.HMACSecretKey = tokenConf.HMACSecretKey
 
-	rsaPublicKey := v.GetString("token_rsa_public_key")
+	rsaPublicKey := tokenConf.RSAPublicKey
 	if rsaPublicKey != "" {
 		pubKey, err := jwtutils.ParseRSAPublicKeyFromPEM([]byte(rsaPublicKey))
 		if err != nil {
@@ -1828,7 +1201,7 @@ func jwtVerifierConfig() (jwtverify.VerifierConfig, error) {
 		cfg.RSAPublicKey = pubKey
 	}
 
-	ecdsaPublicKey := v.GetString("token_ecdsa_public_key")
+	ecdsaPublicKey := tokenConf.ECDSAPublicKey
 	if ecdsaPublicKey != "" {
 		pubKey, err := jwtutils.ParseECDSAPublicKeyFromPEM([]byte(ecdsaPublicKey))
 		if err != nil {
@@ -1837,14 +1210,14 @@ func jwtVerifierConfig() (jwtverify.VerifierConfig, error) {
 		cfg.ECDSAPublicKey = pubKey
 	}
 
-	cfg.JWKSPublicEndpoint = v.GetString("token_jwks_public_endpoint")
-	cfg.Audience = v.GetString("token_audience")
-	cfg.AudienceRegex = v.GetString("token_audience_regex")
-	cfg.Issuer = v.GetString("token_issuer")
-	cfg.IssuerRegex = v.GetString("token_issuer_regex")
+	cfg.JWKSPublicEndpoint = tokenConf.JWKSPublicEndpoint
+	cfg.Audience = tokenConf.Audience
+	cfg.AudienceRegex = tokenConf.AudienceRegex
+	cfg.Issuer = tokenConf.Issuer
+	cfg.IssuerRegex = tokenConf.IssuerRegex
 
-	if v.GetString("token_user_id_claim") != "" {
-		customUserIDClaim := v.GetString("token_user_id_claim")
+	if tokenConf.UserIDClaim != "" {
+		customUserIDClaim := tokenConf.UserIDClaim
 		if !customClaimRe.MatchString(customUserIDClaim) {
 			return jwtverify.VerifierConfig{}, fmt.Errorf("invalid user ID claim: %s, must match %s regular expression", customUserIDClaim, customClaimRe.String())
 		}
@@ -1854,68 +1227,15 @@ func jwtVerifierConfig() (jwtverify.VerifierConfig, error) {
 	return cfg, nil
 }
 
-func subJWTVerifierConfig() (jwtverify.VerifierConfig, error) {
-	v := viper.GetViper()
-	cfg := jwtverify.VerifierConfig{}
-
-	cfg.HMACSecretKey = v.GetString("subscription_token_hmac_secret_key")
-
-	rsaPublicKey := v.GetString("subscription_token_rsa_public_key")
-	if rsaPublicKey != "" {
-		pubKey, err := jwtutils.ParseRSAPublicKeyFromPEM([]byte(rsaPublicKey))
-		if err != nil {
-			return jwtverify.VerifierConfig{}, fmt.Errorf("error parsing RSA public key: %w", err)
-		}
-		cfg.RSAPublicKey = pubKey
-	}
-
-	ecdsaPublicKey := v.GetString("subscription_token_ecdsa_public_key")
-	if ecdsaPublicKey != "" {
-		pubKey, err := jwtutils.ParseECDSAPublicKeyFromPEM([]byte(ecdsaPublicKey))
-		if err != nil {
-			return jwtverify.VerifierConfig{}, fmt.Errorf("error parsing ECDSA public key: %w", err)
-		}
-		cfg.ECDSAPublicKey = pubKey
-	}
-
-	cfg.JWKSPublicEndpoint = v.GetString("subscription_token_jwks_public_endpoint")
-	cfg.Audience = v.GetString("subscription_token_audience")
-	cfg.AudienceRegex = v.GetString("subscription_token_audience_regex")
-	cfg.Issuer = v.GetString("subscription_token_issuer")
-	cfg.IssuerRegex = v.GetString("subscription_token_issuer_regex")
-
-	if v.GetString("subscription_token_user_id_claim") != "" {
-		customUserIDClaim := v.GetString("subscription_token_user_id_claim")
-		if !customClaimRe.MatchString(customUserIDClaim) {
-			return jwtverify.VerifierConfig{}, fmt.Errorf("invalid user ID claim: %s, must match %s regular expression", customUserIDClaim, customClaimRe.String())
-		}
-		cfg.UserIDClaim = customUserIDClaim
-	}
-
-	return cfg, nil
+func jwtVerifierConfig(cfg config.Config) (jwtverify.VerifierConfig, error) {
+	return makeVerifierConfig(cfg.Client.Token)
 }
 
-func GetDuration(key string, secondsPrecision ...bool) time.Duration {
-	durationString := viper.GetString(key)
-	duration, err := time.ParseDuration(durationString)
-	if err != nil {
-		log.Fatal().Msgf("malformed duration for key '%s': %v", key, err)
-	}
-	if duration > 0 && duration < time.Millisecond {
-		log.Fatal().Msgf("malformed duration for key '%s': %s, minimal duration resolution is 1ms – make sure correct time unit set", key, duration)
-	}
-	if duration > 0 && duration < time.Second && len(secondsPrecision) > 0 && secondsPrecision[0] {
-		log.Fatal().Msgf("malformed duration for key '%s': %s, minimal duration resolution is 1s for this key", key, duration)
-	}
-	if duration > 0 && duration%time.Second != 0 && len(secondsPrecision) > 0 && secondsPrecision[0] {
-		log.Fatal().Msgf("malformed duration for key '%s': %s, sub-second precision is not supported for this key", key, duration)
-	}
-	return duration
+func subJWTVerifierConfig(cfg config.Config) (jwtverify.VerifierConfig, error) {
+	return makeVerifierConfig(cfg.Client.SubscriptionToken.Token)
 }
 
-func proxyMapConfig() (*client.ProxyMap, bool) {
-	v := viper.GetViper()
-
+func proxyMapConfig(cfg config.Config) (*client.ProxyMap, bool) {
 	proxyMap := &client.ProxyMap{
 		SubscribeProxies:       map[string]proxy.SubscribeProxy{},
 		PublishProxies:         map[string]proxy.PublishProxy{},
@@ -1923,55 +1243,31 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 		SubRefreshProxies:      map[string]proxy.SubRefreshProxy{},
 		SubscribeStreamProxies: map[string]*proxy.SubscribeStreamProxy{},
 	}
-
-	tlsConfig, err := tools.ExtractTLSConfig(viper.GetViper(), "proxy_grpc_tls")
-	if err != nil {
-		log.Fatal().Msgf("error extracting TLS config for proxy GRPC: %v", err)
-	}
-
 	proxyConfig := proxy.Config{
-		BinaryEncoding:        v.GetBool("proxy_binary_encoding"),
-		IncludeConnectionMeta: v.GetBool("proxy_include_connection_meta"),
-		GrpcCertFile:          v.GetString("proxy_grpc_cert_file"),
-		GrpcTLS:               tlsConfig,
-		GrpcCredentialsKey:    v.GetString("proxy_grpc_credentials_key"),
-		GrpcCredentialsValue:  v.GetString("proxy_grpc_credentials_value"),
-		GrpcMetadata:          v.GetStringSlice("proxy_grpc_metadata"),
-		GrpcCompression:       v.GetBool("proxy_grpc_compression"),
+		ProxyCommon: cfg.Proxy.ProxyCommon,
 	}
 
-	proxyConfig.HttpHeaders = v.GetStringSlice("proxy_http_headers")
-	for i, header := range proxyConfig.HttpHeaders {
-		proxyConfig.HttpHeaders[i] = strings.ToLower(header)
-	}
-
-	staticHttpHeaders, err := tools.MapStringString(v, "proxy_static_http_headers")
-	if err != nil {
-		log.Fatal().Err(err).Msg("malformed configuration for proxy_static_http_headers")
-	}
-	proxyConfig.StaticHttpHeaders = staticHttpHeaders
-
-	connectEndpoint := v.GetString("proxy_connect_endpoint")
-	connectTimeout := GetDuration("proxy_connect_timeout")
-	refreshEndpoint := v.GetString("proxy_refresh_endpoint")
-	refreshTimeout := GetDuration("proxy_refresh_timeout")
-	rpcEndpoint := v.GetString("proxy_rpc_endpoint")
-	rpcTimeout := GetDuration("proxy_rpc_timeout")
-	subscribeEndpoint := v.GetString("proxy_subscribe_endpoint")
-	subscribeTimeout := GetDuration("proxy_subscribe_timeout")
-	publishEndpoint := v.GetString("proxy_publish_endpoint")
-	publishTimeout := GetDuration("proxy_publish_timeout")
-	subRefreshEndpoint := v.GetString("proxy_sub_refresh_endpoint")
-	subRefreshTimeout := GetDuration("proxy_sub_refresh_timeout")
-	proxyStreamSubscribeEndpoint := v.GetString("proxy_subscribe_stream_endpoint")
+	connectEndpoint := cfg.Proxy.ConnectEndpoint
+	connectTimeout := cfg.Proxy.ConnectTimeout
+	refreshEndpoint := cfg.Proxy.RefreshEndpoint
+	refreshTimeout := cfg.Proxy.RefreshTimeout
+	rpcEndpoint := cfg.Proxy.RPCEndpoint
+	rpcTimeout := cfg.Proxy.RPCTimeout
+	subscribeEndpoint := cfg.Proxy.SubscribeEndpoint
+	subscribeTimeout := cfg.Proxy.SubscribeTimeout
+	publishEndpoint := cfg.Proxy.PublishEndpoint
+	publishTimeout := cfg.Proxy.PublishTimeout
+	subRefreshEndpoint := cfg.Proxy.SubRefreshEndpoint
+	subRefreshTimeout := cfg.Proxy.SubRefreshTimeout
+	proxyStreamSubscribeEndpoint := cfg.Proxy.StreamSubscribeEndpoint
 	if strings.HasPrefix(proxyStreamSubscribeEndpoint, "http") {
 		log.Fatal().Msg("error creating subscribe stream proxy: only GRPC endpoints supported")
 	}
-	proxyStreamSubscribeTimeout := GetDuration("proxy_subscribe_stream_timeout")
+	proxyStreamSubscribeTimeout := cfg.Proxy.StreamSubscribeTimeout
 
 	if connectEndpoint != "" {
 		proxyConfig.Endpoint = connectEndpoint
-		proxyConfig.Timeout = tools.Duration(connectTimeout)
+		proxyConfig.Timeout = connectTimeout
 		var err error
 		proxyMap.ConnectProxy, err = proxy.GetConnectProxy(proxyConfig)
 		if err != nil {
@@ -1982,7 +1278,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 
 	if refreshEndpoint != "" {
 		proxyConfig.Endpoint = refreshEndpoint
-		proxyConfig.Timeout = tools.Duration(refreshTimeout)
+		proxyConfig.Timeout = refreshTimeout
 		var err error
 		proxyMap.RefreshProxy, err = proxy.GetRefreshProxy(proxyConfig)
 		if err != nil {
@@ -1993,7 +1289,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 
 	if subscribeEndpoint != "" {
 		proxyConfig.Endpoint = subscribeEndpoint
-		proxyConfig.Timeout = tools.Duration(subscribeTimeout)
+		proxyConfig.Timeout = subscribeTimeout
 		sp, err := proxy.GetSubscribeProxy(proxyConfig)
 		if err != nil {
 			log.Fatal().Msgf("error creating subscribe proxy: %v", err)
@@ -2004,7 +1300,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 
 	if publishEndpoint != "" {
 		proxyConfig.Endpoint = publishEndpoint
-		proxyConfig.Timeout = tools.Duration(publishTimeout)
+		proxyConfig.Timeout = publishTimeout
 		pp, err := proxy.GetPublishProxy(proxyConfig)
 		if err != nil {
 			log.Fatal().Msgf("error creating publish proxy: %v", err)
@@ -2015,7 +1311,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 
 	if rpcEndpoint != "" {
 		proxyConfig.Endpoint = rpcEndpoint
-		proxyConfig.Timeout = tools.Duration(rpcTimeout)
+		proxyConfig.Timeout = rpcTimeout
 		rp, err := proxy.GetRpcProxy(proxyConfig)
 		if err != nil {
 			log.Fatal().Msgf("error creating rpc proxy: %v", err)
@@ -2026,7 +1322,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 
 	if subRefreshEndpoint != "" {
 		proxyConfig.Endpoint = subRefreshEndpoint
-		proxyConfig.Timeout = tools.Duration(subRefreshTimeout)
+		proxyConfig.Timeout = subRefreshTimeout
 		srp, err := proxy.GetSubRefreshProxy(proxyConfig)
 		if err != nil {
 			log.Fatal().Msgf("error creating sub refresh proxy: %v", err)
@@ -2037,7 +1333,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 
 	if proxyStreamSubscribeEndpoint != "" {
 		proxyConfig.Endpoint = proxyStreamSubscribeEndpoint
-		proxyConfig.Timeout = tools.Duration(proxyStreamSubscribeTimeout)
+		proxyConfig.Timeout = proxyStreamSubscribeTimeout
 		streamProxy, err := proxy.NewSubscribeStreamProxy(proxyConfig)
 		if err != nil {
 			log.Fatal().Msgf("error creating subscribe stream proxy: %v", err)
@@ -2053,7 +1349,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	return proxyMap, keepHeadersInContext
 }
 
-func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
+func granularProxyMapConfig(cfg config.Config) (*client.ProxyMap, bool) {
 	proxyMap := &client.ProxyMap{
 		RpcProxies:             map[string]proxy.RPCProxy{},
 		PublishProxies:         map[string]proxy.PublishProxy{},
@@ -2062,7 +1358,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		SubscribeStreamProxies: map[string]*proxy.SubscribeStreamProxy{},
 		CacheEmptyProxies:      map[string]proxy.CacheEmptyProxy{},
 	}
-	proxyList := granularProxiesFromConfig(viper.GetViper())
+	proxyList := cfg.Proxies
 	proxies := make(map[string]proxy.Config)
 	for _, p := range proxyList {
 		for i, header := range p.HttpHeaders {
@@ -2073,7 +1369,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 
 	var keepHeadersInContext bool
 
-	connectProxyName := viper.GetString("connect_proxy_name")
+	connectProxyName := cfg.ConnectProxyName
 	if connectProxyName != "" {
 		p, ok := proxies[connectProxyName]
 		if !ok {
@@ -2086,7 +1382,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		}
 		keepHeadersInContext = true
 	}
-	refreshProxyName := viper.GetString("refresh_proxy_name")
+	refreshProxyName := cfg.RefreshProxyName
 	if refreshProxyName != "" {
 		p, ok := proxies[refreshProxyName]
 		if !ok {
@@ -2099,7 +1395,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		}
 		keepHeadersInContext = true
 	}
-	subscribeProxyName := ruleConfig.SubscribeProxyName
+	subscribeProxyName := cfg.Channel.SubscribeProxyName
 	if subscribeProxyName != "" {
 		p, ok := proxies[subscribeProxyName]
 		if !ok {
@@ -2113,7 +1409,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		keepHeadersInContext = true
 	}
 
-	publishProxyName := ruleConfig.PublishProxyName
+	publishProxyName := cfg.Channel.PublishProxyName
 	if publishProxyName != "" {
 		p, ok := proxies[publishProxyName]
 		if !ok {
@@ -2127,7 +1423,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		keepHeadersInContext = true
 	}
 
-	subRefreshProxyName := ruleConfig.SubRefreshProxyName
+	subRefreshProxyName := cfg.Channel.SubRefreshProxyName
 	if subRefreshProxyName != "" {
 		p, ok := proxies[subRefreshProxyName]
 		if !ok {
@@ -2141,7 +1437,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		keepHeadersInContext = true
 	}
 
-	subscribeStreamProxyName := ruleConfig.SubscribeStreamProxyName
+	subscribeStreamProxyName := cfg.Channel.SubscribeStreamProxyName
 	if subscribeStreamProxyName != "" {
 		p, ok := proxies[subscribeStreamProxyName]
 		if !ok {
@@ -2158,7 +1454,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		keepHeadersInContext = true
 	}
 
-	for _, ns := range ruleConfig.Namespaces {
+	for _, ns := range cfg.Channel.Namespaces {
 		subscribeProxyName := ns.SubscribeProxyName
 		publishProxyName := ns.PublishProxyName
 		subRefreshProxyName := ns.SubRefreshProxyName
@@ -2220,7 +1516,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		}
 	}
 
-	rpcProxyName := ruleConfig.RpcProxyName
+	rpcProxyName := cfg.RPC.RpcProxyName
 	if rpcProxyName != "" {
 		p, ok := proxies[rpcProxyName]
 		if !ok {
@@ -2234,7 +1530,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		keepHeadersInContext = true
 	}
 
-	for _, ns := range ruleConfig.RpcNamespaces {
+	for _, ns := range cfg.RPC.Namespaces {
 		rpcProxyName := ns.RpcProxyName
 		if rpcProxyName != "" {
 			p, ok := proxies[rpcProxyName]
@@ -2253,56 +1549,39 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 	return proxyMap, keepHeadersInContext
 }
 
-func nodeConfig(version string) centrifuge.Config {
-	v := viper.GetViper()
+func centrifugeConfig(version string, appCfg config.Config) centrifuge.Config {
 	cfg := centrifuge.Config{}
 	cfg.Version = version
 	cfg.MetricsNamespace = "centrifugo"
-	cfg.Name = applicationName()
-	cfg.ChannelMaxLength = v.GetInt("channel_max_length")
-	cfg.ClientPresenceUpdateInterval = GetDuration("client_presence_update_interval")
-	cfg.ClientExpiredCloseDelay = GetDuration("client_expired_close_delay")
-	cfg.ClientExpiredSubCloseDelay = GetDuration("client_expired_sub_close_delay")
-	cfg.ClientStaleCloseDelay = GetDuration("client_stale_close_delay")
-	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
-	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
-	cfg.ClientChannelPositionCheckDelay = GetDuration("client_channel_position_check_delay")
-	cfg.ClientChannelPositionMaxTimeLag = GetDuration("client_channel_position_max_time_lag")
-	cfg.UserConnectionLimit = v.GetInt("client_user_connection_limit")
-	cfg.NodeInfoMetricsAggregateInterval = GetDuration("node_info_metrics_aggregate_interval")
-	cfg.HistoryMaxPublicationLimit = v.GetInt("client_history_max_publication_limit")
-	cfg.RecoveryMaxPublicationLimit = v.GetInt("client_recovery_max_publication_limit")
-	cfg.HistoryMetaTTL = GetDuration("global_history_meta_ttl", true)
-	cfg.ClientConnectIncludeServerTime = v.GetBool("client_connect_include_server_time")
-
-	level, ok := logStringToLevel[strings.ToLower(v.GetString("log_level"))]
-	if !ok {
-		level = centrifuge.LogLevelInfo
-	}
-	cfg.LogLevel = level
-	cfg.LogHandler = newLogHandler().handle
+	cfg.Name = applicationName(appCfg)
+	cfg.ChannelMaxLength = appCfg.Channel.MaxLength
+	cfg.ClientPresenceUpdateInterval = appCfg.Client.PresenceUpdateInterval
+	cfg.ClientExpiredCloseDelay = appCfg.Client.ExpiredCloseDelay
+	cfg.ClientExpiredSubCloseDelay = appCfg.Client.ExpiredSubCloseDelay
+	cfg.ClientStaleCloseDelay = appCfg.Client.StaleCloseDelay
+	cfg.ClientQueueMaxSize = appCfg.Client.QueueMaxSize
+	cfg.ClientChannelLimit = appCfg.Client.ChannelLimit
+	cfg.ClientChannelPositionCheckDelay = appCfg.Client.ChannelPositionCheckDelay
+	cfg.ClientChannelPositionMaxTimeLag = appCfg.Client.ChannelPositionMaxTimeLag
+	cfg.UserConnectionLimit = appCfg.Client.UserConnectionLimit
+	cfg.NodeInfoMetricsAggregateInterval = appCfg.NodeInfoMetricsAggregateInterval
+	cfg.HistoryMaxPublicationLimit = appCfg.Client.HistoryMaxPublicationLimit
+	cfg.RecoveryMaxPublicationLimit = appCfg.Client.RecoveryMaxPublicationLimit
+	cfg.HistoryMetaTTL = appCfg.GlobalHistoryMetaTTL // TODO: v6. GetDuration("global_history_meta_ttl", true)
+	cfg.ClientConnectIncludeServerTime = appCfg.Client.ConnectIncludeServerTime
+	cfg.LogLevel = logging.CentrifugeLogLevel(strings.ToLower(appCfg.LogLevel))
+	cfg.LogHandler = logging.NewCentrifugeLogHandler().Handle
 	return cfg
-}
-
-// LogStringToLevel matches level string to Centrifuge LogLevel.
-var logStringToLevel = map[string]centrifuge.LogLevel{
-	"trace": centrifuge.LogLevelTrace,
-	"debug": centrifuge.LogLevelDebug,
-	"info":  centrifuge.LogLevelInfo,
-	"error": centrifuge.LogLevelError,
-	"none":  centrifuge.LogLevelNone,
 }
 
 // applicationName returns a name for this centrifuge. If no name provided
 // in configuration then it constructs node name based on hostname and port
-func applicationName() string {
-	v := viper.GetViper()
-
-	name := v.GetString("name")
+func applicationName(cfg config.Config) string {
+	name := cfg.Name
 	if name != "" {
 		return name
 	}
-	port := v.GetString("port")
+	port := strconv.Itoa(cfg.Port)
 	var hostname string
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -2311,9 +1590,9 @@ func applicationName() string {
 	return hostname + "_" + port
 }
 
-func getPingPongConfig() centrifuge.PingPongConfig {
-	pingInterval := GetDuration("ping_interval")
-	pongTimeout := GetDuration("pong_timeout")
+func getPingPongConfig(cfg config.Config) centrifuge.PingPongConfig {
+	pingInterval := cfg.Client.PingInterval
+	pongTimeout := cfg.Client.PongTimeout
 	if pingInterval <= pongTimeout {
 		log.Fatal().Msgf("ping_interval (%s) must be greater than pong_timeout (%s)", pingInterval, pongTimeout)
 	}
@@ -2323,47 +1602,45 @@ func getPingPongConfig() centrifuge.PingPongConfig {
 	}
 }
 
-func websocketHandlerConfig() centrifuge.WebsocketConfig {
-	v := viper.GetViper()
+func websocketHandlerConfig(appCfg config.Config) centrifuge.WebsocketConfig {
 	cfg := centrifuge.WebsocketConfig{}
-	cfg.Compression = v.GetBool("websocket_compression")
-	cfg.CompressionLevel = v.GetInt("websocket_compression_level")
-	cfg.CompressionMinSize = v.GetInt("websocket_compression_min_size")
-	cfg.ReadBufferSize = v.GetInt("websocket_read_buffer_size")
-	cfg.WriteBufferSize = v.GetInt("websocket_write_buffer_size")
-	cfg.UseWriteBufferPool = v.GetBool("websocket_use_write_buffer_pool")
-	cfg.WriteTimeout = GetDuration("websocket_write_timeout")
-	cfg.MessageSizeLimit = v.GetInt("websocket_message_size_limit")
-	cfg.CheckOrigin = getCheckOrigin()
-	cfg.PingPongConfig = getPingPongConfig()
+	cfg.Compression = appCfg.WebSocket.Compression
+	cfg.CompressionLevel = appCfg.WebSocket.CompressionLevel
+	cfg.CompressionMinSize = appCfg.WebSocket.CompressionMinSize
+	cfg.ReadBufferSize = appCfg.WebSocket.ReadBufferSize
+	cfg.WriteBufferSize = appCfg.WebSocket.WriteBufferSize
+	cfg.UseWriteBufferPool = appCfg.WebSocket.UseWriteBufferPool
+	cfg.WriteTimeout = appCfg.WebSocket.WriteTimeout
+	cfg.MessageSizeLimit = appCfg.WebSocket.MessageSizeLimit
+	cfg.CheckOrigin = getCheckOrigin(appCfg)
+	cfg.PingPongConfig = getPingPongConfig(appCfg)
 	return cfg
 }
 
-func httpStreamHandlerConfig() centrifuge.HTTPStreamConfig {
+func httpStreamHandlerConfig(appCfg config.Config) centrifuge.HTTPStreamConfig {
 	return centrifuge.HTTPStreamConfig{
-		MaxRequestBodySize: viper.GetInt("http_stream_max_request_body_size"),
-		PingPongConfig:     getPingPongConfig(),
+		MaxRequestBodySize: appCfg.HTTPStream.MaxRequestBodySize,
+		PingPongConfig:     getPingPongConfig(appCfg),
 	}
 }
 
-func sseHandlerConfig() centrifuge.SSEConfig {
+func sseHandlerConfig(appCfg config.Config) centrifuge.SSEConfig {
 	return centrifuge.SSEConfig{
-		MaxRequestBodySize: viper.GetInt("sse_max_request_body_size"),
-		PingPongConfig:     getPingPongConfig(),
+		MaxRequestBodySize: appCfg.SSE.MaxRequestBodySize,
+		PingPongConfig:     getPingPongConfig(appCfg),
 	}
 }
 
-func emulationHandlerConfig() centrifuge.EmulationConfig {
+func emulationHandlerConfig(cfg config.Config) centrifuge.EmulationConfig {
 	return centrifuge.EmulationConfig{
-		MaxRequestBodySize: viper.GetInt("emulation_max_request_body_size"),
+		MaxRequestBodySize: cfg.Emulation.MaxRequestBodySize,
 	}
 }
 
 var warnAllowedOriginsOnce sync.Once
 
-func getCheckOrigin() func(r *http.Request) bool {
-	v := viper.GetViper()
-	allowedOrigins := v.GetStringSlice("allowed_origins")
+func getCheckOrigin(cfg config.Config) func(r *http.Request) bool {
+	allowedOrigins := cfg.Client.AllowedOrigins
 	if len(allowedOrigins) == 0 {
 		return func(r *http.Request) bool {
 			// Only allow connections without Origin in this case.
@@ -2398,59 +1675,6 @@ func getCheckOrigin() func(r *http.Request) bool {
 	}
 }
 
-func uniWebsocketHandlerConfig() uniws.Config {
-	v := viper.GetViper()
-	return uniws.Config{
-		Compression:        v.GetBool("uni_websocket_compression"),
-		CompressionLevel:   v.GetInt("uni_websocket_compression_level"),
-		CompressionMinSize: v.GetInt("uni_websocket_compression_min_size"),
-		ReadBufferSize:     v.GetInt("uni_websocket_read_buffer_size"),
-		WriteBufferSize:    v.GetInt("uni_websocket_write_buffer_size"),
-		UseWriteBufferPool: v.GetBool("uni_websocket_use_write_buffer_pool"),
-		WriteTimeout:       GetDuration("uni_websocket_write_timeout"),
-		MessageSizeLimit:   v.GetInt("uni_websocket_message_size_limit"),
-		CheckOrigin:        getCheckOrigin(),
-		PingPongConfig:     getPingPongConfig(),
-	}
-}
-
-func uniSSEHandlerConfig() unisse.Config {
-	return unisse.Config{
-		MaxRequestBodySize: viper.GetInt("uni_sse_max_request_body_size"),
-		PingPongConfig:     getPingPongConfig(),
-	}
-}
-
-func uniStreamHandlerConfig() unihttpstream.Config {
-	return unihttpstream.Config{
-		MaxRequestBodySize: viper.GetInt("uni_http_stream_max_request_body_size"),
-		PingPongConfig:     getPingPongConfig(),
-	}
-}
-
-func uniGRPCHandlerConfig() unigrpc.Config {
-	return unigrpc.Config{}
-}
-
-func webTransportHandlerConfig() wt.Config {
-	return wt.Config{
-		PingPongConfig: getPingPongConfig(),
-	}
-}
-
-func adminHandlerConfig() admin.Config {
-	v := viper.GetViper()
-	cfg := admin.Config{}
-	cfg.WebFS = webui.FS
-	cfg.WebPath = v.GetString("admin_web_path")
-	cfg.WebProxyAddress = v.GetString("admin_web_proxy_address")
-	cfg.Password = v.GetString("admin_password")
-	cfg.Secret = v.GetString("admin_secret")
-	cfg.Insecure = v.GetBool("admin_insecure")
-	cfg.Prefix = v.GetString("admin_handler_prefix")
-	return cfg
-}
-
 func memoryEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceManager, string, error) {
 	brokerConf, err := memoryBrokerConfig()
 	if err != nil {
@@ -2479,28 +1703,28 @@ func memoryPresenceManagerConfig() (*centrifuge.MemoryPresenceManagerConfig, err
 	return &centrifuge.MemoryPresenceManagerConfig{}, nil
 }
 
-func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
-	shardConf.DB = viper.GetInt("redis_db")
-	shardConf.User = viper.GetString("redis_user")
-	shardConf.Password = viper.GetString("redis_password")
-	shardConf.ClientName = viper.GetString("redis_client_name")
+func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig, redisConf configtypes.Redis) {
+	shardConf.DB = redisConf.DB
+	shardConf.User = redisConf.User
+	shardConf.Password = redisConf.Password
+	shardConf.ClientName = redisConf.ClientName
 
-	if viper.GetBool("redis_tls") {
-		tlsConfig, err := tools.MakeTLSConfig(viper.GetViper(), "redis_", os.ReadFile)
+	if redisConf.TLS.Enabled {
+		tlsConfig, err := redisConf.TLS.ToGoTLSConfig()
 		if err != nil {
 			log.Fatal().Msgf("error creating Redis TLS config: %v", err)
 		}
 		shardConf.TLSConfig = tlsConfig
 	}
-	shardConf.ConnectTimeout = GetDuration("redis_connect_timeout")
-	shardConf.IOTimeout = GetDuration("redis_io_timeout")
-	shardConf.ForceRESP2 = viper.GetBool("redis_force_resp2")
+	shardConf.ConnectTimeout = redisConf.ConnectTimeout
+	shardConf.IOTimeout = redisConf.IOTimeout
+	shardConf.ForceRESP2 = redisConf.ForceResp2
 }
 
-func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, string, error) {
+func getRedisShardConfigs(redisConf configtypes.Redis) ([]centrifuge.RedisShardConfig, string, error) {
 	var shardConfigs []centrifuge.RedisShardConfig
 
-	clusterShards := viper.GetStringSlice("redis_cluster_address")
+	clusterShards := redisConf.ClusterAddress
 	var useCluster bool
 	if len(clusterShards) > 0 {
 		useCluster = true
@@ -2517,13 +1741,13 @@ func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, string, error) {
 			conf := &centrifuge.RedisShardConfig{
 				ClusterAddresses: clusterAddresses,
 			}
-			addRedisShardCommonSettings(conf)
+			addRedisShardCommonSettings(conf, redisConf)
 			shardConfigs = append(shardConfigs, *conf)
 		}
 		return shardConfigs, "cluster", nil
 	}
 
-	sentinelShards := viper.GetStringSlice("redis_sentinel_address")
+	sentinelShards := redisConf.SentinelAddress
 	var useSentinel bool
 	if len(sentinelShards) > 0 {
 		useSentinel = true
@@ -2540,16 +1764,16 @@ func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, string, error) {
 			conf := &centrifuge.RedisShardConfig{
 				SentinelAddresses: sentinelAddresses,
 			}
-			addRedisShardCommonSettings(conf)
-			conf.SentinelUser = viper.GetString("redis_sentinel_user")
-			conf.SentinelPassword = viper.GetString("redis_sentinel_password")
-			conf.SentinelMasterName = viper.GetString("redis_sentinel_master_name")
+			addRedisShardCommonSettings(conf, redisConf)
+			conf.SentinelUser = redisConf.SentinelUser
+			conf.SentinelPassword = redisConf.SentinelPassword
+			conf.SentinelMasterName = redisConf.SentinelMasterName
 			if conf.SentinelMasterName == "" {
 				return nil, "", fmt.Errorf("master name must be set when using Redis Sentinel")
 			}
-			conf.SentinelClientName = viper.GetString("redis_sentinel_client_name")
-			if viper.GetBool("redis_sentinel_tls") {
-				tlsConfig, err := tools.MakeTLSConfig(viper.GetViper(), "redis_sentinel_", os.ReadFile)
+			conf.SentinelClientName = redisConf.SentinelClientName
+			if redisConf.SentinelTLS.Enabled {
+				tlsConfig, err := redisConf.TLS.ToGoTLSConfig()
 				if err != nil {
 					log.Fatal().Msgf("error creating Redis Sentinel TLS config: %v", err)
 				}
@@ -2560,7 +1784,7 @@ func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, string, error) {
 		return shardConfigs, "sentinel", nil
 	}
 
-	redisAddresses := viper.GetStringSlice("redis_address")
+	redisAddresses := redisConf.Address
 	if len(redisAddresses) == 0 {
 		redisAddresses = []string{"127.0.0.1:6379"}
 	}
@@ -2568,22 +1792,22 @@ func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, string, error) {
 		conf := &centrifuge.RedisShardConfig{
 			Address: redisAddress,
 		}
-		addRedisShardCommonSettings(conf)
+		addRedisShardCommonSettings(conf, redisConf)
 		shardConfigs = append(shardConfigs, *conf)
 	}
 
 	return shardConfigs, "standalone", nil
 }
 
-func getRedisShards(n *centrifuge.Node) ([]*centrifuge.RedisShard, string, error) {
-	redisShardConfigs, mode, err := getRedisShardConfigs()
+func getRedisShards(n *centrifuge.Node, redisConf configtypes.Redis) ([]*centrifuge.RedisShard, string, error) {
+	redisShardConfigs, mode, err := getRedisShardConfigs(redisConf)
 	if err != nil {
 		return nil, "", err
 	}
 	redisShards := make([]*centrifuge.RedisShard, 0, len(redisShardConfigs))
 
-	for _, redisConf := range redisShardConfigs {
-		redisShard, err := centrifuge.NewRedisShard(n, redisConf)
+	for _, shardConf := range redisShardConfigs {
+		redisShard, err := centrifuge.NewRedisShard(n, shardConf)
 		if err != nil {
 			return nil, "", err
 		}
@@ -2597,41 +1821,21 @@ func getRedisShards(n *centrifuge.Node) ([]*centrifuge.RedisShard, string, error
 	return redisShards, mode, nil
 }
 
-func initNatsBroker(node *centrifuge.Node) (*natsbroker.NatsBroker, error) {
-	replacements, err := tools.MapStringString(viper.GetViper(), "nats_raw_mode.channel_replacements")
-	if err != nil {
-		return nil, fmt.Errorf("error parsing nats_raw_mode_channel_replacements: %v", err)
-	}
-	tlsConfig, err := tools.ExtractGoTLSConfig(viper.GetViper(), "nats_tls")
-	if err != nil {
-		return nil, fmt.Errorf("error configuring nats tls: %v", err)
-	}
-	return natsbroker.New(node, natsbroker.Config{
-		URL:            viper.GetString("nats_url"),
-		Prefix:         viper.GetString("nats_prefix"),
-		DialTimeout:    GetDuration("nats_dial_timeout"),
-		WriteTimeout:   GetDuration("nats_write_timeout"),
-		AllowWildcards: viper.GetBool("nats_allow_wildcards"),
-		TLS:            tlsConfig,
-		RawMode: natsbroker.RawModeConfig{
-			Enabled:             viper.GetBool("nats_raw_mode.enabled"),
-			Prefix:              viper.GetString("nats_raw_mode.prefix"),
-			ChannelReplacements: replacements,
-		},
-	})
+func initNatsBroker(node *centrifuge.Node, cfg config.Config) (*natsbroker.NatsBroker, error) {
+	return natsbroker.New(node, cfg.Nats)
 }
 
-func redisEngine(n *centrifuge.Node) (*centrifuge.RedisBroker, centrifuge.PresenceManager, string, error) {
-	redisShards, mode, err := getRedisShards(n)
+func redisEngine(n *centrifuge.Node, cfg config.Config) (*centrifuge.RedisBroker, centrifuge.PresenceManager, string, error) {
+	redisShards, mode, err := getRedisShards(n, cfg.Redis.Redis)
 	if err != nil {
 		return nil, nil, "", err
 	}
 
 	broker, err := centrifuge.NewRedisBroker(n, centrifuge.RedisBrokerConfig{
 		Shards:     redisShards,
-		Prefix:     viper.GetString("redis_prefix"),
-		UseLists:   viper.GetBool("redis_use_lists"),
-		SkipPubSub: viper.GetString("broker") == "redisnats",
+		Prefix:     cfg.Redis.Redis.Prefix,
+		UseLists:   cfg.Redis.UseLists,
+		SkipPubSub: cfg.Broker == "redisnats",
 	})
 	if err != nil {
 		return nil, nil, "", err
@@ -2639,11 +1843,11 @@ func redisEngine(n *centrifuge.Node) (*centrifuge.RedisBroker, centrifuge.Presen
 
 	presenceManagerConfig := centrifuge.RedisPresenceManagerConfig{
 		Shards:          redisShards,
-		Prefix:          viper.GetString("redis_prefix"),
-		PresenceTTL:     GetDuration("global_presence_ttl", true),
-		UseHashFieldTTL: viper.GetBool("redis_presence_hash_field_ttl"),
+		Prefix:          cfg.Redis.Prefix,
+		PresenceTTL:     cfg.Redis.PresenceTTL,
+		UseHashFieldTTL: cfg.Redis.PresenceHashFieldTTL,
 	}
-	if viper.GetBool("global_redis_presence_user_mapping") {
+	if cfg.Redis.PresenceUserMapping {
 		presenceManagerConfig.EnableUserMapping = func(_ string) bool {
 			return true
 		}
@@ -2655,51 +1859,6 @@ func redisEngine(n *centrifuge.Node) (*centrifuge.RedisBroker, centrifuge.Presen
 	}
 
 	return broker, presenceManager, mode, nil
-}
-
-type logHandler struct {
-	entries chan centrifuge.LogEntry
-}
-
-func newLogHandler() *logHandler {
-	h := &logHandler{
-		entries: make(chan centrifuge.LogEntry, 64),
-	}
-	go h.readEntries()
-	return h
-}
-
-func (h *logHandler) readEntries() {
-	for entry := range h.entries {
-		var l *zerolog.Event
-		switch entry.Level {
-		case centrifuge.LogLevelTrace:
-			l = log.Trace()
-		case centrifuge.LogLevelDebug:
-			l = log.Debug()
-		case centrifuge.LogLevelInfo:
-			l = log.Info()
-		case centrifuge.LogLevelWarn:
-			l = log.Warn()
-		case centrifuge.LogLevelError:
-			l = log.Error()
-		default:
-			continue
-		}
-		if entry.Fields != nil {
-			l.Fields(entry.Fields).Msg(entry.Message)
-		} else {
-			l.Msg(entry.Message)
-		}
-	}
-}
-
-func (h *logHandler) handle(entry centrifuge.LogEntry) {
-	select {
-	case h.entries <- entry:
-	default:
-		return
-	}
 }
 
 // HandlerFlag is a bit mask of handlers that must be enabled in mux.
@@ -2769,9 +1928,9 @@ func (flags HandlerFlag) String() string {
 }
 
 // Mux returns a mux including set of default handlers for Centrifugo server.
-func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Executor, flags HandlerFlag, keepHeadersInContext bool, wtServer *webtransport.Server) *http.ServeMux {
+func Mux(n *centrifuge.Node, cfgContainer *config.Container, apiExecutor *api.Executor, flags HandlerFlag, keepHeadersInContext bool, wtServer *webtransport.Server) *http.ServeMux {
 	mux := http.NewServeMux()
-	v := viper.GetViper()
+	cfg := cfgContainer.Config()
 
 	var commonMiddlewares []alice.Constructor
 
@@ -2784,116 +1943,117 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 	basicChain := alice.New(basicMiddlewares...)
 
 	if flags&HandlerDebug != 0 {
-		mux.Handle("/debug/pprof/", basicChain.Then(http.HandlerFunc(pprof.Index)))
-		mux.Handle("/debug/pprof/cmdline", basicChain.Then(http.HandlerFunc(pprof.Cmdline)))
-		mux.Handle("/debug/pprof/profile", basicChain.Then(http.HandlerFunc(pprof.Profile)))
-		mux.Handle("/debug/pprof/symbol", basicChain.Then(http.HandlerFunc(pprof.Symbol)))
-		mux.Handle("/debug/pprof/trace", basicChain.Then(http.HandlerFunc(pprof.Trace)))
+		mux.Handle(cfg.Debug.HandlerPrefix+"/", basicChain.Then(http.HandlerFunc(pprof.Index)))
+		mux.Handle(cfg.Debug.HandlerPrefix+"/cmdline", basicChain.Then(http.HandlerFunc(pprof.Cmdline)))
+		mux.Handle(cfg.Debug.HandlerPrefix+"/profile", basicChain.Then(http.HandlerFunc(pprof.Profile)))
+		mux.Handle(cfg.Debug.HandlerPrefix+"/symbol", basicChain.Then(http.HandlerFunc(pprof.Symbol)))
+		mux.Handle(cfg.Debug.HandlerPrefix+"/trace", basicChain.Then(http.HandlerFunc(pprof.Trace)))
 	}
 
 	if flags&HandlerEmulation != 0 {
 		// register bidirectional SSE connection endpoint.
 		emulationMiddlewares := append([]alice.Constructor{}, commonMiddlewares...)
-		emulationMiddlewares = append(emulationMiddlewares, middleware.NewCORS(getCheckOrigin()).Middleware)
+		emulationMiddlewares = append(emulationMiddlewares, middleware.NewCORS(getCheckOrigin(cfg)).Middleware)
 		emulationChain := alice.New(emulationMiddlewares...)
 
-		emulationPrefix := strings.TrimRight(v.GetString("emulation_handler_prefix"), "/")
+		emulationPrefix := strings.TrimRight(cfg.Emulation.HandlerPrefix, "/")
 		if emulationPrefix == "" {
 			emulationPrefix = "/"
 		}
-		mux.Handle(emulationPrefix, emulationChain.Then(centrifuge.NewEmulationHandler(n, emulationHandlerConfig())))
+		mux.Handle(emulationPrefix, emulationChain.Then(centrifuge.NewEmulationHandler(n, emulationHandlerConfig(cfg))))
 	}
 
 	connMiddlewares := append([]alice.Constructor{}, commonMiddlewares...)
-	connLimit := ruleContainer.Config().ClientConnectionLimit
+	connLimit := cfg.Client.ConnectionLimit
 	if connLimit > 0 {
-		connLimitMW := middleware.NewConnLimit(n, ruleContainer)
+		connLimitMW := middleware.NewConnLimit(n, cfgContainer)
 		connMiddlewares = append(connMiddlewares, connLimitMW.Middleware)
 	}
-	userIDHTTPHeader := v.GetString("client_user_id_http_header")
+	userIDHTTPHeader := cfg.Client.UserIDHTTPHeader
 	if userIDHTTPHeader != "" {
 		connMiddlewares = append(connMiddlewares, middleware.UserHeaderAuth(userIDHTTPHeader))
 	}
 	if keepHeadersInContext {
 		connMiddlewares = append(connMiddlewares, middleware.HeadersToContext)
 	}
-	connMiddlewares = append(connMiddlewares, middleware.NewCORS(getCheckOrigin()).Middleware)
+	connMiddlewares = append(connMiddlewares, middleware.NewCORS(getCheckOrigin(cfg)).Middleware)
 	connChain := alice.New(connMiddlewares...)
 
 	if flags&HandlerWebsocket != 0 {
 		// register WebSocket connection endpoint.
-		wsPrefix := strings.TrimRight(v.GetString("websocket_handler_prefix"), "/")
+		wsPrefix := strings.TrimRight(cfg.WebSocket.HandlerPrefix, "/")
 		if wsPrefix == "" {
 			wsPrefix = "/"
 		}
-		mux.Handle(wsPrefix, connChain.Then(centrifuge.NewWebsocketHandler(n, websocketHandlerConfig())))
+		mux.Handle(wsPrefix, connChain.Then(centrifuge.NewWebsocketHandler(n, websocketHandlerConfig(cfg))))
 	}
 
 	if flags&HandlerWebtransport != 0 {
 		// register WebTransport connection endpoint.
-		wtPrefix := strings.TrimRight(v.GetString("webtransport_handler_prefix"), "/")
+		wtPrefix := strings.TrimRight(cfg.WebTransport.HandlerPrefix, "/")
 		if wtPrefix == "" {
 			wtPrefix = "/"
 		}
-		mux.Handle(wtPrefix, connChain.Then(wt.NewHandler(n, wtServer, webTransportHandlerConfig())))
+		mux.Handle(wtPrefix, connChain.Then(wt.NewHandler(n, wtServer, cfg.WebTransport, getPingPongConfig(cfg))))
 	}
 
 	if flags&HandlerHTTPStream != 0 {
 		// register bidirectional HTTP stream connection endpoint.
-		streamPrefix := strings.TrimRight(v.GetString("http_stream_handler_prefix"), "/")
+		streamPrefix := strings.TrimRight(cfg.HTTPStream.HandlerPrefix, "/")
 		if streamPrefix == "" {
 			streamPrefix = "/"
 		}
-		mux.Handle(streamPrefix, connChain.Then(centrifuge.NewHTTPStreamHandler(n, httpStreamHandlerConfig())))
+		mux.Handle(streamPrefix, connChain.Then(centrifuge.NewHTTPStreamHandler(n, httpStreamHandlerConfig(cfg))))
 	}
 	if flags&HandlerSSE != 0 {
 		// register bidirectional SSE connection endpoint.
-		ssePrefix := strings.TrimRight(v.GetString("sse_handler_prefix"), "/")
+		ssePrefix := strings.TrimRight(cfg.SSE.HandlerPrefix, "/")
 		if ssePrefix == "" {
 			ssePrefix = "/"
 		}
-		mux.Handle(ssePrefix, connChain.Then(centrifuge.NewSSEHandler(n, sseHandlerConfig())))
+		mux.Handle(ssePrefix, connChain.Then(centrifuge.NewSSEHandler(n, sseHandlerConfig(cfg))))
 	}
 
 	if flags&HandlerUniWebsocket != 0 {
 		// register unidirectional WebSocket connection endpoint.
-		wsPrefix := strings.TrimRight(v.GetString("uni_websocket_handler_prefix"), "/")
+		wsPrefix := strings.TrimRight(cfg.UniWS.HandlerPrefix, "/")
 		if wsPrefix == "" {
 			wsPrefix = "/"
 		}
-		mux.Handle(wsPrefix, connChain.Then(uniws.NewHandler(n, uniWebsocketHandlerConfig())))
+		mux.Handle(wsPrefix, connChain.Then(
+			uniws.NewHandler(n, cfg.UniWS, getCheckOrigin(cfg), getPingPongConfig(cfg))))
 	}
 
 	if flags&HandlerUniSSE != 0 {
 		// register unidirectional SSE connection endpoint.
-		ssePrefix := strings.TrimRight(v.GetString("uni_sse_handler_prefix"), "/")
+		ssePrefix := strings.TrimRight(cfg.UniSSE.HandlerPrefix, "/")
 		if ssePrefix == "" {
 			ssePrefix = "/"
 		}
-		mux.Handle(ssePrefix, connChain.Then(unisse.NewHandler(n, uniSSEHandlerConfig())))
+		mux.Handle(ssePrefix, connChain.Then(unisse.NewHandler(n, cfg.UniSSE, getPingPongConfig(cfg))))
 	}
 
 	if flags&HandlerUniHTTPStream != 0 {
 		// register unidirectional HTTP stream connection endpoint.
-		streamPrefix := strings.TrimRight(v.GetString("uni_http_stream_handler_prefix"), "/")
+		streamPrefix := strings.TrimRight(cfg.UniHTTPStream.HandlerPrefix, "/")
 		if streamPrefix == "" {
 			streamPrefix = "/"
 		}
-		mux.Handle(streamPrefix, connChain.Then(unihttpstream.NewHandler(n, uniStreamHandlerConfig())))
+		mux.Handle(streamPrefix, connChain.Then(unihttpstream.NewHandler(n, cfg.UniHTTPStream, getPingPongConfig(cfg))))
 	}
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoints.
-		httpErrorMode, err := tools.OptionalStringChoice(viper.GetViper(), "api_error_mode", []string{transportErrorMode})
+		httpErrorMode, err := tools.OptionalStringChoice(cfg.HttpAPI.ErrorMode, []string{transportErrorMode})
 		if err != nil {
 			log.Fatal().Msgf("error in config: %v", err)
 		}
-		useOpenTelemetry := viper.GetBool("opentelemetry") && viper.GetBool("opentelemetry_api")
+		useOpenTelemetry := cfg.OpenTelemetry.Enabled && cfg.OpenTelemetry.API
 		apiHandler := api.NewHandler(n, apiExecutor, api.Config{
 			UseOpenTelemetry:      useOpenTelemetry,
 			UseTransportErrorMode: httpErrorMode == transportErrorMode,
 		})
-		apiPrefix := strings.TrimRight(v.GetString("api_handler_prefix"), "/")
+		apiPrefix := strings.TrimRight(cfg.HttpAPI.HandlerPrefix, "/")
 		if apiPrefix == "" {
 			apiPrefix = "/"
 		}
@@ -2905,8 +2065,8 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 				apiMiddlewares = append(apiMiddlewares, otelHandler.Middleware)
 			}
 			apiMiddlewares = append(apiMiddlewares, middleware.Post)
-			if !viper.GetBool("api_insecure") {
-				apiMiddlewares = append(apiMiddlewares, middleware.NewAPIKeyAuth(viper.GetString("api_key")).Middleware)
+			if !cfg.HttpAPI.Insecure {
+				apiMiddlewares = append(apiMiddlewares, middleware.NewAPIKeyAuth(cfg.HttpAPI.Key).Middleware)
 			}
 			apiChain := alice.New(apiMiddlewares...)
 			return apiChain
@@ -2927,7 +2087,7 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 
 	if flags&HandlerSwagger != 0 {
 		// register Swagger UI endpoint.
-		swaggerPrefix := strings.TrimRight(v.GetString("swagger_handler_prefix"), "/") + "/"
+		swaggerPrefix := strings.TrimRight(cfg.Swagger.HandlerPrefix, "/") + "/"
 		if swaggerPrefix == "" {
 			swaggerPrefix = "/"
 		}
@@ -2936,7 +2096,7 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 
 	if flags&HandlerPrometheus != 0 {
 		// register Prometheus metrics export endpoint.
-		prometheusPrefix := strings.TrimRight(v.GetString("prometheus_handler_prefix"), "/")
+		prometheusPrefix := strings.TrimRight(cfg.Prometheus.HandlerPrefix, "/")
 		if prometheusPrefix == "" {
 			prometheusPrefix = "/"
 		}
@@ -2945,12 +2105,13 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.Container, apiExecutor *api.Exe
 
 	if flags&HandlerAdmin != 0 {
 		// register admin web interface API endpoints.
-		adminPrefix := strings.TrimRight(v.GetString("admin_handler_prefix"), "/")
-		mux.Handle(adminPrefix+"/", basicChain.Then(admin.NewHandler(n, apiExecutor, adminHandlerConfig())))
+		cfg.Admin.WebFS = webui.FS
+		adminPrefix := strings.TrimRight(cfg.Admin.HandlerPrefix, "/")
+		mux.Handle(adminPrefix+"/", basicChain.Then(admin.NewHandler(n, apiExecutor, cfg.Admin)))
 	}
 
 	if flags&HandlerHealth != 0 {
-		healthPrefix := strings.TrimRight(v.GetString("health_handler_prefix"), "/")
+		healthPrefix := strings.TrimRight(cfg.Health.HandlerPrefix, "/")
 		if healthPrefix == "" {
 			healthPrefix = "/"
 		}

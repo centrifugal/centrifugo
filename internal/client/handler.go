@@ -146,10 +146,10 @@ func (h *Handler) Setup() error {
 		})
 	}
 
-	ruleConfig := h.ruleContainer.Config()
-	usePersonalChannel := ruleConfig.UserSubscribeToPersonal
-	singleConnection := ruleConfig.UserPersonalSingleConnection
-	concurrency := ruleConfig.ClientConcurrency
+	cfg := h.ruleContainer.Config()
+	usePersonalChannel := cfg.UserSubscribeToPersonal.Enabled
+	singleConnection := cfg.UserSubscribeToPersonal.SingleConnection
+	concurrency := cfg.Client.Concurrency
 
 	h.node.OnConnect(func(client *centrifuge.Client) {
 		userID := client.UserID()
@@ -344,13 +344,13 @@ func (h *Handler) OnClientConnecting(
 	)
 
 	subscriptions := make(map[string]centrifuge.SubscribeOptions)
-	ruleConfig := h.ruleContainer.Config()
+	cfg := h.ruleContainer.Config()
 	var processClientChannels bool
 
 	storage := map[string]any{}
 
 	if e.Token != "" {
-		token, err := h.tokenVerifier.VerifyConnectToken(e.Token, h.ruleContainer.Config().ClientInsecureSkipTokenSignatureVerify)
+		token, err := h.tokenVerifier.VerifyConnectToken(e.Token, cfg.Client.InsecureSkipTokenSignatureVerify)
 		if err != nil {
 			if errors.Is(err, jwtverify.ErrTokenExpired) {
 				return centrifuge.ConnectReply{}, centrifuge.ErrorTokenExpired
@@ -363,7 +363,7 @@ func (h *Handler) OnClientConnecting(
 			return centrifuge.ConnectReply{}, err
 		}
 
-		if token.UserID == "" && ruleConfig.DisallowAnonymousConnectionTokens {
+		if token.UserID == "" && cfg.Client.DisallowAnonymousConnectionTokens {
 			if h.node.LogEnabled(centrifuge.LogLevelDebug) {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "anonymous connection tokens disallowed", map[string]any{"client": e.ClientID}))
 			}
@@ -376,7 +376,7 @@ func (h *Handler) OnClientConnecting(
 			Info:     token.Info,
 		}
 
-		if ruleConfig.ClientInsecure {
+		if cfg.Client.Insecure {
 			credentials.ExpireAt = 0
 		}
 
@@ -404,7 +404,7 @@ func (h *Handler) OnClientConnecting(
 	}
 
 	// Proceed with Credentials with empty user ID in case anonymous or insecure options on.
-	if credentials == nil && (ruleConfig.AnonymousConnectWithoutToken || ruleConfig.ClientInsecure) {
+	if credentials == nil && (cfg.Client.AllowAnonymousConnectWithoutToken || cfg.Client.Insecure) {
 		credentials = &centrifuge.Credentials{
 			UserID: "",
 		}
@@ -412,7 +412,7 @@ func (h *Handler) OnClientConnecting(
 	}
 
 	// Automatically subscribe on personal server-side channel.
-	if credentials != nil && ruleConfig.UserSubscribeToPersonal && credentials.UserID != "" {
+	if credentials != nil && cfg.UserSubscribeToPersonal.Enabled && credentials.UserID != "" {
 		personalChannel := h.ruleContainer.PersonalChannel(credentials.UserID)
 		_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(personalChannel)
 		if err != nil {
@@ -539,7 +539,7 @@ func (h *Handler) OnRefresh(c Client, e centrifuge.RefreshEvent, refreshProxyHan
 		}
 		return r, RefreshExtra{}, err
 	}
-	token, err := h.tokenVerifier.VerifyConnectToken(e.Token, h.ruleContainer.Config().ClientInsecureSkipTokenSignatureVerify)
+	token, err := h.tokenVerifier.VerifyConnectToken(e.Token, h.ruleContainer.Config().Client.InsecureSkipTokenSignatureVerify)
 	if err != nil {
 		if errors.Is(err, jwtverify.ErrTokenExpired) {
 			return centrifuge.RefreshReply{Expired: true}, RefreshExtra{}, nil
@@ -597,7 +597,7 @@ func (h *Handler) OnSubRefresh(c Client, subRefreshProxyHandler proxy.SubRefresh
 	if h.subTokenVerifier != nil {
 		tokenVerifier = h.subTokenVerifier
 	}
-	token, err := tokenVerifier.VerifySubscribeToken(e.Token, h.ruleContainer.Config().ClientInsecureSkipTokenSignatureVerify)
+	token, err := tokenVerifier.VerifySubscribeToken(e.Token, h.ruleContainer.Config().Client.InsecureSkipTokenSignatureVerify)
 	if err != nil {
 		if errors.Is(err, jwtverify.ErrTokenExpired) {
 			return centrifuge.SubRefreshReply{Expired: true}, SubRefreshExtra{}, nil
@@ -670,7 +670,7 @@ type SubscribeExtra struct {
 
 // OnSubscribe ...
 func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribeProxyHandler proxy.SubscribeHandlerFunc, subscribeStreamHandlerFunc proxy.SubscribeStreamHandlerFunc) (centrifuge.SubscribeReply, SubscribeExtra, error) {
-	ruleConfig := h.ruleContainer.Config()
+	cfg := h.ruleContainer.Config()
 
 	if e.Channel == "" {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe empty channel", map[string]any{"user": c.UserID(), "client": c.ID()}))
@@ -716,7 +716,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		if h.subTokenVerifier != nil {
 			tokenVerifier = h.subTokenVerifier
 		}
-		token, err := tokenVerifier.VerifySubscribeToken(e.Token, h.ruleContainer.Config().ClientInsecureSkipTokenSignatureVerify)
+		token, err := tokenVerifier.VerifySubscribeToken(e.Token, h.ruleContainer.Config().Client.InsecureSkipTokenSignatureVerify)
 		if err != nil {
 			if errors.Is(err, jwtverify.ErrTokenExpired) {
 				return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorTokenExpired
@@ -775,7 +775,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	} else if chOpts.SubscribeForClient && (c.UserID() != "" || chOpts.SubscribeForAnonymous) && !isUserLimitedChannel {
 		allowed = true
 		options.Source = subsource.ClientAllowed
-	} else if ruleConfig.ClientInsecure {
+	} else if cfg.Client.Insecure {
 		allowed = true
 		options.Source = subsource.ClientInsecure
 	}
@@ -805,7 +805,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 
 // OnPublish ...
 func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHandler proxy.PublishHandlerFunc) (centrifuge.PublishReply, error) {
-	ruleConfig := h.ruleContainer.Config()
+	cfg := h.ruleContainer.Config()
 
 	_, rest, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
@@ -849,7 +849,7 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 		allowed = true
 	} else if chOpts.PublishForSubscriber && c.IsSubscribed(e.Channel) && (c.UserID() != "" || chOpts.PublishForAnonymous) {
 		allowed = true
-	} else if ruleConfig.ClientInsecure {
+	} else if cfg.Client.Insecure {
 		allowed = true
 	}
 
@@ -875,7 +875,7 @@ func (h *Handler) hasAccessToPresence(c Client, channel string, chOpts rule.Chan
 		return true
 	} else if chOpts.PresenceForSubscriber && (forceSubscribed || c.IsSubscribed(channel)) && (c.UserID() != "" || chOpts.PresenceForAnonymous) {
 		return true
-	} else if h.ruleContainer.Config().ClientInsecure {
+	} else if h.ruleContainer.Config().Client.Insecure {
 		return true
 	}
 	return false
@@ -942,7 +942,7 @@ func (h *Handler) hasAccessToHistory(c Client, channel string, chOpts rule.Chann
 		return true
 	} else if chOpts.HistoryForSubscriber && (forceSubscribed || c.IsSubscribed(channel)) && (c.UserID() != "" || chOpts.HistoryForAnonymous) {
 		return true
-	} else if h.ruleContainer.Config().ClientInsecure {
+	} else if h.ruleContainer.Config().Client.Insecure {
 		return true
 	}
 	return false

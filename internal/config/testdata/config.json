@@ -5,7 +5,7 @@
   "client": {
     "allowed_origins": ["http://localhost:3000"],
     "token": {
-      "enabled": true
+      "jwks_public_endpoint": "https://example.com/jwks"
     },
     "ping_interval": "12s"
   },
@@ -42,5 +42,10 @@
         }
       }
     }
-  ]
+  ],
+  "proxy": {
+    "static_http_headers": {
+      "x": "y"
+    }
+  }
 }

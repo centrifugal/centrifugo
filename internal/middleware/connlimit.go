@@ -30,14 +30,14 @@ func init() {
 }
 
 type ConnLimit struct {
-	node          *centrifuge.Node
-	ruleContainer *rule.Container
-	rl            *rate.Limiter
+	node         *centrifuge.Node
+	cfgContainer *rule.Container
+	rl           *rate.Limiter
 }
 
-func NewConnLimit(node *centrifuge.Node, ruleContainer *rule.Container) *ConnLimit {
-	rl := connectionRateLimiter(ruleContainer.Config().ClientConnectionRateLimit)
-	return &ConnLimit{node: node, ruleContainer: ruleContainer, rl: rl}
+func NewConnLimit(node *centrifuge.Node, cfgContainer *rule.Container) *ConnLimit {
+	rl := connectionRateLimiter(cfgContainer.Config().Client.ConnectionRateLimit)
+	return &ConnLimit{node: node, cfgContainer: cfgContainer, rl: rl}
 }
 
 func (l *ConnLimit) Middleware(h http.Handler) http.Handler {
@@ -46,7 +46,7 @@ func (l *ConnLimit) Middleware(h http.Handler) http.Handler {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
-		connLimit := l.ruleContainer.Config().ClientConnectionLimit
+		connLimit := l.cfgContainer.Config().Client.ConnectionLimit
 		if connLimit > 0 && l.node.Hub().NumClients() >= connLimit {
 			connLimitReached.Inc()
 			now := time.Now().UnixNano()

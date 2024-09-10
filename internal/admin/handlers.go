@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/centrifugal/centrifugo/v5/internal/api"
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/middleware"
 	"github.com/centrifugal/centrifugo/v5/internal/reverseproxy"
 	"github.com/centrifugal/centrifugo/v5/internal/tools"
@@ -15,43 +16,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Config for admin UI handler.
-type Config struct {
-	// Prefix is a custom prefix to handle admin endpoints on.
-	Prefix string
-
-	// WebPath is path to admin web application to serve.
-	WebPath string
-
-	// WebProxyAddress is an address for proxying to the running admin web application app.
-	// So it's possible to run web app in dev mode and point Centrifugo to its address for
-	// development purposes.
-	WebProxyAddress string
-
-	// WebFS is custom filesystem to serve as admin web application.
-	// In our case we pass embedded web interface which implements
-	// FileSystem interface.
-	WebFS http.FileSystem
-
-	// Password is an admin password.
-	Password string
-
-	// Secret is a secret to generate auth token for admin requests.
-	Secret string
-
-	// Insecure turns on insecure mode for admin endpoints - no auth
-	// required to connect to web interface and for requests to admin API.
-	// Admin resources must be protected by firewall rules in production when
-	// this option enabled otherwise everyone from internet can make admin
-	// actions.
-	Insecure bool
-}
+type Config = configtypes.Admin
 
 // Handler handles admin web UI endpoints.
 type Handler struct {
 	mux    *http.ServeMux
 	node   *centrifuge.Node
-	config Config
+	config configtypes.Admin
 }
 
 // NewHandler creates new Handler.
@@ -61,7 +32,7 @@ func NewHandler(n *centrifuge.Node, apiExecutor *api.Executor, c Config) *Handle
 		config: c,
 	}
 	mux := http.NewServeMux()
-	prefix := strings.TrimRight(h.config.Prefix, "/")
+	prefix := strings.TrimRight(h.config.HandlerPrefix, "/")
 	mux.Handle(prefix+"/admin/settings", http.HandlerFunc(h.settingsHandler))
 	mux.Handle(prefix+"/admin/auth", middleware.Post(http.HandlerFunc(h.authHandler)))
 	mux.Handle(prefix+"/admin/api", middleware.Post(h.adminSecureTokenAuth(api.NewHandler(n, apiExecutor, api.Config{}).OldRoute())))

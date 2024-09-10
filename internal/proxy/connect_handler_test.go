@@ -10,7 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
+	"github.com/centrifugal/centrifugo/v5/internal/config"
+
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
@@ -22,24 +24,26 @@ type grpcConnHandleTestCase struct {
 	connectProxyHandler *ConnectHandler
 }
 
-func getTestGrpcProxy(commonProxyTestCase *tools.CommonGRPCProxyTestCase) Config {
-	return Config{
+func getTestGrpcProxy(commonProxyTestCase *tools.CommonGRPCProxyTestCase) configtypes.Proxy {
+	return configtypes.Proxy{
 		// Using passthrough is required for in-memory bufconn since grpc-go v1.63.0.
 		// See https://github.com/grpc/grpc-go/issues/7091.
 		Endpoint: "passthrough:///" + commonProxyTestCase.Listener.Addr().String(),
-		Timeout:  tools.Duration(5 * time.Second),
-		testGrpcDialer: func(ctx context.Context, s string) (net.Conn, error) {
+		Timeout:  5 * time.Second,
+		TestGrpcDialer: func(ctx context.Context, s string) (net.Conn, error) {
 			return commonProxyTestCase.Listener.Dial()
 		},
 	}
 }
 
-func getTestHttpProxy(commonProxyTestCase *tools.CommonHTTPProxyTestCase, endpoint string) Config {
-	return Config{
+func getTestHttpProxy(commonProxyTestCase *tools.CommonHTTPProxyTestCase, endpoint string) configtypes.Proxy {
+	return configtypes.Proxy{
 		Endpoint: commonProxyTestCase.Server.URL + endpoint,
-		Timeout:  tools.Duration(5 * time.Second),
-		StaticHttpHeaders: map[string]string{
-			"X-Test": "test",
+		Timeout:  5 * time.Second,
+		ProxyCommon: configtypes.ProxyCommon{
+			StaticHttpHeaders: map[string]string{
+				"X-Test": "test",
+			},
 		},
 	}
 }
@@ -52,14 +56,14 @@ func newConnHandleGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTes
 		log.Fatalln("could not create grpc connect proxy: ", err)
 	}
 
-	ruleContainer, err := rule.NewContainer(rule.DefaultConfig)
+	cfgContainer, err := config.NewContainer(config.DefaultConfig())
 	if err != nil {
 		panic(err)
 	}
 
 	connectProxyHandler := NewConnectHandler(ConnectHandlerConfig{
 		Proxy: connectProxy,
-	}, ruleContainer)
+	}, cfgContainer)
 
 	return grpcConnHandleTestCase{commonProxyTestCase, connectProxyHandler}
 }
@@ -77,14 +81,14 @@ func newConnHandleHTTPTestCase(ctx context.Context, endpoint string) httpConnHan
 		log.Fatalln("could not create http connect proxy: ", err)
 	}
 
-	ruleContainer, err := rule.NewContainer(rule.DefaultConfig)
+	cfgContainer, err := config.NewContainer(config.DefaultConfig())
 	if err != nil {
 		panic(err)
 	}
 
 	connectProxyHandler := NewConnectHandler(ConnectHandlerConfig{
 		Proxy: connectProxy,
-	}, ruleContainer)
+	}, cfgContainer)
 
 	return httpConnHandleTestCase{commonProxyTestCase, connectProxyHandler}
 }

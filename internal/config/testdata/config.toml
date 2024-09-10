@@ -6,7 +6,7 @@ allowed_origins = [ "http://localhost:3000" ]
 ping_interval = "12s"
 
   [client.token]
-  enabled = true
+  jwks_public_endpoint = "https://example.com/jwks"
 
 [channel]
 presence = true

@@ -425,8 +425,8 @@ func (s *Sender) prepareMetrics() ([]*metric, error) {
 	var usesPresence bool
 	var usesJoinLeave bool
 
-	namespaces := s.rules.Config().Namespaces
-	chOpts := s.rules.Config().ChannelOptions
+	namespaces := s.rules.Config().Channel.Namespaces
+	chOpts := s.rules.Config().Channel.ChannelOptions
 	if chOpts.HistoryTTL > 0 && chOpts.HistorySize > 0 {
 		usesHistory = true
 	}
@@ -612,7 +612,7 @@ func (s *Sender) sendUsageStats(metrics []*metric, statsEndpoint, statsToken str
 func GetEnabledConsumers(consumers []consuming.ConsumerConfig) []string {
 	var enabledConsumers []string
 	for _, c := range consumers {
-		if !c.Disabled && !slices.Contains(enabledConsumers, string(c.Type)) {
+		if c.Enabled && !slices.Contains(enabledConsumers, string(c.Type)) {
 			enabledConsumers = append(enabledConsumers, string(c.Type))
 		}
 	}

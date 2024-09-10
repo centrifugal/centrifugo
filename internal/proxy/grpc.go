@@ -75,8 +75,8 @@ func getDialOpts(p Config) ([]grpc.DialOption, error) {
 		dialOpts = append(dialOpts, grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)))
 	}
 
-	if p.testGrpcDialer != nil {
-		dialOpts = append(dialOpts, grpc.WithContextDialer(p.testGrpcDialer))
+	if p.TestGrpcDialer != nil {
+		dialOpts = append(dialOpts, grpc.WithContextDialer(p.TestGrpcDialer))
 	}
 
 	return dialOpts, nil

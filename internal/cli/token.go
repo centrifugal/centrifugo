@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v5/internal/config"
 	"github.com/centrifugal/centrifugo/v5/internal/jwtverify"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
+
 	"github.com/cristalhq/jwt/v5"
 	"github.com/tidwall/sjson"
 )
@@ -89,24 +90,24 @@ func GenerateSubToken(config jwtverify.VerifierConfig, user string, channel stri
 	return token.String(), nil
 }
 
-func verify(config jwtverify.VerifierConfig, ruleConfig rule.Config, token string) (jwtverify.ConnectToken, error) {
-	ruleContainer, err := rule.NewContainer(ruleConfig)
+func verify(verifierConf jwtverify.VerifierConfig, cfg config.Config, token string) (jwtverify.ConnectToken, error) {
+	cfgContainer, err := config.NewContainer(cfg)
 	if err != nil {
 		return jwtverify.ConnectToken{}, err
 	}
-	verifier, err := jwtverify.NewTokenVerifierJWT(config, ruleContainer)
+	verifier, err := jwtverify.NewTokenVerifierJWT(verifierConf, cfgContainer)
 	if err != nil {
 		return jwtverify.ConnectToken{}, err
 	}
 	return verifier.VerifyConnectToken(token, false)
 }
 
-func verifySub(config jwtverify.VerifierConfig, ruleConfig rule.Config, token string) (jwtverify.SubscribeToken, error) {
-	ruleContainer, err := rule.NewContainer(ruleConfig)
+func verifySub(verifierConf jwtverify.VerifierConfig, cfg config.Config, token string) (jwtverify.SubscribeToken, error) {
+	cfgContainer, err := config.NewContainer(cfg)
 	if err != nil {
 		return jwtverify.SubscribeToken{}, err
 	}
-	verifier, err := jwtverify.NewTokenVerifierJWT(config, ruleContainer)
+	verifier, err := jwtverify.NewTokenVerifierJWT(verifierConf, cfgContainer)
 	if err != nil {
 		return jwtverify.SubscribeToken{}, err
 	}
@@ -114,7 +115,7 @@ func verifySub(config jwtverify.VerifierConfig, ruleConfig rule.Config, token st
 }
 
 // CheckToken checks JWT for user.
-func CheckToken(config jwtverify.VerifierConfig, ruleConfig rule.Config, t string) (string, []byte, error) {
+func CheckToken(config jwtverify.VerifierConfig, ruleConfig config.Config, t string) (string, []byte, error) {
 	token, err := jwt.ParseNoVerify([]byte(t)) // Will be verified later.
 	if err != nil {
 		return "", nil, err
@@ -135,7 +136,7 @@ func CheckToken(config jwtverify.VerifierConfig, ruleConfig rule.Config, t strin
 }
 
 // CheckSubToken checks subscription JWT for user.
-func CheckSubToken(config jwtverify.VerifierConfig, ruleConfig rule.Config, t string) (string, string, []byte, error) {
+func CheckSubToken(config jwtverify.VerifierConfig, cfg config.Config, t string) (string, string, []byte, error) {
 	token, err := jwt.ParseNoVerify([]byte(t)) // Will be verified later.
 	if err != nil {
 		return "", "", nil, err
@@ -147,7 +148,7 @@ func CheckSubToken(config jwtverify.VerifierConfig, ruleConfig rule.Config, t st
 		return "", "", nil, err
 	}
 
-	ct, err := verifySub(config, ruleConfig, t)
+	ct, err := verifySub(config, cfg, t)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("token with algorithm %s and claims %s has error: %v", token.Header().Algorithm, string(token.Claims()), err)
 	}
