@@ -10,37 +10,127 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 
 	"github.com/centrifugal/centrifuge"
-	"github.com/rs/zerolog/log"
 )
+
+// Validate validates config and returns error if problems found
+func (c Config) Validate() error {
+	if c.Broker != "" && c.Broker != "nats" {
+		return fmt.Errorf("unknown broker: %s", c.Broker)
+	}
+
+	if err := validateToken(c); err != nil {
+		return err
+	}
+
+	if err := validateChannelOptions(c.Channel.ChannelOptions, c.GlobalHistoryMetaTTL); err != nil {
+		return err
+	}
+	if err := validateRpcOptions(c.RPC.RpcOptions); err != nil {
+		return err
+	}
+
+	usePersonalChannel := c.UserSubscribeToPersonal.Enabled
+	personalChannelNamespace := c.UserSubscribeToPersonal.PersonalChannelNamespace
+	personalSingleConnection := c.UserSubscribeToPersonal.SingleConnection
+	var validPersonalChannelNamespace bool
+	if !usePersonalChannel || personalChannelNamespace == "" {
+		validPersonalChannelNamespace = true
+		if personalSingleConnection && !c.Channel.Presence {
+			return fmt.Errorf("presence must be enabled on top level to maintain single connection")
+		}
+	}
+
+	nss := make([]string, 0, len(c.Channel.Namespaces))
+	for _, n := range c.Channel.Namespaces {
+		if slices.Contains(nss, n.Name) {
+			return fmt.Errorf("namespace name must be unique: %s", n.Name)
+		}
+		if err := validateNamespace(n, c.GlobalHistoryMetaTTL); err != nil {
+			return fmt.Errorf("namespace %s: %v", n.Name, err)
+		}
+		if n.Name == personalChannelNamespace {
+			validPersonalChannelNamespace = true
+			if personalSingleConnection && !n.Presence {
+				return fmt.Errorf("presence must be enabled for namespace %s to maintain single connection", n.Name)
+			}
+		}
+		nss = append(nss, n.Name)
+	}
+
+	if !validPersonalChannelNamespace {
+		return fmt.Errorf("namespace for user personal channel not found: %s", personalChannelNamespace)
+	}
+
+	rpcNss := make([]string, 0, len(c.RPC.Namespaces))
+	for _, n := range c.RPC.Namespaces {
+		if slices.Contains(rpcNss, n.Name) {
+			return fmt.Errorf("rpc namespace name must be unique: %s", n.Name)
+		}
+		if err := validateRpcNamespace(n); err != nil {
+			return fmt.Errorf("rpc namespace %s: %v", n.Name, err)
+		}
+		rpcNss = append(rpcNss, n.Name)
+	}
+
+	proxyNames := map[string]struct{}{}
+	for _, p := range c.Proxies {
+		if !proxyNameRe.Match([]byte(p.Name)) {
+			return fmt.Errorf("invalid proxy name: %s, must match %s regular expression", p.Name, proxyNamePattern)
+		}
+		if _, ok := proxyNames[p.Name]; ok {
+			return fmt.Errorf("duplicate proxy name: %s", p.Name)
+		}
+		if p.Timeout == 0 {
+			p.Timeout = time.Second
+		}
+		if p.Endpoint == "" {
+			return fmt.Errorf("no endpoint set for proxy %s", p.Name)
+		}
+		proxyNames[p.Name] = struct{}{}
+	}
+
+	var consumerNames []string
+	for _, config := range c.Consumers {
+		if !consumerNameRe.Match([]byte(config.Name)) {
+			return fmt.Errorf("invalid consumer name: %s, must match %s regular expression", config.Name, consumerNamePattern)
+		}
+		if slices.Contains(consumerNames, config.Name) {
+			return fmt.Errorf("invalid consumer name: %s, must be unique", config.Name)
+		}
+		consumerNames = append(consumerNames, config.Name)
+	}
+
+	return nil
+}
 
 var namePattern = "^[-a-zA-Z0-9_.]{2,}$"
 var nameRe = regexp.MustCompile(namePattern)
 
-func ValidateNamespace(ns configtypes.ChannelNamespace, globalHistoryMetaTTL time.Duration) error {
+func validateNamespace(ns configtypes.ChannelNamespace, globalHistoryMetaTTL time.Duration) error {
 	name := ns.Name
 	match := nameRe.MatchString(name)
 	if !match {
 		return fmt.Errorf("invalid namespace name – %s (must match %s regular expression)", name, namePattern)
 	}
-	if err := ValidateChannelOptions(ns.ChannelOptions, globalHistoryMetaTTL); err != nil {
+	if err := validateChannelOptions(ns.ChannelOptions, globalHistoryMetaTTL); err != nil {
 		return err
 	}
 	return nil
 }
 
-func ValidateRpcNamespace(ns configtypes.RpcNamespace) error {
+func validateRpcNamespace(ns configtypes.RpcNamespace) error {
 	name := ns.Name
 	match := nameRe.MatchString(name)
 	if !match {
 		return fmt.Errorf("invalid rpc namespace name – %s (must match %s regular expression)", name, namePattern)
 	}
-	if err := ValidateRpcOptions(ns.RpcOptions); err != nil {
+	if err := validateRpcOptions(ns.RpcOptions); err != nil {
 		return err
 	}
 	return nil
 }
 
-func ValidateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL time.Duration) error {
+func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL time.Duration) error {
 	if (c.HistorySize != 0 && c.HistoryTTL == 0) || (c.HistorySize == 0 && c.HistoryTTL != 0) {
 		return errors.New("both history size and history ttl required for history")
 	}
@@ -75,90 +165,7 @@ func ValidateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL t
 	return nil
 }
 
-func ValidateRpcOptions(_ configtypes.RpcOptions) error {
-	return nil
-}
-
-// Validate validates config and returns error if problems found
-func (c Config) Validate() error {
-	if err := ValidateChannelOptions(c.Channel.ChannelOptions, c.GlobalHistoryMetaTTL); err != nil {
-		return err
-	}
-	if err := ValidateRpcOptions(c.RPC.RpcOptions); err != nil {
-		return err
-	}
-
-	usePersonalChannel := c.UserSubscribeToPersonal.Enabled
-	personalChannelNamespace := c.UserSubscribeToPersonal.PersonalChannelNamespace
-	personalSingleConnection := c.UserSubscribeToPersonal.SingleConnection
-	var validPersonalChannelNamespace bool
-	if !usePersonalChannel || personalChannelNamespace == "" {
-		validPersonalChannelNamespace = true
-		if personalSingleConnection && !c.Channel.Presence {
-			return fmt.Errorf("presence must be enabled on top level to maintain single connection")
-		}
-	}
-
-	nss := make([]string, 0, len(c.Channel.Namespaces))
-	for _, n := range c.Channel.Namespaces {
-		if slices.Contains(nss, n.Name) {
-			return fmt.Errorf("namespace name must be unique: %s", n.Name)
-		}
-		if err := ValidateNamespace(n, c.GlobalHistoryMetaTTL); err != nil {
-			return fmt.Errorf("namespace %s: %v", n.Name, err)
-		}
-		if n.Name == personalChannelNamespace {
-			validPersonalChannelNamespace = true
-			if personalSingleConnection && !n.Presence {
-				return fmt.Errorf("presence must be enabled for namespace %s to maintain single connection", n.Name)
-			}
-		}
-		nss = append(nss, n.Name)
-	}
-
-	if !validPersonalChannelNamespace {
-		return fmt.Errorf("namespace for user personal channel not found: %s", personalChannelNamespace)
-	}
-
-	rpcNss := make([]string, 0, len(c.RPC.Namespaces))
-	for _, n := range c.RPC.Namespaces {
-		if slices.Contains(rpcNss, n.Name) {
-			return fmt.Errorf("rpc namespace name must be unique: %s", n.Name)
-		}
-		if err := ValidateRpcNamespace(n); err != nil {
-			return fmt.Errorf("rpc namespace %s: %v", n.Name, err)
-		}
-		rpcNss = append(rpcNss, n.Name)
-	}
-
-	proxyNames := map[string]struct{}{}
-	for _, p := range c.Proxies {
-		if !proxyNameRe.Match([]byte(p.Name)) {
-			return fmt.Errorf("invalid proxy name: %s, must match %s regular expression", p.Name, proxyNamePattern)
-		}
-		if _, ok := proxyNames[p.Name]; ok {
-			return fmt.Errorf("duplicate proxy name: %s", p.Name)
-		}
-		if p.Timeout == 0 {
-			p.Timeout = time.Second
-		}
-		if p.Endpoint == "" {
-			return fmt.Errorf("no endpoint set for proxy %s", p.Name)
-		}
-		proxyNames[p.Name] = struct{}{}
-	}
-
-	var consumerNames []string
-	for _, config := range c.Consumers {
-		if !consumerNameRe.Match([]byte(config.Name)) {
-			log.Fatal().Msgf("invalid consumer name: %s, must match %s regular expression", config.Name, consumerNamePattern)
-		}
-		if slices.Contains(consumerNames, config.Name) {
-			log.Fatal().Msgf("invalid consumer name: %s, must be unique", config.Name)
-		}
-		consumerNames = append(consumerNames, config.Name)
-	}
-
+func validateRpcOptions(_ configtypes.RpcOptions) error {
 	return nil
 }
 
@@ -181,3 +188,22 @@ var consumerNameRe = regexp.MustCompile(consumerNamePattern)
 //	}
 //	return duration
 //}
+
+// Now Centrifugo uses https://github.com/tidwall/gjson to extract custom claims from JWT. So technically
+// we could support extracting from nested objects using dot syntax, like "centrifugo.user". But for now
+// not using this feature to keep things simple until necessary.
+var customClaimRe = regexp.MustCompile("^[a-zA-Z_]+$")
+
+func validateToken(cfg Config) error {
+	if cfg.Client.Token.UserIDClaim != "" {
+		if !customClaimRe.MatchString(cfg.Client.Token.UserIDClaim) {
+			return fmt.Errorf("invalid token custom user ID claim: %s, must match %s regular expression", cfg.Client.Token.UserIDClaim, customClaimRe.String())
+		}
+	}
+	if cfg.Client.SubscriptionToken.UserIDClaim != "" {
+		if !customClaimRe.MatchString(cfg.Client.SubscriptionToken.UserIDClaim) {
+			return fmt.Errorf("invalid subscription token custom user ID claim: %s, must match %s regular expression", cfg.Client.SubscriptionToken.UserIDClaim, customClaimRe.String())
+		}
+	}
+	return nil
+}

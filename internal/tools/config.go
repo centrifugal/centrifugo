@@ -2,7 +2,6 @@ package tools
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -11,7 +10,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/FZambia/viper-lite"
 	"github.com/google/uuid"
 )
 
@@ -97,30 +95,6 @@ func GenerateConfig(f string) error {
 	})
 
 	return os.WriteFile(f, output.Bytes(), 0644)
-}
-
-// ErrorMessageFromConfigError tries building a more human-friendly error
-// from a configuration error. At the moment we can additionally extract
-// JSON syntax error line and column.
-// Related issue: https://github.com/golang/go/issues/43513.
-func ErrorMessageFromConfigError(err error, configPath string) string {
-	var configParseError viper.ConfigParseError
-	if ok := errors.As(err, &configParseError); ok {
-		var syntaxErr *json.SyntaxError
-		if ok := errors.As(configParseError.Err, &syntaxErr); ok {
-			if content, readFileErr := os.ReadFile(configPath); readFileErr == nil {
-				offset := int(syntaxErr.Offset)
-				line := 1 + bytes.Count(content[:offset], []byte("\n"))
-				column := offset - (bytes.LastIndex(content[:offset], []byte("\n")) + len("\n"))
-				return fmt.Sprintf(
-					"JSON syntax error around line %d, column %d: %s",
-					line, column, syntaxErr.Error(),
-				)
-			}
-		}
-	}
-	// Fallback if we can't construct a better one.
-	return fmt.Sprintf("configuration error: %v", err)
 }
 
 func OptionalStringChoice(value string, choices []string) (string, error) {

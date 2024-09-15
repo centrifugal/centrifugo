@@ -11,6 +11,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/v5/internal/config/envconfig"
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
+
 	"github.com/hashicorp/go-envparse"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

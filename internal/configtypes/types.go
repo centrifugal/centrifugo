@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"net/http"
 	"time"
 
 	"github.com/centrifugal/centrifuge"
@@ -437,11 +436,6 @@ type Admin struct {
 	// development purposes.
 	WebProxyAddress string `mapstructure:"web_proxy_address" json:"web_proxy_address" envconfig:"web_proxy_address"`
 	External        bool   `mapstructure:"external" json:"external" envconfig:"external"`
-
-	// WebFS is custom filesystem to serve as admin web application.
-	// In our case we pass embedded web interface which implements
-	// FileSystem interface.
-	WebFS http.FileSystem
 }
 
 type ProxyCommon struct {

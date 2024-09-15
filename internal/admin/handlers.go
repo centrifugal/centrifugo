@@ -10,6 +10,7 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/middleware"
 	"github.com/centrifugal/centrifugo/v5/internal/reverseproxy"
 	"github.com/centrifugal/centrifugo/v5/internal/tools"
+	"github.com/centrifugal/centrifugo/v5/internal/webui"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/gorilla/securecookie"
@@ -47,8 +48,8 @@ func NewHandler(n *centrifuge.Node, apiExecutor *api.Executor, c Config) *Handle
 		mux.HandleFunc(webPrefix, reverseproxy.ProxyRequestHandler(proxy))
 	} else if c.WebPath != "" {
 		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(c.WebPath))))
-	} else if c.WebFS != nil {
-		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(c.WebFS)))
+	} else {
+		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(webui.FS)))
 	}
 	h.mux = mux
 	return h
