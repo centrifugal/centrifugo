@@ -8,7 +8,7 @@ import (
 	"time"
 
 	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
+	"github.com/centrifugal/centrifugo/v5/internal/config"
 	"github.com/centrifugal/centrifugo/v5/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
@@ -21,11 +21,11 @@ type RPCHandler func(ctx context.Context, params Raw) (Raw, error)
 
 // Executor can run API methods.
 type Executor struct {
-	node          *centrifuge.Node
-	ruleContainer *rule.Container
-	config        ExecutorConfig
-	rpcExtension  map[string]RPCHandler
-	surveyCaller  SurveyCaller
+	node         *centrifuge.Node
+	cfgContainer *config.Container
+	config       ExecutorConfig
+	rpcExtension map[string]RPCHandler
+	surveyCaller SurveyCaller
 }
 
 // SurveyCaller can do surveys.
@@ -39,13 +39,13 @@ type ExecutorConfig struct {
 }
 
 // NewExecutor ...
-func NewExecutor(n *centrifuge.Node, ruleContainer *rule.Container, surveyCaller SurveyCaller, config ExecutorConfig) *Executor {
+func NewExecutor(n *centrifuge.Node, cfgContainer *config.Container, surveyCaller SurveyCaller, config ExecutorConfig) *Executor {
 	e := &Executor{
-		node:          n,
-		ruleContainer: ruleContainer,
-		config:        config,
-		surveyCaller:  surveyCaller,
-		rpcExtension:  make(map[string]RPCHandler),
+		node:         n,
+		cfgContainer: cfgContainer,
+		config:       config,
+		surveyCaller: surveyCaller,
+		rpcExtension: make(map[string]RPCHandler),
 	}
 	return e
 }
@@ -168,7 +168,7 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 		return resp
 	}
 
-	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -265,7 +265,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 				return
 			}
 
-			_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+			_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 			if err != nil {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error getting options for channel", map[string]any{"channel": ch, "error": err.Error()}))
 				responses[i] = &PublishResponse{Error: ErrorInternal}
@@ -331,7 +331,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 		return resp
 	}
 
-	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(channel)
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(channel)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -405,7 +405,7 @@ func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *Unsu
 	channel := cmd.Channel
 
 	if channel != "" {
-		_, _, _, found, err := h.ruleContainer.ChannelOptions(channel)
+		_, _, _, found, err := h.cfgContainer.ChannelOptions(channel)
 		if err != nil {
 			resp.Error = ErrorInternal
 			return resp
@@ -495,7 +495,7 @@ func (h *Executor) Presence(_ context.Context, cmd *PresenceRequest) *PresenceRe
 		return resp
 	}
 
-	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -546,7 +546,7 @@ func (h *Executor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest) *
 		return resp
 	}
 
-	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -589,7 +589,7 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 		return resp
 	}
 
-	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -671,7 +671,7 @@ func (h *Executor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest) *
 		return resp
 	}
 
-	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp

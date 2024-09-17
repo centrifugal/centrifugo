@@ -8,8 +8,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
+
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
 	"github.com/centrifugal/centrifugo/v5/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
@@ -68,14 +69,14 @@ type StreamPublishFunc func(data []byte) error
 
 // SubscribeStreamHandlerFunc ...
 type SubscribeStreamHandlerFunc func(
-	Client, bool, centrifuge.SubscribeEvent, rule.ChannelOptions, PerCallData,
+	Client, bool, centrifuge.SubscribeEvent, configtypes.ChannelOptions, PerCallData,
 ) (centrifuge.SubscribeReply, StreamPublishFunc, func(), error)
 
 // Handle ...
 func (h *SubscribeStreamHandler) Handle(node *centrifuge.Node) SubscribeStreamHandlerFunc {
 	return func(
 		client Client, bidi bool, e centrifuge.SubscribeEvent,
-		chOpts rule.ChannelOptions, pcd PerCallData,
+		chOpts configtypes.ChannelOptions, pcd PerCallData,
 	) (centrifuge.SubscribeReply, StreamPublishFunc, func(), error) {
 		started := time.Now()
 

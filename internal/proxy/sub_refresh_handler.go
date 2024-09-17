@@ -4,8 +4,8 @@ import (
 	"encoding/base64"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
@@ -61,11 +61,11 @@ type SubRefreshExtra struct {
 }
 
 // SubRefreshHandlerFunc ...
-type SubRefreshHandlerFunc func(Client, centrifuge.SubRefreshEvent, rule.ChannelOptions, PerCallData) (centrifuge.SubRefreshReply, SubRefreshExtra, error)
+type SubRefreshHandlerFunc func(Client, centrifuge.SubRefreshEvent, configtypes.ChannelOptions, PerCallData) (centrifuge.SubRefreshReply, SubRefreshExtra, error)
 
 // Handle refresh.
 func (h *SubRefreshHandler) Handle(node *centrifuge.Node) SubRefreshHandlerFunc {
-	return func(client Client, e centrifuge.SubRefreshEvent, chOpts rule.ChannelOptions, pcd PerCallData) (centrifuge.SubRefreshReply, SubRefreshExtra, error) {
+	return func(client Client, e centrifuge.SubRefreshEvent, chOpts configtypes.ChannelOptions, pcd PerCallData) (centrifuge.SubRefreshReply, SubRefreshExtra, error) {
 		started := time.Now()
 
 		var p SubRefreshProxy

@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	"github.com/centrifugal/centrifugo/v5/internal/config"
-	"github.com/rs/zerolog"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 

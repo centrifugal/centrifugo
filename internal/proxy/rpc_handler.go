@@ -4,8 +4,8 @@ import (
 	"encoding/base64"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v5/internal/config"
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
@@ -58,11 +58,11 @@ func NewRPCHandler(c RPCHandlerConfig) *RPCHandler {
 }
 
 // RPCHandlerFunc ...
-type RPCHandlerFunc func(Client, centrifuge.RPCEvent, *rule.Container, PerCallData) (centrifuge.RPCReply, error)
+type RPCHandlerFunc func(Client, centrifuge.RPCEvent, *config.Container, PerCallData) (centrifuge.RPCReply, error)
 
 // Handle RPC.
 func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
-	return func(client Client, e centrifuge.RPCEvent, ruleContainer *rule.Container, pcd PerCallData) (centrifuge.RPCReply, error) {
+	return func(client Client, e centrifuge.RPCEvent, cfgContainer *config.Container, pcd PerCallData) (centrifuge.RPCReply, error) {
 		started := time.Now()
 
 		var p RPCProxy
@@ -71,7 +71,7 @@ func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
 		var errors prometheus.Counter
 
 		if h.config.GranularProxyMode {
-			rpcOpts, ok, err := ruleContainer.RpcOptions(e.Method)
+			rpcOpts, ok, err := cfgContainer.RpcOptions(e.Method)
 			if err != nil {
 				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error getting RPC options", map[string]any{"method": e.Method, "error": err.Error()}))
 				return centrifuge.RPCReply{}, centrifuge.ErrorInternal

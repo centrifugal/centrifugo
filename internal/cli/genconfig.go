@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
-
 	"github.com/centrifugal/centrifugo/v5/internal/config"
 	"github.com/centrifugal/centrifugo/v5/internal/tools"
+
+	"github.com/spf13/cobra"
 )
 
 func GenConfig(cmd *cobra.Command, outputConfigFile string) {

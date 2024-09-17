@@ -213,7 +213,8 @@ type EngineRedisPresenceManager struct {
 }
 
 type RedisPresenceManager struct {
-	Redis `mapstructure:",squash"`
+	Redis                      `mapstructure:",squash"`
+	RedisPresenceManagerCommon `mapstructure:",squash"`
 }
 
 // RedisEngine configuration.

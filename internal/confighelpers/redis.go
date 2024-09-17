@@ -1,4 +1,4 @@
-package runutil
+package confighelpers
 
 import (
 	"fmt"

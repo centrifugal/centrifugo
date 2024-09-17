@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
+	"github.com/centrifugal/centrifugo/v5/internal/config"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
@@ -31,11 +31,11 @@ func init() {
 
 type ConnLimit struct {
 	node         *centrifuge.Node
-	cfgContainer *rule.Container
+	cfgContainer *config.Container
 	rl           *rate.Limiter
 }
 
-func NewConnLimit(node *centrifuge.Node, cfgContainer *rule.Container) *ConnLimit {
+func NewConnLimit(node *centrifuge.Node, cfgContainer *config.Container) *ConnLimit {
 	rl := connectionRateLimiter(cfgContainer.Config().Client.ConnectionRateLimit)
 	return &ConnLimit{node: node, cfgContainer: cfgContainer, rl: rl}
 }

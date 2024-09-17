@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/centrifugal/centrifugo/v5/internal/config"
+	"github.com/centrifugal/centrifugo/v5/internal/confighelpers"
 	"github.com/centrifugal/centrifugo/v5/internal/jwtverify"
 
-	"github.com/centrifugal/centrifugo/v5/internal/config"
-	"github.com/centrifugal/centrifugo/v5/internal/runutil"
 	"github.com/cristalhq/jwt/v5"
 	"github.com/spf13/cobra"
 )
@@ -19,13 +19,13 @@ func CheckSubToken(cmd *cobra.Command, checkSubTokenConfigFile string, args []st
 		fmt.Printf("error getting config: %v\n", err)
 		os.Exit(1)
 	}
-	verifierConfig, err := runutil.JWTVerifierConfig(cfg)
+	verifierConfig, err := confighelpers.MakeVerifierConfig(cfg.Client.Token)
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		os.Exit(1)
 	}
 	if cfg.Client.SubscriptionToken.Enabled {
-		verifierConfig, err = runutil.SubJWTVerifierConfig(cfg)
+		verifierConfig, err = confighelpers.MakeVerifierConfig(cfg.Client.SubscriptionToken.Token)
 		if err != nil {
 			fmt.Printf("error: %v\n", err)
 			os.Exit(1)

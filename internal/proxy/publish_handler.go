@@ -4,10 +4,10 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -58,11 +58,11 @@ func NewPublishHandler(c PublishHandlerConfig) *PublishHandler {
 }
 
 // PublishHandlerFunc ...
-type PublishHandlerFunc func(Client, centrifuge.PublishEvent, rule.ChannelOptions, PerCallData) (centrifuge.PublishReply, error)
+type PublishHandlerFunc func(Client, centrifuge.PublishEvent, configtypes.ChannelOptions, PerCallData) (centrifuge.PublishReply, error)
 
 // Handle Publish.
 func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
-	return func(client Client, e centrifuge.PublishEvent, chOpts rule.ChannelOptions, pcd PerCallData) (centrifuge.PublishReply, error) {
+	return func(client Client, e centrifuge.PublishEvent, chOpts configtypes.ChannelOptions, pcd PerCallData) (centrifuge.PublishReply, error) {
 		started := time.Now()
 
 		var p PublishProxy

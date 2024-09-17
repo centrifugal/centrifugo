@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -59,11 +59,11 @@ func NewCacheHandler(c CacheHandlerConfig) *CacheHandler {
 
 // CacheEmptyHandlerFunc ...
 type CacheEmptyHandlerFunc func(
-	ctx context.Context, channel string, chOpts rule.ChannelOptions) (centrifuge.CacheEmptyReply, error)
+	ctx context.Context, channel string, chOpts configtypes.ChannelOptions) (centrifuge.CacheEmptyReply, error)
 
 // Handle Document.
 func (h *CacheHandler) Handle(node *centrifuge.Node) CacheEmptyHandlerFunc {
-	return func(ctx context.Context, channel string, chOpts rule.ChannelOptions) (centrifuge.CacheEmptyReply, error) {
+	return func(ctx context.Context, channel string, chOpts configtypes.ChannelOptions) (centrifuge.CacheEmptyReply, error) {
 		started := time.Now()
 
 		var p CacheEmptyProxy

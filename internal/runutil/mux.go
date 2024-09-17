@@ -98,7 +98,9 @@ func (flags HandlerFlag) String() string {
 }
 
 // Mux returns a mux including set of default handlers for Centrifugo server.
-func Mux(n *centrifuge.Node, cfgContainer *config.Container, apiExecutor *api.Executor, flags HandlerFlag, keepHeadersInContext bool, wtServer *webtransport.Server) *http.ServeMux {
+func Mux(
+	n *centrifuge.Node, cfgContainer *config.Container, apiExecutor *api.Executor, flags HandlerFlag, keepHeadersInContext bool, wtServer *webtransport.Server,
+) *http.ServeMux {
 	mux := http.NewServeMux()
 	cfg := cfgContainer.Config()
 
@@ -336,7 +338,9 @@ func emulationHandlerConfig(cfg config.Config) centrifuge.EmulationConfig {
 	}
 }
 
-func runHTTPServers(n *centrifuge.Node, cfgContainer *config.Container, apiExecutor *api.Executor, keepHeadersInContext bool) ([]*http.Server, error) {
+func runHTTPServers(
+	n *centrifuge.Node, cfgContainer *config.Container, apiExecutor *api.Executor, keepHeadersInContext bool,
+) ([]*http.Server, error) {
 	cfg := cfgContainer.Config()
 
 	debug := cfg.Debug.Enabled

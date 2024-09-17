@@ -2,6 +2,7 @@ package runutil
 
 import (
 	"github.com/centrifugal/centrifugo/v5/internal/config"
+	"github.com/centrifugal/centrifugo/v5/internal/confighelpers"
 	"github.com/centrifugal/centrifugo/v5/internal/natsbroker"
 
 	"github.com/centrifugal/centrifuge"
@@ -39,17 +40,18 @@ func NatsBroker(node *centrifuge.Node, cfg config.Config) (*natsbroker.NatsBroke
 	return natsbroker.New(node, cfg.Nats)
 }
 
-func redisEngine(n *centrifuge.Node, cfg config.Config) (*centrifuge.RedisBroker, centrifuge.PresenceManager, string, error) {
-	redisShards, mode, err := CentrifugeRedisShards(n, cfg.Redis.Redis)
+func redisEngine(n *centrifuge.Node, cfgContainer *config.Container) (*centrifuge.RedisBroker, centrifuge.PresenceManager, string, error) {
+	cfg := cfgContainer.Config()
+	redisShards, mode, err := confighelpers.CentrifugeRedisShards(n, cfg.Redis.Redis)
 	if err != nil {
 		return nil, nil, "", err
 	}
-	broker, err := CentrifugeRedisBroker(
+	broker, err := confighelpers.CentrifugeRedisBroker(
 		n, cfg.Redis.Prefix, redisShards, cfg.Redis.RedisBrokerCommon, cfg.Broker == "redisnats")
 	if err != nil {
 		return nil, nil, mode, err
 	}
-	presenceManager, err := CentrifugeRedisPresenceManager(
+	presenceManager, err := confighelpers.CentrifugeRedisPresenceManager(
 		n, cfg.Redis.Prefix, redisShards, cfg.Redis.RedisPresenceManagerCommon)
 
 	return broker, presenceManager, mode, nil

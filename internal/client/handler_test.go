@@ -9,10 +9,9 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/config"
-
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/jwtverify"
 	"github.com/centrifugal/centrifugo/v5/internal/proxy"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
 	"github.com/centrifugal/centrifugo/v5/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
@@ -92,17 +91,17 @@ func getSubscribeTokenHSWithSecret(user string, channel string, exp int64, hmacS
 	return getSubscribeToken(user, channel, exp, nil, hmacSecret)
 }
 
-func emptyJWTVerifier(t *testing.T, cfgContainer *rule.Container) *jwtverify.VerifierJWT {
+func emptyJWTVerifier(t *testing.T, cfgContainer *config.Container) *jwtverify.VerifierJWT {
 	verifier, err := jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}, cfgContainer)
 	require.NoError(t, err)
 	return verifier
 }
 
-func hmacJWTVerifier(t *testing.T, cfgContainer *rule.Container) *jwtverify.VerifierJWT {
+func hmacJWTVerifier(t *testing.T, cfgContainer *config.Container) *jwtverify.VerifierJWT {
 	return hmacJWTVerifierWithSecret(t, cfgContainer, "secret")
 }
 
-func hmacJWTVerifierWithSecret(t *testing.T, cfgContainer *rule.Container, secret string) *jwtverify.VerifierJWT {
+func hmacJWTVerifierWithSecret(t *testing.T, cfgContainer *config.Container, secret string) *jwtverify.VerifierJWT {
 	verifier, err := jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: secret,
 	}, cfgContainer)
@@ -371,10 +370,10 @@ func TestClientUserPersonalChannel(t *testing.T) {
 
 	cfg := config.DefaultConfig()
 	cfg.UserSubscribeToPersonal.Enabled = true
-	cfg.Channel.Namespaces = []rule.ChannelNamespace{
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
 		{
 			Name:           "user",
-			ChannelOptions: rule.ChannelOptions{},
+			ChannelOptions: configtypes.ChannelOptions{},
 		},
 	}
 	cfgContainer, err := config.NewContainer(cfg)
@@ -1078,7 +1077,7 @@ func TestClientOnSubscribe_UserLimitedChannelDoesNotCallProxy(t *testing.T) {
 
 	numProxyCalls := 0
 
-	proxyFunc := func(c proxy.Client, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions, pcd proxy.PerCallData) (centrifuge.SubscribeReply, proxy.SubscribeExtra, error) {
+	proxyFunc := func(c proxy.Client, e centrifuge.SubscribeEvent, chOpts configtypes.ChannelOptions, pcd proxy.PerCallData) (centrifuge.SubscribeReply, proxy.SubscribeExtra, error) {
 		numProxyCalls++
 		return centrifuge.SubscribeReply{}, proxy.SubscribeExtra{}, nil
 	}
@@ -1118,7 +1117,7 @@ func TestClientOnSubscribe_UserLimitedChannelNotAllowedForAnotherUser(t *testing
 
 	numProxyCalls := 0
 
-	proxyFunc := func(c proxy.Client, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions, pcd proxy.PerCallData) (centrifuge.SubscribeReply, proxy.SubscribeExtra, error) {
+	proxyFunc := func(c proxy.Client, e centrifuge.SubscribeEvent, chOpts configtypes.ChannelOptions, pcd proxy.PerCallData) (centrifuge.SubscribeReply, proxy.SubscribeExtra, error) {
 		numProxyCalls++
 		return centrifuge.SubscribeReply{}, proxy.SubscribeExtra{}, nil
 	}

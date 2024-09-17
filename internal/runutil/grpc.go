@@ -76,9 +76,11 @@ func runGRPCUniServer(cfg config.Config, node *centrifuge.Node) (*grpc.Server, e
 		return nil, fmt.Errorf("cannot listen to address %s", grpcUniAddr)
 	}
 	var grpcOpts []grpc.ServerOption
-	//nolint:staticcheck
-	//goland:noinspection GoDeprecation
-	grpcOpts = append(grpcOpts, grpc.CustomCodec(&unigrpc.RawCodec{}), grpc.MaxRecvMsgSize(cfg.UniGRPC.MaxReceiveMessageSize))
+	grpcOpts = append(grpcOpts, grpc.ForceServerCodec(&unigrpc.RawCodec{}))
+
+	if cfg.UniGRPC.MaxReceiveMessageSize > 0 {
+		grpcOpts = append(grpcOpts, grpc.MaxRecvMsgSize(cfg.UniGRPC.MaxReceiveMessageSize))
+	}
 
 	var uniGrpcTLSConfig *tls.Config
 	if cfg.GrpcAPI.TLS.Enabled {

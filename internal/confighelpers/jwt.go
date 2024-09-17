@@ -1,23 +1,14 @@
-package runutil
+package confighelpers
 
 import (
 	"fmt"
 
-	"github.com/centrifugal/centrifugo/v5/internal/config"
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/jwtutils"
 	"github.com/centrifugal/centrifugo/v5/internal/jwtverify"
 )
 
-func JWTVerifierConfig(cfg config.Config) (jwtverify.VerifierConfig, error) {
-	return makeVerifierConfig(cfg.Client.Token)
-}
-
-func SubJWTVerifierConfig(cfg config.Config) (jwtverify.VerifierConfig, error) {
-	return makeVerifierConfig(cfg.Client.SubscriptionToken.Token)
-}
-
-func makeVerifierConfig(tokenConf configtypes.Token) (jwtverify.VerifierConfig, error) {
+func MakeVerifierConfig(tokenConf configtypes.Token) (jwtverify.VerifierConfig, error) {
 	cfg := jwtverify.VerifierConfig{}
 
 	cfg.HMACSecretKey = tokenConf.HMACSecretKey

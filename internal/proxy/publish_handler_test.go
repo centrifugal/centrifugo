@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
@@ -19,10 +19,10 @@ import (
 type grpcPublishHandleTestCase struct {
 	*tools.CommonGRPCProxyTestCase
 	publishProxyHandler *PublishHandler
-	channelOpts         rule.ChannelOptions
+	channelOpts         configtypes.ChannelOptions
 }
 
-func newPublishHandleGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTestServer, opts rule.ChannelOptions) grpcPublishHandleTestCase {
+func newPublishHandleGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTestServer, opts configtypes.ChannelOptions) grpcPublishHandleTestCase {
 	commonProxyTestCase := tools.NewCommonGRPCProxyTestCase(ctx, proxyGRPCServer)
 
 	publishProxy, err := NewGRPCPublishProxy(getTestGrpcProxy(commonProxyTestCase))
@@ -42,10 +42,10 @@ func newPublishHandleGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPC
 type httpPublishHandleTestCase struct {
 	*tools.CommonHTTPProxyTestCase
 	publishProxyHandler *PublishHandler
-	channelOpts         rule.ChannelOptions
+	channelOpts         configtypes.ChannelOptions
 }
 
-func newPublishHandleHTTPTestCase(ctx context.Context, endpoint string, opts rule.ChannelOptions) httpPublishHandleTestCase {
+func newPublishHandleHTTPTestCase(ctx context.Context, endpoint string, opts configtypes.ChannelOptions) httpPublishHandleTestCase {
 	commonProxyTestCase := tools.NewCommonHTTPProxyTestCase(ctx)
 
 	publishProxy, err := NewHTTPPublishProxy(getTestHttpProxy(commonProxyTestCase, endpoint))
@@ -67,7 +67,7 @@ type publishHandleTestCase struct {
 	protocol            string
 	node                *centrifuge.Node
 	client              *centrifuge.Client
-	channelOpts         rule.ChannelOptions
+	channelOpts         configtypes.ChannelOptions
 }
 
 func (c publishHandleTestCase) invokeHandle() (reply centrifuge.PublishReply, err error) {
@@ -99,7 +99,7 @@ func newPublishHandleTestCases(httpTestCase httpPublishHandleTestCase, grpcTestC
 func TestHandlePublishWithResult(t *testing.T) {
 	customData := "test"
 	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
-	chOpts := rule.ChannelOptions{
+	chOpts := configtypes.ChannelOptions{
 		HistoryTTL:  1 * time.Second,
 		HistorySize: 1,
 	}
@@ -128,7 +128,7 @@ func TestHandlePublishWithResult(t *testing.T) {
 func TestHandlePublishWithSkipHistory(t *testing.T) {
 	customData := "test"
 	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
-	chOpts := rule.ChannelOptions{
+	chOpts := configtypes.ChannelOptions{
 		HistoryTTL:  1 * time.Second,
 		HistorySize: 1,
 	}
@@ -158,10 +158,10 @@ func TestHandlePublishWithContextCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	grpcTestCase := newPublishHandleGRPCTestCase(ctx, proxyGRPCTestServer{}, rule.ChannelOptions{})
+	grpcTestCase := newPublishHandleGRPCTestCase(ctx, proxyGRPCTestServer{}, configtypes.ChannelOptions{})
 	defer grpcTestCase.Teardown()
 
-	httpTestCase := newPublishHandleHTTPTestCase(ctx, "/publish", rule.ChannelOptions{})
+	httpTestCase := newPublishHandleHTTPTestCase(ctx, "/publish", configtypes.ChannelOptions{})
 	httpTestCase.Mux.HandleFunc("/publish", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{}`))
 	})
@@ -176,10 +176,10 @@ func TestHandlePublishWithContextCancel(t *testing.T) {
 }
 
 func TestHandlePublishWithoutProxyServerStart(t *testing.T) {
-	grpcTestCase := newPublishHandleGRPCTestCase(context.Background(), proxyGRPCTestServer{}, rule.ChannelOptions{})
+	grpcTestCase := newPublishHandleGRPCTestCase(context.Background(), proxyGRPCTestServer{}, configtypes.ChannelOptions{})
 	grpcTestCase.Teardown()
 
-	httpTestCase := newPublishHandleHTTPTestCase(context.Background(), "/publish", rule.ChannelOptions{})
+	httpTestCase := newPublishHandleHTTPTestCase(context.Background(), "/publish", configtypes.ChannelOptions{})
 	httpTestCase.Teardown()
 
 	cases := newPublishHandleTestCases(httpTestCase, grpcTestCase)
@@ -191,7 +191,7 @@ func TestHandlePublishWithoutProxyServerStart(t *testing.T) {
 }
 
 func TestHandlePublishWithProxyServerCustomDisconnect(t *testing.T) {
-	chOpts := rule.ChannelOptions{}
+	chOpts := configtypes.ChannelOptions{}
 	grpcTestCase := newPublishHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("custom disconnect", proxyGRPCTestServerOptions{}), chOpts)
 	defer grpcTestCase.Teardown()
 
@@ -216,7 +216,7 @@ func TestHandlePublishWithProxyServerCustomDisconnect(t *testing.T) {
 }
 
 func TestHandlePublishWithProxyServerCustomError(t *testing.T) {
-	chOpts := rule.ChannelOptions{}
+	chOpts := configtypes.ChannelOptions{}
 	grpcTestCase := newPublishHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("custom error", proxyGRPCTestServerOptions{}), chOpts)
 	defer grpcTestCase.Teardown()
 
@@ -241,7 +241,7 @@ func TestHandlePublishWithProxyServerCustomError(t *testing.T) {
 }
 
 func TestHandlePublishWithInvalidCustomData(t *testing.T) {
-	chOpts := rule.ChannelOptions{}
+	chOpts := configtypes.ChannelOptions{}
 	opts := proxyGRPCTestServerOptions{
 		B64Data: "invalid data",
 	}

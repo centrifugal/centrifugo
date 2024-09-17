@@ -35,3 +35,7 @@ func (c *RawCodec) Unmarshal(data []byte, v any) error {
 func (c *RawCodec) String() string {
 	return "proto"
 }
+
+func (c *RawCodec) Name() string {
+	return "proto"
+}

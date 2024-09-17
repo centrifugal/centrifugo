@@ -4,8 +4,9 @@ import (
 	"encoding/base64"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
+
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
 	"github.com/centrifugal/centrifugo/v5/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
@@ -62,11 +63,11 @@ type SubscribeExtra struct {
 }
 
 // SubscribeHandlerFunc ...
-type SubscribeHandlerFunc func(Client, centrifuge.SubscribeEvent, rule.ChannelOptions, PerCallData) (centrifuge.SubscribeReply, SubscribeExtra, error)
+type SubscribeHandlerFunc func(Client, centrifuge.SubscribeEvent, configtypes.ChannelOptions, PerCallData) (centrifuge.SubscribeReply, SubscribeExtra, error)
 
 // Handle Subscribe.
 func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
-	return func(client Client, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions, pcd PerCallData) (centrifuge.SubscribeReply, SubscribeExtra, error) {
+	return func(client Client, e centrifuge.SubscribeEvent, chOpts configtypes.ChannelOptions, pcd PerCallData) (centrifuge.SubscribeReply, SubscribeExtra, error) {
 		started := time.Now()
 
 		var p SubscribeProxy

@@ -17,8 +17,8 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/build"
+	"github.com/centrifugal/centrifugo/v5/internal/config"
 	"github.com/centrifugal/centrifugo/v5/internal/consuming"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
 
 	"github.com/centrifugal/centrifuge"
 )
@@ -52,7 +52,7 @@ func init() {
 type Sender struct {
 	mu             sync.RWMutex
 	node           *centrifuge.Node
-	rules          *rule.Container
+	rules          *config.Container
 	features       Features
 	maxNumNodes    int
 	maxNumClients  int
@@ -107,7 +107,7 @@ type Features struct {
 }
 
 // NewSender creates usage stats sender.
-func NewSender(node *centrifuge.Node, rules *rule.Container, features Features) *Sender {
+func NewSender(node *centrifuge.Node, rules *config.Container, features Features) *Sender {
 	return &Sender{
 		node:     node,
 		rules:    rules,

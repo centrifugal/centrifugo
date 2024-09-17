@@ -15,6 +15,7 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/build"
 	"github.com/centrifugal/centrifugo/v5/internal/client"
 	"github.com/centrifugal/centrifugo/v5/internal/config"
+	"github.com/centrifugal/centrifugo/v5/internal/confighelpers"
 	"github.com/centrifugal/centrifugo/v5/internal/consuming"
 	"github.com/centrifugal/centrifugo/v5/internal/jwtverify"
 	"github.com/centrifugal/centrifugo/v5/internal/logging"
@@ -90,7 +91,7 @@ func Run(cmd *cobra.Command, configFile string) {
 		proxyMap, keepHeadersInContext = proxyMapConfig(cfg)
 	}
 
-	nodeCfg := centrifugeNodeConfig(build.Version, cfg)
+	nodeCfg := centrifugeNodeConfig(build.Version, cfgContainer)
 
 	node, err := centrifuge.New(nodeCfg)
 	if err != nil {
@@ -113,7 +114,7 @@ func Run(cmd *cobra.Command, configFile string) {
 	if engineName == "memory" {
 		broker, presenceManager, engineMode, err = memoryEngine(node)
 	} else if engineName == "redis" {
-		broker, presenceManager, engineMode, err = redisEngine(node, cfg)
+		broker, presenceManager, engineMode, err = redisEngine(node, cfgContainer)
 	} else if engineName == "redisnats" {
 		if !cfg.EnableUnreleasedFeatures {
 			log.Fatal().Msg("redisnats engine requires enable_unreleased_features on")
@@ -121,7 +122,7 @@ func Run(cmd *cobra.Command, configFile string) {
 		log.Warn().Msg("redisnats engine is not released, it may be changed or removed at any point")
 		var natsBroker *natsbroker.NatsBroker
 		var redisBroker *centrifuge.RedisBroker
-		redisBroker, presenceManager, engineMode, err = redisEngine(node, cfg)
+		redisBroker, presenceManager, engineMode, err = redisEngine(node, cfgContainer)
 		if err != nil {
 			log.Fatal().Msgf("error creating redis engine: %v", err)
 		}
@@ -158,7 +159,7 @@ func Run(cmd *cobra.Command, configFile string) {
 		node.SetBroker(broker)
 	}
 
-	verifierConfig, err := JWTVerifierConfig(cfg)
+	verifierConfig, err := confighelpers.MakeVerifierConfig(cfg.Client.Token)
 	if err != nil {
 		log.Fatal().Msgf("error creating JWT verifier config: %v", err)
 	}
@@ -171,7 +172,7 @@ func Run(cmd *cobra.Command, configFile string) {
 	var subTokenVerifier *jwtverify.VerifierJWT
 	if cfg.Client.SubscriptionToken.Enabled {
 		log.Info().Msg("initializing separate verifier for subscription tokens")
-		subVerifier, err := SubJWTVerifierConfig(cfg)
+		subVerifier, err := confighelpers.MakeVerifierConfig(cfg.Client.SubscriptionToken.Token)
 		if err != nil {
 			log.Fatal().Msgf("error creating subscription JWT verifier config: %v", err)
 		}
@@ -346,7 +347,7 @@ func handleSignals(
 				log.Error().Msgf("error validating config: %v", err)
 				continue
 			}
-			verifierConfig, err := JWTVerifierConfig(newCfg)
+			verifierConfig, err := confighelpers.MakeVerifierConfig(newCfg.Client.Token)
 			if err != nil {
 				log.Error().Msgf("error reloading: %v", err)
 				continue
@@ -356,7 +357,7 @@ func handleSignals(
 				continue
 			}
 			if subTokenVerifier != nil {
-				subVerifierConfig, err := SubJWTVerifierConfig(newCfg)
+				subVerifierConfig, err := confighelpers.MakeVerifierConfig(newCfg.Client.SubscriptionToken.Token)
 				if err != nil {
 					log.Error().Msgf("error reloading: %v", err)
 					continue

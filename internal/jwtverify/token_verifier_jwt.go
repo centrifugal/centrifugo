@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v5/internal/config"
 	"github.com/centrifugal/centrifugo/v5/internal/jwks"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
 	"github.com/centrifugal/centrifugo/v5/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
@@ -73,7 +73,7 @@ func (c VerifierConfig) Validate() error {
 	return nil
 }
 
-func NewTokenVerifierJWT(config VerifierConfig, cfgContainer *rule.Container) (*VerifierJWT, error) {
+func NewTokenVerifierJWT(config VerifierConfig, cfgContainer *config.Container) (*VerifierJWT, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("error validating token verifier config: %w", err)
 	}
@@ -123,7 +123,7 @@ type VerifierJWT struct {
 	mu           sync.RWMutex
 	jwksManager  *jwksManager
 	algorithms   *algorithms
-	cfgContainer *rule.Container
+	cfgContainer *config.Container
 	audience     string
 	audienceRe   *regexp.Regexp
 	issuer       string

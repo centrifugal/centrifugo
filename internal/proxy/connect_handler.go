@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/clientstorage"
+	"github.com/centrifugal/centrifugo/v5/internal/config"
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
 	"github.com/centrifugal/centrifugo/v5/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
@@ -22,21 +22,21 @@ type ConnectHandlerConfig struct {
 
 // ConnectHandler ...
 type ConnectHandler struct {
-	config        ConnectHandlerConfig
-	ruleContainer *rule.Container
-	summary       prometheus.Observer
-	histogram     prometheus.Observer
-	errors        prometheus.Counter
+	config       ConnectHandlerConfig
+	cfgContainer *config.Container
+	summary      prometheus.Observer
+	histogram    prometheus.Observer
+	errors       prometheus.Counter
 }
 
 // NewConnectHandler ...
-func NewConnectHandler(c ConnectHandlerConfig, ruleContainer *rule.Container) *ConnectHandler {
+func NewConnectHandler(c ConnectHandlerConfig, cfgContainer *config.Container) *ConnectHandler {
 	return &ConnectHandler{
-		config:        c,
-		ruleContainer: ruleContainer,
-		summary:       proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "connect"),
-		histogram:     proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "connect"),
-		errors:        proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "connect"),
+		config:       c,
+		cfgContainer: cfgContainer,
+		summary:      proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "connect"),
+		histogram:    proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "connect"),
+		errors:       proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "connect"),
 	}
 }
 
@@ -132,7 +132,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 				reply.Subscriptions = make(map[string]centrifuge.SubscribeOptions, len(result.Channels))
 			}
 			for _, ch := range result.Channels {
-				_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+				_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 				if err != nil {
 					return centrifuge.ConnectReply{}, ConnectExtra{}, err
 				}
@@ -157,7 +157,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 				reply.Subscriptions = make(map[string]centrifuge.SubscribeOptions, len(result.Subs))
 			}
 			for ch, options := range result.Subs {
-				_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+				_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 				if err != nil {
 					return centrifuge.ConnectReply{}, ConnectExtra{}, err
 				}
