@@ -331,9 +331,9 @@ type Client struct {
 }
 
 type Channel struct {
-	// ChannelOptions is a configuration for channels which do not have namespace. Generally, we recommend always
-	// use channel namespaces but this option can be useful for simple setups.
-	ChannelOptions `mapstructure:",squash"`
+	// WithoutNamespace is a configuration of channels options for channels which do not have namespace.
+	// Generally, we recommend always use channel namespaces but this option can be useful for simple setups.
+	WithoutNamespace ChannelOptions `mapstructure:"without_namespace" json:"without_namespace" envconfig:"without_namespace"`
 	// Namespaces is a list of channel namespaces. Each channel namespace can have its own set of rules.
 	Namespaces ChannelNamespaces `mapstructure:"namespaces" json:"namespaces" envconfig:"namespaces"`
 
@@ -345,9 +345,9 @@ type Channel struct {
 }
 
 type RPC struct {
-	// RpcOptions is a configuration for rpc methods without rpc namespace. Generally, we recommend always use
-	// rpc namespaces but this option can be useful for simple setups.
-	RpcOptions `mapstructure:",squash"`
+	// WithoutNamespace is a configuration of RpcOptions for rpc methods without rpc namespace. Generally,
+	// we recommend always use rpc namespaces but this option can be useful for simple setups.
+	WithoutNamespace RpcOptions `mapstructure:"without_namespace" json:"without_namespace" envconfig:"without_namespace"`
 	// RPCNamespaces is a list of rpc namespaces. Each rpc namespace can have its own set of rules.
 	Namespaces RPCNamespaces `mapstructure:"namespaces" json:"namespaces" envconfig:"namespaces"`
 
@@ -405,8 +405,6 @@ type ProxyCommon struct {
 
 	// GrpcTLS is a common configuration for GRPC TLS.
 	GrpcTLS TLSConfig `mapstructure:"grpc_tls" json:"grpc_tls,omitempty" envconfig:"grpc_tls"`
-	// GrpcCertFile is a path to GRPC cert file on disk.
-	GrpcCertFile string `mapstructure:"grpc_cert_file" json:"grpc_cert_file,omitempty" envconfig:"grpc_cert_file"`
 	// GrpcCredentialsKey is a custom key to add into per-RPC credentials.
 	GrpcCredentialsKey string `mapstructure:"grpc_credentials_key" json:"grpc_credentials_key,omitempty" envconfig:"grpc_credentials_key"`
 	// GrpcCredentialsValue is a custom value for GrpcCredentialsKey.

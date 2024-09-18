@@ -32,10 +32,11 @@ type Logger interface {
 func New(nodeID string, logger Logger, dispatcher Dispatcher, configs []ConsumerConfig) ([]service.Service, error) {
 	var services []service.Service
 	for _, config := range configs {
+		if !config.Enabled { // Important to keep this check inside specific type for proper config validation.
+			log.Info().Str("consumer_name", config.Name).Str("consumer_type", config.Type).Msg("consumer is not enabled, skip")
+			continue
+		}
 		if config.Type == ConsumerTypePostgres {
-			if !config.Enabled { // Important to keep this check inside specific type for proper config validation.
-				continue
-			}
 			consumer, err := NewPostgresConsumer(config.Name, logger, dispatcher, config.Postgres)
 			if err != nil {
 				return nil, fmt.Errorf("error initializing PostgreSQL consumer (%s): %w", config.Name, err)
@@ -43,9 +44,6 @@ func New(nodeID string, logger Logger, dispatcher Dispatcher, configs []Consumer
 			log.Info().Str("consumer_name", config.Name).Msg("running consumer")
 			services = append(services, consumer)
 		} else if config.Type == ConsumerTypeKafka {
-			if !config.Enabled {
-				continue
-			}
 			consumer, err := NewKafkaConsumer(config.Name, nodeID, logger, dispatcher, config.Kafka)
 			if err != nil {
 				return nil, fmt.Errorf("error initializing Kafka consumer (%s): %w", config.Name, err)

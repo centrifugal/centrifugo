@@ -8,7 +8,8 @@ client:
     jwks_public_endpoint: https://example.com/jwks
   ping_interval: 12s
 channel:
-  presence: true
+  without_namespace:
+    presence: true
   namespaces:
     - name: ns1
       presence: true

@@ -485,7 +485,7 @@ func TestClientSubscribeChannelUserLimitedError(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	cfg := config.DefaultConfig()
-	cfg.Channel.UserLimitedChannels = true
+	cfg.Channel.WithoutNamespace.UserLimitedChannels = true
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 	h := NewHandler(node, cfgContainer, hmacJWTVerifier(t, cfgContainer), nil, &ProxyMap{}, false)
@@ -524,7 +524,7 @@ func TestClientSubscribeChannelUserLimitedOK(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	cfg := config.DefaultConfig()
-	cfg.Channel.UserLimitedChannels = true
+	cfg.Channel.WithoutNamespace.UserLimitedChannels = true
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 	h := NewHandler(node, cfgContainer, hmacJWTVerifier(t, cfgContainer), nil, &ProxyMap{}, false)
@@ -805,7 +805,7 @@ func TestClientSubscribePermissionDeniedForAnonymous(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	cfg := config.DefaultConfig()
-	cfg.Channel.SubscribeForClient = true
+	cfg.Channel.WithoutNamespace.SubscribeForClient = true
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 
@@ -844,8 +844,8 @@ func TestClientPublishAllowed(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	cfg := config.DefaultConfig()
-	cfg.Channel.PublishForClient = true
-	cfg.Channel.PublishForAnonymous = true
+	cfg.Channel.WithoutNamespace.PublishForClient = true
+	cfg.Channel.WithoutNamespace.PublishForAnonymous = true
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 	h := NewHandler(node, cfgContainer, hmacJWTVerifier(t, cfgContainer), nil, &ProxyMap{}, false)
@@ -862,8 +862,8 @@ func TestClientPublishForSubscriber(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	cfg := config.DefaultConfig()
-	cfg.Channel.PublishForSubscriber = true
-	cfg.Channel.PublishForAnonymous = true
+	cfg.Channel.WithoutNamespace.PublishForSubscriber = true
+	cfg.Channel.WithoutNamespace.PublishForAnonymous = true
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 	h := NewHandler(node, cfgContainer, hmacJWTVerifier(t, cfgContainer), nil, &ProxyMap{}, false)
@@ -888,10 +888,10 @@ func TestClientHistory(t *testing.T) {
 	})
 
 	cfg := config.DefaultConfig()
-	cfg.Channel.HistorySize = 10
-	cfg.Channel.HistoryTTL = 300 * time.Second
-	cfg.Channel.HistoryForClient = true
-	cfg.Channel.HistoryForAnonymous = true
+	cfg.Channel.WithoutNamespace.HistorySize = 10
+	cfg.Channel.WithoutNamespace.HistoryTTL = 300 * time.Second
+	cfg.Channel.WithoutNamespace.HistoryForClient = true
+	cfg.Channel.WithoutNamespace.HistoryForAnonymous = true
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 	h := NewHandler(node, cfgContainer, hmacJWTVerifier(t, cfgContainer), nil, &ProxyMap{}, false)
@@ -929,8 +929,8 @@ func TestClientHistoryError(t *testing.T) {
 	require.Equal(t, centrifuge.ErrorNotAvailable, err)
 
 	cfg = cfgContainer.Config()
-	cfg.Channel.HistorySize = 10
-	cfg.Channel.HistoryTTL = 300 * time.Second
+	cfg.Channel.WithoutNamespace.HistorySize = 10
+	cfg.Channel.WithoutNamespace.HistoryTTL = 300 * time.Second
 	require.NoError(t, cfgContainer.Reload(cfg))
 
 	_, err = h.OnHistory(&centrifuge.Client{}, centrifuge.HistoryEvent{
@@ -952,9 +952,9 @@ func TestClientPresence(t *testing.T) {
 	})
 
 	cfg := config.DefaultConfig()
-	cfg.Channel.Presence = true
-	cfg.Channel.PresenceForClient = true
-	cfg.Channel.PresenceForAnonymous = true
+	cfg.Channel.WithoutNamespace.Presence = true
+	cfg.Channel.WithoutNamespace.PresenceForClient = true
+	cfg.Channel.WithoutNamespace.PresenceForAnonymous = true
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 	h := NewHandler(node, cfgContainer, hmacJWTVerifier(t, cfgContainer), nil, &ProxyMap{}, false)
@@ -992,7 +992,7 @@ func TestClientPresenceError(t *testing.T) {
 	require.Equal(t, centrifuge.ErrorNotAvailable, err)
 
 	cfg = cfgContainer.Config()
-	cfg.Channel.Presence = true
+	cfg.Channel.WithoutNamespace.Presence = true
 	require.NoError(t, cfgContainer.Reload(cfg))
 
 	_, err = h.OnPresence(&centrifuge.Client{}, centrifuge.PresenceEvent{
@@ -1014,9 +1014,9 @@ func TestClientPresenceStats(t *testing.T) {
 	})
 
 	cfg := config.DefaultConfig()
-	cfg.Channel.Presence = true
-	cfg.Channel.PresenceForClient = true
-	cfg.Channel.PresenceForAnonymous = true
+	cfg.Channel.WithoutNamespace.Presence = true
+	cfg.Channel.WithoutNamespace.PresenceForClient = true
+	cfg.Channel.WithoutNamespace.PresenceForAnonymous = true
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 	h := NewHandler(node, cfgContainer, hmacJWTVerifier(t, cfgContainer), nil, &ProxyMap{}, false)
@@ -1054,7 +1054,7 @@ func TestClientPresenceStatsError(t *testing.T) {
 	require.Equal(t, centrifuge.ErrorNotAvailable, err)
 
 	cfg = cfgContainer.Config()
-	cfg.Channel.Presence = true
+	cfg.Channel.WithoutNamespace.Presence = true
 	require.NoError(t, cfgContainer.Reload(cfg))
 
 	_, err = h.OnPresenceStats(&centrifuge.Client{}, centrifuge.PresenceStatsEvent{
@@ -1068,8 +1068,8 @@ func TestClientOnSubscribe_UserLimitedChannelDoesNotCallProxy(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	cfg := config.DefaultConfig()
-	cfg.Channel.UserLimitedChannels = true
-	cfg.Channel.ProxySubscribe = true
+	cfg.Channel.WithoutNamespace.UserLimitedChannels = true
+	cfg.Channel.WithoutNamespace.ProxySubscribe = true
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 
@@ -1108,8 +1108,8 @@ func TestClientOnSubscribe_UserLimitedChannelNotAllowedForAnotherUser(t *testing
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	cfg := config.DefaultConfig()
-	cfg.Channel.UserLimitedChannels = true
-	cfg.Channel.SubscribeForClient = true
+	cfg.Channel.WithoutNamespace.UserLimitedChannels = true
+	cfg.Channel.WithoutNamespace.SubscribeForClient = true
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 

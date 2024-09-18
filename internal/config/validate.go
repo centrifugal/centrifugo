@@ -22,10 +22,10 @@ func (c Config) Validate() error {
 		return err
 	}
 
-	if err := validateChannelOptions(c.Channel.ChannelOptions, c.GlobalHistoryMetaTTL); err != nil {
+	if err := validateChannelOptions(c.Channel.WithoutNamespace, c.GlobalHistoryMetaTTL); err != nil {
 		return err
 	}
-	if err := validateRpcOptions(c.RPC.RpcOptions); err != nil {
+	if err := validateRpcOptions(c.RPC.WithoutNamespace); err != nil {
 		return err
 	}
 
@@ -35,7 +35,7 @@ func (c Config) Validate() error {
 	var validPersonalChannelNamespace bool
 	if !usePersonalChannel || personalChannelNamespace == "" {
 		validPersonalChannelNamespace = true
-		if personalSingleConnection && !c.Channel.Presence {
+		if personalSingleConnection && !c.Channel.WithoutNamespace.Presence {
 			return fmt.Errorf("presence must be enabled on top level to maintain single connection")
 		}
 	}

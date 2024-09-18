@@ -56,12 +56,12 @@ func (n *Container) Reload(c Config) error {
 }
 
 func buildCompiledRegexes(config Config) (Config, error) {
-	if config.Channel.ChannelRegex != "" {
-		p, err := regexp.Compile(config.Channel.ChannelRegex)
+	if config.Channel.WithoutNamespace.ChannelRegex != "" {
+		p, err := regexp.Compile(config.Channel.WithoutNamespace.ChannelRegex)
 		if err != nil {
 			return config, err
 		}
-		config.Channel.Compiled.CompiledChannelRegex = p
+		config.Channel.WithoutNamespace.Compiled.CompiledChannelRegex = p
 	}
 
 	var namespaces []configtypes.ChannelNamespace
@@ -132,7 +132,7 @@ func (n *Container) NumNamespaces() int {
 // channelOpts searches for channel options for specified namespace key.
 func channelOpts(c *Config, namespaceName string) (configtypes.ChannelOptions, bool, error) {
 	if namespaceName == "" {
-		return c.Channel.ChannelOptions, true, nil
+		return c.Channel.WithoutNamespace, true, nil
 	}
 	for _, n := range c.Channel.Namespaces {
 		if n.Name == namespaceName {
@@ -227,7 +227,7 @@ func (n *Container) NumRpcNamespaces() int {
 // rpcOpts searches for channel options for specified namespace key.
 func rpcOpts(c *Config, namespaceName string) (configtypes.RpcOptions, bool, error) {
 	if namespaceName == "" {
-		return c.RPC.RpcOptions, true, nil
+		return c.RPC.WithoutNamespace, true, nil
 	}
 	for _, n := range c.RPC.Namespaces {
 		if n.Name == namespaceName {

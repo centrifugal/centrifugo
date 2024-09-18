@@ -43,7 +43,7 @@ func TestConfigValidateInvalidNamespaceName(t *testing.T) {
 
 func TestConfigCompiledChannelRegex(t *testing.T) {
 	c := defaultConfig(t)
-	c.Channel.ChannelRegex = "^test$"
+	c.Channel.WithoutNamespace.ChannelRegex = "^test$"
 	c.Channel.Namespaces = []configtypes.ChannelNamespace{
 		{
 			Name: "name1",
@@ -59,7 +59,7 @@ func TestConfigCompiledChannelRegex(t *testing.T) {
 	ruleContainer, err := NewContainer(c)
 	require.NoError(t, err)
 
-	require.NotNil(t, ruleContainer.Config().Channel.CompiledChannelRegex)
+	require.NotNil(t, ruleContainer.Config().Channel.WithoutNamespace.CompiledChannelRegex)
 	require.NotNil(t, ruleContainer.Config().Channel.Namespaces[0].CompiledChannelRegex)
 	require.Nil(t, ruleContainer.Config().Channel.Namespaces[1].CompiledChannelRegex)
 }
@@ -103,7 +103,7 @@ func TestConfigValidatePersonalSingleConnectionOK(t *testing.T) {
 	c.Channel.Namespaces = []configtypes.ChannelNamespace{}
 	c.UserSubscribeToPersonal.Enabled = true
 	c.UserSubscribeToPersonal.SingleConnection = true
-	c.Channel.Presence = true
+	c.Channel.WithoutNamespace.Presence = true
 	err := c.Validate()
 	require.NoError(t, err)
 }
@@ -126,16 +126,16 @@ func TestConfigValidateHistoryTTL(t *testing.T) {
 	})
 	t.Run("on_top_level", func(t *testing.T) {
 		c := defaultConfig(t)
-		c.Channel.HistorySize = 10
-		c.Channel.HistoryTTL = 31 * 24 * time.Hour
+		c.Channel.WithoutNamespace.HistorySize = 10
+		c.Channel.WithoutNamespace.HistoryTTL = 31 * 24 * time.Hour
 		err := c.Validate()
 		require.ErrorContains(t, err, "history meta ttl")
 	})
 	t.Run("top_level_non_default_global", func(t *testing.T) {
 		c := defaultConfig(t)
 		c.GlobalHistoryMetaTTL = 10 * time.Hour
-		c.Channel.HistorySize = 10
-		c.Channel.HistoryTTL = 30 * 24 * time.Hour
+		c.Channel.WithoutNamespace.HistorySize = 10
+		c.Channel.WithoutNamespace.HistoryTTL = 30 * 24 * time.Hour
 		err := c.Validate()
 		require.ErrorContains(t, err, "history meta ttl")
 	})
@@ -169,7 +169,7 @@ func TestConfigValidatePersonalSingleConnectionNamespacedOK(t *testing.T) {
 
 func TestConfigValidateMalformedRecoveryTopLevel(t *testing.T) {
 	c := defaultConfig(t)
-	c.Channel.ForceRecovery = true
+	c.Channel.WithoutNamespace.ForceRecovery = true
 	err := c.Validate()
 	require.Error(t, err)
 }

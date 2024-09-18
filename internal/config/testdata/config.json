@@ -10,7 +10,9 @@
     "ping_interval": "12s"
   },
   "channel": {
-    "presence": true,
+    "without_namespace": {
+        "presence": true
+    },
     "namespaces": [
       {
         "name": "ns1",

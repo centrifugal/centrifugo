@@ -136,6 +136,10 @@ func granularProxyMapConfig(cfg config.Config) (*client.ProxyMap, bool) {
 	proxyList := cfg.Proxies
 	proxies := make(map[string]proxy.Config)
 	for _, p := range proxyList {
+		if !p.Enabled {
+			log.Info().Str("proxy_name", p.Name).Msg("proxy is not enabled, skip")
+			continue
+		}
 		for i, header := range p.HttpHeaders {
 			p.HttpHeaders[i] = strings.ToLower(header)
 		}
@@ -170,7 +174,7 @@ func granularProxyMapConfig(cfg config.Config) (*client.ProxyMap, bool) {
 		}
 		keepHeadersInContext = true
 	}
-	subscribeProxyName := cfg.Channel.SubscribeProxyName
+	subscribeProxyName := cfg.Channel.WithoutNamespace.SubscribeProxyName
 	if subscribeProxyName != "" {
 		p, ok := proxies[subscribeProxyName]
 		if !ok {
@@ -184,7 +188,7 @@ func granularProxyMapConfig(cfg config.Config) (*client.ProxyMap, bool) {
 		keepHeadersInContext = true
 	}
 
-	publishProxyName := cfg.Channel.PublishProxyName
+	publishProxyName := cfg.Channel.WithoutNamespace.PublishProxyName
 	if publishProxyName != "" {
 		p, ok := proxies[publishProxyName]
 		if !ok {
@@ -198,7 +202,7 @@ func granularProxyMapConfig(cfg config.Config) (*client.ProxyMap, bool) {
 		keepHeadersInContext = true
 	}
 
-	subRefreshProxyName := cfg.Channel.SubRefreshProxyName
+	subRefreshProxyName := cfg.Channel.WithoutNamespace.SubRefreshProxyName
 	if subRefreshProxyName != "" {
 		p, ok := proxies[subRefreshProxyName]
 		if !ok {
@@ -212,7 +216,7 @@ func granularProxyMapConfig(cfg config.Config) (*client.ProxyMap, bool) {
 		keepHeadersInContext = true
 	}
 
-	subscribeStreamProxyName := cfg.Channel.SubscribeStreamProxyName
+	subscribeStreamProxyName := cfg.Channel.WithoutNamespace.SubscribeStreamProxyName
 	if subscribeStreamProxyName != "" {
 		p, ok := proxies[subscribeStreamProxyName]
 		if !ok {
@@ -291,7 +295,7 @@ func granularProxyMapConfig(cfg config.Config) (*client.ProxyMap, bool) {
 		}
 	}
 
-	rpcProxyName := cfg.RPC.RpcProxyName
+	rpcProxyName := cfg.RPC.WithoutNamespace.RpcProxyName
 	if rpcProxyName != "" {
 		p, ok := proxies[rpcProxyName]
 		if !ok {

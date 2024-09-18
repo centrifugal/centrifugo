@@ -5,9 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/config"
-
 	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
+	"github.com/centrifugal/centrifugo/v5/internal/config"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"
@@ -94,8 +93,8 @@ func TestHistoryAPI(t *testing.T) {
 	require.Equal(t, ErrorNotAvailable, resp.Error)
 
 	cfg = cfgContainer.Config()
-	cfg.Channel.HistorySize = 1
-	cfg.Channel.HistoryTTL = 1 * time.Second
+	cfg.Channel.WithoutNamespace.HistorySize = 1
+	cfg.Channel.WithoutNamespace.HistoryTTL = 1 * time.Second
 	_ = cfgContainer.Reload(cfg)
 
 	resp = api.History(context.Background(), &HistoryRequest{Channel: "test"})
@@ -115,8 +114,8 @@ func TestHistoryRemoveAPI(t *testing.T) {
 	require.Equal(t, ErrorNotAvailable, resp.Error)
 
 	cfg = cfgContainer.Config()
-	cfg.Channel.HistorySize = 1
-	cfg.Channel.HistoryTTL = time.Second
+	cfg.Channel.WithoutNamespace.HistorySize = 1
+	cfg.Channel.WithoutNamespace.HistoryTTL = time.Second
 	_ = cfgContainer.Reload(cfg)
 
 	resp = api.HistoryRemove(context.Background(), &HistoryRemoveRequest{Channel: "test"})
@@ -137,7 +136,7 @@ func TestPresenceAPI(t *testing.T) {
 	require.Equal(t, ErrorNotAvailable, resp.Error)
 
 	cfg = cfgContainer.Config()
-	cfg.Channel.Presence = true
+	cfg.Channel.WithoutNamespace.Presence = true
 	_ = cfgContainer.Reload(cfg)
 
 	resp = api.Presence(context.Background(), &PresenceRequest{Channel: "test"})
@@ -157,7 +156,7 @@ func TestPresenceStatsAPI(t *testing.T) {
 	require.Equal(t, ErrorNotAvailable, resp.Error)
 
 	cfg = cfgContainer.Config()
-	cfg.Channel.Presence = true
+	cfg.Channel.WithoutNamespace.Presence = true
 	_ = cfgContainer.Reload(cfg)
 
 	resp = api.PresenceStats(context.Background(), &PresenceStatsRequest{Channel: "test"})

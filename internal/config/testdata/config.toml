@@ -9,7 +9,8 @@ ping_interval = "12s"
   jwks_public_endpoint = "https://example.com/jwks"
 
 [channel]
-presence = true
+  [channel.without_namespace]
+  presence = true
 
   [[channel.namespaces]]
   name = "ns1"

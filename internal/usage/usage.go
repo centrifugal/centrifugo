@@ -426,7 +426,7 @@ func (s *Sender) prepareMetrics() ([]*metric, error) {
 	var usesJoinLeave bool
 
 	namespaces := s.rules.Config().Channel.Namespaces
-	chOpts := s.rules.Config().Channel.ChannelOptions
+	chOpts := s.rules.Config().Channel.WithoutNamespace
 	if chOpts.HistoryTTL > 0 && chOpts.HistorySize > 0 {
 		usesHistory = true
 	}
