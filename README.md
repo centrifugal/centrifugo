@@ -44,6 +44,14 @@ The hard part is to make this concept production-ready, efficient, flexible and 
 * Beautiful embedded admin web UI
 * And much more, visit [Centrifugo documentation site](https://centrifugal.dev)
 
+## Self-Hosting Centrifugo
+
+### Elestio
+
+You can deploy Centrifugo on Elestio using one-click deployment. Elestio supports Centrifugo by providing revenue share so go ahead and click below to deploy and use Centrifugo.
+
+[![Deploy on Elestio](https://elest.io/images/logos/deploy-to-elestio-btn.png)](https://elest.io/open-source/centrifugo)
+
 ## Backing
 
 This repository is hosted by [packagecloud.io](https://packagecloud.io/).
