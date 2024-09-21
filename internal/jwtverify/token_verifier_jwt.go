@@ -301,7 +301,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 	// RSA.
 	if rsaPubKey != nil {
 		if verifierRS256, err := jwt.NewVerifierRS(jwt.RS256, rsaPubKey); err != nil {
-			if err != jwt.ErrInvalidKey {
+			if !errors.Is(err, jwt.ErrInvalidKey) {
 				return nil, err
 			}
 		} else {
@@ -309,7 +309,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 			algorithms = append(algorithms, "RS256")
 		}
 		if verifierRS384, err := jwt.NewVerifierRS(jwt.RS384, rsaPubKey); err != nil {
-			if err != jwt.ErrInvalidKey {
+			if !errors.Is(err, jwt.ErrInvalidKey) {
 				return nil, err
 			}
 		} else {
@@ -317,7 +317,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 			algorithms = append(algorithms, "RS384")
 		}
 		if verifierRS512, err := jwt.NewVerifierRS(jwt.RS512, rsaPubKey); err != nil {
-			if err != jwt.ErrInvalidKey {
+			if !errors.Is(err, jwt.ErrInvalidKey) {
 				return nil, err
 			}
 		} else {
@@ -329,7 +329,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 	// ECDSA.
 	if ecdsaPubKey != nil {
 		if verifierES256, err := jwt.NewVerifierES(jwt.ES256, ecdsaPubKey); err != nil {
-			if err != jwt.ErrInvalidKey {
+			if !errors.Is(err, jwt.ErrInvalidKey) {
 				return nil, err
 			}
 		} else {
@@ -337,7 +337,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 			algorithms = append(algorithms, "ES256")
 		}
 		if verifierES384, err := jwt.NewVerifierES(jwt.ES384, ecdsaPubKey); err != nil {
-			if err != jwt.ErrInvalidKey {
+			if !errors.Is(err, jwt.ErrInvalidKey) {
 				return nil, err
 			}
 		} else {
@@ -345,7 +345,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 			algorithms = append(algorithms, "ES384")
 		}
 		if verifierES512, err := jwt.NewVerifierES(jwt.ES512, ecdsaPubKey); err != nil {
-			if err != jwt.ErrInvalidKey {
+			if !errors.Is(err, jwt.ErrInvalidKey) {
 				return nil, err
 			}
 		} else {
@@ -541,7 +541,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 				RecoveryMode:      recoveryMode,
 				Data:              data,
 				Source:            subsource.ConnectionToken,
-				HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
+				HistoryMetaTTL:    chOpts.HistoryMetaTTL,
 			}
 		}
 	} else if len(claims.Channels) > 0 {
@@ -561,7 +561,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 				EnablePositioning: chOpts.ForcePositioning,
 				RecoveryMode:      chOpts.GetRecoveryMode(),
 				Source:            subsource.ConnectionToken,
-				HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
+				HistoryMetaTTL:    chOpts.HistoryMetaTTL,
 			}
 		}
 	}

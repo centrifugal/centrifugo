@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"context"
-	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 )
@@ -19,7 +18,7 @@ var _ RPCProxy = (*HTTPRPCProxy)(nil)
 func NewHTTPRPCProxy(p Config) (*HTTPRPCProxy, error) {
 	return &HTTPRPCProxy{
 		config:     p,
-		httpCaller: NewHTTPCaller(proxyHTTPClient(time.Duration(p.Timeout))),
+		httpCaller: NewHTTPCaller(proxyHTTPClient(p.Timeout)),
 	}, nil
 }
 

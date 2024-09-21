@@ -132,7 +132,7 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 		result, err := node.Publish(
 			e.Channel, data,
 			centrifuge.WithClientInfo(e.ClientInfo),
-			centrifuge.WithHistory(historySize, time.Duration(historyTTL), time.Duration(historyMetaTTL)),
+			centrifuge.WithHistory(historySize, historyTTL, historyMetaTTL),
 		)
 		return centrifuge.PublishReply{Result: &result}, err
 	}

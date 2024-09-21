@@ -3,7 +3,6 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 
@@ -54,7 +53,7 @@ func (p *GRPCConnectProxy) UseBase64() bool {
 
 // ProxyConnect proxies connect control to application backend.
 func (p *GRPCConnectProxy) ProxyConnect(ctx context.Context, req *proxyproto.ConnectRequest) (*proxyproto.ConnectResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(p.config.Timeout))
+	ctx, cancel := context.WithTimeout(ctx, p.config.Timeout)
 	defer cancel()
 	return p.client.Connect(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
 }

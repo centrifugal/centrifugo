@@ -34,7 +34,7 @@ func NewPostgresConsumer(name string, logger Logger, dispatcher Dispatcher, conf
 	if config.PartitionSelectLimit == 0 {
 		config.PartitionSelectLimit = defaultPartitionSelectLimit
 	}
-	if time.Duration(config.PartitionPollInterval) == 0 {
+	if config.PartitionPollInterval == 0 {
 		config.PartitionPollInterval = 300 * time.Millisecond
 	}
 	conf, err := pgxpool.ParseConfig(config.DSN)
@@ -241,7 +241,7 @@ func (c *PostgresConsumer) Run(ctx context.Context) error {
 		})
 	}
 
-	pollInterval := time.Duration(c.config.PartitionPollInterval)
+	pollInterval := c.config.PartitionPollInterval
 
 	for i := 0; i < c.config.NumPartitions; i++ {
 		i := i

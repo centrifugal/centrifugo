@@ -3,7 +3,6 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 
@@ -40,7 +39,7 @@ func NewGRPCSubRefreshProxy(p Config) (*GRPCSubRefreshProxy, error) {
 
 // ProxySubRefresh proxies refresh to application backend.
 func (p *GRPCSubRefreshProxy) ProxySubRefresh(ctx context.Context, req *proxyproto.SubRefreshRequest) (*proxyproto.SubRefreshResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(p.config.Timeout))
+	ctx, cancel := context.WithTimeout(ctx, p.config.Timeout)
 	defer cancel()
 	return p.client.SubRefresh(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
 }

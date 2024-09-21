@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"context"
-	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 )
@@ -19,7 +18,7 @@ var _ CacheEmptyProxy = (*HTTPCacheEmptyProxy)(nil)
 func NewHTTPCacheEmptyProxy(p Config) (*HTTPCacheEmptyProxy, error) {
 	return &HTTPCacheEmptyProxy{
 		config:     p,
-		httpCaller: NewHTTPCaller(proxyHTTPClient(time.Duration(p.Timeout))),
+		httpCaller: NewHTTPCaller(proxyHTTPClient(p.Timeout)),
 	}, nil
 }
 

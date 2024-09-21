@@ -3,7 +3,6 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 
@@ -40,7 +39,7 @@ func NewGRPCRPCProxy(p Config) (*GRPCRPCProxy, error) {
 
 // ProxyRPC ...
 func (p *GRPCRPCProxy) ProxyRPC(ctx context.Context, req *proxyproto.RPCRequest) (*proxyproto.RPCResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(p.config.Timeout))
+	ctx, cancel := context.WithTimeout(ctx, p.config.Timeout)
 	defer cancel()
 	return p.client.RPC(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
 }

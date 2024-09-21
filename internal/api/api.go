@@ -193,7 +193,7 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 
 	result, err := h.node.Publish(
 		cmd.Channel, data,
-		centrifuge.WithHistory(historySize, time.Duration(historyTTL), time.Duration(historyMetaTTL)),
+		centrifuge.WithHistory(historySize, historyTTL, historyMetaTTL),
 		centrifuge.WithTags(cmd.GetTags()),
 		centrifuge.WithIdempotencyKey(cmd.GetIdempotencyKey()),
 		centrifuge.WithDelta(delta),
@@ -292,7 +292,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 
 			result, err := h.node.Publish(
 				ch, data,
-				centrifuge.WithHistory(historySize, time.Duration(historyTTL), time.Duration(historyMetaTTL)),
+				centrifuge.WithHistory(historySize, historyTTL, historyMetaTTL),
 				centrifuge.WithTags(cmd.GetTags()),
 				centrifuge.WithIdempotencyKey(cmd.GetIdempotencyKey()),
 				centrifuge.WithDelta(delta),
@@ -383,7 +383,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 		centrifuge.WithEmitPresence(presence),
 		centrifuge.WithRecoverSince(recoverSince),
 		centrifuge.WithSubscribeSource(subsource.ServerAPI),
-		centrifuge.WithSubscribeHistoryMetaTTL(time.Duration(chOpts.HistoryMetaTTL)),
+		centrifuge.WithSubscribeHistoryMetaTTL(chOpts.HistoryMetaTTL),
 	)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error subscribing user to a channel", map[string]any{"channel": channel, "user": user, "error": err.Error()}))
@@ -616,7 +616,7 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 
 	history, err := h.node.History(
 		ch,
-		centrifuge.WithHistoryMetaTTL(time.Duration(historyMetaTTL)),
+		centrifuge.WithHistoryMetaTTL(historyMetaTTL),
 		centrifuge.WithLimit(int(cmd.Limit)),
 		centrifuge.WithSince(sp),
 		centrifuge.WithReverse(cmd.Reverse),

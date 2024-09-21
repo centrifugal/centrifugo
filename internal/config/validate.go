@@ -169,7 +169,7 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL t
 		historyMetaTTL = c.HistoryMetaTTL
 	}
 	if historyMetaTTL < c.HistoryTTL {
-		return fmt.Errorf("history ttl (%s) can not be greater than history meta ttl (%s)", time.Duration(c.HistoryTTL), historyMetaTTL)
+		return fmt.Errorf("history ttl (%s) can not be greater than history meta ttl (%s)", c.HistoryTTL, historyMetaTTL)
 	}
 	if c.ForceRecovery && (c.HistorySize == 0 || c.HistoryTTL == 0) {
 		return errors.New("both history size and history ttl required for recovery")

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"sync"
-	"time"
 	"unicode"
 
 	"github.com/centrifugal/centrifugo/v5/internal/clientstorage"
@@ -423,7 +422,7 @@ func (h *Handler) OnClientConnecting(
 			EnablePositioning: chOpts.ForcePositioning,
 			RecoveryMode:      chOpts.GetRecoveryMode(),
 			Source:            subsource.UserPersonal,
-			HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
+			HistoryMetaTTL:    chOpts.HistoryMetaTTL,
 		}
 	}
 
@@ -475,7 +474,7 @@ func (h *Handler) OnClientConnecting(
 						EnablePositioning: chOpts.ForcePositioning,
 						RecoveryMode:      chOpts.GetRecoveryMode(),
 						Source:            subsource.UniConnect,
-						HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
+						HistoryMetaTTL:    chOpts.HistoryMetaTTL,
 					}
 				}
 			} else {
@@ -526,7 +525,7 @@ func setStorageMeta(c Client, meta json.RawMessage) {
 func (h *Handler) OnRefresh(c Client, e centrifuge.RefreshEvent, refreshProxyHandler proxy.RefreshHandlerFunc) (centrifuge.RefreshReply, RefreshExtra, error) {
 	if refreshProxyHandler != nil {
 		r, extra, err := refreshProxyHandler(c, e, getPerCallData(c))
-		if extra.Meta != nil {
+		if err == nil && extra.Meta != nil {
 			setStorageMeta(c, extra.Meta)
 		}
 		return r, RefreshExtra{}, err
@@ -853,7 +852,7 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 	result, err := h.node.Publish(
 		e.Channel, e.Data,
 		centrifuge.WithClientInfo(e.ClientInfo),
-		centrifuge.WithHistory(chOpts.HistorySize, time.Duration(chOpts.HistoryTTL), time.Duration(chOpts.HistoryMetaTTL)),
+		centrifuge.WithHistory(chOpts.HistorySize, chOpts.HistoryTTL, chOpts.HistoryMetaTTL),
 		centrifuge.WithDelta(chOpts.DeltaPublish),
 	)
 	if err != nil {
