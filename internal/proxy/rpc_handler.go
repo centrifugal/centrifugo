@@ -13,19 +13,15 @@ import (
 
 // RPCHandlerConfig ...
 type RPCHandlerConfig struct {
-	Proxies           map[string]RPCProxy
-	GranularProxyMode bool
+	Proxies map[string]RPCProxy
 }
 
 // RPCHandler ...
 type RPCHandler struct {
-	config            RPCHandlerConfig
-	summary           prometheus.Observer
-	histogram         prometheus.Observer
-	errors            prometheus.Counter
-	granularSummary   map[string]prometheus.Observer
-	granularHistogram map[string]prometheus.Observer
-	granularErrors    map[string]prometheus.Counter
+	config    RPCHandlerConfig
+	summary   map[string]prometheus.Observer
+	histogram map[string]prometheus.Observer
+	errors    map[string]prometheus.Counter
 }
 
 // NewRPCHandler ...
@@ -33,27 +29,17 @@ func NewRPCHandler(c RPCHandlerConfig) *RPCHandler {
 	h := &RPCHandler{
 		config: c,
 	}
-	if h.config.GranularProxyMode {
-		summary := map[string]prometheus.Observer{}
-		histogram := map[string]prometheus.Observer{}
-		errors := map[string]prometheus.Counter{}
-		for k := range c.Proxies {
-			name := k
-			if name == "" {
-				name = "__default__"
-			}
-			summary[name] = granularProxyCallDurationSummary.WithLabelValues("rpc", name)
-			histogram[name] = granularProxyCallDurationHistogram.WithLabelValues("rpc", name)
-			errors[name] = granularProxyCallErrorCount.WithLabelValues("rpc", name)
-		}
-		h.granularSummary = summary
-		h.granularHistogram = histogram
-		h.granularErrors = errors
-	} else {
-		h.summary = proxyCallDurationSummary.WithLabelValues(h.config.Proxies[""].Protocol(), "rpc")
-		h.histogram = proxyCallDurationHistogram.WithLabelValues(h.config.Proxies[""].Protocol(), "rpc")
-		h.errors = proxyCallErrorCount.WithLabelValues(h.config.Proxies[""].Protocol(), "rpc")
+	summary := map[string]prometheus.Observer{}
+	histogram := map[string]prometheus.Observer{}
+	errors := map[string]prometheus.Counter{}
+	for name, p := range c.Proxies {
+		summary[name] = proxyCallDurationSummary.WithLabelValues(p.Protocol(), "rpc", name)
+		histogram[name] = proxyCallDurationHistogram.WithLabelValues(p.Protocol(), "rpc", name)
+		errors[name] = proxyCallErrorCount.WithLabelValues(p.Protocol(), "rpc", name)
 	}
+	h.summary = summary
+	h.histogram = histogram
+	h.errors = errors
 	return h
 }
 
@@ -70,31 +56,24 @@ func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
 		var histogram prometheus.Observer
 		var errors prometheus.Counter
 
-		if h.config.GranularProxyMode {
-			rpcOpts, ok, err := cfgContainer.RpcOptions(e.Method)
-			if err != nil {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error getting RPC options", map[string]any{"method": e.Method, "error": err.Error()}))
-				return centrifuge.RPCReply{}, centrifuge.ErrorInternal
-			}
-			if !ok {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "rpc options not found", map[string]any{"method": e.Method}))
-				return centrifuge.RPCReply{}, centrifuge.ErrorMethodNotFound
-			}
-			proxyName := rpcOpts.RpcProxyName
-			if proxyName == "" {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "rpc proxy not configured for a method", map[string]any{"method": e.Method}))
-				return centrifuge.RPCReply{}, centrifuge.ErrorNotAvailable
-			}
-			p = h.config.Proxies[proxyName]
-			summary = h.granularSummary[proxyName]
-			histogram = h.granularHistogram[proxyName]
-			errors = h.granularErrors[proxyName]
-		} else {
-			p = h.config.Proxies[""]
-			summary = h.summary
-			histogram = h.histogram
-			errors = h.errors
+		rpcOpts, ok, err := cfgContainer.RpcOptions(e.Method)
+		if err != nil {
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error getting RPC options", map[string]any{"method": e.Method, "error": err.Error()}))
+			return centrifuge.RPCReply{}, centrifuge.ErrorInternal
 		}
+		if !ok {
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "rpc options not found", map[string]any{"method": e.Method}))
+			return centrifuge.RPCReply{}, centrifuge.ErrorMethodNotFound
+		}
+		proxyName := rpcOpts.RpcProxyName
+		if proxyName == "" {
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "rpc proxy not configured for a method", map[string]any{"method": e.Method}))
+			return centrifuge.RPCReply{}, centrifuge.ErrorNotAvailable
+		}
+		p = h.config.Proxies[proxyName]
+		summary = h.summary[proxyName]
+		histogram = h.histogram[proxyName]
+		errors = h.errors[proxyName]
 
 		req := &proxyproto.RPCRequest{
 			Client:    client.ID(),

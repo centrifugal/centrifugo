@@ -1,3 +1,6 @@
 package config
 
-const TransportErrorMode = "transport"
+const (
+	UnifiedProxyName   = "unified"
+	TransportErrorMode = "transport"
+)

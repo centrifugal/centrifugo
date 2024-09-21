@@ -71,5 +71,5 @@ func TestConfigEnvVars(t *testing.T) {
 	require.Len(t, meta.UnknownEnvs, 1)
 	require.Len(t, meta.UnknownKeys, 0)
 	require.Contains(t, meta.UnknownEnvs, "CENTRIFUGO_UNKNOWN_ENV")
-	require.Len(t, conf.Proxy.StaticHttpHeaders, 1)
+	require.Len(t, conf.UnifiedProxy.HTTP.StaticHeaders, 1)
 }

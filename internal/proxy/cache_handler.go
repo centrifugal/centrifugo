@@ -13,19 +13,15 @@ import (
 
 // CacheHandlerConfig ...
 type CacheHandlerConfig struct {
-	Proxies           map[string]CacheEmptyProxy
-	GranularProxyMode bool
+	Proxies map[string]CacheEmptyProxy
 }
 
 // CacheHandler ...
 type CacheHandler struct {
-	config            CacheHandlerConfig
-	summary           prometheus.Observer
-	histogram         prometheus.Observer
-	errors            prometheus.Counter
-	granularSummary   map[string]prometheus.Observer
-	granularHistogram map[string]prometheus.Observer
-	granularErrors    map[string]prometheus.Counter
+	config    CacheHandlerConfig
+	summary   map[string]prometheus.Observer
+	histogram map[string]prometheus.Observer
+	errors    map[string]prometheus.Counter
 }
 
 // NewCacheHandler ...
@@ -33,27 +29,17 @@ func NewCacheHandler(c CacheHandlerConfig) *CacheHandler {
 	h := &CacheHandler{
 		config: c,
 	}
-	if h.config.GranularProxyMode {
-		summary := map[string]prometheus.Observer{}
-		histogram := map[string]prometheus.Observer{}
-		errors := map[string]prometheus.Counter{}
-		for k := range c.Proxies {
-			name := k
-			if name == "" {
-				name = "__default__"
-			}
-			summary[name] = granularProxyCallDurationSummary.WithLabelValues("subscribe", name)
-			histogram[name] = granularProxyCallDurationHistogram.WithLabelValues("subscribe", name)
-			errors[name] = granularProxyCallErrorCount.WithLabelValues("subscribe", name)
-		}
-		h.granularSummary = summary
-		h.granularHistogram = histogram
-		h.granularErrors = errors
-	} else {
-		h.summary = proxyCallDurationSummary.WithLabelValues(h.config.Proxies[""].Protocol(), "subscribe")
-		h.histogram = proxyCallDurationHistogram.WithLabelValues(h.config.Proxies[""].Protocol(), "subscribe")
-		h.errors = proxyCallErrorCount.WithLabelValues(h.config.Proxies[""].Protocol(), "subscribe")
+	summary := map[string]prometheus.Observer{}
+	histogram := map[string]prometheus.Observer{}
+	errors := map[string]prometheus.Counter{}
+	for name, p := range c.Proxies {
+		summary[name] = proxyCallDurationSummary.WithLabelValues(p.Protocol(), "cache_empty", name)
+		histogram[name] = proxyCallDurationHistogram.WithLabelValues(p.Protocol(), "cache_empty", name)
+		errors[name] = proxyCallErrorCount.WithLabelValues(p.Protocol(), "cache_empty", name)
 	}
+	h.summary = summary
+	h.histogram = histogram
+	h.errors = errors
 	return h
 }
 
@@ -71,25 +57,15 @@ func (h *CacheHandler) Handle(node *centrifuge.Node) CacheEmptyHandlerFunc {
 		var histogram prometheus.Observer
 		var errors prometheus.Counter
 
-		if h.config.GranularProxyMode {
-			proxyName := chOpts.CacheEmptyProxyName
-			if proxyName == "" {
-				node.Log(centrifuge.NewLogEntry(
-					centrifuge.LogLevelInfo,
-					"cache proxy not configured for a channel",
-					map[string]any{"channel": channel}))
-				return centrifuge.CacheEmptyReply{}, centrifuge.ErrorNotAvailable
-			}
-			p = h.config.Proxies[proxyName]
-			summary = h.granularSummary[proxyName]
-			histogram = h.granularHistogram[proxyName]
-			errors = h.granularErrors[proxyName]
-		} else {
-			p = h.config.Proxies[""]
-			summary = h.summary
-			histogram = h.histogram
-			errors = h.errors
+		proxyName := chOpts.CacheEmptyProxyName
+		if proxyName == "" {
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "cache empty proxy not configured for a channel", map[string]any{"channel": channel}))
+			return centrifuge.CacheEmptyReply{}, centrifuge.ErrorNotAvailable
 		}
+		p = h.config.Proxies[proxyName]
+		summary = h.summary[proxyName]
+		histogram = h.histogram[proxyName]
+		errors = h.errors[proxyName]
 
 		req := &proxyproto.NotifyCacheEmptyRequest{
 			Channel: channel,

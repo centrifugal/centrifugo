@@ -28,9 +28,9 @@ type RefreshHandler struct {
 func NewRefreshHandler(c RefreshHandlerConfig) *RefreshHandler {
 	return &RefreshHandler{
 		config:    c,
-		summary:   proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "refresh"),
-		histogram: proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "refresh"),
-		errors:    proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "refresh"),
+		summary:   proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "refresh", c.Proxy.Name()),
+		histogram: proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "refresh", c.Proxy.Name()),
+		errors:    proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "refresh", c.Proxy.Name()),
 	}
 }
 

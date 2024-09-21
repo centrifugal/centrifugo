@@ -13,19 +13,15 @@ import (
 
 // SubRefreshHandlerConfig ...
 type SubRefreshHandlerConfig struct {
-	Proxies           map[string]SubRefreshProxy
-	GranularProxyMode bool
+	Proxies map[string]SubRefreshProxy
 }
 
 // SubRefreshHandler ...
 type SubRefreshHandler struct {
-	config            SubRefreshHandlerConfig
-	summary           prometheus.Observer
-	histogram         prometheus.Observer
-	errors            prometheus.Counter
-	granularSummary   map[string]prometheus.Observer
-	granularHistogram map[string]prometheus.Observer
-	granularErrors    map[string]prometheus.Counter
+	config    SubRefreshHandlerConfig
+	summary   map[string]prometheus.Observer
+	histogram map[string]prometheus.Observer
+	errors    map[string]prometheus.Counter
 }
 
 // NewSubRefreshHandler ...
@@ -33,27 +29,17 @@ func NewSubRefreshHandler(c SubRefreshHandlerConfig) *SubRefreshHandler {
 	h := &SubRefreshHandler{
 		config: c,
 	}
-	if h.config.GranularProxyMode {
-		summary := map[string]prometheus.Observer{}
-		histogram := map[string]prometheus.Observer{}
-		errors := map[string]prometheus.Counter{}
-		for k := range c.Proxies {
-			name := k
-			if name == "" {
-				name = "__default__"
-			}
-			summary[name] = granularProxyCallDurationSummary.WithLabelValues("sub_refresh", name)
-			histogram[name] = granularProxyCallDurationHistogram.WithLabelValues("sub_refresh", name)
-			errors[name] = granularProxyCallErrorCount.WithLabelValues("sub_refresh", name)
-		}
-		h.granularSummary = summary
-		h.granularHistogram = histogram
-		h.granularErrors = errors
-	} else {
-		h.summary = proxyCallDurationSummary.WithLabelValues(h.config.Proxies[""].Protocol(), "sub_refresh")
-		h.histogram = proxyCallDurationHistogram.WithLabelValues(h.config.Proxies[""].Protocol(), "sub_refresh")
-		h.errors = proxyCallErrorCount.WithLabelValues(h.config.Proxies[""].Protocol(), "sub_refresh")
+	summary := map[string]prometheus.Observer{}
+	histogram := map[string]prometheus.Observer{}
+	errors := map[string]prometheus.Counter{}
+	for name, p := range c.Proxies {
+		summary[name] = proxyCallDurationSummary.WithLabelValues(p.Protocol(), "sub_refresh", name)
+		histogram[name] = proxyCallDurationHistogram.WithLabelValues(p.Protocol(), "sub_refresh", name)
+		errors[name] = proxyCallErrorCount.WithLabelValues(p.Protocol(), "sub_refresh", name)
 	}
+	h.summary = summary
+	h.histogram = histogram
+	h.errors = errors
 	return h
 }
 
@@ -73,22 +59,15 @@ func (h *SubRefreshHandler) Handle(node *centrifuge.Node) SubRefreshHandlerFunc 
 		var histogram prometheus.Observer
 		var errors prometheus.Counter
 
-		if h.config.GranularProxyMode {
-			proxyName := chOpts.SubRefreshProxyName
-			if proxyName == "" {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "sub refresh proxy not configured for a channel", map[string]any{"channel": e.Channel}))
-				return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, centrifuge.ErrorNotAvailable
-			}
-			p = h.config.Proxies[proxyName]
-			summary = h.granularSummary[proxyName]
-			histogram = h.granularHistogram[proxyName]
-			errors = h.granularErrors[proxyName]
-		} else {
-			p = h.config.Proxies[""]
-			summary = h.summary
-			histogram = h.histogram
-			errors = h.errors
+		proxyName := chOpts.SubRefreshProxyName
+		if proxyName == "" {
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "sub refresh proxy not configured for a channel", map[string]any{"channel": e.Channel}))
+			return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, centrifuge.ErrorNotAvailable
 		}
+		p = h.config.Proxies[proxyName]
+		summary = h.summary[proxyName]
+		histogram = h.histogram[proxyName]
+		errors = h.errors[proxyName]
 
 		req := &proxyproto.SubRefreshRequest{
 			Client:    client.ID(),

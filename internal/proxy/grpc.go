@@ -50,14 +50,14 @@ func getGrpcHost(endpoint string) (string, error) {
 
 func getDialOpts(p Config) ([]grpc.DialOption, error) {
 	var dialOpts []grpc.DialOption
-	if p.GrpcCredentialsKey != "" {
+	if p.GRPC.CredentialsKey != "" {
 		dialOpts = append(dialOpts, grpc.WithPerRPCCredentials(&rpcCredentials{
-			key:   p.GrpcCredentialsKey,
-			value: p.GrpcCredentialsValue,
+			key:   p.GRPC.CredentialsKey,
+			value: p.GRPC.CredentialsValue,
 		}))
 	}
-	if p.GrpcTLS.Enabled {
-		tlsConfig, err := p.GrpcTLS.ToGoTLSConfig()
+	if p.GRPC.TLS.Enabled {
+		tlsConfig, err := p.GRPC.TLS.ToGoTLSConfig()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create TLS config %v", err)
 		}
@@ -65,7 +65,7 @@ func getDialOpts(p Config) ([]grpc.DialOption, error) {
 	} else {
 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
-	if p.GrpcCompression {
+	if p.GRPC.Compression {
 		dialOpts = append(dialOpts, grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)))
 	}
 
@@ -82,7 +82,7 @@ func grpcRequestContext(ctx context.Context, proxy Config) context.Context {
 }
 
 func httpRequestHeaders(ctx context.Context, proxy Config) http.Header {
-	return requestHeaders(ctx, proxy.HttpHeaders, proxy.GrpcMetadata, proxy.StaticHttpHeaders)
+	return requestHeaders(ctx, proxy.HttpHeaders, proxy.GrpcMetadata, proxy.HTTP.StaticHeaders)
 }
 
 func requestMetadata(ctx context.Context, allowedHeaders []string, allowedMetaKeys []string) metadata.MD {

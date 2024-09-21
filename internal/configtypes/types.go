@@ -92,6 +92,10 @@ type SubscriptionToken struct {
 	Token   `mapstructure:",squash"`
 }
 
+type HTTP3 struct {
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled"`
+}
+
 type WebSocket struct {
 	Disabled           bool          `mapstructure:"disabled" json:"disabled" envconfig:"disabled"`
 	HandlerPrefix      string        `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/websocket"`
@@ -328,6 +332,10 @@ type Client struct {
 	InsecureSkipTokenSignatureVerify bool                   `mapstructure:"insecure_skip_token_signature_verify" json:"insecure_skip_token_signature_verify" envconfig:"insecure_skip_token_signature_verify"`
 	UserIDHTTPHeader                 string                 `mapstructure:"user_id_http_header" json:"user_id_http_header" envconfig:"user_id_http_header"`
 	Insecure                         bool                   `mapstructure:"insecure" json:"insecure" envconfig:"insecure"`
+
+	// SubscribeToUserPersonalChannel is a configuration for a feature to automatically subscribe user to a personal channel
+	// using server-side subscription.
+	SubscribeToUserPersonalChannel SubscribeToUserPersonalChannel `mapstructure:"subscribe_to_user_personal_channel" json:"subscribe_to_user_personal_channel" envconfig:"subscribe_to_user_personal_channel"`
 }
 
 type Channel struct {
@@ -336,6 +344,10 @@ type Channel struct {
 	WithoutNamespace ChannelOptions `mapstructure:"without_namespace" json:"without_namespace" envconfig:"without_namespace"`
 	// Namespaces is a list of channel namespaces. Each channel namespace can have its own set of rules.
 	Namespaces ChannelNamespaces `mapstructure:"namespaces" json:"namespaces" envconfig:"namespaces"`
+
+	// HistoryTTL is a time how long to keep history meta information. This is a global option for all channels,
+	// but it can be overridden in channel namespace.
+	HistoryMetaTTL time.Duration `mapstructure:"history_meta_ttl" json:"history_meta_ttl" envconfig:"history_meta_ttl" default:"720h"`
 
 	MaxLength         int    `mapstructure:"max_length" json:"max_length" envconfig:"max_length" default:"255"`
 	PrivatePrefix     string `mapstructure:"private_prefix" json:"private_prefix" envconfig:"private_prefix" default:"$"`
@@ -356,10 +368,20 @@ type RPC struct {
 	NamespaceBoundary string `mapstructure:"namespace_boundary" json:"namespace_boundary" envconfig:"namespace_boundary" default:":"`
 }
 
-type UserSubscribeToPersonal struct {
+type SubscribeToUserPersonalChannel struct {
 	Enabled                  bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled"`
 	PersonalChannelNamespace string `mapstructure:"personal_channel_namespace" json:"personal_channel_namespace" envconfig:"personal_channel_namespace"`
 	SingleConnection         bool   `mapstructure:"single_connection" json:"single_connection"`
+}
+
+type Node struct {
+	// Name is a human-readable name of Centrifugo node in cluster. This must be unique for each running node
+	// in a cluster. By default, Centrifugo constructs name from the hostname and port. Name is shown in admin web
+	// interface. For communication between nodes in a cluster, Centrifugo uses another identifier – unique ID
+	// generated on node start, so node name plays just a human-readable identifier role.
+	Name string `mapstructure:"name" json:"name" envconfig:"name"`
+	// InfoMetricsAggregateInterval is a time interval to aggregate node info metrics.
+	InfoMetricsAggregateInterval time.Duration `mapstructure:"info_metrics_aggregate_interval" json:"info_metrics_aggregate_interval" envconfig:"info_metrics_aggregate_interval" default:"60s"`
 }
 
 type Admin struct {
@@ -384,6 +406,24 @@ type Admin struct {
 	External        bool   `mapstructure:"external" json:"external" envconfig:"external"`
 }
 
+type ProxyCommonHTTP struct {
+	// StaticHeaders is a static set of key/value pairs to attach to HTTP proxy request as
+	// headers. Headers received from HTTP client request or metadata from GRPC client request
+	// both have priority over values set in StaticHttpHeaders map.
+	StaticHeaders EnvStringStringMap `mapstructure:"static_headers" json:"static_headers,omitempty" envconfig:"static_headers"`
+}
+
+type ProxyCommonGRPC struct {
+	// TLS is a common configuration for GRPC TLS.
+	TLS TLSConfig `mapstructure:"tls" json:"tls,omitempty" envconfig:"tls"`
+	// CredentialsKey is a custom key to add into per-RPC credentials.
+	CredentialsKey string `mapstructure:"credentials_key" json:"credentials_key,omitempty" envconfig:"credentials_key"`
+	// GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
+	CredentialsValue string `mapstructure:"credentials_value" json:"credentials_value,omitempty" envconfig:"credentials_value"`
+	// Compression enables compression for outgoing calls (gzip).
+	Compression bool `mapstructure:"compression" json:"compression,omitempty" envconfig:"compression"`
+}
+
 type ProxyCommon struct {
 	// HTTPHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.
 	// If GRPC proxy is used then request HTTP headers set to outgoing request metadata.
@@ -391,29 +431,17 @@ type ProxyCommon struct {
 	// GRPCMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by
 	// default. If HTTP proxy is used then these keys become outgoing request HTTP headers.
 	GrpcMetadata []string `mapstructure:"grpc_metadata" json:"grpc_metadata,omitempty" envconfig:"grpc_metadata"`
-
-	// StaticHttpHeaders is a static set of key/value pairs to attach to HTTP proxy request as
-	// headers. Headers received from HTTP client request or metadata from GRPC client request
-	// both have priority over values set in StaticHttpHeaders map.
-	StaticHttpHeaders EnvStringStringMap `mapstructure:"static_http_headers" json:"static_http_headers,omitempty" envconfig:"static_http_headers"`
-
 	// BinaryEncoding makes proxy send data as base64 string (assuming it contains custom
 	// non-JSON payload).
 	BinaryEncoding bool `mapstructure:"binary_encoding" json:"binary_encoding,omitempty" envconfig:"binary_encoding"`
-	// IncludeConnectionMeta to each proxy request (except connect where it's obtained).
+	// IncludeConnectionMeta to each proxy request (except connect proxy where it's obtained).
 	IncludeConnectionMeta bool `mapstructure:"include_connection_meta" json:"include_connection_meta,omitempty" envconfig:"include_connection_meta"`
 
-	// GrpcTLS is a common configuration for GRPC TLS.
-	GrpcTLS TLSConfig `mapstructure:"grpc_tls" json:"grpc_tls,omitempty" envconfig:"grpc_tls"`
-	// GrpcCredentialsKey is a custom key to add into per-RPC credentials.
-	GrpcCredentialsKey string `mapstructure:"grpc_credentials_key" json:"grpc_credentials_key,omitempty" envconfig:"grpc_credentials_key"`
-	// GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
-	GrpcCredentialsValue string `mapstructure:"grpc_credentials_value" json:"grpc_credentials_value,omitempty" envconfig:"grpc_credentials_value"`
-	// GrpcCompression enables compression for outgoing calls (gzip).
-	GrpcCompression bool `mapstructure:"grpc_compression" json:"grpc_compression,omitempty" envconfig:"grpc_compression"`
+	HTTP ProxyCommonHTTP `mapstructure:"http" json:"http,omitempty"`
+	GRPC ProxyCommonGRPC `mapstructure:"grpc" json:"grpc,omitempty"`
 }
 
-type GlobalProxy struct {
+type UnifiedProxy struct {
 	ConnectEndpoint         string `mapstructure:"connect_endpoint" json:"connect_endpoint" envconfig:"connect_endpoint"`
 	RefreshEndpoint         string `mapstructure:"refresh_endpoint" json:"refresh_endpoint" envconfig:"refresh_endpoint"`
 	SubscribeEndpoint       string `mapstructure:"subscribe_endpoint" json:"subscribe_endpoint" envconfig:"subscribe_endpoint"`
@@ -421,7 +449,7 @@ type GlobalProxy struct {
 	SubRefreshEndpoint      string `mapstructure:"sub_refresh_endpoint" json:"sub_refresh_endpoint" envconfig:"sub_refresh_endpoint"`
 	RPCEndpoint             string `mapstructure:"rpc_endpoint" json:"rpc_endpoint" envconfig:"rpc_endpoint"`
 	SubscribeStreamEndpoint string `mapstructure:"subscribe_stream_endpoint" json:"subscribe_stream_endpoint" envconfig:"subscribe_stream_endpoint"`
-	StreamSubscribeEndpoint string `mapstructure:"stream_subscribe_endpoint" json:"stream_subscribe_endpoint" envconfig:"stream_subscribe_endpoint"`
+	CacheEmptyEndpoint      string `mapstructure:"cache_empty_endpoint" json:"cache_empty_endpoint" envconfig:"cache_empty_endpoint"`
 
 	ConnectTimeout         time.Duration `mapstructure:"connect_timeout" json:"connect_timeout" envconfig:"connect_timeout" default:"1s"`
 	RPCTimeout             time.Duration `mapstructure:"rpc_timeout" json:"rpc_timeout" envconfig:"rpc_timeout" default:"1s"`
@@ -430,7 +458,7 @@ type GlobalProxy struct {
 	PublishTimeout         time.Duration `mapstructure:"publish_timeout" json:"publish_timeout" envconfig:"publish_timeout" default:"1s"`
 	SubRefreshTimeout      time.Duration `mapstructure:"sub_refresh_timeout" json:"sub_refresh_timeout" envconfig:"sub_refresh_timeout" default:"1s"`
 	SubscribeStreamTimeout time.Duration `mapstructure:"subscribe_stream_timeout" json:"subscribe_stream_timeout" envconfig:"subscribe_stream_timeout" default:"1s"`
-	StreamSubscribeTimeout time.Duration `mapstructure:"stream_subscribe_timeout" json:"stream_subscribe_timeout" envconfig:"stream_subscribe_timeout" default:"1s"`
+	CacheEmptyTimeout      time.Duration `mapstructure:"cache_empty_timeout" json:"cache_empty_timeout" envconfig:"cache_empty_timeout" default:"1s"`
 
 	ProxyCommon `mapstructure:",squash"`
 }
@@ -440,9 +468,6 @@ type Proxy struct {
 	// Name is a unique name of proxy to reference.
 	Name string `mapstructure:"name" json:"name" envconfig:"name"`
 
-	// Enabled must be true to tell Centrifugo to use the configured proxy.
-	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled"`
-
 	// Endpoint - HTTP address or GRPC service endpoint.
 	Endpoint string `mapstructure:"endpoint" json:"endpoint" envconfig:"endpoint"`
 	// Timeout for proxy request.
@@ -451,6 +476,16 @@ type Proxy struct {
 	ProxyCommon `mapstructure:",squash"`
 
 	TestGrpcDialer func(context.Context, string) (net.Conn, error)
+}
+
+const (
+	ConsumerTypePostgres = "postgresql"
+	ConsumerTypeKafka    = "kafka"
+)
+
+var KnownConsumerTypes = []string{
+	ConsumerTypePostgres,
+	ConsumerTypeKafka,
 }
 
 type Consumer struct {

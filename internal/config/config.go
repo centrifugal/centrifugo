@@ -7,7 +7,6 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/config/envconfig"
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
@@ -49,9 +48,6 @@ type Config struct {
 	// TLSExternal enables TLS only for external HTTP endpoints.
 	TLSExternal bool `mapstructure:"tls_external" json:"tls_external" envconfig:"tls_external"`
 
-	// HTTP3 enables HTTP/3 support. EXPERIMENTAL.
-	HTTP3 bool `mapstructure:"http3" json:"http3" envconfig:"http3"`
-
 	// WebSocket configuration. This transport is enabled by default.
 	WebSocket configtypes.WebSocket `mapstructure:"websocket" json:"websocket" envconfig:"websocket"`
 	// SSE is a configuration for Server-Sent Events based bidirectional emulation transport.
@@ -82,15 +78,12 @@ type Config struct {
 	// Debug helps to enable Go profiling endpoints.
 	Debug configtypes.Debug `mapstructure:"debug" json:"debug" envconfig:"debug"`
 
+	// HTTP3 enables HTTP/3 support. EXPERIMENTAL.
+	HTTP3 configtypes.HTTP3 `mapstructure:"http3" json:"http3" envconfig:"http3"`
+
 	// Consumers is a configuration for message queue consumers. For example, Centrifugo can consume
 	// messages from PostgreSQL transactional outbox table, or from Kafka topics.
 	Consumers configtypes.Consumers `mapstructure:"consumers" json:"consumers" envconfig:"consumers"`
-
-	// GlobalHistoryTTL is a time how long to keep history meta information. This is a global option for all channels,
-	// but it can be overridden in channel namespace.
-	GlobalHistoryMetaTTL time.Duration `mapstructure:"global_history_meta_ttl" json:"global_history_meta_ttl" envconfig:"global_history_meta_ttl" default:"720h"`
-	// GlobalPresenceTTL is a time how long to keep presence information if not updated. This is a global option for all channels.
-	GlobalPresenceTTL time.Duration `mapstructure:"global_presence_ttl" json:"global_presence_ttl" envconfig:"global_presence_ttl" default:"60s"`
 
 	// Client contains real-time client connection related configuration.
 	Client configtypes.Client `mapstructure:"client" json:"client" envconfig:"client"`
@@ -98,10 +91,6 @@ type Config struct {
 	Channel configtypes.Channel `mapstructure:"channel" json:"channel" envconfig:"channel"`
 	// RPC is a configuration for client RPC calls.
 	RPC configtypes.RPC `mapstructure:"rpc" json:"rpc" envconfig:"rpc"`
-
-	// UserSubscribeToPersonal is a configuration for a feature to automatically subscribe user to a personal channel
-	// using server-side subscription.
-	UserSubscribeToPersonal configtypes.UserSubscribeToPersonal `mapstructure:"user_subscribe_to_personal" json:"user_subscribe_to_personal" envconfig:"user_subscribe_to_personal"`
 
 	// HttpAPI is a configuration for HTTP server API. It's enabled by default.
 	HttpAPI configtypes.HttpAPI `mapstructure:"http_api" json:"http_api" envconfig:"http_api"`
@@ -112,20 +101,14 @@ type Config struct {
 	// Nats is a configuration for NATS broker.
 	Nats configtypes.NatsBroker `mapstructure:"nats" json:"nats" envconfig:"nats"`
 
-	// Proxy is a configuration for global events proxy. See also GranularProxyMode.
-	Proxy configtypes.GlobalProxy `mapstructure:"proxy" json:"proxy" envconfig:"proxy"`
-	// GranularProxyMode enables granular proxy mode. Using this mode, it's possible to configure separate
-	// proxies for different types of events. And separate proxies for different channel namespaces.
-	GranularProxyMode bool `mapstructure:"granular_proxy_mode" json:"granular_proxy_mode" envconfig:"granular_proxy_mode"`
-	// Proxies is a configuration for granular events proxies. See also GranularProxyMode.
+	// UnifiedProxy is a helper configuration for events proxy. It can be referenced using UnifiedProxyName name.
+	UnifiedProxy configtypes.UnifiedProxy `mapstructure:"unified_proxy" json:"unified_proxy" envconfig:"unified_proxy"`
+	// Proxies is a configuration for granular events proxies. See also UnifiedProxy.
 	Proxies configtypes.Proxies `mapstructure:"proxies" json:"proxies" envconfig:"proxies"`
-	// ConnectProxyName is a name of proxy to use for connect events when GranularProxyMode is used.
+	// ConnectProxyName is a name of proxy to use for connect events. When not set connect events are not proxied.
 	ConnectProxyName string `mapstructure:"connect_proxy_name" json:"connect_proxy_name" envconfig:"connect_proxy_name"`
-	// RefreshProxyName is a name of proxy to use for refresh events when GranularProxyMode is used.
+	// RefreshProxyName is a name of proxy to use for refresh events. When not set refresh events are not proxied.
 	RefreshProxyName string `mapstructure:"refresh_proxy_name" json:"refresh_proxy_name" envconfig:"refresh_proxy_name"`
-
-	// NodeInfoMetricsAggregateInterval is a time interval to aggregate node info metrics.
-	NodeInfoMetricsAggregateInterval time.Duration `mapstructure:"node_info_metrics_aggregate_interval" json:"node_info_metrics_aggregate_interval" envconfig:"node_info_metrics_aggregate_interval" default:"60s"`
 
 	// OpenTelemetry is a configuration for OpenTelemetry tracing.
 	OpenTelemetry configtypes.OpenTelemetry `mapstructure:"opentelemetry" json:"opentelemetry" envconfig:"opentelemetry"`
@@ -133,12 +116,10 @@ type Config struct {
 	Graphite configtypes.Graphite `mapstructure:"graphite" json:"graphite" envconfig:"graphite"`
 	// UsageStats is a configuration for usage stats sending.
 	UsageStats configtypes.UsageStats `mapstructure:"usage_stats" json:"usage_stats" envconfig:"usage_stats"`
+	// Node is a configuration for Centrifugo Node as part of cluster.
+	Node configtypes.Node `mapstructure:"node" json:"node" envconfig:"node"`
 	// Shutdown is a configuration for graceful shutdown.
 	Shutdown configtypes.Shutdown `mapstructure:"shutdown" json:"shutdown" envconfig:"shutdown"`
-	// Name is a human-readable name of Centrifugo node. This must be unique for each running node in a cluster.
-	// By default, Centrifugo uses hostname and port. Name is shown in admin web interface. For communication
-	// between nodes in a cluster, Centrifugo uses another identifier – unique ID generated on node start.
-	Name string `mapstructure:"name" json:"name" envconfig:"name"`
 
 	// EnableUnreleasedFeatures enables unreleased features. These features are not stable and may be removed even
 	// in minor release update. Evaluate and share feedback if you find some feature useful and want it to be stabilized.
@@ -262,8 +243,13 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 		extendKnownEnvVars(knownEnvVars, varInfo)
 	}
 
-	for i, header := range conf.Proxy.HttpHeaders {
-		conf.Proxy.HttpHeaders[i] = strings.ToLower(header)
+	for i, header := range conf.UnifiedProxy.HttpHeaders {
+		conf.UnifiedProxy.HttpHeaders[i] = strings.ToLower(header)
+	}
+	for i, proxy := range conf.Proxies {
+		for j, header := range proxy.HttpHeaders {
+			conf.Proxies[i].HttpHeaders[j] = strings.ToLower(header)
+		}
 	}
 
 	meta.UnknownKeys = findUnknownKeys(v.AllSettings(), conf, "")

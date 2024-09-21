@@ -37,15 +37,14 @@ type ProxyMap struct {
 
 // Handler ...
 type Handler struct {
-	node              *centrifuge.Node
-	cfgContainer      *config.Container
-	tokenVerifier     *jwtverify.VerifierJWT
-	subTokenVerifier  *jwtverify.VerifierJWT
-	proxyMap          *ProxyMap
-	rpcExtension      map[string]RPCExtensionFunc
-	granularProxyMode bool
-	cacheEmptyGroup   singleflight.Group
-	cacheEmptyMu      sync.Mutex // Possibly make it sharded (per channel).
+	node             *centrifuge.Node
+	cfgContainer     *config.Container
+	tokenVerifier    *jwtverify.VerifierJWT
+	subTokenVerifier *jwtverify.VerifierJWT
+	proxyMap         *ProxyMap
+	rpcExtension     map[string]RPCExtensionFunc
+	cacheEmptyGroup  singleflight.Group
+	cacheEmptyMu     sync.Mutex // Possibly make it sharded (per channel).
 }
 
 // NewHandler ...
@@ -55,16 +54,14 @@ func NewHandler(
 	tokenVerifier *jwtverify.VerifierJWT,
 	subTokenVerifier *jwtverify.VerifierJWT,
 	proxyMap *ProxyMap,
-	granularProxyMode bool,
 ) *Handler {
 	return &Handler{
-		node:              node,
-		cfgContainer:      cfgContainer,
-		tokenVerifier:     tokenVerifier,
-		subTokenVerifier:  subTokenVerifier,
-		proxyMap:          proxyMap,
-		granularProxyMode: granularProxyMode,
-		rpcExtension:      make(map[string]RPCExtensionFunc),
+		node:             node,
+		cfgContainer:     cfgContainer,
+		tokenVerifier:    tokenVerifier,
+		subTokenVerifier: subTokenVerifier,
+		proxyMap:         proxyMap,
+		rpcExtension:     make(map[string]RPCExtensionFunc),
 	}
 }
 
@@ -100,47 +97,41 @@ func (h *Handler) Setup() error {
 	var rpcProxyHandler proxy.RPCHandlerFunc
 	if len(h.proxyMap.RpcProxies) > 0 {
 		rpcProxyHandler = proxy.NewRPCHandler(proxy.RPCHandlerConfig{
-			Proxies:           h.proxyMap.RpcProxies,
-			GranularProxyMode: h.granularProxyMode,
+			Proxies: h.proxyMap.RpcProxies,
 		}).Handle(h.node)
 	}
 
 	var publishProxyHandler proxy.PublishHandlerFunc
 	if len(h.proxyMap.PublishProxies) > 0 {
 		publishProxyHandler = proxy.NewPublishHandler(proxy.PublishHandlerConfig{
-			Proxies:           h.proxyMap.PublishProxies,
-			GranularProxyMode: h.granularProxyMode,
+			Proxies: h.proxyMap.PublishProxies,
 		}).Handle(h.node)
 	}
 
 	var subscribeProxyHandler proxy.SubscribeHandlerFunc
 	if len(h.proxyMap.SubscribeProxies) > 0 {
 		subscribeProxyHandler = proxy.NewSubscribeHandler(proxy.SubscribeHandlerConfig{
-			Proxies:           h.proxyMap.SubscribeProxies,
-			GranularProxyMode: h.granularProxyMode,
+			Proxies: h.proxyMap.SubscribeProxies,
 		}).Handle(h.node)
 	}
 
 	var proxySubscribeStreamHandler proxy.SubscribeStreamHandlerFunc
 	if len(h.proxyMap.SubscribeStreamProxies) > 0 {
 		proxySubscribeStreamHandler = proxy.NewSubscribeStreamHandler(proxy.SubscribeStreamHandlerConfig{
-			Proxies:           h.proxyMap.SubscribeStreamProxies,
-			GranularProxyMode: h.granularProxyMode,
+			Proxies: h.proxyMap.SubscribeStreamProxies,
 		}).Handle(h.node)
 	}
 
 	var subRefreshProxyHandler proxy.SubRefreshHandlerFunc
 	if len(h.proxyMap.SubRefreshProxies) > 0 {
 		subRefreshProxyHandler = proxy.NewSubRefreshHandler(proxy.SubRefreshHandlerConfig{
-			Proxies:           h.proxyMap.SubRefreshProxies,
-			GranularProxyMode: h.granularProxyMode,
+			Proxies: h.proxyMap.SubRefreshProxies,
 		}).Handle(h.node)
 	}
 
 	if len(h.proxyMap.CacheEmptyProxies) > 0 {
 		cacheEmptyHandler := proxy.NewCacheHandler(proxy.CacheHandlerConfig{
-			Proxies:           h.proxyMap.CacheEmptyProxies,
-			GranularProxyMode: h.granularProxyMode,
+			Proxies: h.proxyMap.CacheEmptyProxies,
 		}).Handle(h.node)
 		h.node.OnCacheEmpty(func(e centrifuge.CacheEmptyEvent) (centrifuge.CacheEmptyReply, error) {
 			return h.OnCacheEmpty(e.Channel, cacheEmptyHandler)
@@ -148,8 +139,8 @@ func (h *Handler) Setup() error {
 	}
 
 	cfg := h.cfgContainer.Config()
-	usePersonalChannel := cfg.UserSubscribeToPersonal.Enabled
-	singleConnection := cfg.UserSubscribeToPersonal.SingleConnection
+	usePersonalChannel := cfg.Client.SubscribeToUserPersonalChannel.Enabled
+	singleConnection := cfg.Client.SubscribeToUserPersonalChannel.SingleConnection
 	concurrency := cfg.Client.Concurrency
 
 	h.node.OnConnect(func(client *centrifuge.Client) {
@@ -316,7 +307,7 @@ func (h *Handler) OnCacheEmpty(channel string, cacheEmptyHandler proxy.CacheEmpt
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "cache empty unknown channel", map[string]any{"channel": channel}))
 			return centrifuge.CacheEmptyReply{}, centrifuge.ErrorUnknownChannel
 		}
-		if !chOpts.ProxyCacheEmpty || chOpts.CacheEmptyProxyName == "" {
+		if chOpts.CacheEmptyProxyName == "" {
 			return centrifuge.CacheEmptyReply{}, nil
 		}
 		reply, err := cacheEmptyHandler(context.Background(), channel, chOpts)
@@ -413,7 +404,7 @@ func (h *Handler) OnClientConnecting(
 	}
 
 	// Automatically subscribe on personal server-side channel.
-	if credentials != nil && cfg.UserSubscribeToPersonal.Enabled && credentials.UserID != "" {
+	if credentials != nil && cfg.Client.SubscribeToUserPersonalChannel.Enabled && credentials.UserID != "" {
 		personalChannel := h.cfgContainer.PersonalChannel(credentials.UserID)
 		_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(personalChannel)
 		if err != nil {
@@ -466,7 +457,7 @@ func (h *Handler) OnClientConnecting(
 				return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
 			}
 
-			if !isPrivate && !chOpts.ProxySubscribe && chOpts.SubscribeProxyName == "" && validChannelName {
+			if !isPrivate && chOpts.SubscribeProxyName == "" && validChannelName {
 				if isUserLimited && chOpts.UserLimitedChannels && (userID != "" && h.cfgContainer.UserAllowed(ch, userID)) {
 					channelOk = true
 				} else if chOpts.SubscribeForClient && (userID != "" || chOpts.SubscribeForAnonymous) {
@@ -701,7 +692,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	options.EnablePositioning = chOpts.ForcePositioning
 	options.EnableRecovery = chOpts.ForceRecovery
 	options.RecoveryMode = chOpts.GetRecoveryMode()
-	options.HistoryMetaTTL = time.Duration(chOpts.HistoryMetaTTL)
+	options.HistoryMetaTTL = chOpts.HistoryMetaTTL
 	options.AllowedDeltaTypes = chOpts.AllowedDeltaTypes
 
 	isPrivateChannel := h.cfgContainer.IsPrivateChannel(e.Channel)
@@ -747,29 +738,29 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	} else if isUserLimitedChannel && h.cfgContainer.UserAllowed(e.Channel, c.UserID()) {
 		allowed = true
 		options.Source = subsource.UserLimited
-	} else if (chOpts.ProxySubscribe || chOpts.SubscribeProxyName != "") && !isUserLimitedChannel {
+	} else if (chOpts.SubscribeProxyName != "") && !isUserLimitedChannel {
 		if subscribeProxyHandler == nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe proxy not enabled", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
 		}
 		r, _, err := subscribeProxyHandler(c, e, chOpts, getPerCallData(c))
-		if chOpts.ProxySubRefresh || chOpts.SubRefreshProxyName != "" {
+		if chOpts.SubRefreshProxyName != "" {
 			r.ClientSideRefresh = false
 		}
 		return r, SubscribeExtra{}, err
-	} else if (chOpts.ProxySubscribeStream || chOpts.SubscribeStreamProxyName != "") && !isUserLimitedChannel {
+	} else if (chOpts.SubscribeStreamProxyName != "") && !isUserLimitedChannel {
 		if subscribeStreamHandlerFunc == nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "stream proxy not enabled", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
 		}
-		r, publishFunc, cancelFunc, err := subscribeStreamHandlerFunc(c, chOpts.ProxySubscribeStreamBidirectional, e, chOpts, getPerCallData(c))
-		if chOpts.ProxySubscribeStreamBidirectional {
+		r, publishFunc, cancelFunc, err := subscribeStreamHandlerFunc(c, chOpts.SubscribeStreamBidirectional, e, chOpts, getPerCallData(c))
+		if chOpts.SubscribeStreamBidirectional {
 			storage, release := c.AcquireStorage()
 			storage["stream_cancel_"+e.Channel] = cancelFunc
 			storage["stream_publisher_"+e.Channel] = publishFunc
 			release(storage)
 		}
-		if chOpts.ProxySubRefresh || chOpts.SubRefreshProxyName != "" {
+		if chOpts.SubRefreshProxyName != "" {
 			r.ClientSideRefresh = false
 		}
 		return r, SubscribeExtra{}, err
@@ -800,7 +791,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 
 	return centrifuge.SubscribeReply{
 		Options:           options,
-		ClientSideRefresh: !chOpts.ProxySubRefresh && chOpts.SubRefreshProxyName == "",
+		ClientSideRefresh: chOpts.SubRefreshProxyName == "",
 	}, SubscribeExtra{}, nil
 }
 
@@ -823,14 +814,14 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 
 	var allowed bool
 
-	if chOpts.ProxyPublish || chOpts.PublishProxyName != "" {
+	if chOpts.PublishProxyName != "" {
 		if publishProxyHandler == nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "publish proxy not enabled", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
 		}
 		return publishProxyHandler(c, e, chOpts, getPerCallData(c))
-	} else if chOpts.ProxySubscribeStream {
-		if !chOpts.ProxySubscribeStreamBidirectional {
+	} else if chOpts.SubscribeStreamProxyName != "" {
+		if !chOpts.SubscribeStreamBidirectional {
 			return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
 		}
 		storage, release := c.AcquireStorage()

@@ -82,14 +82,7 @@ func Run(cmd *cobra.Command, configFile string) {
 	}
 	cfgContainer.ChannelOptionsCacheTTL = 200 * time.Millisecond
 
-	var proxyMap *client.ProxyMap
-	var keepHeadersInContext bool
-	if cfg.GranularProxyMode {
-		proxyMap, keepHeadersInContext = granularProxyMapConfig(cfg)
-		log.Info().Msg("using granular proxy configuration")
-	} else {
-		proxyMap, keepHeadersInContext = proxyMapConfig(cfg)
-	}
+	proxyMap, keepHeadersInContext := buildProxyMap(cfg)
 
 	nodeCfg := centrifugeNodeConfig(build.Version, cfgContainer)
 
@@ -182,7 +175,7 @@ func Run(cmd *cobra.Command, configFile string) {
 		}
 	}
 
-	clientHandler := client.NewHandler(node, cfgContainer, tokenVerifier, subTokenVerifier, proxyMap, cfg.GranularProxyMode)
+	clientHandler := client.NewHandler(node, cfgContainer, tokenVerifier, subTokenVerifier, proxyMap)
 	err = clientHandler.Setup()
 	if err != nil {
 		log.Fatal().Msgf("error setting up client handler: %v", err)
@@ -277,7 +270,7 @@ func Run(cmd *cobra.Command, configFile string) {
 			EnabledConsumers: usage.GetEnabledConsumers(cfg.Consumers),
 
 			GrpcAPI:             cfg.GrpcAPI.Enabled,
-			SubscribeToPersonal: cfg.UserSubscribeToPersonal.Enabled,
+			SubscribeToPersonal: cfg.Client.SubscribeToUserPersonalChannel.Enabled,
 			Admin:               cfg.Admin.Enabled,
 
 			ConnectProxy:         proxyMap.ConnectProxy != nil,

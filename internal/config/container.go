@@ -145,10 +145,10 @@ func channelOpts(c *Config, namespaceName string) (configtypes.ChannelOptions, b
 // PersonalChannel returns personal channel for user based on node configuration.
 func (n *Container) PersonalChannel(user string) string {
 	cfg := n.Config()
-	if cfg.UserSubscribeToPersonal.PersonalChannelNamespace == "" {
+	if cfg.Client.SubscribeToUserPersonalChannel.PersonalChannelNamespace == "" {
 		return cfg.Channel.UserBoundary + user
 	}
-	return cfg.UserSubscribeToPersonal.PersonalChannelNamespace + cfg.Channel.NamespaceBoundary + cfg.Channel.UserBoundary + user
+	return cfg.Client.SubscribeToUserPersonalChannel.PersonalChannelNamespace + cfg.Channel.NamespaceBoundary + cfg.Channel.UserBoundary + user
 }
 
 // Config returns a copy of node Config.

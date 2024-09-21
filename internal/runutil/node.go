@@ -16,7 +16,7 @@ func centrifugeNodeConfig(version string, cfgContainer *config.Container) centri
 	cfg := centrifuge.Config{}
 	cfg.Version = version
 	cfg.MetricsNamespace = "centrifugo"
-	cfg.Name = applicationName(appCfg)
+	cfg.Name = nodeName(appCfg)
 	cfg.ChannelMaxLength = appCfg.Channel.MaxLength
 	cfg.ClientPresenceUpdateInterval = appCfg.Client.PresenceUpdateInterval
 	cfg.ClientExpiredCloseDelay = appCfg.Client.ExpiredCloseDelay
@@ -27,20 +27,20 @@ func centrifugeNodeConfig(version string, cfgContainer *config.Container) centri
 	cfg.ClientChannelPositionCheckDelay = appCfg.Client.ChannelPositionCheckDelay
 	cfg.ClientChannelPositionMaxTimeLag = appCfg.Client.ChannelPositionMaxTimeLag
 	cfg.UserConnectionLimit = appCfg.Client.UserConnectionLimit
-	cfg.NodeInfoMetricsAggregateInterval = appCfg.NodeInfoMetricsAggregateInterval
+	cfg.NodeInfoMetricsAggregateInterval = appCfg.Node.InfoMetricsAggregateInterval
 	cfg.HistoryMaxPublicationLimit = appCfg.Client.HistoryMaxPublicationLimit
 	cfg.RecoveryMaxPublicationLimit = appCfg.Client.RecoveryMaxPublicationLimit
-	cfg.HistoryMetaTTL = appCfg.GlobalHistoryMetaTTL // TODO: v6. GetDuration("global_history_meta_ttl", true)
+	cfg.HistoryMetaTTL = appCfg.Channel.HistoryMetaTTL // TODO: v6. GetDuration("global_history_meta_ttl", true)
 	cfg.ClientConnectIncludeServerTime = appCfg.Client.ConnectIncludeServerTime
 	cfg.LogLevel = logging.CentrifugeLogLevel(strings.ToLower(appCfg.LogLevel))
 	cfg.LogHandler = logging.NewCentrifugeLogHandler().Handle
 	return cfg
 }
 
-// applicationName returns a name for this centrifuge. If no name provided
+// nodeName returns a name for this Centrifugo node. If no name provided
 // in configuration then it constructs node name based on hostname and port
-func applicationName(cfg config.Config) string {
-	name := cfg.Name
+func nodeName(cfg config.Config) string {
+	name := cfg.Node.Name
 	if name != "" {
 		return name
 	}

@@ -43,6 +43,11 @@ func (p *HTTPRefreshProxy) ProxyRefresh(ctx context.Context, req *proxyproto.Ref
 	return httpDecoder.DecodeRefreshResponse(respData)
 }
 
+// Name ...
+func (p *HTTPRefreshProxy) Name() string {
+	return p.Name()
+}
+
 // Protocol ...
 func (p *HTTPRefreshProxy) Protocol() string {
 	return "http"

@@ -5,27 +5,23 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 
 	"github.com/centrifugal/centrifuge"
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 // PublishHandlerConfig ...
 type PublishHandlerConfig struct {
-	Proxies           map[string]PublishProxy
-	GranularProxyMode bool
+	Proxies map[string]PublishProxy
 }
 
 // PublishHandler ...
 type PublishHandler struct {
-	config            PublishHandlerConfig
-	summary           prometheus.Observer
-	histogram         prometheus.Observer
-	errors            prometheus.Counter
-	granularSummary   map[string]prometheus.Observer
-	granularHistogram map[string]prometheus.Observer
-	granularErrors    map[string]prometheus.Counter
+	config    PublishHandlerConfig
+	summary   map[string]prometheus.Observer
+	histogram map[string]prometheus.Observer
+	errors    map[string]prometheus.Counter
 }
 
 // NewPublishHandler ...
@@ -33,26 +29,13 @@ func NewPublishHandler(c PublishHandlerConfig) *PublishHandler {
 	h := &PublishHandler{
 		config: c,
 	}
-	if h.config.GranularProxyMode {
-		summary := map[string]prometheus.Observer{}
-		histogram := map[string]prometheus.Observer{}
-		errors := map[string]prometheus.Counter{}
-		for k := range c.Proxies {
-			name := k
-			if name == "" {
-				name = "__default__"
-			}
-			summary[name] = granularProxyCallDurationSummary.WithLabelValues("publish", name)
-			histogram[name] = granularProxyCallDurationHistogram.WithLabelValues("publish", name)
-			errors[name] = granularProxyCallErrorCount.WithLabelValues("publish", name)
-		}
-		h.granularSummary = summary
-		h.granularHistogram = histogram
-		h.granularErrors = errors
-	} else {
-		h.summary = proxyCallDurationSummary.WithLabelValues(h.config.Proxies[""].Protocol(), "publish")
-		h.histogram = proxyCallDurationHistogram.WithLabelValues(h.config.Proxies[""].Protocol(), "publish")
-		h.errors = proxyCallErrorCount.WithLabelValues(h.config.Proxies[""].Protocol(), "publish")
+	summary := map[string]prometheus.Observer{}
+	histogram := map[string]prometheus.Observer{}
+	errors := map[string]prometheus.Counter{}
+	for name, p := range c.Proxies {
+		summary[name] = proxyCallDurationSummary.WithLabelValues(p.Protocol(), "publish", name)
+		histogram[name] = proxyCallDurationHistogram.WithLabelValues(p.Protocol(), "publish", name)
+		errors[name] = proxyCallErrorCount.WithLabelValues(p.Protocol(), "publish", name)
 	}
 	return h
 }
@@ -70,22 +53,15 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 		var histogram prometheus.Observer
 		var errors prometheus.Counter
 
-		if h.config.GranularProxyMode {
-			proxyName := chOpts.PublishProxyName
-			if proxyName == "" {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "publish proxy not configured for a channel", map[string]any{"channel": e.Channel}))
-				return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
-			}
-			p = h.config.Proxies[proxyName]
-			summary = h.granularSummary[proxyName]
-			histogram = h.granularHistogram[proxyName]
-			errors = h.granularErrors[proxyName]
-		} else {
-			p = h.config.Proxies[""]
-			summary = h.summary
-			histogram = h.histogram
-			errors = h.errors
+		proxyName := chOpts.PublishProxyName
+		if proxyName == "" {
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "publish proxy not configured for a channel", map[string]any{"channel": e.Channel}))
+			return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
 		}
+		p = h.config.Proxies[proxyName]
+		summary = h.summary[proxyName]
+		histogram = h.histogram[proxyName]
+		errors = h.errors[proxyName]
 
 		req := &proxyproto.PublishRequest{
 			Client:    client.ID(),

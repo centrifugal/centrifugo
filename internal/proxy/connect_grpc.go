@@ -43,6 +43,10 @@ func (p *GRPCConnectProxy) Protocol() string {
 	return "grpc"
 }
 
+func (p *GRPCConnectProxy) Name() string {
+	return p.config.Name
+}
+
 // UseBase64 ...
 func (p *GRPCConnectProxy) UseBase64() bool {
 	return p.config.BinaryEncoding

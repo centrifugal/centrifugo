@@ -130,18 +130,6 @@ type ChannelOptions struct {
 	// ChannelRegex ...
 	ChannelRegex string `mapstructure:"channel_regex" json:"channel_regex" envconfig:"channel_regex"`
 
-	// ProxySubscribe turns on proxying subscribe decision for channels.
-	ProxySubscribe bool `mapstructure:"proxy_subscribe" json:"proxy_subscribe" envconfig:"proxy_subscribe"`
-
-	// ProxyPublish turns on proxying publish decision for channels.
-	ProxyPublish bool `mapstructure:"proxy_publish" json:"proxy_publish" envconfig:"proxy_publish"`
-
-	// ProxyCacheEmpty turns on proxying cache empty events for channels.
-	ProxyCacheEmpty bool `mapstructure:"proxy_cache_empty" json:"proxy_cache_empty" envconfig:"proxy_cache_empty"`
-
-	// ProxySubRefresh turns on proxying sub refresh for channels.
-	ProxySubRefresh bool `mapstructure:"proxy_sub_refresh" json:"proxy_sub_refresh" envconfig:"proxy_sub_refresh"`
-
 	// SubscribeProxyName of proxy to use for subscribe operations in namespace.
 	SubscribeProxyName string `mapstructure:"subscribe_proxy_name" json:"subscribe_proxy_name" envconfig:"subscribe_proxy_name"`
 
@@ -151,17 +139,14 @@ type ChannelOptions struct {
 	// SubRefreshProxyName of proxy to use for sub refresh operations in namespace.
 	SubRefreshProxyName string `mapstructure:"sub_refresh_proxy_name" json:"sub_refresh_proxy_name" envconfig:"sub_refresh_proxy_name"`
 
-	// ProxySubscribeStream enables using subscription stream proxy for the namespace.
-	ProxySubscribeStream bool `mapstructure:"proxy_subscribe_stream" json:"proxy_subscribe_stream" envconfig:"proxy_subscribe_stream"`
-
-	// ProxySubscribeStreamBidirectional enables using bidirectional stream proxy for the namespace.
-	ProxySubscribeStreamBidirectional bool `mapstructure:"proxy_subscribe_stream_bidirectional" json:"proxy_subscribe_stream_bidirectional" envconfig:"proxy_subscribe_stream_bidirectional"`
+	// CacheEmptyProxyName of proxy to use for cache empty operations in namespace.
+	CacheEmptyProxyName string `mapstructure:"cache_empty_proxy_name" json:"cache_empty_proxy_name" envconfig:"cache_empty_proxy_name"`
 
 	// SubscribeStreamProxyName of proxy to use for subscribe stream operations in namespace.
 	SubscribeStreamProxyName string `mapstructure:"subscribe_stream_proxy_name" json:"subscribe_stream_proxy_name" envconfig:"subscribe_stream_proxy_name"`
 
-	// CacheEmptyProxyName of proxy to use for cache empty operations in namespace.
-	CacheEmptyProxyName string `mapstructure:"cache_empty_proxy_name" json:"cache_empty_proxy_name" envconfig:"cache_empty_proxy_name"`
+	// SubscribeStreamBidirectional enables using bidirectional stream proxy for the namespace.
+	SubscribeStreamBidirectional bool `mapstructure:"subscribe_stream_bidirectional" json:"subscribe_stream_bidirectional" envconfig:"subscribe_stream_bidirectional"`
 
 	Compiled
 }

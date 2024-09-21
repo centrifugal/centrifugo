@@ -383,7 +383,7 @@ func runHTTPServers(
 		portFlags |= HandlerWebsocket
 	}
 	if cfg.WebTransport.Enabled {
-		if !cfg.HTTP3 {
+		if !cfg.HTTP3.Enabled {
 			log.Fatal().Msg("can not enable webtransport without experimental HTTP/3")
 		}
 		portFlags |= HandlerWebtransport
@@ -456,7 +456,7 @@ func runHTTPServers(
 			addrTLSConfig = tlsConfig
 		}
 
-		useHTTP3 := cfg.HTTP3 && addr == externalAddr
+		useHTTP3 := cfg.HTTP3.Enabled && addr == externalAddr
 
 		var wtServer *webtransport.Server
 		if useHTTP3 {

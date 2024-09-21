@@ -28,6 +28,10 @@ func (p *HTTPConnectProxy) Protocol() string {
 	return "http"
 }
 
+func (p *HTTPConnectProxy) Name() string {
+	return p.config.Name
+}
+
 // UseBase64 ...
 func (p *HTTPConnectProxy) UseBase64() bool {
 	return p.config.BinaryEncoding

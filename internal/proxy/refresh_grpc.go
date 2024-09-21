@@ -45,6 +45,11 @@ func (p *GRPCRefreshProxy) ProxyRefresh(ctx context.Context, req *proxyproto.Ref
 	return p.client.Refresh(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
 }
 
+// Name ...
+func (p *GRPCRefreshProxy) Name() string {
+	return p.Name()
+}
+
 // Protocol ...
 func (p *GRPCRefreshProxy) Protocol() string {
 	return "grpc"

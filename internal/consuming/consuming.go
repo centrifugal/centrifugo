@@ -11,13 +11,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type ConsumerType string
-
-const (
-	ConsumerTypePostgres = "postgresql"
-	ConsumerTypeKafka    = "kafka"
-)
-
 type ConsumerConfig = configtypes.Consumer
 
 type Dispatcher interface {
@@ -36,14 +29,14 @@ func New(nodeID string, logger Logger, dispatcher Dispatcher, configs []Consumer
 			log.Info().Str("consumer_name", config.Name).Str("consumer_type", config.Type).Msg("consumer is not enabled, skip")
 			continue
 		}
-		if config.Type == ConsumerTypePostgres {
+		if config.Type == configtypes.ConsumerTypePostgres {
 			consumer, err := NewPostgresConsumer(config.Name, logger, dispatcher, config.Postgres)
 			if err != nil {
 				return nil, fmt.Errorf("error initializing PostgreSQL consumer (%s): %w", config.Name, err)
 			}
 			log.Info().Str("consumer_name", config.Name).Msg("running consumer")
 			services = append(services, consumer)
-		} else if config.Type == ConsumerTypeKafka {
+		} else if config.Type == configtypes.ConsumerTypeKafka {
 			consumer, err := NewKafkaConsumer(config.Name, nodeID, logger, dispatcher, config.Kafka)
 			if err != nil {
 				return nil, fmt.Errorf("error initializing Kafka consumer (%s): %w", config.Name, err)
@@ -53,6 +46,7 @@ func New(nodeID string, logger Logger, dispatcher Dispatcher, configs []Consumer
 		} else {
 			return nil, fmt.Errorf("unknown consumer type: %s", config.Type)
 		}
+		log.Info().Str("consumer_name", config.Name).Str("consumer_type", config.Type).Msg("running consumer")
 	}
 	return services, nil
 }

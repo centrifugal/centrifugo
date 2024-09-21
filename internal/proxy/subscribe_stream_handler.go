@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
-
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v5/internal/subsource"
 
@@ -19,20 +18,16 @@ import (
 
 // SubscribeStreamHandlerConfig ...
 type SubscribeStreamHandlerConfig struct {
-	Proxies           map[string]*SubscribeStreamProxy
-	GranularProxyMode bool
+	Proxies map[string]*SubscribeStreamProxy
 }
 
 // SubscribeStreamHandler ...
 type SubscribeStreamHandler struct {
 	config SubscribeStreamHandlerConfig
 
-	summary           prometheus.Observer
-	histogram         prometheus.Observer
-	errors            prometheus.Counter
-	granularSummary   map[string]prometheus.Observer
-	granularHistogram map[string]prometheus.Observer
-	granularErrors    map[string]prometheus.Counter
+	summary   map[string]prometheus.Observer
+	histogram map[string]prometheus.Observer
+	errors    map[string]prometheus.Counter
 }
 
 // NewSubscribeStreamHandler ...
@@ -40,27 +35,18 @@ func NewSubscribeStreamHandler(c SubscribeStreamHandlerConfig) *SubscribeStreamH
 	h := &SubscribeStreamHandler{
 		config: c,
 	}
-	if h.config.GranularProxyMode {
-		summary := map[string]prometheus.Observer{}
-		histogram := map[string]prometheus.Observer{}
-		errCounters := map[string]prometheus.Counter{}
-		for k := range c.Proxies {
-			name := k
-			if name == "" {
-				name = "__default__"
-			}
-			summary[name] = granularProxyCallDurationSummary.WithLabelValues("subscribe_stream", name)
-			histogram[name] = granularProxyCallDurationHistogram.WithLabelValues("subscribe_stream", name)
-			errCounters[name] = granularProxyCallErrorCount.WithLabelValues("subscribe_stream", name)
-		}
-		h.granularSummary = summary
-		h.granularHistogram = histogram
-		h.granularErrors = errCounters
-	} else {
-		h.summary = proxyCallDurationSummary.WithLabelValues("grpc", "subscribe_stream")
-		h.histogram = proxyCallDurationHistogram.WithLabelValues("grpc", "subscribe_stream")
-		h.errors = proxyCallErrorCount.WithLabelValues("grpc", "subscribe_stream")
+
+	summary := map[string]prometheus.Observer{}
+	histogram := map[string]prometheus.Observer{}
+	errCounters := map[string]prometheus.Counter{}
+	for name := range c.Proxies {
+		summary[name] = proxyCallDurationSummary.WithLabelValues("grpc", "subscribe_stream", name)
+		histogram[name] = proxyCallDurationHistogram.WithLabelValues("grpc", "subscribe_stream", name)
+		errCounters[name] = proxyCallErrorCount.WithLabelValues("grpc", "subscribe_stream", name)
 	}
+	h.summary = summary
+	h.histogram = histogram
+	h.errors = errCounters
 	return h
 }
 
@@ -85,22 +71,15 @@ func (h *SubscribeStreamHandler) Handle(node *centrifuge.Node) SubscribeStreamHa
 		var histogram prometheus.Observer
 		var errCounter prometheus.Counter
 
-		if h.config.GranularProxyMode {
-			proxyName := chOpts.SubscribeStreamProxyName
-			if proxyName == "" {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe stream proxy not configured for a channel", map[string]any{"channel": e.Channel}))
-				return centrifuge.SubscribeReply{}, nil, nil, centrifuge.ErrorNotAvailable
-			}
-			p = h.config.Proxies[proxyName]
-			summary = h.granularSummary[proxyName]
-			histogram = h.granularHistogram[proxyName]
-			errCounter = h.granularErrors[proxyName]
-		} else {
-			p = h.config.Proxies[""]
-			summary = h.summary
-			histogram = h.histogram
-			errCounter = h.errors
+		proxyName := chOpts.SubscribeStreamProxyName
+		if proxyName == "" {
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe stream proxy not configured for a channel", map[string]any{"channel": e.Channel}))
+			return centrifuge.SubscribeReply{}, nil, nil, centrifuge.ErrorNotAvailable
 		}
+		p = h.config.Proxies[proxyName]
+		summary = h.summary[proxyName]
+		histogram = h.histogram[proxyName]
+		errCounter = h.errors[proxyName]
 
 		req := &proxyproto.SubscribeRequest{
 			Client:    client.ID(),
