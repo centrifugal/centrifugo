@@ -264,6 +264,29 @@ func extendKnownEnvVars(knownEnvVars map[string]struct{}, varInfo []envconfig.Va
 	}
 }
 
+// findValidKeys recursively finds valid keys in a struct, including embedded structs
+func findValidKeys(typ reflect.Type, validKeys map[string]reflect.StructField) {
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+		tag := field.Tag.Get("mapstructure")
+
+		if tag != "" && tag != ",squash" {
+			// Normal field, add it to validKeys.
+			validKeys[tag] = field
+		} else if field.Anonymous && strings.Contains(tag, "squash") {
+			// Handle embedded fields with "squash".
+			embeddedType := field.Type
+			if embeddedType.Kind() == reflect.Ptr {
+				embeddedType = embeddedType.Elem()
+			}
+			if embeddedType.Kind() == reflect.Struct {
+				// Recursively process the embedded struct
+				findValidKeys(embeddedType, validKeys)
+			}
+		}
+	}
+}
+
 func findUnknownKeys(data map[string]interface{}, configStruct interface{}, parentKey string) []string {
 	var unknownKeys []string
 	val := reflect.ValueOf(configStruct)
@@ -278,29 +301,9 @@ func findUnknownKeys(data map[string]interface{}, configStruct interface{}, pare
 	}
 	typ := val.Type()
 
-	// Build a set of valid keys from the struct's mapstructure tags, including embedded structs
+	// Build a set of valid keys from the struct's mapstructure tags, including embedded structs.
 	validKeys := make(map[string]reflect.StructField)
-	for i := 0; i < typ.NumField(); i++ {
-		field := typ.Field(i)
-		tag := field.Tag.Get("mapstructure")
-		if tag != "" && tag != ",squash" {
-			validKeys[tag] = field
-		} else if field.Anonymous && strings.Contains(tag, "squash") {
-			embeddedType := field.Type
-			if embeddedType.Kind() == reflect.Ptr {
-				embeddedType = embeddedType.Elem()
-			}
-			if embeddedType.Kind() == reflect.Struct {
-				for j := 0; j < embeddedType.NumField(); j++ {
-					embeddedField := embeddedType.Field(j)
-					embeddedTag := embeddedField.Tag.Get("mapstructure")
-					if embeddedTag != "" {
-						validKeys[embeddedTag] = embeddedField
-					}
-				}
-			}
-		}
-	}
+	findValidKeys(typ, validKeys)
 
 	// Check each key in the map to see if it's in the valid keys set
 	for key, value := range data {
