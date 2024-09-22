@@ -35,7 +35,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool) {
 
 	var keepHeadersInContext bool
 
-	connectProxyName := cfg.ConnectProxyName
+	connectProxyName := cfg.Client.ConnectProxyName
 	if connectProxyName != "" {
 		var p proxy.Config
 		if connectProxyName == config.UnifiedProxyName {
@@ -58,7 +58,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool) {
 		keepHeadersInContext = true
 	}
 
-	refreshProxyName := cfg.RefreshProxyName
+	refreshProxyName := cfg.Client.RefreshProxyName
 	if refreshProxyName != "" {
 		var p proxy.Config
 		if refreshProxyName == config.UnifiedProxyName {

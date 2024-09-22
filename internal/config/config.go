@@ -105,10 +105,6 @@ type Config struct {
 	UnifiedProxy configtypes.UnifiedProxy `mapstructure:"unified_proxy" json:"unified_proxy" envconfig:"unified_proxy"`
 	// Proxies is a configuration for granular events proxies. See also UnifiedProxy.
 	Proxies configtypes.Proxies `mapstructure:"proxies" json:"proxies" envconfig:"proxies"`
-	// ConnectProxyName is a name of proxy to use for connect events. When not set connect events are not proxied.
-	ConnectProxyName string `mapstructure:"connect_proxy_name" json:"connect_proxy_name" envconfig:"connect_proxy_name"`
-	// RefreshProxyName is a name of proxy to use for refresh events. When not set refresh events are not proxied.
-	RefreshProxyName string `mapstructure:"refresh_proxy_name" json:"refresh_proxy_name" envconfig:"refresh_proxy_name"`
 
 	// OpenTelemetry is a configuration for OpenTelemetry tracing.
 	OpenTelemetry configtypes.OpenTelemetry `mapstructure:"opentelemetry" json:"opentelemetry" envconfig:"opentelemetry"`

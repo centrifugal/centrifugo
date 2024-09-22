@@ -292,6 +292,11 @@ type Shutdown struct {
 }
 
 type Client struct {
+	// ConnectProxyName is a name of proxy to use for connect events. When not set connect events are not proxied.
+	ConnectProxyName string `mapstructure:"connect_proxy_name" json:"connect_proxy_name" envconfig:"connect_proxy_name"`
+	// RefreshProxyName is a name of proxy to use for refresh events. When not set refresh events are not proxied.
+	RefreshProxyName string `mapstructure:"refresh_proxy_name" json:"refresh_proxy_name" envconfig:"refresh_proxy_name"`
+
 	// AllowedOrigins is a list of allowed origins for client connections.
 	AllowedOrigins []string `mapstructure:"allowed_origins" json:"allowed_origins" envconfig:"allowed_origins"`
 

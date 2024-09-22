@@ -44,17 +44,17 @@ func (c Config) Validate() error {
 
 	proxyNames = append(proxyNames, UnifiedProxyName) // channel options can use global proxy name.
 
-	if c.ConnectProxyName != "" && !slices.Contains(proxyNames, c.ConnectProxyName) {
-		return fmt.Errorf("proxy %s not found for connect", c.ConnectProxyName)
+	if c.Client.ConnectProxyName != "" && !slices.Contains(proxyNames, c.Client.ConnectProxyName) {
+		return fmt.Errorf("proxy %s not found for connect", c.Client.ConnectProxyName)
 	}
-	if c.RefreshProxyName != "" && !slices.Contains(proxyNames, c.RefreshProxyName) {
-		return fmt.Errorf("proxy %s not found for refresh", c.RefreshProxyName)
+	if c.Client.RefreshProxyName != "" && !slices.Contains(proxyNames, c.Client.RefreshProxyName) {
+		return fmt.Errorf("proxy %s not found for refresh", c.Client.RefreshProxyName)
 	}
-	if c.ConnectProxyName == UnifiedProxyName && c.UnifiedProxy.ConnectEndpoint == "" {
-		return fmt.Errorf("no connect_endpoint set for unified_proxy, can't use `%s` proxy name for connect proxy", UnifiedProxyName)
+	if c.Client.ConnectProxyName == UnifiedProxyName && c.UnifiedProxy.ConnectEndpoint == "" {
+		return fmt.Errorf("no connect_endpoint set for unified_proxy, can't use `%s` proxy name for client connect proxy", UnifiedProxyName)
 	}
-	if c.RefreshProxyName == UnifiedProxyName && c.UnifiedProxy.RefreshEndpoint == "" {
-		return fmt.Errorf("no refresh_endpoint set for unified_proxy, can't use `%s` proxy name for refresh proxy", UnifiedProxyName)
+	if c.Client.RefreshProxyName == UnifiedProxyName && c.UnifiedProxy.RefreshEndpoint == "" {
+		return fmt.Errorf("no refresh_endpoint set for unified_proxy, can't use `%s` proxy name for client refresh proxy", UnifiedProxyName)
 	}
 	if err := validateSecondPrecisionDuration(c.Channel.HistoryMetaTTL); err != nil {
 		return fmt.Errorf("in channel.history_meta_ttl: %v", err)
