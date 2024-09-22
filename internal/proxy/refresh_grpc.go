@@ -46,7 +46,7 @@ func (p *GRPCRefreshProxy) ProxyRefresh(ctx context.Context, req *proxyproto.Ref
 
 // Name ...
 func (p *GRPCRefreshProxy) Name() string {
-	return p.Name()
+	return p.config.Name
 }
 
 // Protocol ...

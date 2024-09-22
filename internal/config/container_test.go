@@ -83,8 +83,8 @@ func TestConfigValidateDuplicateNamespaceName(t *testing.T) {
 func TestConfigValidateNoPersonalNamespace(t *testing.T) {
 	c := defaultConfig(t)
 	c.Channel.Namespaces = []configtypes.ChannelNamespace{}
-	c.UserSubscribeToPersonal.Enabled = true
-	c.UserSubscribeToPersonal.PersonalChannelNamespace = "name"
+	c.Client.SubscribeToUserPersonalChannel.Enabled = true
+	c.Client.SubscribeToUserPersonalChannel.PersonalChannelNamespace = "name"
 	err := c.Validate()
 	require.Error(t, err)
 }
@@ -92,8 +92,8 @@ func TestConfigValidateNoPersonalNamespace(t *testing.T) {
 func TestConfigValidatePersonalSingleConnectionMissingPresence(t *testing.T) {
 	c := defaultConfig(t)
 	c.Channel.Namespaces = []configtypes.ChannelNamespace{}
-	c.UserSubscribeToPersonal.Enabled = true
-	c.UserSubscribeToPersonal.SingleConnection = true
+	c.Client.SubscribeToUserPersonalChannel.Enabled = true
+	c.Client.SubscribeToUserPersonalChannel.SingleConnection = true
 	err := c.Validate()
 	require.Error(t, err)
 }
@@ -101,8 +101,8 @@ func TestConfigValidatePersonalSingleConnectionMissingPresence(t *testing.T) {
 func TestConfigValidatePersonalSingleConnectionOK(t *testing.T) {
 	c := defaultConfig(t)
 	c.Channel.Namespaces = []configtypes.ChannelNamespace{}
-	c.UserSubscribeToPersonal.Enabled = true
-	c.UserSubscribeToPersonal.SingleConnection = true
+	c.Client.SubscribeToUserPersonalChannel.Enabled = true
+	c.Client.SubscribeToUserPersonalChannel.SingleConnection = true
 	c.Channel.WithoutNamespace.Presence = true
 	err := c.Validate()
 	require.NoError(t, err)
@@ -133,7 +133,7 @@ func TestConfigValidateHistoryTTL(t *testing.T) {
 	})
 	t.Run("top_level_non_default_global", func(t *testing.T) {
 		c := defaultConfig(t)
-		c.GlobalHistoryMetaTTL = 10 * time.Hour
+		c.Channel.HistoryMetaTTL = 10 * time.Hour
 		c.Channel.WithoutNamespace.HistorySize = 10
 		c.Channel.WithoutNamespace.HistoryTTL = 30 * 24 * time.Hour
 		err := c.Validate()
@@ -144,9 +144,9 @@ func TestConfigValidateHistoryTTL(t *testing.T) {
 func TestConfigValidatePersonalSingleConnectionNamespacedFail(t *testing.T) {
 	c := defaultConfig(t)
 	c.Channel.Namespaces = []configtypes.ChannelNamespace{}
-	c.UserSubscribeToPersonal.Enabled = true
-	c.UserSubscribeToPersonal.SingleConnection = true
-	c.UserSubscribeToPersonal.PersonalChannelNamespace = "public"
+	c.Client.SubscribeToUserPersonalChannel.Enabled = true
+	c.Client.SubscribeToUserPersonalChannel.SingleConnection = true
+	c.Client.SubscribeToUserPersonalChannel.PersonalChannelNamespace = "public"
 	err := c.Validate()
 	require.Error(t, err)
 }
@@ -154,9 +154,9 @@ func TestConfigValidatePersonalSingleConnectionNamespacedFail(t *testing.T) {
 func TestConfigValidatePersonalSingleConnectionNamespacedOK(t *testing.T) {
 	c := defaultConfig(t)
 	c.Channel.Namespaces = []configtypes.ChannelNamespace{}
-	c.UserSubscribeToPersonal.Enabled = true
-	c.UserSubscribeToPersonal.SingleConnection = true
-	c.UserSubscribeToPersonal.PersonalChannelNamespace = "public"
+	c.Client.SubscribeToUserPersonalChannel.Enabled = true
+	c.Client.SubscribeToUserPersonalChannel.SingleConnection = true
+	c.Client.SubscribeToUserPersonalChannel.PersonalChannelNamespace = "public"
 	c.Channel.Namespaces = []configtypes.ChannelNamespace{{
 		Name: "public",
 		ChannelOptions: configtypes.ChannelOptions{

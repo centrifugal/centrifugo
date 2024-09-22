@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/centrifugal/centrifugo/v5/internal/config"
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
@@ -29,7 +31,7 @@ func newRPCHandlerGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTes
 
 	rpcProxyHandler := NewRPCHandler(RPCHandlerConfig{
 		Proxies: map[string]RPCProxy{
-			"": rpcProxy,
+			"test": rpcProxy,
 		},
 	})
 
@@ -51,7 +53,7 @@ func newRPCHandlerHTTPTestCase(ctx context.Context, endpoint string) httpRPCHand
 
 	rpcProxyHandler := NewRPCHandler(RPCHandlerConfig{
 		Proxies: map[string]RPCProxy{
-			"": rpcProxy,
+			"test": rpcProxy,
 		},
 	})
 
@@ -67,7 +69,14 @@ type rpcHandleTestCase struct {
 
 func (c rpcHandleTestCase) invokeHandle() (reply centrifuge.RPCReply, err error) {
 	rpcHandler := c.rpcProxyHandler.Handle(c.node)
-	reply, err = rpcHandler(c.client, centrifuge.RPCEvent{}, nil, PerCallData{})
+	cfgContainer, _ := config.NewContainer(config.Config{
+		RPC: configtypes.RPC{
+			WithoutNamespace: configtypes.RpcOptions{
+				RpcProxyName: "test",
+			},
+		},
+	})
+	reply, err = rpcHandler(c.client, centrifuge.RPCEvent{}, cfgContainer, PerCallData{})
 
 	return reply, err
 }

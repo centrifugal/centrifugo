@@ -32,7 +32,7 @@ func newPublishHandleGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPC
 
 	publishProxyHandler := NewPublishHandler(PublishHandlerConfig{
 		Proxies: map[string]PublishProxy{
-			"": publishProxy,
+			"test": publishProxy,
 		},
 	})
 
@@ -55,7 +55,7 @@ func newPublishHandleHTTPTestCase(ctx context.Context, endpoint string, opts con
 
 	publishProxyHandler := NewPublishHandler(PublishHandlerConfig{
 		Proxies: map[string]PublishProxy{
-			"": publishProxy,
+			"test": publishProxy,
 		},
 	})
 
@@ -100,8 +100,9 @@ func TestHandlePublishWithResult(t *testing.T) {
 	customData := "test"
 	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
 	chOpts := configtypes.ChannelOptions{
-		HistoryTTL:  1 * time.Second,
-		HistorySize: 1,
+		HistoryTTL:       1 * time.Second,
+		HistorySize:      1,
+		PublishProxyName: "test",
 	}
 
 	opts := proxyGRPCTestServerOptions{
@@ -129,8 +130,9 @@ func TestHandlePublishWithSkipHistory(t *testing.T) {
 	customData := "test"
 	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
 	chOpts := configtypes.ChannelOptions{
-		HistoryTTL:  1 * time.Second,
-		HistorySize: 1,
+		HistoryTTL:       1 * time.Second,
+		HistorySize:      1,
+		PublishProxyName: "test",
 	}
 
 	opts := proxyGRPCTestServerOptions{
@@ -158,10 +160,14 @@ func TestHandlePublishWithContextCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	grpcTestCase := newPublishHandleGRPCTestCase(ctx, proxyGRPCTestServer{}, configtypes.ChannelOptions{})
+	grpcTestCase := newPublishHandleGRPCTestCase(ctx, proxyGRPCTestServer{}, configtypes.ChannelOptions{
+		PublishProxyName: "test",
+	})
 	defer grpcTestCase.Teardown()
 
-	httpTestCase := newPublishHandleHTTPTestCase(ctx, "/publish", configtypes.ChannelOptions{})
+	httpTestCase := newPublishHandleHTTPTestCase(ctx, "/publish", configtypes.ChannelOptions{
+		PublishProxyName: "test",
+	})
 	httpTestCase.Mux.HandleFunc("/publish", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{}`))
 	})
@@ -176,10 +182,14 @@ func TestHandlePublishWithContextCancel(t *testing.T) {
 }
 
 func TestHandlePublishWithoutProxyServerStart(t *testing.T) {
-	grpcTestCase := newPublishHandleGRPCTestCase(context.Background(), proxyGRPCTestServer{}, configtypes.ChannelOptions{})
+	grpcTestCase := newPublishHandleGRPCTestCase(context.Background(), proxyGRPCTestServer{}, configtypes.ChannelOptions{
+		PublishProxyName: "test",
+	})
 	grpcTestCase.Teardown()
 
-	httpTestCase := newPublishHandleHTTPTestCase(context.Background(), "/publish", configtypes.ChannelOptions{})
+	httpTestCase := newPublishHandleHTTPTestCase(context.Background(), "/publish", configtypes.ChannelOptions{
+		PublishProxyName: "test",
+	})
 	httpTestCase.Teardown()
 
 	cases := newPublishHandleTestCases(httpTestCase, grpcTestCase)
@@ -191,7 +201,9 @@ func TestHandlePublishWithoutProxyServerStart(t *testing.T) {
 }
 
 func TestHandlePublishWithProxyServerCustomDisconnect(t *testing.T) {
-	chOpts := configtypes.ChannelOptions{}
+	chOpts := configtypes.ChannelOptions{
+		PublishProxyName: "test",
+	}
 	grpcTestCase := newPublishHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("custom disconnect", proxyGRPCTestServerOptions{}), chOpts)
 	defer grpcTestCase.Teardown()
 
@@ -216,7 +228,9 @@ func TestHandlePublishWithProxyServerCustomDisconnect(t *testing.T) {
 }
 
 func TestHandlePublishWithProxyServerCustomError(t *testing.T) {
-	chOpts := configtypes.ChannelOptions{}
+	chOpts := configtypes.ChannelOptions{
+		PublishProxyName: "test",
+	}
 	grpcTestCase := newPublishHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("custom error", proxyGRPCTestServerOptions{}), chOpts)
 	defer grpcTestCase.Teardown()
 
@@ -241,7 +255,9 @@ func TestHandlePublishWithProxyServerCustomError(t *testing.T) {
 }
 
 func TestHandlePublishWithInvalidCustomData(t *testing.T) {
-	chOpts := configtypes.ChannelOptions{}
+	chOpts := configtypes.ChannelOptions{
+		PublishProxyName: "test",
+	}
 	opts := proxyGRPCTestServerOptions{
 		B64Data: "invalid data",
 	}

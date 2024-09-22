@@ -45,9 +45,11 @@
       }
     }
   ],
-  "proxy": {
-    "static_http_headers": {
-      "x": "y"
+  "unified_proxy": {
+    "http": {
+      "static_headers": {
+        "x": "y"
+      }
     }
   }
 }

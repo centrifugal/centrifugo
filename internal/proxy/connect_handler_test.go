@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/config"
-
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/tools"
 
@@ -41,8 +40,10 @@ func getTestHttpProxy(commonProxyTestCase *tools.CommonHTTPProxyTestCase, endpoi
 		Endpoint: commonProxyTestCase.Server.URL + endpoint,
 		Timeout:  5 * time.Second,
 		ProxyCommon: configtypes.ProxyCommon{
-			StaticHttpHeaders: map[string]string{
-				"X-Test": "test",
+			HTTP: configtypes.ProxyCommonHTTP{
+				StaticHeaders: map[string]string{
+					"X-Test": "test",
+				},
 			},
 		},
 	}

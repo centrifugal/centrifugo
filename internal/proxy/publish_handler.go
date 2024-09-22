@@ -37,6 +37,9 @@ func NewPublishHandler(c PublishHandlerConfig) *PublishHandler {
 		histogram[name] = proxyCallDurationHistogram.WithLabelValues(p.Protocol(), "publish", name)
 		errors[name] = proxyCallErrorCount.WithLabelValues(p.Protocol(), "publish", name)
 	}
+	h.summary = summary
+	h.histogram = histogram
+	h.errors = errors
 	return h
 }
 

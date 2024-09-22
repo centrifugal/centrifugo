@@ -44,7 +44,7 @@ func (p *HTTPRefreshProxy) ProxyRefresh(ctx context.Context, req *proxyproto.Ref
 
 // Name ...
 func (p *HTTPRefreshProxy) Name() string {
-	return p.Name()
+	return p.config.Name
 }
 
 // Protocol ...

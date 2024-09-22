@@ -52,14 +52,14 @@ func TestConfigEnvVars(t *testing.T) {
 	_ = os.Setenv("CENTRIFUGO_CONSUMERS_KAFKA_KAFKA_TLS_ENABLED", "false")
 	_ = os.Setenv("CENTRIFUGO_UNKNOWN_ENV", "1")
 	_ = os.Setenv("CENTRIFUGO_CHANNEL_NAMESPACES", `[{"name": "env"}]`)
-	_ = os.Setenv("CENTRIFUGO_PROXY_STATIC_HTTP_HEADERS", `{"key": "value"}`)
+	_ = os.Setenv("CENTRIFUGO_UNIFIED_PROXY_HTTP_STATIC_HEADERS", `{"key": "value"}`)
 	defer func() {
 		_ = os.Unsetenv("CENTRIFUGO_CONSUMERS_KAFKA_KAFKA_TLS_ENABLED")
 		_ = os.Unsetenv("CENTRIFUGO_UNKNOWN_ENV")
 		_ = os.Unsetenv("CENTRIFUGO_CLIENT_ALLOWED_ORIGINS")
 		_ = os.Unsetenv("CENTRIFUGO_CLIENT_TOKEN_JWKS_PUBLIC_ENDPOINT")
 		_ = os.Unsetenv("CENTRIFUGO_CHANNEL_NAMESPACES")
-		_ = os.Unsetenv("CENTRIFUGO_PROXY_STATIC_HTTP_HEADERS")
+		_ = os.Unsetenv("CENTRIFUGO_UNIFIED_PROXY_HTTP_STATIC_HEADERS")
 	}()
 	// Proceed with the test
 	conf, meta := getConfig(t, "testdata/config.json")
