@@ -38,11 +38,11 @@ func getPreparedConfig(config Config) (*Config, error) {
 	if err := config.Validate(); err != nil {
 		return &config, err
 	}
-	cfg, err := buildCompiledRegexes(config)
+	config, err := buildCompiledRegexes(config)
 	if err != nil {
 		return &config, err
 	}
-	return &cfg, nil
+	return &config, nil
 }
 
 // Reload node config.
