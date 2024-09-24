@@ -139,9 +139,6 @@ type ChannelOptions struct {
 	// SubRefreshProxyName of proxy to use for sub refresh operations in namespace.
 	SubRefreshProxyName string `mapstructure:"sub_refresh_proxy_name" json:"sub_refresh_proxy_name" envconfig:"sub_refresh_proxy_name" yaml:"sub_refresh_proxy_name" toml:"sub_refresh_proxy_name"`
 
-	// CacheEmptyProxyName of proxy to use for cache empty operations in namespace.
-	CacheEmptyProxyName string `mapstructure:"cache_empty_proxy_name" json:"cache_empty_proxy_name" envconfig:"cache_empty_proxy_name" yaml:"cache_empty_proxy_name" toml:"cache_empty_proxy_name"`
-
 	// SubscribeStreamProxyName of proxy to use for subscribe stream operations in namespace.
 	SubscribeStreamProxyName string `mapstructure:"subscribe_stream_proxy_name" json:"subscribe_stream_proxy_name" envconfig:"subscribe_stream_proxy_name" yaml:"subscribe_stream_proxy_name" toml:"subscribe_stream_proxy_name"`
 

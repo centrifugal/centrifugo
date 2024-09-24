@@ -17,7 +17,6 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool) {
 		SubscribeProxies:       map[string]proxy.SubscribeProxy{},
 		SubRefreshProxies:      map[string]proxy.SubRefreshProxy{},
 		SubscribeStreamProxies: map[string]*proxy.SubscribeStreamProxy{},
-		CacheEmptyProxies:      map[string]proxy.CacheEmptyProxy{},
 	}
 	proxyList := cfg.Proxies
 	proxies := make(map[string]proxy.Config)

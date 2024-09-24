@@ -455,7 +455,6 @@ type UnifiedProxy struct {
 	SubRefreshEndpoint      string `mapstructure:"sub_refresh_endpoint" json:"sub_refresh_endpoint" envconfig:"sub_refresh_endpoint" yaml:"sub_refresh_endpoint" toml:"sub_refresh_endpoint"`
 	RPCEndpoint             string `mapstructure:"rpc_endpoint" json:"rpc_endpoint" envconfig:"rpc_endpoint" yaml:"rpc_endpoint" toml:"rpc_endpoint"`
 	SubscribeStreamEndpoint string `mapstructure:"subscribe_stream_endpoint" json:"subscribe_stream_endpoint" envconfig:"subscribe_stream_endpoint" yaml:"subscribe_stream_endpoint" toml:"subscribe_stream_endpoint"`
-	CacheEmptyEndpoint      string `mapstructure:"cache_empty_endpoint" json:"cache_empty_endpoint" envconfig:"cache_empty_endpoint" yaml:"cache_empty_endpoint" toml:"cache_empty_endpoint"`
 
 	ConnectTimeout         time.Duration `mapstructure:"connect_timeout" json:"connect_timeout" envconfig:"connect_timeout" default:"1s" yaml:"connect_timeout" toml:"connect_timeout"`
 	RPCTimeout             time.Duration `mapstructure:"rpc_timeout" json:"rpc_timeout" envconfig:"rpc_timeout" default:"1s" yaml:"rpc_timeout" toml:"rpc_timeout"`
@@ -464,7 +463,6 @@ type UnifiedProxy struct {
 	PublishTimeout         time.Duration `mapstructure:"publish_timeout" json:"publish_timeout" envconfig:"publish_timeout" default:"1s" yaml:"publish_timeout" toml:"publish_timeout"`
 	SubRefreshTimeout      time.Duration `mapstructure:"sub_refresh_timeout" json:"sub_refresh_timeout" envconfig:"sub_refresh_timeout" default:"1s" yaml:"sub_refresh_timeout" toml:"sub_refresh_timeout"`
 	SubscribeStreamTimeout time.Duration `mapstructure:"subscribe_stream_timeout" json:"subscribe_stream_timeout" envconfig:"subscribe_stream_timeout" default:"1s" yaml:"subscribe_stream_timeout" toml:"subscribe_stream_timeout"`
-	CacheEmptyTimeout      time.Duration `mapstructure:"cache_empty_timeout" json:"cache_empty_timeout" envconfig:"cache_empty_timeout" default:"1s" yaml:"cache_empty_timeout" toml:"cache_empty_timeout"`
 
 	ProxyCommon `mapstructure:",squash" yaml:",inline"`
 }

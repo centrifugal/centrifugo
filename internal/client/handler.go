@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"sync"
 	"unicode"
 
 	"github.com/centrifugal/centrifugo/v5/internal/clientstorage"
@@ -15,7 +14,6 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
-	"golang.org/x/sync/singleflight"
 )
 
 // RPCExtensionFunc ...
@@ -31,7 +29,6 @@ type ProxyMap struct {
 	SubscribeProxies       map[string]proxy.SubscribeProxy
 	SubRefreshProxies      map[string]proxy.SubRefreshProxy
 	SubscribeStreamProxies map[string]*proxy.SubscribeStreamProxy
-	CacheEmptyProxies      map[string]proxy.CacheEmptyProxy
 }
 
 // Handler ...
@@ -42,8 +39,6 @@ type Handler struct {
 	subTokenVerifier *jwtverify.VerifierJWT
 	proxyMap         *ProxyMap
 	rpcExtension     map[string]RPCExtensionFunc
-	cacheEmptyGroup  singleflight.Group
-	cacheEmptyMu     sync.Mutex // Possibly make it sharded (per channel).
 }
 
 // NewHandler ...
@@ -126,15 +121,6 @@ func (h *Handler) Setup() error {
 		subRefreshProxyHandler = proxy.NewSubRefreshHandler(proxy.SubRefreshHandlerConfig{
 			Proxies: h.proxyMap.SubRefreshProxies,
 		}).Handle(h.node)
-	}
-
-	if len(h.proxyMap.CacheEmptyProxies) > 0 {
-		cacheEmptyHandler := proxy.NewCacheHandler(proxy.CacheHandlerConfig{
-			Proxies: h.proxyMap.CacheEmptyProxies,
-		}).Handle(h.node)
-		h.node.OnCacheEmpty(func(e centrifuge.CacheEmptyEvent) (centrifuge.CacheEmptyReply, error) {
-			return h.OnCacheEmpty(e.Channel, cacheEmptyHandler)
-		})
 	}
 
 	cfg := h.cfgContainer.Config()
@@ -291,34 +277,6 @@ func (h *Handler) runConcurrentlyIfNeeded(ctx context.Context, concurrency int, 
 	} else {
 		fn()
 	}
-}
-
-func (h *Handler) OnCacheEmpty(channel string, cacheEmptyHandler proxy.CacheEmptyHandlerFunc) (centrifuge.CacheEmptyReply, error) {
-	result, err, _ := h.cacheEmptyGroup.Do(channel, func() (interface{}, error) {
-		h.cacheEmptyMu.Lock()
-		defer h.cacheEmptyMu.Unlock()
-		_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(channel)
-		if err != nil {
-			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "cache empty channel options error", map[string]any{"error": err.Error(), "channel": channel}))
-			return centrifuge.CacheEmptyReply{}, err
-		}
-		if !found {
-			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "cache empty unknown channel", map[string]any{"channel": channel}))
-			return centrifuge.CacheEmptyReply{}, centrifuge.ErrorUnknownChannel
-		}
-		if chOpts.CacheEmptyProxyName == "" {
-			return centrifuge.CacheEmptyReply{}, nil
-		}
-		reply, err := cacheEmptyHandler(context.Background(), channel, chOpts)
-		if errors.Is(err, centrifuge.ErrorNotAvailable) {
-			return centrifuge.CacheEmptyReply{}, nil
-		}
-		return reply, err
-	})
-	if err != nil {
-		return centrifuge.CacheEmptyReply{}, err
-	}
-	return result.(centrifuge.CacheEmptyReply), nil
 }
 
 // OnClientConnecting ...

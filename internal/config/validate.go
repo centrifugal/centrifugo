@@ -204,9 +204,6 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL t
 	if c.SubscribeStreamProxyName != "" && !slices.Contains(proxyNames, c.SubscribeStreamProxyName) {
 		return fmt.Errorf("proxy %s not found for subscribe stream", c.SubscribeStreamProxyName)
 	}
-	if c.CacheEmptyProxyName != "" && !slices.Contains(proxyNames, c.CacheEmptyProxyName) {
-		return fmt.Errorf("proxy %s not found for cache empty", c.CacheEmptyProxyName)
-	}
 
 	if c.SubscribeProxyName == UnifiedProxyName && cfg.UnifiedProxy.SubscribeEndpoint == "" {
 		return fmt.Errorf("no subscribe_endpoint set for unified_proxy, can't use `%s` proxy name for subscribe proxy", UnifiedProxyName)
@@ -219,9 +216,6 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL t
 	}
 	if c.SubscribeStreamProxyName == UnifiedProxyName && cfg.UnifiedProxy.SubscribeStreamEndpoint == "" {
 		return fmt.Errorf("no subscribe_stream_endpoint set for unified_proxy, can't use `%s` proxy name for subscribe stream proxy", UnifiedProxyName)
-	}
-	if c.CacheEmptyProxyName == UnifiedProxyName && cfg.UnifiedProxy.CacheEmptyEndpoint == "" {
-		return fmt.Errorf("no cache_empty_endpoint set for unified_proxy, can't use `%s` proxy name for cache empty proxy", UnifiedProxyName)
 	}
 
 	return nil
