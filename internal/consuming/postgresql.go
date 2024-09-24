@@ -176,7 +176,7 @@ func (c *PostgresConsumer) processOnce(ctx context.Context, partition int) (int,
 		dispatchErr = c.dispatcher.Dispatch(context.Background(), event.Method, event.Payload)
 		if dispatchErr != nil {
 			// Stop here, all processed events will be removed, and we will start from this one.
-			c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing consumed event", map[string]any{"error": err.Error(), "method": event.Method}))
+			c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing consumed event", map[string]any{"error": dispatchErr.Error(), "method": event.Method}))
 			break
 		} else {
 			numProcessedRows++
