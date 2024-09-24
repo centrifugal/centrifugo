@@ -396,7 +396,7 @@ func isKubernetesEnvVar(envKey string) bool {
 
 // DefaultConfig is a helper to be used in tests.
 func DefaultConfig() Config {
-	conf, _, err := GetConfig(nil, "-")
+	conf, _, err := GetConfig(nil, "")
 	if err != nil {
 		panic("error during getting default config: " + err.Error())
 	}
