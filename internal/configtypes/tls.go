@@ -18,42 +18,42 @@ import (
 // the file will be used and raw PEM will be just ignored.
 type TLSConfig struct {
 	// Enabled turns on using TLS.
-	Enabled bool `mapstructure:"enabled" json:"enabled"`
+	Enabled bool `mapstructure:"enabled" json:"enabled" yaml:"enabled" toml:"enabled" envconfig:"enabled"`
 
 	// CertPem is a certificate in PEM format.
-	CertPem string `mapstructure:"cert_pem" json:"cert_pem" envconfig:"cert_pem"`
+	CertPem string `mapstructure:"cert_pem" json:"cert_pem" envconfig:"cert_pem" yaml:"cert_pem" toml:"cert_pem"`
 	// CertPemB64 is a certificate in base64 encoded PEM format.
-	CertPemB64 string `mapstructure:"cert_pem_b64" json:"cert_pem_b64" envconfig:"cert_pem_b64"`
+	CertPemB64 string `mapstructure:"cert_pem_b64" json:"cert_pem_b64" envconfig:"cert_pem_b64" yaml:"cert_pem_b64" toml:"cert_pem_b64"`
 	// CertPemFile is a path to a file with certificate in PEM format.
-	CertPemFile string `mapstructure:"cert_pem_file" json:"cert_pem_file" envconfig:"cert_pem_file"`
+	CertPemFile string `mapstructure:"cert_pem_file" json:"cert_pem_file" envconfig:"cert_pem_file" yaml:"cert_pem_file" toml:"cert_pem_file"`
 
 	// KeyPem is a key in PEM format.
-	KeyPem string `mapstructure:"key_pem" json:"key_pem" envconfig:"key_pem"`
+	KeyPem string `mapstructure:"key_pem" json:"key_pem" envconfig:"key_pem" yaml:"key_pem" toml:"key_pem"`
 	// KeyPemB64 is a key in base64 encoded PEM format.
-	KeyPemB64 string `mapstructure:"key_pem_b64" json:"key_pem_b64" envconfig:"key_pem_b64"`
+	KeyPemB64 string `mapstructure:"key_pem_b64" json:"key_pem_b64" envconfig:"key_pem_b64" yaml:"key_pem_b64" toml:"key_pem_b64"`
 	// KeyPemFile is a path to a file with key in PEM format.
-	KeyPemFile string `mapstructure:"key_pem_file" json:"key_pem_file" envconfig:"key_pem_file"`
+	KeyPemFile string `mapstructure:"key_pem_file" json:"key_pem_file" envconfig:"key_pem_file" yaml:"key_pem_file" toml:"key_pem_file"`
 
 	// ServerCAPem is a server root CA certificate in PEM format.
 	// The client uses this certificate to verify the server's certificate during the TLS handshake.
-	ServerCAPem string `mapstructure:"server_ca_pem" json:"server_ca_pem" envconfig:"server_ca_pem"`
+	ServerCAPem string `mapstructure:"server_ca_pem" json:"server_ca_pem" envconfig:"server_ca_pem" yaml:"server_ca_pem" toml:"server_ca_pem"`
 	// ServerCAPemB64 is a server root CA certificate in base64 encoded PEM format.
-	ServerCAPemB64 string `mapstructure:"server_ca_pem_b64" json:"server_ca_pem_b64" envconfig:"server_ca_pem_b64"`
+	ServerCAPemB64 string `mapstructure:"server_ca_pem_b64" json:"server_ca_pem_b64" envconfig:"server_ca_pem_b64" yaml:"server_ca_pem_b64" toml:"server_ca_pem_b64"`
 	// ServerCAPemFile is a path to a file with server root CA certificate in PEM format.
-	ServerCAPemFile string `mapstructure:"server_ca_pem_file" json:"server_ca_pem_file" envconfig:"server_ca_pem_file"`
+	ServerCAPemFile string `mapstructure:"server_ca_pem_file" json:"server_ca_pem_file" envconfig:"server_ca_pem_file" yaml:"server_ca_pem_file" toml:"server_ca_pem_file"`
 
 	// ClientCAPem is a client CA certificate in PEM format.
 	// The server uses this certificate to verify the client's certificate during the TLS handshake.
-	ClientCAPem string `mapstructure:"client_ca_pem" json:"client_ca_pem" envconfig:"client_ca_pem"`
+	ClientCAPem string `mapstructure:"client_ca_pem" json:"client_ca_pem" envconfig:"client_ca_pem" yaml:"client_ca_pem" toml:"client_ca_pem"`
 	// ClientCAPemB64 is a client CA certificate in base64 encoded PEM format.
-	ClientCAPemB64 string `mapstructure:"client_ca_pem_b64" json:"client_ca_pem_b64" envconfig:"client_ca_pem_b64"`
+	ClientCAPemB64 string `mapstructure:"client_ca_pem_b64" json:"client_ca_pem_b64" envconfig:"client_ca_pem_b64" yaml:"client_ca_pem_b64" toml:"client_ca_pem_b64"`
 	// ClientCAPemFile is a path to a file with client CA certificate in PEM format.
-	ClientCAPemFile string `mapstructure:"client_ca_pem_file" json:"client_ca_pem_file" envconfig:"client_ca_pem_file"`
+	ClientCAPemFile string `mapstructure:"client_ca_pem_file" json:"client_ca_pem_file" envconfig:"client_ca_pem_file" yaml:"client_ca_pem_file" toml:"client_ca_pem_file"`
 
 	// InsecureSkipVerify turns off server certificate verification.
-	InsecureSkipVerify bool `mapstructure:"insecure_skip_verify" json:"insecure_skip_verify" envconfig:"insecure_skip_verify"`
+	InsecureSkipVerify bool `mapstructure:"insecure_skip_verify" json:"insecure_skip_verify" envconfig:"insecure_skip_verify" yaml:"insecure_skip_verify" toml:"insecure_skip_verify"`
 	// ServerName is used to verify the hostname on the returned certificates.
-	ServerName string `mapstructure:"server_name" json:"server_name" envconfig:"server_name"`
+	ServerName string `mapstructure:"server_name" json:"server_name" envconfig:"server_name" yaml:"server_name" toml:"server_name"`
 }
 
 func (c TLSConfig) ToGoTLSConfig() (*tls.Config, error) {
@@ -187,11 +187,11 @@ func newCertPoolFromPEM(pem []byte) (*x509.CertPool, error) {
 }
 
 type TLSAutocert struct {
-	Enabled       bool     `mapstructure:"enabled" json:"enabled" envconfig:"enabled"`
-	HostWhitelist []string `mapstructure:"host_whitelist" json:"host_whitelist" envconfig:"host_whitelist"`
-	CacheDir      string   `mapstructure:"cache_dir" json:"cache_dir" envconfig:"cache_dir"`
-	Email         string   `mapstructure:"email" json:"email" envconfig:"email"`
-	ServerName    string   `mapstructure:"server_name" json:"server_name" envconfig:"server_name"`
-	HTTP          bool     `mapstructure:"http" json:"http" envconfig:"http"`
-	HTTPAddr      string   `mapstructure:"http_addr" json:"http_addr" envconfig:"http_addr" default:":80"`
+	Enabled       bool     `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	HostWhitelist []string `mapstructure:"host_whitelist" json:"host_whitelist" envconfig:"host_whitelist" yaml:"host_whitelist" toml:"host_whitelist"`
+	CacheDir      string   `mapstructure:"cache_dir" json:"cache_dir" envconfig:"cache_dir" yaml:"cache_dir" toml:"cache_dir"`
+	Email         string   `mapstructure:"email" json:"email" envconfig:"email" yaml:"email" toml:"email"`
+	ServerName    string   `mapstructure:"server_name" json:"server_name" envconfig:"server_name" yaml:"server_name" toml:"server_name"`
+	HTTP          bool     `mapstructure:"http" json:"http" envconfig:"http" yaml:"http" toml:"http"`
+	HTTPAddr      string   `mapstructure:"http_addr" json:"http_addr" envconfig:"http_addr" default:":80" yaml:"http_addr" toml:"http_addr"`
 }

@@ -6,7 +6,27 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+
+	"github.com/spf13/cobra"
 )
+
+func ServeCommand() *cobra.Command {
+	var serveDir string
+	var servePort int
+	var serveAddr string
+	var serveCmd = &cobra.Command{
+		Use:   "serve",
+		Short: "Run static file server (for development only)",
+		Long:  `Run static file server (for development only)`,
+		Run: func(cmd *cobra.Command, args []string) {
+			Serve(serveAddr, servePort, serveDir)
+		},
+	}
+	serveCmd.Flags().StringVarP(&serveDir, "dir", "d", "./", "path to directory")
+	serveCmd.Flags().IntVarP(&servePort, "port", "p", 3000, "port to serve on")
+	serveCmd.Flags().StringVarP(&serveAddr, "address", "a", "", "interface to serve on (default: all interfaces)")
+	return serveCmd
+}
 
 func Serve(serveAddr string, servePort int, serveDir string) {
 	address := net.JoinHostPort(serveAddr, strconv.Itoa(servePort))

@@ -13,6 +13,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func CheckSubTokenCommand() *cobra.Command {
+	var checkSubTokenConfigFile string
+	var checkSubTokenCmd = &cobra.Command{
+		Use:   "checksubtoken [TOKEN]",
+		Short: "Check subscription JWT",
+		Long:  `Check subscription JWT`,
+		Run: func(cmd *cobra.Command, args []string) {
+			CheckSubToken(cmd, checkSubTokenConfigFile, args)
+		},
+	}
+	checkSubTokenCmd.Flags().StringVarP(&checkSubTokenConfigFile, "config", "c", "config.json", "path to config file")
+	return checkSubTokenCmd
+}
+
 func CheckSubToken(cmd *cobra.Command, checkSubTokenConfigFile string, args []string) {
 	cfg, _, err := config.GetConfig(cmd, checkSubTokenConfigFile)
 	if err != nil {

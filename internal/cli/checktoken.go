@@ -13,6 +13,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func CheckTokenCommand() *cobra.Command {
+	var checkTokenConfigFile string
+	var checkTokenCmd = &cobra.Command{
+		Use:   "checktoken [TOKEN]",
+		Short: "Check connection JWT",
+		Long:  `Check connection JWT`,
+		Run: func(cmd *cobra.Command, args []string) {
+			CheckToken(cmd, checkTokenConfigFile, args)
+		},
+	}
+	checkTokenCmd.Flags().StringVarP(&checkTokenConfigFile, "config", "c", "config.json", "path to config file")
+	return checkTokenCmd
+}
+
 func CheckToken(cmd *cobra.Command, checkTokenConfigFile string, args []string) {
 	cfg, _, err := config.GetConfig(cmd, checkTokenConfigFile)
 	if err != nil {

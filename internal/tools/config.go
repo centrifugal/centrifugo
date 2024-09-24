@@ -13,8 +13,8 @@ import (
 	"text/template"
 )
 
-// pathExists returns whether the given file or directory exists or not
-func pathExists(path string) (bool, error) {
+// PathExists returns whether the given file or directory exists or not
+func PathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
 		return true, nil
@@ -74,7 +74,7 @@ http_api:
 
 // GenerateConfig generates configuration file at provided path.
 func GenerateConfig(f string) error {
-	exists, err := pathExists(f)
+	exists, err := PathExists(f)
 	if err != nil {
 		return err
 	}

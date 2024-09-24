@@ -10,6 +10,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func GenConfigCommand() *cobra.Command {
+	var outputConfigFile string
+	var genConfigCmd = &cobra.Command{
+		Use:   "genconfig",
+		Short: "Generate minimal configuration file to start with",
+		Long:  `Generate minimal configuration file to start with`,
+		Run: func(cmd *cobra.Command, args []string) {
+			GenConfig(cmd, outputConfigFile)
+		},
+	}
+	genConfigCmd.Flags().StringVarP(&outputConfigFile, "config", "c", "config.json", "path to output config file")
+	return genConfigCmd
+}
+
 func GenConfig(cmd *cobra.Command, outputConfigFile string) {
 	err := tools.GenerateConfig(outputConfigFile)
 	if err != nil {

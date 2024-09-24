@@ -18,108 +18,109 @@ import (
 
 type Config struct {
 	// Address to bind HTTP server to.
-	Address string `mapstructure:"address" json:"address" envconfig:"address"`
+	Address string `mapstructure:"address" json:"address" envconfig:"address" toml:"address" yaml:"address"`
 	// Port to bind HTTP server to.
-	Port int `mapstructure:"port" json:"port" envconfig:"port" default:"8000"`
+	Port int `mapstructure:"port" json:"port" envconfig:"port" default:"8000" toml:"port" yaml:"port"`
 	// InternalAddress to bind internal HTTP server to. Internal server is used to serve endpoints
 	// which are normally should not be exposed to the outside world.
-	InternalAddress string `mapstructure:"internal_address" json:"internal_address" envconfig:"internal_address"`
+	InternalAddress string `mapstructure:"internal_address" json:"internal_address" envconfig:"internal_address" toml:"internal_address" yaml:"internal_address"`
 	// InternalPort to bind internal HTTP server to.
-	InternalPort string `mapstructure:"internal_port" json:"internal_port" envconfig:"internal_port"`
+	InternalPort string `mapstructure:"internal_port" json:"internal_port" envconfig:"internal_port" toml:"internal_port" yaml:"internal_port"`
 	// PidFile is a path to write PID file with server's PID.
-	PidFile string `mapstructure:"pid_file" json:"pid_file" envconfig:"pid_file"`
+	PidFile string `mapstructure:"pid_file" json:"pid_file" envconfig:"pid_file" toml:"pid_file" yaml:"pid_file"`
 	// LogLevel is a log level for Centrifugo logger. Supported values: none, trace, debug, info, warn, error.
-	LogLevel string `mapstructure:"log_level" json:"log_level" envconfig:"log_level" default:"info"`
+	LogLevel string `mapstructure:"log_level" json:"log_level" envconfig:"log_level" default:"info" toml:"log_level" yaml:"log_level"`
 	// LogFile is a path to log file. If not set logs go to stdout.
-	LogFile string `mapstructure:"log_file" json:"log_file" envconfig:"log_file"`
+	LogFile string `mapstructure:"log_file" json:"log_file" envconfig:"log_file" toml:"log_file" yaml:"log_file"`
+
+	// TLS configuration for HTTP server.
+	TLS configtypes.TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" toml:"tls" yaml:"tls"`
+	// TLSAutocert for automatic TLS certificates from ACME provider (ex. Let's Encrypt).
+	TLSAutocert configtypes.TLSAutocert `mapstructure:"tls_autocert" json:"tls_autocert" envconfig:"tls_autocert" toml:"tls_autocert" yaml:"tls_autocert"`
+	// TLSExternal enables TLS only for external HTTP endpoints.
+	TLSExternal bool `mapstructure:"tls_external" json:"tls_external" envconfig:"tls_external" toml:"tls_external" yaml:"tls_external"`
 
 	// Engine to use: memory or redis. By default, memory engine is used. Memory engine is superfast,
 	// but it's not distributed and all data stored in memory (thus lost after node restart). Redis engine
 	// provides seamless horizontal scalability, fault-tolerance, and persistence over Centrifugo restarts.
 	// See also Broker option to run Centrifugo with Nats (only implements at most once PUB/SUB semantics).
-	Engine string `mapstructure:"engine" json:"engine" envconfig:"engine" default:"memory"`
+	Engine string `mapstructure:"engine" json:"engine" envconfig:"engine" default:"memory" toml:"engine" yaml:"engine"`
 	// Broker to use: the only option is nats.
-	Broker string `mapstructure:"broker" json:"broker" envconfig:"broker"`
+	Broker string `mapstructure:"broker" json:"broker" envconfig:"broker" toml:"broker" yaml:"broker"`
 
-	// TLS configuration for HTTP server.
-	TLS configtypes.TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls"`
-	// TLSAutocert for automatic TLS certificates from ACME provider (ex. Let's Encrypt).
-	TLSAutocert configtypes.TLSAutocert `mapstructure:"tls_autocert" json:"tls_autocert" envconfig:"tls_autocert"`
-	// TLSExternal enables TLS only for external HTTP endpoints.
-	TLSExternal bool `mapstructure:"tls_external" json:"tls_external" envconfig:"tls_external"`
+	// Redis is a configuration for Redis engine.
+	Redis configtypes.RedisEngine `mapstructure:"redis" json:"redis" envconfig:"redis" toml:"redis" yaml:"redis"`
+	// Nats is a configuration for NATS broker.
+	Nats configtypes.NatsBroker `mapstructure:"nats" json:"nats" envconfig:"nats" toml:"nats" yaml:"nats"`
 
-	// WebSocket configuration. This transport is enabled by default.
-	WebSocket configtypes.WebSocket `mapstructure:"websocket" json:"websocket" envconfig:"websocket"`
-	// SSE is a configuration for Server-Sent Events based bidirectional emulation transport.
-	SSE configtypes.SSE `mapstructure:"sse" json:"sse" envconfig:"sse"`
-	// HTTPStream is a configuration for HTTP streaming based bidirectional emulation transport.
-	HTTPStream configtypes.HTTPStream `mapstructure:"http_stream" json:"http_stream" envconfig:"http_stream"`
-	// WebTransport is a configuration for WebTransport transport. EXPERIMENTAL.
-	WebTransport configtypes.WebTransport `mapstructure:"webtransport" json:"webtransport" envconfig:"webtransport"`
-	// UniSSE is a configuration for unidirectional Server-Sent Events transport.
-	UniSSE configtypes.UniSSE `mapstructure:"uni_sse" json:"uni_sse" envconfig:"uni_sse"`
-	// UniHTTPStream is a configuration for unidirectional HTTP streaming transport.
-	UniHTTPStream configtypes.UniHTTPStream `mapstructure:"uni_http_stream" json:"uni_http_stream" envconfig:"uni_http_stream"`
-	// UniWS is a configuration for unidirectional WebSocket transport.
-	UniWS configtypes.UniWebSocket `mapstructure:"uni_websocket" json:"uni_websocket" envconfig:"uni_websocket"`
-	// UniGRPC is a configuration for unidirectional gRPC transport.
-	UniGRPC configtypes.UniGRPC `mapstructure:"uni_grpc" json:"uni_grpc" envconfig:"uni_grpc"`
-	// Emulation endpoint is enabled automatically when at least one bidirectional emulation transport
-	// is configured (SSE or HTTP Stream).
-	Emulation configtypes.Emulation `mapstructure:"emulation" json:"emulation" envconfig:"emulation"`
-	// Admin web UI configuration.
-	Admin configtypes.Admin `mapstructure:"admin" json:"admin" envconfig:"admin"`
-	// Prometheus metrics configuration.
-	Prometheus configtypes.Prometheus `mapstructure:"prometheus" json:"prometheus" envconfig:"prometheus"`
-	// Health check endpoint configuration.
-	Health configtypes.Health `mapstructure:"health" json:"health" envconfig:"health"`
-	// Swagger documentation (for server HTTP API) configuration.
-	Swagger configtypes.Swagger `mapstructure:"swagger" json:"swagger" envconfig:"swagger"`
-	// Debug helps to enable Go profiling endpoints.
-	Debug configtypes.Debug `mapstructure:"debug" json:"debug" envconfig:"debug"`
+	// Client contains real-time client connection related configuration.
+	Client configtypes.Client `mapstructure:"client" json:"client" envconfig:"client" toml:"client" yaml:"client"`
+	// Channel contains real-time channel related configuration.
+	Channel configtypes.Channel `mapstructure:"channel" json:"channel" envconfig:"channel" toml:"channel" yaml:"channel"`
+	// RPC is a configuration for client RPC calls.
+	RPC configtypes.RPC `mapstructure:"rpc" json:"rpc" envconfig:"rpc" toml:"rpc" yaml:"rpc"`
 
-	// HTTP3 enables HTTP/3 support. EXPERIMENTAL.
-	HTTP3 configtypes.HTTP3 `mapstructure:"http3" json:"http3" envconfig:"http3"`
+	// HttpAPI is a configuration for HTTP server API. It's enabled by default.
+	HttpAPI configtypes.HttpAPI `mapstructure:"http_api" json:"http_api" envconfig:"http_api" toml:"http_api" yaml:"http_api"`
+	// GrpcAPI is a configuration for gRPC server API. It's disabled by default.
+	GrpcAPI configtypes.GrpcAPI `mapstructure:"grpc_api" json:"grpc_api" envconfig:"grpc_api" toml:"grpc_api" yaml:"grpc_api"`
+
+	// UnifiedProxy is a helper configuration for events proxy. It can be referenced using UnifiedProxyName name.
+	UnifiedProxy configtypes.UnifiedProxy `mapstructure:"unified_proxy" json:"unified_proxy" envconfig:"unified_proxy" toml:"unified_proxy" yaml:"unified_proxy"`
+	// Proxies is a configuration for granular events proxies. See also UnifiedProxy.
+	Proxies configtypes.Proxies `mapstructure:"proxies" json:"proxies" envconfig:"proxies" toml:"proxies" yaml:"proxies"`
 
 	// Consumers is a configuration for message queue consumers. For example, Centrifugo can consume
 	// messages from PostgreSQL transactional outbox table, or from Kafka topics.
-	Consumers configtypes.Consumers `mapstructure:"consumers" json:"consumers" envconfig:"consumers"`
+	Consumers configtypes.Consumers `mapstructure:"consumers" json:"consumers" envconfig:"consumers" toml:"consumers" yaml:"consumers"`
 
-	// Client contains real-time client connection related configuration.
-	Client configtypes.Client `mapstructure:"client" json:"client" envconfig:"client"`
-	// Channel contains real-time channel related configuration.
-	Channel configtypes.Channel `mapstructure:"channel" json:"channel" envconfig:"channel"`
-	// RPC is a configuration for client RPC calls.
-	RPC configtypes.RPC `mapstructure:"rpc" json:"rpc" envconfig:"rpc"`
+	// WebSocket configuration. This transport is enabled by default.
+	WebSocket configtypes.WebSocket `mapstructure:"websocket" json:"websocket" envconfig:"websocket" toml:"websocket" yaml:"websocket"`
+	// SSE is a configuration for Server-Sent Events based bidirectional emulation transport.
+	SSE configtypes.SSE `mapstructure:"sse" json:"sse" envconfig:"sse" toml:"sse" yaml:"sse"`
+	// HTTPStream is a configuration for HTTP streaming based bidirectional emulation transport.
+	HTTPStream configtypes.HTTPStream `mapstructure:"http_stream" json:"http_stream" envconfig:"http_stream" toml:"http_stream" yaml:"http_stream"`
+	// WebTransport is a configuration for WebTransport transport. EXPERIMENTAL.
+	WebTransport configtypes.WebTransport `mapstructure:"webtransport" json:"webtransport" envconfig:"webtransport" toml:"webtransport" yaml:"webtransport"`
+	// UniSSE is a configuration for unidirectional Server-Sent Events transport.
+	UniSSE configtypes.UniSSE `mapstructure:"uni_sse" json:"uni_sse" envconfig:"uni_sse" toml:"uni_sse" yaml:"uni_sse"`
+	// UniHTTPStream is a configuration for unidirectional HTTP streaming transport.
+	UniHTTPStream configtypes.UniHTTPStream `mapstructure:"uni_http_stream" json:"uni_http_stream" envconfig:"uni_http_stream" toml:"uni_http_stream" yaml:"uni_http_stream"`
+	// UniWS is a configuration for unidirectional WebSocket transport.
+	UniWS configtypes.UniWebSocket `mapstructure:"uni_websocket" json:"uni_websocket" envconfig:"uni_websocket" toml:"uni_websocket" yaml:"uni_websocket"`
+	// UniGRPC is a configuration for unidirectional gRPC transport.
+	UniGRPC configtypes.UniGRPC `mapstructure:"uni_grpc" json:"uni_grpc" envconfig:"uni_grpc" toml:"uni_grpc" yaml:"uni_grpc"`
+	// Emulation endpoint is enabled automatically when at least one bidirectional emulation transport
+	// is configured (SSE or HTTP Stream).
+	Emulation configtypes.Emulation `mapstructure:"emulation" json:"emulation" envconfig:"emulation" toml:"emulation" yaml:"emulation"`
+	// Admin web UI configuration.
+	Admin configtypes.Admin `mapstructure:"admin" json:"admin" envconfig:"admin" toml:"admin" yaml:"admin"`
+	// Prometheus metrics configuration.
+	Prometheus configtypes.Prometheus `mapstructure:"prometheus" json:"prometheus" envconfig:"prometheus" toml:"prometheus" yaml:"prometheus"`
+	// Health check endpoint configuration.
+	Health configtypes.Health `mapstructure:"health" json:"health" envconfig:"health" toml:"health" yaml:"health"`
+	// Swagger documentation (for server HTTP API) configuration.
+	Swagger configtypes.Swagger `mapstructure:"swagger" json:"swagger" envconfig:"swagger" toml:"swagger" yaml:"swagger"`
+	// Debug helps to enable Go profiling endpoints.
+	Debug configtypes.Debug `mapstructure:"debug" json:"debug" envconfig:"debug" toml:"debug" yaml:"debug"`
 
-	// HttpAPI is a configuration for HTTP server API. It's enabled by default.
-	HttpAPI configtypes.HttpAPI `mapstructure:"http_api" json:"http_api" envconfig:"http_api"`
-	// GrpcAPI is a configuration for gRPC server API. It's disabled by default.
-	GrpcAPI configtypes.GrpcAPI `mapstructure:"grpc_api" json:"grpc_api" envconfig:"grpc_api"`
-	// Redis is a configuration for Redis engine.
-	Redis configtypes.RedisEngine `mapstructure:"redis" json:"redis" envconfig:"redis"`
-	// Nats is a configuration for NATS broker.
-	Nats configtypes.NatsBroker `mapstructure:"nats" json:"nats" envconfig:"nats"`
-
-	// UnifiedProxy is a helper configuration for events proxy. It can be referenced using UnifiedProxyName name.
-	UnifiedProxy configtypes.UnifiedProxy `mapstructure:"unified_proxy" json:"unified_proxy" envconfig:"unified_proxy"`
-	// Proxies is a configuration for granular events proxies. See also UnifiedProxy.
-	Proxies configtypes.Proxies `mapstructure:"proxies" json:"proxies" envconfig:"proxies"`
+	// HTTP3 enables HTTP/3 support. EXPERIMENTAL.
+	HTTP3 configtypes.HTTP3 `mapstructure:"http3" json:"http3" envconfig:"http3" toml:"http3" yaml:"http3"`
 
 	// OpenTelemetry is a configuration for OpenTelemetry tracing.
-	OpenTelemetry configtypes.OpenTelemetry `mapstructure:"opentelemetry" json:"opentelemetry" envconfig:"opentelemetry"`
+	OpenTelemetry configtypes.OpenTelemetry `mapstructure:"opentelemetry" json:"opentelemetry" envconfig:"opentelemetry" toml:"opentelemetry" yaml:"opentelemetry"`
 	// Graphite is a configuration for export metrics to Graphite.
-	Graphite configtypes.Graphite `mapstructure:"graphite" json:"graphite" envconfig:"graphite"`
+	Graphite configtypes.Graphite `mapstructure:"graphite" json:"graphite" envconfig:"graphite" toml:"graphite" yaml:"graphite"`
 	// UsageStats is a configuration for usage stats sending.
-	UsageStats configtypes.UsageStats `mapstructure:"usage_stats" json:"usage_stats" envconfig:"usage_stats"`
+	UsageStats configtypes.UsageStats `mapstructure:"usage_stats" json:"usage_stats" envconfig:"usage_stats" toml:"usage_stats" yaml:"usage_stats"`
 	// Node is a configuration for Centrifugo Node as part of cluster.
-	Node configtypes.Node `mapstructure:"node" json:"node" envconfig:"node"`
+	Node configtypes.Node `mapstructure:"node" json:"node" envconfig:"node" toml:"node" yaml:"node"`
 	// Shutdown is a configuration for graceful shutdown.
-	Shutdown configtypes.Shutdown `mapstructure:"shutdown" json:"shutdown" envconfig:"shutdown"`
+	Shutdown configtypes.Shutdown `mapstructure:"shutdown" json:"shutdown" envconfig:"shutdown" toml:"shutdown" yaml:"shutdown"`
 
 	// EnableUnreleasedFeatures enables unreleased features. These features are not stable and may be removed even
 	// in minor release update. Evaluate and share feedback if you find some feature useful and want it to be stabilized.
-	EnableUnreleasedFeatures bool `mapstructure:"enable_unreleased_features" json:"enable_unreleased_features" envconfig:"enable_unreleased_features"`
+	EnableUnreleasedFeatures bool `mapstructure:"enable_unreleased_features" json:"enable_unreleased_features" envconfig:"enable_unreleased_features" toml:"enable_unreleased_features" yaml:"enable_unreleased_features"`
 }
 
 type Meta struct {
@@ -175,23 +176,25 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 		}
 	}
 
-	v.SetConfigFile(configFile)
-
 	meta := Meta{}
 
-	err := v.ReadInConfig()
-	if err != nil {
-		var configFileNotFoundError viper.ConfigFileNotFoundError
-		if !errors.As(err, &configFileNotFoundError) {
-			meta.FileNotFound = true
-		} else {
-			return Config{}, Meta{}, fmt.Errorf("error reading config file: %w", err)
+	if configFile != "" {
+		v.SetConfigFile(configFile)
+		err := v.ReadInConfig()
+		if err != nil {
+			var configFileNotFoundError *os.PathError
+			if errors.As(err, &configFileNotFoundError) {
+				meta.FileNotFound = true
+			} else {
+				fmt.Println("error reading config file:", err)
+				return Config{}, Meta{}, fmt.Errorf("error reading config file: %w", err)
+			}
 		}
 	}
 
 	conf := &Config{}
 
-	err = v.Unmarshal(conf)
+	err := v.Unmarshal(conf)
 	if err != nil {
 		return Config{}, Meta{}, fmt.Errorf("error unmarshaling config: %w", err)
 	}
