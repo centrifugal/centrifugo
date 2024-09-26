@@ -2090,7 +2090,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 		if err != nil {
 			log.Fatal().Msgf("error creating connect proxy: %v", err)
 		}
-		log.Info().Str("endpoint", connectEndpoint).Msg("connect proxy enabled")
+		log.Info().Str("endpoint", tools.RedactedLogURLs(connectEndpoint)[0]).Msg("connect proxy enabled")
 	}
 
 	if refreshEndpoint != "" {
@@ -2101,7 +2101,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 		if err != nil {
 			log.Fatal().Msgf("error creating refresh proxy: %v", err)
 		}
-		log.Info().Str("endpoint", refreshEndpoint).Msg("refresh proxy enabled")
+		log.Info().Str("endpoint", tools.RedactedLogURLs(refreshEndpoint)[0]).Msg("refresh proxy enabled")
 	}
 
 	if subscribeEndpoint != "" {
@@ -2112,7 +2112,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 			log.Fatal().Msgf("error creating subscribe proxy: %v", err)
 		}
 		proxyMap.SubscribeProxies[""] = sp
-		log.Info().Str("endpoint", subscribeEndpoint).Msg("subscribe proxy enabled")
+		log.Info().Str("endpoint", tools.RedactedLogURLs(subscribeEndpoint)[0]).Msg("subscribe proxy enabled")
 	}
 
 	if publishEndpoint != "" {
@@ -2123,7 +2123,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 			log.Fatal().Msgf("error creating publish proxy: %v", err)
 		}
 		proxyMap.PublishProxies[""] = pp
-		log.Info().Str("endpoint", publishEndpoint).Msg("publish proxy enabled")
+		log.Info().Str("endpoint", tools.RedactedLogURLs(publishEndpoint)[0]).Msg("publish proxy enabled")
 	}
 
 	if rpcEndpoint != "" {
@@ -2134,7 +2134,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 			log.Fatal().Msgf("error creating rpc proxy: %v", err)
 		}
 		proxyMap.RpcProxies[""] = rp
-		log.Info().Str("endpoint", rpcEndpoint).Msg("RPC proxy enabled")
+		log.Info().Str("endpoint", tools.RedactedLogURLs(rpcEndpoint)[0]).Msg("RPC proxy enabled")
 	}
 
 	if subRefreshEndpoint != "" {
@@ -2145,7 +2145,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 			log.Fatal().Msgf("error creating sub refresh proxy: %v", err)
 		}
 		proxyMap.SubRefreshProxies[""] = srp
-		log.Info().Str("endpoint", subRefreshEndpoint).Msg("sub refresh proxy enabled")
+		log.Info().Str("endpoint", tools.RedactedLogURLs(subRefreshEndpoint)[0]).Msg("sub refresh proxy enabled")
 	}
 
 	if proxyStreamSubscribeEndpoint != "" {
@@ -2156,7 +2156,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 			log.Fatal().Msgf("error creating subscribe stream proxy: %v", err)
 		}
 		proxyMap.SubscribeStreamProxies[""] = streamProxy
-		log.Info().Str("endpoint", proxyStreamSubscribeEndpoint).Msg("subscribe stream proxy enabled")
+		log.Info().Str("endpoint", tools.RedactedLogURLs(proxyStreamSubscribeEndpoint)[0]).Msg("subscribe stream proxy enabled")
 	}
 
 	keepHeadersInContext := connectEndpoint != "" || refreshEndpoint != "" ||
