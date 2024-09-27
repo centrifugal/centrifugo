@@ -1,10 +1,26 @@
 package configtypes
 
 import (
+	"encoding/json"
+	"fmt"
 	"regexp"
 
 	"github.com/centrifugal/centrifuge"
 )
+
+type ChannelNamespaces []ChannelNamespace
+
+// Decode to implement the envconfig.Decoder interface
+func (d *ChannelNamespaces) Decode(value string) error {
+	// If the source is a string and the target is a slice, try to parse it as JSON.
+	var items ChannelNamespaces
+	err := json.Unmarshal([]byte(value), &items)
+	if err != nil {
+		return fmt.Errorf("error parsing items from JSON: %v", err)
+	}
+	*d = items
+	return nil
+}
 
 // ChannelNamespace allows creating channels with different channel options.
 type ChannelNamespace struct {

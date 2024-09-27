@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/centrifugal/centrifugo/v5/internal/middleware"
@@ -89,7 +90,7 @@ func requestMetadata(ctx context.Context, allowedHeaders []string, allowedMetaKe
 	requestMD := metadata.MD{}
 	if headers, ok := middleware.GetHeadersFromContext(ctx); ok {
 		for k, vv := range headers {
-			if stringInSlice(strings.ToLower(k), allowedHeaders) {
+			if slices.Contains(allowedHeaders, strings.ToLower(k)) {
 				requestMD.Set(k, vv...)
 			}
 		}
@@ -97,7 +98,7 @@ func requestMetadata(ctx context.Context, allowedHeaders []string, allowedMetaKe
 	}
 	md, _ := metadata.FromIncomingContext(ctx)
 	for k, vv := range md {
-		if stringInSlice(k, allowedMetaKeys) {
+		if slices.Contains(allowedMetaKeys, k) {
 			requestMD[k] = vv
 		}
 	}
@@ -115,7 +116,7 @@ func requestHeaders(ctx context.Context, allowedHeaders []string, allowedMetaKey
 	headers.Set("Content-Type", "application/json")
 	md, _ := metadata.FromIncomingContext(ctx)
 	for k, vv := range md {
-		if stringInSlice(k, allowedMetaKeys) {
+		if slices.Contains(allowedMetaKeys, k) {
 			headers[k] = vv
 		}
 	}

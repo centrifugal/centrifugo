@@ -81,7 +81,7 @@ func TestConfigEnvVars(t *testing.T) {
 	require.Len(t, meta.UnknownEnvs, 1)
 	require.Len(t, meta.UnknownKeys, 0)
 	require.Contains(t, meta.UnknownEnvs, "CENTRIFUGO_UNKNOWN_ENV")
-	require.Equal(t, configtypes.EnvStringStringMap(map[string]string{"key": "value"}), conf.UnifiedProxy.HTTP.StaticHeaders)
+	require.Equal(t, configtypes.MapStringString(map[string]string{"key": "value"}), conf.UnifiedProxy.HTTP.StaticHeaders)
 	require.Equal(t, configtypes.Duration(300*time.Millisecond), conf.WebSocket.WriteTimeout)
 	require.Len(t, conf.Proxies, 0)
 }

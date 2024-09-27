@@ -9,71 +9,6 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
-type EnvStringStringMap map[string]string
-
-func (s *EnvStringStringMap) Decode(value string) error {
-	var m map[string]string
-	err := json.Unmarshal([]byte(value), &m)
-	*s = m
-	return err
-}
-
-type ChannelNamespaces []ChannelNamespace
-
-// Decode to implement the envconfig.Decoder interface
-func (d *ChannelNamespaces) Decode(value string) error {
-	// If the source is a string and the target is a slice, try to parse it as JSON.
-	var items ChannelNamespaces
-	err := json.Unmarshal([]byte(value), &items)
-	if err != nil {
-		return fmt.Errorf("error parsing items from JSON: %v", err)
-	}
-	*d = items
-	return nil
-}
-
-type RPCNamespaces []RpcNamespace
-
-// Decode to implement the envconfig.Decoder interface
-func (d *RPCNamespaces) Decode(value string) error {
-	// If the source is a string and the target is a slice, try to parse it as JSON.
-	var items RPCNamespaces
-	err := json.Unmarshal([]byte(value), &items)
-	if err != nil {
-		return fmt.Errorf("error parsing items from JSON: %v", err)
-	}
-	*d = items
-	return nil
-}
-
-type Consumers []Consumer
-
-// Decode to implement the envconfig.Decoder interface
-func (d *Consumers) Decode(value string) error {
-	// If the source is a string and the target is a slice, try to parse it as JSON.
-	var items Consumers
-	err := json.Unmarshal([]byte(value), &items)
-	if err != nil {
-		return fmt.Errorf("error parsing items from JSON: %v", err)
-	}
-	*d = items
-	return nil
-}
-
-type Proxies []Proxy
-
-// Decode to implement the envconfig.Decoder interface
-func (d *Proxies) Decode(value string) error {
-	// If the source is a string and the target is a slice, try to parse it as JSON.
-	var items Proxies
-	err := json.Unmarshal([]byte(value), &items)
-	if err != nil {
-		return fmt.Errorf("error parsing utems from JSON: %v", err)
-	}
-	*d = items
-	return nil
-}
-
 type Token struct {
 	HMACSecretKey      string `mapstructure:"hmac_secret_key" json:"hmac_secret_key" envconfig:"hmac_secret_key" yaml:"hmac_secret_key" toml:"hmac_secret_key"`
 	RSAPublicKey       string `mapstructure:"rsa_public_key" json:"rsa_public_key" envconfig:"rsa_public_key" yaml:"rsa_public_key" toml:"rsa_public_key"`
@@ -214,7 +149,7 @@ type RawModeConfig struct {
 	// In this case Centrifugo will replace all ":" symbols in channel name with "." before sending to Nats.
 	// Broker keeps reverse mapping to the original channel to broadcast to proper channels when processing
 	// messages received from Nats.
-	ChannelReplacements EnvStringStringMap `mapstructure:"channel_replacements" default:"{}" json:"channel_replacements" envconfig:"channel_replacements" yaml:"channel_replacements" toml:"channel_replacements"`
+	ChannelReplacements MapStringString `mapstructure:"channel_replacements" default:"{}" json:"channel_replacements" envconfig:"channel_replacements" yaml:"channel_replacements" toml:"channel_replacements"`
 
 	// Prefix is a string that will be added to all channels when publishing messages to Nats, subscribing
 	// to channels in Nats. It's also stripped from channel name when processing messages received from Nats.
@@ -415,7 +350,7 @@ type ProxyCommonHTTP struct {
 	// StaticHeaders is a static set of key/value pairs to attach to HTTP proxy request as
 	// headers. Headers received from HTTP client request or metadata from GRPC client request
 	// both have priority over values set in StaticHttpHeaders map.
-	StaticHeaders EnvStringStringMap `mapstructure:"static_headers" default:"{}" json:"static_headers" envconfig:"static_headers" yaml:"static_headers" toml:"static_headers"`
+	StaticHeaders MapStringString `mapstructure:"static_headers" default:"{}" json:"static_headers" envconfig:"static_headers" yaml:"static_headers" toml:"static_headers"`
 }
 
 type ProxyCommonGRPC struct {
@@ -481,6 +416,20 @@ type Proxy struct {
 	TestGrpcDialer func(context.Context, string) (net.Conn, error) `json:"-" yaml:"-" toml:"-"`
 }
 
+type Proxies []Proxy
+
+// Decode to implement the envconfig.Decoder interface
+func (d *Proxies) Decode(value string) error {
+	// If the source is a string and the target is a slice, try to parse it as JSON.
+	var items Proxies
+	err := json.Unmarshal([]byte(value), &items)
+	if err != nil {
+		return fmt.Errorf("error parsing utems from JSON: %v", err)
+	}
+	*d = items
+	return nil
+}
+
 const (
 	ConsumerTypePostgres = "postgresql"
 	ConsumerTypeKafka    = "kafka"
@@ -505,6 +454,20 @@ type Consumer struct {
 	Postgres PostgresConsumerConfig `mapstructure:"postgresql" json:"postgresql" envconfig:"postgresql" yaml:"postgresql" toml:"postgresql"`
 	// Kafka allows defining options for consumer of kafka type.
 	Kafka KafkaConsumerConfig `mapstructure:"kafka" json:"kafka" envconfig:"kafka" yaml:"kafka" toml:"kafka"`
+}
+
+type Consumers []Consumer
+
+// Decode to implement the envconfig.Decoder interface
+func (d *Consumers) Decode(value string) error {
+	// If the source is a string and the target is a slice, try to parse it as JSON.
+	var items Consumers
+	err := json.Unmarshal([]byte(value), &items)
+	if err != nil {
+		return fmt.Errorf("error parsing items from JSON: %v", err)
+	}
+	*d = items
+	return nil
 }
 
 type PostgresConsumerConfig struct {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -92,18 +93,9 @@ func getProxyHeader(allHeader http.Header, allowedHeaders []string, staticHeader
 
 func copyHeader(dst, src http.Header, extraHeaders []string) {
 	for k, vv := range src {
-		if !stringInSlice(strings.ToLower(k), extraHeaders) {
+		if !slices.Contains(extraHeaders, strings.ToLower(k)) {
 			continue
 		}
 		dst[k] = vv
 	}
-}
-
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
 }

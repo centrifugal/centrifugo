@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"os"
+	"slices"
 	"strings"
 	"text/template"
 
@@ -23,15 +24,6 @@ type TemplateData struct {
 	RequestLower       string
 }
 
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
 func generateToFile(header, funcTmpl, outFile string, excludeRequests []string, includeRequests []string) {
 	tmpl := template.Must(template.New("").Parse(funcTmpl))
 
@@ -39,10 +31,10 @@ func generateToFile(header, funcTmpl, outFile string, excludeRequests []string, 
 	buf.WriteString(header)
 
 	for _, req := range gen.Requests {
-		if stringInSlice(req, excludeRequests) {
+		if slices.Contains(excludeRequests, req) {
 			continue
 		}
-		if len(includeRequests) > 0 && !stringInSlice(req, includeRequests) {
+		if len(includeRequests) > 0 && !slices.Contains(includeRequests, req) {
 			continue
 		}
 		err := tmpl.Execute(&buf, TemplateData{
