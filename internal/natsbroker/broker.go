@@ -52,7 +52,7 @@ func New(n *centrifuge.Node, conf Config) (*NatsBroker, error) {
 		clientChannelPrefix: conf.Prefix + ".client.",
 	}
 	if conf.RawMode.Enabled {
-		log.Info().Str("rawModePrefix", conf.RawMode.Prefix).Msg("Nats raw mode enabled")
+		log.Info().Str("raw_mode_prefix", conf.RawMode.Prefix).Msg("raw mode of Nats enabled")
 		if len(conf.RawMode.ChannelReplacements) > 0 {
 			var replacerArgs []string
 			for k, v := range conf.RawMode.ChannelReplacements {

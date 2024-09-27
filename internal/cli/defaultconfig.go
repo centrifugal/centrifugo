@@ -65,6 +65,9 @@ func DefaultConfig(configFile string, baseFile string, dryRun bool) {
 
 	supportedExtensions := []string{"json", "toml", "yaml", "yml"}
 
+	// This is an unreleased feature so we remove RedisNats from generated config.
+	conf.Broker.RedisNats = nil
+
 	jsonBytes, err := json.MarshalIndent(conf, "", "  ")
 	if err != nil {
 		fmt.Printf("error: %v\n", err)

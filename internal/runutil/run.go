@@ -19,9 +19,7 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/consuming"
 	"github.com/centrifugal/centrifugo/v5/internal/jwtverify"
 	"github.com/centrifugal/centrifugo/v5/internal/logging"
-	"github.com/centrifugal/centrifugo/v5/internal/natsbroker"
 	"github.com/centrifugal/centrifugo/v5/internal/notify"
-	"github.com/centrifugal/centrifugo/v5/internal/redisnatsbroker"
 	"github.com/centrifugal/centrifugo/v5/internal/service"
 	"github.com/centrifugal/centrifugo/v5/internal/survey"
 	"github.com/centrifugal/centrifugo/v5/internal/telemetry"
@@ -63,13 +61,12 @@ func Run(cmd *cobra.Command, configFile string) {
 		_, _ = maxprocs.Set()
 	}
 
-	engineName := cfg.Engine
-
 	log.Info().
 		Str("version", build.Version).
 		Str("runtime", runtime.Version()).
 		Int("pid", os.Getpid()).
-		Str("engine", engineName).
+		Str("broker", cfg.Broker.Type).
+		Str("presence_manager", cfg.PresenceManager.Type).
 		Int("gomaxprocs", runtime.GOMAXPROCS(0)).Msg("starting Centrifugo")
 
 	err = cfg.Validate()
@@ -98,58 +95,9 @@ func Run(cmd *cobra.Command, configFile string) {
 		}
 	}
 
-	brokerName := cfg.Broker
-	var broker centrifuge.Broker
-	var presenceManager centrifuge.PresenceManager
-
-	var engineMode string
-
-	if engineName == "memory" {
-		broker, presenceManager, engineMode, err = memoryEngine(node)
-	} else if engineName == "redis" {
-		broker, presenceManager, engineMode, err = redisEngine(node, cfgContainer)
-	} else if engineName == "redisnats" {
-		if !cfg.EnableUnreleasedFeatures {
-			log.Fatal().Msg("redisnats engine requires enable_unreleased_features on")
-		}
-		log.Warn().Msg("redisnats engine is not released, it may be changed or removed at any point")
-		var natsBroker *natsbroker.NatsBroker
-		var redisBroker *centrifuge.RedisBroker
-		redisBroker, presenceManager, engineMode, err = redisEngine(node, cfgContainer)
-		if err != nil {
-			log.Fatal().Msgf("error creating redis engine: %v", err)
-		}
-		natsBroker, err = NatsBroker(node, cfg)
-		if err != nil {
-			log.Fatal().Msgf("error creating nats broker: %v", err)
-		}
-		broker, err = redisnatsbroker.New(natsBroker, redisBroker)
-	} else {
-		log.Fatal().Msgf("unknown engine: %s", engineName)
-	}
+	modes, err := configureEngines(node, cfgContainer)
 	if err != nil {
-		log.Fatal().Msgf("error creating %s engine: %v", engineName, err)
-	}
-	node.SetBroker(broker)
-	node.SetPresenceManager(presenceManager)
-
-	var disableHistoryPresence bool
-	if engineName == "memory" && brokerName == "nats" {
-		// Presence and History won't work with Memory engine in distributed case.
-		disableHistoryPresence = true
-		node.SetPresenceManager(nil)
-	}
-
-	if disableHistoryPresence {
-		log.Warn().Msgf("presence, history and recovery disabled with Memory engine and Nats broker")
-	}
-
-	if brokerName == "nats" {
-		broker, err = NatsBroker(node, cfg)
-		if err != nil {
-			log.Fatal().Msgf("error creating broker: %v", err)
-		}
-		node.SetBroker(broker)
+		log.Fatal().Msgf("%v", err)
 	}
 
 	verifierConfig, err := confighelpers.MakeVerifierConfig(cfg.Client.Token)
@@ -252,12 +200,17 @@ func Run(cmd *cobra.Command, configFile string) {
 	var statsSender *usage.Sender
 	if !cfg.UsageStats.Disabled {
 		statsSender = usage.NewSender(node, cfgContainer, usage.Features{
-			Edition:    edition,
-			Version:    build.Version,
-			Engine:     engineName,
-			EngineMode: engineMode,
-			Broker:     brokerName,
-			BrokerMode: "",
+			Edition:                edition,
+			Version:                build.Version,
+			EngineEnabled:          !cfg.Broker.Enabled || !cfg.PresenceManager.Enabled,
+			EngineType:             cfg.Engine.Type,
+			EngineMode:             modes.engineMode,
+			BrokerEnabled:          cfg.Broker.Enabled,
+			BrokerType:             cfg.Broker.Type,
+			BrokerMode:             modes.brokerMode,
+			PresenceManagerEnabled: cfg.PresenceManager.Enabled,
+			PresenceManagerType:    cfg.PresenceManager.Type,
+			PresenceManagerMode:    modes.presenceManagerMode,
 
 			Websocket:     !cfg.WebSocket.Disabled,
 			HTTPStream:    cfg.HTTPStream.Enabled,

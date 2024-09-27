@@ -14,8 +14,8 @@ import (
 
 // Validate validates config and returns error if problems found.
 func (c Config) Validate() error {
-	if c.Broker != "" && c.Broker != "nats" {
-		return fmt.Errorf("unknown broker: %s", c.Broker)
+	if c.Broker.Type != "memory" && c.Broker.Type != "nats" && c.Broker.Type != "redis" && c.Broker.Type != "redisnats" {
+		return fmt.Errorf("unknown broker: %s", c.Broker.Type)
 	}
 
 	if err := validateTokens(c); err != nil {

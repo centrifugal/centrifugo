@@ -41,18 +41,22 @@ type Config struct {
 	// TLSExternal enables TLS only for external HTTP endpoints.
 	TLSExternal bool `mapstructure:"tls_external" json:"tls_external" envconfig:"tls_external" toml:"tls_external" yaml:"tls_external"`
 
-	// Engine to use: memory or redis. By default, memory engine is used. Memory engine is superfast,
-	// but it's not distributed and all data stored in memory (thus lost after node restart). Redis engine
-	// provides seamless horizontal scalability, fault-tolerance, and persistence over Centrifugo restarts.
-	// See also Broker option to run Centrifugo with Nats (only implements at most once PUB/SUB semantics).
-	Engine string `mapstructure:"engine" json:"engine" envconfig:"engine" default:"memory" toml:"engine" yaml:"engine"`
-	// Broker to use: the only option is nats.
-	Broker string `mapstructure:"broker" json:"broker" envconfig:"broker" toml:"broker" yaml:"broker"`
-
-	// Redis is a configuration for Redis engine.
-	Redis configtypes.RedisEngine `mapstructure:"redis" json:"redis" envconfig:"redis" toml:"redis" yaml:"redis"`
-	// Nats is a configuration for NATS broker.
-	Nats configtypes.NatsBroker `mapstructure:"nats" json:"nats" envconfig:"nats" toml:"nats" yaml:"nats"`
+	// Engine is a configuration for Centrifugo engine. It's a handy combination of Broker and PresenceManager.
+	// Currently only memory and redis engines are supported – both implement all the features. For more granular
+	// control use Broker and PresenceManager options.
+	Engine configtypes.Engine `mapstructure:"engine" json:"engine" envconfig:"engine" toml:"engine" yaml:"engine"`
+	// Broker allows to configure a message broker to use. Broker is responsible for PUB/SUB functionality
+	// and channel message history and idempotency cache .
+	// By default, memory Broker is used. Memory broker is superfast, but it's not distributed and all
+	// data stored in memory (thus lost after node restart). Redis Broker provides seamless horizontal
+	// scalability, fault-tolerance, and persistence over Centrifugo restarts. Centrifugo also supports
+	// Nats Broker which only implements at most once PUB/SUB semantics.
+	Broker configtypes.Broker `mapstructure:"broker" json:"broker" envconfig:"broker" toml:"broker" yaml:"broker"`
+	// PresenceManager allows to configure a presence manager to use. Presence manager is responsible for
+	// presence information storage and retrieval. By default, memory PresenceManager is used. Memory
+	// PresenceManager is superfast, but it's not distributed. Redis PresenceManager provides a seamless
+	// horizontal scalability.
+	PresenceManager configtypes.PresenceManager `mapstructure:"presence_manager" json:"presence_manager" envconfig:"presence_manager" toml:"presence_manager" yaml:"presence_manager"`
 
 	// Client contains real-time client connection related configuration.
 	Client configtypes.Client `mapstructure:"client" json:"client" envconfig:"client" toml:"client" yaml:"client"`
@@ -135,8 +139,8 @@ func DefineFlags(rootCmd *cobra.Command) {
 	rootCmd.Flags().StringP("port", "p", "8000", "port to bind HTTP server to")
 	rootCmd.Flags().StringP("internal_address", "", "", "custom interface address to listen on for internal endpoints")
 	rootCmd.Flags().StringP("internal_port", "", "", "custom port for internal endpoints")
-	rootCmd.Flags().StringP("engine", "e", "memory", "engine to use: memory or redis")
-	rootCmd.Flags().StringP("broker", "", "", "custom broker to use: ex. nats")
+	rootCmd.Flags().StringP("engine.type", "", "memory", "broker to use: ex. redis")
+	rootCmd.Flags().StringP("presence_manager.type", "", "memory", "presence manager to use: ex. redis")
 	rootCmd.Flags().StringP("log_level", "", "info", "set the log level: trace, debug, info, error, fatal or none")
 	rootCmd.Flags().StringP("log_file", "", "", "optional log file - if not specified logs go to STDOUT")
 	rootCmd.Flags().StringP("pid_file", "", "", "optional path to create PID file")
@@ -170,10 +174,11 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 	if cmd != nil {
 		bindPFlags := []string{
 			"port", "address", "internal_port", "internal_address", "log_level", "log_file", "pid_file",
-			"engine", "broker", "debug.enabled", "admin.enabled", "admin.external", "admin.insecure",
-			"client.insecure", "http_api.insecure", "http_api.external", "prometheus.enabled", "health.enabled",
-			"grpc_api.enabled", "grpc_api.port", "uni_grpc.enabled", "uni_grpc.port", "uni_websocket.enabled",
-			"uni_sse.enabled", "uni_http_stream.enabled", "sse.enabled", "http_stream.enabled", "swagger.enabled",
+			"engine.type", "broker.enabled", "broker.type", "presence_manager.enabled", "presence_manager.type",
+			"debug.enabled", "admin.enabled", "admin.external", "admin.insecure", "client.insecure", "http_api.insecure",
+			"http_api.external", "prometheus.enabled", "health.enabled", "grpc_api.enabled", "grpc_api.port",
+			"uni_grpc.enabled", "uni_grpc.port", "uni_websocket.enabled", "uni_sse.enabled", "uni_http_stream.enabled",
+			"sse.enabled", "http_stream.enabled", "swagger.enabled",
 		}
 		for _, flag := range bindPFlags {
 			_ = v.BindPFlag(flag, cmd.Flags().Lookup(flag))

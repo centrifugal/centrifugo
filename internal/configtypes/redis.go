@@ -19,38 +19,3 @@ type Redis struct {
 	TLS                TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
 	SentinelTLS        TLSConfig `mapstructure:"sentinel_tls" json:"sentinel_tls" envconfig:"sentinel_tls" yaml:"sentinel_tls" toml:"sentinel_tls"`
 }
-
-type RedisBrokerCommon struct {
-	UseLists bool `mapstructure:"use_lists" json:"use_lists" envconfig:"use_lists" yaml:"use_lists" toml:"use_lists"`
-}
-
-type RedisBroker struct {
-	Redis             `mapstructure:",squash" yaml:",inline"`
-	RedisBrokerCommon `mapstructure:",squash" yaml:",inline"`
-}
-
-type EngineRedisBroker struct {
-	RedisBrokerCommon `mapstructure:",squash" yaml:",inline"`
-}
-
-type RedisPresenceManagerCommon struct {
-	PresenceTTL          Duration `mapstructure:"presence_ttl" json:"presence_ttl" envconfig:"presence_ttl" default:"60s" yaml:"presence_ttl" toml:"presence_ttl"`
-	PresenceHashFieldTTL bool     `mapstructure:"presence_hash_field_ttl" json:"presence_hash_field_ttl" envconfig:"presence_hash_field_ttl" yaml:"presence_hash_field_ttl" toml:"presence_hash_field_ttl"`
-	PresenceUserMapping  bool     `mapstructure:"presence_user_mapping" json:"presence_user_mapping" envconfig:"presence_user_mapping" yaml:"presence_user_mapping" toml:"presence_user_mapping"`
-}
-
-type EngineRedisPresenceManager struct {
-	RedisPresenceManagerCommon `mapstructure:",squash" yaml:",inline"`
-}
-
-type RedisPresenceManager struct {
-	Redis                      `mapstructure:",squash" yaml:",inline"`
-	RedisPresenceManagerCommon `mapstructure:",squash" yaml:",inline"`
-}
-
-// RedisEngine configuration.
-type RedisEngine struct {
-	Redis                      `mapstructure:",squash" yaml:",inline"`
-	EngineRedisBroker          `mapstructure:",squash" yaml:",inline"`
-	EngineRedisPresenceManager `mapstructure:",squash" yaml:",inline"`
-}

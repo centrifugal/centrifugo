@@ -69,13 +69,16 @@ type rpcHandleTestCase struct {
 
 func (c rpcHandleTestCase) invokeHandle() (reply centrifuge.RPCReply, err error) {
 	rpcHandler := c.rpcProxyHandler.Handle(c.node)
-	cfgContainer, _ := config.NewContainer(config.Config{
-		RPC: configtypes.RPC{
-			WithoutNamespace: configtypes.RpcOptions{
-				RpcProxyName: "test",
-			},
+	cfg := config.DefaultConfig()
+	cfg.RPC = configtypes.RPC{
+		WithoutNamespace: configtypes.RpcOptions{
+			RpcProxyName: "test",
 		},
-	})
+	}
+	cfgContainer, err := config.NewContainer(cfg)
+	if err != nil {
+		return centrifuge.RPCReply{}, err
+	}
 	reply, err = rpcHandler(c.client, centrifuge.RPCEvent{}, cfgContainer, PerCallData{})
 
 	return reply, err
