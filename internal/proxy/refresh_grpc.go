@@ -39,7 +39,7 @@ func NewGRPCRefreshProxy(p Config) (*GRPCRefreshProxy, error) {
 
 // ProxyRefresh proxies refresh to application backend.
 func (p *GRPCRefreshProxy) ProxyRefresh(ctx context.Context, req *proxyproto.RefreshRequest) (*proxyproto.RefreshResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, p.config.Timeout)
+	ctx, cancel := context.WithTimeout(ctx, p.config.Timeout.ToDuration())
 	defer cancel()
 	return p.client.Refresh(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
 }

@@ -100,7 +100,7 @@ func TestHandlePublishWithResult(t *testing.T) {
 	customData := "test"
 	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
 	chOpts := configtypes.ChannelOptions{
-		HistoryTTL:       1 * time.Second,
+		HistoryTTL:       configtypes.Duration(1 * time.Second),
 		HistorySize:      1,
 		PublishProxyName: "test",
 	}
@@ -130,7 +130,7 @@ func TestHandlePublishWithSkipHistory(t *testing.T) {
 	customData := "test"
 	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
 	chOpts := configtypes.ChannelOptions{
-		HistoryTTL:       1 * time.Second,
+		HistoryTTL:       configtypes.Duration(1 * time.Second),
 		HistorySize:      1,
 		PublishProxyName: "test",
 	}

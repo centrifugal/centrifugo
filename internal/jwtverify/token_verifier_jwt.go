@@ -541,7 +541,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 				RecoveryMode:      recoveryMode,
 				Data:              data,
 				Source:            subsource.ConnectionToken,
-				HistoryMetaTTL:    chOpts.HistoryMetaTTL,
+				HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
 			}
 		}
 	} else if len(claims.Channels) > 0 {
@@ -561,7 +561,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 				EnablePositioning: chOpts.ForcePositioning,
 				RecoveryMode:      chOpts.GetRecoveryMode(),
 				Source:            subsource.ConnectionToken,
-				HistoryMetaTTL:    chOpts.HistoryMetaTTL,
+				HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
 			}
 		}
 	}

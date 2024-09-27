@@ -18,7 +18,7 @@ var _ RPCProxy = (*HTTPRPCProxy)(nil)
 func NewHTTPRPCProxy(p Config) (*HTTPRPCProxy, error) {
 	return &HTTPRPCProxy{
 		config:     p,
-		httpCaller: NewHTTPCaller(proxyHTTPClient(p.Timeout)),
+		httpCaller: NewHTTPCaller(proxyHTTPClient(p.Timeout.ToDuration())),
 	}, nil
 }
 

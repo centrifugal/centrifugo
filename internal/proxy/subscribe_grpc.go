@@ -39,7 +39,7 @@ func NewGRPCSubscribeProxy(p Config) (*GRPCSubscribeProxy, error) {
 
 // ProxySubscribe proxies Subscribe to application backend.
 func (p *GRPCSubscribeProxy) ProxySubscribe(ctx context.Context, req *proxyproto.SubscribeRequest) (*proxyproto.SubscribeResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, p.config.Timeout)
+	ctx, cancel := context.WithTimeout(ctx, p.config.Timeout.ToDuration())
 	defer cancel()
 	return p.client.Subscribe(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
 }

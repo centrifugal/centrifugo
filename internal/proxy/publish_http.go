@@ -30,7 +30,7 @@ var _ PublishProxy = (*HTTPPublishProxy)(nil)
 // NewHTTPPublishProxy ...
 func NewHTTPPublishProxy(p Config) (*HTTPPublishProxy, error) {
 	return &HTTPPublishProxy{
-		httpCaller: NewHTTPCaller(proxyHTTPClient(p.Timeout)),
+		httpCaller: NewHTTPCaller(proxyHTTPClient(p.Timeout.ToDuration())),
 		config:     p,
 	}, nil
 }

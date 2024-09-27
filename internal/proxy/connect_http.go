@@ -18,7 +18,7 @@ var _ ConnectProxy = (*HTTPConnectProxy)(nil)
 func NewHTTPConnectProxy(p Config) (*HTTPConnectProxy, error) {
 	return &HTTPConnectProxy{
 		config:     p,
-		httpCaller: NewHTTPCaller(proxyHTTPClient(p.Timeout)),
+		httpCaller: NewHTTPCaller(proxyHTTPClient(p.Timeout.ToDuration())),
 	}, nil
 }
 

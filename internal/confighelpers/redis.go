@@ -23,7 +23,7 @@ func CentrifugeRedisPresenceManager(n *centrifuge.Node, prefix string, shards []
 	presenceManagerConfig := centrifuge.RedisPresenceManagerConfig{
 		Shards:          shards,
 		Prefix:          prefix,
-		PresenceTTL:     cfg.PresenceTTL,
+		PresenceTTL:     cfg.PresenceTTL.ToDuration(),
 		UseHashFieldTTL: cfg.PresenceHashFieldTTL,
 	}
 	if cfg.PresenceUserMapping {
@@ -47,8 +47,8 @@ func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig, redisCo
 		}
 		shardConf.TLSConfig = tlsConfig
 	}
-	shardConf.ConnectTimeout = redisConf.ConnectTimeout
-	shardConf.IOTimeout = redisConf.IOTimeout
+	shardConf.ConnectTimeout = redisConf.ConnectTimeout.ToDuration()
+	shardConf.IOTimeout = redisConf.IOTimeout.ToDuration()
 	shardConf.ForceRESP2 = redisConf.ForceResp2
 	return nil
 }

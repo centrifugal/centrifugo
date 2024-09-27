@@ -51,5 +51,8 @@
         "x": "y"
       }
     }
+  },
+  "websocket": {
+    "write_timeout": "2s"
   }
 }

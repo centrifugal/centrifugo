@@ -18,7 +18,7 @@ var _ SubscribeProxy = (*HTTPSubscribeProxy)(nil)
 func NewHTTPSubscribeProxy(p Config) (*HTTPSubscribeProxy, error) {
 	return &HTTPSubscribeProxy{
 		config:     p,
-		httpCaller: NewHTTPCaller(proxyHTTPClient(p.Timeout)),
+		httpCaller: NewHTTPCaller(proxyHTTPClient(p.Timeout.ToDuration())),
 	}, nil
 }
 

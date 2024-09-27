@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
@@ -128,7 +130,7 @@ func TestPostgresConsumer_GreenScenario(t *testing.T) {
 		OutboxTableName:              testTableName,
 		PartitionSelectLimit:         10,
 		NumPartitions:                1,
-		PartitionPollInterval:        300 * time.Millisecond,
+		PartitionPollInterval:        configtypes.Duration(300 * time.Millisecond),
 		PartitionNotificationChannel: testNotificationChannel,
 	}
 	consumer, err := NewPostgresConsumer("test", &MockLogger{}, &MockDispatcher{
@@ -179,7 +181,7 @@ func TestPostgresConsumer_SeveralConsumers(t *testing.T) {
 		OutboxTableName:              testTableName,
 		PartitionSelectLimit:         10,
 		NumPartitions:                1,
-		PartitionPollInterval:        300 * time.Millisecond,
+		PartitionPollInterval:        configtypes.Duration(300 * time.Millisecond),
 		PartitionNotificationChannel: testNotificationChannel,
 	}
 
@@ -240,7 +242,7 @@ func TestPostgresConsumer_NotificationTrigger(t *testing.T) {
 		OutboxTableName:              testTableName,
 		PartitionSelectLimit:         1,
 		NumPartitions:                1,
-		PartitionPollInterval:        300 * time.Hour, // Set a long poll interval
+		PartitionPollInterval:        configtypes.Duration(300 * time.Hour), // Set a long poll interval
 		PartitionNotificationChannel: testNotificationChannel,
 	}
 
@@ -306,7 +308,7 @@ func TestPostgresConsumer_DifferentPartitions(t *testing.T) {
 		OutboxTableName:              testTableName,
 		PartitionSelectLimit:         10,
 		NumPartitions:                2,
-		PartitionPollInterval:        100 * time.Millisecond,
+		PartitionPollInterval:        configtypes.Duration(100 * time.Millisecond),
 		PartitionNotificationChannel: testNotificationChannel,
 	}
 

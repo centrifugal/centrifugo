@@ -39,7 +39,7 @@ func NewGRPCSubRefreshProxy(p Config) (*GRPCSubRefreshProxy, error) {
 
 // ProxySubRefresh proxies refresh to application backend.
 func (p *GRPCSubRefreshProxy) ProxySubRefresh(ctx context.Context, req *proxyproto.SubRefreshRequest) (*proxyproto.SubRefreshResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, p.config.Timeout)
+	ctx, cancel := context.WithTimeout(ctx, p.config.Timeout.ToDuration())
 	defer cancel()
 	return p.client.SubRefresh(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
 }

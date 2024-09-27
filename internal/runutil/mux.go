@@ -298,8 +298,8 @@ func getPingPongConfig(cfg config.Config) centrifuge.PingPongConfig {
 		log.Fatal().Msgf("ping_interval (%s) must be greater than pong_timeout (%s)", pingInterval, pongTimeout)
 	}
 	return centrifuge.PingPongConfig{
-		PingInterval: pingInterval,
-		PongTimeout:  pongTimeout,
+		PingInterval: pingInterval.ToDuration(),
+		PongTimeout:  pongTimeout.ToDuration(),
 	}
 }
 
@@ -311,7 +311,7 @@ func websocketHandlerConfig(appCfg config.Config) centrifuge.WebsocketConfig {
 	cfg.ReadBufferSize = appCfg.WebSocket.ReadBufferSize
 	cfg.WriteBufferSize = appCfg.WebSocket.WriteBufferSize
 	cfg.UseWriteBufferPool = appCfg.WebSocket.UseWriteBufferPool
-	cfg.WriteTimeout = appCfg.WebSocket.WriteTimeout
+	cfg.WriteTimeout = appCfg.WebSocket.WriteTimeout.ToDuration()
 	cfg.MessageSizeLimit = appCfg.WebSocket.MessageSizeLimit
 	cfg.CheckOrigin = getCheckOrigin(appCfg)
 	cfg.PingPongConfig = getPingPongConfig(appCfg)

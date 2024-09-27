@@ -148,7 +148,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 					EnablePositioning: chOpts.ForcePositioning,
 					RecoveryMode:      chOpts.GetRecoveryMode(),
 					Source:            subsource.ConnectProxy,
-					HistoryMetaTTL:    chOpts.HistoryMetaTTL,
+					HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
 				}
 			}
 		}
@@ -216,7 +216,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 					RecoveryMode:      recoveryMode,
 					Data:              chData,
 					Source:            subsource.ConnectProxy,
-					HistoryMetaTTL:    chOpts.HistoryMetaTTL,
+					HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
 				}
 			}
 		}

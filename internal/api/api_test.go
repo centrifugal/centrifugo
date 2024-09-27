@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
+
 	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
 	"github.com/centrifugal/centrifugo/v5/internal/config"
 
@@ -94,7 +96,7 @@ func TestHistoryAPI(t *testing.T) {
 
 	cfg = cfgContainer.Config()
 	cfg.Channel.WithoutNamespace.HistorySize = 1
-	cfg.Channel.WithoutNamespace.HistoryTTL = 1 * time.Second
+	cfg.Channel.WithoutNamespace.HistoryTTL = configtypes.Duration(1 * time.Second)
 	_ = cfgContainer.Reload(cfg)
 
 	resp = api.History(context.Background(), &HistoryRequest{Channel: "test"})
@@ -115,7 +117,7 @@ func TestHistoryRemoveAPI(t *testing.T) {
 
 	cfg = cfgContainer.Config()
 	cfg.Channel.WithoutNamespace.HistorySize = 1
-	cfg.Channel.WithoutNamespace.HistoryTTL = time.Second
+	cfg.Channel.WithoutNamespace.HistoryTTL = configtypes.Duration(time.Second)
 	_ = cfgContainer.Reload(cfg)
 
 	resp = api.HistoryRemove(context.Background(), &HistoryRemoveRequest{Channel: "test"})

@@ -92,8 +92,8 @@ func (b *NatsBroker) Run(h centrifuge.BrokerEventHandler) error {
 	options := []nats.Option{
 		nats.ReconnectBufSize(-1),
 		nats.MaxReconnects(-1),
-		nats.Timeout(b.config.DialTimeout),
-		nats.FlusherTimeout(b.config.WriteTimeout),
+		nats.Timeout(b.config.DialTimeout.ToDuration()),
+		nats.FlusherTimeout(b.config.WriteTimeout.ToDuration()),
 	}
 	if b.config.TLS.Enabled {
 		tlsConfig, err := b.config.TLS.ToGoTLSConfig()

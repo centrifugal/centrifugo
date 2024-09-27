@@ -30,3 +30,5 @@ consumers:
       tls:
         enabled: true
         cert_pem: xxx
+websocket:
+  write_timeout: 2s

@@ -26,7 +26,7 @@ var _ SubRefreshProxy = (*HTTPSubRefreshProxy)(nil)
 func NewHTTPSubRefreshProxy(p Config) (*HTTPSubRefreshProxy, error) {
 	return &HTTPSubRefreshProxy{
 		config:     p,
-		httpCaller: NewHTTPCaller(proxyHTTPClient(p.Timeout)),
+		httpCaller: NewHTTPCaller(proxyHTTPClient(p.Timeout.ToDuration())),
 	}, nil
 }
 

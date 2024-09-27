@@ -369,7 +369,7 @@ func handleSignals(
 			log.Info().Msg("shutting down ...")
 			pidFile := cfg.PidFile
 			shutdownTimeout := cfg.Shutdown.Timeout
-			go time.AfterFunc(shutdownTimeout, func() {
+			go time.AfterFunc(shutdownTimeout.ToDuration(), func() {
 				if pidFile != "" {
 					_ = os.Remove(pidFile)
 				}
@@ -403,7 +403,7 @@ func handleSignals(
 				}()
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+			ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout.ToDuration())
 
 			for _, srv := range httpServers {
 				wg.Add(1)

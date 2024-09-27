@@ -2,7 +2,6 @@ package configtypes
 
 import (
 	"regexp"
-	"time"
 
 	"github.com/centrifugal/centrifuge"
 )
@@ -54,12 +53,12 @@ type ChannelOptions struct {
 	// HistoryTTL is a time to live for history cache. Server maintains a window of
 	// messages in memory (or in Redis with Redis engine), to prevent infinite memory
 	// grows it's important to remove history for inactive channels.
-	HistoryTTL time.Duration `mapstructure:"history_ttl" json:"history_ttl" envconfig:"history_ttl" yaml:"history_ttl" toml:"history_ttl"`
+	HistoryTTL Duration `mapstructure:"history_ttl" json:"history_ttl" envconfig:"history_ttl" yaml:"history_ttl" toml:"history_ttl"`
 
 	// HistoryMetaTTL is a time to live for history stream meta information. Must be
 	// much larger than HistoryTTL in common scenario. If zero, then we use global value
 	// set over default_history_meta_ttl on configuration top level.
-	HistoryMetaTTL time.Duration `mapstructure:"history_meta_ttl" json:"history_meta_ttl" envconfig:"history_meta_ttl" yaml:"history_meta_ttl" toml:"history_meta_ttl"`
+	HistoryMetaTTL Duration `mapstructure:"history_meta_ttl" json:"history_meta_ttl" envconfig:"history_meta_ttl" yaml:"history_meta_ttl" toml:"history_meta_ttl"`
 
 	// ForcePositioning enables client positioning. This means that StreamPosition
 	// will be exposed to the client and server will look that no messages from

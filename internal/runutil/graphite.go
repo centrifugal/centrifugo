@@ -17,7 +17,7 @@ func graphiteExporter(cfg config.Config, nodeCfg centrifuge.Config) *graphite.Ex
 		Address:  net.JoinHostPort(cfg.Graphite.Host, strconv.Itoa(cfg.Graphite.Port)),
 		Gatherer: prometheus.DefaultGatherer,
 		Prefix:   strings.TrimSuffix(cfg.Graphite.Prefix, ".") + "." + graphite.PreparePathComponent(nodeCfg.Name),
-		Interval: cfg.Graphite.Interval,
+		Interval: cfg.Graphite.Interval.ToDuration(),
 		Tags:     cfg.Graphite.Tags,
 	})
 }

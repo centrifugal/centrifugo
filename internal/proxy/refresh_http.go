@@ -25,7 +25,7 @@ var _ RefreshProxy = (*HTTPRefreshProxy)(nil)
 func NewHTTPRefreshProxy(p Config) (*HTTPRefreshProxy, error) {
 	return &HTTPRefreshProxy{
 		config:     p,
-		httpCaller: NewHTTPCaller(proxyHTTPClient(p.Timeout)),
+		httpCaller: NewHTTPCaller(proxyHTTPClient(p.Timeout.ToDuration())),
 	}, nil
 }
 

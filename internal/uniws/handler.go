@@ -86,7 +86,7 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if pingInterval == 0 {
 		pingInterval = DefaultWebsocketPingInterval
 	}
-	writeTimeout := s.config.WriteTimeout
+	writeTimeout := s.config.WriteTimeout.ToDuration()
 	if writeTimeout == 0 {
 		writeTimeout = DefaultWebsocketWriteTimeout
 	}

@@ -116,8 +116,8 @@ func TestConfigValidateHistoryTTL(t *testing.T) {
 				Name: "name1",
 				ChannelOptions: configtypes.ChannelOptions{
 					HistorySize:    10,
-					HistoryTTL:     20 * time.Second,
-					HistoryMetaTTL: 10 * time.Second,
+					HistoryTTL:     configtypes.Duration(20 * time.Second),
+					HistoryMetaTTL: configtypes.Duration(10 * time.Second),
 				},
 			},
 		}
@@ -127,15 +127,15 @@ func TestConfigValidateHistoryTTL(t *testing.T) {
 	t.Run("on_top_level", func(t *testing.T) {
 		c := defaultConfig(t)
 		c.Channel.WithoutNamespace.HistorySize = 10
-		c.Channel.WithoutNamespace.HistoryTTL = 31 * 24 * time.Hour
+		c.Channel.WithoutNamespace.HistoryTTL = configtypes.Duration(31 * 24 * time.Hour)
 		err := c.Validate()
 		require.ErrorContains(t, err, "history meta ttl")
 	})
 	t.Run("top_level_non_default_global", func(t *testing.T) {
 		c := defaultConfig(t)
-		c.Channel.HistoryMetaTTL = 10 * time.Hour
+		c.Channel.HistoryMetaTTL = configtypes.Duration(10 * time.Hour)
 		c.Channel.WithoutNamespace.HistorySize = 10
-		c.Channel.WithoutNamespace.HistoryTTL = 30 * 24 * time.Hour
+		c.Channel.WithoutNamespace.HistoryTTL = configtypes.Duration(30 * 24 * time.Hour)
 		err := c.Validate()
 		require.ErrorContains(t, err, "history meta ttl")
 	})

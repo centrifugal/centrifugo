@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"time"
 
 	"github.com/centrifugal/centrifuge"
 )
@@ -97,16 +96,16 @@ type HTTP3 struct {
 }
 
 type WebSocket struct {
-	Disabled           bool          `mapstructure:"disabled" json:"disabled" envconfig:"disabled" yaml:"disabled" toml:"disabled"`
-	HandlerPrefix      string        `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/websocket" yaml:"handler_prefix" toml:"handler_prefix"`
-	Compression        bool          `mapstructure:"compression" json:"compression" envconfig:"compression" yaml:"compression" toml:"compression"`
-	CompressionMinSize int           `mapstructure:"compression_min_size" json:"compression_min_size" envconfig:"compression_min_size" yaml:"compression_min_size" toml:"compression_min_size"`
-	CompressionLevel   int           `mapstructure:"compression_level" json:"compression_level" envconfig:"compression_level" default:"1" yaml:"compression_level" toml:"compression_level"`
-	ReadBufferSize     int           `mapstructure:"read_buffer_size" json:"read_buffer_size" envconfig:"read_buffer_size" yaml:"read_buffer_size" toml:"read_buffer_size"`
-	UseWriteBufferPool bool          `mapstructure:"use_write_buffer_pool" json:"use_write_buffer_pool" envconfig:"use_write_buffer_pool" yaml:"use_write_buffer_pool" toml:"use_write_buffer_pool"`
-	WriteBufferSize    int           `mapstructure:"write_buffer_size" json:"write_buffer_size" envconfig:"write_buffer_size" yaml:"write_buffer_size" toml:"write_buffer_size"`
-	WriteTimeout       time.Duration `mapstructure:"write_timeout" json:"write_timeout" envconfig:"write_timeout" default:"1000ms" yaml:"write_timeout" toml:"write_timeout"`
-	MessageSizeLimit   int           `mapstructure:"message_size_limit" json:"message_size_limit" envconfig:"message_size_limit" default:"65536" yaml:"message_size_limit" toml:"message_size_limit"`
+	Disabled           bool     `mapstructure:"disabled" json:"disabled" envconfig:"disabled" yaml:"disabled" toml:"disabled"`
+	HandlerPrefix      string   `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/websocket" yaml:"handler_prefix" toml:"handler_prefix"`
+	Compression        bool     `mapstructure:"compression" json:"compression" envconfig:"compression" yaml:"compression" toml:"compression"`
+	CompressionMinSize int      `mapstructure:"compression_min_size" json:"compression_min_size" envconfig:"compression_min_size" yaml:"compression_min_size" toml:"compression_min_size"`
+	CompressionLevel   int      `mapstructure:"compression_level" json:"compression_level" envconfig:"compression_level" default:"1" yaml:"compression_level" toml:"compression_level"`
+	ReadBufferSize     int      `mapstructure:"read_buffer_size" json:"read_buffer_size" envconfig:"read_buffer_size" yaml:"read_buffer_size" toml:"read_buffer_size"`
+	UseWriteBufferPool bool     `mapstructure:"use_write_buffer_pool" json:"use_write_buffer_pool" envconfig:"use_write_buffer_pool" yaml:"use_write_buffer_pool" toml:"use_write_buffer_pool"`
+	WriteBufferSize    int      `mapstructure:"write_buffer_size" json:"write_buffer_size" envconfig:"write_buffer_size" yaml:"write_buffer_size" toml:"write_buffer_size"`
+	WriteTimeout       Duration `mapstructure:"write_timeout" json:"write_timeout" envconfig:"write_timeout" default:"1000ms" yaml:"write_timeout" toml:"write_timeout"`
+	MessageSizeLimit   int      `mapstructure:"message_size_limit" json:"message_size_limit" envconfig:"message_size_limit" default:"65536" yaml:"message_size_limit" toml:"message_size_limit"`
 }
 
 type SSE struct {
@@ -127,16 +126,16 @@ type WebTransport struct {
 }
 
 type UniWebSocket struct {
-	Enabled            bool          `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
-	HandlerPrefix      string        `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/uni_websocket" yaml:"handler_prefix" toml:"handler_prefix"`
-	Compression        bool          `mapstructure:"compression" json:"compression" envconfig:"compression" yaml:"compression" toml:"compression"`
-	CompressionMinSize int           `mapstructure:"compression_min_size" json:"compression_min_size" envconfig:"compression_min_size" yaml:"compression_min_size" toml:"compression_min_size"`
-	CompressionLevel   int           `mapstructure:"compression_level" json:"compression_level" envconfig:"compression_level" default:"1" yaml:"compression_level" toml:"compression_level"`
-	ReadBufferSize     int           `mapstructure:"read_buffer_size" json:"read_buffer_size" envconfig:"read_buffer_size" yaml:"read_buffer_size" toml:"read_buffer_size"`
-	UseWriteBufferPool bool          `mapstructure:"use_write_buffer_pool" json:"use_write_buffer_pool" envconfig:"use_write_buffer_pool" yaml:"use_write_buffer_pool" toml:"use_write_buffer_pool"`
-	WriteBufferSize    int           `mapstructure:"write_buffer_size" json:"write_buffer_size" envconfig:"write_buffer_size" yaml:"write_buffer_size" toml:"write_buffer_size"`
-	WriteTimeout       time.Duration `mapstructure:"write_timeout" json:"write_timeout" envconfig:"write_timeout" default:"1000ms" yaml:"write_timeout" toml:"write_timeout"`
-	MessageSizeLimit   int           `mapstructure:"message_size_limit" json:"message_size_limit" envconfig:"message_size_limit" default:"65536" yaml:"message_size_limit" toml:"message_size_limit"`
+	Enabled            bool     `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	HandlerPrefix      string   `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/uni_websocket" yaml:"handler_prefix" toml:"handler_prefix"`
+	Compression        bool     `mapstructure:"compression" json:"compression" envconfig:"compression" yaml:"compression" toml:"compression"`
+	CompressionMinSize int      `mapstructure:"compression_min_size" json:"compression_min_size" envconfig:"compression_min_size" yaml:"compression_min_size" toml:"compression_min_size"`
+	CompressionLevel   int      `mapstructure:"compression_level" json:"compression_level" envconfig:"compression_level" default:"1" yaml:"compression_level" toml:"compression_level"`
+	ReadBufferSize     int      `mapstructure:"read_buffer_size" json:"read_buffer_size" envconfig:"read_buffer_size" yaml:"read_buffer_size" toml:"read_buffer_size"`
+	UseWriteBufferPool bool     `mapstructure:"use_write_buffer_pool" json:"use_write_buffer_pool" envconfig:"use_write_buffer_pool" yaml:"use_write_buffer_pool" toml:"use_write_buffer_pool"`
+	WriteBufferSize    int      `mapstructure:"write_buffer_size" json:"write_buffer_size" envconfig:"write_buffer_size" yaml:"write_buffer_size" toml:"write_buffer_size"`
+	WriteTimeout       Duration `mapstructure:"write_timeout" json:"write_timeout" envconfig:"write_timeout" default:"1000ms" yaml:"write_timeout" toml:"write_timeout"`
+	MessageSizeLimit   int      `mapstructure:"message_size_limit" json:"message_size_limit" envconfig:"message_size_limit" default:"65536" yaml:"message_size_limit" toml:"message_size_limit"`
 }
 
 type UniHTTPStream struct {
@@ -167,10 +166,10 @@ type UniGRPC struct {
 type PingPong struct {
 	// PingInterval tells how often to issue server-to-client pings.
 	// To disable sending app-level pings use -1.
-	PingInterval time.Duration `mapstructure:"ping_interval" json:"ping_interval" envconfig:"ping_interval" default:"25s" yaml:"ping_interval" toml:"ping_interval"`
+	PingInterval Duration `mapstructure:"ping_interval" json:"ping_interval" envconfig:"ping_interval" default:"25s" yaml:"ping_interval" toml:"ping_interval"`
 	// PongTimeout sets time for pong check after issuing a ping. To disable pong checks use -1.
 	// PongTimeout must be less than PingInterval in current implementation.
-	PongTimeout time.Duration `mapstructure:"pong_timeout" json:"pong_timeout" envconfig:"pong_timeout" default:"8s" yaml:"pong_timeout" toml:"pong_timeout"`
+	PongTimeout Duration `mapstructure:"pong_timeout" json:"pong_timeout" envconfig:"pong_timeout" default:"8s" yaml:"pong_timeout" toml:"pong_timeout"`
 }
 
 // NatsBroker configuration.
@@ -179,11 +178,11 @@ type NatsBroker struct {
 	URL string `mapstructure:"url" json:"url" envconfig:"url" yaml:"url" toml:"url"`
 	// Prefix allows customizing channel prefix in Nats to work with a single Nats from different
 	// unrelated Centrifugo setups.
-	Prefix string `mapstructure:"prefix" json:"prefix" envconfig:"prefix" yaml:"prefix" toml:"prefix"`
+	Prefix string `mapstructure:"prefix" default:"centrifugo" json:"prefix" envconfig:"prefix" yaml:"prefix" toml:"prefix"`
 	// DialTimeout is a timeout for establishing connection to Nats.
-	DialTimeout time.Duration `mapstructure:"dial_timeout" json:"dial_timeout" envconfig:"dial_timeout" yaml:"dial_timeout" toml:"dial_timeout"`
+	DialTimeout Duration `mapstructure:"dial_timeout" default:"1s" json:"dial_timeout" envconfig:"dial_timeout" yaml:"dial_timeout" toml:"dial_timeout"`
 	// WriteTimeout is a timeout for write operation to Nats.
-	WriteTimeout time.Duration `mapstructure:"write_timeout" json:"write_timeout" envconfig:"write_timeout" yaml:"write_timeout" toml:"write_timeout"`
+	WriteTimeout Duration `mapstructure:"write_timeout" default:"1s" json:"write_timeout" envconfig:"write_timeout" yaml:"write_timeout" toml:"write_timeout"`
 	// TLS for the Nats connection. TLS is not used if nil.
 	TLS TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
 
@@ -215,7 +214,7 @@ type RawModeConfig struct {
 	// In this case Centrifugo will replace all ":" symbols in channel name with "." before sending to Nats.
 	// Broker keeps reverse mapping to the original channel to broadcast to proper channels when processing
 	// messages received from Nats.
-	ChannelReplacements EnvStringStringMap `mapstructure:"channel_replacements" json:"channel_replacements" envconfig:"channel_replacements" yaml:"channel_replacements" toml:"channel_replacements"`
+	ChannelReplacements EnvStringStringMap `mapstructure:"channel_replacements" default:"{}" json:"channel_replacements" envconfig:"channel_replacements" yaml:"channel_replacements" toml:"channel_replacements"`
 
 	// Prefix is a string that will be added to all channels when publishing messages to Nats, subscribing
 	// to channels in Nats. It's also stripped from channel name when processing messages received from Nats.
@@ -250,12 +249,12 @@ type GrpcAPI struct {
 }
 
 type Graphite struct {
-	Enabled  bool          `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
-	Host     string        `mapstructure:"host" json:"host" envconfig:"host" default:"localhost" yaml:"host" toml:"host"`
-	Port     int           `mapstructure:"port" json:"port" envconfig:"port" default:"2003" yaml:"port" toml:"port"`
-	Prefix   string        `mapstructure:"prefix" json:"prefix" envconfig:"prefix" default:"centrifugo" yaml:"prefix" toml:"prefix"`
-	Interval time.Duration `mapstructure:"interval" json:"interval" envconfig:"interval" default:"10s" yaml:"interval" toml:"interval"`
-	Tags     bool          `mapstructure:"tags" json:"tags" envconfig:"tags" yaml:"tags" toml:"tags"`
+	Enabled  bool     `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	Host     string   `mapstructure:"host" json:"host" envconfig:"host" default:"localhost" yaml:"host" toml:"host"`
+	Port     int      `mapstructure:"port" json:"port" envconfig:"port" default:"2003" yaml:"port" toml:"port"`
+	Prefix   string   `mapstructure:"prefix" json:"prefix" envconfig:"prefix" default:"centrifugo" yaml:"prefix" toml:"prefix"`
+	Interval Duration `mapstructure:"interval" json:"interval" envconfig:"interval" default:"10s" yaml:"interval" toml:"interval"`
+	Tags     bool     `mapstructure:"tags" json:"tags" envconfig:"tags" yaml:"tags" toml:"tags"`
 }
 
 type Emulation struct {
@@ -288,7 +287,7 @@ type Debug struct {
 }
 
 type Shutdown struct {
-	Timeout time.Duration `mapstructure:"timeout" json:"timeout" envconfig:"timeout" default:"30s" yaml:"timeout" toml:"timeout"`
+	Timeout Duration `mapstructure:"timeout" json:"timeout" envconfig:"timeout" default:"30s" yaml:"timeout" toml:"timeout"`
 }
 
 type Client struct {
@@ -319,15 +318,15 @@ type Client struct {
 	PingPong `mapstructure:",squash" yaml:",inline"`
 
 	AllowedDeltaTypes                []centrifuge.DeltaType `mapstructure:"allowed_delta_types" json:"allowed_delta_types" envconfig:"allowed_delta_types" yaml:"allowed_delta_types" toml:"allowed_delta_types"`
-	ExpiredCloseDelay                time.Duration          `mapstructure:"expired_close_delay" json:"expired_close_delay" envconfig:"expired_close_delay" default:"25s" yaml:"expired_close_delay" toml:"expired_close_delay"`
-	ExpiredSubCloseDelay             time.Duration          `mapstructure:"expired_sub_close_delay" json:"expired_sub_close_delay" envconfig:"expired_sub_close_delay" default:"25s" yaml:"expired_sub_close_delay" toml:"expired_sub_close_delay"`
-	StaleCloseDelay                  time.Duration          `mapstructure:"stale_close_delay" json:"stale_close_delay" envconfig:"stale_close_delay" default:"10s" yaml:"stale_close_delay" toml:"stale_close_delay"`
+	ExpiredCloseDelay                Duration               `mapstructure:"expired_close_delay" json:"expired_close_delay" envconfig:"expired_close_delay" default:"25s" yaml:"expired_close_delay" toml:"expired_close_delay"`
+	ExpiredSubCloseDelay             Duration               `mapstructure:"expired_sub_close_delay" json:"expired_sub_close_delay" envconfig:"expired_sub_close_delay" default:"25s" yaml:"expired_sub_close_delay" toml:"expired_sub_close_delay"`
+	StaleCloseDelay                  Duration               `mapstructure:"stale_close_delay" json:"stale_close_delay" envconfig:"stale_close_delay" default:"10s" yaml:"stale_close_delay" toml:"stale_close_delay"`
 	ChannelLimit                     int                    `mapstructure:"channel_limit" json:"channel_limit" envconfig:"channel_limit" default:"128" yaml:"channel_limit" toml:"channel_limit"`
 	QueueMaxSize                     int                    `mapstructure:"queue_max_size" json:"queue_max_size" envconfig:"queue_max_size" default:"1048576" yaml:"queue_max_size" toml:"queue_max_size"`
-	PresenceUpdateInterval           time.Duration          `mapstructure:"presence_update_interval" json:"presence_update_interval" envconfig:"presence_update_interval" default:"27s" yaml:"presence_update_interval" toml:"presence_update_interval"`
+	PresenceUpdateInterval           Duration               `mapstructure:"presence_update_interval" json:"presence_update_interval" envconfig:"presence_update_interval" default:"27s" yaml:"presence_update_interval" toml:"presence_update_interval"`
 	Concurrency                      int                    `mapstructure:"concurrency" json:"concurrency" envconfig:"concurrency" yaml:"concurrency" toml:"concurrency"`
-	ChannelPositionCheckDelay        time.Duration          `mapstructure:"channel_position_check_delay" json:"channel_position_check_delay" envconfig:"channel_position_check_delay" default:"40s" yaml:"channel_position_check_delay" toml:"channel_position_check_delay"`
-	ChannelPositionMaxTimeLag        time.Duration          `mapstructure:"channel_position_max_time_lag" json:"channel_position_max_time_lag" envconfig:"channel_position_max_time_lag" yaml:"channel_position_max_time_lag" toml:"channel_position_max_time_lag"`
+	ChannelPositionCheckDelay        Duration               `mapstructure:"channel_position_check_delay" json:"channel_position_check_delay" envconfig:"channel_position_check_delay" default:"40s" yaml:"channel_position_check_delay" toml:"channel_position_check_delay"`
+	ChannelPositionMaxTimeLag        Duration               `mapstructure:"channel_position_max_time_lag" json:"channel_position_max_time_lag" envconfig:"channel_position_max_time_lag" yaml:"channel_position_max_time_lag" toml:"channel_position_max_time_lag"`
 	ConnectionLimit                  int                    `mapstructure:"connection_limit" json:"connection_limit" envconfig:"connection_limit" yaml:"connection_limit" toml:"connection_limit"`
 	UserConnectionLimit              int                    `mapstructure:"user_connection_limit" json:"user_connection_limit" envconfig:"user_connection_limit" yaml:"user_connection_limit" toml:"user_connection_limit"`
 	ConnectionRateLimit              int                    `mapstructure:"connection_rate_limit" json:"connection_rate_limit" envconfig:"connection_rate_limit" yaml:"connection_rate_limit" toml:"connection_rate_limit"`
@@ -348,11 +347,11 @@ type Channel struct {
 	// Generally, we recommend always use channel namespaces but this option can be useful for simple setups.
 	WithoutNamespace ChannelOptions `mapstructure:"without_namespace" json:"without_namespace" envconfig:"without_namespace" yaml:"without_namespace" toml:"without_namespace"`
 	// Namespaces is a list of channel namespaces. Each channel namespace can have its own set of rules.
-	Namespaces ChannelNamespaces `mapstructure:"namespaces" json:"namespaces" envconfig:"namespaces" yaml:"namespaces" toml:"namespaces"`
+	Namespaces ChannelNamespaces `mapstructure:"namespaces" default:"[]" json:"namespaces" envconfig:"namespaces" yaml:"namespaces" toml:"namespaces"`
 
 	// HistoryTTL is a time how long to keep history meta information. This is a global option for all channels,
 	// but it can be overridden in channel namespace.
-	HistoryMetaTTL time.Duration `mapstructure:"history_meta_ttl" json:"history_meta_ttl" envconfig:"history_meta_ttl" default:"720h" yaml:"history_meta_ttl" toml:"history_meta_ttl"`
+	HistoryMetaTTL Duration `mapstructure:"history_meta_ttl" json:"history_meta_ttl" envconfig:"history_meta_ttl" default:"720h" yaml:"history_meta_ttl" toml:"history_meta_ttl"`
 
 	MaxLength         int    `mapstructure:"max_length" json:"max_length" envconfig:"max_length" default:"255" yaml:"max_length" toml:"max_length"`
 	PrivatePrefix     string `mapstructure:"private_prefix" json:"private_prefix" envconfig:"private_prefix" default:"$" yaml:"private_prefix" toml:"private_prefix"`
@@ -366,7 +365,7 @@ type RPC struct {
 	// we recommend always use rpc namespaces but this option can be useful for simple setups.
 	WithoutNamespace RpcOptions `mapstructure:"without_namespace" json:"without_namespace" envconfig:"without_namespace" yaml:"without_namespace" toml:"without_namespace"`
 	// RPCNamespaces is a list of rpc namespaces. Each rpc namespace can have its own set of rules.
-	Namespaces RPCNamespaces `mapstructure:"namespaces" json:"namespaces" envconfig:"namespaces" yaml:"namespaces" toml:"namespaces"`
+	Namespaces RPCNamespaces `mapstructure:"namespaces" default:"[]" json:"namespaces" envconfig:"namespaces" yaml:"namespaces" toml:"namespaces"`
 
 	Ping              bool   `mapstructure:"ping" json:"ping" envconfig:"ping" yaml:"ping" toml:"ping"`
 	PingMethod        string `mapstructure:"ping_method" json:"ping_method" envconfig:"ping_method" default:"ping" yaml:"ping_method" toml:"ping_method"`
@@ -386,7 +385,7 @@ type Node struct {
 	// generated on node start, so node name plays just a human-readable identifier role.
 	Name string `mapstructure:"name" json:"name" envconfig:"name" yaml:"name" toml:"name"`
 	// InfoMetricsAggregateInterval is a time interval to aggregate node info metrics.
-	InfoMetricsAggregateInterval time.Duration `mapstructure:"info_metrics_aggregate_interval" json:"info_metrics_aggregate_interval" envconfig:"info_metrics_aggregate_interval" default:"60s" yaml:"info_metrics_aggregate_interval" toml:"info_metrics_aggregate_interval"`
+	InfoMetricsAggregateInterval Duration `mapstructure:"info_metrics_aggregate_interval" json:"info_metrics_aggregate_interval" envconfig:"info_metrics_aggregate_interval" default:"60s" yaml:"info_metrics_aggregate_interval" toml:"info_metrics_aggregate_interval"`
 }
 
 type Admin struct {
@@ -416,7 +415,7 @@ type ProxyCommonHTTP struct {
 	// StaticHeaders is a static set of key/value pairs to attach to HTTP proxy request as
 	// headers. Headers received from HTTP client request or metadata from GRPC client request
 	// both have priority over values set in StaticHttpHeaders map.
-	StaticHeaders EnvStringStringMap `mapstructure:"static_headers" json:"static_headers" envconfig:"static_headers" yaml:"static_headers" toml:"static_headers"`
+	StaticHeaders EnvStringStringMap `mapstructure:"static_headers" default:"{}" json:"static_headers" envconfig:"static_headers" yaml:"static_headers" toml:"static_headers"`
 }
 
 type ProxyCommonGRPC struct {
@@ -456,13 +455,13 @@ type UnifiedProxy struct {
 	RPCEndpoint             string `mapstructure:"rpc_endpoint" json:"rpc_endpoint" envconfig:"rpc_endpoint" yaml:"rpc_endpoint" toml:"rpc_endpoint"`
 	SubscribeStreamEndpoint string `mapstructure:"subscribe_stream_endpoint" json:"subscribe_stream_endpoint" envconfig:"subscribe_stream_endpoint" yaml:"subscribe_stream_endpoint" toml:"subscribe_stream_endpoint"`
 
-	ConnectTimeout         time.Duration `mapstructure:"connect_timeout" json:"connect_timeout" envconfig:"connect_timeout" default:"1s" yaml:"connect_timeout" toml:"connect_timeout"`
-	RPCTimeout             time.Duration `mapstructure:"rpc_timeout" json:"rpc_timeout" envconfig:"rpc_timeout" default:"1s" yaml:"rpc_timeout" toml:"rpc_timeout"`
-	RefreshTimeout         time.Duration `mapstructure:"refresh_timeout" json:"refresh_timeout" envconfig:"refresh_timeout" default:"1s" yaml:"refresh_timeout" toml:"refresh_timeout"`
-	SubscribeTimeout       time.Duration `mapstructure:"subscribe_timeout" json:"subscribe_timeout" envconfig:"subscribe_timeout" default:"1s" yaml:"subscribe_timeout" toml:"subscribe_timeout"`
-	PublishTimeout         time.Duration `mapstructure:"publish_timeout" json:"publish_timeout" envconfig:"publish_timeout" default:"1s" yaml:"publish_timeout" toml:"publish_timeout"`
-	SubRefreshTimeout      time.Duration `mapstructure:"sub_refresh_timeout" json:"sub_refresh_timeout" envconfig:"sub_refresh_timeout" default:"1s" yaml:"sub_refresh_timeout" toml:"sub_refresh_timeout"`
-	SubscribeStreamTimeout time.Duration `mapstructure:"subscribe_stream_timeout" json:"subscribe_stream_timeout" envconfig:"subscribe_stream_timeout" default:"1s" yaml:"subscribe_stream_timeout" toml:"subscribe_stream_timeout"`
+	ConnectTimeout         Duration `mapstructure:"connect_timeout" json:"connect_timeout" envconfig:"connect_timeout" default:"1s" yaml:"connect_timeout" toml:"connect_timeout"`
+	RPCTimeout             Duration `mapstructure:"rpc_timeout" json:"rpc_timeout" envconfig:"rpc_timeout" default:"1s" yaml:"rpc_timeout" toml:"rpc_timeout"`
+	RefreshTimeout         Duration `mapstructure:"refresh_timeout" json:"refresh_timeout" envconfig:"refresh_timeout" default:"1s" yaml:"refresh_timeout" toml:"refresh_timeout"`
+	SubscribeTimeout       Duration `mapstructure:"subscribe_timeout" json:"subscribe_timeout" envconfig:"subscribe_timeout" default:"1s" yaml:"subscribe_timeout" toml:"subscribe_timeout"`
+	PublishTimeout         Duration `mapstructure:"publish_timeout" json:"publish_timeout" envconfig:"publish_timeout" default:"1s" yaml:"publish_timeout" toml:"publish_timeout"`
+	SubRefreshTimeout      Duration `mapstructure:"sub_refresh_timeout" json:"sub_refresh_timeout" envconfig:"sub_refresh_timeout" default:"1s" yaml:"sub_refresh_timeout" toml:"sub_refresh_timeout"`
+	SubscribeStreamTimeout Duration `mapstructure:"subscribe_stream_timeout" json:"subscribe_stream_timeout" envconfig:"subscribe_stream_timeout" default:"1s" yaml:"subscribe_stream_timeout" toml:"subscribe_stream_timeout"`
 
 	ProxyCommon `mapstructure:",squash" yaml:",inline"`
 }
@@ -475,7 +474,7 @@ type Proxy struct {
 	// Endpoint - HTTP address or GRPC service endpoint.
 	Endpoint string `mapstructure:"endpoint" json:"endpoint" envconfig:"endpoint" yaml:"endpoint" toml:"endpoint"`
 	// Timeout for proxy request.
-	Timeout time.Duration `mapstructure:"timeout" json:"timeout" envconfig:"timeout" yaml:"timeout" toml:"timeout"`
+	Timeout Duration `mapstructure:"timeout" default:"1s" json:"timeout" envconfig:"timeout" yaml:"timeout" toml:"timeout"`
 
 	ProxyCommon `mapstructure:",squash" yaml:",inline"`
 
@@ -509,13 +508,13 @@ type Consumer struct {
 }
 
 type PostgresConsumerConfig struct {
-	DSN                          string        `mapstructure:"dsn" json:"dsn" envconfig:"dsn" yaml:"dsn" toml:"dsn"`
-	OutboxTableName              string        `mapstructure:"outbox_table_name" json:"outbox_table_name" envconfig:"outbox_table_name" yaml:"outbox_table_name" toml:"outbox_table_name"`
-	NumPartitions                int           `mapstructure:"num_partitions" json:"num_partitions" envconfig:"num_partitions" default:"1" yaml:"num_partitions" toml:"num_partitions"`
-	PartitionSelectLimit         int           `mapstructure:"partition_select_limit" json:"partition_select_limit" envconfig:"partition_select_limit" default:"100" yaml:"partition_select_limit" toml:"partition_select_limit"`
-	PartitionPollInterval        time.Duration `mapstructure:"partition_poll_interval" json:"partition_poll_interval" envconfig:"partition_poll_interval" default:"300ms" yaml:"partition_poll_interval" toml:"partition_poll_interval"`
-	PartitionNotificationChannel string        `mapstructure:"partition_notification_channel" json:"partition_notification_channel" envconfig:"partition_notification_channel" yaml:"partition_notification_channel" toml:"partition_notification_channel"`
-	TLS                          TLSConfig     `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
+	DSN                          string    `mapstructure:"dsn" json:"dsn" envconfig:"dsn" yaml:"dsn" toml:"dsn"`
+	OutboxTableName              string    `mapstructure:"outbox_table_name" json:"outbox_table_name" envconfig:"outbox_table_name" yaml:"outbox_table_name" toml:"outbox_table_name"`
+	NumPartitions                int       `mapstructure:"num_partitions" json:"num_partitions" envconfig:"num_partitions" default:"1" yaml:"num_partitions" toml:"num_partitions"`
+	PartitionSelectLimit         int       `mapstructure:"partition_select_limit" json:"partition_select_limit" envconfig:"partition_select_limit" default:"100" yaml:"partition_select_limit" toml:"partition_select_limit"`
+	PartitionPollInterval        Duration  `mapstructure:"partition_poll_interval" json:"partition_poll_interval" envconfig:"partition_poll_interval" default:"300ms" yaml:"partition_poll_interval" toml:"partition_poll_interval"`
+	PartitionNotificationChannel string    `mapstructure:"partition_notification_channel" json:"partition_notification_channel" envconfig:"partition_notification_channel" yaml:"partition_notification_channel" toml:"partition_notification_channel"`
+	TLS                          TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
 }
 
 type KafkaConsumerConfig struct {

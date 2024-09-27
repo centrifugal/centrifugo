@@ -46,8 +46,12 @@ func DefaultConfig(configFile string, baseFile string, dryRun bool) {
 			os.Exit(1)
 		}
 	}
-	conf, _, _ := config.GetConfig(nil, baseFile)
-	if err := conf.Validate(); err != nil {
+	conf, _, err := config.GetConfig(nil, baseFile)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		os.Exit(1)
+	}
+	if err = conf.Validate(); err != nil {
 		fmt.Printf("error: %v\n", err)
 		os.Exit(1)
 	}

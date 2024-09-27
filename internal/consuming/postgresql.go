@@ -35,7 +35,7 @@ func NewPostgresConsumer(name string, logger Logger, dispatcher Dispatcher, conf
 		config.PartitionSelectLimit = defaultPartitionSelectLimit
 	}
 	if config.PartitionPollInterval == 0 {
-		config.PartitionPollInterval = 300 * time.Millisecond
+		config.PartitionPollInterval = configtypes.Duration(300 * time.Millisecond)
 	}
 	conf, err := pgxpool.ParseConfig(config.DSN)
 	if err != nil {
@@ -278,7 +278,7 @@ func (c *PostgresConsumer) Run(ctx context.Context) error {
 					// If worker processed less than a limit events - then it means table
 					// is empty now or some events
 					select {
-					case <-time.After(pollInterval):
+					case <-time.After(pollInterval.ToDuration()):
 					case <-partitionTriggerChannels[i]:
 					case <-ctx.Done():
 						return ctx.Err()

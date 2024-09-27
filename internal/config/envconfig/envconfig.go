@@ -243,6 +243,11 @@ func MustProcess(prefix string, spec interface{}) {
 const SliceSep = " "
 
 func processField(value string, field reflect.Value, defaultIsUsed bool) error {
+	// If the value is default but field is not zero already, we don't want to overwrite it.
+	if defaultIsUsed && !field.IsZero() {
+		return nil
+	}
+
 	typ := field.Type()
 
 	decoder := decoderFrom(field)
@@ -271,11 +276,6 @@ func processField(value string, field reflect.Value, defaultIsUsed bool) error {
 		field = field.Elem()
 	}
 
-	// If the value is default but field is not zero already, we don't want to overwrite it
-	if defaultIsUsed && !field.IsZero() {
-		return nil
-	}
-
 	switch typ.Kind() {
 	case reflect.String:
 		field.SetString(value)
@@ -284,7 +284,7 @@ func processField(value string, field reflect.Value, defaultIsUsed bool) error {
 			val int64
 			err error
 		)
-		if field.Kind() == reflect.Int64 && typ.PkgPath() == "time" && typ.Name() == "Duration" {
+		if field.Kind() == reflect.Int64 && typ.Name() == "Duration" {
 			var d time.Duration
 			d, err = time.ParseDuration(value)
 			val = int64(d)

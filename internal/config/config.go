@@ -11,6 +11,7 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/config/envconfig"
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-envparse"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -68,11 +69,11 @@ type Config struct {
 	// UnifiedProxy is a helper configuration for events proxy. It can be referenced using UnifiedProxyName name.
 	UnifiedProxy configtypes.UnifiedProxy `mapstructure:"unified_proxy" json:"unified_proxy" envconfig:"unified_proxy" toml:"unified_proxy" yaml:"unified_proxy"`
 	// Proxies is a configuration for granular events proxies. See also UnifiedProxy.
-	Proxies configtypes.Proxies `mapstructure:"proxies" json:"proxies" envconfig:"proxies" toml:"proxies" yaml:"proxies"`
+	Proxies configtypes.Proxies `mapstructure:"proxies" default:"[]" json:"proxies" envconfig:"proxies" toml:"proxies" yaml:"proxies"`
 
 	// Consumers is a configuration for message queue consumers. For example, Centrifugo can consume
 	// messages from PostgreSQL transactional outbox table, or from Kafka topics.
-	Consumers configtypes.Consumers `mapstructure:"consumers" json:"consumers" envconfig:"consumers" toml:"consumers" yaml:"consumers"`
+	Consumers configtypes.Consumers `mapstructure:"consumers" default:"[]" json:"consumers" envconfig:"consumers" toml:"consumers" yaml:"consumers"`
 
 	// WebSocket configuration. This transport is enabled by default.
 	WebSocket configtypes.WebSocket `mapstructure:"websocket" json:"websocket" envconfig:"websocket" toml:"websocket" yaml:"websocket"`
@@ -161,7 +162,10 @@ func DefineFlags(rootCmd *cobra.Command) {
 }
 
 func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
-	v := viper.NewWithOptions()
+	v := viper.NewWithOptions(viper.WithDecodeHook(mapstructure.ComposeDecodeHookFunc(
+		mapstructure.StringToTimeDurationHookFunc(),
+		configtypes.StringToDurationHookFunc(),
+	)))
 
 	if cmd != nil {
 		bindPFlags := []string{
@@ -186,8 +190,7 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 			if errors.As(err, &configFileNotFoundError) {
 				meta.FileNotFound = true
 			} else {
-				fmt.Println("error reading config file:", err)
-				return Config{}, Meta{}, fmt.Errorf("error reading config file: %w", err)
+				return Config{}, Meta{}, fmt.Errorf("error reading config file %s: %w", configFile, err)
 			}
 		}
 	}

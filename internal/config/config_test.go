@@ -3,6 +3,9 @@ package config
 import (
 	"os"
 	"testing"
+	"time"
+
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +26,10 @@ func checkConfig(t *testing.T, conf Config) {
 	require.Len(t, conf.Channel.Namespaces, 2)
 	require.Len(t, conf.Consumers, 1)
 	require.Equal(t, "kafka", conf.Consumers[0].Type)
+	require.Equal(t, "ppp", conf.Proxies[0].Name)
+	require.Equal(t, configtypes.Duration(time.Second), conf.Proxies[0].Timeout)
 	require.Equal(t, true, conf.Consumers[0].Kafka.TLS.Enabled)
+	require.Equal(t, configtypes.Duration(2*time.Second), conf.WebSocket.WriteTimeout)
 }
 
 func TestConfigJSON(t *testing.T) {
@@ -53,6 +59,8 @@ func TestConfigEnvVars(t *testing.T) {
 	_ = os.Setenv("CENTRIFUGO_UNKNOWN_ENV", "1")
 	_ = os.Setenv("CENTRIFUGO_CHANNEL_NAMESPACES", `[{"name": "env"}]`)
 	_ = os.Setenv("CENTRIFUGO_UNIFIED_PROXY_HTTP_STATIC_HEADERS", `{"key": "value"}`)
+	_ = os.Setenv("CENTRIFUGO_WEBSOCKET_WRITE_TIMEOUT", `300ms`)
+	_ = os.Setenv("CENTRIFUGO_PROXIES", `[]`)
 	defer func() {
 		_ = os.Unsetenv("CENTRIFUGO_CONSUMERS_KAFKA_KAFKA_TLS_ENABLED")
 		_ = os.Unsetenv("CENTRIFUGO_UNKNOWN_ENV")
@@ -60,6 +68,8 @@ func TestConfigEnvVars(t *testing.T) {
 		_ = os.Unsetenv("CENTRIFUGO_CLIENT_TOKEN_JWKS_PUBLIC_ENDPOINT")
 		_ = os.Unsetenv("CENTRIFUGO_CHANNEL_NAMESPACES")
 		_ = os.Unsetenv("CENTRIFUGO_UNIFIED_PROXY_HTTP_STATIC_HEADERS")
+		_ = os.Unsetenv("CENTRIFUGO_WEBSOCKET_WRITE_TIMEOUT")
+		_ = os.Unsetenv("CENTRIFUGO_PROXIES")
 	}()
 	// Proceed with the test
 	conf, meta := getConfig(t, "testdata/config.json")
@@ -71,5 +81,7 @@ func TestConfigEnvVars(t *testing.T) {
 	require.Len(t, meta.UnknownEnvs, 1)
 	require.Len(t, meta.UnknownKeys, 0)
 	require.Contains(t, meta.UnknownEnvs, "CENTRIFUGO_UNKNOWN_ENV")
-	require.Len(t, conf.UnifiedProxy.HTTP.StaticHeaders, 1)
+	require.Equal(t, configtypes.EnvStringStringMap(map[string]string{"key": "value"}), conf.UnifiedProxy.HTTP.StaticHeaders)
+	require.Equal(t, configtypes.Duration(300*time.Millisecond), conf.WebSocket.WriteTimeout)
+	require.Len(t, conf.Proxies, 0)
 }

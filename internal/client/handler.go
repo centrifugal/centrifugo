@@ -380,7 +380,7 @@ func (h *Handler) OnClientConnecting(
 			EnablePositioning: chOpts.ForcePositioning,
 			RecoveryMode:      chOpts.GetRecoveryMode(),
 			Source:            subsource.UserPersonal,
-			HistoryMetaTTL:    chOpts.HistoryMetaTTL,
+			HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
 		}
 	}
 
@@ -432,7 +432,7 @@ func (h *Handler) OnClientConnecting(
 						EnablePositioning: chOpts.ForcePositioning,
 						RecoveryMode:      chOpts.GetRecoveryMode(),
 						Source:            subsource.UniConnect,
-						HistoryMetaTTL:    chOpts.HistoryMetaTTL,
+						HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
 					}
 				}
 			} else {
@@ -649,7 +649,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	options.EnablePositioning = chOpts.ForcePositioning
 	options.EnableRecovery = chOpts.ForceRecovery
 	options.RecoveryMode = chOpts.GetRecoveryMode()
-	options.HistoryMetaTTL = chOpts.HistoryMetaTTL
+	options.HistoryMetaTTL = chOpts.HistoryMetaTTL.ToDuration()
 	options.AllowedDeltaTypes = chOpts.AllowedDeltaTypes
 
 	isPrivateChannel := h.cfgContainer.IsPrivateChannel(e.Channel)
@@ -810,7 +810,7 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 	result, err := h.node.Publish(
 		e.Channel, e.Data,
 		centrifuge.WithClientInfo(e.ClientInfo),
-		centrifuge.WithHistory(chOpts.HistorySize, chOpts.HistoryTTL, chOpts.HistoryMetaTTL),
+		centrifuge.WithHistory(chOpts.HistorySize, chOpts.HistoryTTL.ToDuration(), chOpts.HistoryMetaTTL.ToDuration()),
 		centrifuge.WithDelta(chOpts.DeltaPublish),
 	)
 	if err != nil {

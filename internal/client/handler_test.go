@@ -889,7 +889,7 @@ func TestClientHistory(t *testing.T) {
 
 	cfg := config.DefaultConfig()
 	cfg.Channel.WithoutNamespace.HistorySize = 10
-	cfg.Channel.WithoutNamespace.HistoryTTL = 300 * time.Second
+	cfg.Channel.WithoutNamespace.HistoryTTL = configtypes.Duration(300 * time.Second)
 	cfg.Channel.WithoutNamespace.HistoryForClient = true
 	cfg.Channel.WithoutNamespace.HistoryForAnonymous = true
 	cfgContainer, err := config.NewContainer(cfg)
@@ -930,7 +930,7 @@ func TestClientHistoryError(t *testing.T) {
 
 	cfg = cfgContainer.Config()
 	cfg.Channel.WithoutNamespace.HistorySize = 10
-	cfg.Channel.WithoutNamespace.HistoryTTL = 300 * time.Second
+	cfg.Channel.WithoutNamespace.HistoryTTL = configtypes.Duration(300 * time.Second)
 	require.NoError(t, cfgContainer.Reload(cfg))
 
 	_, err = h.OnHistory(&centrifuge.Client{}, centrifuge.HistoryEvent{

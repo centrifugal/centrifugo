@@ -296,7 +296,7 @@ func (p *SubscribeStreamProxy) SubscribeStream(
 		case <-ctx.Done():
 			cancel()
 			return
-		case <-time.After(p.config.Timeout):
+		case <-time.After(p.config.Timeout.ToDuration()):
 			cancel()
 			return
 		case <-firstMessageReceived:

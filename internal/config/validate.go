@@ -31,7 +31,7 @@ func (c Config) Validate() error {
 			return fmt.Errorf("duplicate proxy name: %s", p.Name)
 		}
 		if p.Timeout == 0 {
-			p.Timeout = time.Second
+			p.Timeout = configtypes.Duration(time.Second)
 		}
 		if p.Endpoint == "" {
 			return fmt.Errorf("no endpoint set for proxy %s", p.Name)
@@ -130,7 +130,7 @@ func (c Config) Validate() error {
 var namePattern = "^[-a-zA-Z0-9_.]{2,}$"
 var nameRe = regexp.MustCompile(namePattern)
 
-func validateNamespace(ns configtypes.ChannelNamespace, globalHistoryMetaTTL time.Duration, proxyNames []string, cfg Config) error {
+func validateNamespace(ns configtypes.ChannelNamespace, globalHistoryMetaTTL configtypes.Duration, proxyNames []string, cfg Config) error {
 	name := ns.Name
 	match := nameRe.MatchString(name)
 	if !match {
@@ -154,7 +154,7 @@ func validateRpcNamespace(ns configtypes.RpcNamespace) error {
 	return nil
 }
 
-func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL time.Duration, proxyNames []string, cfg Config) error {
+func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL configtypes.Duration, proxyNames []string, cfg Config) error {
 	if err := validateSecondPrecisionDuration(c.HistoryTTL); err != nil {
 		return fmt.Errorf("in history_ttl: %v", err)
 	}
@@ -231,8 +231,8 @@ var proxyNameRe = regexp.MustCompile(proxyNamePattern)
 var consumerNamePattern = "^[a-zA-Z0-9_]{2,}$"
 var consumerNameRe = regexp.MustCompile(consumerNamePattern)
 
-func validateSecondPrecisionDuration(duration time.Duration) error {
-	if duration > 0 && duration%time.Second != 0 {
+func validateSecondPrecisionDuration(duration configtypes.Duration) error {
+	if duration > 0 && duration.ToDuration()%time.Second != 0 {
 		return fmt.Errorf("malformed duration %s, sub-second precision is not supported for this key", duration)
 	}
 	return nil
