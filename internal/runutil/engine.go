@@ -25,9 +25,9 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) (en
 
 	var broker centrifuge.Broker
 	var presenceManager centrifuge.PresenceManager
-	var err error
 
 	if !cfg.Broker.Enabled || !cfg.PresenceManager.Enabled {
+		var err error
 		switch cfg.Engine.Type {
 		case "memory":
 			broker, presenceManager, err = createMemoryEngine(node)
@@ -49,6 +49,7 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) (en
 	}
 
 	if cfg.Broker.Enabled {
+		var err error
 		switch cfg.Broker.Type {
 		case "memory":
 			broker, err = createMemoryBroker(node)
@@ -72,6 +73,9 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) (en
 				return modes, fmt.Errorf("error creating nats broker: %v", err)
 			}
 			broker, err = redisnatsbroker.New(natsBroker, redisBroker)
+			if err != nil {
+				return modes, fmt.Errorf("error creating redisnats broker: %v", err)
+			}
 		default:
 			return modes, fmt.Errorf("unknown broker type: %s", cfg.Broker.Type)
 		}
@@ -88,6 +92,7 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) (en
 	}
 
 	if cfg.PresenceManager.Enabled {
+		var err error
 		switch cfg.PresenceManager.Type {
 		case "memory":
 			presenceManager, err = createMemoryPresenceManager(node)
