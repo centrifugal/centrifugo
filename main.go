@@ -46,6 +46,7 @@ func main() {
 	rootCmd.AddCommand(cli.CheckTokenCommand())
 	rootCmd.AddCommand(cli.CheckSubTokenCommand())
 	rootCmd.AddCommand(cli.DefaultConfigCommand())
+	rootCmd.AddCommand(cli.DefaultEnvCommand())
 
 	_ = rootCmd.Execute()
 }

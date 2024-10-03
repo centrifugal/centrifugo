@@ -110,7 +110,7 @@ type PingPong struct {
 // NatsBroker configuration.
 type NatsBroker struct {
 	// URL is a Nats server URL.
-	URL string `mapstructure:"url" json:"url" envconfig:"url" yaml:"url" toml:"url"`
+	URL string `mapstructure:"url" json:"url" envconfig:"url" yaml:"url" toml:"url" default:"nats://localhost:4222"`
 	// Prefix allows customizing channel prefix in Nats to work with a single Nats from different
 	// unrelated Centrifugo setups.
 	Prefix string `mapstructure:"prefix" default:"centrifugo" json:"prefix" envconfig:"prefix" yaml:"prefix" toml:"prefix"`
@@ -310,7 +310,7 @@ type RPC struct {
 type SubscribeToUserPersonalChannel struct {
 	Enabled                  bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	PersonalChannelNamespace string `mapstructure:"personal_channel_namespace" json:"personal_channel_namespace" envconfig:"personal_channel_namespace" yaml:"personal_channel_namespace" toml:"personal_channel_namespace"`
-	SingleConnection         bool   `mapstructure:"single_connection" json:"single_connection" yaml:"single_connection" toml:"single_connection"`
+	SingleConnection         bool   `mapstructure:"single_connection" json:"single_connection" yaml:"single_connection" toml:"single_connection" envconfig:"single_connection"`
 }
 
 type Node struct {
@@ -413,7 +413,7 @@ type Proxy struct {
 
 	ProxyCommon `mapstructure:",squash" yaml:",inline"`
 
-	TestGrpcDialer func(context.Context, string) (net.Conn, error) `json:"-" yaml:"-" toml:"-"`
+	TestGrpcDialer func(context.Context, string) (net.Conn, error) `json:"-" yaml:"-" toml:"-" envconfig:"-"`
 }
 
 type Proxies []Proxy

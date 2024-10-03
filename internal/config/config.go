@@ -132,6 +132,7 @@ type Meta struct {
 	FileNotFound bool
 	UnknownKeys  []string
 	UnknownEnvs  []string
+	KnownEnvVars map[string]envconfig.VarInfo
 }
 
 func DefineFlags(rootCmd *cobra.Command) {
@@ -210,7 +211,7 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 		return Config{}, Meta{}, fmt.Errorf("error unmarshaling config: %w", err)
 	}
 
-	knownEnvVars := map[string]struct{}{}
+	knownEnvVars := map[string]envconfig.VarInfo{}
 	varInfo, err := envconfig.Process("CENTRIFUGO", conf)
 	if err != nil {
 		return Config{}, Meta{}, fmt.Errorf("error processing env: %w", err)
@@ -264,13 +265,14 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 
 	meta.UnknownKeys = findUnknownKeys(v.AllSettings(), conf, "")
 	meta.UnknownEnvs = checkEnvironmentVars(knownEnvVars)
+	meta.KnownEnvVars = knownEnvVars
 
 	return *conf, meta, nil
 }
 
-func extendKnownEnvVars(knownEnvVars map[string]struct{}, varInfo []envconfig.VarInfo) {
+func extendKnownEnvVars(knownEnvVars map[string]envconfig.VarInfo, varInfo []envconfig.VarInfo) {
 	for _, info := range varInfo {
-		knownEnvVars[info.Key] = struct{}{}
+		knownEnvVars[info.Key] = info
 	}
 }
 
@@ -364,7 +366,7 @@ func appendKeyPath(parent, key string) string {
 	return parent + "." + key
 }
 
-func checkEnvironmentVars(knownEnvVars map[string]struct{}) []string {
+func checkEnvironmentVars(knownEnvVars map[string]envconfig.VarInfo) []string {
 	var unknownEnvs []string
 	envPrefix := "CENTRIFUGO_"
 	envVars := os.Environ()

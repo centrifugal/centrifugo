@@ -164,5 +164,5 @@ type ChannelOptions struct {
 }
 
 type Compiled struct {
-	CompiledChannelRegex *regexp.Regexp `json:"-" yaml:"-" toml:"-"`
+	CompiledChannelRegex *regexp.Regexp `json:"-" yaml:"-" toml:"-" envconfig:"-"`
 }
