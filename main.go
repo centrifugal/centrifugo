@@ -140,6 +140,7 @@ var defaults = map[string]any{
 	"redis_presence_hash_field_ttl":      false,
 
 	"allowed_delta_types": []centrifuge.DeltaType{},
+	"delta_publish":       false,
 
 	"presence":                      false,
 	"join_leave":                    false,
