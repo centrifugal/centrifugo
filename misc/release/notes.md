@@ -10,19 +10,19 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Option to configure custom token user id claim. See [#783](https://github.com/centrifugal/centrifugo/pull/783). We still recommend using `sub` claim for that, but there are cases when you need to use a different claim name. Now you can configure it using [token_user_id_claim](https://centrifugal.dev/docs/server/authentication##custom-token-user-id-claim) option.
-* Log connection durations as human-readable string instead of nanoseconds [centrifugal/centrifuge#416](https://github.com/centrifugal/centrifuge/pull/416)
+* Added option to configure a custom token user ID claim. See [#783](https://github.com/centrifugal/centrifugo/pull/783). Although we still recommend using the `sub` claim, there are scenarios where a different claim name is required. You can now configure this using the [token_user_id_claim](https://centrifugal.dev/docs/server/authentication##custom-token-user-id-claim) option.
+* Connection durations are now logged as human-readable strings instead of nanoseconds. See [centrifugal/centrifuge#416](https://github.com/centrifugal/centrifuge/pull/416).
 
 ### Fixes
 
-* Fix Fossil delta construction in recovered publications [centrifugal/centrifuge#415](https://github.com/centrifugal/centrifuge/pull/415) - prevents `bad checksum` errors during recovery with delta compression on.
-* Handle history meta key eviction scenario to avoid publish errors [centrifugal/centrifuge#412](https://github.com/centrifugal/centrifuge/pull/412), fixes [#888](https://github.com/centrifugal/centrifugo/issues/888).
-* Avoid showing full basic auth credentials in proxy endpoint logs, [#890](https://github.com/centrifugal/centrifugo/pull/890) - now URL is redacted in logs.
-* Fix panic during PostgreSQL consumer dispatch error handling [#889](https://github.com/centrifugal/centrifugo/pull/889).
-* Add missing `delta_publish` top-level default definition [#896](https://github.com/centrifugal/centrifugo/pull/896), fixes unknown option warning in logs on Centrifugo start.
+* Fixed Fossil delta construction in recovered publications. See [centrifugal/centrifuge#415](https://github.com/centrifugal/centrifuge/pull/415). This prevents `bad checksum` errors during recovery with delta compression enabled.
+* Handled the history meta key eviction scenario to avoid publish errors. See [centrifugal/centrifuge#412](https://github.com/centrifugal/centrifuge/pull/412). This fix addresses [#888](https://github.com/centrifugal/centrifugo/issues/888).
+* Full basic auth credentials are no longer displayed in proxy endpoint logs. See [#890](https://github.com/centrifugal/centrifugo/pull/890). The URL is now redacted in logs.
+* Fixed panic occurring during PostgreSQL consumer dispatch error handling. See [#889](https://github.com/centrifugal/centrifugo/pull/889).
+* Added missing `delta_publish` top-level default definition. See [#896](https://github.com/centrifugal/centrifugo/pull/896). This fix addresses an unknown option warning in logs on Centrifugo startup.
 
 ### Miscellaneous
 
-* Release is built with Go 1.23.2
-* Check out [Centrifugo v6 roadmap](https://github.com/centrifugal/centrifugo/issues/832) issue. It outlines some important changes planned for the next major release. We already started working on v6 and sharing some updates in the issue and our community rooms.
+* This release is built with Go 1.23.2.
+* Check out the [Centrifugo v6 roadmap](https://github.com/centrifugal/centrifugo/issues/832). It outlines important changes planned for the next major release. We have already started working on v6 and are sharing updates in the issue and our community channels.
 * See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v5.4.7).
