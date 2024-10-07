@@ -10,14 +10,19 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Added an option to use Redis 7.4 hash field TTL for online presence [#872](https://github.com/centrifugal/centrifugo/pull/872). Redis 7.4 introduced the [per HASH field TTL](https://redis.io/blog/announcing-redis-community-edition-and-redis-stack-74/#:~:text=You%20can%20now%20set%20an%20expiration%20for%20hash%20fields.), which we now use for presence information by adding a new boolean option `redis_presence_hash_field_ttl`. One potential benefit is reduced memory usage in Redis for presence information, as fewer data needs to be stored (no separate ZSET structure to maintain). Depending on your presence data, you can achieve up to a 1.6x reduction in memory usage with this option. This also showed slightly better CPU utilization on the Redis side, as there are fewer keys to manage in LUA scripts during presence get, add, and remove operations. By default, Centrifugo will continue using the current presence implementation with ZSET, as the new option only works with Redis >= 7.4 and requires explicit configuration. See also the description of the new option in the [Centrifugo documentation](https://centrifugal.dev/docs/server/engines#redis_presence_hash_field_ttl).
+* Added option to configure a custom token user ID claim. See [#783](https://github.com/centrifugal/centrifugo/pull/783). Although we still recommend using the `sub` claim, there are scenarios where a different claim name is required. You can now configure this using the [token_user_id_claim](https://centrifugal.dev/docs/server/authentication##custom-token-user-id-claim) option.
+* Connection durations are now logged as human-readable strings instead of nanoseconds. See [centrifugal/centrifuge#416](https://github.com/centrifugal/centrifuge/pull/416).
 
 ### Fixes
 
-* Process connect proxy result subs [#874](https://github.com/centrifugal/centrifugo/pull/874), fixes [#873](https://github.com/centrifugal/centrifugo/issues/873). Also, the documentation contained wrong description of subscribe options override object, this was fixed in terms of [centrifugal/centrifugal.dev#52](https://github.com/centrifugal/centrifugal.dev/pull/52).
+* Fixed Fossil delta construction in recovered publications. See [centrifugal/centrifuge#415](https://github.com/centrifugal/centrifuge/pull/415). This prevents `bad checksum` errors during recovery with delta compression enabled.
+* Handled the history meta key eviction scenario to avoid publish errors. See [centrifugal/centrifuge#412](https://github.com/centrifugal/centrifuge/pull/412). This fix addresses [#888](https://github.com/centrifugal/centrifugo/issues/888).
+* Full basic auth credentials are no longer displayed in proxy endpoint logs. See [#890](https://github.com/centrifugal/centrifugo/pull/890). The URL is now redacted in logs.
+* Fixed panic occurring during PostgreSQL consumer dispatch error handling. See [#889](https://github.com/centrifugal/centrifugo/pull/889).
+* Added missing `delta_publish` top-level default definition. See [#896](https://github.com/centrifugal/centrifugo/pull/896). This fix addresses an unknown option warning in logs on Centrifugo startup.
 
 ### Miscellaneous
 
-* Release is built with Go 1.22.6
-* Check out [Centrifugo v6 roadmap](https://github.com/centrifugal/centrifugo/issues/832) issue. It outlines some important changes planned for the next major release. The date of the v6 release is not yet specified.
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v5.4.6).
+* This release is built with Go 1.23.2.
+* Check out the [Centrifugo v6 roadmap](https://github.com/centrifugal/centrifugo/issues/832). It outlines important changes planned for the next major release. We have already started working on v6 and are sharing updates in the issue and our community channels.
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v5.4.7).

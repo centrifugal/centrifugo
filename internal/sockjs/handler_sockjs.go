@@ -140,7 +140,7 @@ func (s *Handler) handleSession(sess sockjs.Session) {
 		if s.node.LogEnabled(centrifuge.LogLevelDebug) {
 			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection established", map[string]any{"client": c.ID(), "transport": transportSockJS}))
 			defer func(started time.Time) {
-				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection completed", map[string]any{"client": c.ID(), "transport": transportSockJS, "duration": time.Since(started)}))
+				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection completed", map[string]any{"client": c.ID(), "transport": transportSockJS, "duration": time.Since(started).String()}))
 			}(time.Now())
 		}
 
