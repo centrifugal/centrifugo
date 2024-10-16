@@ -1,10 +1,13 @@
 package unisse
 
-import "github.com/centrifugal/centrifuge"
+import (
+	"github.com/centrifugal/centrifuge"
+	"github.com/centrifugal/centrifugo/v5/internal/tools"
+)
 
 type Config struct {
 	// MaxRequestBodySize for POST requests when used.
-	MaxRequestBodySize int
-
+	MaxRequestBodySize    int
+	ConnectCodeTranslates tools.ConnectCodeToHTTPStatusTranslates
 	centrifuge.PingPongConfig
 }

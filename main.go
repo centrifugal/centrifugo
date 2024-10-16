@@ -2086,6 +2086,29 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	if connectEndpoint != "" {
 		proxyConfig.Endpoint = connectEndpoint
 		proxyConfig.Timeout = tools.Duration(connectTimeout)
+		proxyConfig.HttpStatusTranslate = []proxy.HttpStatusTranslate{
+			{
+				Status: 403,
+				ToDisconnect: proxy.TranslateDisconnect{
+					Code:   4503,
+					Reason: "permission denied",
+				},
+			},
+			{
+				Status: 429,
+				ToDisconnect: proxy.TranslateDisconnect{
+					Code:   4529,
+					Reason: "too many requests",
+				},
+			},
+			{
+				Status: 404,
+				ToDisconnect: proxy.TranslateDisconnect{
+					Code:   4504,
+					Reason: "not found",
+				},
+			},
+		}
 		var err error
 		proxyMap.ConnectProxy, err = proxy.GetConnectProxy(proxyConfig)
 		if err != nil {
@@ -2532,6 +2555,19 @@ func uniSSEHandlerConfig() unisse.Config {
 	return unisse.Config{
 		MaxRequestBodySize: viper.GetInt("uni_sse_max_request_body_size"),
 		PingPongConfig:     getPingPongConfig(),
+		ConnectCodeTranslates: tools.ConnectCodeToHTTPStatusTranslates{
+			Enabled: true,
+			Translates: []tools.ConnectCodeToHTTPStatusTranslate{
+				{
+					Code:         4503,
+					ToStatusCode: 403,
+				},
+				{
+					Code:         4504,
+					ToStatusCode: 404,
+				},
+			},
+		},
 	}
 }
 
@@ -2539,6 +2575,19 @@ func uniStreamHandlerConfig() unihttpstream.Config {
 	return unihttpstream.Config{
 		MaxRequestBodySize: viper.GetInt("uni_http_stream_max_request_body_size"),
 		PingPongConfig:     getPingPongConfig(),
+		ConnectCodeTranslates: tools.ConnectCodeToHTTPStatusTranslates{
+			Enabled: true,
+			Translates: []tools.ConnectCodeToHTTPStatusTranslate{
+				{
+					Code:         4503,
+					ToStatusCode: 403,
+				},
+				{
+					Code:         4504,
+					ToStatusCode: 404,
+				},
+			},
+		},
 	}
 }
 

@@ -9,6 +9,23 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/tools"
 )
 
+type TranslateError struct {
+	Code      uint32 `mapstructure:"code" json:"code"`
+	Message   string `mapstructure:"message" json:"message"`
+	Temporary bool   `mapstructure:"temporary" json:"temporary"`
+}
+
+type TranslateDisconnect struct {
+	Code   uint32 `mapstructure:"code" json:"code"`
+	Reason string `mapstructure:"reason" json:"reason"`
+}
+
+type HttpStatusTranslate struct {
+	Status       int                 `mapstructure:"status" json:"status"`
+	ToError      TranslateError      `mapstructure:"error" json:"error"`
+	ToDisconnect TranslateDisconnect `mapstructure:"disconnect" json:"disconnect"`
+}
+
 // Config for proxy.
 type Config struct {
 	// Name is a unique name of proxy to reference.
@@ -20,7 +37,9 @@ type Config struct {
 
 	// HTTPHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.
 	// If GRPC proxy is used then request HTTP headers set to outgoing request metadata.
-	HttpHeaders []string `mapstructure:"http_headers" json:"http_headers,omitempty"`
+	HttpHeaders         []string              `mapstructure:"http_headers" json:"http_headers,omitempty"`
+	HttpStatusTranslate []HttpStatusTranslate `mapstructure:"http_status_code_translate" json:"http_status_code_translate,omitempty"`
+
 	// GRPCMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by
 	// default. If HTTP proxy is used then these keys become outgoing request HTTP headers.
 	GrpcMetadata []string `mapstructure:"grpc_metadata" json:"grpc_metadata,omitempty"`

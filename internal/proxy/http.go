@@ -3,6 +3,7 @@ package proxy
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -106,4 +107,32 @@ func stringInSlice(a string, list []string) bool {
 		}
 	}
 	return false
+}
+
+func translateHTTPError(err error, translate []HttpStatusTranslate) (*proxyproto.Error, *proxyproto.Disconnect) {
+	if len(translate) == 0 {
+		return nil, nil
+	}
+	var statusErr *statusCodeError
+	if !errors.As(err, &statusErr) {
+		return nil, nil
+	}
+	for _, t := range translate {
+		if t.Status == statusErr.Code {
+			if t.ToError.Code > 0 {
+				return &proxyproto.Error{
+					Code:      t.ToError.Code,
+					Message:   t.ToError.Message,
+					Temporary: t.ToError.Temporary,
+				}, nil
+			}
+			if t.ToDisconnect.Code > 0 {
+				return nil, &proxyproto.Disconnect{
+					Code:   t.ToDisconnect.Code,
+					Reason: t.ToDisconnect.Reason,
+				}
+			}
+		}
+	}
+	return nil, nil
 }

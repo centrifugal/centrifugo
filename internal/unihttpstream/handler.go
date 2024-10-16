@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v5/internal/tools"
+
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
 )
@@ -71,24 +73,6 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}(time.Now())
 	}
 
-	if r.ProtoMajor == 1 {
-		// An endpoint MUST NOT generate an HTTP/2 message containing connection-specific header fields.
-		// Source: RFC7540.
-		w.Header().Set("Connection", "keep-alive")
-	}
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.Header().Set("Cache-Control", "private, no-cache, no-store, must-revalidate, max-age=0")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Expire", "0")
-	w.WriteHeader(http.StatusOK)
-
-	_, ok := w.(http.Flusher)
-	if !ok {
-		return
-	}
-
-	rc := http.NewResponseController(w)
-
 	connectRequest := centrifuge.ConnectRequest{
 		Token:   req.Token,
 		Data:    req.Data,
@@ -107,7 +91,40 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		connectRequest.Subs = subs
 	}
 
-	c.Connect(connectRequest)
+	if h.config.ConnectCodeTranslates.Enabled {
+		err = c.ConnectNoDisconnect(connectRequest)
+		if err != nil {
+			resp, ok := tools.TranslateToHTTPResponse(err, h.config.ConnectCodeTranslates.Translates)
+			if ok {
+				w.WriteHeader(resp.Status)
+				_, _ = w.Write(resp.Body)
+				return
+			}
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+			return
+		}
+	} else {
+		c.Connect(connectRequest)
+	}
+
+	if r.ProtoMajor == 1 {
+		// An endpoint MUST NOT generate an HTTP/2 message containing connection-specific header fields.
+		// Source: RFC7540.
+		w.Header().Set("Connection", "keep-alive")
+	}
+	w.Header().Set("X-Accel-Buffering", "no")
+	w.Header().Set("Cache-Control", "private, no-cache, no-store, must-revalidate, max-age=0")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expire", "0")
+	w.WriteHeader(http.StatusOK)
+
+	_, ok := w.(http.Flusher)
+	if !ok {
+		return
+	}
+
+	rc := http.NewResponseController(w)
 
 	for {
 		select {
