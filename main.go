@@ -243,6 +243,11 @@ var defaults = map[string]any{
 	"uni_sse":         false,
 	"uni_http_stream": false,
 
+	"uni_sse_connect_code_to_http_status.enabled":            false,
+	"uni_sse_connect_code_to_http_status.translates":         []any{},
+	"uni_http_stream_connect_code_to_http_status.enabled":    false,
+	"uni_http_stream_connect_code_to_http_status.translates": []any{},
+
 	"log_level": "info",
 	"log_file":  "",
 
@@ -2070,9 +2075,6 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	if v.IsSet("proxy_http_status_translate") {
 		tools.DecodeSlice(v, &httpStatusTranslate, "proxy_http_status_translate")
 	}
-	if err != nil {
-		log.Fatal().Msgf("error unmarshaling proxy_http_status_translate: %v", err)
-	}
 	for _, translate := range httpStatusTranslate {
 		if translate.Status == 0 {
 			log.Fatal().Msg("proxy_http_status_translate status should be set")
@@ -2564,41 +2566,33 @@ func uniWebsocketHandlerConfig() uniws.Config {
 }
 
 func uniSSEHandlerConfig() unisse.Config {
+	connectCodeToHttpStatusEnabled := viper.GetBool("uni_sse_connect_code_to_http_status.enabled")
+	var connectCodeToHttpStatusTranslates []tools.ConnectCodeToHTTPStatusTranslate
+	if viper.IsSet("uni_sse_connect_code_to_http_status.translates") {
+		tools.DecodeSlice(viper.GetViper(), &connectCodeToHttpStatusTranslates, "uni_sse_connect_code_to_http_status.translates")
+	}
 	return unisse.Config{
 		MaxRequestBodySize: viper.GetInt("uni_sse_max_request_body_size"),
 		PingPongConfig:     getPingPongConfig(),
-		ConnectCodeTranslates: tools.ConnectCodeToHTTPStatusTranslates{
-			Enabled: true,
-			Translates: []tools.ConnectCodeToHTTPStatusTranslate{
-				{
-					Code:         4503,
-					ToStatusCode: 403,
-				},
-				{
-					Code:         4504,
-					ToStatusCode: 404,
-				},
-			},
+		ConnectCodeTranslates: tools.ConnectCodeToHTTPStatus{
+			Enabled:    connectCodeToHttpStatusEnabled,
+			Translates: connectCodeToHttpStatusTranslates,
 		},
 	}
 }
 
 func uniStreamHandlerConfig() unihttpstream.Config {
+	connectCodeToHttpStatusEnabled := viper.GetBool("uni_http_stream_connect_code_to_http_status.enabled")
+	var connectCodeToHttpStatusTranslates []tools.ConnectCodeToHTTPStatusTranslate
+	if viper.IsSet("uni_http_stream_connect_code_to_http_status.translates") {
+		tools.DecodeSlice(viper.GetViper(), &connectCodeToHttpStatusTranslates, "uni_http_stream_connect_code_to_http_status.translates")
+	}
 	return unihttpstream.Config{
 		MaxRequestBodySize: viper.GetInt("uni_http_stream_max_request_body_size"),
 		PingPongConfig:     getPingPongConfig(),
-		ConnectCodeTranslates: tools.ConnectCodeToHTTPStatusTranslates{
-			Enabled: true,
-			Translates: []tools.ConnectCodeToHTTPStatusTranslate{
-				{
-					Code:         4503,
-					ToStatusCode: 403,
-				},
-				{
-					Code:         4504,
-					ToStatusCode: 404,
-				},
-			},
+		ConnectCodeTranslates: tools.ConnectCodeToHTTPStatus{
+			Enabled:    connectCodeToHttpStatusEnabled,
+			Translates: connectCodeToHttpStatusTranslates,
 		},
 	}
 }

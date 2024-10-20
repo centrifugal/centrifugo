@@ -6,14 +6,14 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
-type ConnectCodeToHTTPStatusTranslates struct {
-	Enabled    bool
-	Translates []ConnectCodeToHTTPStatusTranslate
+type ConnectCodeToHTTPStatus struct {
+	Enabled    bool                               `mapstructure:"enabled" json:"enabled"`
+	Translates []ConnectCodeToHTTPStatusTranslate `mapstructure:"translates" json:"translates"`
 }
 
 type ConnectCodeToHTTPStatusTranslate struct {
-	Code         uint32
-	ToStatusCode int
+	Code         uint32 `mapstructure:"code" json:"code"`
+	ToStatusCode int    `mapstructure:"to_status_code" json:"to_status_code"`
 }
 
 type TranslatedHttpResponse struct {
