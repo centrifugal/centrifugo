@@ -2,16 +2,12 @@ module github.com/centrifugal/centrifugo/v5
 
 go 1.23.0
 
-replace (
-	github.com/centrifugal/centrifuge => ../centrifuge
-)
-
 require (
 	github.com/FZambia/eagle v0.1.0
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/tarantool v0.3.1
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
-	github.com/centrifugal/centrifuge v0.33.4
+	github.com/centrifugal/centrifuge v0.33.5-0.20241020185416-a408ea29087f
 	github.com/centrifugal/protocol v0.13.4
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/gobwas/glob v0.2.3
