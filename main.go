@@ -291,6 +291,7 @@ var defaults = map[string]any{
 	"proxy_sub_refresh_timeout":      time.Second,
 	"proxy_subscribe_stream_timeout": time.Second,
 
+	"proxy_http_status_translate":   []any{},
 	"proxy_grpc_metadata":           []string{},
 	"proxy_http_headers":            []string{},
 	"proxy_static_http_headers":     map[string]string{},
@@ -2065,6 +2066,40 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	}
 	proxyConfig.StaticHttpHeaders = staticHttpHeaders
 
+	var httpStatusTranslate []proxy.HttpStatusTranslate
+	if v.IsSet("proxy_http_status_translate") {
+		tools.DecodeSlice(v, &httpStatusTranslate, "proxy_http_status_translate")
+	}
+	if err != nil {
+		log.Fatal().Msgf("error unmarshaling proxy_http_status_translate: %v", err)
+	}
+	for _, translate := range httpStatusTranslate {
+		if translate.Status == 0 {
+			log.Fatal().Msg("proxy_http_status_translate status should be set")
+		}
+		if translate.ToDisconnect.Code == 0 && translate.ToError.Code == 0 {
+			log.Fatal().Msg("no error or disconnect code set in proxy_http_status_translate")
+		}
+		if translate.ToDisconnect.Code > 0 && translate.ToError.Code > 0 {
+			log.Fatal().Msg("only error or disconnect code can be set in proxy_http_status_translate, but not both")
+		}
+		if !tools.IsASCII(translate.ToDisconnect.Reason) {
+			log.Fatal().Msg("proxy_http_status_translate disconnect reason must be ASCII")
+		}
+		if !tools.IsASCII(translate.ToError.Message) {
+			log.Fatal().Msg("proxy_http_status_translate error message must be ASCII")
+		}
+		const reasonOrMessageMaxLength = 123 // limit comes from WebSocket close reason length limit. See https://datatracker.ietf.org/doc/html/rfc6455.
+		if len(translate.ToError.Message) > reasonOrMessageMaxLength {
+			log.Fatal().Msgf("proxy_http_status_translate error message can be up to %d characters long", reasonOrMessageMaxLength)
+		}
+		if len(translate.ToDisconnect.Reason) > reasonOrMessageMaxLength {
+			log.Fatal().Msgf("proxy_http_status_translate disconnect reason can be up to %d characters long", reasonOrMessageMaxLength)
+		}
+	}
+	fmt.Println(httpStatusTranslate)
+	proxyConfig.HttpStatusTranslate = httpStatusTranslate
+
 	connectEndpoint := v.GetString("proxy_connect_endpoint")
 	connectTimeout := GetDuration("proxy_connect_timeout")
 	refreshEndpoint := v.GetString("proxy_refresh_endpoint")
@@ -2086,29 +2121,6 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	if connectEndpoint != "" {
 		proxyConfig.Endpoint = connectEndpoint
 		proxyConfig.Timeout = tools.Duration(connectTimeout)
-		proxyConfig.HttpStatusTranslate = []proxy.HttpStatusTranslate{
-			{
-				Status: 403,
-				ToDisconnect: proxy.TranslateDisconnect{
-					Code:   4503,
-					Reason: "permission denied",
-				},
-			},
-			{
-				Status: 429,
-				ToDisconnect: proxy.TranslateDisconnect{
-					Code:   4529,
-					Reason: "too many requests",
-				},
-			},
-			{
-				Status: 404,
-				ToDisconnect: proxy.TranslateDisconnect{
-					Code:   4504,
-					Reason: "not found",
-				},
-			},
-		}
 		var err error
 		proxyMap.ConnectProxy, err = proxy.GetConnectProxy(proxyConfig)
 		if err != nil {

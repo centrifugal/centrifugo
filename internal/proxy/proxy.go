@@ -22,8 +22,8 @@ type TranslateDisconnect struct {
 
 type HttpStatusTranslate struct {
 	Status       int                 `mapstructure:"status" json:"status"`
-	ToError      TranslateError      `mapstructure:"error" json:"error"`
-	ToDisconnect TranslateDisconnect `mapstructure:"disconnect" json:"disconnect"`
+	ToError      TranslateError      `mapstructure:"to_error" json:"to_error"`
+	ToDisconnect TranslateDisconnect `mapstructure:"to_disconnect" json:"to_disconnect"`
 }
 
 // Config for proxy.
@@ -38,7 +38,7 @@ type Config struct {
 	// HTTPHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.
 	// If GRPC proxy is used then request HTTP headers set to outgoing request metadata.
 	HttpHeaders         []string              `mapstructure:"http_headers" json:"http_headers,omitempty"`
-	HttpStatusTranslate []HttpStatusTranslate `mapstructure:"http_status_code_translate" json:"http_status_code_translate,omitempty"`
+	HttpStatusTranslate []HttpStatusTranslate `mapstructure:"http_status_translate" json:"http_status_translate,omitempty"`
 
 	// GRPCMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by
 	// default. If HTTP proxy is used then these keys become outgoing request HTTP headers.
