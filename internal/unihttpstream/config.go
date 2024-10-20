@@ -9,6 +9,6 @@ import (
 type Config struct {
 	// MaxRequestBodySize limits request body size.
 	MaxRequestBodySize    int
-	ConnectCodeTranslates tools.ConnectCodeToHTTPStatusTranslates
+	ConnectCodeTranslates tools.ConnectCodeToHTTPStatus
 	centrifuge.PingPongConfig
 }

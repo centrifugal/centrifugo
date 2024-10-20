@@ -15,6 +15,8 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type grpcConnHandleTestCase struct {
@@ -227,7 +229,13 @@ func TestHandleConnectWithoutProxyServerStart(t *testing.T) {
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
 		reply, err := c.invokeHandle(context.Background())
-		require.ErrorIs(t, centrifuge.ErrorInternal, err, c.protocol)
+		if c.protocol == "grpc" {
+			st, ok := status.FromError(err)
+			require.True(t, ok, c.protocol)
+			require.Equal(t, codes.Unavailable, st.Code(), c.protocol)
+		} else {
+			require.Error(t, err, c.protocol)
+		}
 		require.Equal(t, centrifuge.ConnectReply{}, reply, c.protocol)
 	}
 }
