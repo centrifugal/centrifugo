@@ -9,21 +9,21 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/tools"
 )
 
-type TranslateError struct {
+type TransformError struct {
 	Code      uint32 `mapstructure:"code" json:"code"`
 	Message   string `mapstructure:"message" json:"message"`
 	Temporary bool   `mapstructure:"temporary" json:"temporary"`
 }
 
-type TranslateDisconnect struct {
+type TransformDisconnect struct {
 	Code   uint32 `mapstructure:"code" json:"code"`
 	Reason string `mapstructure:"reason" json:"reason"`
 }
 
-type HttpStatusTranslate struct {
-	Status       int                 `mapstructure:"status" json:"status"`
-	ToError      TranslateError      `mapstructure:"to_error" json:"to_error"`
-	ToDisconnect TranslateDisconnect `mapstructure:"to_disconnect" json:"to_disconnect"`
+type HttpStatusToCodeTransform struct {
+	StatusCode   int                 `mapstructure:"status_code" json:"status_code"`
+	ToError      TransformError      `mapstructure:"to_error" json:"to_error"`
+	ToDisconnect TransformDisconnect `mapstructure:"to_disconnect" json:"to_disconnect"`
 }
 
 // Config for proxy.
@@ -37,8 +37,8 @@ type Config struct {
 
 	// HTTPHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.
 	// If GRPC proxy is used then request HTTP headers set to outgoing request metadata.
-	HttpHeaders         []string              `mapstructure:"http_headers" json:"http_headers,omitempty"`
-	HttpStatusTranslate []HttpStatusTranslate `mapstructure:"http_status_translate" json:"http_status_translate,omitempty"`
+	HttpHeaders          []string                    `mapstructure:"http_headers" json:"http_headers,omitempty"`
+	HttpStatusTransforms []HttpStatusToCodeTransform `mapstructure:"http_status_to_code_transforms" json:"http_status_to_code_transforms,omitempty"`
 
 	// GRPCMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by
 	// default. If HTTP proxy is used then these keys become outgoing request HTTP headers.

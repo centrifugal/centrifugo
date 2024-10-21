@@ -91,13 +91,13 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		connectRequest.Subs = subs
 	}
 
-	if h.config.ConnectCodeTranslates.Enabled {
-		err = c.ConnectNoDisconnect(connectRequest)
+	if h.config.ConnectCodeToHTTPStatus.Enabled {
+		err = c.ConnectNoErrorToDisconnect(connectRequest)
 		if err != nil {
-			resp, ok := tools.TranslateToHTTPResponse(err, h.config.ConnectCodeTranslates.Translates)
+			resp, ok := tools.ConnectErrorToToHTTPResponse(err, h.config.ConnectCodeToHTTPStatus.Transforms)
 			if ok {
 				w.WriteHeader(resp.Status)
-				_, _ = w.Write(resp.Body)
+				_, _ = w.Write([]byte(resp.Body))
 				return
 			}
 			w.WriteHeader(http.StatusInternalServerError)

@@ -109,16 +109,16 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
-func translateHTTPError(err error, translate []HttpStatusTranslate) (*proxyproto.Error, *proxyproto.Disconnect) {
-	if len(translate) == 0 {
+func transformHTTPError(err error, transforms []HttpStatusToCodeTransform) (*proxyproto.Error, *proxyproto.Disconnect) {
+	if len(transforms) == 0 {
 		return nil, nil
 	}
 	var statusErr *statusCodeError
 	if !errors.As(err, &statusErr) {
 		return nil, nil
 	}
-	for _, t := range translate {
-		if t.Status == statusErr.Code {
+	for _, t := range transforms {
+		if t.StatusCode == statusErr.Code {
 			if t.ToError.Code > 0 {
 				return &proxyproto.Error{
 					Code:      t.ToError.Code,

@@ -8,20 +8,20 @@ import (
 
 type ConnectCodeToHTTPStatus struct {
 	Enabled    bool                               `mapstructure:"enabled" json:"enabled"`
-	Translates []ConnectCodeToHTTPStatusTranslate `mapstructure:"translates" json:"translates"`
+	Transforms []ConnectCodeToHTTPStatusTransform `mapstructure:"transforms" json:"transforms"`
 }
 
-type ConnectCodeToHTTPStatusTranslate struct {
-	Code         uint32 `mapstructure:"code" json:"code"`
-	ToStatusCode int    `mapstructure:"to_status_code" json:"to_status_code"`
+type ConnectCodeToHTTPStatusTransform struct {
+	Code       uint32                              `mapstructure:"code" json:"code"`
+	ToResponse TransformedConnectErrorHttpResponse `mapstructure:"to_response" json:"to_response"`
 }
 
-type TranslatedHttpResponse struct {
-	Status int    `json:"status"`
-	Body   []byte `json:"body"`
+type TransformedConnectErrorHttpResponse struct {
+	Status int    `mapstructure:"status_code" json:"status_code"`
+	Body   string `mapstructure:"body" json:"body"`
 }
 
-func TranslateToHTTPResponse(err error, translates []ConnectCodeToHTTPStatusTranslate) (TranslatedHttpResponse, bool) {
+func ConnectErrorToToHTTPResponse(err error, transforms []ConnectCodeToHTTPStatusTransform) (TransformedConnectErrorHttpResponse, bool) {
 	var code uint32
 	var body string
 	switch t := err.(type) {
@@ -37,18 +37,18 @@ func TranslateToHTTPResponse(err error, translates []ConnectCodeToHTTPStatusTran
 	default:
 	}
 	if code > 0 {
-		for _, t := range translates {
+		for _, t := range transforms {
 			if t.Code != code {
 				continue
 			}
-			return TranslatedHttpResponse{
-				Status: t.ToStatusCode,
-				Body:   []byte(body),
-			}, true
+			if t.ToResponse.Body == "" {
+				t.ToResponse.Body = body
+			}
+			return t.ToResponse, true
 		}
 	}
-	return TranslatedHttpResponse{
+	return TransformedConnectErrorHttpResponse{
 		Status: http.StatusInternalServerError,
-		Body:   []byte(http.StatusText(http.StatusInternalServerError)),
+		Body:   http.StatusText(http.StatusInternalServerError),
 	}, false
 }
