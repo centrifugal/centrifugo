@@ -40,6 +40,13 @@ func (p *HTTPRefreshProxy) ProxyRefresh(ctx context.Context, req *proxyproto.Ref
 	if err != nil {
 		return nil, err
 	}
+	protocolError, protocolDisconnect := transformHTTPStatusError(err, p.config.HttpStatusTransforms)
+	if protocolError != nil || protocolDisconnect != nil {
+		return &proxyproto.RefreshResponse{
+			Error:      protocolError,
+			Disconnect: protocolDisconnect,
+		}, nil
+	}
 	return httpDecoder.DecodeRefreshResponse(respData)
 }
 

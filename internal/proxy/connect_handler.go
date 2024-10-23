@@ -77,7 +77,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 			h.histogram.Observe(duration)
 			h.errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying connect", map[string]any{"client": e.ClientID, "error": err.Error()}))
-			return centrifuge.ConnectReply{}, ConnectExtra{}, centrifuge.ErrorInternal
+			return centrifuge.ConnectReply{}, ConnectExtra{}, err
 		}
 		h.summary.Observe(duration)
 		h.histogram.Observe(duration)

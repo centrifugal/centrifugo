@@ -39,6 +39,13 @@ func (p *HTTPSubRefreshProxy) ProxySubRefresh(ctx context.Context, req *proxypro
 	}
 	respData, err := p.httpCaller.CallHTTP(ctx, p.config.Endpoint, httpRequestHeaders(ctx, p.config), data)
 	if err != nil {
+		protocolError, protocolDisconnect := transformHTTPStatusError(err, p.config.HttpStatusTransforms)
+		if protocolError != nil || protocolDisconnect != nil {
+			return &proxyproto.SubRefreshResponse{
+				Error:      protocolError,
+				Disconnect: protocolDisconnect,
+			}, nil
+		}
 		return nil, err
 	}
 	return httpDecoder.DecodeSubRefreshResponse(respData)
