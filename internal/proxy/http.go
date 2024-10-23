@@ -109,7 +109,7 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
-func transformHTTPError(err error, transforms []HttpStatusToCodeTransform) (*proxyproto.Error, *proxyproto.Disconnect) {
+func transformHTTPStatusError(err error, transforms []HttpStatusToCodeTransform) (*proxyproto.Error, *proxyproto.Disconnect) {
 	if len(transforms) == 0 {
 		return nil, nil
 	}
