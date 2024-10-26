@@ -243,6 +243,11 @@ var defaults = map[string]any{
 	"uni_sse":         false,
 	"uni_http_stream": false,
 
+	"uni_sse_connect_code_to_http_response.enabled":            false,
+	"uni_sse_connect_code_to_http_response.transforms":         []any{},
+	"uni_http_stream_connect_code_to_http_response.enabled":    false,
+	"uni_http_stream_connect_code_to_http_response.transforms": []any{},
+
 	"log_level": "info",
 	"log_file":  "",
 
@@ -291,14 +296,15 @@ var defaults = map[string]any{
 	"proxy_sub_refresh_timeout":      time.Second,
 	"proxy_subscribe_stream_timeout": time.Second,
 
-	"proxy_grpc_metadata":           []string{},
-	"proxy_http_headers":            []string{},
-	"proxy_static_http_headers":     map[string]string{},
-	"proxy_binary_encoding":         false,
-	"proxy_include_connection_meta": false,
-	"proxy_grpc_cert_file":          "",
-	"proxy_grpc_compression":        false,
-	"proxy_grpc_tls":                tools.TLSConfig{},
+	"proxy_http_status_code_transforms": []any{},
+	"proxy_grpc_metadata":               []string{},
+	"proxy_http_headers":                []string{},
+	"proxy_static_http_headers":         map[string]string{},
+	"proxy_binary_encoding":             false,
+	"proxy_include_connection_meta":     false,
+	"proxy_grpc_cert_file":              "",
+	"proxy_grpc_compression":            false,
+	"proxy_grpc_tls":                    tools.TLSConfig{},
 
 	"tarantool_mode":     "standalone",
 	"tarantool_address":  "tcp://127.0.0.1:3301",
@@ -2065,6 +2071,36 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	}
 	proxyConfig.StaticHttpHeaders = staticHttpHeaders
 
+	var httpStatusTransforms []proxy.HttpStatusToCodeTransform
+	if v.IsSet("proxy_http_status_code_transforms") {
+		tools.DecodeSlice(v, &httpStatusTransforms, "proxy_http_status_code_transforms")
+	}
+	for _, transform := range httpStatusTransforms {
+		if transform.StatusCode == 0 {
+			log.Fatal().Msg("status should be set in proxy_http_status_code_transforms item")
+		}
+		if transform.ToDisconnect.Code == 0 && transform.ToError.Code == 0 {
+			log.Fatal().Msg("no error or disconnect code set in proxy_http_status_code_transforms item")
+		}
+		if transform.ToDisconnect.Code > 0 && transform.ToError.Code > 0 {
+			log.Fatal().Msg("only error or disconnect code can be set in proxy_http_status_code_transforms item, but not both")
+		}
+		if !tools.IsASCII(transform.ToDisconnect.Reason) {
+			log.Fatal().Msg("proxy_http_status_code_transforms item disconnect reason must be ASCII")
+		}
+		if !tools.IsASCII(transform.ToError.Message) {
+			log.Fatal().Msg("proxy_http_status_code_transforms item error message must be ASCII")
+		}
+		const reasonOrMessageMaxLength = 123 // limit comes from WebSocket close reason length limit. See https://datatracker.ietf.org/doc/html/rfc6455.
+		if len(transform.ToError.Message) > reasonOrMessageMaxLength {
+			log.Fatal().Msgf("proxy_http_status_code_transforms item error message can be up to %d characters long", reasonOrMessageMaxLength)
+		}
+		if len(transform.ToDisconnect.Reason) > reasonOrMessageMaxLength {
+			log.Fatal().Msgf("proxy_http_status_code_transforms item disconnect reason can be up to %d characters long", reasonOrMessageMaxLength)
+		}
+	}
+	proxyConfig.HttpStatusTransforms = httpStatusTransforms
+
 	connectEndpoint := v.GetString("proxy_connect_endpoint")
 	connectTimeout := GetDuration("proxy_connect_timeout")
 	refreshEndpoint := v.GetString("proxy_refresh_endpoint")
@@ -2529,16 +2565,34 @@ func uniWebsocketHandlerConfig() uniws.Config {
 }
 
 func uniSSEHandlerConfig() unisse.Config {
+	connectCodeToHttpStatusEnabled := viper.GetBool("uni_sse_connect_code_to_http_response.enabled")
+	var connectCodeToHTTPStatusTransforms []tools.ConnectCodeToHTTPStatusTransform
+	if viper.IsSet("uni_sse_connect_code_to_http_response.transforms") {
+		tools.DecodeSlice(viper.GetViper(), &connectCodeToHTTPStatusTransforms, "uni_sse_connect_code_to_http_response.transforms")
+	}
 	return unisse.Config{
 		MaxRequestBodySize: viper.GetInt("uni_sse_max_request_body_size"),
 		PingPongConfig:     getPingPongConfig(),
+		ConnectCodeToHTTPStatus: tools.ConnectCodeToHTTPStatus{
+			Enabled:    connectCodeToHttpStatusEnabled,
+			Transforms: connectCodeToHTTPStatusTransforms,
+		},
 	}
 }
 
 func uniStreamHandlerConfig() unihttpstream.Config {
+	connectCodeToHttpStatusEnabled := viper.GetBool("uni_http_stream_connect_code_to_http_response.enabled")
+	var connectCodeToHTTPStatusTransforms []tools.ConnectCodeToHTTPStatusTransform
+	if viper.IsSet("uni_http_stream_connect_code_to_http_response.transforms") {
+		tools.DecodeSlice(viper.GetViper(), &connectCodeToHTTPStatusTransforms, "uni_http_stream_connect_code_to_http_response.transforms")
+	}
 	return unihttpstream.Config{
 		MaxRequestBodySize: viper.GetInt("uni_http_stream_max_request_body_size"),
 		PingPongConfig:     getPingPongConfig(),
+		ConnectCodeToHTTPStatus: tools.ConnectCodeToHTTPStatus{
+			Enabled:    connectCodeToHttpStatusEnabled,
+			Transforms: connectCodeToHTTPStatusTransforms,
+		},
 	}
 }
 
