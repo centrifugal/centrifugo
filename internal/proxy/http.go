@@ -3,12 +3,15 @@ package proxy
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 )
@@ -98,4 +101,32 @@ func copyHeader(dst, src http.Header, extraHeaders []string) {
 		}
 		dst[k] = vv
 	}
+}
+
+func transformHTTPStatusError(err error, transforms []configtypes.HttpStatusToCodeTransform) (*proxyproto.Error, *proxyproto.Disconnect) {
+	if len(transforms) == 0 {
+		return nil, nil
+	}
+	var statusErr *statusCodeError
+	if !errors.As(err, &statusErr) {
+		return nil, nil
+	}
+	for _, t := range transforms {
+		if t.StatusCode == statusErr.Code {
+			if t.ToError.Code > 0 {
+				return &proxyproto.Error{
+					Code:      t.ToError.Code,
+					Message:   t.ToError.Message,
+					Temporary: t.ToError.Temporary,
+				}, nil
+			}
+			if t.ToDisconnect.Code > 0 {
+				return nil, &proxyproto.Disconnect{
+					Code:   t.ToDisconnect.Code,
+					Reason: t.ToDisconnect.Reason,
+				}
+			}
+		}
+	}
+	return nil, nil
 }

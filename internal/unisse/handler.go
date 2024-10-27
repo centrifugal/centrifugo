@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
+
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
 )
@@ -79,8 +81,43 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h.node.LogEnabled(centrifuge.LogLevelDebug) {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection established", map[string]any{"transport": transport.Name(), "client": c.ID()}))
 		defer func(started time.Time) {
-			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection completed", map[string]any{"duration": time.Since(started), "transport": transport.Name(), "client": c.ID()}))
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection completed", map[string]any{"duration": time.Since(started).String(), "transport": transport.Name(), "client": c.ID()}))
 		}(time.Now())
+	}
+
+	connectRequest := centrifuge.ConnectRequest{
+		Token:   req.Token,
+		Data:    req.Data,
+		Name:    req.Name,
+		Version: req.Version,
+	}
+	if req.Subs != nil {
+		subs := make(map[string]centrifuge.SubscribeRequest, len(req.Subs))
+		for k, v := range req.Subs {
+			subs[k] = centrifuge.SubscribeRequest{
+				Recover: v.Recover,
+				Offset:  v.Offset,
+				Epoch:   v.Epoch,
+			}
+		}
+		connectRequest.Subs = subs
+	}
+
+	if h.config.ConnectCodeToHTTPStatus.Enabled {
+		err = c.ConnectNoErrorToDisconnect(connectRequest)
+		if err != nil {
+			resp, ok := configtypes.ConnectErrorToToHTTPResponse(err, h.config.ConnectCodeToHTTPStatus.Transforms)
+			if ok {
+				w.WriteHeader(resp.Status)
+				_, _ = w.Write([]byte(resp.Body))
+				return
+			}
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+			return
+		}
+	} else {
+		c.Connect(connectRequest)
 	}
 
 	if r.ProtoMajor == 1 {
@@ -107,26 +144,6 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = rc.Flush()
-
-	connectRequest := centrifuge.ConnectRequest{
-		Token:   req.Token,
-		Data:    req.Data,
-		Name:    req.Name,
-		Version: req.Version,
-	}
-	if req.Subs != nil {
-		subs := make(map[string]centrifuge.SubscribeRequest, len(req.Subs))
-		for k, v := range req.Subs {
-			subs[k] = centrifuge.SubscribeRequest{
-				Recover: v.Recover,
-				Offset:  v.Offset,
-				Epoch:   v.Epoch,
-			}
-		}
-		connectRequest.Subs = subs
-	}
-
-	c.Connect(connectRequest)
 
 	for {
 		select {

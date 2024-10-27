@@ -30,6 +30,13 @@ func (p *HTTPSubscribeProxy) ProxySubscribe(ctx context.Context, req *proxyproto
 	}
 	respData, err := p.httpCaller.CallHTTP(ctx, p.config.Endpoint, httpRequestHeaders(ctx, p.config), data)
 	if err != nil {
+		protocolError, protocolDisconnect := transformHTTPStatusError(err, p.config.HTTP.StatusToCodeTransforms)
+		if protocolError != nil || protocolDisconnect != nil {
+			return &proxyproto.SubscribeResponse{
+				Error:      protocolError,
+				Disconnect: protocolDisconnect,
+			}, nil
+		}
 		return nil, err
 	}
 	return httpDecoder.DecodeSubscribeResponse(respData)

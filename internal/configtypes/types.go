@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
 
 	"github.com/centrifugal/centrifuge"
 )
@@ -74,18 +75,64 @@ type UniWebSocket struct {
 }
 
 type UniHTTPStream struct {
-	Enabled            bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
-	HandlerPrefix      string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/uni_http_stream" yaml:"handler_prefix" toml:"handler_prefix"`
-	MaxRequestBodySize int    `mapstructure:"max_request_body_size" json:"max_request_body_size" envconfig:"max_request_body_size" default:"65536" yaml:"max_request_body_size" toml:"max_request_body_size"`
+	Enabled                 bool                    `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	HandlerPrefix           string                  `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/uni_http_stream" yaml:"handler_prefix" toml:"handler_prefix"`
+	MaxRequestBodySize      int                     `mapstructure:"max_request_body_size" json:"max_request_body_size" envconfig:"max_request_body_size" default:"65536" yaml:"max_request_body_size" toml:"max_request_body_size"`
+	ConnectCodeToHTTPStatus ConnectCodeToHTTPStatus `mapstructure:"connect_code_to_http_status" json:"connect_code_to_http_status" envconfig:"connect_code_to_http_status" yaml:"connect_code_to_http_status" toml:"connect_code_to_http_status"`
 }
 
 type UniSSE struct {
-	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	Enabled                 bool                    `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	HandlerPrefix           string                  `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/uni_sse" yaml:"handler_prefix" toml:"handler_prefix"`
+	MaxRequestBodySize      int                     `mapstructure:"max_request_body_size" json:"max_request_body_size" envconfig:"max_request_body_size" default:"65536" yaml:"max_request_body_size" toml:"max_request_body_size"`
+	ConnectCodeToHTTPStatus ConnectCodeToHTTPStatus `mapstructure:"connect_code_to_http_status" json:"connect_code_to_http_status" envconfig:"connect_code_to_http_status" yaml:"connect_code_to_http_status" toml:"connect_code_to_http_status"`
+}
 
-	HandlerPrefix string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/uni_sse" yaml:"handler_prefix" toml:"handler_prefix"`
+type ConnectCodeToHTTPStatus struct {
+	Enabled    bool                               `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	Transforms []ConnectCodeToHTTPStatusTransform `mapstructure:"transforms" json:"transforms" envconfig:"transforms" yaml:"transforms" toml:"transforms"`
+}
 
-	// MaxRequestBodySize for initial POST requests (when POST is used).
-	MaxRequestBodySize int `mapstructure:"max_request_body_size" json:"max_request_body_size" envconfig:"max_request_body_size" default:"65536" yaml:"max_request_body_size" toml:"max_request_body_size"`
+type ConnectCodeToHTTPStatusTransform struct {
+	Code       uint32                              `mapstructure:"code" json:"code" envconfig:"code" yaml:"code" toml:"code"`
+	ToResponse TransformedConnectErrorHttpResponse `mapstructure:"to_response" json:"to_response" envconfig:"to_response" yaml:"to_response" toml:"to_response"`
+}
+
+type TransformedConnectErrorHttpResponse struct {
+	Status int    `mapstructure:"status_code" json:"status_code" envconfig:"status_code" yaml:"status_code" toml:"status_code"`
+	Body   string `mapstructure:"body" json:"body" envconfig:"body" yaml:"body" toml:"body"`
+}
+
+func ConnectErrorToToHTTPResponse(err error, transforms []ConnectCodeToHTTPStatusTransform) (TransformedConnectErrorHttpResponse, bool) {
+	var code uint32
+	var body string
+	switch t := err.(type) {
+	case *centrifuge.Disconnect:
+		code = t.Code
+		body = t.Reason
+	case centrifuge.Disconnect:
+		code = t.Code
+		body = t.Reason
+	case *centrifuge.Error:
+		code = t.Code
+		body = t.Message
+	default:
+	}
+	if code > 0 {
+		for _, t := range transforms {
+			if t.Code != code {
+				continue
+			}
+			if t.ToResponse.Body == "" {
+				t.ToResponse.Body = body
+			}
+			return t.ToResponse, true
+		}
+	}
+	return TransformedConnectErrorHttpResponse{
+		Status: http.StatusInternalServerError,
+		Body:   http.StatusText(http.StatusInternalServerError),
+	}, false
 }
 
 type UniGRPC struct {
@@ -346,11 +393,30 @@ type Admin struct {
 	External bool `mapstructure:"external" json:"external" envconfig:"external" yaml:"external" toml:"external"`
 }
 
+type TransformError struct {
+	Code      uint32 `mapstructure:"code" json:"code" envconfig:"code" yaml:"code" toml:"code"`
+	Message   string `mapstructure:"message" json:"message" envconfig:"message" yaml:"message" toml:"message"`
+	Temporary bool   `mapstructure:"temporary" json:"temporary" envconfig:"temporary" yaml:"temporary" toml:"temporary"`
+}
+
+type TransformDisconnect struct {
+	Code   uint32 `mapstructure:"code" json:"code" envconfig:"code" yaml:"code" toml:"code"`
+	Reason string `mapstructure:"reason" json:"reason" envconfig:"reason" yaml:"reason" toml:"reason"`
+}
+
+type HttpStatusToCodeTransform struct {
+	StatusCode   int                 `mapstructure:"status_code" json:"status_code" envconfig:"status_code" yaml:"status_code" toml:"status_code"`
+	ToError      TransformError      `mapstructure:"to_error" json:"to_error" json:"to_error" yaml:"to_error" toml:"to_error"`
+	ToDisconnect TransformDisconnect `mapstructure:"to_disconnect" json:"to_disconnect" json:"to_disconnect" yaml:"to_disconnect" toml:"to_disconnect"`
+}
+
 type ProxyCommonHTTP struct {
 	// StaticHeaders is a static set of key/value pairs to attach to HTTP proxy request as
 	// headers. Headers received from HTTP client request or metadata from GRPC client request
 	// both have priority over values set in StaticHttpHeaders map.
 	StaticHeaders MapStringString `mapstructure:"static_headers" default:"{}" json:"static_headers" envconfig:"static_headers" yaml:"static_headers" toml:"static_headers"`
+	// Status transforms allow to map HTTP status codes from proxy to Disconnect or Error messages.
+	StatusToCodeTransforms []HttpStatusToCodeTransform `mapstructure:"status_to_code_transforms" default:"[]" json:"status_to_code_transforms,omitempty" envconfig:"status_to_code_transforms" yaml:"status_to_code_transforms" toml:"status_to_code_transforms"`
 }
 
 type ProxyCommonGRPC struct {
