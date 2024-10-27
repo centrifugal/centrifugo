@@ -46,10 +46,10 @@ func getTestHttpProxy(commonProxyTestCase *tools.CommonHTTPProxyTestCase, endpoi
 				StaticHeaders: map[string]string{
 					"X-Test": "test",
 				},
+				StatusToCodeTransforms: []configtypes.HttpStatusToCodeTransform{
+					{StatusCode: 404, ToDisconnect: configtypes.TransformDisconnect{Code: 4504, Reason: "not found"}},
+				},
 			},
-		},
-		HttpStatusTransforms: []HttpStatusToCodeTransform{
-			{StatusCode: 404, ToDisconnect: TransformDisconnect{Code: 4504, Reason: "not found"}},
 		},
 	}
 }
