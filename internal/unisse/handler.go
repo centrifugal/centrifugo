@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v5/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
@@ -106,7 +106,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h.config.ConnectCodeToHTTPStatus.Enabled {
 		err = c.ConnectNoErrorToDisconnect(connectRequest)
 		if err != nil {
-			resp, ok := configtypes.ConnectErrorToToHTTPResponse(err, h.config.ConnectCodeToHTTPStatus.Transforms)
+			resp, ok := tools.ConnectErrorToToHTTPResponse(err, h.config.ConnectCodeToHTTPStatus.Transforms)
 			if ok {
 				w.WriteHeader(resp.StatusCode)
 				_, _ = w.Write([]byte(resp.Body))

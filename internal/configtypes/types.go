@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"net/http"
 
 	"github.com/centrifugal/centrifuge"
 )
@@ -115,38 +114,6 @@ type ConnectCodeToHTTPStatusTransform struct {
 type TransformedConnectErrorHttpResponse struct {
 	StatusCode int    `mapstructure:"status_code" json:"status_code" envconfig:"status_code" yaml:"status_code" toml:"status_code"`
 	Body       string `mapstructure:"body" json:"body" envconfig:"body" yaml:"body" toml:"body"`
-}
-
-func ConnectErrorToToHTTPResponse(err error, transforms []ConnectCodeToHTTPStatusTransform) (TransformedConnectErrorHttpResponse, bool) {
-	var code uint32
-	var body string
-	switch t := err.(type) {
-	case *centrifuge.Disconnect:
-		code = t.Code
-		body = t.Reason
-	case centrifuge.Disconnect:
-		code = t.Code
-		body = t.Reason
-	case *centrifuge.Error:
-		code = t.Code
-		body = t.Message
-	default:
-	}
-	if code > 0 {
-		for _, t := range transforms {
-			if t.Code != code {
-				continue
-			}
-			if t.ToResponse.Body == "" {
-				t.ToResponse.Body = body
-			}
-			return t.ToResponse, true
-		}
-	}
-	return TransformedConnectErrorHttpResponse{
-		StatusCode: http.StatusInternalServerError,
-		Body:       http.StatusText(http.StatusInternalServerError),
-	}, false
 }
 
 type UniGRPC struct {

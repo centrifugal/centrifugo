@@ -3,25 +3,12 @@ package tools
 import (
 	"net/http"
 
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
+
 	"github.com/centrifugal/centrifuge"
 )
 
-type ConnectCodeToHTTPStatus struct {
-	Enabled    bool                               `mapstructure:"enabled" json:"enabled"`
-	Transforms []ConnectCodeToHTTPStatusTransform `mapstructure:"transforms" json:"transforms"`
-}
-
-type ConnectCodeToHTTPStatusTransform struct {
-	Code       uint32                              `mapstructure:"code" json:"code"`
-	ToResponse TransformedConnectErrorHttpResponse `mapstructure:"to_response" json:"to_response"`
-}
-
-type TransformedConnectErrorHttpResponse struct {
-	Status int    `mapstructure:"status_code" json:"status_code"`
-	Body   string `mapstructure:"body" json:"body"`
-}
-
-func ConnectErrorToToHTTPResponse(err error, transforms []ConnectCodeToHTTPStatusTransform) (TransformedConnectErrorHttpResponse, bool) {
+func ConnectErrorToToHTTPResponse(err error, transforms []configtypes.ConnectCodeToHTTPStatusTransform) (configtypes.TransformedConnectErrorHttpResponse, bool) {
 	var code uint32
 	var body string
 	switch t := err.(type) {
@@ -47,8 +34,8 @@ func ConnectErrorToToHTTPResponse(err error, transforms []ConnectCodeToHTTPStatu
 			return t.ToResponse, true
 		}
 	}
-	return TransformedConnectErrorHttpResponse{
-		Status: http.StatusInternalServerError,
-		Body:   http.StatusText(http.StatusInternalServerError),
+	return configtypes.TransformedConnectErrorHttpResponse{
+		StatusCode: http.StatusInternalServerError,
+		Body:       http.StatusText(http.StatusInternalServerError),
 	}, false
 }
