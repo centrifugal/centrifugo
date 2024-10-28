@@ -88,6 +88,20 @@ type UniSSE struct {
 	ConnectCodeToHTTPStatus ConnectCodeToHTTPStatus `mapstructure:"connect_code_to_http_status" json:"connect_code_to_http_status" envconfig:"connect_code_to_http_status" yaml:"connect_code_to_http_status" toml:"connect_code_to_http_status"`
 }
 
+type ConnectCodeToHTTPStatusTransforms []ConnectCodeToHTTPStatusTransform
+
+// Decode to implement the envconfig.Decoder interface
+func (d *ConnectCodeToHTTPStatusTransforms) Decode(value string) error {
+	// If the source is a string and the target is a slice, try to parse it as JSON.
+	var items ConnectCodeToHTTPStatusTransforms
+	err := json.Unmarshal([]byte(value), &items)
+	if err != nil {
+		return fmt.Errorf("error parsing items from JSON: %v", err)
+	}
+	*d = items
+	return nil
+}
+
 type ConnectCodeToHTTPStatus struct {
 	Enabled    bool                               `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	Transforms []ConnectCodeToHTTPStatusTransform `mapstructure:"transforms" json:"transforms" envconfig:"transforms" yaml:"transforms" toml:"transforms"`
@@ -99,8 +113,8 @@ type ConnectCodeToHTTPStatusTransform struct {
 }
 
 type TransformedConnectErrorHttpResponse struct {
-	Status int    `mapstructure:"status_code" json:"status_code" envconfig:"status_code" yaml:"status_code" toml:"status_code"`
-	Body   string `mapstructure:"body" json:"body" envconfig:"body" yaml:"body" toml:"body"`
+	StatusCode int    `mapstructure:"status_code" json:"status_code" envconfig:"status_code" yaml:"status_code" toml:"status_code"`
+	Body       string `mapstructure:"body" json:"body" envconfig:"body" yaml:"body" toml:"body"`
 }
 
 func ConnectErrorToToHTTPResponse(err error, transforms []ConnectCodeToHTTPStatusTransform) (TransformedConnectErrorHttpResponse, bool) {
@@ -130,8 +144,8 @@ func ConnectErrorToToHTTPResponse(err error, transforms []ConnectCodeToHTTPStatu
 		}
 	}
 	return TransformedConnectErrorHttpResponse{
-		Status: http.StatusInternalServerError,
-		Body:   http.StatusText(http.StatusInternalServerError),
+		StatusCode: http.StatusInternalServerError,
+		Body:       http.StatusText(http.StatusInternalServerError),
 	}, false
 }
 
@@ -410,13 +424,27 @@ type HttpStatusToCodeTransform struct {
 	ToDisconnect TransformDisconnect `mapstructure:"to_disconnect" json:"to_disconnect" json:"to_disconnect" yaml:"to_disconnect" toml:"to_disconnect"`
 }
 
+type HttpStatusToCodeTransforms []HttpStatusToCodeTransform
+
+// Decode to implement the envconfig.Decoder interface
+func (d *HttpStatusToCodeTransforms) Decode(value string) error {
+	// If the source is a string and the target is a slice, try to parse it as JSON.
+	var items HttpStatusToCodeTransforms
+	err := json.Unmarshal([]byte(value), &items)
+	if err != nil {
+		return fmt.Errorf("error parsing items from JSON: %v", err)
+	}
+	*d = items
+	return nil
+}
+
 type ProxyCommonHTTP struct {
 	// StaticHeaders is a static set of key/value pairs to attach to HTTP proxy request as
 	// headers. Headers received from HTTP client request or metadata from GRPC client request
 	// both have priority over values set in StaticHttpHeaders map.
 	StaticHeaders MapStringString `mapstructure:"static_headers" default:"{}" json:"static_headers" envconfig:"static_headers" yaml:"static_headers" toml:"static_headers"`
 	// Status transforms allow to map HTTP status codes from proxy to Disconnect or Error messages.
-	StatusToCodeTransforms []HttpStatusToCodeTransform `mapstructure:"status_to_code_transforms" default:"[]" json:"status_to_code_transforms,omitempty" envconfig:"status_to_code_transforms" yaml:"status_to_code_transforms" toml:"status_to_code_transforms"`
+	StatusToCodeTransforms HttpStatusToCodeTransforms `mapstructure:"status_to_code_transforms" default:"[]" json:"status_to_code_transforms,omitempty" envconfig:"status_to_code_transforms" yaml:"status_to_code_transforms" toml:"status_to_code_transforms"`
 }
 
 type ProxyCommonGRPC struct {

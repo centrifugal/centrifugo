@@ -3,6 +3,8 @@ package runutil
 import (
 	"strings"
 
+	"github.com/centrifugal/centrifugo/v5/internal/tools"
+
 	"github.com/centrifugal/centrifugo/v5/internal/client"
 	"github.com/centrifugal/centrifugo/v5/internal/config"
 	"github.com/centrifugal/centrifugo/v5/internal/proxy"
@@ -53,7 +55,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool) {
 		if err != nil {
 			log.Fatal().Msgf("error creating connect proxy: %v", err)
 		}
-		log.Info().Str("proxy_name", connectProxyName).Str("endpoint", p.Endpoint).Msg("connect proxy enabled")
+		log.Info().Str("proxy_name", connectProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("connect proxy enabled")
 		keepHeadersInContext = true
 	}
 
@@ -76,7 +78,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool) {
 		if err != nil {
 			log.Fatal().Msgf("error creating refresh proxy: %v", err)
 		}
-		log.Info().Str("proxy_name", refreshProxyName).Str("endpoint", p.Endpoint).Msg("refresh proxy enabled")
+		log.Info().Str("proxy_name", refreshProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("refresh proxy enabled")
 		keepHeadersInContext = true
 	}
 
@@ -99,7 +101,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool) {
 			log.Fatal().Msgf("error creating subscribe proxy: %v", err)
 		}
 		proxyMap.SubscribeProxies[subscribeProxyName] = sp
-		log.Info().Str("proxy_name", subscribeProxyName).Str("endpoint", p.Endpoint).Msg("subscribe proxy enabled for channels without namespace")
+		log.Info().Str("proxy_name", subscribeProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("subscribe proxy enabled for channels without namespace")
 		keepHeadersInContext = true
 	}
 
@@ -122,7 +124,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool) {
 			log.Fatal().Msgf("error creating publish proxy: %v", err)
 		}
 		proxyMap.PublishProxies[publishProxyName] = pp
-		log.Info().Str("proxy_name", publishProxyName).Str("endpoint", p.Endpoint).Msg("publish proxy enabled for channels without namespace")
+		log.Info().Str("proxy_name", publishProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("publish proxy enabled for channels without namespace")
 		keepHeadersInContext = true
 	}
 
@@ -145,7 +147,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool) {
 			log.Fatal().Msgf("error creating publish proxy: %v", err)
 		}
 		proxyMap.SubRefreshProxies[subRefreshProxyName] = srp
-		log.Info().Str("proxy_name", subRefreshProxyName).Str("endpoint", p.Endpoint).Msg("sub refresh proxy enabled for channels without namespace")
+		log.Info().Str("proxy_name", subRefreshProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("sub refresh proxy enabled for channels without namespace")
 		keepHeadersInContext = true
 	}
 
@@ -171,7 +173,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool) {
 			log.Fatal().Msgf("error creating subscribe proxy: %v", err)
 		}
 		proxyMap.SubscribeStreamProxies[subscribeProxyName] = sp
-		log.Info().Str("proxy_name", subscribeStreamProxyName).Str("endpoint", p.Endpoint).Msg("subscribe stream proxy enabled for channels without namespace")
+		log.Info().Str("proxy_name", subscribeStreamProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("subscribe stream proxy enabled for channels without namespace")
 		keepHeadersInContext = true
 	}
 
@@ -201,7 +203,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool) {
 				}
 				proxyMap.SubscribeProxies[subscribeProxyName] = sp
 			}
-			log.Info().Str("proxy_name", subscribeProxyName).Str("endpoint", p.Endpoint).Str("namespace", ns.Name).Msg("subscribe proxy enabled for channels in namespace")
+			log.Info().Str("proxy_name", subscribeProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Str("namespace", ns.Name).Msg("subscribe proxy enabled for channels in namespace")
 		}
 
 		if publishProxyName != "" {
@@ -224,7 +226,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool) {
 				}
 				proxyMap.PublishProxies[publishProxyName] = pp
 			}
-			log.Info().Str("proxy_name", publishProxyName).Str("endpoint", p.Endpoint).Str("namespace", ns.Name).Msg("publish proxy enabled for channels in namespace")
+			log.Info().Str("proxy_name", publishProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Str("namespace", ns.Name).Msg("publish proxy enabled for channels in namespace")
 			keepHeadersInContext = true
 		}
 
@@ -248,7 +250,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool) {
 				}
 				proxyMap.SubRefreshProxies[subRefreshProxyName] = srp
 			}
-			log.Info().Str("proxy_name", subRefreshProxyName).Str("endpoint", p.Endpoint).Str("namespace", ns.Name).Msg("sub refresh proxy enabled for channels in namespace")
+			log.Info().Str("proxy_name", subRefreshProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Str("namespace", ns.Name).Msg("sub refresh proxy enabled for channels in namespace")
 			keepHeadersInContext = true
 		}
 
@@ -275,7 +277,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool) {
 				}
 				proxyMap.SubscribeStreamProxies[subscribeStreamProxyName] = sp
 			}
-			log.Info().Str("proxy_name", subscribeStreamProxyName).Str("endpoint", p.Endpoint).Str("namespace", ns.Name).Msg("subscribe stream proxy enabled for channels in namespace")
+			log.Info().Str("proxy_name", subscribeStreamProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Str("namespace", ns.Name).Msg("subscribe stream proxy enabled for channels in namespace")
 			keepHeadersInContext = true
 		}
 	}
@@ -299,7 +301,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool) {
 			log.Fatal().Msgf("error creating rpc proxy: %v", err)
 		}
 		proxyMap.RpcProxies[rpcProxyName] = rp
-		log.Info().Str("proxy_name", rpcProxyName).Str("endpoint", p.Endpoint).Msg("RPC proxy enabled for RPC calls without namespace")
+		log.Info().Str("proxy_name", rpcProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("RPC proxy enabled for RPC calls without namespace")
 		keepHeadersInContext = true
 	}
 
@@ -325,7 +327,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool) {
 				}
 				proxyMap.RpcProxies[rpcProxyName] = rp
 			}
-			log.Info().Str("proxy_name", rpcProxyName).Str("endpoint", p.Endpoint).Str("namespace", ns.Name).Msg("RPC proxy enabled for RPC calls in namespace")
+			log.Info().Str("proxy_name", rpcProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Str("namespace", ns.Name).Msg("RPC proxy enabled for RPC calls in namespace")
 			keepHeadersInContext = true
 		}
 	}

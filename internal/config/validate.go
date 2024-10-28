@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v5/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 )
@@ -36,6 +37,10 @@ func (c Config) Validate() error {
 		if p.Endpoint == "" {
 			return fmt.Errorf("no endpoint set for proxy %s", p.Name)
 		}
+		if err := validateStatusTransforms(p.ProxyCommon.HTTP.StatusToCodeTransforms); err != nil {
+			return fmt.Errorf("in proxy %s: %v", p.Name, err)
+		}
+
 		proxyNames = append(proxyNames, p.Name)
 	}
 	if slices.Contains(proxyNames, UnifiedProxyName) {
@@ -58,6 +63,9 @@ func (c Config) Validate() error {
 	}
 	if err := validateSecondPrecisionDuration(c.Channel.HistoryMetaTTL); err != nil {
 		return fmt.Errorf("in channel.history_meta_ttl: %v", err)
+	}
+	if err := validateStatusTransforms(c.UnifiedProxy.ProxyCommon.HTTP.StatusToCodeTransforms); err != nil {
+		return fmt.Errorf("in proxy %s: %v", UnifiedProxyName, err)
 	}
 
 	if err := validateChannelOptions(c.Channel.WithoutNamespace, c.Channel.HistoryMetaTTL, proxyNames, c); err != nil {
@@ -122,6 +130,13 @@ func (c Config) Validate() error {
 			return fmt.Errorf("unknown consumer type: %s", config.Type)
 		}
 		consumerNames = append(consumerNames, config.Name)
+	}
+
+	if err := validateConnectCodeTransforms(c.UniSSE.ConnectCodeToHTTPStatus.Transforms); err != nil {
+		return fmt.Errorf("in uni_sse.connect_code_to_http_status.transforms: %v", err)
+	}
+	if err := validateConnectCodeTransforms(c.UniHTTPStream.ConnectCodeToHTTPStatus.Transforms); err != nil {
+		return fmt.Errorf("in uni_http_stream.connect_code_to_http_status.transforms: %v", err)
 	}
 
 	return nil
@@ -252,6 +267,46 @@ func validateTokens(cfg Config) error {
 	if cfg.Client.SubscriptionToken.UserIDClaim != "" {
 		if !customClaimRe.MatchString(cfg.Client.SubscriptionToken.UserIDClaim) {
 			return fmt.Errorf("invalid subscription token custom user ID claim: %s, must match %s regular expression", cfg.Client.SubscriptionToken.UserIDClaim, customClaimRe.String())
+		}
+	}
+	return nil
+}
+
+func validateStatusTransforms(transforms []configtypes.HttpStatusToCodeTransform) error {
+	for i, transform := range transforms {
+		if transform.StatusCode == 0 {
+			return fmt.Errorf("status_code should be set in status_to_code_transforms[%d]", i)
+		}
+		if transform.ToDisconnect.Code == 0 && transform.ToError.Code == 0 {
+			return fmt.Errorf("no error or disconnect code set in status_to_code_transforms[%d]", i)
+		}
+		if transform.ToDisconnect.Code > 0 && transform.ToError.Code > 0 {
+			return fmt.Errorf("only error or disconnect code can be set in status_to_code_transforms[%d], but not both", i)
+		}
+		if !tools.IsASCII(transform.ToDisconnect.Reason) {
+			return fmt.Errorf("status_to_code_transforms[%d] disconnect reason must be ASCII", i)
+		}
+		if !tools.IsASCII(transform.ToError.Message) {
+			return fmt.Errorf("status_to_code_transforms[%d] error message must be ASCII", i)
+		}
+		const reasonOrMessageMaxLength = 123 // limit comes from WebSocket close reason length limit. See https://datatracker.ietf.org/doc/html/rfc6455.
+		if len(transform.ToError.Message) > reasonOrMessageMaxLength {
+			return fmt.Errorf("status_to_code_transforms[%d] item error message can be up to %d characters long", i, reasonOrMessageMaxLength)
+		}
+		if len(transform.ToDisconnect.Reason) > reasonOrMessageMaxLength {
+			return fmt.Errorf("status_to_code_transforms[%d] disconnect reason can be up to %d characters long", i, reasonOrMessageMaxLength)
+		}
+	}
+	return nil
+}
+
+func validateConnectCodeTransforms(transforms []configtypes.ConnectCodeToHTTPStatusTransform) error {
+	for i, transform := range transforms {
+		if transform.Code == 0 {
+			return fmt.Errorf("code should be set in connect_code_to_http_status.transforms[%d]", i)
+		}
+		if transform.ToResponse.StatusCode == 0 {
+			return fmt.Errorf("status_code should be set in connect_code_to_http_status.transforms[%d].to_response", i)
 		}
 	}
 	return nil

@@ -108,7 +108,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			resp, ok := configtypes.ConnectErrorToToHTTPResponse(err, h.config.ConnectCodeToHTTPStatus.Transforms)
 			if ok {
-				w.WriteHeader(resp.Status)
+				w.WriteHeader(resp.StatusCode)
 				_, _ = w.Write([]byte(resp.Body))
 				return
 			}
