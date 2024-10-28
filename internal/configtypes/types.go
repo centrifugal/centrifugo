@@ -420,8 +420,8 @@ type TransformDisconnect struct {
 
 type HttpStatusToCodeTransform struct {
 	StatusCode   int                 `mapstructure:"status_code" json:"status_code" envconfig:"status_code" yaml:"status_code" toml:"status_code"`
-	ToError      TransformError      `mapstructure:"to_error" json:"to_error" json:"to_error" yaml:"to_error" toml:"to_error"`
-	ToDisconnect TransformDisconnect `mapstructure:"to_disconnect" json:"to_disconnect" json:"to_disconnect" yaml:"to_disconnect" toml:"to_disconnect"`
+	ToError      TransformError      `mapstructure:"to_error" json:"to_error" envconfig:"to_error" yaml:"to_error" toml:"to_error"`
+	ToDisconnect TransformDisconnect `mapstructure:"to_disconnect" json:"to_disconnect" envconfig:"to_disconnect" yaml:"to_disconnect" toml:"to_disconnect"`
 }
 
 type HttpStatusToCodeTransforms []HttpStatusToCodeTransform
