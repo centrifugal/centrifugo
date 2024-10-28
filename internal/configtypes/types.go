@@ -103,8 +103,8 @@ func (d *ConnectCodeToHTTPStatusTransforms) Decode(value string) error {
 }
 
 type ConnectCodeToHTTPStatus struct {
-	Enabled    bool                               `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
-	Transforms []ConnectCodeToHTTPStatusTransform `mapstructure:"transforms" json:"transforms" envconfig:"transforms" yaml:"transforms" toml:"transforms"`
+	Enabled    bool                              `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	Transforms ConnectCodeToHTTPStatusTransforms `mapstructure:"transforms" default:"[]" json:"transforms" envconfig:"transforms" yaml:"transforms" toml:"transforms"`
 }
 
 type ConnectCodeToHTTPStatusTransform struct {
