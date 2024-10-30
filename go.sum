@@ -8,8 +8,8 @@ github.com/cenkalti/backoff/v4 v4.3.0 h1:MyRJ/UdXutAwSAT+s3wNd7MfTIcy71VQueUuFK3
 github.com/cenkalti/backoff/v4 v4.3.0/go.mod h1:Y3VNntkOUPxTVeUxJ/G5vcM//AlwfmyYozVcomhLiZE=
 github.com/centrifugal/centrifuge v0.33.5-0.20241026095149-106d43f21426 h1:g5zZaCr/BybYgq8Nqrnrvqvb3jGGO/Dloil3cFGzzbg=
 github.com/centrifugal/centrifuge v0.33.5-0.20241026095149-106d43f21426/go.mod h1:Ck+7H3eVwoeyabKcj3L55oSunaORIOGPAIVB5xrQyGU=
-github.com/centrifugal/protocol v0.13.4 h1:I0YxXtFNfn/ndDIZp5RkkqQcSSNH7DNPUbXKYtJXDzs=
-github.com/centrifugal/protocol v0.13.4/go.mod h1:7V5vI30VcoxJe4UD87xi7bOsvI0bmEhvbQuMjrFM2L4=
+github.com/centrifugal/protocol v0.13.5-0.20241030063749-f2e17f373602 h1:GdltAOXAFqR9i/q/DWbGzWFXv6x5ff/oPgZFuwlIZFQ=
+github.com/centrifugal/protocol v0.13.5-0.20241030063749-f2e17f373602/go.mod h1:7V5vI30VcoxJe4UD87xi7bOsvI0bmEhvbQuMjrFM2L4=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=

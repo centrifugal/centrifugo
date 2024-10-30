@@ -67,14 +67,17 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	var decoder protocol.StreamCommandDecoder
 	if protoType == centrifuge.ProtocolTypeJSON {
-		decoder = protocol.NewJSONStreamCommandDecoder(stream)
+		decoder = protocol.GetStreamCommandDecoder(protocol.TypeJSON, stream, s.config.MessageSizeLimit)
+		defer protocol.PutStreamCommandDecoder(protocol.TypeJSON, decoder)
 	} else {
-		decoder = protocol.NewProtobufStreamCommandDecoder(stream)
+		decoder = protocol.NewProtobufStreamCommandDecoder(stream, s.config.MessageSizeLimit)
+		defer protocol.PutStreamCommandDecoder(protocol.TypeProtobuf, decoder)
 	}
 
 	for {
 		cmd, cmdSize, err := decoder.Decode()
 		if err != nil {
+			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding command", map[string]any{"client": c.ID(), "transport": transportName, "error": err.Error()}))
 			return
 		}
 		ok := c.HandleCommand(cmd, cmdSize)
