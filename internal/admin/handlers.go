@@ -60,7 +60,6 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) adminSecureTokenAuth(h http.Handler) http.Handler {
-
 	secret := s.config.Secret
 	insecure := s.config.Insecure
 

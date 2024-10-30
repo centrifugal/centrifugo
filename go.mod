@@ -6,7 +6,7 @@ require (
 	github.com/FZambia/eagle v0.1.0
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/centrifugal/centrifuge v0.33.5-0.20241026095149-106d43f21426
-	github.com/centrifugal/protocol v0.13.5-0.20241030063749-f2e17f373602
+	github.com/centrifugal/protocol v0.13.5-0.20241030080628-ab8a125839c1
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.1.0
 	github.com/gobwas/glob v0.2.3
