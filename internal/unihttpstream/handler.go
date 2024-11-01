@@ -93,10 +93,10 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		connectRequest.Subs = subs
 	}
 
-	if h.config.ConnectCodeToHTTPStatus.Enabled {
+	if h.config.ConnectCodeToHTTPResponse.Enabled {
 		err = c.ConnectNoErrorToDisconnect(connectRequest)
 		if err != nil {
-			resp, ok := tools.ConnectErrorToToHTTPResponse(err, h.config.ConnectCodeToHTTPStatus.Transforms)
+			resp, ok := tools.ConnectErrorToToHTTPResponse(err, h.config.ConnectCodeToHTTPResponse.Transforms)
 			if ok {
 				w.WriteHeader(resp.StatusCode)
 				_, _ = w.Write([]byte(resp.Body))

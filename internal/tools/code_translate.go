@@ -8,7 +8,7 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
-func ConnectErrorToToHTTPResponse(err error, transforms []configtypes.ConnectCodeToHTTPStatusTransform) (configtypes.TransformedConnectErrorHttpResponse, bool) {
+func ConnectErrorToToHTTPResponse(err error, transforms []configtypes.ConnectCodeToHTTPResponseTransform) (configtypes.TransformedConnectErrorHttpResponse, bool) {
 	var code uint32
 	var body string
 	switch t := err.(type) {
@@ -28,10 +28,10 @@ func ConnectErrorToToHTTPResponse(err error, transforms []configtypes.ConnectCod
 			if t.Code != code {
 				continue
 			}
-			if t.ToResponse.Body == "" {
-				t.ToResponse.Body = body
+			if t.To.Body == "" {
+				t.To.Body = body
 			}
-			return t.ToResponse, true
+			return t.To, true
 		}
 	}
 	return configtypes.TransformedConnectErrorHttpResponse{

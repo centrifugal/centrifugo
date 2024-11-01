@@ -75,25 +75,25 @@ type UniWebSocket struct {
 }
 
 type UniHTTPStream struct {
-	Enabled                 bool                    `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
-	HandlerPrefix           string                  `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/uni_http_stream" yaml:"handler_prefix" toml:"handler_prefix"`
-	MaxRequestBodySize      int                     `mapstructure:"max_request_body_size" json:"max_request_body_size" envconfig:"max_request_body_size" default:"65536" yaml:"max_request_body_size" toml:"max_request_body_size"`
-	ConnectCodeToHTTPStatus ConnectCodeToHTTPStatus `mapstructure:"connect_code_to_http_status" json:"connect_code_to_http_status" envconfig:"connect_code_to_http_status" yaml:"connect_code_to_http_status" toml:"connect_code_to_http_status"`
+	Enabled                   bool                      `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	HandlerPrefix             string                    `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/uni_http_stream" yaml:"handler_prefix" toml:"handler_prefix"`
+	MaxRequestBodySize        int                       `mapstructure:"max_request_body_size" json:"max_request_body_size" envconfig:"max_request_body_size" default:"65536" yaml:"max_request_body_size" toml:"max_request_body_size"`
+	ConnectCodeToHTTPResponse ConnectCodeToHTTPResponse `mapstructure:"connect_code_to_http_response" json:"connect_code_to_http_response" envconfig:"connect_code_to_http_response" yaml:"connect_code_to_http_response" toml:"connect_code_to_http_response"`
 }
 
 type UniSSE struct {
-	Enabled                 bool                    `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
-	HandlerPrefix           string                  `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/uni_sse" yaml:"handler_prefix" toml:"handler_prefix"`
-	MaxRequestBodySize      int                     `mapstructure:"max_request_body_size" json:"max_request_body_size" envconfig:"max_request_body_size" default:"65536" yaml:"max_request_body_size" toml:"max_request_body_size"`
-	ConnectCodeToHTTPStatus ConnectCodeToHTTPStatus `mapstructure:"connect_code_to_http_status" json:"connect_code_to_http_status" envconfig:"connect_code_to_http_status" yaml:"connect_code_to_http_status" toml:"connect_code_to_http_status"`
+	Enabled                   bool                      `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	HandlerPrefix             string                    `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/uni_sse" yaml:"handler_prefix" toml:"handler_prefix"`
+	MaxRequestBodySize        int                       `mapstructure:"max_request_body_size" json:"max_request_body_size" envconfig:"max_request_body_size" default:"65536" yaml:"max_request_body_size" toml:"max_request_body_size"`
+	ConnectCodeToHTTPResponse ConnectCodeToHTTPResponse `mapstructure:"connect_code_to_http_response" json:"connect_code_to_http_response" envconfig:"connect_code_to_http_response" yaml:"connect_code_to_http_response" toml:"connect_code_to_http_response"`
 }
 
-type ConnectCodeToHTTPStatusTransforms []ConnectCodeToHTTPStatusTransform
+type ConnectCodeToHTTPResponseTransforms []ConnectCodeToHTTPResponseTransform
 
 // Decode to implement the envconfig.Decoder interface
-func (d *ConnectCodeToHTTPStatusTransforms) Decode(value string) error {
+func (d *ConnectCodeToHTTPResponseTransforms) Decode(value string) error {
 	// If the source is a string and the target is a slice, try to parse it as JSON.
-	var items ConnectCodeToHTTPStatusTransforms
+	var items ConnectCodeToHTTPResponseTransforms
 	err := json.Unmarshal([]byte(value), &items)
 	if err != nil {
 		return fmt.Errorf("error parsing items from JSON: %v", err)
@@ -102,14 +102,14 @@ func (d *ConnectCodeToHTTPStatusTransforms) Decode(value string) error {
 	return nil
 }
 
-type ConnectCodeToHTTPStatus struct {
-	Enabled    bool                              `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
-	Transforms ConnectCodeToHTTPStatusTransforms `mapstructure:"transforms" default:"[]" json:"transforms" envconfig:"transforms" yaml:"transforms" toml:"transforms"`
+type ConnectCodeToHTTPResponse struct {
+	Enabled    bool                                `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	Transforms ConnectCodeToHTTPResponseTransforms `mapstructure:"transforms" default:"[]" json:"transforms" envconfig:"transforms" yaml:"transforms" toml:"transforms"`
 }
 
-type ConnectCodeToHTTPStatusTransform struct {
-	Code       uint32                              `mapstructure:"code" json:"code" envconfig:"code" yaml:"code" toml:"code"`
-	ToResponse TransformedConnectErrorHttpResponse `mapstructure:"to_response" json:"to_response" envconfig:"to_response" yaml:"to_response" toml:"to_response"`
+type ConnectCodeToHTTPResponseTransform struct {
+	Code uint32                              `mapstructure:"code" json:"code" envconfig:"code" yaml:"code" toml:"code"`
+	To   TransformedConnectErrorHttpResponse `mapstructure:"to" json:"to" envconfig:"to" yaml:"to" toml:"to"`
 }
 
 type TransformedConnectErrorHttpResponse struct {

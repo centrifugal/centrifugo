@@ -132,10 +132,10 @@ func (c Config) Validate() error {
 		consumerNames = append(consumerNames, config.Name)
 	}
 
-	if err := validateConnectCodeTransforms(c.UniSSE.ConnectCodeToHTTPStatus.Transforms); err != nil {
+	if err := validateConnectCodeTransforms(c.UniSSE.ConnectCodeToHTTPResponse.Transforms); err != nil {
 		return fmt.Errorf("in uni_sse.connect_code_to_http_status.transforms: %v", err)
 	}
-	if err := validateConnectCodeTransforms(c.UniHTTPStream.ConnectCodeToHTTPStatus.Transforms); err != nil {
+	if err := validateConnectCodeTransforms(c.UniHTTPStream.ConnectCodeToHTTPResponse.Transforms); err != nil {
 		return fmt.Errorf("in uni_http_stream.connect_code_to_http_status.transforms: %v", err)
 	}
 
@@ -300,12 +300,12 @@ func validateStatusTransforms(transforms []configtypes.HttpStatusToCodeTransform
 	return nil
 }
 
-func validateConnectCodeTransforms(transforms []configtypes.ConnectCodeToHTTPStatusTransform) error {
+func validateConnectCodeTransforms(transforms []configtypes.ConnectCodeToHTTPResponseTransform) error {
 	for i, transform := range transforms {
 		if transform.Code == 0 {
 			return fmt.Errorf("code should be set in connect_code_to_http_status.transforms[%d]", i)
 		}
-		if transform.ToResponse.StatusCode == 0 {
+		if transform.To.StatusCode == 0 {
 			return fmt.Errorf("status_code should be set in connect_code_to_http_status.transforms[%d].to_response", i)
 		}
 	}
