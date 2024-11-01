@@ -12,8 +12,8 @@ type ConnectCodeToHTTPStatus struct {
 }
 
 type ConnectCodeToHTTPStatusTransform struct {
-	Code       uint32                              `mapstructure:"code" json:"code"`
-	ToResponse TransformedConnectErrorHttpResponse `mapstructure:"to_response" json:"to_response"`
+	Code uint32                              `mapstructure:"code" json:"code"`
+	To   TransformedConnectErrorHttpResponse `mapstructure:"to" json:"to"`
 }
 
 type TransformedConnectErrorHttpResponse struct {
@@ -41,10 +41,10 @@ func ConnectErrorToToHTTPResponse(err error, transforms []ConnectCodeToHTTPStatu
 			if t.Code != code {
 				continue
 			}
-			if t.ToResponse.Body == "" {
-				t.ToResponse.Body = body
+			if t.To.Body == "" {
+				t.To.Body = body
 			}
-			return t.ToResponse, true
+			return t.To, true
 		}
 	}
 	return TransformedConnectErrorHttpResponse{
