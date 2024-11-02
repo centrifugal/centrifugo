@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-
-	"github.com/centrifugal/centrifuge"
 )
 
 type Token struct {
@@ -281,25 +279,24 @@ type Client struct {
 	// PingPong allows configuring application level ping-pong behavior for client connections.
 	PingPong `mapstructure:",squash" yaml:",inline"`
 
-	AllowedDeltaTypes                []centrifuge.DeltaType `mapstructure:"allowed_delta_types" json:"allowed_delta_types" envconfig:"allowed_delta_types" yaml:"allowed_delta_types" toml:"allowed_delta_types"`
-	ExpiredCloseDelay                Duration               `mapstructure:"expired_close_delay" json:"expired_close_delay" envconfig:"expired_close_delay" default:"25s" yaml:"expired_close_delay" toml:"expired_close_delay"`
-	ExpiredSubCloseDelay             Duration               `mapstructure:"expired_sub_close_delay" json:"expired_sub_close_delay" envconfig:"expired_sub_close_delay" default:"25s" yaml:"expired_sub_close_delay" toml:"expired_sub_close_delay"`
-	StaleCloseDelay                  Duration               `mapstructure:"stale_close_delay" json:"stale_close_delay" envconfig:"stale_close_delay" default:"10s" yaml:"stale_close_delay" toml:"stale_close_delay"`
-	ChannelLimit                     int                    `mapstructure:"channel_limit" json:"channel_limit" envconfig:"channel_limit" default:"128" yaml:"channel_limit" toml:"channel_limit"`
-	QueueMaxSize                     int                    `mapstructure:"queue_max_size" json:"queue_max_size" envconfig:"queue_max_size" default:"1048576" yaml:"queue_max_size" toml:"queue_max_size"`
-	PresenceUpdateInterval           Duration               `mapstructure:"presence_update_interval" json:"presence_update_interval" envconfig:"presence_update_interval" default:"27s" yaml:"presence_update_interval" toml:"presence_update_interval"`
-	Concurrency                      int                    `mapstructure:"concurrency" json:"concurrency" envconfig:"concurrency" yaml:"concurrency" toml:"concurrency"`
-	ChannelPositionCheckDelay        Duration               `mapstructure:"channel_position_check_delay" json:"channel_position_check_delay" envconfig:"channel_position_check_delay" default:"40s" yaml:"channel_position_check_delay" toml:"channel_position_check_delay"`
-	ChannelPositionMaxTimeLag        Duration               `mapstructure:"channel_position_max_time_lag" json:"channel_position_max_time_lag" envconfig:"channel_position_max_time_lag" yaml:"channel_position_max_time_lag" toml:"channel_position_max_time_lag"`
-	ConnectionLimit                  int                    `mapstructure:"connection_limit" json:"connection_limit" envconfig:"connection_limit" yaml:"connection_limit" toml:"connection_limit"`
-	UserConnectionLimit              int                    `mapstructure:"user_connection_limit" json:"user_connection_limit" envconfig:"user_connection_limit" yaml:"user_connection_limit" toml:"user_connection_limit"`
-	ConnectionRateLimit              int                    `mapstructure:"connection_rate_limit" json:"connection_rate_limit" envconfig:"connection_rate_limit" yaml:"connection_rate_limit" toml:"connection_rate_limit"`
-	ConnectIncludeServerTime         bool                   `mapstructure:"connect_include_server_time" json:"connect_include_server_time" envconfig:"connect_include_server_time" yaml:"connect_include_server_time" toml:"connect_include_server_time"`
-	HistoryMaxPublicationLimit       int                    `mapstructure:"history_max_publication_limit" json:"history_max_publication_limit" envconfig:"history_max_publication_limit" default:"300" yaml:"history_max_publication_limit" toml:"history_max_publication_limit"`
-	RecoveryMaxPublicationLimit      int                    `mapstructure:"recovery_max_publication_limit" json:"recovery_max_publication_limit" envconfig:"recovery_max_publication_limit" default:"300" yaml:"recovery_max_publication_limit" toml:"recovery_max_publication_limit"`
-	InsecureSkipTokenSignatureVerify bool                   `mapstructure:"insecure_skip_token_signature_verify" json:"insecure_skip_token_signature_verify" envconfig:"insecure_skip_token_signature_verify" yaml:"insecure_skip_token_signature_verify" toml:"insecure_skip_token_signature_verify"`
-	UserIDHTTPHeader                 string                 `mapstructure:"user_id_http_header" json:"user_id_http_header" envconfig:"user_id_http_header" yaml:"user_id_http_header" toml:"user_id_http_header"`
-	Insecure                         bool                   `mapstructure:"insecure" json:"insecure" envconfig:"insecure" yaml:"insecure" toml:"insecure"`
+	ExpiredCloseDelay                Duration `mapstructure:"expired_close_delay" json:"expired_close_delay" envconfig:"expired_close_delay" default:"25s" yaml:"expired_close_delay" toml:"expired_close_delay"`
+	ExpiredSubCloseDelay             Duration `mapstructure:"expired_sub_close_delay" json:"expired_sub_close_delay" envconfig:"expired_sub_close_delay" default:"25s" yaml:"expired_sub_close_delay" toml:"expired_sub_close_delay"`
+	StaleCloseDelay                  Duration `mapstructure:"stale_close_delay" json:"stale_close_delay" envconfig:"stale_close_delay" default:"10s" yaml:"stale_close_delay" toml:"stale_close_delay"`
+	ChannelLimit                     int      `mapstructure:"channel_limit" json:"channel_limit" envconfig:"channel_limit" default:"128" yaml:"channel_limit" toml:"channel_limit"`
+	QueueMaxSize                     int      `mapstructure:"queue_max_size" json:"queue_max_size" envconfig:"queue_max_size" default:"1048576" yaml:"queue_max_size" toml:"queue_max_size"`
+	PresenceUpdateInterval           Duration `mapstructure:"presence_update_interval" json:"presence_update_interval" envconfig:"presence_update_interval" default:"27s" yaml:"presence_update_interval" toml:"presence_update_interval"`
+	Concurrency                      int      `mapstructure:"concurrency" json:"concurrency" envconfig:"concurrency" yaml:"concurrency" toml:"concurrency"`
+	ChannelPositionCheckDelay        Duration `mapstructure:"channel_position_check_delay" json:"channel_position_check_delay" envconfig:"channel_position_check_delay" default:"40s" yaml:"channel_position_check_delay" toml:"channel_position_check_delay"`
+	ChannelPositionMaxTimeLag        Duration `mapstructure:"channel_position_max_time_lag" json:"channel_position_max_time_lag" envconfig:"channel_position_max_time_lag" yaml:"channel_position_max_time_lag" toml:"channel_position_max_time_lag"`
+	ConnectionLimit                  int      `mapstructure:"connection_limit" json:"connection_limit" envconfig:"connection_limit" yaml:"connection_limit" toml:"connection_limit"`
+	UserConnectionLimit              int      `mapstructure:"user_connection_limit" json:"user_connection_limit" envconfig:"user_connection_limit" yaml:"user_connection_limit" toml:"user_connection_limit"`
+	ConnectionRateLimit              int      `mapstructure:"connection_rate_limit" json:"connection_rate_limit" envconfig:"connection_rate_limit" yaml:"connection_rate_limit" toml:"connection_rate_limit"`
+	ConnectIncludeServerTime         bool     `mapstructure:"connect_include_server_time" json:"connect_include_server_time" envconfig:"connect_include_server_time" yaml:"connect_include_server_time" toml:"connect_include_server_time"`
+	HistoryMaxPublicationLimit       int      `mapstructure:"history_max_publication_limit" json:"history_max_publication_limit" envconfig:"history_max_publication_limit" default:"300" yaml:"history_max_publication_limit" toml:"history_max_publication_limit"`
+	RecoveryMaxPublicationLimit      int      `mapstructure:"recovery_max_publication_limit" json:"recovery_max_publication_limit" envconfig:"recovery_max_publication_limit" default:"300" yaml:"recovery_max_publication_limit" toml:"recovery_max_publication_limit"`
+	InsecureSkipTokenSignatureVerify bool     `mapstructure:"insecure_skip_token_signature_verify" json:"insecure_skip_token_signature_verify" envconfig:"insecure_skip_token_signature_verify" yaml:"insecure_skip_token_signature_verify" toml:"insecure_skip_token_signature_verify"`
+	UserIDHTTPHeader                 string   `mapstructure:"user_id_http_header" json:"user_id_http_header" envconfig:"user_id_http_header" yaml:"user_id_http_header" toml:"user_id_http_header"`
+	Insecure                         bool     `mapstructure:"insecure" json:"insecure" envconfig:"insecure" yaml:"insecure" toml:"insecure"`
 
 	// SubscribeToUserPersonalChannel is a configuration for a feature to automatically subscribe user to a personal channel
 	// using server-side subscription.
