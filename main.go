@@ -243,6 +243,9 @@ var defaults = map[string]any{
 	"uni_sse":         false,
 	"uni_http_stream": false,
 
+	"client_connect_code_to_unidirectional_disconnect.enabled":    false,
+	"client_connect_code_to_unidirectional_disconnect.transforms": []any{},
+
 	"uni_sse_connect_code_to_http_response.enabled":            false,
 	"uni_sse_connect_code_to_http_response.transforms":         []any{},
 	"uni_http_stream_connect_code_to_http_response.enabled":    false,
@@ -1911,6 +1914,11 @@ func granularProxiesFromConfig(v *viper.Viper) []proxy.Config {
 		if p.Endpoint == "" {
 			log.Fatal().Msgf("no endpoint set for proxy %s", p.Name)
 		}
+		for i, transform := range p.HttpStatusTransforms {
+			if err := transform.Validate(); err != nil {
+				log.Fatal().Msgf("error validating proxy_http_status_code_transforms[%d] in proxy %s: %v", i, p.Name, err)
+			}
+		}
 		names[p.Name] = struct{}{}
 	}
 
@@ -2075,28 +2083,9 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	if v.IsSet("proxy_http_status_code_transforms") {
 		tools.DecodeSlice(v, &httpStatusTransforms, "proxy_http_status_code_transforms")
 	}
-	for _, transform := range httpStatusTransforms {
-		if transform.StatusCode == 0 {
-			log.Fatal().Msg("status should be set in proxy_http_status_code_transforms item")
-		}
-		if transform.ToDisconnect.Code == 0 && transform.ToError.Code == 0 {
-			log.Fatal().Msg("no error or disconnect code set in proxy_http_status_code_transforms item")
-		}
-		if transform.ToDisconnect.Code > 0 && transform.ToError.Code > 0 {
-			log.Fatal().Msg("only error or disconnect code can be set in proxy_http_status_code_transforms item, but not both")
-		}
-		if !tools.IsASCII(transform.ToDisconnect.Reason) {
-			log.Fatal().Msg("proxy_http_status_code_transforms item disconnect reason must be ASCII")
-		}
-		if !tools.IsASCII(transform.ToError.Message) {
-			log.Fatal().Msg("proxy_http_status_code_transforms item error message must be ASCII")
-		}
-		const reasonOrMessageMaxLength = 123 // limit comes from WebSocket close reason length limit. See https://datatracker.ietf.org/doc/html/rfc6455.
-		if len(transform.ToError.Message) > reasonOrMessageMaxLength {
-			log.Fatal().Msgf("proxy_http_status_code_transforms item error message can be up to %d characters long", reasonOrMessageMaxLength)
-		}
-		if len(transform.ToDisconnect.Reason) > reasonOrMessageMaxLength {
-			log.Fatal().Msgf("proxy_http_status_code_transforms item disconnect reason can be up to %d characters long", reasonOrMessageMaxLength)
+	for i, transform := range httpStatusTransforms {
+		if err := transform.Validate(); err != nil {
+			log.Fatal().Msgf("error validating proxy_http_status_code_transforms[%d]: %v", i, err)
 		}
 	}
 	proxyConfig.HttpStatusTransforms = httpStatusTransforms
@@ -2431,6 +2420,23 @@ func nodeConfig(version string) centrifuge.Config {
 	}
 	cfg.LogLevel = level
 	cfg.LogHandler = newLogHandler().handle
+
+	uniCodeTransformsEnabled := viper.GetBool("client_connect_code_to_unidirectional_disconnect.enabled")
+	if uniCodeTransformsEnabled {
+		var uniCodeToDisconnectTransforms []tools.UniConnectCodeToDisconnectTransform
+		if viper.IsSet("client_connect_code_to_unidirectional_disconnect.transforms") {
+			tools.DecodeSlice(viper.GetViper(), &uniCodeToDisconnectTransforms, "client_connect_code_to_unidirectional_disconnect.transforms")
+		}
+		uniCodeTransforms := make(map[uint32]centrifuge.Disconnect)
+		for _, transform := range uniCodeToDisconnectTransforms {
+			if err := transform.Validate(); err != nil {
+				log.Fatal().Msgf("error validating unidirectional code to disconnect transform: %v", err)
+			}
+			uniCodeTransforms[transform.Code] = centrifuge.Disconnect{Code: transform.To.Code, Reason: transform.To.Reason}
+		}
+		cfg.UnidirectionalCodeToDisconnect = uniCodeTransforms
+	}
+
 	return cfg
 }
 
@@ -2570,6 +2576,11 @@ func uniSSEHandlerConfig() unisse.Config {
 	if viper.IsSet("uni_sse_connect_code_to_http_response.transforms") {
 		tools.DecodeSlice(viper.GetViper(), &connectCodeToHTTPStatusTransforms, "uni_sse_connect_code_to_http_response.transforms")
 	}
+	for i, transform := range connectCodeToHTTPStatusTransforms {
+		if err := transform.Validate(); err != nil {
+			log.Fatal().Msgf("error validating uni_sse_connect_code_to_http_response.transforms[%d]: %v", i, err)
+		}
+	}
 	return unisse.Config{
 		MaxRequestBodySize: viper.GetInt("uni_sse_max_request_body_size"),
 		PingPongConfig:     getPingPongConfig(),
@@ -2585,6 +2596,11 @@ func uniStreamHandlerConfig() unihttpstream.Config {
 	var connectCodeToHTTPStatusTransforms []tools.ConnectCodeToHTTPStatusTransform
 	if viper.IsSet("uni_http_stream_connect_code_to_http_response.transforms") {
 		tools.DecodeSlice(viper.GetViper(), &connectCodeToHTTPStatusTransforms, "uni_http_stream_connect_code_to_http_response.transforms")
+	}
+	for i, transform := range connectCodeToHTTPStatusTransforms {
+		if err := transform.Validate(); err != nil {
+			log.Fatal().Msgf("error validating uni_http_stream_connect_code_to_http_response.transforms[%d]: %v", i, err)
+		}
 	}
 	return unihttpstream.Config{
 		MaxRequestBodySize: viper.GetInt("uni_http_stream_max_request_body_size"),
