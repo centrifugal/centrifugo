@@ -3,6 +3,8 @@ package proxy
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net"
 	"strings"
 
@@ -24,6 +26,29 @@ type HttpStatusToCodeTransform struct {
 	StatusCode   int                 `mapstructure:"status_code" json:"status_code"`
 	ToError      TransformError      `mapstructure:"to_error" json:"to_error"`
 	ToDisconnect TransformDisconnect `mapstructure:"to_disconnect" json:"to_disconnect"`
+}
+
+func (t *HttpStatusToCodeTransform) Validate() error {
+	if t.StatusCode == 0 {
+		return errors.New("no status code specified")
+	}
+	if t.ToDisconnect.Code == 0 && t.ToError.Code == 0 {
+		return errors.New("no error or disconnect code set")
+	}
+	if t.ToDisconnect.Code > 0 && t.ToError.Code > 0 {
+		return errors.New("only error or disconnect code can be set")
+	}
+	if !tools.IsASCII(t.ToDisconnect.Reason) {
+		return errors.New("disconnect reason must be ASCII")
+	}
+	if !tools.IsASCII(t.ToError.Message) {
+		return errors.New("error message must be ASCII")
+	}
+	const reasonOrMessageMaxLength = 123 // limit comes from WebSocket close reason length limit. See https://datatracker.ietf.org/doc/html/rfc6455.
+	if len(t.ToDisconnect.Reason) > reasonOrMessageMaxLength {
+		return fmt.Errorf("disconnect reason can be up to %d characters long", reasonOrMessageMaxLength)
+	}
+	return nil
 }
 
 // Config for proxy.
