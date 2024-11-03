@@ -1,7 +1,0 @@
-{
-  "proxy_http_status_code_transforms": [
-    {"status_code": 404, "to_error": {"code": 404, "message": "not found", "temporary": false}},
-    {"status_code": 403, "to_error": {"code": 403, "message": "permission denied", "temporary": false}},
-    {"status_code": 429, "to_error": {"code": 429, "message": "too many requests", "temporary": true}}
-  ]
-}
