@@ -1,10 +1,34 @@
 package tools
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/centrifugal/centrifuge"
 )
+
+type TransformDisconnect struct {
+	Code   uint32 `mapstructure:"code" json:"code"`
+	Reason string `mapstructure:"reason" json:"reason"`
+}
+
+type UniConnectCodeToDisconnectTransform struct {
+	Code uint32              `mapstructure:"code" json:"code"`
+	To   TransformDisconnect `mapstructure:"to" json:"to"`
+}
+
+func (t UniConnectCodeToDisconnectTransform) Validate() error {
+	if t.Code == 0 {
+		return errors.New("no code specified")
+	}
+	if t.To.Code == 0 {
+		return errors.New("no disconnect code specified")
+	}
+	if !IsASCII(t.To.Reason) {
+		return errors.New("disconnect reason must be ASCII")
+	}
+	return nil
+}
 
 type ConnectCodeToHTTPStatus struct {
 	Enabled    bool                               `mapstructure:"enabled" json:"enabled"`
@@ -14,6 +38,16 @@ type ConnectCodeToHTTPStatus struct {
 type ConnectCodeToHTTPStatusTransform struct {
 	Code uint32                              `mapstructure:"code" json:"code"`
 	To   TransformedConnectErrorHttpResponse `mapstructure:"to" json:"to"`
+}
+
+func (t ConnectCodeToHTTPStatusTransform) Validate() error {
+	if t.Code == 0 {
+		return errors.New("no code specified")
+	}
+	if t.To.Status == 0 {
+		return errors.New("no status_code specified")
+	}
+	return nil
 }
 
 type TransformedConnectErrorHttpResponse struct {
