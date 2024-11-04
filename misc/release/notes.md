@@ -13,6 +13,10 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 * Code transforms for HTTP proxy and unidirectional connect [#903](https://github.com/centrifugal/centrifugo/pull/903). See [the description in docs](https://centrifugal.dev/docs/server/proxy#unexpected-error-handling-and-code-transforms).
 * Support Kafka `scram-sha-256`, `scram-sha-512` and `aws-msk-iam` SASL [#912](https://github.com/centrifugal/centrifugo/pull/912). See [updated docs](https://centrifugal.dev/docs/server/consumers#kafka-consumer-options) for Kafka consumer.
 
+### Fixes
+
+* Centrifugo now does not log tokens when writing INFO level log entry about client disconnection caused by command processing. Thanks to @Dirk007 for submitting the fix.
+
 ### Miscellaneous
 
 * This release is built with Go 1.23.2.
