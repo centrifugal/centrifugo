@@ -67,7 +67,7 @@ func (c TLSConfig) ToGoTLSConfig(logTraceEntity string) (*tls.Config, error) {
 		return nil, nil
 	}
 	logger := log.With().Str("entity", logTraceEntity).Logger()
-	logger.Trace().Msg("TLS enabled")
+	logger.Debug().Msg("TLS enabled")
 	return makeTLSConfig(c, logger, os.ReadFile)
 }
 
@@ -92,8 +92,8 @@ func makeTLSConfig(cfg TLSConfig, logger zerolog.Logger, readFile ReadFileFunc) 
 	}
 	tlsConfig.ServerName = cfg.ServerName
 	tlsConfig.InsecureSkipVerify = cfg.InsecureSkipVerify
-	logger.Trace().Str("server_name", cfg.ServerName).Bool("insecure_skip_verify", cfg.InsecureSkipVerify).Msg("TLS config options set")
-	logger.Trace().Msg("TLS config created")
+	logger.Debug().Str("server_name", cfg.ServerName).Bool("insecure_skip_verify", cfg.InsecureSkipVerify).Msg("TLS config options set")
+	logger.Debug().Msg("TLS config created")
 	return tlsConfig, nil
 }
 
@@ -104,7 +104,7 @@ func loadCertificate(cfg TLSConfig, logger zerolog.Logger, tlsConfig *tls.Config
 
 	switch {
 	case cfg.CertPemFile != "" && cfg.KeyPemFile != "":
-		logger.Trace().Str("cert_pem_file", cfg.CertPemFile).Str("key_pem_file", cfg.KeyPemFile).Msg("load TLS certificate and key from files")
+		logger.Debug().Str("cert_pem_file", cfg.CertPemFile).Str("key_pem_file", cfg.KeyPemFile).Msg("load TLS certificate and key from files")
 		certPEMBlock, err = readFile(cfg.CertPemFile)
 		if err != nil {
 			return fmt.Errorf("read TLS certificate for %s: %w", cfg.CertPemFile, err)
@@ -114,7 +114,7 @@ func loadCertificate(cfg TLSConfig, logger zerolog.Logger, tlsConfig *tls.Config
 			return fmt.Errorf("read TLS key for %s: %w", cfg.KeyPemFile, err)
 		}
 	case cfg.CertPemB64 != "" && cfg.KeyPemB64 != "":
-		logger.Trace().Msg("load TLS certificate and key from base64 encoded strings")
+		logger.Debug().Msg("load TLS certificate and key from base64 encoded strings")
 		certPEMBlock, err = base64.StdEncoding.DecodeString(cfg.CertPemB64)
 		if err != nil {
 			return fmt.Errorf("error base64 decode certificate PEM: %w", err)
@@ -124,20 +124,20 @@ func loadCertificate(cfg TLSConfig, logger zerolog.Logger, tlsConfig *tls.Config
 			return fmt.Errorf("error base64 decode key PEM: %w", err)
 		}
 	case cfg.CertPem != "" && cfg.KeyPem != "":
-		logger.Trace().Msg("load TLS certificate and key from raw strings")
+		logger.Debug().Msg("load TLS certificate and key from raw strings")
 		certPEMBlock, keyPEMBlock = []byte(cfg.CertPem), []byte(cfg.KeyPem)
 	default:
 	}
 
 	if len(certPEMBlock) > 0 && len(keyPEMBlock) > 0 {
-		logger.Trace().Msg("create x509 key pair")
+		logger.Debug().Msg("create x509 key pair")
 		cert, err := tls.X509KeyPair(certPEMBlock, keyPEMBlock)
 		if err != nil {
 			return fmt.Errorf("error create x509 key pair: %w", err)
 		}
 		tlsConfig.Certificates = []tls.Certificate{cert}
 	} else {
-		logger.Trace().Msg("no cert or key provided, skip loading x509 key pair")
+		logger.Debug().Msg("no cert or key provided, skip loading x509 key pair")
 	}
 	return nil
 }
@@ -149,14 +149,14 @@ func loadServerCA(cfg TLSConfig, logger zerolog.Logger, tlsConfig *tls.Config, r
 		return fmt.Errorf("error load server CA certificate: %w", err)
 	}
 	if len(caCert) > 0 {
-		logger.Trace().Msg("load server CA certificate")
+		logger.Debug().Msg("load server CA certificate")
 		caCertPool, err := newCertPoolFromPEM(caCert)
 		if err != nil {
 			return fmt.Errorf("error create server CA certificate pool: %w", err)
 		}
 		tlsConfig.RootCAs = caCertPool
 	} else {
-		logger.Trace().Msg("no server CA certificate provided")
+		logger.Debug().Msg("no server CA certificate provided")
 	}
 	return nil
 }
@@ -168,7 +168,7 @@ func loadClientCA(cfg TLSConfig, logger zerolog.Logger, tlsConfig *tls.Config, r
 		return err
 	}
 	if len(caCert) > 0 {
-		logger.Trace().Msg("load client CA certificate")
+		logger.Debug().Msg("load client CA certificate")
 		caCertPool, err := newCertPoolFromPEM(caCert)
 		if err != nil {
 			return fmt.Errorf("error create client CA certificate pool: %w", err)
@@ -176,7 +176,7 @@ func loadClientCA(cfg TLSConfig, logger zerolog.Logger, tlsConfig *tls.Config, r
 		tlsConfig.ClientCAs = caCertPool
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 	} else {
-		logger.Trace().Msg("no client CA certificate provided")
+		logger.Debug().Msg("no client CA certificate provided")
 	}
 	return nil
 }
@@ -186,19 +186,19 @@ func loadPEMBlock(file, b64, raw string, logger zerolog.Logger, certType string,
 	var pemBlock []byte
 	var err error
 	if file != "" {
-		logger.Trace().Str("file", file).Msg("load PEM block of " + certType + " from file")
+		logger.Debug().Str("file", file).Msg("load PEM block of " + certType + " from file")
 		pemBlock, err = readFile(file)
 		if err != nil {
 			return nil, fmt.Errorf("read PEM block for %s: %w", file, err)
 		}
 	} else if b64 != "" {
-		logger.Trace().Msg("load PEM block of " + certType + " from base64 encoded string")
+		logger.Debug().Msg("load PEM block of " + certType + " from base64 encoded string")
 		pemBlock, err = base64.StdEncoding.DecodeString(b64)
 		if err != nil {
 			return nil, fmt.Errorf("error base64 decode PEM block: %w", err)
 		}
 	} else if raw != "" {
-		logger.Trace().Msg("load PEM block of " + certType + " from raw string")
+		logger.Debug().Msg("load PEM block of " + certType + " from raw string")
 		pemBlock = []byte(raw)
 	}
 	return pemBlock, nil
