@@ -10,19 +10,15 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Added option to configure a custom token user ID claim. See [#783](https://github.com/centrifugal/centrifugo/pull/783). Although we still recommend using the `sub` claim, there are scenarios where a different claim name is required. You can now configure this using the [token_user_id_claim](https://centrifugal.dev/docs/server/authentication##custom-token-user-id-claim) option.
-* Connection durations are now logged as human-readable strings instead of nanoseconds. See [centrifugal/centrifuge#416](https://github.com/centrifugal/centrifuge/pull/416).
+* Code transforms for HTTP proxy and unidirectional connect [#903](https://github.com/centrifugal/centrifugo/pull/903). See [the description in docs](https://centrifugal.dev/docs/server/proxy#unexpected-error-handling-and-code-transforms).
+* Support Kafka `scram-sha-256`, `scram-sha-512` and `aws-msk-iam` SASL [#912](https://github.com/centrifugal/centrifugo/pull/912). See [updated docs](https://centrifugal.dev/docs/server/consumers#kafka-consumer-options) for Kafka consumer.
 
 ### Fixes
 
-* Fixed Fossil delta construction in recovered publications. See [centrifugal/centrifuge#415](https://github.com/centrifugal/centrifuge/pull/415). This prevents `bad checksum` errors during recovery with delta compression enabled.
-* Handled the history meta key eviction scenario to avoid publish errors. See [centrifugal/centrifuge#412](https://github.com/centrifugal/centrifuge/pull/412). This fix addresses [#888](https://github.com/centrifugal/centrifugo/issues/888).
-* Full basic auth credentials are no longer displayed in proxy endpoint logs. See [#890](https://github.com/centrifugal/centrifugo/pull/890). The URL is now redacted in logs.
-* Fixed panic occurring during PostgreSQL consumer dispatch error handling. See [#889](https://github.com/centrifugal/centrifugo/pull/889).
-* Added missing `delta_publish` top-level default definition. See [#896](https://github.com/centrifugal/centrifugo/pull/896). This fix addresses an unknown option warning in logs on Centrifugo startup.
+* Centrifugo now does not log tokens when writing INFO level log entry about client disconnection caused by command processing. Thanks to @Dirk007 for submitting the fix.
 
 ### Miscellaneous
 
 * This release is built with Go 1.23.2.
 * Check out the [Centrifugo v6 roadmap](https://github.com/centrifugal/centrifugo/issues/832). It outlines important changes planned for the next major release. We have already started working on v6 and are sharing updates in the issue and our community channels.
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v5.4.7).
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v5.4.8).
