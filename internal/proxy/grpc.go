@@ -58,7 +58,7 @@ func getDialOpts(p Config) ([]grpc.DialOption, error) {
 		}))
 	}
 	if p.GRPC.TLS.Enabled {
-		tlsConfig, err := p.GRPC.TLS.ToGoTLSConfig()
+		tlsConfig, err := p.GRPC.TLS.ToGoTLSConfig("proxy_grpc_" + p.Name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create TLS config %v", err)
 		}

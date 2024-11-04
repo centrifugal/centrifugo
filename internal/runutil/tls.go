@@ -69,7 +69,7 @@ func GetTLSConfig(cfg config.Config) (*tls.Config, error) {
 
 	} else if tlsEnabled {
 		// Autocert disabled - just try to use provided SSL cert and key files.
-		return cfg.TLS.ToGoTLSConfig()
+		return cfg.TLS.ToGoTLSConfig("http_server")
 	}
 
 	return nil, nil

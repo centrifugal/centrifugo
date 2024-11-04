@@ -42,7 +42,7 @@ func NewPostgresConsumer(name string, logger Logger, dispatcher Dispatcher, conf
 		return nil, fmt.Errorf("error parsing postgresql DSN: %w", err)
 	}
 	if config.TLS.Enabled {
-		tlsConfig, err := config.TLS.ToGoTLSConfig()
+		tlsConfig, err := config.TLS.ToGoTLSConfig("postgresql_" + name)
 		if err != nil {
 			return nil, fmt.Errorf("error creating postgresql TLS config: %w", err)
 		}

@@ -119,7 +119,7 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 		kgo.InstanceID(c.getInstanceID()),
 	}
 	if c.config.TLS.Enabled {
-		tlsConfig, err := c.config.TLS.ToGoTLSConfig()
+		tlsConfig, err := c.config.TLS.ToGoTLSConfig("kafka_" + c.name)
 		if err != nil {
 			return nil, fmt.Errorf("error making TLS configuration: %w", err)
 		}

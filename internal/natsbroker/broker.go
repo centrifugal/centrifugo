@@ -96,7 +96,7 @@ func (b *NatsBroker) Run(h centrifuge.BrokerEventHandler) error {
 		nats.FlusherTimeout(b.config.WriteTimeout.ToDuration()),
 	}
 	if b.config.TLS.Enabled {
-		tlsConfig, err := b.config.TLS.ToGoTLSConfig()
+		tlsConfig, err := b.config.TLS.ToGoTLSConfig("nats")
 		if err != nil {
 			return fmt.Errorf("error creating TLS config: %w", err)
 		}

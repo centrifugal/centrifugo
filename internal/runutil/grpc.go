@@ -37,7 +37,7 @@ func runGRPCAPIServer(cfg config.Config, node *centrifuge.Node, useAPIOpenteleme
 	}
 	var grpcAPITLSConfig *tls.Config
 	if cfg.GrpcAPI.TLS.Enabled {
-		grpcAPITLSConfig, err = cfg.GrpcAPI.TLS.ToGoTLSConfig()
+		grpcAPITLSConfig, err = cfg.GrpcAPI.TLS.ToGoTLSConfig("grpc_api")
 		if err != nil {
 			return nil, fmt.Errorf("error getting TLS config for GRPC API: %v", err)
 		}
@@ -84,7 +84,7 @@ func runGRPCUniServer(cfg config.Config, node *centrifuge.Node) (*grpc.Server, e
 
 	var uniGrpcTLSConfig *tls.Config
 	if cfg.GrpcAPI.TLS.Enabled {
-		uniGrpcTLSConfig, err = cfg.GrpcAPI.TLS.ToGoTLSConfig()
+		uniGrpcTLSConfig, err = cfg.GrpcAPI.TLS.ToGoTLSConfig("uni_grpc")
 		if err != nil {
 			return nil, fmt.Errorf("error getting TLS config for uni GRPC: %v", err)
 		}
