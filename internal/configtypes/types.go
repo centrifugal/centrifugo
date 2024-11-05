@@ -301,6 +301,32 @@ type Client struct {
 	// SubscribeToUserPersonalChannel is a configuration for a feature to automatically subscribe user to a personal channel
 	// using server-side subscription.
 	SubscribeToUserPersonalChannel SubscribeToUserPersonalChannel `mapstructure:"subscribe_to_user_personal_channel" json:"subscribe_to_user_personal_channel" envconfig:"subscribe_to_user_personal_channel" yaml:"subscribe_to_user_personal_channel" toml:"subscribe_to_user_personal_channel"`
+
+	ConnectCodeToUnidirectionalDisconnect ConnectCodeToUnidirectionalDisconnect `mapstructure:"connect_code_to_unidirectional_disconnect" json:"connect_code_to_unidirectional_disconnect" envconfig:"connect_code_to_unidirectional_disconnect" yaml:"connect_code_to_unidirectional_disconnect" toml:"connect_code_to_unidirectional_disconnect"`
+}
+
+type UniConnectCodeToDisconnectTransforms []UniConnectCodeToDisconnectTransform
+
+// Decode to implement the envconfig.Decoder interface
+func (d *UniConnectCodeToDisconnectTransforms) Decode(value string) error {
+	// If the source is a string and the target is a slice, try to parse it as JSON.
+	var items UniConnectCodeToDisconnectTransforms
+	err := json.Unmarshal([]byte(value), &items)
+	if err != nil {
+		return fmt.Errorf("error parsing items from JSON: %v", err)
+	}
+	*d = items
+	return nil
+}
+
+type ConnectCodeToUnidirectionalDisconnect struct {
+	Enabled    bool                                 `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	Transforms UniConnectCodeToDisconnectTransforms `mapstructure:"transforms" default:"[]" json:"transforms" envconfig:"transforms" yaml:"transforms" toml:"transforms"`
+}
+
+type UniConnectCodeToDisconnectTransform struct {
+	Code uint32              `mapstructure:"code" json:"code" envconfig:"code" yaml:"code" toml:"code"`
+	To   TransformDisconnect `mapstructure:"to" json:"to" envconfig:"to" yaml:"to" toml:"to"`
 }
 
 type Channel struct {

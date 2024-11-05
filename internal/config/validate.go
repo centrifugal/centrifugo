@@ -67,6 +67,9 @@ func (c Config) Validate() error {
 	if err := validateStatusTransforms(c.UnifiedProxy.ProxyCommon.HTTP.StatusToCodeTransforms); err != nil {
 		return fmt.Errorf("in proxy %s: %v", UnifiedProxyName, err)
 	}
+	if err := validateCodeToUniDisconnectTransforms(c.Client.ConnectCodeToUnidirectionalDisconnect.Transforms); err != nil {
+		return fmt.Errorf("in client.connect_code_to_unidirectional_disconnect: %v", err)
+	}
 
 	if err := validateChannelOptions(c.Channel.WithoutNamespace, c.Channel.HistoryMetaTTL, proxyNames, c); err != nil {
 		return fmt.Errorf("in channel.without_namespace: %v", err)
@@ -307,6 +310,21 @@ func validateConnectCodeTransforms(transforms []configtypes.ConnectCodeToHTTPRes
 		}
 		if transform.To.StatusCode == 0 {
 			return fmt.Errorf("status_code should be set in connect_code_to_http_status.transforms[%d].to_response", i)
+		}
+	}
+	return nil
+}
+
+func validateCodeToUniDisconnectTransforms(transforms configtypes.UniConnectCodeToDisconnectTransforms) error {
+	for i, t := range transforms {
+		if t.Code == 0 {
+			return fmt.Errorf("no code specified in transforms[%d]", i)
+		}
+		if t.To.Code == 0 {
+			return errors.New("no disconnect code specified in transforms[%d].to")
+		}
+		if !tools.IsASCII(t.To.Reason) {
+			return errors.New("disconnect reason must be ASCII in transforms[%d].to")
 		}
 	}
 	return nil
