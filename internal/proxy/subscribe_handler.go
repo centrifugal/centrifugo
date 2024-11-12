@@ -60,8 +60,9 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 		var histogram prometheus.Observer
 		var errors prometheus.Counter
 
+		proxyEnabled := chOpts.SubscribeProxyEnabled
 		proxyName := chOpts.SubscribeProxyName
-		if proxyName == "" {
+		if !proxyEnabled {
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe proxy not configured for a channel", map[string]any{"channel": e.Channel}))
 			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
 		}
@@ -101,7 +102,7 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 			histogram.Observe(duration)
 			errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying subscribe", map[string]any{"error": err.Error()}))
-			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorInternal
+			return centrifuge.SubscribeReply{}, SubscribeExtra{}, err
 		}
 		summary.Observe(duration)
 		histogram.Observe(duration)

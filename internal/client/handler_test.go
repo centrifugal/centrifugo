@@ -1068,9 +1068,9 @@ func TestClientOnSubscribe_UserLimitedChannelDoesNotCallProxy(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	cfg := config.DefaultConfig()
-	cfg.UnifiedProxy.SubscribeEndpoint = "http://localhost:8080"
+	cfg.Channel.Proxy.Subscribe.Endpoint = "http://localhost:8080"
 	cfg.Channel.WithoutNamespace.UserLimitedChannels = true
-	cfg.Channel.WithoutNamespace.SubscribeProxyName = "unified"
+	cfg.Channel.WithoutNamespace.SubscribeProxyEnabled = true
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 
@@ -1146,4 +1146,52 @@ func TestClientOnSubscribe_UserLimitedChannelNotAllowedForAnotherUser(t *testing
 		Channel: "user#42",
 	}, proxyFunc, nil)
 	require.ErrorIs(t, err, centrifuge.ErrorPermissionDenied)
+}
+
+func TestClientOnSubscribe_SubRefreshProxy(t *testing.T) {
+	node := tools.NodeWithMemoryEngineNoHandlers()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	cfg.Channel.Proxy.Subscribe.Endpoint = "http://localhost:8080"
+	cfg.Channel.WithoutNamespace.SubscribeProxyEnabled = true
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	h := NewHandler(node, cfgContainer, nil, nil, &ProxyMap{})
+
+	numProxyCalls := 0
+
+	proxyFunc := func(c proxy.Client, e centrifuge.SubscribeEvent, chOpts configtypes.ChannelOptions, pcd proxy.PerCallData) (centrifuge.SubscribeReply, proxy.SubscribeExtra, error) {
+		numProxyCalls++
+		return centrifuge.SubscribeReply{
+			ClientSideRefresh: !chOpts.SubRefreshProxyEnabled,
+		}, proxy.SubscribeExtra{}, nil
+	}
+
+	reply, _, err := h.OnSubscribe(&tools.TestClientMock{
+		UserIDFunc: func() string {
+			return "42"
+		},
+	}, centrifuge.SubscribeEvent{
+		Channel: "user",
+	}, proxyFunc, nil)
+	require.NoError(t, err)
+	require.Equal(t, 1, numProxyCalls)
+	require.True(t, reply.ClientSideRefresh)
+
+	cfg.Channel.WithoutNamespace.SubRefreshProxyEnabled = true
+	cfg.Channel.Proxy.SubRefresh.Endpoint = "https://example.com"
+	err = cfgContainer.Reload(cfg)
+	require.NoError(t, err)
+	reply, _, err = h.OnSubscribe(&tools.TestClientMock{
+		UserIDFunc: func() string {
+			return "42"
+		},
+	}, centrifuge.SubscribeEvent{
+		Channel: "user",
+	}, proxyFunc, nil)
+	require.NoError(t, err)
+	require.Equal(t, 2, numProxyCalls)
+	require.False(t, reply.ClientSideRefresh)
 }

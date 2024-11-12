@@ -79,7 +79,10 @@ func Run(cmd *cobra.Command, configFile string) {
 	}
 	cfgContainer.ChannelOptionsCacheTTL = 200 * time.Millisecond
 
-	proxyMap, keepHeadersInContext := buildProxyMap(cfg)
+	proxyMap, keepHeadersInContext, err := buildProxyMap(cfg)
+	if err != nil {
+		log.Fatal().Msgf("error building proxy map: %v", err)
+	}
 
 	nodeCfg := centrifugeNodeConfig(build.Version, cfgContainer)
 

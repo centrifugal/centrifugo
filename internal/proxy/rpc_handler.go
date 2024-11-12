@@ -65,8 +65,9 @@ func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "rpc options not found", map[string]any{"method": e.Method}))
 			return centrifuge.RPCReply{}, centrifuge.ErrorMethodNotFound
 		}
-		proxyName := rpcOpts.RpcProxyName
-		if proxyName == "" {
+		proxyEnabled := rpcOpts.ProxyEnabled
+		proxyName := rpcOpts.ProxyName
+		if !proxyEnabled {
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "rpc proxy not configured for a method", map[string]any{"method": e.Method}))
 			return centrifuge.RPCReply{}, centrifuge.ErrorNotAvailable
 		}
@@ -106,7 +107,7 @@ func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
 			histogram.Observe(duration)
 			errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying RPC", map[string]any{"error": err.Error()}))
-			return centrifuge.RPCReply{}, centrifuge.ErrorInternal
+			return centrifuge.RPCReply{}, err
 		}
 		summary.Observe(duration)
 		histogram.Observe(duration)

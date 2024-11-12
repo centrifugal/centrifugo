@@ -7,7 +7,16 @@
     "token": {
       "jwks_public_endpoint": "https://example.com/jwks"
     },
-    "ping_interval": "12s"
+    "ping_interval": "12s",
+    "proxy": {
+      "connect": {
+        "http": {
+          "static_headers": {
+            "x": "y"
+          }
+        }
+      }
+    }
   },
   "channel": {
     "without_namespace": {
@@ -45,13 +54,6 @@
       }
     }
   ],
-  "unified_proxy": {
-    "http": {
-      "static_headers": {
-        "x": "y"
-      }
-    }
-  },
   "websocket": {
     "write_timeout": "2s"
   }

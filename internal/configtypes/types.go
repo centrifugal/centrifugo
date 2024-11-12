@@ -7,6 +7,7 @@ import (
 	"net"
 )
 
+// Token common configuration.
 type Token struct {
 	HMACSecretKey      string `mapstructure:"hmac_secret_key" json:"hmac_secret_key" envconfig:"hmac_secret_key" yaml:"hmac_secret_key" toml:"hmac_secret_key"`
 	RSAPublicKey       string `mapstructure:"rsa_public_key" json:"rsa_public_key" envconfig:"rsa_public_key" yaml:"rsa_public_key" toml:"rsa_public_key"`
@@ -19,15 +20,18 @@ type Token struct {
 	UserIDClaim        string `mapstructure:"user_id_claim" json:"user_id_claim" envconfig:"user_id_claim" yaml:"user_id_claim" toml:"user_id_claim"`
 }
 
+// SubscriptionToken can be used to set custom configuration for subscription tokens.
 type SubscriptionToken struct {
 	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled"  yaml:"enabled" toml:"enabled"`
 	Token   `mapstructure:",squash" yaml:",inline"`
 }
 
+// HTTP3 is EXPERIMENTAL.
 type HTTP3 struct {
 	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 }
 
+// WebSocket client real-time transport configuration.
 type WebSocket struct {
 	Disabled           bool     `mapstructure:"disabled" json:"disabled" envconfig:"disabled" yaml:"disabled" toml:"disabled"`
 	HandlerPrefix      string   `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/websocket" yaml:"handler_prefix" toml:"handler_prefix"`
@@ -41,24 +45,28 @@ type WebSocket struct {
 	MessageSizeLimit   int      `mapstructure:"message_size_limit" json:"message_size_limit" envconfig:"message_size_limit" default:"65536" yaml:"message_size_limit" toml:"message_size_limit"`
 }
 
+// SSE client real-time transport configuration.
 type SSE struct {
 	Enabled            bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	HandlerPrefix      string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/sse" yaml:"handler_prefix" toml:"handler_prefix"`
 	MaxRequestBodySize int    `mapstructure:"max_request_body_size" json:"max_request_body_size" envconfig:"max_request_body_size" default:"65536" yaml:"max_request_body_size" toml:"max_request_body_size"`
 }
 
+// HTTPStream client real-time transport configuration.
 type HTTPStream struct {
 	Enabled            bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	HandlerPrefix      string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/http_stream" yaml:"handler_prefix" toml:"handler_prefix"`
 	MaxRequestBodySize int    `mapstructure:"max_request_body_size" json:"max_request_body_size" envconfig:"max_request_body_size" default:"65536" yaml:"max_request_body_size" toml:"max_request_body_size"`
 }
 
+// WebTransport client real-time transport configuration.
 type WebTransport struct {
 	Enabled          bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	HandlerPrefix    string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/webtransport" yaml:"handler_prefix" toml:"handler_prefix"`
 	MessageSizeLimit int    `mapstructure:"message_size_limit" json:"message_size_limit" envconfig:"message_size_limit" default:"65536" yaml:"message_size_limit" toml:"message_size_limit"`
 }
 
+// UniWebSocket client real-time transport configuration.
 type UniWebSocket struct {
 	Enabled            bool     `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	HandlerPrefix      string   `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/uni_websocket" yaml:"handler_prefix" toml:"handler_prefix"`
@@ -72,6 +80,7 @@ type UniWebSocket struct {
 	MessageSizeLimit   int      `mapstructure:"message_size_limit" json:"message_size_limit" envconfig:"message_size_limit" default:"65536" yaml:"message_size_limit" toml:"message_size_limit"`
 }
 
+// UniHTTPStream client real-time transport configuration.
 type UniHTTPStream struct {
 	Enabled                   bool                      `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	HandlerPrefix             string                    `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/uni_http_stream" yaml:"handler_prefix" toml:"handler_prefix"`
@@ -79,6 +88,7 @@ type UniHTTPStream struct {
 	ConnectCodeToHTTPResponse ConnectCodeToHTTPResponse `mapstructure:"connect_code_to_http_response" json:"connect_code_to_http_response" envconfig:"connect_code_to_http_response" yaml:"connect_code_to_http_response" toml:"connect_code_to_http_response"`
 }
 
+// UniSSE client real-time transport configuration.
 type UniSSE struct {
 	Enabled                   bool                      `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	HandlerPrefix             string                    `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/uni_sse" yaml:"handler_prefix" toml:"handler_prefix"`
@@ -115,6 +125,7 @@ type TransformedConnectErrorHttpResponse struct {
 	Body       string `mapstructure:"body" json:"body" envconfig:"body" yaml:"body" toml:"body"`
 }
 
+// UniGRPC client real-time transport configuration.
 type UniGRPC struct {
 	Enabled               bool      `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	Address               string    `mapstructure:"address" json:"address" envconfig:"address" yaml:"address" toml:"address"`
@@ -252,15 +263,31 @@ type Shutdown struct {
 	Timeout Duration `mapstructure:"timeout" json:"timeout" envconfig:"timeout" default:"30s" yaml:"timeout" toml:"timeout"`
 }
 
-type Client struct {
-	// ConnectProxyName is a name of proxy to use for connect events. When not set connect events are not proxied.
-	ConnectProxyName string `mapstructure:"connect_proxy_name" json:"connect_proxy_name" envconfig:"connect_proxy_name" yaml:"connect_proxy_name" toml:"connect_proxy_name"`
-	// RefreshProxyName is a name of proxy to use for refresh events. When not set refresh events are not proxied.
-	RefreshProxyName string `mapstructure:"refresh_proxy_name" json:"refresh_proxy_name" envconfig:"refresh_proxy_name" yaml:"refresh_proxy_name" toml:"refresh_proxy_name"`
+type ConnectProxy struct {
+	// Enabled must be true to tell Centrifugo to enable the configured proxy.
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	Proxy   `mapstructure:",squash" yaml:",inline"`
+}
 
+type RefreshProxy struct {
+	// Enabled must be true to tell Centrifugo to enable the configured proxy.
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	Proxy   `mapstructure:",squash" yaml:",inline"`
+}
+
+type ClientProxyContainer struct {
+	// Connect proxy when enabled is used to proxy connect requests from client to the application backend.
+	// Only requests without JWT token are proxied at this point.
+	Connect ConnectProxy `mapstructure:"connect" json:"connect" envconfig:"connect" yaml:"connect" toml:"connect"`
+	// Refresh proxy when enabled is used to proxy client connection refresh decisions to the application backend.
+	Refresh RefreshProxy `mapstructure:"refresh" json:"refresh" envconfig:"refresh" yaml:"refresh" toml:"refresh"`
+}
+
+type Client struct {
+	// Proxy is a configuration for client connection-wide proxies.
+	Proxy ClientProxyContainer `mapstructure:"proxy" json:"proxy" envconfig:"proxy" toml:"proxy" yaml:"proxy"`
 	// AllowedOrigins is a list of allowed origins for client connections.
 	AllowedOrigins []string `mapstructure:"allowed_origins" json:"allowed_origins" envconfig:"allowed_origins" yaml:"allowed_origins" toml:"allowed_origins"`
-
 	// Token is a configuration for token generation and verification. When enabled, this configuration
 	// is used for both connection and subscription tokens. See also SubscriptionToken to use a separate
 	// configuration for subscription tokens.
@@ -275,7 +302,6 @@ type Client struct {
 	// DisallowAnonymousConnectionTokens disallows anonymous connection tokens. When enabled, Centrifugo will not
 	// accept connection tokens with empty user ID.
 	DisallowAnonymousConnectionTokens bool `mapstructure:"disallow_anonymous_connection_tokens" json:"disallow_anonymous_connection_tokens" envconfig:"disallow_anonymous_connection_tokens" yaml:"disallow_anonymous_connection_tokens" toml:"disallow_anonymous_connection_tokens"`
-
 	// PingPong allows configuring application level ping-pong behavior for client connections.
 	PingPong `mapstructure:",squash" yaml:",inline"`
 
@@ -302,6 +328,8 @@ type Client struct {
 	// using server-side subscription.
 	SubscribeToUserPersonalChannel SubscribeToUserPersonalChannel `mapstructure:"subscribe_to_user_personal_channel" json:"subscribe_to_user_personal_channel" envconfig:"subscribe_to_user_personal_channel" yaml:"subscribe_to_user_personal_channel" toml:"subscribe_to_user_personal_channel"`
 
+	// ConnectCodeToDisconnect is a configuration for a feature to transform connect error codes to the disconnect code
+	// for unidirectional transports.
 	ConnectCodeToUnidirectionalDisconnect ConnectCodeToUnidirectionalDisconnect `mapstructure:"connect_code_to_unidirectional_disconnect" json:"connect_code_to_unidirectional_disconnect" envconfig:"connect_code_to_unidirectional_disconnect" yaml:"connect_code_to_unidirectional_disconnect" toml:"connect_code_to_unidirectional_disconnect"`
 }
 
@@ -329,7 +357,17 @@ type UniConnectCodeToDisconnectTransform struct {
 	To   TransformDisconnect `mapstructure:"to" json:"to" envconfig:"to" yaml:"to" toml:"to"`
 }
 
+type ChannelProxyContainer struct {
+	Subscribe       Proxy `mapstructure:"subscribe" json:"subscribe" envconfig:"subscribe" yaml:"subscribe" toml:"subscribe"`
+	Publish         Proxy `mapstructure:"publish" json:"publish" envconfig:"publish" yaml:"publish" toml:"publish"`
+	SubRefresh      Proxy `mapstructure:"sub_refresh" json:"sub_refresh" envconfig:"sub_refresh" yaml:"sub_refresh" toml:"sub_refresh"`
+	SubscribeStream Proxy `mapstructure:"subscribe_stream" json:"subscribe_stream" envconfig:"subscribe_stream" yaml:"subscribe_stream" toml:"subscribe_stream"`
+}
+
 type Channel struct {
+	// Proxy configuration for channel-related events. All types inside can be referenced by the name "default".
+	Proxy ChannelProxyContainer `mapstructure:"proxy" json:"proxy" envconfig:"proxy" toml:"proxy" yaml:"proxy"`
+
 	// WithoutNamespace is a configuration of channels options for channels which do not have namespace.
 	// Generally, we recommend always use channel namespaces but this option can be useful for simple setups.
 	WithoutNamespace ChannelOptions `mapstructure:"without_namespace" json:"without_namespace" envconfig:"without_namespace" yaml:"without_namespace" toml:"without_namespace"`
@@ -348,6 +386,8 @@ type Channel struct {
 }
 
 type RPC struct {
+	// Proxy configuration for rpc-related events. Can be referenced by the name "default".
+	Proxy Proxy `mapstructure:"proxy" json:"proxy" envconfig:"proxy" toml:"proxy" yaml:"proxy"`
 	// WithoutNamespace is a configuration of RpcOptions for rpc methods without rpc namespace. Generally,
 	// we recommend always use rpc namespaces but this option can be useful for simple setups.
 	WithoutNamespace RpcOptions `mapstructure:"without_namespace" json:"without_namespace" envconfig:"without_namespace" yaml:"without_namespace" toml:"without_namespace"`
@@ -357,6 +397,25 @@ type RPC struct {
 	Ping              bool   `mapstructure:"ping" json:"ping" envconfig:"ping" yaml:"ping" toml:"ping"`
 	PingMethod        string `mapstructure:"ping_method" json:"ping_method" envconfig:"ping_method" default:"ping" yaml:"ping_method" toml:"ping_method"`
 	NamespaceBoundary string `mapstructure:"namespace_boundary" json:"namespace_boundary" envconfig:"namespace_boundary" default:":" yaml:"namespace_boundary" toml:"namespace_boundary"`
+}
+
+type NamedProxy struct {
+	Name  string `mapstructure:"name" json:"name" envconfig:"name" yaml:"name" toml:"name"`
+	Proxy `mapstructure:",squash" yaml:",inline"`
+}
+
+type NamedProxies []NamedProxy
+
+// Decode to implement the envconfig.Decoder interface
+func (d *NamedProxies) Decode(value string) error {
+	// If the source is a string and the target is a slice, try to parse it as JSON.
+	var items NamedProxies
+	err := json.Unmarshal([]byte(value), &items)
+	if err != nil {
+		return fmt.Errorf("error parsing utems from JSON: %v", err)
+	}
+	*d = items
+	return nil
 }
 
 type SubscribeToUserPersonalChannel struct {
@@ -466,31 +525,8 @@ type ProxyCommon struct {
 	GRPC ProxyCommonGRPC `mapstructure:"grpc" json:"grpc" envconfig:"grpc" yaml:"grpc" toml:"grpc"`
 }
 
-type UnifiedProxy struct {
-	ConnectEndpoint         string `mapstructure:"connect_endpoint" json:"connect_endpoint" envconfig:"connect_endpoint" yaml:"connect_endpoint" toml:"connect_endpoint"`
-	RefreshEndpoint         string `mapstructure:"refresh_endpoint" json:"refresh_endpoint" envconfig:"refresh_endpoint" yaml:"refresh_endpoint" toml:"refresh_endpoint"`
-	SubscribeEndpoint       string `mapstructure:"subscribe_endpoint" json:"subscribe_endpoint" envconfig:"subscribe_endpoint" yaml:"subscribe_endpoint" toml:"subscribe_endpoint"`
-	PublishEndpoint         string `mapstructure:"publish_endpoint" json:"publish_endpoint" envconfig:"publish_endpoint" yaml:"publish_endpoint" toml:"publish_endpoint"`
-	SubRefreshEndpoint      string `mapstructure:"sub_refresh_endpoint" json:"sub_refresh_endpoint" envconfig:"sub_refresh_endpoint" yaml:"sub_refresh_endpoint" toml:"sub_refresh_endpoint"`
-	RPCEndpoint             string `mapstructure:"rpc_endpoint" json:"rpc_endpoint" envconfig:"rpc_endpoint" yaml:"rpc_endpoint" toml:"rpc_endpoint"`
-	SubscribeStreamEndpoint string `mapstructure:"subscribe_stream_endpoint" json:"subscribe_stream_endpoint" envconfig:"subscribe_stream_endpoint" yaml:"subscribe_stream_endpoint" toml:"subscribe_stream_endpoint"`
-
-	ConnectTimeout         Duration `mapstructure:"connect_timeout" json:"connect_timeout" envconfig:"connect_timeout" default:"1s" yaml:"connect_timeout" toml:"connect_timeout"`
-	RPCTimeout             Duration `mapstructure:"rpc_timeout" json:"rpc_timeout" envconfig:"rpc_timeout" default:"1s" yaml:"rpc_timeout" toml:"rpc_timeout"`
-	RefreshTimeout         Duration `mapstructure:"refresh_timeout" json:"refresh_timeout" envconfig:"refresh_timeout" default:"1s" yaml:"refresh_timeout" toml:"refresh_timeout"`
-	SubscribeTimeout       Duration `mapstructure:"subscribe_timeout" json:"subscribe_timeout" envconfig:"subscribe_timeout" default:"1s" yaml:"subscribe_timeout" toml:"subscribe_timeout"`
-	PublishTimeout         Duration `mapstructure:"publish_timeout" json:"publish_timeout" envconfig:"publish_timeout" default:"1s" yaml:"publish_timeout" toml:"publish_timeout"`
-	SubRefreshTimeout      Duration `mapstructure:"sub_refresh_timeout" json:"sub_refresh_timeout" envconfig:"sub_refresh_timeout" default:"1s" yaml:"sub_refresh_timeout" toml:"sub_refresh_timeout"`
-	SubscribeStreamTimeout Duration `mapstructure:"subscribe_stream_timeout" json:"subscribe_stream_timeout" envconfig:"subscribe_stream_timeout" default:"1s" yaml:"subscribe_stream_timeout" toml:"subscribe_stream_timeout"`
-
-	ProxyCommon `mapstructure:",squash" yaml:",inline"`
-}
-
 // Proxy configuration.
 type Proxy struct {
-	// Name is a unique name of proxy to reference.
-	Name string `mapstructure:"name" json:"name" envconfig:"name" yaml:"name" toml:"name"`
-
 	// Endpoint - HTTP address or GRPC service endpoint.
 	Endpoint string `mapstructure:"endpoint" json:"endpoint" envconfig:"endpoint" yaml:"endpoint" toml:"endpoint"`
 	// Timeout for proxy request.
@@ -499,20 +535,6 @@ type Proxy struct {
 	ProxyCommon `mapstructure:",squash" yaml:",inline"`
 
 	TestGrpcDialer func(context.Context, string) (net.Conn, error) `json:"-" yaml:"-" toml:"-" envconfig:"-"`
-}
-
-type Proxies []Proxy
-
-// Decode to implement the envconfig.Decoder interface
-func (d *Proxies) Decode(value string) error {
-	// If the source is a string and the target is a slice, try to parse it as JSON.
-	var items Proxies
-	err := json.Unmarshal([]byte(value), &items)
-	if err != nil {
-		return fmt.Errorf("error parsing utems from JSON: %v", err)
-	}
-	*d = items
-	return nil
 }
 
 const (
@@ -555,6 +577,7 @@ func (d *Consumers) Decode(value string) error {
 	return nil
 }
 
+// PostgresConsumerConfig is a configuration for Postgres async outbox table consumer.
 type PostgresConsumerConfig struct {
 	DSN                          string    `mapstructure:"dsn" json:"dsn" envconfig:"dsn" yaml:"dsn" toml:"dsn"`
 	OutboxTableName              string    `mapstructure:"outbox_table_name" json:"outbox_table_name" envconfig:"outbox_table_name" yaml:"outbox_table_name" toml:"outbox_table_name"`
@@ -565,17 +588,17 @@ type PostgresConsumerConfig struct {
 	TLS                          TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
 }
 
+// KafkaConsumerConfig is a configuration for Kafka async consumer.
 type KafkaConsumerConfig struct {
 	Brokers        []string `mapstructure:"brokers" json:"brokers" envconfig:"brokers" yaml:"brokers" toml:"brokers"`
 	Topics         []string `mapstructure:"topics" json:"topics" envconfig:"topics" yaml:"topics" toml:"topics"`
 	ConsumerGroup  string   `mapstructure:"consumer_group" json:"consumer_group" envconfig:"consumer_group" yaml:"consumer_group" toml:"consumer_group"`
 	MaxPollRecords int      `mapstructure:"max_poll_records" json:"max_poll_records" envconfig:"max_poll_records" default:"100" yaml:"max_poll_records" toml:"max_poll_records"`
 
-	// TLS for client connection.
+	// TLS for the connection to Kafka.
 	TLS TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
 
-	// SASLMechanism when not empty enables SASL auth. For now, Centrifugo only
-	// supports "plain" SASL mechanism.
+	// SASLMechanism when not empty enables SASL auth.
 	SASLMechanism string `mapstructure:"sasl_mechanism" json:"sasl_mechanism" envconfig:"sasl_mechanism" yaml:"sasl_mechanism" toml:"sasl_mechanism"`
 	SASLUser      string `mapstructure:"sasl_user" json:"sasl_user" envconfig:"sasl_user" yaml:"sasl_user" toml:"sasl_user"`
 	SASLPassword  string `mapstructure:"sasl_password" json:"sasl_password" envconfig:"sasl_password" yaml:"sasl_password" toml:"sasl_password"`

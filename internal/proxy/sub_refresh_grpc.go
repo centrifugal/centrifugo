@@ -18,12 +18,12 @@ type GRPCSubRefreshProxy struct {
 var _ SubRefreshProxy = (*GRPCSubRefreshProxy)(nil)
 
 // NewGRPCSubRefreshProxy ...
-func NewGRPCSubRefreshProxy(p Config) (*GRPCSubRefreshProxy, error) {
+func NewGRPCSubRefreshProxy(name string, p Config) (*GRPCSubRefreshProxy, error) {
 	host, err := getGrpcHost(p.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("error getting grpc host: %v", err)
 	}
-	dialOpts, err := getDialOpts(p)
+	dialOpts, err := getDialOpts(name, p)
 	if err != nil {
 		return nil, fmt.Errorf("error creating GRPC dial options: %v", err)
 	}

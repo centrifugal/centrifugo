@@ -23,58 +23,44 @@ func (c Config) Validate() error {
 		return err
 	}
 
-	var proxyNames []string
-	for _, p := range c.Proxies {
-		if !proxyNameRe.Match([]byte(p.Name)) {
-			return fmt.Errorf("invalid proxy name: %s, must match %s regular expression", p.Name, proxyNamePattern)
+	if c.Client.Proxy.Connect.Enabled {
+		if err := validateProxy("default", c.Client.Proxy.Connect.Proxy); err != nil {
+			return fmt.Errorf("in client.proxy.connect: %v", err)
 		}
-		if slices.Contains(proxyNames, p.Name) {
-			return fmt.Errorf("duplicate proxy name: %s", p.Name)
-		}
-		if p.Timeout == 0 {
-			p.Timeout = configtypes.Duration(time.Second)
-		}
-		if p.Endpoint == "" {
-			return fmt.Errorf("no endpoint set for proxy %s", p.Name)
-		}
-		if err := validateStatusTransforms(p.ProxyCommon.HTTP.StatusToCodeTransforms); err != nil {
-			return fmt.Errorf("in proxy %s: %v", p.Name, err)
-		}
-
-		proxyNames = append(proxyNames, p.Name)
 	}
-	if slices.Contains(proxyNames, UnifiedProxyName) {
-		return fmt.Errorf("proxy name %s is reserved, it's a name of proxy configured over unified_proxy option", UnifiedProxyName)
+	if c.Client.Proxy.Refresh.Enabled {
+		if err := validateProxy("default", c.Client.Proxy.Refresh.Proxy); err != nil {
+			return fmt.Errorf("in client.proxy.refresh: %v", err)
+		}
 	}
 
-	proxyNames = append(proxyNames, UnifiedProxyName) // channel options can use global proxy name.
-
-	if c.Client.ConnectProxyName != "" && !slices.Contains(proxyNames, c.Client.ConnectProxyName) {
-		return fmt.Errorf("proxy %s not found for connect", c.Client.ConnectProxyName)
-	}
-	if c.Client.RefreshProxyName != "" && !slices.Contains(proxyNames, c.Client.RefreshProxyName) {
-		return fmt.Errorf("proxy %s not found for refresh", c.Client.RefreshProxyName)
-	}
-	if c.Client.ConnectProxyName == UnifiedProxyName && c.UnifiedProxy.ConnectEndpoint == "" {
-		return fmt.Errorf("no connect_endpoint set for unified_proxy, can't use `%s` proxy name for client connect proxy", UnifiedProxyName)
-	}
-	if c.Client.RefreshProxyName == UnifiedProxyName && c.UnifiedProxy.RefreshEndpoint == "" {
-		return fmt.Errorf("no refresh_endpoint set for unified_proxy, can't use `%s` proxy name for client refresh proxy", UnifiedProxyName)
-	}
 	if err := validateSecondPrecisionDuration(c.Channel.HistoryMetaTTL); err != nil {
 		return fmt.Errorf("in channel.history_meta_ttl: %v", err)
-	}
-	if err := validateStatusTransforms(c.UnifiedProxy.ProxyCommon.HTTP.StatusToCodeTransforms); err != nil {
-		return fmt.Errorf("in proxy %s: %v", UnifiedProxyName, err)
 	}
 	if err := validateCodeToUniDisconnectTransforms(c.Client.ConnectCodeToUnidirectionalDisconnect.Transforms); err != nil {
 		return fmt.Errorf("in client.connect_code_to_unidirectional_disconnect: %v", err)
 	}
 
+	var proxyNames []string
+	for _, p := range c.Proxies {
+		if slices.Contains(proxyNames, p.Name) {
+			return fmt.Errorf("duplicate proxy name in channel.named_proxies: %s", p.Name)
+		}
+		if err := validateProxy(p.Name, p.Proxy); err != nil {
+			return fmt.Errorf("in proxy %s: %v", p.Name, err)
+		}
+		proxyNames = append(proxyNames, p.Name)
+	}
+	if slices.Contains(proxyNames, DefaultProxyName) {
+		return fmt.Errorf("proxy name %s is reserved", DefaultProxyName)
+	}
+	proxyNames = append(proxyNames, DefaultProxyName) // channel options can use default proxy name.
+
 	if err := validateChannelOptions(c.Channel.WithoutNamespace, c.Channel.HistoryMetaTTL, proxyNames, c); err != nil {
 		return fmt.Errorf("in channel.without_namespace: %v", err)
 	}
-	if err := validateRpcOptions(c.RPC.WithoutNamespace); err != nil {
+
+	if err := validateRpcOptions(c.RPC.WithoutNamespace, proxyNames); err != nil {
 		return fmt.Errorf("in rpc.without_namespace: %v", err)
 	}
 
@@ -115,7 +101,7 @@ func (c Config) Validate() error {
 		if slices.Contains(rpcNss, n.Name) {
 			return fmt.Errorf("rpc namespace name must be unique: %s", n.Name)
 		}
-		if err := validateRpcNamespace(n); err != nil {
+		if err := validateRpcNamespace(n, proxyNames); err != nil {
 			return fmt.Errorf("rpc namespace %s: %v", n.Name, err)
 		}
 		rpcNss = append(rpcNss, n.Name)
@@ -160,13 +146,13 @@ func validateNamespace(ns configtypes.ChannelNamespace, globalHistoryMetaTTL con
 	return nil
 }
 
-func validateRpcNamespace(ns configtypes.RpcNamespace) error {
+func validateRpcNamespace(ns configtypes.RpcNamespace, rpcProxyNames []string) error {
 	name := ns.Name
 	match := nameRe.MatchString(name)
 	if !match {
 		return fmt.Errorf("invalid rpc namespace name – %s (must match %s regular expression)", name, namePattern)
 	}
-	if err := validateRpcOptions(ns.RpcOptions); err != nil {
+	if err := validateRpcOptions(ns.RpcOptions, rpcProxyNames); err != nil {
 		return err
 	}
 	return nil
@@ -197,49 +183,63 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 			return fmt.Errorf("invalid channel regex %s: %w", c.ChannelRegex, err)
 		}
 	}
-	if (c.SubscribeStreamProxyName != "") && (c.SubscribeProxyName != "" || c.PublishProxyName != "" || c.SubRefreshProxyName != "") {
+	if (c.SubscribeStreamProxyEnabled) && (c.SubscribeProxyEnabled || c.PublishProxyEnabled || c.SubRefreshProxyEnabled) {
 		return fmt.Errorf("can't use subscribe stream proxy together with subscribe, publish or sub refresh proxies")
 	}
 	if len(c.AllowedDeltaTypes) > 0 {
 		for _, dt := range c.AllowedDeltaTypes {
 			if !slices.Contains([]centrifuge.DeltaType{centrifuge.DeltaTypeFossil}, dt) {
-				return fmt.Errorf("unknown allowed delta type: %s", dt)
+				return fmt.Errorf("unknown allowed delta type: \"%s\"", dt)
 			}
 		}
 	}
 	if !slices.Contains([]string{"", "stream", "cache"}, c.ForceRecoveryMode) {
-		return fmt.Errorf("unknown recovery mode: %s", c.ForceRecoveryMode)
-	}
-	if c.SubscribeProxyName != "" && !slices.Contains(proxyNames, c.SubscribeProxyName) {
-		return fmt.Errorf("proxy %s not found for subscribe", c.SubscribeProxyName)
-	}
-	if c.PublishProxyName != "" && !slices.Contains(proxyNames, c.PublishProxyName) {
-		return fmt.Errorf("proxy %s not found for publish", c.PublishProxyName)
-	}
-	if c.SubRefreshProxyName != "" && !slices.Contains(proxyNames, c.SubRefreshProxyName) {
-		return fmt.Errorf("proxy %s not found for sub refresh", c.SubRefreshProxyName)
-	}
-	if c.SubscribeStreamProxyName != "" && !slices.Contains(proxyNames, c.SubscribeStreamProxyName) {
-		return fmt.Errorf("proxy %s not found for subscribe stream", c.SubscribeStreamProxyName)
+		return fmt.Errorf("unknown recovery mode: \"%s\"", c.ForceRecoveryMode)
 	}
 
-	if c.SubscribeProxyName == UnifiedProxyName && cfg.UnifiedProxy.SubscribeEndpoint == "" {
-		return fmt.Errorf("no subscribe_endpoint set for unified_proxy, can't use `%s` proxy name for subscribe proxy", UnifiedProxyName)
+	if c.SubscribeProxyName != "" && !slices.Contains(proxyNames, c.SubscribeProxyName) {
+		return fmt.Errorf("subscribe proxy with name \"%s\" not found", c.SubscribeProxyName)
 	}
-	if c.PublishProxyName == UnifiedProxyName && cfg.UnifiedProxy.PublishEndpoint == "" {
-		return fmt.Errorf("no publish_endpoint set for unified_proxy, can't use `%s` proxy name for publish proxy", UnifiedProxyName)
+	if c.SubscribeProxyEnabled && c.SubscribeProxyName == DefaultProxyName {
+		if err := validateProxy("default", cfg.Channel.Proxy.Subscribe); err != nil {
+			return fmt.Errorf("in channel.proxy.subscribe: %v", err)
+		}
 	}
-	if c.SubRefreshProxyName == UnifiedProxyName && cfg.UnifiedProxy.SubRefreshEndpoint == "" {
-		return fmt.Errorf("no sub_refresh_endpoint set for unified_proxy, can't use `%s` proxy name for sub refresh proxy", UnifiedProxyName)
+
+	if c.PublishProxyName != "" && !slices.Contains(proxyNames, c.PublishProxyName) {
+		return fmt.Errorf("publish proxy with name \"%s\" not found", c.PublishProxyName)
 	}
-	if c.SubscribeStreamProxyName == UnifiedProxyName && cfg.UnifiedProxy.SubscribeStreamEndpoint == "" {
-		return fmt.Errorf("no subscribe_stream_endpoint set for unified_proxy, can't use `%s` proxy name for subscribe stream proxy", UnifiedProxyName)
+	if c.PublishProxyEnabled && c.PublishProxyName == DefaultProxyName {
+		if err := validateProxy("default", cfg.Channel.Proxy.Publish); err != nil {
+			return fmt.Errorf("in channel.proxy.publish: %v", err)
+		}
+	}
+
+	if c.SubRefreshProxyName != "" && !slices.Contains(proxyNames, c.SubRefreshProxyName) {
+		return fmt.Errorf("sub refresh proxy with name \"%s\" not found", c.SubRefreshProxyName)
+	}
+	if c.SubRefreshProxyEnabled && c.SubRefreshProxyName == DefaultProxyName {
+		if err := validateProxy("default", cfg.Channel.Proxy.SubRefresh); err != nil {
+			return fmt.Errorf("in channel.proxy.sub_refresh: %v", err)
+		}
+	}
+
+	if c.SubscribeStreamProxyName != "" && !slices.Contains(proxyNames, c.SubscribeStreamProxyName) {
+		return fmt.Errorf("subscribe stream proxy with name \"%s\" not found", c.SubscribeStreamProxyName)
+	}
+	if c.SubscribeStreamProxyEnabled && c.SubscribeStreamProxyName == DefaultProxyName {
+		if err := validateProxy("default", cfg.Channel.Proxy.SubscribeStream); err != nil {
+			return fmt.Errorf("in channel.proxy.subscribe_stream: %v", err)
+		}
 	}
 
 	return nil
 }
 
-func validateRpcOptions(_ configtypes.RpcOptions) error {
+func validateRpcOptions(opts configtypes.RpcOptions, rpcProxyNames []string) error {
+	if opts.ProxyName != "" && !slices.Contains(rpcProxyNames, opts.ProxyName) {
+		return fmt.Errorf("proxy %s not found for rpc", opts.ProxyName)
+	}
 	return nil
 }
 
@@ -252,6 +252,22 @@ var consumerNameRe = regexp.MustCompile(consumerNamePattern)
 func validateSecondPrecisionDuration(duration configtypes.Duration) error {
 	if duration > 0 && duration.ToDuration()%time.Second != 0 {
 		return fmt.Errorf("malformed duration %s, sub-second precision is not supported for this key", duration)
+	}
+	return nil
+}
+
+func validateProxy(name string, p configtypes.Proxy) error {
+	if !proxyNameRe.MatchString(name) {
+		return fmt.Errorf("invalid proxy name: %s, must match %s regular expression", name, proxyNamePattern)
+	}
+	if p.Timeout == 0 {
+		return errors.New("timeout not set")
+	}
+	if p.Endpoint == "" {
+		return errors.New("endpoint not set")
+	}
+	if err := validateStatusTransforms(p.ProxyCommon.HTTP.StatusToCodeTransforms); err != nil {
+		return fmt.Errorf("in status_to_code_transforms: %v", err)
 	}
 	return nil
 }

@@ -18,12 +18,12 @@ type GRPCRefreshProxy struct {
 var _ RefreshProxy = (*GRPCRefreshProxy)(nil)
 
 // NewGRPCRefreshProxy ...
-func NewGRPCRefreshProxy(p Config) (*GRPCRefreshProxy, error) {
+func NewGRPCRefreshProxy(name string, p Config) (*GRPCRefreshProxy, error) {
 	host, err := getGrpcHost(p.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("error getting grpc host: %v", err)
 	}
-	dialOpts, err := getDialOpts(p)
+	dialOpts, err := getDialOpts(name, p)
 	if err != nil {
 		return nil, fmt.Errorf("error creating GRPC dial options: %v", err)
 	}
@@ -46,7 +46,7 @@ func (p *GRPCRefreshProxy) ProxyRefresh(ctx context.Context, req *proxyproto.Ref
 
 // Name ...
 func (p *GRPCRefreshProxy) Name() string {
-	return p.config.Name
+	return "default"
 }
 
 // Protocol ...

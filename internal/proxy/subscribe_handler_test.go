@@ -25,7 +25,7 @@ type grpcSubscribeHandleTestCase struct {
 func newSubscribeHandleGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTestServer, opts configtypes.ChannelOptions) grpcSubscribeHandleTestCase {
 	commonProxyTestCase := tools.NewCommonGRPCProxyTestCase(ctx, proxyGRPCServer)
 
-	subscribeProxy, err := NewGRPCSubscribeProxy(getTestGrpcProxy(commonProxyTestCase))
+	subscribeProxy, err := NewGRPCSubscribeProxy("default", getTestGrpcProxy(commonProxyTestCase))
 	if err != nil {
 		log.Fatalln("could not create grpc subscribe proxy: ", err)
 	}
@@ -100,12 +100,13 @@ func TestHandleSubscribeWithResult(t *testing.T) {
 	customData := "test"
 	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
 	chOpts := configtypes.ChannelOptions{
-		Presence:           true,
-		JoinLeave:          true,
-		ForcePushJoinLeave: true,
-		ForceRecovery:      true,
-		ForcePositioning:   true,
-		SubscribeProxyName: "test",
+		Presence:              true,
+		JoinLeave:             true,
+		ForcePushJoinLeave:    true,
+		ForceRecovery:         true,
+		ForcePositioning:      true,
+		SubscribeProxyEnabled: true,
+		SubscribeProxyName:    "test",
 	}
 	opts := proxyGRPCTestServerOptions{
 		B64Data: customDataB64,
@@ -144,11 +145,12 @@ func TestHandleSubscribeWithOverride(t *testing.T) {
 	customData := "test"
 	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
 	chOpts := configtypes.ChannelOptions{
-		Presence:           false,
-		JoinLeave:          true,
-		ForceRecovery:      false,
-		ForcePositioning:   false,
-		SubscribeProxyName: "test",
+		Presence:              false,
+		JoinLeave:             true,
+		ForceRecovery:         false,
+		ForcePositioning:      false,
+		SubscribeProxyEnabled: true,
+		SubscribeProxyName:    "test",
 	}
 	opts := proxyGRPCTestServerOptions{
 		B64Data: customDataB64,
@@ -187,12 +189,14 @@ func TestHandleSubscribeWithContextCancel(t *testing.T) {
 	cancel()
 
 	grpcTestCase := newSubscribeHandleGRPCTestCase(ctx, proxyGRPCTestServer{}, configtypes.ChannelOptions{
-		SubscribeProxyName: "test",
+		SubscribeProxyEnabled: true,
+		SubscribeProxyName:    "test",
 	})
 	defer grpcTestCase.Teardown()
 
 	httpTestCase := newSubscribeHandleHTTPTestCase(ctx, "/subscribe", configtypes.ChannelOptions{
-		SubscribeProxyName: "test",
+		SubscribeProxyEnabled: true,
+		SubscribeProxyName:    "test",
 	})
 	httpTestCase.Mux.HandleFunc("/subscribe", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{}`))
@@ -209,26 +213,29 @@ func TestHandleSubscribeWithContextCancel(t *testing.T) {
 
 func TestHandleSubscribeWithoutProxyServerStart(t *testing.T) {
 	grpcTestCase := newSubscribeHandleGRPCTestCase(context.Background(), proxyGRPCTestServer{}, configtypes.ChannelOptions{
-		SubscribeProxyName: "test",
+		SubscribeProxyEnabled: true,
+		SubscribeProxyName:    "test",
 	})
 	grpcTestCase.Teardown()
 
 	httpTestCase := newSubscribeHandleHTTPTestCase(context.Background(), "/subscribe", configtypes.ChannelOptions{
-		SubscribeProxyName: "test",
+		SubscribeProxyEnabled: true,
+		SubscribeProxyName:    "test",
 	})
 	httpTestCase.Teardown()
 
 	cases := newSubscribeHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
 		reply, err := c.invokeHandle()
-		require.ErrorIs(t, centrifuge.ErrorInternal, err, c.protocol)
+		require.Error(t, err, c.protocol)
 		require.Equal(t, centrifuge.SubscribeReply{}, reply, c.protocol)
 	}
 }
 
 func TestHandleSubscribeWithProxyServerCustomDisconnect(t *testing.T) {
 	chOpts := configtypes.ChannelOptions{
-		SubscribeProxyName: "test",
+		SubscribeProxyEnabled: true,
+		SubscribeProxyName:    "test",
 	}
 	grpcTestCase := newSubscribeHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("custom disconnect", proxyGRPCTestServerOptions{}), chOpts)
 	defer grpcTestCase.Teardown()
@@ -255,7 +262,8 @@ func TestHandleSubscribeWithProxyServerCustomDisconnect(t *testing.T) {
 
 func TestHandleSubscribeWithProxyServerCustomError(t *testing.T) {
 	chOpts := configtypes.ChannelOptions{
-		SubscribeProxyName: "test",
+		SubscribeProxyEnabled: true,
+		SubscribeProxyName:    "test",
 	}
 	grpcTestCase := newSubscribeHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("custom error", proxyGRPCTestServerOptions{}), chOpts)
 	defer grpcTestCase.Teardown()
@@ -282,7 +290,8 @@ func TestHandleSubscribeWithProxyServerCustomError(t *testing.T) {
 
 func TestHandleSubscribeWithInvalidCustomData(t *testing.T) {
 	chOpts := configtypes.ChannelOptions{
-		SubscribeProxyName: "test",
+		SubscribeProxyEnabled: true,
+		SubscribeProxyName:    "test",
 	}
 	opts := proxyGRPCTestServerOptions{
 		B64Data: "invalid data",
@@ -299,7 +308,7 @@ func TestHandleSubscribeWithInvalidCustomData(t *testing.T) {
 	cases := newSubscribeHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
 		reply, err := c.invokeHandle()
-		require.ErrorIs(t, centrifuge.ErrorInternal, err, c.protocol)
+		require.ErrorIs(t, err, centrifuge.ErrorInternal, c.protocol)
 		require.Equal(t, centrifuge.SubscribeReply{}, reply, c.protocol)
 	}
 }

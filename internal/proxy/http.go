@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
-
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 )
 
@@ -84,9 +83,12 @@ func (c *httpCaller) CallHTTP(ctx context.Context, endpoint string, header http.
 	return respData, nil
 }
 
-func getProxyHeader(allHeader http.Header, allowedHeaders []string, staticHeaders map[string]string) http.Header {
+func getProxyHeader(allHeader http.Header, allowedHeaders []string, staticHeaders map[string]string, emulatedHeaders map[string]string) http.Header {
 	proxyHeader := http.Header{}
 	for k, v := range staticHeaders {
+		proxyHeader.Set(k, v)
+	}
+	for k, v := range emulatedHeaders {
 		proxyHeader.Set(k, v)
 	}
 	copyHeader(proxyHeader, allHeader, allowedHeaders)

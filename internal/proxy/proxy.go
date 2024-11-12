@@ -20,46 +20,64 @@ func isHttpEndpoint(endpoint string) bool {
 	return strings.HasPrefix(endpoint, "http://") || strings.HasPrefix(endpoint, "https://")
 }
 
-func GetConnectProxy(p Config) (ConnectProxy, error) {
+func GetConnectProxy(name string, p Config) (ConnectProxy, error) {
+	for i, header := range p.HttpHeaders {
+		p.HttpHeaders[i] = strings.ToLower(header)
+	}
 	if isHttpEndpoint(p.Endpoint) {
 		return NewHTTPConnectProxy(p)
 	}
-	return NewGRPCConnectProxy(p)
+	return NewGRPCConnectProxy(name, p)
 }
 
-func GetRefreshProxy(p Config) (RefreshProxy, error) {
+func GetRefreshProxy(name string, p Config) (RefreshProxy, error) {
+	for i, header := range p.HttpHeaders {
+		p.HttpHeaders[i] = strings.ToLower(header)
+	}
 	if isHttpEndpoint(p.Endpoint) {
 		return NewHTTPRefreshProxy(p)
 	}
-	return NewGRPCRefreshProxy(p)
+	return NewGRPCRefreshProxy(name, p)
 }
 
-func GetRpcProxy(p Config) (RPCProxy, error) {
+func GetRpcProxy(name string, p Config) (RPCProxy, error) {
+	for i, header := range p.HttpHeaders {
+		p.HttpHeaders[i] = strings.ToLower(header)
+	}
 	if isHttpEndpoint(p.Endpoint) {
 		return NewHTTPRPCProxy(p)
 	}
-	return NewGRPCRPCProxy(p)
+	return NewGRPCRPCProxy(name, p)
 }
 
-func GetSubRefreshProxy(p Config) (SubRefreshProxy, error) {
+func GetSubRefreshProxy(name string, p Config) (SubRefreshProxy, error) {
+	for i, header := range p.HttpHeaders {
+		p.HttpHeaders[i] = strings.ToLower(header)
+	}
 	if isHttpEndpoint(p.Endpoint) {
 		return NewHTTPSubRefreshProxy(p)
 	}
-	return NewGRPCSubRefreshProxy(p)
+	return NewGRPCSubRefreshProxy(name, p)
 }
 
-func GetPublishProxy(p Config) (PublishProxy, error) {
+func GetPublishProxy(name string, p Config) (PublishProxy, error) {
+	for i, header := range p.HttpHeaders {
+		p.HttpHeaders[i] = strings.ToLower(header)
+	}
 	if isHttpEndpoint(p.Endpoint) {
 		return NewHTTPPublishProxy(p)
 	}
-	return NewGRPCPublishProxy(p)
+	return NewGRPCPublishProxy(name, p)
 }
 
-func GetSubscribeProxy(p Config) (SubscribeProxy, error) {
+func GetSubscribeProxy(name string, p Config) (SubscribeProxy, error) {
+	for i, header := range p.HttpHeaders {
+		p.HttpHeaders[i] = strings.ToLower(header)
+	}
 	if isHttpEndpoint(p.Endpoint) {
 		return NewHTTPSubscribeProxy(p)
 	}
-	return NewGRPCSubscribeProxy(p)
+	return NewGRPCSubscribeProxy(name, p)
 }
 
 type PerCallData struct {

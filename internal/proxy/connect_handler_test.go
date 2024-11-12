@@ -57,7 +57,7 @@ func getTestHttpProxy(commonProxyTestCase *tools.CommonHTTPProxyTestCase, endpoi
 func newConnHandleGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTestServer) grpcConnHandleTestCase {
 	commonProxyTestCase := tools.NewCommonGRPCProxyTestCase(ctx, proxyGRPCServer)
 
-	connectProxy, err := NewGRPCConnectProxy(getTestGrpcProxy(commonProxyTestCase))
+	connectProxy, err := NewGRPCConnectProxy("default", getTestGrpcProxy(commonProxyTestCase))
 	if err != nil {
 		log.Fatalln("could not create grpc connect proxy: ", err)
 	}

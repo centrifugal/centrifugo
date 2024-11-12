@@ -18,12 +18,12 @@ type GRPCConnectProxy struct {
 var _ ConnectProxy = (*GRPCConnectProxy)(nil)
 
 // NewGRPCConnectProxy ...
-func NewGRPCConnectProxy(p Config) (*GRPCConnectProxy, error) {
+func NewGRPCConnectProxy(name string, p Config) (*GRPCConnectProxy, error) {
 	host, err := getGrpcHost(p.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("error getting grpc host: %v", err)
 	}
-	dialOpts, err := getDialOpts(p)
+	dialOpts, err := getDialOpts(name, p)
 	if err != nil {
 		return nil, fmt.Errorf("error creating GRPC dial options: %v", err)
 	}
@@ -43,7 +43,7 @@ func (p *GRPCConnectProxy) Protocol() string {
 }
 
 func (p *GRPCConnectProxy) Name() string {
-	return p.config.Name
+	return "default"
 }
 
 // UseBase64 ...

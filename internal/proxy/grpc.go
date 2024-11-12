@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/centrifugal/centrifugo/v5/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v5/internal/middleware"
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 
@@ -49,7 +50,7 @@ func getGrpcHost(endpoint string) (string, error) {
 	return host, nil
 }
 
-func getDialOpts(p Config) ([]grpc.DialOption, error) {
+func getDialOpts(name string, p Config) ([]grpc.DialOption, error) {
 	var dialOpts []grpc.DialOption
 	if p.GRPC.CredentialsKey != "" {
 		dialOpts = append(dialOpts, grpc.WithPerRPCCredentials(&rpcCredentials{
@@ -58,7 +59,7 @@ func getDialOpts(p Config) ([]grpc.DialOption, error) {
 		}))
 	}
 	if p.GRPC.TLS.Enabled {
-		tlsConfig, err := p.GRPC.TLS.ToGoTLSConfig("proxy_grpc:" + p.Name)
+		tlsConfig, err := p.GRPC.TLS.ToGoTLSConfig("proxy_grpc:" + name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create TLS config %v", err)
 		}
@@ -88,6 +89,12 @@ func httpRequestHeaders(ctx context.Context, proxy Config) http.Header {
 
 func requestMetadata(ctx context.Context, allowedHeaders []string, allowedMetaKeys []string) metadata.MD {
 	requestMD := metadata.MD{}
+	emulatedHeaders, _ := clientcontext.GetEmulatedHeadersFromContext(ctx)
+	for k, v := range emulatedHeaders {
+		if slices.Contains(allowedHeaders, strings.ToLower(k)) {
+			requestMD.Set(k, v)
+		}
+	}
 	if headers, ok := middleware.GetHeadersFromContext(ctx); ok {
 		for k, vv := range headers {
 			if slices.Contains(allowedHeaders, strings.ToLower(k)) {
@@ -106,11 +113,15 @@ func requestMetadata(ctx context.Context, allowedHeaders []string, allowedMetaKe
 }
 
 func requestHeaders(ctx context.Context, allowedHeaders []string, allowedMetaKeys []string, staticHeaders map[string]string) http.Header {
+	emulatedHeaders, _ := clientcontext.GetEmulatedHeadersFromContext(ctx)
 	if headers, ok := middleware.GetHeadersFromContext(ctx); ok {
-		return getProxyHeader(headers, allowedHeaders, staticHeaders)
+		return getProxyHeader(headers, allowedHeaders, staticHeaders, emulatedHeaders)
 	}
 	headers := http.Header{}
 	for k, v := range staticHeaders {
+		headers.Set(k, v)
+	}
+	for k, v := range emulatedHeaders {
 		headers.Set(k, v)
 	}
 	headers.Set("Content-Type", "application/json")

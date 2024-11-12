@@ -18,12 +18,12 @@ type GRPCSubscribeProxy struct {
 var _ SubscribeProxy = (*GRPCSubscribeProxy)(nil)
 
 // NewGRPCSubscribeProxy ...
-func NewGRPCSubscribeProxy(p Config) (*GRPCSubscribeProxy, error) {
+func NewGRPCSubscribeProxy(name string, p Config) (*GRPCSubscribeProxy, error) {
 	host, err := getGrpcHost(p.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("error getting grpc host: %v", err)
 	}
-	dialOpts, err := getDialOpts(p)
+	dialOpts, err := getDialOpts(name, p)
 	if err != nil {
 		return nil, fmt.Errorf("error creating GRPC dial options: %v", err)
 	}

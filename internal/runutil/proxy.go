@@ -1,335 +1,322 @@
 package runutil
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/centrifugal/centrifugo/v5/internal/client"
 	"github.com/centrifugal/centrifugo/v5/internal/config"
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/proxy"
 	"github.com/centrifugal/centrifugo/v5/internal/tools"
 
 	"github.com/rs/zerolog/log"
 )
 
-func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool) {
+func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 	proxyMap := &client.ProxyMap{
+		ConnectProxy:           nil,
+		RefreshProxy:           nil,
 		RpcProxies:             map[string]proxy.RPCProxy{},
 		PublishProxies:         map[string]proxy.PublishProxy{},
 		SubscribeProxies:       map[string]proxy.SubscribeProxy{},
 		SubRefreshProxies:      map[string]proxy.SubRefreshProxy{},
 		SubscribeStreamProxies: map[string]*proxy.SubscribeStreamProxy{},
 	}
-	proxyList := cfg.Proxies
-	proxies := make(map[string]proxy.Config)
-	for _, p := range proxyList {
-		for i, header := range p.HttpHeaders {
-			p.HttpHeaders[i] = strings.ToLower(header)
-		}
-		proxies[p.Name] = p
-	}
-
-	globalProxyConfig := proxy.Config{
-		Name:        config.UnifiedProxyName,
-		ProxyCommon: cfg.UnifiedProxy.ProxyCommon,
-	}
 
 	var keepHeadersInContext bool
 
-	connectProxyName := cfg.Client.ConnectProxyName
-	if connectProxyName != "" {
-		var p proxy.Config
-		if connectProxyName == config.UnifiedProxyName {
-			globalProxyConfig.Endpoint = cfg.UnifiedProxy.ConnectEndpoint
-			globalProxyConfig.Timeout = cfg.UnifiedProxy.ConnectTimeout
-			p = globalProxyConfig
-		} else {
-			var ok bool
-			p, ok = proxies[connectProxyName]
-			if !ok {
-				log.Fatal().Msgf("connect proxy with name %s not found", connectProxyName)
-			}
-		}
-		var err error
-		proxyMap.ConnectProxy, err = proxy.GetConnectProxy(p)
+	var err error
+	var proxyFound bool
+
+	if cfg.Client.Proxy.Connect.Enabled {
+		p := cfg.Client.Proxy.Connect
+		proxyMap.ConnectProxy, err = proxy.GetConnectProxy("connect", cfg.Client.Proxy.Connect.Proxy)
 		if err != nil {
-			log.Fatal().Msgf("error creating connect proxy: %v", err)
+			return nil, false, fmt.Errorf("error creating connect proxy: %w", err)
 		}
-		log.Info().Str("proxy_name", connectProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("connect proxy enabled")
-		keepHeadersInContext = true
+		log.Info().Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("connect proxy enabled")
+		if len(p.HttpHeaders) > 0 {
+			keepHeadersInContext = true
+		}
 	}
 
-	refreshProxyName := cfg.Client.RefreshProxyName
-	if refreshProxyName != "" {
-		var p proxy.Config
-		if refreshProxyName == config.UnifiedProxyName {
-			globalProxyConfig.Endpoint = cfg.UnifiedProxy.RefreshEndpoint
-			globalProxyConfig.Timeout = cfg.UnifiedProxy.RefreshTimeout
-			p = globalProxyConfig
-		} else {
-			var ok bool
-			p, ok = proxies[refreshProxyName]
-			if !ok {
-				log.Fatal().Msgf("refresh proxy with name %s not found", refreshProxyName)
-			}
-		}
-		var err error
-		proxyMap.RefreshProxy, err = proxy.GetRefreshProxy(p)
+	if cfg.Client.Proxy.Refresh.Enabled {
+		p := cfg.Client.Proxy.Refresh
+		proxyMap.RefreshProxy, err = proxy.GetRefreshProxy("refresh", cfg.Client.Proxy.Refresh.Proxy)
 		if err != nil {
-			log.Fatal().Msgf("error creating refresh proxy: %v", err)
+			return nil, false, fmt.Errorf("error creating refresh proxy: %w", err)
 		}
-		log.Info().Str("proxy_name", refreshProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("refresh proxy enabled")
-		keepHeadersInContext = true
+		log.Info().Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("refresh proxy enabled")
+		if len(p.HttpHeaders) > 0 {
+			keepHeadersInContext = true
+		}
 	}
 
+	namedProxies := make(map[string]configtypes.Proxy)
+	for _, p := range cfg.Proxies {
+		namedProxies[p.Name] = p.Proxy
+	}
+
+	subscribeProxyEnabled := cfg.Channel.WithoutNamespace.SubscribeProxyEnabled
 	subscribeProxyName := cfg.Channel.WithoutNamespace.SubscribeProxyName
-	if subscribeProxyName != "" {
+	if subscribeProxyEnabled {
 		var p proxy.Config
-		if subscribeProxyName == config.UnifiedProxyName {
-			globalProxyConfig.Endpoint = cfg.UnifiedProxy.SubscribeEndpoint
-			globalProxyConfig.Timeout = cfg.UnifiedProxy.SubscribeTimeout
-			p = globalProxyConfig
+		if subscribeProxyName == "" || subscribeProxyName == config.DefaultProxyName {
+			p = cfg.Channel.Proxy.Subscribe
 		} else {
-			var ok bool
-			p, ok = proxies[subscribeProxyName]
-			if !ok {
-				log.Fatal().Msgf("subscribe proxy with name %s not found", subscribeProxyName)
+			p, proxyFound = namedProxies[subscribeProxyName]
+			if !proxyFound {
+				return nil, false, fmt.Errorf("subscribe proxy not found: %s", subscribeProxyName)
 			}
 		}
-		sp, err := proxy.GetSubscribeProxy(p)
-		if err != nil {
-			log.Fatal().Msgf("error creating subscribe proxy: %v", err)
+		if _, ok := proxyMap.SubscribeProxies[subscribeProxyName]; !ok {
+			sp, err := proxy.GetSubscribeProxy(subscribeProxyName, p)
+			if err != nil {
+				return nil, false, fmt.Errorf("error creating subscribe proxy %s: %w", subscribeProxyName, err)
+			}
+			proxyMap.SubscribeProxies[subscribeProxyName] = sp
 		}
-		proxyMap.SubscribeProxies[subscribeProxyName] = sp
 		log.Info().Str("proxy_name", subscribeProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("subscribe proxy enabled for channels without namespace")
-		keepHeadersInContext = true
+		if len(p.HttpHeaders) > 0 {
+			keepHeadersInContext = true
+		}
 	}
 
+	publishProxyEnabled := cfg.Channel.WithoutNamespace.PublishProxyEnabled
 	publishProxyName := cfg.Channel.WithoutNamespace.PublishProxyName
-	if publishProxyName != "" {
+	if publishProxyEnabled {
 		var p proxy.Config
-		if publishProxyName == config.UnifiedProxyName {
-			globalProxyConfig.Endpoint = cfg.UnifiedProxy.PublishEndpoint
-			globalProxyConfig.Timeout = cfg.UnifiedProxy.PublishTimeout
-			p = globalProxyConfig
+		if publishProxyName == "" || publishProxyName == config.DefaultProxyName {
+			p = cfg.Channel.Proxy.Publish
 		} else {
-			var ok bool
-			p, ok = proxies[publishProxyName]
-			if !ok {
-				log.Fatal().Msgf("publish proxy with name %s not found", publishProxyName)
+			p, proxyFound = namedProxies[publishProxyName]
+			if !proxyFound {
+				return nil, false, fmt.Errorf("publish proxy not found: %s", publishProxyName)
 			}
 		}
-		pp, err := proxy.GetPublishProxy(p)
-		if err != nil {
-			log.Fatal().Msgf("error creating publish proxy: %v", err)
+		if _, ok := proxyMap.PublishProxies[publishProxyName]; !ok {
+			pp, err := proxy.GetPublishProxy(publishProxyName, p)
+			if err != nil {
+				return nil, false, fmt.Errorf("error creating publish proxy %s: %w", publishProxyName, err)
+			}
+			proxyMap.PublishProxies[publishProxyName] = pp
 		}
-		proxyMap.PublishProxies[publishProxyName] = pp
 		log.Info().Str("proxy_name", publishProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("publish proxy enabled for channels without namespace")
-		keepHeadersInContext = true
+		if len(p.HttpHeaders) > 0 {
+			keepHeadersInContext = true
+		}
 	}
 
+	subRefreshProxyEnabled := cfg.Channel.WithoutNamespace.SubRefreshProxyEnabled
 	subRefreshProxyName := cfg.Channel.WithoutNamespace.SubRefreshProxyName
-	if subRefreshProxyName != "" {
+	if subRefreshProxyEnabled {
 		var p proxy.Config
-		if subRefreshProxyName == config.UnifiedProxyName {
-			globalProxyConfig.Endpoint = cfg.UnifiedProxy.SubRefreshEndpoint
-			globalProxyConfig.Timeout = cfg.UnifiedProxy.SubRefreshTimeout
-			p = globalProxyConfig
+		if subRefreshProxyName == "" || subRefreshProxyName == config.DefaultProxyName {
+			p = cfg.Channel.Proxy.SubRefresh
 		} else {
-			var ok bool
-			p, ok = proxies[subRefreshProxyName]
-			if !ok {
-				log.Fatal().Msgf("sub refresh proxy not found: %s", subRefreshProxyName)
+			p, proxyFound = namedProxies[subRefreshProxyName]
+			if !proxyFound {
+				return nil, false, fmt.Errorf("sub refresh proxy not found: %s", subRefreshProxyName)
 			}
 		}
-		srp, err := proxy.GetSubRefreshProxy(p)
-		if err != nil {
-			log.Fatal().Msgf("error creating publish proxy: %v", err)
+		if _, ok := proxyMap.SubRefreshProxies[subRefreshProxyName]; !ok {
+			srp, err := proxy.GetSubRefreshProxy(subRefreshProxyName, p)
+			if err != nil {
+				return nil, false, fmt.Errorf("error creating sub refresh proxy %s: %w", subRefreshProxyName, err)
+			}
+			proxyMap.SubRefreshProxies[subRefreshProxyName] = srp
 		}
-		proxyMap.SubRefreshProxies[subRefreshProxyName] = srp
 		log.Info().Str("proxy_name", subRefreshProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("sub refresh proxy enabled for channels without namespace")
-		keepHeadersInContext = true
+		if len(p.HttpHeaders) > 0 {
+			keepHeadersInContext = true
+		}
 	}
 
+	subscribeStreamProxyEnabled := cfg.Channel.WithoutNamespace.SubscribeStreamProxyEnabled
 	subscribeStreamProxyName := cfg.Channel.WithoutNamespace.SubscribeStreamProxyName
-	if subscribeStreamProxyName != "" {
+	if subscribeStreamProxyEnabled {
 		var p proxy.Config
-		if subscribeStreamProxyName == config.UnifiedProxyName {
-			globalProxyConfig.Endpoint = cfg.UnifiedProxy.SubscribeStreamEndpoint
-			globalProxyConfig.Timeout = cfg.UnifiedProxy.SubscribeStreamTimeout
-			p = globalProxyConfig
+		if subscribeStreamProxyName == "" || subscribeStreamProxyName == config.DefaultProxyName {
+			p = cfg.Channel.Proxy.SubscribeStream
 		} else {
-			var ok bool
-			p, ok = proxies[subscribeStreamProxyName]
-			if !ok {
-				log.Fatal().Msgf("subscribe stream proxy not found: %s", subscribeStreamProxyName)
+			p, proxyFound = namedProxies[subscribeStreamProxyName]
+			if !proxyFound {
+				return nil, false, fmt.Errorf("subscribe stream proxy not found: %s", subscribeStreamProxyName)
 			}
 		}
 		if strings.HasPrefix(p.Endpoint, "http") {
-			log.Fatal().Msgf("error creating subscribe stream proxy %s only GRPC endpoints supported", subscribeStreamProxyName)
+			log.Fatal().Msgf("error creating subscribe stream proxy %s only GRPC endpoints supported", "default")
 		}
-		sp, err := proxy.NewSubscribeStreamProxy(p)
-		if err != nil {
-			log.Fatal().Msgf("error creating subscribe proxy: %v", err)
+		if _, ok := proxyMap.SubscribeStreamProxies[subscribeStreamProxyName]; !ok {
+			sp, err := proxy.NewSubscribeStreamProxy(subscribeStreamProxyName, p)
+			if err != nil {
+				return nil, false, fmt.Errorf("error creating subscribe stream proxy %s: %w", subscribeStreamProxyName, err)
+			}
+			proxyMap.SubscribeStreamProxies[subscribeStreamProxyName] = sp
 		}
-		proxyMap.SubscribeStreamProxies[subscribeProxyName] = sp
 		log.Info().Str("proxy_name", subscribeStreamProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("subscribe stream proxy enabled for channels without namespace")
-		keepHeadersInContext = true
+		if len(p.HttpHeaders) > 0 {
+			keepHeadersInContext = true
+		}
 	}
 
 	for _, ns := range cfg.Channel.Namespaces {
+		subscribeProxyEnabled := ns.SubscribeProxyEnabled
 		subscribeProxyName := ns.SubscribeProxyName
-		publishProxyName := ns.PublishProxyName
-		subRefreshProxyName := ns.SubRefreshProxyName
-		subscribeStreamProxyName := ns.SubscribeStreamProxyName
-
-		if subscribeProxyName != "" {
+		if subscribeProxyEnabled {
 			var p proxy.Config
-			if subscribeProxyName == config.UnifiedProxyName {
-				globalProxyConfig.Endpoint = cfg.UnifiedProxy.SubscribeEndpoint
-				globalProxyConfig.Timeout = cfg.UnifiedProxy.SubscribeTimeout
-				p = globalProxyConfig
+			if subscribeProxyName == "" || subscribeProxyName == config.DefaultProxyName {
+				p = cfg.Channel.Proxy.Subscribe
 			} else {
-				var ok bool
-				p, ok = proxies[subscribeProxyName]
-				if !ok {
-					log.Fatal().Msgf("subscribe proxy with name %s not found", subscribeProxyName)
+				p, proxyFound = namedProxies[subscribeProxyName]
+				if !proxyFound {
+					return nil, false, fmt.Errorf("subscribe proxy not found: %s", subscribeProxyName)
 				}
 			}
 			if _, ok := proxyMap.SubscribeProxies[subscribeProxyName]; !ok {
-				sp, err := proxy.GetSubscribeProxy(p)
+				sp, err := proxy.GetSubscribeProxy(subscribeProxyName, p)
 				if err != nil {
-					log.Fatal().Msgf("error creating subscribe proxy: %v", err)
+					return nil, false, fmt.Errorf("error creating subscribe proxy %s: %w", subscribeProxyName, err)
 				}
 				proxyMap.SubscribeProxies[subscribeProxyName] = sp
 			}
 			log.Info().Str("proxy_name", subscribeProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Str("namespace", ns.Name).Msg("subscribe proxy enabled for channels in namespace")
+			if len(p.HttpHeaders) > 0 {
+				keepHeadersInContext = true
+			}
 		}
 
-		if publishProxyName != "" {
+		publishProxyEnabled := ns.PublishProxyEnabled
+		publishProxyName := ns.PublishProxyName
+		if publishProxyEnabled {
 			var p proxy.Config
-			if publishProxyName == config.UnifiedProxyName {
-				globalProxyConfig.Endpoint = cfg.UnifiedProxy.PublishEndpoint
-				globalProxyConfig.Timeout = cfg.UnifiedProxy.PublishTimeout
-				p = globalProxyConfig
+			if publishProxyName == "" || publishProxyName == config.DefaultProxyName {
+				p = cfg.Channel.Proxy.Publish
 			} else {
-				var ok bool
-				p, ok = proxies[publishProxyName]
-				if !ok {
-					log.Fatal().Msgf("publish proxy with name %s not found", publishProxyName)
+				p, proxyFound = namedProxies[publishProxyName]
+				if !proxyFound {
+					return nil, false, fmt.Errorf("publish proxy not found: %s", publishProxyName)
 				}
 			}
 			if _, ok := proxyMap.PublishProxies[publishProxyName]; !ok {
-				pp, err := proxy.GetPublishProxy(p)
+				pp, err := proxy.GetPublishProxy(publishProxyName, p)
 				if err != nil {
-					log.Fatal().Msgf("error creating publish proxy: %v", err)
+					return nil, false, fmt.Errorf("error creating publish proxy %s: %w", publishProxyName, err)
 				}
 				proxyMap.PublishProxies[publishProxyName] = pp
 			}
 			log.Info().Str("proxy_name", publishProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Str("namespace", ns.Name).Msg("publish proxy enabled for channels in namespace")
-			keepHeadersInContext = true
+			if len(p.HttpHeaders) > 0 {
+				keepHeadersInContext = true
+			}
 		}
 
-		if subRefreshProxyName != "" {
+		subRefreshProxyEnabled := ns.SubRefreshProxyEnabled
+		subRefreshProxyName := ns.SubRefreshProxyName
+		if subRefreshProxyEnabled {
 			var p proxy.Config
-			if subRefreshProxyName == config.UnifiedProxyName {
-				globalProxyConfig.Endpoint = cfg.UnifiedProxy.SubRefreshEndpoint
-				globalProxyConfig.Timeout = cfg.UnifiedProxy.SubRefreshTimeout
-				p = globalProxyConfig
+			if subscribeProxyName == "" || subRefreshProxyName == config.DefaultProxyName {
+				p = cfg.Channel.Proxy.SubRefresh
 			} else {
-				var ok bool
-				p, ok = proxies[subRefreshProxyName]
-				if !ok {
-					log.Fatal().Msgf("sub refresh proxy not found: %s", subRefreshProxyName)
+				p, proxyFound = namedProxies[subRefreshProxyName]
+				if !proxyFound {
+					return nil, false, fmt.Errorf("sub refresh proxy not found: %s", subRefreshProxyName)
 				}
 			}
 			if _, ok := proxyMap.SubRefreshProxies[subRefreshProxyName]; !ok {
-				srp, err := proxy.GetSubRefreshProxy(p)
+				srp, err := proxy.GetSubRefreshProxy(subRefreshProxyName, p)
 				if err != nil {
-					log.Fatal().Msgf("error creating publish proxy: %v", err)
+					return nil, false, fmt.Errorf("error creating sub refresh proxy %s: %w", subRefreshProxyName, err)
 				}
 				proxyMap.SubRefreshProxies[subRefreshProxyName] = srp
 			}
 			log.Info().Str("proxy_name", subRefreshProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Str("namespace", ns.Name).Msg("sub refresh proxy enabled for channels in namespace")
-			keepHeadersInContext = true
+			if len(p.HttpHeaders) > 0 {
+				keepHeadersInContext = true
+			}
 		}
 
-		if subscribeStreamProxyName != "" {
+		subscribeStreamProxyEnabled := ns.SubscribeStreamProxyEnabled
+		subscribeStreamProxyName := ns.SubscribeStreamProxyName
+		if subscribeStreamProxyEnabled {
 			var p proxy.Config
-			if subscribeStreamProxyName == config.UnifiedProxyName {
-				globalProxyConfig.Endpoint = cfg.UnifiedProxy.SubscribeStreamEndpoint
-				globalProxyConfig.Timeout = cfg.UnifiedProxy.SubscribeStreamTimeout
-				p = globalProxyConfig
+			if subscribeStreamProxyName == "" || subscribeStreamProxyName == config.DefaultProxyName {
+				p = cfg.Channel.Proxy.SubscribeStream
 			} else {
-				var ok bool
-				p, ok = proxies[subscribeStreamProxyName]
-				if !ok {
-					log.Fatal().Msgf("subscribe stream proxy not found: %s", subscribeStreamProxyName)
+				p, proxyFound = namedProxies[subscribeStreamProxyName]
+				if !proxyFound {
+					return nil, false, fmt.Errorf("subscribe stream proxy not found: %s", subscribeStreamProxyName)
 				}
 			}
 			if strings.HasPrefix(p.Endpoint, "http") {
-				log.Fatal().Msgf("error creating subscribe stream proxy %s only GRPC endpoints supported", subscribeStreamProxyName)
+				return nil, false, fmt.Errorf("error creating subscribe stream proxy %s only GRPC endpoints supported", subscribeStreamProxyName)
 			}
 			if _, ok := proxyMap.SubscribeStreamProxies[subscribeStreamProxyName]; !ok {
-				sp, err := proxy.NewSubscribeStreamProxy(p)
+				sp, err := proxy.NewSubscribeStreamProxy(subscribeStreamProxyName, p)
 				if err != nil {
-					log.Fatal().Msgf("error creating subscribe proxy: %v", err)
+					return nil, false, fmt.Errorf("error creating subscribe stream proxy %s: %w", subscribeStreamProxyName, err)
 				}
 				proxyMap.SubscribeStreamProxies[subscribeStreamProxyName] = sp
 			}
 			log.Info().Str("proxy_name", subscribeStreamProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Str("namespace", ns.Name).Msg("subscribe stream proxy enabled for channels in namespace")
-			keepHeadersInContext = true
+			if len(p.HttpHeaders) > 0 {
+				keepHeadersInContext = true
+			}
 		}
 	}
 
-	rpcProxyName := cfg.RPC.WithoutNamespace.RpcProxyName
-	if rpcProxyName != "" {
+	rpcProxyEnabled := cfg.RPC.WithoutNamespace.ProxyEnabled
+	rpcProxyName := cfg.RPC.WithoutNamespace.ProxyName
+	if rpcProxyEnabled {
 		var p proxy.Config
-		if rpcProxyName == config.UnifiedProxyName {
-			globalProxyConfig.Endpoint = cfg.UnifiedProxy.RPCEndpoint
-			globalProxyConfig.Timeout = cfg.UnifiedProxy.RPCTimeout
-			p = globalProxyConfig
+		if rpcProxyName == "" || rpcProxyName == config.DefaultProxyName {
+			p = cfg.RPC.Proxy
 		} else {
-			var ok bool
-			p, ok = proxies[rpcProxyName]
-			if !ok {
-				log.Fatal().Msgf("rpc proxy not found: %s", rpcProxyName)
+			p, proxyFound = namedProxies[rpcProxyName]
+			if !proxyFound {
+				return nil, false, fmt.Errorf("rpc proxy not found: %s", rpcProxyName)
 			}
 		}
-		rp, err := proxy.GetRpcProxy(p)
-		if err != nil {
-			log.Fatal().Msgf("error creating rpc proxy: %v", err)
+		if _, ok := proxyMap.RpcProxies[rpcProxyName]; !ok {
+			rp, err := proxy.GetRpcProxy(rpcProxyName, p)
+			if err != nil {
+				return nil, false, fmt.Errorf("error creating rpc proxy %s: %w", rpcProxyName, err)
+			}
+			proxyMap.RpcProxies[rpcProxyName] = rp
 		}
-		proxyMap.RpcProxies[rpcProxyName] = rp
-		log.Info().Str("proxy_name", rpcProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("RPC proxy enabled for RPC calls without namespace")
-		keepHeadersInContext = true
+		log.Info().Str("proxy_name", rpcProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("RPC proxy enabled for methods without namespace")
+		if len(p.HttpHeaders) > 0 {
+			keepHeadersInContext = true
+		}
 	}
 
 	for _, ns := range cfg.RPC.Namespaces {
-		rpcProxyName := ns.RpcProxyName
-		if rpcProxyName != "" {
+		rpcProxyEnabled := ns.ProxyEnabled
+		rpcProxyName := ns.ProxyName
+		if rpcProxyEnabled {
 			var p proxy.Config
-			if rpcProxyName == config.UnifiedProxyName {
-				globalProxyConfig.Endpoint = cfg.UnifiedProxy.RPCEndpoint
-				globalProxyConfig.Timeout = cfg.UnifiedProxy.RPCTimeout
-				p = globalProxyConfig
+			if rpcProxyName == "" || rpcProxyName == config.DefaultProxyName {
+				p = cfg.RPC.Proxy
 			} else {
-				var ok bool
-				p, ok = proxies[rpcProxyName]
-				if !ok {
-					log.Fatal().Msgf("rpc proxy not found: %s", rpcProxyName)
+				p, proxyFound = namedProxies[rpcProxyName]
+				if !proxyFound {
+					return nil, false, fmt.Errorf("rpc proxy not found: %s", rpcProxyName)
 				}
 			}
 			if _, ok := proxyMap.RpcProxies[rpcProxyName]; !ok {
-				rp, err := proxy.GetRpcProxy(p)
+				rp, err := proxy.GetRpcProxy(rpcProxyName, p)
 				if err != nil {
-					log.Fatal().Msgf("error creating rpc proxy: %v", err)
+					return nil, false, fmt.Errorf("error creating rpc proxy %s: %w", rpcProxyName, err)
 				}
 				proxyMap.RpcProxies[rpcProxyName] = rp
 			}
-			log.Info().Str("proxy_name", rpcProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Str("namespace", ns.Name).Msg("RPC proxy enabled for RPC calls in namespace")
-			keepHeadersInContext = true
+			log.Info().Str("proxy_name", rpcProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Str("namespace", ns.Name).Msg("RPC proxy enabled for namespace")
+			if len(p.HttpHeaders) > 0 {
+				keepHeadersInContext = true
+			}
 		}
 	}
 
-	return proxyMap, keepHeadersInContext
+	return proxyMap, keepHeadersInContext, nil
 }

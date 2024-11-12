@@ -56,8 +56,9 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 		var histogram prometheus.Observer
 		var errors prometheus.Counter
 
+		proxyEnabled := chOpts.PublishProxyEnabled
 		proxyName := chOpts.PublishProxyName
-		if proxyName == "" {
+		if !proxyEnabled {
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "publish proxy not configured for a channel", map[string]any{"channel": e.Channel}))
 			return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
 		}
@@ -97,7 +98,7 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 			histogram.Observe(duration)
 			errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying publish", map[string]any{"error": err.Error()}))
-			return centrifuge.PublishReply{}, centrifuge.ErrorInternal
+			return centrifuge.PublishReply{}, err
 		}
 		summary.Observe(duration)
 		histogram.Observe(duration)

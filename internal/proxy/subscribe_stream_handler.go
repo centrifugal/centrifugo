@@ -71,8 +71,9 @@ func (h *SubscribeStreamHandler) Handle(node *centrifuge.Node) SubscribeStreamHa
 		var histogram prometheus.Observer
 		var errCounter prometheus.Counter
 
+		proxyEnabled := chOpts.SubscribeStreamProxyEnabled
 		proxyName := chOpts.SubscribeStreamProxyName
-		if proxyName == "" {
+		if !proxyEnabled {
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe stream proxy not configured for a channel", map[string]any{"channel": e.Channel}))
 			return centrifuge.SubscribeReply{}, nil, nil, centrifuge.ErrorNotAvailable
 		}

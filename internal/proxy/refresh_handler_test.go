@@ -23,7 +23,7 @@ type grpcRefreshHandleTestCase struct {
 func newRefreshHandlerGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTestServer) grpcRefreshHandleTestCase {
 	commonProxyTestCase := tools.NewCommonGRPCProxyTestCase(ctx, proxyGRPCServer)
 
-	refreshProxy, err := NewGRPCRefreshProxy(getTestGrpcProxy(commonProxyTestCase))
+	refreshProxy, err := NewGRPCRefreshProxy("default", getTestGrpcProxy(commonProxyTestCase))
 	if err != nil {
 		log.Fatalln("could not create grpc refresh proxy: ", err)
 	}

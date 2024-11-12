@@ -59,8 +59,9 @@ func (h *SubRefreshHandler) Handle(node *centrifuge.Node) SubRefreshHandlerFunc 
 		var histogram prometheus.Observer
 		var errors prometheus.Counter
 
+		proxyEnabled := chOpts.SubRefreshProxyEnabled
 		proxyName := chOpts.SubRefreshProxyName
-		if proxyName == "" {
+		if !proxyEnabled {
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "sub refresh proxy not configured for a channel", map[string]any{"channel": e.Channel}))
 			return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, centrifuge.ErrorNotAvailable
 		}

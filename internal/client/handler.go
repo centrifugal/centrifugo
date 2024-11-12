@@ -6,6 +6,7 @@ import (
 	"errors"
 	"unicode"
 
+	"github.com/centrifugal/centrifugo/v5/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v5/internal/clientstorage"
 	"github.com/centrifugal/centrifugo/v5/internal/config"
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
@@ -31,7 +32,7 @@ type ProxyMap struct {
 	SubscribeStreamProxies map[string]*proxy.SubscribeStreamProxy
 }
 
-// Handler ...
+// Handler for client connections.
 type Handler struct {
 	node             *centrifuge.Node
 	cfgContainer     *config.Container
@@ -41,7 +42,7 @@ type Handler struct {
 	rpcExtension     map[string]RPCExtensionFunc
 }
 
-// NewHandler ...
+// NewHandler creates new Handler.
 func NewHandler(
 	node *centrifuge.Node,
 	cfgContainer *config.Container,
@@ -337,7 +338,7 @@ func (h *Handler) OnClientConnecting(
 
 		processClientChannels = true
 	} else if connectProxyHandler != nil {
-		connectReply, _, err := connectProxyHandler(ctx, e)
+		connectReply, _, err := connectProxyHandler(clientcontext.SetEmulatedHeadersToContext(ctx, e.Headers), e)
 		if err != nil {
 			return centrifuge.ConnectReply{}, err
 		}
@@ -414,7 +415,7 @@ func (h *Handler) OnClientConnecting(
 				return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
 			}
 
-			if !isPrivate && chOpts.SubscribeProxyName == "" && validChannelName {
+			if !isPrivate && !chOpts.SubscribeProxyEnabled && validChannelName {
 				if isUserLimited && chOpts.UserLimitedChannels && (userID != "" && h.cfgContainer.UserAllowed(ch, userID)) {
 					channelOk = true
 				} else if chOpts.SubscribeForClient && (userID != "" || chOpts.SubscribeForAnonymous) {
@@ -449,6 +450,13 @@ func (h *Handler) OnClientConnecting(
 		Subscriptions:     subscriptions,
 		Data:              data,
 		ClientSideRefresh: !refreshProxyEnabled,
+	}
+	if len(e.Headers) > 0 {
+		if newCtx != nil {
+			newCtx = clientcontext.SetEmulatedHeadersToContext(newCtx, e.Headers)
+		} else {
+			newCtx = clientcontext.SetEmulatedHeadersToContext(ctx, e.Headers)
+		}
 	}
 	if newCtx != nil {
 		finalReply.Context = newCtx
@@ -695,17 +703,17 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	} else if isUserLimitedChannel && h.cfgContainer.UserAllowed(e.Channel, c.UserID()) {
 		allowed = true
 		options.Source = subsource.UserLimited
-	} else if (chOpts.SubscribeProxyName != "") && !isUserLimitedChannel {
+	} else if (chOpts.SubscribeProxyEnabled) && !isUserLimitedChannel {
 		if subscribeProxyHandler == nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe proxy not enabled", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
 		}
 		r, _, err := subscribeProxyHandler(c, e, chOpts, getPerCallData(c))
-		if chOpts.SubRefreshProxyName != "" {
+		if chOpts.SubRefreshProxyEnabled {
 			r.ClientSideRefresh = false
 		}
 		return r, SubscribeExtra{}, err
-	} else if (chOpts.SubscribeStreamProxyName != "") && !isUserLimitedChannel {
+	} else if (chOpts.SubscribeStreamProxyEnabled) && !isUserLimitedChannel {
 		if subscribeStreamHandlerFunc == nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "stream proxy not enabled", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
@@ -717,7 +725,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 			storage["stream_publisher_"+e.Channel] = publishFunc
 			release(storage)
 		}
-		if chOpts.SubRefreshProxyName != "" {
+		if chOpts.SubRefreshProxyEnabled {
 			r.ClientSideRefresh = false
 		}
 		return r, SubscribeExtra{}, err
@@ -748,7 +756,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 
 	return centrifuge.SubscribeReply{
 		Options:           options,
-		ClientSideRefresh: chOpts.SubRefreshProxyName == "",
+		ClientSideRefresh: !chOpts.SubRefreshProxyEnabled,
 	}, SubscribeExtra{}, nil
 }
 
@@ -771,13 +779,13 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 
 	var allowed bool
 
-	if chOpts.PublishProxyName != "" {
+	if chOpts.PublishProxyEnabled {
 		if publishProxyHandler == nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "publish proxy not enabled", map[string]any{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
 		}
 		return publishProxyHandler(c, e, chOpts, getPerCallData(c))
-	} else if chOpts.SubscribeStreamProxyName != "" {
+	} else if chOpts.SubscribeStreamProxyEnabled {
 		if !chOpts.SubscribeStreamBidirectional {
 			return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
 		}

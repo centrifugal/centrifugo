@@ -67,16 +67,14 @@ type Config struct {
 	Channel configtypes.Channel `mapstructure:"channel" json:"channel" envconfig:"channel" toml:"channel" yaml:"channel"`
 	// RPC is a configuration for client RPC calls.
 	RPC configtypes.RPC `mapstructure:"rpc" json:"rpc" envconfig:"rpc" toml:"rpc" yaml:"rpc"`
+	// Proxies is an array of proxies with custom names for the more granular control of channel-related events
+	// in different channel namespaces.
+	Proxies configtypes.NamedProxies `mapstructure:"proxies" default:"[]" json:"proxies" envconfig:"proxies" yaml:"proxies" toml:"proxies"`
 
 	// HttpAPI is a configuration for HTTP server API. It's enabled by default.
 	HttpAPI configtypes.HttpAPI `mapstructure:"http_api" json:"http_api" envconfig:"http_api" toml:"http_api" yaml:"http_api"`
 	// GrpcAPI is a configuration for gRPC server API. It's disabled by default.
 	GrpcAPI configtypes.GrpcAPI `mapstructure:"grpc_api" json:"grpc_api" envconfig:"grpc_api" toml:"grpc_api" yaml:"grpc_api"`
-
-	// UnifiedProxy is a helper configuration for events proxy. It can be referenced using UnifiedProxyName name.
-	UnifiedProxy configtypes.UnifiedProxy `mapstructure:"unified_proxy" json:"unified_proxy" envconfig:"unified_proxy" toml:"unified_proxy" yaml:"unified_proxy"`
-	// Proxies is a configuration for granular events proxies. See also UnifiedProxy.
-	Proxies configtypes.Proxies `mapstructure:"proxies" default:"[]" json:"proxies" envconfig:"proxies" toml:"proxies" yaml:"proxies"`
 
 	// Consumers is a configuration for message queue consumers. For example, Centrifugo can consume
 	// messages from PostgreSQL transactional outbox table, or from Kafka topics.
@@ -242,7 +240,7 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 	for i, item := range conf.Proxies {
 		varInfo, err = envconfig.Process("CENTRIFUGO_PROXIES_"+item.Name, &item)
 		if err != nil {
-			return Config{}, Meta{}, fmt.Errorf("error processing env proxies: %w", err)
+			return Config{}, Meta{}, fmt.Errorf("error processing env named proxies: %w", err)
 		}
 		conf.Proxies[i] = item
 		extendKnownEnvVars(knownEnvVars, varInfo)
@@ -255,15 +253,6 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 		}
 		conf.Consumers[i] = item
 		extendKnownEnvVars(knownEnvVars, varInfo)
-	}
-
-	for i, header := range conf.UnifiedProxy.HttpHeaders {
-		conf.UnifiedProxy.HttpHeaders[i] = strings.ToLower(header)
-	}
-	for i, proxy := range conf.Proxies {
-		for j, header := range proxy.HttpHeaders {
-			conf.Proxies[i].HttpHeaders[j] = strings.ToLower(header)
-		}
 	}
 
 	meta.UnknownKeys = findUnknownKeys(v.AllSettings(), conf, "")

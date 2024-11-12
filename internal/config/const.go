@@ -1,6 +1,6 @@
 package config
 
 const (
-	UnifiedProxyName   = "unified"
+	DefaultProxyName   = "default"
 	TransportErrorMode = "transport"
 )

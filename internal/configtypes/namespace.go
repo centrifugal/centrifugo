@@ -145,18 +145,25 @@ type ChannelOptions struct {
 	// ChannelRegex ...
 	ChannelRegex string `mapstructure:"channel_regex" json:"channel_regex" envconfig:"channel_regex" yaml:"channel_regex" toml:"channel_regex"`
 
+	// SubscribeProxyEnabled turns on using proxy for subscribe operations in namespace.
+	SubscribeProxyEnabled bool `mapstructure:"subscribe_proxy_enabled" json:"subscribe_proxy_enabled" envconfig:"subscribe_proxy_enabled" yaml:"subscribe_proxy_enabled" toml:"subscribe_proxy_enabled"`
 	// SubscribeProxyName of proxy to use for subscribe operations in namespace.
-	SubscribeProxyName string `mapstructure:"subscribe_proxy_name" json:"subscribe_proxy_name" envconfig:"subscribe_proxy_name" yaml:"subscribe_proxy_name" toml:"subscribe_proxy_name"`
+	SubscribeProxyName string `mapstructure:"subscribe_proxy_name" default:"default" json:"subscribe_proxy_name" envconfig:"subscribe_proxy_name" yaml:"subscribe_proxy_name" toml:"subscribe_proxy_name"`
 
+	// PublishProxyEnabled turns on using proxy for publish operations in namespace.
+	PublishProxyEnabled bool `mapstructure:"publish_proxy_enabled" json:"publish_proxy_enabled" envconfig:"publish_proxy_enabled" yaml:"publish_proxy_enabled" toml:"publish_proxy_enabled"`
 	// PublishProxyName of proxy to use for publish operations in namespace.
-	PublishProxyName string `mapstructure:"publish_proxy_name" json:"publish_proxy_name" envconfig:"publish_proxy_name" yaml:"publish_proxy_name" toml:"publish_proxy_name"`
+	PublishProxyName string `mapstructure:"publish_proxy_name" default:"default" json:"publish_proxy_name" envconfig:"publish_proxy_name" yaml:"publish_proxy_name" toml:"publish_proxy_name"`
 
+	// SubRefreshProxyEnabled turns on using proxy for sub refresh operations in namespace.
+	SubRefreshProxyEnabled bool `mapstructure:"sub_refresh_proxy_enabled" json:"sub_refresh_proxy_enabled" envconfig:"sub_refresh_proxy_enabled" yaml:"sub_refresh_proxy_enabled" toml:"sub_refresh_proxy_enabled"`
 	// SubRefreshProxyName of proxy to use for sub refresh operations in namespace.
-	SubRefreshProxyName string `mapstructure:"sub_refresh_proxy_name" json:"sub_refresh_proxy_name" envconfig:"sub_refresh_proxy_name" yaml:"sub_refresh_proxy_name" toml:"sub_refresh_proxy_name"`
+	SubRefreshProxyName string `mapstructure:"sub_refresh_proxy_name" default:"default" json:"sub_refresh_proxy_name" envconfig:"sub_refresh_proxy_name" yaml:"sub_refresh_proxy_name" toml:"sub_refresh_proxy_name"`
 
+	// SubscribeStreamProxyEnabled turns on using proxy for subscribe stream operations in namespace.
+	SubscribeStreamProxyEnabled bool `mapstructure:"subscribe_stream_proxy_enabled" json:"subscribe_stream_proxy_enabled" envconfig:"subscribe_stream_proxy_enabled" yaml:"subscribe_stream_proxy_enabled" toml:"subscribe_stream_proxy_enabled"`
 	// SubscribeStreamProxyName of proxy to use for subscribe stream operations in namespace.
-	SubscribeStreamProxyName string `mapstructure:"subscribe_stream_proxy_name" json:"subscribe_stream_proxy_name" envconfig:"subscribe_stream_proxy_name" yaml:"subscribe_stream_proxy_name" toml:"subscribe_stream_proxy_name"`
-
+	SubscribeStreamProxyName string `mapstructure:"subscribe_stream_proxy_name" default:"default" json:"subscribe_stream_proxy_name" envconfig:"subscribe_stream_proxy_name" yaml:"subscribe_stream_proxy_name" toml:"subscribe_stream_proxy_name"`
 	// SubscribeStreamBidirectional enables using bidirectional stream proxy for the namespace.
 	SubscribeStreamBidirectional bool `mapstructure:"subscribe_stream_bidirectional" json:"subscribe_stream_bidirectional" envconfig:"subscribe_stream_bidirectional" yaml:"subscribe_stream_bidirectional" toml:"subscribe_stream_bidirectional"`
 

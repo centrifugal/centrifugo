@@ -34,9 +34,9 @@ func NewConnectHandler(c ConnectHandlerConfig, cfgContainer *config.Container) *
 	return &ConnectHandler{
 		config:       c,
 		cfgContainer: cfgContainer,
-		summary:      proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "connect", c.Proxy.Name()),
-		histogram:    proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "connect", c.Proxy.Name()),
-		errors:       proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "connect", c.Proxy.Name()),
+		summary:      proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
+		histogram:    proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
+		errors:       proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
 	}
 }
 

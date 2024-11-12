@@ -28,7 +28,7 @@ func (p *HTTPConnectProxy) Protocol() string {
 }
 
 func (p *HTTPConnectProxy) Name() string {
-	return p.config.Name
+	return "default"
 }
 
 // UseBase64 ...

@@ -58,7 +58,7 @@ func TestConfigEnvVars(t *testing.T) {
 	_ = os.Setenv("CENTRIFUGO_CONSUMERS_KAFKA_KAFKA_TLS_ENABLED", "false")
 	_ = os.Setenv("CENTRIFUGO_UNKNOWN_ENV", "1")
 	_ = os.Setenv("CENTRIFUGO_CHANNEL_NAMESPACES", `[{"name": "env"}]`)
-	_ = os.Setenv("CENTRIFUGO_UNIFIED_PROXY_HTTP_STATIC_HEADERS", `{"key": "value"}`)
+	_ = os.Setenv("CENTRIFUGO_CLIENT_PROXY_CONNECT_HTTP_STATIC_HEADERS", `{"key": "value"}`)
 	_ = os.Setenv("CENTRIFUGO_WEBSOCKET_WRITE_TIMEOUT", `300ms`)
 	_ = os.Setenv("CENTRIFUGO_PROXIES", `[]`)
 	defer func() {
@@ -67,7 +67,7 @@ func TestConfigEnvVars(t *testing.T) {
 		_ = os.Unsetenv("CENTRIFUGO_CLIENT_ALLOWED_ORIGINS")
 		_ = os.Unsetenv("CENTRIFUGO_CLIENT_TOKEN_JWKS_PUBLIC_ENDPOINT")
 		_ = os.Unsetenv("CENTRIFUGO_CHANNEL_NAMESPACES")
-		_ = os.Unsetenv("CENTRIFUGO_UNIFIED_PROXY_HTTP_STATIC_HEADERS")
+		_ = os.Unsetenv("CENTRIFUGO_CLIENT_PROXY_CONNECT_HTTP_STATIC_HEADERS")
 		_ = os.Unsetenv("CENTRIFUGO_WEBSOCKET_WRITE_TIMEOUT")
 		_ = os.Unsetenv("CENTRIFUGO_PROXIES")
 	}()
@@ -81,7 +81,7 @@ func TestConfigEnvVars(t *testing.T) {
 	require.Len(t, meta.UnknownEnvs, 1)
 	require.Len(t, meta.UnknownKeys, 0)
 	require.Contains(t, meta.UnknownEnvs, "CENTRIFUGO_UNKNOWN_ENV")
-	require.Equal(t, configtypes.MapStringString(map[string]string{"key": "value"}), conf.UnifiedProxy.HTTP.StaticHeaders)
+	require.Equal(t, configtypes.MapStringString(map[string]string{"key": "value"}), conf.Client.Proxy.Connect.HTTP.StaticHeaders)
 	require.Equal(t, configtypes.Duration(300*time.Millisecond), conf.WebSocket.WriteTimeout)
 	require.Len(t, conf.Proxies, 0)
 }
