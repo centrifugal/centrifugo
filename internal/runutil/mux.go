@@ -443,6 +443,13 @@ func runHTTPServers(
 	if err != nil {
 		log.Fatal().Msgf("can not get TLS config: %v", err)
 	}
+	var internalTLSConfig *tls.Config
+	if cfg.InternalTLS.Enabled {
+		internalTLSConfig, err = cfg.InternalTLS.ToGoTLSConfig("internal_tls")
+		if err != nil {
+			log.Fatal().Msgf("can not get internal TLS config: %v", err)
+		}
+	}
 
 	// Iterate over port-to-flags mapping and start HTTP servers
 	// on separate ports serving handlers specified in flags.
@@ -454,6 +461,9 @@ func runHTTPServers(
 		var addrTLSConfig *tls.Config
 		if !cfg.TLSExternal || addr == externalAddr {
 			addrTLSConfig = tlsConfig
+		}
+		if addr != externalAddr && cfg.InternalTLS.Enabled {
+			addrTLSConfig = internalTLSConfig
 		}
 
 		useHTTP3 := cfg.HTTP3.Enabled && addr == externalAddr

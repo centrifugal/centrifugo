@@ -8,7 +8,7 @@ require (
 	github.com/centrifugal/centrifuge v0.33.5-0.20241111162802-ddd7cc1e7267
 	github.com/centrifugal/protocol v0.13.5-0.20241111155425-6c360178091e
 	github.com/cristalhq/jwt/v5 v5.4.0
-	github.com/go-viper/mapstructure/v2 v2.1.0
+	github.com/go-viper/mapstructure/v2 v2.2.1
 	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/securecookie v1.1.2

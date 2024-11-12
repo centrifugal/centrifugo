@@ -62,7 +62,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 	subscribeProxyName := cfg.Channel.WithoutNamespace.SubscribeProxyName
 	if subscribeProxyEnabled {
 		var p proxy.Config
-		if subscribeProxyName == "" || subscribeProxyName == config.DefaultProxyName {
+		if subscribeProxyName == config.DefaultProxyName {
 			p = cfg.Channel.Proxy.Subscribe
 		} else {
 			p, proxyFound = namedProxies[subscribeProxyName]
@@ -87,7 +87,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 	publishProxyName := cfg.Channel.WithoutNamespace.PublishProxyName
 	if publishProxyEnabled {
 		var p proxy.Config
-		if publishProxyName == "" || publishProxyName == config.DefaultProxyName {
+		if publishProxyName == config.DefaultProxyName {
 			p = cfg.Channel.Proxy.Publish
 		} else {
 			p, proxyFound = namedProxies[publishProxyName]
@@ -112,7 +112,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 	subRefreshProxyName := cfg.Channel.WithoutNamespace.SubRefreshProxyName
 	if subRefreshProxyEnabled {
 		var p proxy.Config
-		if subRefreshProxyName == "" || subRefreshProxyName == config.DefaultProxyName {
+		if subRefreshProxyName == config.DefaultProxyName {
 			p = cfg.Channel.Proxy.SubRefresh
 		} else {
 			p, proxyFound = namedProxies[subRefreshProxyName]
@@ -137,7 +137,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 	subscribeStreamProxyName := cfg.Channel.WithoutNamespace.SubscribeStreamProxyName
 	if subscribeStreamProxyEnabled {
 		var p proxy.Config
-		if subscribeStreamProxyName == "" || subscribeStreamProxyName == config.DefaultProxyName {
+		if subscribeStreamProxyName == config.DefaultProxyName {
 			p = cfg.Channel.Proxy.SubscribeStream
 		} else {
 			p, proxyFound = namedProxies[subscribeStreamProxyName]
@@ -166,7 +166,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		subscribeProxyName := ns.SubscribeProxyName
 		if subscribeProxyEnabled {
 			var p proxy.Config
-			if subscribeProxyName == "" || subscribeProxyName == config.DefaultProxyName {
+			if subscribeProxyName == config.DefaultProxyName {
 				p = cfg.Channel.Proxy.Subscribe
 			} else {
 				p, proxyFound = namedProxies[subscribeProxyName]
@@ -191,7 +191,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		publishProxyName := ns.PublishProxyName
 		if publishProxyEnabled {
 			var p proxy.Config
-			if publishProxyName == "" || publishProxyName == config.DefaultProxyName {
+			if publishProxyName == config.DefaultProxyName {
 				p = cfg.Channel.Proxy.Publish
 			} else {
 				p, proxyFound = namedProxies[publishProxyName]
@@ -216,7 +216,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		subRefreshProxyName := ns.SubRefreshProxyName
 		if subRefreshProxyEnabled {
 			var p proxy.Config
-			if subscribeProxyName == "" || subRefreshProxyName == config.DefaultProxyName {
+			if subRefreshProxyName == config.DefaultProxyName {
 				p = cfg.Channel.Proxy.SubRefresh
 			} else {
 				p, proxyFound = namedProxies[subRefreshProxyName]
@@ -241,7 +241,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		subscribeStreamProxyName := ns.SubscribeStreamProxyName
 		if subscribeStreamProxyEnabled {
 			var p proxy.Config
-			if subscribeStreamProxyName == "" || subscribeStreamProxyName == config.DefaultProxyName {
+			if subscribeStreamProxyName == config.DefaultProxyName {
 				p = cfg.Channel.Proxy.SubscribeStream
 			} else {
 				p, proxyFound = namedProxies[subscribeStreamProxyName]
@@ -270,7 +270,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 	rpcProxyName := cfg.RPC.WithoutNamespace.ProxyName
 	if rpcProxyEnabled {
 		var p proxy.Config
-		if rpcProxyName == "" || rpcProxyName == config.DefaultProxyName {
+		if rpcProxyName == config.DefaultProxyName {
 			p = cfg.RPC.Proxy
 		} else {
 			p, proxyFound = namedProxies[rpcProxyName]
@@ -296,7 +296,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		rpcProxyName := ns.ProxyName
 		if rpcProxyEnabled {
 			var p proxy.Config
-			if rpcProxyName == "" || rpcProxyName == config.DefaultProxyName {
+			if rpcProxyName == config.DefaultProxyName {
 				p = cfg.RPC.Proxy
 			} else {
 				p, proxyFound = namedProxies[rpcProxyName]

@@ -41,7 +41,6 @@ type Config struct {
 	// TLSExternal enables TLS only for external HTTP endpoints.
 	TLSExternal bool `mapstructure:"tls_external" json:"tls_external" envconfig:"tls_external" toml:"tls_external" yaml:"tls_external"`
 	// InternalTLS is a custom configuration for internal HTTP endpoints. If not set InternalTLS will be the same as TLS.
-	// TODO v6: implement.
 	InternalTLS configtypes.TLSConfig `mapstructure:"internal_tls" json:"internal_tls" envconfig:"internal_tls" toml:"internal_tls" yaml:"internal_tls"`
 
 	// Engine is a configuration for Centrifugo engine. It's a handy combination of Broker and PresenceManager.
