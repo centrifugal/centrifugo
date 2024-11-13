@@ -137,5 +137,5 @@ func mustGenerateSecretKey(byteLen int) string {
 	if _, err := rand.Read(key); err != nil {
 		panic(err)
 	}
-	return base64.RawStdEncoding.EncodeToString(key)
+	return base64.RawURLEncoding.EncodeToString(key)
 }

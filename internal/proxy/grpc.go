@@ -122,7 +122,9 @@ func requestHeaders(ctx context.Context, allowedHeaders []string, allowedMetaKey
 		headers.Set(k, v)
 	}
 	for k, v := range emulatedHeaders {
-		headers.Set(k, v)
+		if slices.Contains(allowedHeaders, strings.ToLower(k)) {
+			headers.Set(k, v)
+		}
 	}
 	headers.Set("Content-Type", "application/json")
 	md, _ := metadata.FromIncomingContext(ctx)
