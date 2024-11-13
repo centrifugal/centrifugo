@@ -11,9 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
-
 	"github.com/centrifugal/centrifugo/v5/internal/apiproto"
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/google/uuid"
@@ -460,11 +459,11 @@ func TestKafkaConsumer_GreenScenario_PublicationDataMode(t *testing.T) {
 		Brokers:       []string{testKafkaBrokerURL}, // Adjust as needed
 		Topics:        []string{testKafkaTopic},
 		ConsumerGroup: uuid.New().String(),
-		PublicationDataMode: configtypes.KafkaPublicationModeConfig{
-			Enabled:                  true,
-			ChannelsHeaderName:       "centrifugo-channels",
-			IdempotencyKeyHeaderName: "centrifugo-idempotency-key",
-			DeltaHeaderName:          "centrifugo-delta",
+		PublicationDataMode: configtypes.KafkaPublicationDataModeConfig{
+			Enabled:              true,
+			ChannelsHeader:       "centrifugo-channels",
+			IdempotencyKeyHeader: "centrifugo-idempotency-key",
+			DeltaHeader:          "centrifugo-delta",
 		},
 	}
 
@@ -474,7 +473,7 @@ func TestKafkaConsumer_GreenScenario_PublicationDataMode(t *testing.T) {
 	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, &MockDispatcher{
 		onBroadcast: func(ctx context.Context, req *apiproto.BroadcastRequest) error {
 			require.Equal(t, testChannels, req.Channels)
-			require.Equal(t, testPayload, req.Data)
+			require.Equal(t, apiproto.Raw(testPayload), req.Data)
 			require.Equal(t, testIdempotencyKey, req.IdempotencyKey)
 			require.Equal(t, testDelta, req.Delta)
 			close(eventReceived)
@@ -491,15 +490,15 @@ func TestKafkaConsumer_GreenScenario_PublicationDataMode(t *testing.T) {
 
 	err = produceTestMessage(testKafkaTopic, testPayload, []kgo.RecordHeader{
 		{
-			Key:   config.PublicationDataMode.ChannelsHeaderName,
+			Key:   config.PublicationDataMode.ChannelsHeader,
 			Value: []byte(strings.Join(testChannels, ",")),
 		},
 		{
-			Key:   config.PublicationDataMode.IdempotencyKeyHeaderName,
+			Key:   config.PublicationDataMode.IdempotencyKeyHeader,
 			Value: []byte(testIdempotencyKey),
 		},
 		{
-			Key:   config.PublicationDataMode.DeltaHeaderName,
+			Key:   config.PublicationDataMode.DeltaHeader,
 			Value: []byte(fmt.Sprintf("%v", testDelta)),
 		},
 	})

@@ -412,9 +412,9 @@ func getHeaderValue(record *kgo.Record, headerKey string) string {
 
 func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, record *kgo.Record) error {
 	var delta bool
-	if pc.config.PublicationDataMode.DeltaHeaderName != "" {
+	if pc.config.PublicationDataMode.DeltaHeader != "" {
 		var err error
-		delta, err = strconv.ParseBool(getHeaderValue(record, pc.config.PublicationDataMode.DeltaHeaderName))
+		delta, err = strconv.ParseBool(getHeaderValue(record, pc.config.PublicationDataMode.DeltaHeader))
 		if err != nil {
 			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error parsing delta header value, skip message", map[string]any{"error": err.Error(), "topic": record.Topic, "partition": record.Partition}))
 			return nil
@@ -422,8 +422,8 @@ func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, r
 	}
 	req := &apiproto.BroadcastRequest{
 		Data:           record.Value,
-		Channels:       strings.Split(getHeaderValue(record, pc.config.PublicationDataMode.ChannelsHeaderName), ","),
-		IdempotencyKey: getHeaderValue(record, pc.config.PublicationDataMode.IdempotencyKeyHeaderName),
+		Channels:       strings.Split(getHeaderValue(record, pc.config.PublicationDataMode.ChannelsHeader), ","),
+		IdempotencyKey: getHeaderValue(record, pc.config.PublicationDataMode.IdempotencyKeyHeader),
 		Delta:          delta,
 	}
 	return pc.dispatcher.Broadcast(ctx, req)

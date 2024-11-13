@@ -620,8 +620,9 @@ type KafkaConsumerConfig struct {
 	// Set to -1 to use non-buffered channel.
 	PartitionBufferSize int `mapstructure:"partition_buffer_size" json:"partition_buffer_size" envconfig:"partition_buffer_size" default:"16" yaml:"partition_buffer_size" toml:"partition_buffer_size"`
 
-	// PublicationDataMode is a configuration for the mode where message payload already contains data ready to publish into channels, instead of API command.
-	PublicationDataMode KafkaPublicationModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" envconfig:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
+	// PublicationDataMode is a configuration for the mode where message payload already
+	// contains data ready to publish into channels, instead of API command.
+	PublicationDataMode KafkaPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" envconfig:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
 }
 
 func (c KafkaConsumerConfig) Validate() error {
@@ -634,19 +635,29 @@ func (c KafkaConsumerConfig) Validate() error {
 	if c.ConsumerGroup == "" {
 		return errors.New("no Kafka consumer group provided")
 	}
-	if c.PublicationDataMode.Enabled && c.PublicationDataMode.ChannelsHeaderName == "" {
+	if c.PublicationDataMode.Enabled && c.PublicationDataMode.ChannelsHeader == "" {
 		return errors.New("no Kafka channels_header_name provided for publication data mode")
 	}
 	return nil
 }
 
-type KafkaPublicationModeConfig struct {
+// KafkaPublicationDataModeConfig is a configuration for Kafka publication data mode.
+// In this mode we expect Kafka message payload to contain data ready to publish into
+// channels, instead of API command. All other fields used to build channel Publication
+// can be passed in Kafka message headers – thus it's possible to integrate existing
+// topics with Centrifugo.
+type KafkaPublicationDataModeConfig struct {
 	// Enabled enables Kafka publication data mode for the Kafka consumer.
 	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
-	// ChannelsHeaderName is a header name to extract publication channels (channels must be comma-separated).
-	ChannelsHeaderName string `mapstructure:"channels_header_name" json:"channels_header_name" envconfig:"channels_header_name" yaml:"channels_header_name" toml:"channels_header_name"`
-	// IdempotencyKeyHeaderName is a header name to extract idempotency key from Kafka message.
-	IdempotencyKeyHeaderName string `mapstructure:"idempotency_key_header_name" json:"idempotency_key_header_name" envconfig:"idempotency_key_header_name" yaml:"idempotency_key_header_name" toml:"idempotency_key_header_name"`
-	// DeltaHeaderName is a header name to extract delta flag from Kafka message.
-	DeltaHeaderName string `mapstructure:"delta_header_name" json:"delta_header_name" envconfig:"delta_header_name" yaml:"delta_header_name" toml:"delta_header_name"`
+	// ChannelsHeader is a header name to extract channels to publish data into
+	// (channels must be comma-separated). Ex. of value: "channel1,channel2".
+	ChannelsHeader string `mapstructure:"channels_header" json:"channels_header" envconfig:"channels_header" yaml:"channels_header" toml:"channels_header"`
+	// IdempotencyKeyHeader is a header name to extract Publication idempotency key from
+	// Kafka message. See https://centrifugal.dev/docs/server/server_api#publishrequest.
+	IdempotencyKeyHeader string `mapstructure:"idempotency_key_header" json:"idempotency_key_header" envconfig:"idempotency_key_header" yaml:"idempotency_key_header" toml:"idempotency_key_header"`
+	// DeltaHeader is a header name to extract Publication delta flag from Kafka message
+	// which tells Centrifugo whether to use delta compression for message or not.
+	// See https://centrifugal.dev/docs/server/delta_compression and
+	// https://centrifugal.dev/docs/server/server_api#publishrequest.
+	DeltaHeader string `mapstructure:"delta_header" json:"delta_header" envconfig:"delta_header" yaml:"delta_header" toml:"delta_header"`
 }
