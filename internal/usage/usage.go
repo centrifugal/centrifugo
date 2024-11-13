@@ -18,6 +18,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/v5/internal/build"
 	"github.com/centrifugal/centrifugo/v5/internal/config"
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/consuming"
 
 	"github.com/centrifugal/centrifuge"
@@ -626,8 +627,12 @@ func (s *Sender) sendUsageStats(metrics []*metric, statsEndpoint, statsToken str
 func GetEnabledConsumers(consumers []consuming.ConsumerConfig) []string {
 	var enabledConsumers []string
 	for _, c := range consumers {
-		if c.Enabled && !slices.Contains(enabledConsumers, string(c.Type)) {
-			enabledConsumers = append(enabledConsumers, string(c.Type))
+		consumerType := c.Type
+		if c.Type == configtypes.ConsumerTypeKafka && c.Kafka.PublicationDataMode.Enabled {
+			consumerType += "_publication_data"
+		}
+		if c.Enabled && !slices.Contains(enabledConsumers, consumerType) {
+			enabledConsumers = append(enabledConsumers, consumerType)
 		}
 	}
 	return enabledConsumers
