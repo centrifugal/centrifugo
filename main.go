@@ -14,9 +14,9 @@
 package main
 
 import (
+	"github.com/centrifugal/centrifugo/v5/internal/app"
 	"github.com/centrifugal/centrifugo/v5/internal/cli"
 	"github.com/centrifugal/centrifugo/v5/internal/config"
-	"github.com/centrifugal/centrifugo/v5/internal/runutil"
 
 	"github.com/spf13/cobra"
 )
@@ -30,7 +30,7 @@ func main() {
 		Short: "Centrifugo",
 		Long:  "Centrifugo – scalable real-time messaging server in language-agnostic way",
 		Run: func(cmd *cobra.Command, args []string) {
-			runutil.Run(cmd, configFile)
+			app.Run(cmd, configFile)
 		},
 	}
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
