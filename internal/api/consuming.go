@@ -7,6 +7,8 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/apiproto"
 
 	"github.com/centrifugal/centrifuge"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // ConsumingHandlerConfig configures ConsumingHandler.
@@ -32,7 +34,39 @@ func NewConsumingHandler(n *centrifuge.Node, apiExecutor *Executor, c ConsumingH
 }
 
 func (h *ConsumingHandler) logNonRetryableConsumingError(err error, method string) {
-	h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "non retryable error during consuming", map[string]any{"error": err.Error(), "method": method}))
+	h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "non retryable error during consuming, skip message", map[string]any{"error": err.Error(), "method": method}))
+}
+
+func (h *ConsumingHandler) Broadcast(ctx context.Context, req *apiproto.BroadcastRequest) error {
+	res, err := h.broadcastRequest(ctx, req)
+	if err != nil {
+		var apiError *apiproto.Error
+		if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
+			return err
+		}
+		h.logNonRetryableConsumingError(err, "publication_data_broadcast")
+		return nil
+	}
+	for _, resp := range res.Responses {
+		if resp.Error != nil && resp.Error.Code == apiproto.ErrorInternal.Code {
+			// Any internal error in any channel response will result into a retry by a consumer.
+			// To prevent duplicate messages publishers may use idempotency keys.
+			return resp.Error
+		}
+	}
+	return nil
+}
+
+func (h *ConsumingHandler) broadcastRequest(ctx context.Context, req *apiproto.BroadcastRequest) (*apiproto.BroadcastResult, error) {
+	resp := h.api.Broadcast(ctx, req)
+	if h.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	return resp.Result, nil
 }
 
 // Dispatch processes commands received from asynchronous consumers.

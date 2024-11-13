@@ -3,6 +3,7 @@ package configtypes
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 )
@@ -588,6 +589,16 @@ type PostgresConsumerConfig struct {
 	TLS                          TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
 }
 
+func (c PostgresConsumerConfig) Validate() error {
+	if c.DSN == "" {
+		return errors.New("no Postgres DSN provided")
+	}
+	if c.OutboxTableName == "" {
+		return errors.New("no Postgres outbox table name provided")
+	}
+	return nil
+}
+
 // KafkaConsumerConfig is a configuration for Kafka async consumer.
 type KafkaConsumerConfig struct {
 	Brokers        []string `mapstructure:"brokers" json:"brokers" envconfig:"brokers" yaml:"brokers" toml:"brokers"`
@@ -608,4 +619,34 @@ type KafkaConsumerConfig struct {
 	// will pause fetching records from Kafka. By default, this is 16.
 	// Set to -1 to use non-buffered channel.
 	PartitionBufferSize int `mapstructure:"partition_buffer_size" json:"partition_buffer_size" envconfig:"partition_buffer_size" default:"16" yaml:"partition_buffer_size" toml:"partition_buffer_size"`
+
+	// PublicationDataMode is a configuration for the mode where message payload already contains data ready to publish into channels, instead of API command.
+	PublicationDataMode KafkaPublicationModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" envconfig:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
+}
+
+func (c KafkaConsumerConfig) Validate() error {
+	if len(c.Brokers) == 0 {
+		return errors.New("no Kafka brokers provided")
+	}
+	if len(c.Topics) == 0 {
+		return errors.New("no Kafka topics provided")
+	}
+	if c.ConsumerGroup == "" {
+		return errors.New("no Kafka consumer group provided")
+	}
+	if c.PublicationDataMode.Enabled && c.PublicationDataMode.ChannelsHeaderName == "" {
+		return errors.New("no Kafka channels_header_name provided for publication data mode")
+	}
+	return nil
+}
+
+type KafkaPublicationModeConfig struct {
+	// Enabled enables Kafka publication data mode for the Kafka consumer.
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	// ChannelsHeaderName is a header name to extract publication channels (channels must be comma-separated).
+	ChannelsHeaderName string `mapstructure:"channels_header_name" json:"channels_header_name" envconfig:"channels_header_name" yaml:"channels_header_name" toml:"channels_header_name"`
+	// IdempotencyKeyHeaderName is a header name to extract idempotency key from Kafka message.
+	IdempotencyKeyHeaderName string `mapstructure:"idempotency_key_header_name" json:"idempotency_key_header_name" envconfig:"idempotency_key_header_name" yaml:"idempotency_key_header_name" toml:"idempotency_key_header_name"`
+	// DeltaHeaderName is a header name to extract delta flag from Kafka message.
+	DeltaHeaderName string `mapstructure:"delta_header_name" json:"delta_header_name" envconfig:"delta_header_name" yaml:"delta_header_name" toml:"delta_header_name"`
 }

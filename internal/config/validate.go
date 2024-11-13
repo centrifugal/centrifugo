@@ -118,6 +118,19 @@ func (c Config) Validate() error {
 		if !slices.Contains(configtypes.KnownConsumerTypes, config.Type) {
 			return fmt.Errorf("unknown consumer type: %s", config.Type)
 		}
+		if config.Enabled {
+			switch config.Type {
+			case configtypes.ConsumerTypeKafka:
+				if err := config.Kafka.Validate(); err != nil {
+					return fmt.Errorf("in consumer %s (kafka): %w", config.Name, err)
+				}
+			case configtypes.ConsumerTypePostgres:
+				if err := config.Postgres.Validate(); err != nil {
+					return fmt.Errorf("in consumer %s (postgres): %w", config.Name, err)
+				}
+			default:
+			}
+		}
 		consumerNames = append(consumerNames, config.Name)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/centrifugal/centrifugo/v5/internal/apiproto"
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/service"
 
@@ -15,6 +16,7 @@ type ConsumerConfig = configtypes.Consumer
 
 type Dispatcher interface {
 	Dispatch(ctx context.Context, method string, data []byte) error
+	Broadcast(ctx context.Context, req *apiproto.BroadcastRequest) error
 }
 
 type Logger interface {

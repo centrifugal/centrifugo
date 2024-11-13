@@ -7,9 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v5/internal/apiproto"
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 
 	"github.com/centrifugal/centrifuge"
@@ -336,6 +339,7 @@ func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned m
 				cl:         cl,
 				topic:      topic,
 				partition:  partition,
+				config:     c.config,
 
 				quit: make(chan struct{}),
 				done: make(chan struct{}),
@@ -387,10 +391,59 @@ type partitionConsumer struct {
 	cl         *kgo.Client
 	topic      string
 	partition  int32
+	config     KafkaConfig
 
 	quit chan struct{}
 	done chan struct{}
 	recs chan kgo.FetchTopicPartition
+}
+
+func getHeaderValue(record *kgo.Record, headerKey string) string {
+	if headerKey == "" {
+		return ""
+	}
+	for _, header := range record.Headers {
+		if header.Key == headerKey {
+			return string(header.Value)
+		}
+	}
+	return ""
+}
+
+func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, record *kgo.Record) error {
+	var delta bool
+	if pc.config.PublicationDataMode.DeltaHeaderName != "" {
+		var err error
+		delta, err = strconv.ParseBool(getHeaderValue(record, pc.config.PublicationDataMode.DeltaHeaderName))
+		if err != nil {
+			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error parsing delta header value, skip message", map[string]any{"error": err.Error(), "topic": record.Topic, "partition": record.Partition}))
+			return nil
+		}
+	}
+	req := &apiproto.BroadcastRequest{
+		Data:           record.Value,
+		Channels:       strings.Split(getHeaderValue(record, pc.config.PublicationDataMode.ChannelsHeaderName), ","),
+		IdempotencyKey: getHeaderValue(record, pc.config.PublicationDataMode.IdempotencyKeyHeaderName),
+		Delta:          delta,
+	}
+	return pc.dispatcher.Broadcast(ctx, req)
+}
+
+func (pc *partitionConsumer) processAPICommandRecord(ctx context.Context, record *kgo.Record) error {
+	var e KafkaJSONEvent
+	err := json.Unmarshal(record.Value, &e)
+	if err != nil {
+		pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error unmarshalling event from Kafka, skip message", map[string]any{"error": err.Error(), "topic": record.Topic, "partition": record.Partition}))
+		return nil
+	}
+	return pc.dispatcher.Dispatch(ctx, e.Method, e.Payload)
+}
+
+func (pc *partitionConsumer) processRecord(ctx context.Context, record *kgo.Record) error {
+	if pc.config.PublicationDataMode.Enabled {
+		return pc.processPublicationDataRecord(ctx, record)
+	}
+	return pc.processAPICommandRecord(ctx, record)
 }
 
 func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
@@ -403,28 +456,20 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 		default:
 		}
 
-		var e KafkaJSONEvent
-		err := json.Unmarshal(record.Value, &e)
-		if err != nil {
-			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error unmarshalling event from Kafka", map[string]any{"error": err.Error(), "topic": record.Topic, "partition": record.Partition}))
-			pc.cl.MarkCommitRecords(record)
-			continue
-		}
-
 		var backoffDuration time.Duration = 0
 		retries := 0
 		for {
-			err := pc.dispatcher.Dispatch(pc.clientCtx, e.Method, e.Payload)
+			err := pc.processRecord(pc.clientCtx, record)
 			if err == nil {
 				if retries > 0 {
-					pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "OK processing events after errors", map[string]any{}))
+					pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "OK processing message after errors", map[string]any{"topic": record.Topic, "partition": record.Partition}))
 				}
 				pc.cl.MarkCommitRecords(record)
 				break
 			}
 			retries++
 			backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing consumed event", map[string]any{"error": err.Error(), "method": e.Method, "nextAttemptIn": backoffDuration.String()}))
+			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing consumed message", map[string]any{"error": err.Error(), "nextAttemptIn": backoffDuration.String(), "topic": record.Topic, "partition": record.Partition}))
 			select {
 			case <-time.After(backoffDuration):
 			case <-pc.quit:
