@@ -62,13 +62,22 @@ func Run(cmd *cobra.Command, configFile string) {
 		log.Info().Msgf(strings.ToLower(s), i...)
 	}))
 
-	log.Info().
+	entry := log.Info().
 		Str("version", build.Version).
 		Str("runtime", runtime.Version()).
 		Int("pid", os.Getpid()).
-		Str("broker", cfg.Broker.Type).
-		Str("presence_manager", cfg.PresenceManager.Type).
-		Int("gomaxprocs", runtime.GOMAXPROCS(0)).Msg("starting Centrifugo")
+		Int("gomaxprocs", runtime.GOMAXPROCS(0))
+
+	if cfg.Broker.Enabled {
+		entry = entry.Str("broker", cfg.Broker.Type)
+	}
+	if cfg.PresenceManager.Enabled {
+		entry = entry.Str("presence_manager", cfg.PresenceManager.Type)
+	}
+	if !cfg.Broker.Enabled || !cfg.PresenceManager.Enabled {
+		entry = entry.Str("engine", cfg.Engine.Type)
+	}
+	entry.Msg("starting Centrifugo")
 
 	err = cfg.Validate()
 	if err != nil {

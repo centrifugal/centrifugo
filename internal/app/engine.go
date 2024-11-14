@@ -36,14 +36,14 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) (en
 		default:
 			return modes, fmt.Errorf("unknown engine type: %s", cfg.Engine.Type)
 		}
-		if err != nil {
-			return modes, fmt.Errorf("error creating engine: %v", err)
-		}
 		event := log.Info().Str("engine_type", cfg.Engine.Type)
 		if modes.engineMode != "" {
 			event.Str("engine_mode", modes.engineMode)
 		}
-		event.Msg("engine is enabled")
+		event.Msg("initializing redis engine")
+		if err != nil {
+			return modes, fmt.Errorf("error creating redis engine: %v", err)
+		}
 	} else {
 		log.Info().Msgf("both broker and presence manager enabled, skip engine initialization")
 	}

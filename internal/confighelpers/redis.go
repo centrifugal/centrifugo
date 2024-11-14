@@ -140,14 +140,14 @@ func getRedisShardConfigs(redisConf configtypes.Redis) ([]centrifuge.RedisShardC
 func CentrifugeRedisShards(n *centrifuge.Node, redisConf configtypes.Redis) ([]*centrifuge.RedisShard, string, error) {
 	redisShardConfigs, mode, err := getRedisShardConfigs(redisConf)
 	if err != nil {
-		return nil, "", err
+		return nil, mode, err
 	}
 	redisShards := make([]*centrifuge.RedisShard, 0, len(redisShardConfigs))
 
 	for _, shardConf := range redisShardConfigs {
 		redisShard, err := centrifuge.NewRedisShard(n, shardConf)
 		if err != nil {
-			return nil, "", err
+			return nil, mode, err
 		}
 		redisShards = append(redisShards, redisShard)
 	}
