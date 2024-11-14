@@ -34,6 +34,13 @@ func centrifugeNodeConfig(version string, cfgContainer *config.Container) centri
 	cfg.ClientConnectIncludeServerTime = appCfg.Client.ConnectIncludeServerTime
 	cfg.LogLevel = logging.CentrifugeLogLevel(strings.ToLower(appCfg.LogLevel))
 	cfg.LogHandler = logging.NewCentrifugeLogHandler().Handle
+	if appCfg.Client.ConnectCodeToUnidirectionalDisconnect.Enabled {
+		uniCodeTransforms := make(map[uint32]centrifuge.Disconnect)
+		for _, transform := range appCfg.Client.ConnectCodeToUnidirectionalDisconnect.Transforms {
+			uniCodeTransforms[transform.Code] = centrifuge.Disconnect{Code: transform.To.Code, Reason: transform.To.Reason}
+		}
+		cfg.UnidirectionalCodeToDisconnect = uniCodeTransforms
+	}
 	return cfg
 }
 

@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -57,9 +58,9 @@ func Run(cmd *cobra.Command, configFile string) {
 	if err != nil {
 		log.Fatal().Msgf("error writing PID: %v", err)
 	}
-	if os.Getenv("GOMAXPROCS") == "" {
-		_, _ = maxprocs.Set()
-	}
+	_, _ = maxprocs.Set(maxprocs.Logger(func(s string, i ...interface{}) {
+		log.Info().Msgf(strings.ToLower(s), i...)
+	}))
 
 	log.Info().
 		Str("version", build.Version).
