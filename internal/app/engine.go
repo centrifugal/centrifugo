@@ -7,6 +7,7 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/confighelpers"
 	"github.com/centrifugal/centrifugo/v5/internal/natsbroker"
 	"github.com/centrifugal/centrifugo/v5/internal/redisnatsbroker"
+	"github.com/centrifugal/centrifugo/v5/internal/service"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/rs/zerolog/log"
@@ -18,7 +19,7 @@ type engineModes struct {
 	presenceManagerMode string
 }
 
-func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) (engineModes, error) {
+func configureEngines(node *centrifuge.Node, cfgContainer *config.Container, serviceManager *service.Manager) (engineModes, error) {
 	cfg := cfgContainer.Config()
 
 	var modes engineModes
@@ -32,7 +33,7 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) (en
 		case "memory":
 			broker, presenceManager, err = createMemoryEngine(node)
 		case "redis":
-			broker, presenceManager, modes.engineMode, err = createRedisEngine(node, cfgContainer)
+			broker, presenceManager, modes.engineMode, err = createRedisEngine(node, cfgContainer, serviceManager)
 		default:
 			return modes, fmt.Errorf("unknown engine type: %s", cfg.Engine.Type)
 		}
@@ -97,7 +98,7 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) (en
 		case "memory":
 			presenceManager, err = createMemoryPresenceManager(node)
 		case "redis":
-			presenceManager, modes.presenceManagerMode, err = createRedisPresenceManager(node, cfgContainer)
+			presenceManager, modes.presenceManagerMode, err = createRedisPresenceManager(node, cfgContainer, serviceManager)
 		default:
 			return modes, fmt.Errorf("unknown presence manager type: %s", cfg.PresenceManager.Type)
 		}
@@ -162,7 +163,7 @@ func NatsBroker(node *centrifuge.Node, cfg config.Config) (*natsbroker.NatsBroke
 	return natsbroker.New(node, cfg.Broker.Nats)
 }
 
-func createRedisEngine(n *centrifuge.Node, cfgContainer *config.Container) (*centrifuge.RedisBroker, centrifuge.PresenceManager, string, error) {
+func createRedisEngine(n *centrifuge.Node, cfgContainer *config.Container, _ *service.Manager) (*centrifuge.RedisBroker, centrifuge.PresenceManager, string, error) {
 	cfg := cfgContainer.Config()
 	redisShards, mode, err := confighelpers.CentrifugeRedisShards(n, cfg.Broker.Redis.Redis)
 	if err != nil {
@@ -202,7 +203,7 @@ func createRedisBroker(n *centrifuge.Node, cfgContainer *config.Container) (*cen
 	return broker, mode, nil
 }
 
-func createRedisPresenceManager(n *centrifuge.Node, cfgContainer *config.Container) (centrifuge.PresenceManager, string, error) {
+func createRedisPresenceManager(n *centrifuge.Node, cfgContainer *config.Container, _ *service.Manager) (centrifuge.PresenceManager, string, error) {
 	cfg := cfgContainer.Config()
 	redisShards, mode, err := confighelpers.CentrifugeRedisShards(n, cfg.PresenceManager.Redis.Redis)
 	if err != nil {

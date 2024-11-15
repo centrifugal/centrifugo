@@ -31,7 +31,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"go.uber.org/automaxprocs/maxprocs"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 
 	_ "google.golang.org/grpc/encoding/gzip"
@@ -61,6 +60,10 @@ func Run(cmd *cobra.Command, configFile string) {
 	_, _ = maxprocs.Set(maxprocs.Logger(func(s string, i ...interface{}) {
 		log.Info().Msgf(strings.ToLower(s), i...)
 	}))
+
+	// Registered services will be run after node.Run() but before HTTP/GRPC servers start.
+	// Registered services will be stopped after node's shutdown and HTTP/GRPC servers shutdown.
+	serviceManager := service.NewManager()
 
 	entry := log.Info().
 		Str("version", build.Version).
@@ -108,7 +111,7 @@ func Run(cmd *cobra.Command, configFile string) {
 		}
 	}
 
-	modes, err := configureEngines(node, cfgContainer)
+	modes, err := configureEngines(node, cfgContainer, serviceManager)
 	if err != nil {
 		log.Fatal().Msgf("%v", err)
 	}
@@ -166,8 +169,6 @@ func Run(cmd *cobra.Command, configFile string) {
 		UseOpenTelemetry: useConsumingOpentelemetry,
 	})
 
-	var services []service.Service
-
 	consumingHandler := api.NewConsumingHandler(node, consumingAPIExecutor, api.ConsumingHandlerConfig{
 		UseOpenTelemetry: useConsumingOpentelemetry,
 	})
@@ -177,37 +178,10 @@ func Run(cmd *cobra.Command, configFile string) {
 		log.Fatal().Msgf("error initializing consumers: %v", err)
 	}
 
-	services = append(services, consumingServices...)
-
-	if err = node.Run(); err != nil {
-		log.Fatal().Msgf("error running node: %v", err)
-	}
-
-	var grpcAPIServer *grpc.Server
-	if cfg.GrpcAPI.Enabled {
-		var err error
-		grpcAPIServer, err = runGRPCAPIServer(cfg, node, useAPIOpentelemetry, grpcAPIExecutor)
-		if err != nil {
-			log.Fatal().Msgf("error creating GRPC API server: %v", err)
-		}
-	}
-
-	var grpcUniServer *grpc.Server
-	if cfg.UniGRPC.Enabled {
-		var err error
-		grpcAPIServer, err = runGRPCUniServer(cfg, node)
-		if err != nil {
-			log.Fatal().Msgf("error creating GRPC API server: %v", err)
-		}
-	}
-
-	httpServers, err := runHTTPServers(node, cfgContainer, httpAPIExecutor, keepHeadersInContext)
-	if err != nil {
-		log.Fatal().Msgf("error running HTTP server: %v", err)
-	}
+	serviceManager.Register(consumingServices...)
 
 	if cfg.Graphite.Enabled {
-		services = append(services, graphiteExporter(cfg, nodeCfg))
+		serviceManager.Register(graphiteExporter(cfg, nodeCfg))
 	}
 
 	var statsSender *usage.Sender
@@ -252,37 +226,55 @@ func Run(cmd *cobra.Command, configFile string) {
 			Throttling:          false,
 			Singleflight:        false,
 		})
-		services = append(services, statsSender)
+		serviceManager.Register(statsSender)
 	}
 
 	notify.RegisterHandlers(node, statsSender)
 
-	var serviceGroup *errgroup.Group
-	serviceCancel := func() {}
-	if len(services) > 0 {
-		var serviceCtx context.Context
-		serviceCtx, serviceCancel = context.WithCancel(context.Background())
-		serviceGroup, serviceCtx = errgroup.WithContext(serviceCtx)
-		for _, s := range services {
-			s := s
-			serviceGroup.Go(func() error {
-				return s.Run(serviceCtx)
-			})
+	if err = node.Run(); err != nil {
+		log.Fatal().Msgf("error running node: %v", err)
+	}
+
+	ctx, serviceCancel := context.WithCancel(context.Background())
+	defer serviceCancel()
+	serviceManager.Run(ctx)
+
+	var grpcAPIServer *grpc.Server
+	if cfg.GrpcAPI.Enabled {
+		var err error
+		grpcAPIServer, err = runGRPCAPIServer(cfg, node, useAPIOpentelemetry, grpcAPIExecutor)
+		if err != nil {
+			log.Fatal().Msgf("error creating GRPC API server: %v", err)
 		}
 	}
 
+	var grpcUniServer *grpc.Server
+	if cfg.UniGRPC.Enabled {
+		var err error
+		grpcAPIServer, err = runGRPCUniServer(cfg, node)
+		if err != nil {
+			log.Fatal().Msgf("error creating GRPC API server: %v", err)
+		}
+	}
+
+	httpServers, err := runHTTPServers(node, cfgContainer, httpAPIExecutor, keepHeadersInContext)
+	if err != nil {
+		log.Fatal().Msgf("error running HTTP server: %v", err)
+	}
+
 	logStartWarnings(cfg, cfgMeta)
+
 	handleSignals(
 		cmd, configFile, node, cfgContainer, tokenVerifier, subTokenVerifier,
 		httpServers, grpcAPIServer, grpcUniServer,
-		serviceGroup, serviceCancel,
+		serviceManager, serviceCancel,
 	)
 }
 
 func handleSignals(
 	cmd *cobra.Command, configFile string, n *centrifuge.Node, cfgContainer *config.Container,
 	tokenVerifier *jwtverify.VerifierJWT, subTokenVerifier *jwtverify.VerifierJWT, httpServers []*http.Server,
-	grpcAPIServer *grpc.Server, grpcUniServer *grpc.Server, serviceGroup *errgroup.Group,
+	grpcAPIServer *grpc.Server, grpcUniServer *grpc.Server, serviceManager *service.Manager,
 	serviceCancel context.CancelFunc,
 ) {
 	cfg := cfgContainer.Config()
@@ -339,19 +331,10 @@ func handleSignals(
 				if pidFile != "" {
 					_ = os.Remove(pidFile)
 				}
-				os.Exit(1)
+				log.Fatal().Msg("shutdown timeout reached")
 			})
 
 			var wg sync.WaitGroup
-
-			if serviceGroup != nil {
-				serviceCancel()
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					_ = serviceGroup.Wait()
-				}()
-			}
 
 			if grpcAPIServer != nil {
 				wg.Add(1)
@@ -369,20 +352,19 @@ func handleSignals(
 				}()
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout.ToDuration())
-
 			for _, srv := range httpServers {
 				wg.Add(1)
 				go func(srv *http.Server) {
 					defer wg.Done()
-					_ = srv.Shutdown(ctx)
+					_ = srv.Shutdown(context.Background()) // We have a separate timeout goroutine.
 				}(srv)
 			}
 
-			_ = n.Shutdown(ctx)
-
+			_ = n.Shutdown(context.Background()) // We have a separate timeout goroutine.
 			wg.Wait()
-			cancel()
+
+			serviceCancel()
+			_ = serviceManager.Wait()
 
 			if pidFile != "" {
 				_ = os.Remove(pidFile)
