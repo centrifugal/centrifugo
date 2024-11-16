@@ -1,12 +1,21 @@
 ---
 tls:
   enabled: true
+engine:
+  type: redis
+  redis:
+    presence_ttl: 30s
 client:
   allowed_origins:
     - http://localhost:3000
   token:
     jwks_public_endpoint: https://example.com/jwks
   ping_interval: 12s
+  proxy:
+    connect:
+      http:
+        static_headers:
+          x: "y"
 channel:
   without_namespace:
     presence: true

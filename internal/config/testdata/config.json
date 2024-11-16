@@ -2,6 +2,12 @@
   "tls": {
     "enabled": true
   },
+  "engine": {
+    "type": "redis",
+    "redis": {
+      "presence_ttl": "30s"
+    }
+  },
   "client": {
     "allowed_origins": ["http://localhost:3000"],
     "token": {

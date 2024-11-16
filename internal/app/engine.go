@@ -170,17 +170,17 @@ func createRedisEngine(n *centrifuge.Node, cfgContainer *config.Container) (*cen
 	}
 
 	var broker *centrifuge.RedisBroker
-	if cfg.Broker.Type == "" {
+	if !cfg.Broker.Enabled {
 		broker, err = confighelpers.CentrifugeRedisBroker(
-			n, cfg.Broker.Redis.Prefix, redisShards, cfg.Broker.Redis.RedisBrokerCommon, false)
+			n, cfg.Engine.Redis.Prefix, redisShards, cfg.Engine.Redis.RedisBrokerCommon, false)
 		if err != nil {
 			return nil, nil, mode, fmt.Errorf("error creating Redis broker: %w", err)
 		}
 	}
 	var presenceManager centrifuge.PresenceManager
-	if cfg.PresenceManager.Type == "" {
+	if !cfg.PresenceManager.Enabled {
 		presenceManager, err = confighelpers.CentrifugeRedisPresenceManager(
-			n, cfg.PresenceManager.Redis.Prefix, redisShards, cfg.PresenceManager.Redis.RedisPresenceManagerCommon)
+			n, cfg.Engine.Redis.Prefix, redisShards, cfg.Engine.Redis.RedisPresenceManagerCommon)
 		if err != nil {
 			return nil, nil, mode, fmt.Errorf("error creating Redis presence manager: %w", err)
 		}

@@ -1,6 +1,12 @@
 [tls]
 enabled = true
 
+[engine]
+type = "redis"
+
+  [engine.redis]
+  presence_ttl = "30s"
+
 [client]
 allowed_origins = [ "http://localhost:3000" ]
 ping_interval = "12s"
@@ -8,17 +14,19 @@ ping_interval = "12s"
   [client.token]
   jwks_public_endpoint = "https://example.com/jwks"
 
-[channel]
-  [channel.without_namespace]
-  presence = true
+[client.proxy.connect.http.static_headers]
+x = "y"
 
-  [[channel.namespaces]]
-  name = "ns1"
-  presence = true
+[channel.without_namespace]
+presence = true
 
-  [[channel.namespaces]]
-  name = "ns2"
-  presence = false
+[[channel.namespaces]]
+name = "ns1"
+presence = true
+
+[[channel.namespaces]]
+name = "ns2"
+presence = false
 
 [[proxies]]
 name = "ppp"

@@ -111,7 +111,7 @@ func Run(cmd *cobra.Command, configFile string) {
 		}
 	}
 
-	modes, err := configureEngines(node, cfgContainer, serviceManager)
+	modes, err := configureEngines(node, cfgContainer)
 	if err != nil {
 		log.Fatal().Msgf("%v", err)
 	}

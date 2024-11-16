@@ -30,6 +30,8 @@ func checkConfig(t *testing.T, conf Config) {
 	require.Equal(t, configtypes.Duration(time.Second), conf.Proxies[0].Timeout)
 	require.Equal(t, true, conf.Consumers[0].Kafka.TLS.Enabled)
 	require.Equal(t, configtypes.Duration(2*time.Second), conf.WebSocket.WriteTimeout)
+	require.Equal(t, "redis", conf.Engine.Type)
+	require.Equal(t, 30*time.Second, time.Duration(conf.Engine.Redis.PresenceTTL))
 }
 
 func TestConfigJSON(t *testing.T) {
