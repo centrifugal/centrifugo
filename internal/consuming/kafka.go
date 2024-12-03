@@ -42,6 +42,10 @@ type KafkaConfig struct {
 	// will pause fetching records from Kafka. By default, this is 16.
 	// Set to -1 to use non-buffered channel.
 	PartitionBufferSize int `mapstructure:"partition_buffer_size" json:"partition_buffer_size"`
+
+	// FetchMaxBytes is the maximum number of bytes to fetch from Kafka in a single request.
+	// If not set the default 50MB is used.
+	FetchMaxBytes int32 `mapstructure:"fetch_max_bytes" json:"fetch_max_bytes"`
 }
 
 type topicPartition struct {
@@ -141,6 +145,9 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 		kgo.BlockRebalanceOnPoll(),
 		kgo.ClientID(kafkaClientID),
 		kgo.InstanceID(c.getInstanceID()),
+	}
+	if c.config.FetchMaxBytes > 0 {
+		opts = append(opts, kgo.FetchMaxBytes(c.config.FetchMaxBytes))
 	}
 	if c.config.TLS {
 		tlsOptionsMap, err := c.config.TLSOptions.ToMap()
@@ -284,12 +291,19 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 				return fmt.Errorf("poll error: %w", errors.Join(errs...))
 			}
 
+			pausedTopicPartitions := map[topicPartition]struct{}{}
 			fetches.EachPartition(func(p kgo.FetchTopicPartition) {
 				if len(p.Records) == 0 {
 					return
 				}
 
 				tp := topicPartition{p.Topic, p.Partition}
+				if _, paused := pausedTopicPartitions[tp]; paused {
+					// We have already paused this partition during this poll, so we should not
+					// process records from it anymore. We will resume partition processing with the
+					// correct offset soon, after we have space in recs buffer.
+					return
+				}
 
 				// Since we are using BlockRebalanceOnPoll, we can be
 				// sure this partition consumer exists:
@@ -310,6 +324,12 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 					// keeping records in memory and blocking rebalance. Resume will be called after
 					// records are processed by c.consumers[tp].
 					c.client.PauseFetchPartitions(partitionsToPause)
+					pausedTopicPartitions[tp] = struct{}{}
+					// To poll next time since correct offset we need to set it manually to the offset of
+					// the first record in the batch. Otherwise, next poll will return the next record batch,
+					// and we will lose the current one.
+					epochOffset := kgo.EpochOffset{Epoch: -1, Offset: p.Records[0].Offset}
+					c.client.SetOffsets(map[string]map[int32]kgo.EpochOffset{p.Topic: {p.Partition: epochOffset}})
 				}
 			})
 			c.client.AllowRebalance()
@@ -355,15 +375,25 @@ func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned m
 	}
 	for topic, partitions := range assigned {
 		for _, partition := range partitions {
+			quitCh := make(chan struct{})
+			partitionCtx, cancel := context.WithCancel(ctx)
+			go func() {
+				select {
+				case <-ctx.Done():
+					cancel()
+				case <-quitCh:
+					cancel()
+				}
+			}()
 			pc := &partitionConsumer{
-				clientCtx:  ctx,
-				dispatcher: c.dispatcher,
-				logger:     c.logger,
-				cl:         cl,
-				topic:      topic,
-				partition:  partition,
+				partitionCtx: partitionCtx,
+				dispatcher:   c.dispatcher,
+				logger:       c.logger,
+				cl:           cl,
+				topic:        topic,
+				partition:    partition,
 
-				quit: make(chan struct{}),
+				quit: quitCh,
 				done: make(chan struct{}),
 				recs: make(chan kgo.FetchTopicPartition, bufferSize),
 			}
@@ -407,12 +437,12 @@ func (c *KafkaConsumer) killConsumers(lost map[string][]int32) {
 }
 
 type partitionConsumer struct {
-	clientCtx  context.Context
-	dispatcher Dispatcher
-	logger     Logger
-	cl         *kgo.Client
-	topic      string
-	partition  int32
+	partitionCtx context.Context
+	dispatcher   Dispatcher
+	logger       Logger
+	cl           *kgo.Client
+	topic        string
+	partition    int32
 
 	quit chan struct{}
 	done chan struct{}
@@ -422,9 +452,7 @@ type partitionConsumer struct {
 func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 	for _, record := range records {
 		select {
-		case <-pc.clientCtx.Done():
-			return
-		case <-pc.quit:
+		case <-pc.partitionCtx.Done():
 			return
 		default:
 		}
@@ -432,7 +460,7 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 		var e KafkaJSONEvent
 		err := json.Unmarshal(record.Value, &e)
 		if err != nil {
-			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error unmarshalling event from Kafka", map[string]any{"error": err.Error(), "topic": record.Topic, "partition": record.Partition}))
+			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error unmarshalling record value from Kafka", map[string]any{"error": err.Error(), "topic": record.Topic, "partition": record.Partition}))
 			pc.cl.MarkCommitRecords(record)
 			continue
 		}
@@ -440,22 +468,20 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 		var backoffDuration time.Duration = 0
 		retries := 0
 		for {
-			err := pc.dispatcher.Dispatch(pc.clientCtx, e.Method, e.Payload)
+			err := pc.dispatcher.Dispatch(pc.partitionCtx, e.Method, e.Payload)
 			if err == nil {
 				if retries > 0 {
-					pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "OK processing events after errors", map[string]any{}))
+					pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "OK processing record after errors", map[string]any{}))
 				}
 				pc.cl.MarkCommitRecords(record)
 				break
 			}
 			retries++
 			backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing consumed event", map[string]any{"error": err.Error(), "method": e.Method, "nextAttemptIn": backoffDuration.String()}))
+			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing consumed record", map[string]any{"error": err.Error(), "method": e.Method, "next_attempt_in": backoffDuration.String()}))
 			select {
 			case <-time.After(backoffDuration):
-			case <-pc.quit:
-				return
-			case <-pc.clientCtx.Done():
+			case <-pc.partitionCtx.Done():
 				return
 			}
 		}
@@ -471,9 +497,7 @@ func (pc *partitionConsumer) consume() {
 	defer resumeConsuming()
 	for {
 		select {
-		case <-pc.clientCtx.Done():
-			return
-		case <-pc.quit:
+		case <-pc.partitionCtx.Done():
 			return
 		case p := <-pc.recs:
 			pc.processRecords(p.Records)

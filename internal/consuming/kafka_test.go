@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -44,15 +46,26 @@ func (m *MockLogger) Log(_ centrifuge.LogEntry) {
 	// Implement mock logic, e.g., storing log entries for assertions
 }
 
+func produceManyRecords(records ...*kgo.Record) error {
+	client, err := kgo.NewClient(kgo.SeedBrokers(testKafkaBrokerURL))
+	if err != nil {
+		return fmt.Errorf("failed to create Kafka client: %w", err)
+	}
+	defer client.Close()
+	err = client.ProduceSync(context.Background(), records...).FirstErr()
+	if err != nil {
+		return fmt.Errorf("failed to produce message: %w", err)
+	}
+	return nil
+}
+
 func produceTestMessage(topic string, message []byte) error {
-	// Create a new client
 	client, err := kgo.NewClient(kgo.SeedBrokers(testKafkaBrokerURL))
 	if err != nil {
 		return fmt.Errorf("failed to create Kafka client: %w", err)
 	}
 	defer client.Close()
 
-	// Produce a message
 	err = client.ProduceSync(context.Background(), &kgo.Record{Topic: topic, Partition: 0, Value: message}).FirstErr()
 	if err != nil {
 		return fmt.Errorf("failed to produce message: %w", err)
@@ -61,7 +74,6 @@ func produceTestMessage(topic string, message []byte) error {
 }
 
 func produceTestMessageToPartition(topic string, message []byte, partition int32) error {
-	// Create a new client.
 	client, err := kgo.NewClient(
 		kgo.SeedBrokers(testKafkaBrokerURL),
 		kgo.RecordPartitioner(kgo.ManualPartitioner()),
@@ -71,7 +83,6 @@ func produceTestMessageToPartition(topic string, message []byte, partition int32
 	}
 	defer client.Close()
 
-	// Produce a message until we hit desired partition.
 	res := client.ProduceSync(context.Background(), &kgo.Record{
 		Topic: topic, Partition: partition, Value: message})
 	if res.FirstErr() != nil {
@@ -421,6 +432,174 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherPartition(t *testing.T
 			}()
 
 			waitCh(t, event2Received, 30*time.Second, "timeout waiting for event 2")
+			cancel()
+			waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
+			close(doneCh)
+		})
+	}
+}
+
+func TestKafkaConsumer_PausePartitions(t *testing.T) {
+	t.Parallel()
+	testKafkaTopic := "consumer_test_" + uuid.New().String()
+	testPayload1 := []byte(`{"key":"value1"}`)
+	testPayload2 := []byte(`{"key":"value2"}`)
+	testPayload3 := []byte(`{"key":"value3"}`)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	err := createTestTopic(ctx, testKafkaTopic, 1, 1)
+	require.NoError(t, err)
+
+	event1Received := make(chan struct{})
+	event2Received := make(chan struct{})
+	event3Received := make(chan struct{})
+	consumerClosed := make(chan struct{})
+	doneCh := make(chan struct{})
+
+	config := KafkaConfig{
+		Brokers:             []string{testKafkaBrokerURL},
+		Topics:              []string{testKafkaTopic},
+		ConsumerGroup:       uuid.New().String(),
+		PartitionBufferSize: -1,
+	}
+
+	numCalls := 0
+
+	mockDispatcher := &MockDispatcher{
+		onDispatch: func(ctx context.Context, method string, data []byte) error {
+			numCalls++
+			if numCalls == 1 {
+				close(event1Received)
+				time.Sleep(5 * time.Second)
+				return nil
+			} else if numCalls == 2 {
+				close(event2Received)
+				return nil
+			}
+			close(event3Received)
+			return nil
+		},
+	}
+	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config)
+	require.NoError(t, err)
+
+	go func() {
+		err = produceTestMessage(testKafkaTopic, testPayload1)
+		require.NoError(t, err)
+		<-event1Received
+		// At this point message 1 is being processed and the next produced message will
+		// cause a partition pause.
+		err = produceTestMessage(testKafkaTopic, testPayload2)
+		require.NoError(t, err)
+		<-event2Received
+		err = produceTestMessage(testKafkaTopic, testPayload3)
+		require.NoError(t, err)
+	}()
+
+	go func() {
+		err := consumer.Run(ctx)
+		require.ErrorIs(t, err, context.Canceled)
+		close(consumerClosed)
+	}()
+
+	waitCh(t, event1Received, 30*time.Second, "timeout waiting for event 1")
+	waitCh(t, event2Received, 30*time.Second, "timeout waiting for event 2")
+	waitCh(t, event3Received, 30*time.Second, "timeout waiting for event 3")
+	cancel()
+	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
+	close(doneCh)
+}
+
+func TestKafkaConsumer_WorksCorrectlyInLoadedTopic(t *testing.T) {
+	t.Skip()
+	t.Parallel()
+
+	testCases := []struct {
+		numPartitions   int32
+		numMessages     int
+		partitionBuffer int
+	}{
+		//{numPartitions: 1, numMessages: 1000, partitionBuffer: -1},
+		//{numPartitions: 1, numMessages: 1000, partitionBuffer: 1},
+		//{numPartitions: 10, numMessages: 10000, partitionBuffer: -1},
+		{numPartitions: 10, numMessages: 10000, partitionBuffer: 1},
+	}
+
+	for _, tc := range testCases {
+		name := fmt.Sprintf("partitions=%d,messages=%d,buffer=%d", tc.numPartitions, tc.numMessages, tc.partitionBuffer)
+		t.Run(name, func(t *testing.T) {
+			testKafkaTopic := "consumer_test_" + uuid.New().String()
+
+			ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+			defer cancel()
+
+			err := createTestTopic(ctx, testKafkaTopic, tc.numPartitions, 1)
+			require.NoError(t, err)
+
+			consumerClosed := make(chan struct{})
+			doneCh := make(chan struct{})
+
+			numMessages := tc.numMessages
+			messageCh := make(chan struct{}, numMessages)
+
+			mockDispatcher := &MockDispatcher{
+				onDispatch: func(ctx context.Context, method string, data []byte) error {
+					// Emulate delay due to some work.
+					time.Sleep(20 * time.Millisecond)
+					messageCh <- struct{}{}
+					return nil
+				},
+			}
+			config := KafkaConfig{
+				Brokers:             []string{testKafkaBrokerURL},
+				Topics:              []string{testKafkaTopic},
+				ConsumerGroup:       uuid.New().String(),
+				PartitionBufferSize: tc.partitionBuffer,
+			}
+			consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config)
+			require.NoError(t, err)
+
+			var records []*kgo.Record
+			for i := 0; i < numMessages; i++ {
+				records = append(records, &kgo.Record{Topic: testKafkaTopic, Value: []byte(`{"hello": "` + strconv.Itoa(i) + `"}`)})
+				if (i+1)%100 == 0 {
+					err = produceManyRecords(records...)
+					if err != nil {
+						t.Fatal(err)
+					}
+					records = nil
+					t.Logf("produced %d messages", i+1)
+				}
+			}
+
+			t.Logf("all messages produced, 3, 2, 1, go!")
+			time.Sleep(time.Second)
+
+			go func() {
+				err := consumer.Run(ctx)
+				require.ErrorIs(t, err, context.Canceled)
+				close(consumerClosed)
+			}()
+
+			var numProcessed int64
+			go func() {
+				for {
+					select {
+					case <-ctx.Done():
+						return
+					case <-time.After(time.Second):
+						t.Logf("processed %d messages", atomic.LoadInt64(&numProcessed))
+					}
+				}
+			}()
+
+			for i := 0; i < numMessages; i++ {
+				<-messageCh
+				atomic.AddInt64(&numProcessed, 1)
+			}
+			t.Logf("all messages processed")
 			cancel()
 			waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
 			close(doneCh)
