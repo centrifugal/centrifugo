@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
@@ -175,7 +174,6 @@ func (c *PostgresConsumer) processOnce(ctx context.Context, partition int) (int,
 
 	var dispatchErr error
 
-	var mu sync.Mutex
 	for _, event := range events {
 		dispatchErr = c.dispatcher.Dispatch(context.Background(), event.Method, event.Payload)
 		if dispatchErr != nil {
@@ -184,9 +182,7 @@ func (c *PostgresConsumer) processOnce(ctx context.Context, partition int) (int,
 			break
 		} else {
 			numProcessedRows++
-			mu.Lock()
 			idsToDelete = append(idsToDelete, event.ID)
-			mu.Unlock()
 		}
 	}
 
