@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -140,7 +141,7 @@ func TestPostgresConsumer_GreenScenario(t *testing.T) {
 			close(eventReceived)
 			return nil
 		},
-	}, config)
+	}, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	// Start the consumer
@@ -197,7 +198,7 @@ func TestPostgresConsumer_SeveralConsumers(t *testing.T) {
 				close(eventReceived)
 				return nil
 			},
-		}, config)
+		}, config, newCommonMetrics(prometheus.NewRegistry()))
 		require.NoError(t, err)
 
 		pool = consumer.pool
@@ -256,7 +257,7 @@ func TestPostgresConsumer_NotificationTrigger(t *testing.T) {
 			eventsReceived <- struct{}{}
 			return nil
 		},
-	}, config)
+	}, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	go func() {
@@ -326,7 +327,7 @@ func TestPostgresConsumer_DifferentPartitions(t *testing.T) {
 			eventsReceived <- struct{}{}
 			return nil
 		},
-	}, config)
+	}, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	go func() {

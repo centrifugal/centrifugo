@@ -16,6 +16,7 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
@@ -161,7 +162,7 @@ func TestKafkaConsumer_GreenScenario(t *testing.T) {
 			close(eventReceived)
 			return nil
 		},
-	}, config)
+	}, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	go func() {
@@ -212,7 +213,7 @@ func TestKafkaConsumer_SeveralConsumers(t *testing.T) {
 				close(eventReceived)
 				return nil
 			},
-		}, config)
+		}, config, newCommonMetrics(prometheus.NewRegistry()))
 		require.NoError(t, err)
 
 		go func() {
@@ -271,7 +272,7 @@ func TestKafkaConsumer_RetryAfterDispatchError(t *testing.T) {
 			return nil
 		},
 	}
-	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config)
+	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	go func() {
@@ -341,7 +342,7 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherTopic(t *testing.T) {
 			return nil
 		},
 	}
-	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config)
+	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	go func() {
@@ -414,7 +415,7 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherPartition(t *testing.T
 					return nil
 				},
 			}
-			consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config)
+			consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
 			require.NoError(t, err)
 
 			go func() {
@@ -479,7 +480,7 @@ func TestKafkaConsumer_GreenScenario_PublicationDataMode(t *testing.T) {
 			close(eventReceived)
 			return nil
 		},
-	}, config)
+	}, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	go func() {

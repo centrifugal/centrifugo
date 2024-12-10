@@ -39,6 +39,7 @@ type KafkaConsumer struct {
 	config     KafkaConfig
 	consumers  map[topicPartition]*partitionConsumer
 	doneCh     chan struct{}
+	metrics    *commonMetrics
 }
 
 // JSONRawOrString can decode payload from bytes and from JSON string. This gives
@@ -74,7 +75,9 @@ type KafkaJSONEvent struct {
 	Payload JSONRawOrString `json:"payload"`
 }
 
-func NewKafkaConsumer(name string, nodeID string, logger Logger, dispatcher Dispatcher, config KafkaConfig) (*KafkaConsumer, error) {
+func NewKafkaConsumer(
+	name string, nodeID string, logger Logger, dispatcher Dispatcher, config KafkaConfig, metrics *commonMetrics,
+) (*KafkaConsumer, error) {
 	if len(config.Brokers) == 0 {
 		return nil, errors.New("brokers required")
 	}
@@ -95,6 +98,7 @@ func NewKafkaConsumer(name string, nodeID string, logger Logger, dispatcher Disp
 		config:     config,
 		consumers:  make(map[topicPartition]*partitionConsumer),
 		doneCh:     make(chan struct{}),
+		metrics:    metrics,
 	}
 	cl, err := consumer.initClient()
 	if err != nil {
@@ -340,6 +344,8 @@ func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned m
 				topic:      topic,
 				partition:  partition,
 				config:     c.config,
+				name:       c.name,
+				metrics:    c.metrics,
 
 				quit: make(chan struct{}),
 				done: make(chan struct{}),
@@ -392,6 +398,8 @@ type partitionConsumer struct {
 	topic      string
 	partition  int32
 	config     KafkaConfig
+	name       string
+	metrics    *commonMetrics
 
 	quit chan struct{}
 	done chan struct{}
@@ -464,11 +472,13 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 				if retries > 0 {
 					pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "OK processing message after errors", map[string]any{"topic": record.Topic, "partition": record.Partition}))
 				}
+				pc.metrics.processedTotal.WithLabelValues(pc.name).Inc()
 				pc.cl.MarkCommitRecords(record)
 				break
 			}
 			retries++
 			backoffDuration = getNextBackoffDuration(backoffDuration, retries)
+			pc.metrics.errorsTotal.WithLabelValues(pc.name).Inc()
 			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing consumed message", map[string]any{"error": err.Error(), "nextAttemptIn": backoffDuration.String(), "topic": record.Topic, "partition": record.Partition}))
 			select {
 			case <-time.After(backoffDuration):

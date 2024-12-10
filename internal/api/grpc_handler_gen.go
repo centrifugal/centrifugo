@@ -26,9 +26,13 @@ func (s *grpcAPIService) Publish(ctx context.Context, req *PublishRequest) (*Pub
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		incError(s.api.config.Protocol, "publish", resp.Error.Code)
 		statusCode := MapErrorToGRPCCode(resp.Error)
 		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
 		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "publish", resp.Error.Code)
 	}
 	return resp, nil
 }
@@ -41,9 +45,13 @@ func (s *grpcAPIService) Broadcast(ctx context.Context, req *BroadcastRequest) (
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		incError(s.api.config.Protocol, "broadcast", resp.Error.Code)
 		statusCode := MapErrorToGRPCCode(resp.Error)
 		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
 		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "broadcast", resp.Error.Code)
 	}
 	return resp, nil
 }
@@ -56,9 +64,13 @@ func (s *grpcAPIService) Subscribe(ctx context.Context, req *SubscribeRequest) (
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		incError(s.api.config.Protocol, "subscribe", resp.Error.Code)
 		statusCode := MapErrorToGRPCCode(resp.Error)
 		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
 		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "subscribe", resp.Error.Code)
 	}
 	return resp, nil
 }
@@ -71,9 +83,13 @@ func (s *grpcAPIService) Unsubscribe(ctx context.Context, req *UnsubscribeReques
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		incError(s.api.config.Protocol, "unsubscribe", resp.Error.Code)
 		statusCode := MapErrorToGRPCCode(resp.Error)
 		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
 		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "unsubscribe", resp.Error.Code)
 	}
 	return resp, nil
 }
@@ -86,9 +102,13 @@ func (s *grpcAPIService) Disconnect(ctx context.Context, req *DisconnectRequest)
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		incError(s.api.config.Protocol, "disconnect", resp.Error.Code)
 		statusCode := MapErrorToGRPCCode(resp.Error)
 		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
 		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "disconnect", resp.Error.Code)
 	}
 	return resp, nil
 }
@@ -101,9 +121,13 @@ func (s *grpcAPIService) Presence(ctx context.Context, req *PresenceRequest) (*P
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		incError(s.api.config.Protocol, "presence", resp.Error.Code)
 		statusCode := MapErrorToGRPCCode(resp.Error)
 		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
 		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "presence", resp.Error.Code)
 	}
 	return resp, nil
 }
@@ -116,9 +140,13 @@ func (s *grpcAPIService) PresenceStats(ctx context.Context, req *PresenceStatsRe
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		incError(s.api.config.Protocol, "presence_stats", resp.Error.Code)
 		statusCode := MapErrorToGRPCCode(resp.Error)
 		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
 		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "presence_stats", resp.Error.Code)
 	}
 	return resp, nil
 }
@@ -131,9 +159,13 @@ func (s *grpcAPIService) History(ctx context.Context, req *HistoryRequest) (*His
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		incError(s.api.config.Protocol, "history", resp.Error.Code)
 		statusCode := MapErrorToGRPCCode(resp.Error)
 		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
 		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "history", resp.Error.Code)
 	}
 	return resp, nil
 }
@@ -146,9 +178,13 @@ func (s *grpcAPIService) HistoryRemove(ctx context.Context, req *HistoryRemoveRe
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		incError(s.api.config.Protocol, "history_remove", resp.Error.Code)
 		statusCode := MapErrorToGRPCCode(resp.Error)
 		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
 		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "history_remove", resp.Error.Code)
 	}
 	return resp, nil
 }
@@ -161,9 +197,13 @@ func (s *grpcAPIService) Info(ctx context.Context, req *InfoRequest) (*InfoRespo
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		incError(s.api.config.Protocol, "info", resp.Error.Code)
 		statusCode := MapErrorToGRPCCode(resp.Error)
 		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
 		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "info", resp.Error.Code)
 	}
 	return resp, nil
 }
@@ -176,9 +216,13 @@ func (s *grpcAPIService) RPC(ctx context.Context, req *RPCRequest) (*RPCResponse
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		incError(s.api.config.Protocol, "rpc", resp.Error.Code)
 		statusCode := MapErrorToGRPCCode(resp.Error)
 		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
 		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "rpc", resp.Error.Code)
 	}
 	return resp, nil
 }
@@ -191,9 +235,13 @@ func (s *grpcAPIService) Refresh(ctx context.Context, req *RefreshRequest) (*Ref
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		incError(s.api.config.Protocol, "refresh", resp.Error.Code)
 		statusCode := MapErrorToGRPCCode(resp.Error)
 		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
 		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "refresh", resp.Error.Code)
 	}
 	return resp, nil
 }
@@ -206,9 +254,13 @@ func (s *grpcAPIService) Channels(ctx context.Context, req *ChannelsRequest) (*C
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		incError(s.api.config.Protocol, "channels", resp.Error.Code)
 		statusCode := MapErrorToGRPCCode(resp.Error)
 		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
 		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "channels", resp.Error.Code)
 	}
 	return resp, nil
 }

@@ -20,7 +20,9 @@ const (
 	defaultPartitionSelectLimit = 100
 )
 
-func NewPostgresConsumer(name string, logger Logger, dispatcher Dispatcher, config PostgresConfig) (*PostgresConsumer, error) {
+func NewPostgresConsumer(
+	name string, logger Logger, dispatcher Dispatcher, config PostgresConfig, metrics *commonMetrics,
+) (*PostgresConsumer, error) {
 	if config.DSN == "" {
 		return nil, errors.New("dsn is required")
 	}
@@ -64,6 +66,7 @@ func NewPostgresConsumer(name string, logger Logger, dispatcher Dispatcher, conf
 		dispatcher: dispatcher,
 		config:     config,
 		lockPrefix: "centrifugo_partition_lock_" + name,
+		metrics:    metrics,
 	}, nil
 }
 
@@ -76,6 +79,7 @@ type PostgresConsumer struct {
 	config     PostgresConfig
 	dispatcher Dispatcher
 	lockPrefix string
+	metrics    *commonMetrics
 }
 
 type PostgresEvent struct {
@@ -251,12 +255,14 @@ func (c *PostgresConsumer) Run(ctx context.Context) error {
 				default:
 				}
 				numRows, err := c.processOnce(ctx, i)
+				c.metrics.processedTotal.WithLabelValues(c.name).Add(float64(numRows))
 				if err != nil {
 					if errors.Is(err, context.Canceled) {
 						return err
 					}
 					retries++
 					backoffDuration = getNextBackoffDuration(backoffDuration, retries)
+					c.metrics.errorsTotal.WithLabelValues(c.name).Inc()
 					c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing postgresql outbox", map[string]any{"error": err.Error(), "partition": i}))
 					select {
 					case <-ctx.Done():

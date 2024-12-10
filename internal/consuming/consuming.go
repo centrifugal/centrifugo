@@ -9,6 +9,7 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/service"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
 
@@ -25,6 +26,8 @@ type Logger interface {
 }
 
 func New(nodeID string, logger Logger, dispatcher Dispatcher, configs []ConsumerConfig) ([]service.Service, error) {
+	metrics := newCommonMetrics(prometheus.DefaultRegisterer)
+
 	var services []service.Service
 	for _, config := range configs {
 		if !config.Enabled { // Important to keep this check inside specific type for proper config validation.
@@ -32,14 +35,14 @@ func New(nodeID string, logger Logger, dispatcher Dispatcher, configs []Consumer
 			continue
 		}
 		if config.Type == configtypes.ConsumerTypePostgres {
-			consumer, err := NewPostgresConsumer(config.Name, logger, dispatcher, config.Postgres)
+			consumer, err := NewPostgresConsumer(config.Name, logger, dispatcher, config.Postgres, metrics)
 			if err != nil {
 				return nil, fmt.Errorf("error initializing PostgreSQL consumer (%s): %w", config.Name, err)
 			}
 			log.Info().Str("consumer_name", config.Name).Msg("running consumer")
 			services = append(services, consumer)
 		} else if config.Type == configtypes.ConsumerTypeKafka {
-			consumer, err := NewKafkaConsumer(config.Name, nodeID, logger, dispatcher, config.Kafka)
+			consumer, err := NewKafkaConsumer(config.Name, nodeID, logger, dispatcher, config.Kafka, metrics)
 			if err != nil {
 				return nil, fmt.Errorf("error initializing Kafka consumer (%s): %w", config.Name, err)
 			}
@@ -50,5 +53,11 @@ func New(nodeID string, logger Logger, dispatcher Dispatcher, configs []Consumer
 		}
 		log.Info().Str("consumer_name", config.Name).Str("consumer_type", config.Type).Msg("running consumer")
 	}
+
+	for _, config := range configs {
+		metrics.processedTotal.WithLabelValues(config.Name).Add(0)
+		metrics.errorsTotal.WithLabelValues(config.Name).Add(0)
+	}
+
 	return services, nil
 }
