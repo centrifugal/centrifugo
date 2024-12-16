@@ -13,9 +13,11 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
+var knownBrokers = []string{"memory", "nats", "redis", "redisnats"}
+
 // Validate validates config and returns error if problems found.
 func (c Config) Validate() error {
-	if c.Broker.Type != "memory" && c.Broker.Type != "nats" && c.Broker.Type != "redis" && c.Broker.Type != "redisnats" {
+	if !slices.Contains(knownBrokers, c.Broker.Type) {
 		return fmt.Errorf("unknown broker: %s", c.Broker.Type)
 	}
 

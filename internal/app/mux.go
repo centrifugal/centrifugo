@@ -111,8 +111,6 @@ func Mux(
 		commonMiddlewares = append(commonMiddlewares, middleware.LogRequest)
 	}
 
-	promhttp.Handler()
-
 	basicMiddlewares := append([]alice.Constructor{}, commonMiddlewares...)
 	basicChain := alice.New(basicMiddlewares...)
 
