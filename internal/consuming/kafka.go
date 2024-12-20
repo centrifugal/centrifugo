@@ -39,18 +39,30 @@ type KafkaConfig struct {
 
 	// PartitionBufferSize is the size of the buffer for each partition consumer.
 	// This is the number of records that can be buffered before the consumer
-	// will pause fetching records from Kafka. By default, this is 16.
-	// Set to -1 to use non-buffered channel.
+	// will pause fetching records from Kafka. By default, this is 8.
+	// Note, due to the way the consumer works with Kafka partitions, we do not
+	// allow using unbuffered channels for partition consumers. Specifically
+	// due to the race condition of the consumer pausing/resuming, covered in
+	// TestKafkaConsumer_TestPauseAfterResumeRace test case.
 	PartitionBufferSize int `mapstructure:"partition_buffer_size" json:"partition_buffer_size"`
 
 	// FetchMaxBytes is the maximum number of bytes to fetch from Kafka in a single request.
 	// If not set the default 50MB is used.
 	FetchMaxBytes int32 `mapstructure:"fetch_max_bytes" json:"fetch_max_bytes"`
+
+	// testOnlyConfig is an additional options which are used for testing purposes only.
+	testOnlyConfig testOnlyConfig
+}
+
+type testOnlyConfig struct {
+	topicPartitionBeforePauseCh    chan topicPartition
+	topicPartitionPauseProceedCh   chan struct{}
+	fetchTopicPartitionSubmittedCh chan kgo.FetchTopicPartition
 }
 
 type topicPartition struct {
-	t string
-	p int32
+	topic     string
+	partition int32
 }
 
 type KafkaConsumer struct {
@@ -109,6 +121,9 @@ func NewKafkaConsumer(name string, nodeID string, logger Logger, dispatcher Disp
 	}
 	if config.MaxPollRecords == 0 {
 		config.MaxPollRecords = 100
+	}
+	if config.PartitionBufferSize < 0 {
+		return nil, errors.New("partition buffer size can't be negative")
 	}
 	consumer := &KafkaConsumer{
 		name:       name,
@@ -317,13 +332,37 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 				case <-c.consumers[tp].quit:
 					return
 				case c.consumers[tp].recs <- p:
+					if c.config.testOnlyConfig.fetchTopicPartitionSubmittedCh != nil { // Only set in tests.
+						c.config.testOnlyConfig.fetchTopicPartitionSubmittedCh <- p
+					}
 				default:
+					if c.config.testOnlyConfig.topicPartitionBeforePauseCh != nil { // Only set in tests.
+						c.config.testOnlyConfig.topicPartitionBeforePauseCh <- tp
+					}
+					if c.config.testOnlyConfig.topicPartitionPauseProceedCh != nil { // Only set in tests.
+						<-c.config.testOnlyConfig.topicPartitionPauseProceedCh
+					}
+
 					partitionsToPause := map[string][]int32{p.Topic: {p.Partition}}
 					// PauseFetchPartitions here to not poll partition until records are processed.
 					// This allows parallel processing of records from different partitions, without
 					// keeping records in memory and blocking rebalance. Resume will be called after
 					// records are processed by c.consumers[tp].
 					c.client.PauseFetchPartitions(partitionsToPause)
+					defer func() {
+						// There is a chance that message processor resumed partition processing before
+						// we called PauseFetchPartitions above. Such a race was observed in a service
+						// under CPU throttling conditions. In that case Pause is called after Resume,
+						// and topic is never resumed after that. To avoid we check if the channel current
+						// len is less than cap, if len < cap => we can be sure that buffer has space now,
+						// so we can resume partition processing. If it is not, this means that the records
+						// are still not processed and resume will be called eventually after processing by
+						// partition consumer. See also TestKafkaConsumer_TestPauseAfterResumeRace test case.
+						if len(c.consumers[tp].recs) < cap(c.consumers[tp].recs) {
+							c.client.ResumeFetchPartitions(partitionsToPause)
+						}
+					}()
+
 					pausedTopicPartitions[tp] = struct{}{}
 					// To poll next time since correct offset we need to set it manually to the offset of
 					// the first record in the batch. Otherwise, next poll will return the next record batch,
@@ -364,13 +403,11 @@ func (c *KafkaConsumer) reInitClient(ctx context.Context) error {
 	return nil
 }
 
-const defaultPartitionBufferSize = 16
+const defaultPartitionBufferSize = 8
 
 func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned map[string][]int32) {
 	bufferSize := c.config.PartitionBufferSize
-	if bufferSize == -1 {
-		bufferSize = 0
-	} else if bufferSize == 0 {
+	if bufferSize == 0 {
 		bufferSize = defaultPartitionBufferSize
 	}
 	for topic, partitions := range assigned {
@@ -501,7 +538,7 @@ func (pc *partitionConsumer) consume() {
 			return
 		case p := <-pc.recs:
 			pc.processRecords(p.Records)
-			// At this point we are ready to consume the next batch from partition, thus resume.
+			// After processing records, we can resume partition processing (if it was paused, no-op otherwise).
 			resumeConsuming()
 		}
 	}
