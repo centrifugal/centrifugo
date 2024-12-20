@@ -368,7 +368,7 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherTopic(t *testing.T) {
 // is stuck on it. We want to make sure that the consumer is not blocked and can still process
 // messages from other topic partitions.
 func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherPartition(t *testing.T) {
-	partitionBufferSizes := []int{-1, 0}
+	partitionBufferSizes := []int{0, 1}
 
 	for _, partitionBufferSize := range partitionBufferSizes {
 		t.Run(fmt.Sprintf("partition_buffer_size_%d", partitionBufferSize), func(t *testing.T) {
@@ -458,21 +458,32 @@ func TestKafkaConsumer_PausePartitions(t *testing.T) {
 	consumerClosed := make(chan struct{})
 	doneCh := make(chan struct{})
 
+	fetchSubmittedCh := make(chan kgo.FetchTopicPartition)
+	beforePauseCh := make(chan topicPartition)
+
 	config := KafkaConfig{
-		Brokers:             []string{testKafkaBrokerURL},
-		Topics:              []string{testKafkaTopic},
-		ConsumerGroup:       uuid.New().String(),
-		PartitionBufferSize: -1,
+		Brokers:       []string{testKafkaBrokerURL},
+		Topics:        []string{testKafkaTopic},
+		ConsumerGroup: uuid.New().String(),
+
+		PartitionBufferSize: 1,
+
+		testOnlyConfig: testOnlyConfig{
+			fetchTopicPartitionSubmittedCh: fetchSubmittedCh,
+			topicPartitionBeforePauseCh:    beforePauseCh,
+		},
 	}
 
 	numCalls := 0
+
+	unblockCh := make(chan struct{})
 
 	mockDispatcher := &MockDispatcher{
 		onDispatch: func(ctx context.Context, method string, data []byte) error {
 			numCalls++
 			if numCalls == 1 {
 				close(event1Received)
-				time.Sleep(5 * time.Second)
+				<-unblockCh
 				return nil
 			} else if numCalls == 2 {
 				close(event2Received)
@@ -488,14 +499,22 @@ func TestKafkaConsumer_PausePartitions(t *testing.T) {
 	go func() {
 		err = produceTestMessage(testKafkaTopic, testPayload1)
 		require.NoError(t, err)
+		<-fetchSubmittedCh
 		<-event1Received
-		// At this point message 1 is being processed and the next produced message will
-		// cause a partition pause.
+
 		err = produceTestMessage(testKafkaTopic, testPayload2)
 		require.NoError(t, err)
-		<-event2Received
+		<-fetchSubmittedCh
+
+		// At this point message 1 is being processed and the next produced message must
+		// cause a partition pause.
 		err = produceTestMessage(testKafkaTopic, testPayload3)
 		require.NoError(t, err)
+		<-beforePauseCh // Wait for triggering the partition pause.
+
+		// Unblock the message processing.
+		close(unblockCh)
+		<-fetchSubmittedCh
 	}()
 
 	go func() {
@@ -521,9 +540,7 @@ func TestKafkaConsumer_WorksCorrectlyInLoadedTopic(t *testing.T) {
 		numMessages     int
 		partitionBuffer int
 	}{
-		//{numPartitions: 1, numMessages: 1000, partitionBuffer: -1},
-		//{numPartitions: 1, numMessages: 1000, partitionBuffer: 1},
-		//{numPartitions: 10, numMessages: 10000, partitionBuffer: -1},
+		//{numPartitions: 1, numMessages: 1000, partitionBuffer: 1}
 		{numPartitions: 10, numMessages: 10000, partitionBuffer: 1},
 	}
 
@@ -605,4 +622,105 @@ func TestKafkaConsumer_WorksCorrectlyInLoadedTopic(t *testing.T) {
 			close(doneCh)
 		})
 	}
+}
+
+// TestKafkaConsumer_TestPauseAfterResumeRace tests a scenario where a partition was
+// paused after it was resumed and partition never processed any messages after that.
+func TestKafkaConsumer_TestPauseAfterResumeRace(t *testing.T) {
+	t.Parallel()
+	testKafkaTopic := "consumer_test_" + uuid.New().String()
+	testPayload1 := []byte(`{"input":"value1"}`)
+	testPayload2 := []byte(`{"input":"value2"}`)
+	testPayload3 := []byte(`{"input":"value3"}`)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	defer cancel()
+
+	err := createTestTopic(ctx, testKafkaTopic, 1, 1)
+	require.NoError(t, err)
+
+	consumerClosed := make(chan struct{})
+	doneCh := make(chan struct{})
+
+	messageCh := make(chan struct{}, 128)
+
+	partitionBeforePauseCh := make(chan topicPartition)
+	partitionPauseProceedCh := make(chan struct{})
+	fetchSubmittedCh := make(chan kgo.FetchTopicPartition)
+
+	config := KafkaConfig{
+		Brokers:             []string{testKafkaBrokerURL},
+		Topics:              []string{testKafkaTopic},
+		ConsumerGroup:       uuid.New().String(),
+		PartitionBufferSize: 1,
+
+		testOnlyConfig: testOnlyConfig{
+			topicPartitionBeforePauseCh:    partitionBeforePauseCh,
+			topicPartitionPauseProceedCh:   partitionPauseProceedCh,
+			fetchTopicPartitionSubmittedCh: fetchSubmittedCh,
+		},
+	}
+
+	count := 0
+	proceedCh := make(chan struct{})
+	firstMessageReceived := make(chan struct{})
+
+	mockDispatcher := &MockDispatcher{
+		onDispatch: func(ctx context.Context, method string, data []byte) error {
+			if count == 0 {
+				close(firstMessageReceived)
+				// Block until we are allowed to proceed
+				t.Logf("waiting for proceed")
+				<-proceedCh
+				t.Logf("proceeding")
+			}
+			count++
+			messageCh <- struct{}{}
+			t.Logf("message processed")
+			return nil
+		},
+	}
+	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config)
+	require.NoError(t, err)
+
+	go func() {
+		err := consumer.Run(ctx)
+		require.ErrorIs(t, err, context.Canceled)
+		close(consumerClosed)
+	}()
+
+	go func() {
+		err = produceTestMessage(testKafkaTopic, testPayload1)
+		require.NoError(t, err)
+
+		<-fetchSubmittedCh
+		t.Logf("fetch 1 submitted")
+
+		// This one should be buffered.
+		err = produceTestMessage(testKafkaTopic, testPayload2)
+		require.NoError(t, err)
+
+		<-fetchSubmittedCh
+		t.Logf("fetch 2 submitted")
+
+		// This message pauses the partition consumer.
+		err = produceTestMessage(testKafkaTopic, testPayload3)
+		require.NoError(t, err)
+		<-partitionBeforePauseCh
+		close(proceedCh)
+		// Give consumer some time to process messages, so we can be sure that resume was called.
+		time.Sleep(time.Second)
+		// And now we can proceed so that partition will be paused after resume.
+		close(partitionPauseProceedCh)
+		// Wait for the third message submitted for processing.
+		<-fetchSubmittedCh
+	}()
+
+	for i := 0; i < 3; i++ {
+		<-messageCh
+	}
+
+	cancel()
+	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
+	close(doneCh)
 }
