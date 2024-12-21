@@ -7,7 +7,7 @@ require (
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/tarantool v0.3.1
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
-	github.com/centrifugal/centrifuge v0.33.5-0.20241208063408-f3a1d6b00b59
+	github.com/centrifugal/centrifuge v0.33.5-0.20241221140549-8f88728a2744
 	github.com/centrifugal/protocol v0.13.4
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/gobwas/glob v0.2.3
@@ -19,7 +19,7 @@ require (
 	github.com/justinas/alice v1.2.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/nats-io/nats.go v1.37.0
+	github.com/nats-io/nats.go v1.38.0
 	github.com/prometheus/client_golang v1.20.5
 	github.com/quic-go/quic-go v0.48.2
 	github.com/quic-go/webtransport-go v0.8.1-0.20241018022711-4ac2c9250e66
@@ -44,7 +44,7 @@ require (
 	golang.org/x/crypto v0.31.0
 	golang.org/x/sync v0.10.0
 	golang.org/x/time v0.8.0
-	google.golang.org/grpc v1.68.1
+	google.golang.org/grpc v1.69.2
 	google.golang.org/protobuf v1.35.2
 )
 
@@ -82,7 +82,7 @@ require (
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/nats-io/nkeys v0.4.7 // indirect
+	github.com/nats-io/nkeys v0.4.9 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/ginkgo/v2 v2.12.1 // indirect
