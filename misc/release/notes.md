@@ -11,6 +11,7 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 ### Improvements
 
 * Change Dockerfile to run `centrifugo` under non-root user [#922](https://github.com/centrifugal/centrifugo/pull/922) by @dmeremyanin
+* Update `alpine` base image from 3.18 to 3.21 in Centrifugo Dockerfile
 
 ### Fixes
 
