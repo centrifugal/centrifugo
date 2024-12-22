@@ -4,11 +4,10 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/logging"
-	"github.com/rs/zerolog/log"
-
 	"github.com/centrifugal/centrifugo/v5/internal/unigrpc/unistream"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 )
 

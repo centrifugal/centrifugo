@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/centrifugal/centrifugo/v5/internal/clientstorage"
 	"github.com/centrifugal/centrifugo/v5/internal/config"
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
@@ -15,6 +13,7 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog/log"
 )
 
 // ConnectHandlerConfig ...

@@ -4,13 +4,12 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog/log"
 )
 
 // PublishHandlerConfig ...

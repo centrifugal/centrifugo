@@ -7,11 +7,10 @@ import (
 
 	"github.com/centrifugal/centrifugo/v5/internal/logging"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
 	"github.com/quic-go/webtransport-go"
+	"github.com/rs/zerolog/log"
 )
 
 // Handler for WebTransport.

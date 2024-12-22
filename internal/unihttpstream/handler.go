@@ -42,7 +42,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, maxBytesSize)
 		connectRequestData, err := io.ReadAll(r.Body)
 		if err != nil {
-			log.Info().Err(err).Str("transport", "uni_http_stream").Msg("error reading uni http stream request body")
+			log.Info().Err(err).Str("transport", transportName).Msg("error reading uni http stream request body")
 			if len(connectRequestData) >= int(maxBytesSize) {
 				w.WriteHeader(http.StatusRequestEntityTooLarge)
 				return
@@ -52,7 +52,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		err = json.Unmarshal(connectRequestData, &req)
 		if err != nil {
 			if logging.Enabled(logging.DebugLevel) {
-				log.Error().Err(err).Str("transport", "uni_http_stream").Msg("malformed connect request")
+				log.Error().Err(err).Str("transport", transportName).Msg("malformed connect request")
 			}
 			return
 		}
@@ -64,16 +64,16 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	transport := newStreamTransport(r, h.pingPong)
 	c, closeFn, err := centrifuge.NewClient(r.Context(), h.node, transport)
 	if err != nil {
-		log.Error().Err(err).Str("transport", "uni_http_stream").Msg("error create client")
+		log.Error().Err(err).Str("transport", transportName).Msg("error create client")
 		return
 	}
 	defer func() { _ = closeFn() }()
 	defer close(transport.closedCh) // need to execute this after client closeFn.
 
 	if logging.Enabled(logging.DebugLevel) {
-		log.Debug().Str("transport", "uni_http_stream").Str("client", c.ID()).Msg("client connection established")
+		log.Debug().Str("transport", transportName).Str("client", c.ID()).Msg("client connection established")
 		defer func(started time.Time) {
-			log.Debug().Str("transport", "uni_http_stream").Str("client", c.ID()).Dur("duration", time.Since(started)).Msg("client connection completed")
+			log.Debug().Str("transport", transportName).Str("client", c.ID()).Dur("duration", time.Since(started)).Msg("client connection completed")
 		}(time.Now())
 	}
 

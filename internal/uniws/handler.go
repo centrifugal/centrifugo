@@ -8,11 +8,10 @@ import (
 
 	"github.com/centrifugal/centrifugo/v5/internal/logging"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
 	"github.com/gorilla/websocket"
+	"github.com/rs/zerolog/log"
 )
 
 // Handler handles WebSocket client connections. Usually WebSocket protocol
@@ -75,7 +74,7 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	conn, err := s.upgrade.Upgrade(rw, r, nil)
 	if err != nil {
-		log.Error().Err(err).Str("transport", "uni_ws").Msg("websocket upgrade error")
+		log.Error().Err(err).Str("transport", transportName).Msg("websocket upgrade error")
 		return
 	}
 
@@ -135,15 +134,15 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 		c, closeFn, err := centrifuge.NewClient(NewCancelContext(r.Context(), ctxCh), s.node, transport)
 		if err != nil {
-			log.Error().Err(err).Str("transport", "uni_ws").Msg("error creating client")
+			log.Error().Err(err).Str("transport", transportName).Msg("error creating client")
 			return
 		}
 		defer func() { _ = closeFn() }()
 
 		if logging.Enabled(logging.DebugLevel) {
-			log.Debug().Str("transport", "uni_ws").Str("client", c.ID()).Msg("client connection established")
+			log.Debug().Str("transport", transportName).Str("client", c.ID()).Msg("client connection established")
 			defer func(started time.Time) {
-				log.Debug().Str("transport", "uni_ws").Str("client", c.ID()).Dur("duration", time.Since(started)).Msg("client connection completed")
+				log.Debug().Str("transport", transportName).Str("client", c.ID()).Dur("duration", time.Since(started)).Msg("client connection completed")
 			}(time.Now())
 		}
 

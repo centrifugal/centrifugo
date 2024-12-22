@@ -6,19 +6,17 @@ import (
 	"errors"
 	"unicode"
 
-	"github.com/centrifugal/centrifugo/v5/internal/logging"
-
-	"github.com/rs/zerolog/log"
-
 	"github.com/centrifugal/centrifugo/v5/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v5/internal/clientstorage"
 	"github.com/centrifugal/centrifugo/v5/internal/config"
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/jwtverify"
+	"github.com/centrifugal/centrifugo/v5/internal/logging"
 	"github.com/centrifugal/centrifugo/v5/internal/proxy"
 	"github.com/centrifugal/centrifugo/v5/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/rs/zerolog/log"
 )
 
 // RPCExtensionFunc ...
