@@ -187,14 +187,14 @@ func TestHandleRefreshWithoutProxyServerStart(t *testing.T) {
 	httpTestCase := newRefreshHandlerHTTPTestCase(context.Background(), "/refresh")
 	httpTestCase.Teardown()
 
-	expectedReply := centrifuge.RefreshReply{
-		ExpireAt: time.Now().Unix() + 60,
-	}
-
 	cases := newRefreshHandlerTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
 		reply, err := c.invokeHandle()
 		require.NoError(t, err, c.protocol)
+
+		expectedReply := centrifuge.RefreshReply{
+			ExpireAt: time.Now().Unix() + 60,
+		}
 		require.Equal(t, expectedReply, reply, c.protocol)
 	}
 }

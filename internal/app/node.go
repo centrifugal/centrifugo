@@ -15,7 +15,9 @@ func centrifugeNodeConfig(version string, cfgContainer *config.Container) centri
 	appCfg := cfgContainer.Config()
 	cfg := centrifuge.Config{}
 	cfg.Version = version
-	cfg.MetricsNamespace = "centrifugo"
+	cfg.Metrics = centrifuge.MetricsConfig{
+		MetricsNamespace: "centrifugo",
+	}
 	cfg.Name = nodeName(appCfg)
 	cfg.ChannelMaxLength = appCfg.Channel.MaxLength
 	cfg.ClientPresenceUpdateInterval = appCfg.Client.PresenceUpdateInterval.ToDuration()

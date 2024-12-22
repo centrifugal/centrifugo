@@ -7,14 +7,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
+	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/apiproto"
-	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
-
 	"github.com/centrifugal/centrifuge"
+	"github.com/centrifugal/centrifugo/v5/internal/apiproto"
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
@@ -74,8 +75,20 @@ func produceTestMessage(topic string, message []byte, headers []kgo.RecordHeader
 	return nil
 }
 
+func produceManyRecords(records ...*kgo.Record) error {
+	client, err := kgo.NewClient(kgo.SeedBrokers(testKafkaBrokerURL))
+	if err != nil {
+		return fmt.Errorf("failed to create Kafka client: %w", err)
+	}
+	defer client.Close()
+	err = client.ProduceSync(context.Background(), records...).FirstErr()
+	if err != nil {
+		return fmt.Errorf("failed to produce message: %w", err)
+	}
+	return nil
+}
+
 func produceTestMessageToPartition(topic string, message []byte, partition int32) error {
-	// Create a new client.
 	client, err := kgo.NewClient(
 		kgo.SeedBrokers(testKafkaBrokerURL),
 		kgo.RecordPartitioner(kgo.ManualPartitioner()),
@@ -85,7 +98,6 @@ func produceTestMessageToPartition(topic string, message []byte, partition int32
 	}
 	defer client.Close()
 
-	// Produce a message until we hit desired partition.
 	res := client.ProduceSync(context.Background(), &kgo.Record{
 		Topic: topic, Partition: partition, Value: message})
 	if res.FirstErr() != nil {
@@ -371,7 +383,7 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherTopic(t *testing.T) {
 // is stuck on it. We want to make sure that the consumer is not blocked and can still process
 // messages from other topic partitions.
 func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherPartition(t *testing.T) {
-	partitionBufferSizes := []int{-1, 0}
+	partitionBufferSizes := []int{0, 1}
 
 	for _, partitionBufferSize := range partitionBufferSizes {
 		t.Run(fmt.Sprintf("partition_buffer_size_%d", partitionBufferSize), func(t *testing.T) {
@@ -440,6 +452,293 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherPartition(t *testing.T
 			close(doneCh)
 		})
 	}
+}
+func TestKafkaConsumer_PausePartitions(t *testing.T) {
+	t.Parallel()
+	testKafkaTopic := "consumer_test_" + uuid.New().String()
+	testPayload1 := []byte(`{"key":"value1"}`)
+	testPayload2 := []byte(`{"key":"value2"}`)
+	testPayload3 := []byte(`{"key":"value3"}`)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	err := createTestTopic(ctx, testKafkaTopic, 1, 1)
+	require.NoError(t, err)
+
+	event1Received := make(chan struct{})
+	event2Received := make(chan struct{})
+	event3Received := make(chan struct{})
+	consumerClosed := make(chan struct{})
+	doneCh := make(chan struct{})
+
+	fetchSubmittedCh := make(chan kgo.FetchTopicPartition)
+	beforePauseCh := make(chan topicPartition)
+
+	config := KafkaConfig{
+		Brokers:       []string{testKafkaBrokerURL},
+		Topics:        []string{testKafkaTopic},
+		ConsumerGroup: uuid.New().String(),
+
+		PartitionBufferSize: 1,
+	}
+
+	numCalls := 0
+
+	unblockCh := make(chan struct{})
+
+	testConfig := testOnlyConfig{
+		fetchTopicPartitionSubmittedCh: fetchSubmittedCh,
+		topicPartitionBeforePauseCh:    beforePauseCh,
+	}
+
+	mockDispatcher := &MockDispatcher{
+		onDispatch: func(ctx context.Context, method string, data []byte) error {
+			numCalls++
+			if numCalls == 1 {
+				close(event1Received)
+				<-unblockCh
+				return nil
+			} else if numCalls == 2 {
+				close(event2Received)
+				return nil
+			}
+			close(event3Received)
+			return nil
+		},
+	}
+	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
+	require.NoError(t, err)
+
+	consumer.testOnlyConfig = testConfig
+
+	go func() {
+		err = produceTestMessage(testKafkaTopic, testPayload1, nil)
+		require.NoError(t, err)
+		<-fetchSubmittedCh
+		<-event1Received
+
+		err = produceTestMessage(testKafkaTopic, testPayload2, nil)
+		require.NoError(t, err)
+		<-fetchSubmittedCh
+
+		// At this point message 1 is being processed and the next produced message must
+		// cause a partition pause.
+		err = produceTestMessage(testKafkaTopic, testPayload3, nil)
+		require.NoError(t, err)
+		<-beforePauseCh // Wait for triggering the partition pause.
+
+		// Unblock the message processing.
+		close(unblockCh)
+		<-fetchSubmittedCh
+	}()
+
+	go func() {
+		err := consumer.Run(ctx)
+		require.ErrorIs(t, err, context.Canceled)
+		close(consumerClosed)
+	}()
+
+	waitCh(t, event1Received, 30*time.Second, "timeout waiting for event 1")
+	waitCh(t, event2Received, 30*time.Second, "timeout waiting for event 2")
+	waitCh(t, event3Received, 30*time.Second, "timeout waiting for event 3")
+	cancel()
+	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
+	close(doneCh)
+}
+
+func TestKafkaConsumer_WorksCorrectlyInLoadedTopic(t *testing.T) {
+	t.Skip()
+	t.Parallel()
+
+	testCases := []struct {
+		numPartitions   int32
+		numMessages     int
+		partitionBuffer int
+	}{
+		//{numPartitions: 1, numMessages: 1000, partitionBuffer: 1}
+		{numPartitions: 10, numMessages: 10000, partitionBuffer: 1},
+	}
+
+	for _, tc := range testCases {
+		name := fmt.Sprintf("partitions=%d,messages=%d,buffer=%d", tc.numPartitions, tc.numMessages, tc.partitionBuffer)
+		t.Run(name, func(t *testing.T) {
+			testKafkaTopic := "consumer_test_" + uuid.New().String()
+
+			ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+			defer cancel()
+
+			err := createTestTopic(ctx, testKafkaTopic, tc.numPartitions, 1)
+			require.NoError(t, err)
+
+			consumerClosed := make(chan struct{})
+			doneCh := make(chan struct{})
+
+			numMessages := tc.numMessages
+			messageCh := make(chan struct{}, numMessages)
+
+			mockDispatcher := &MockDispatcher{
+				onDispatch: func(ctx context.Context, method string, data []byte) error {
+					// Emulate delay due to some work.
+					time.Sleep(20 * time.Millisecond)
+					messageCh <- struct{}{}
+					return nil
+				},
+			}
+			config := KafkaConfig{
+				Brokers:             []string{testKafkaBrokerURL},
+				Topics:              []string{testKafkaTopic},
+				ConsumerGroup:       uuid.New().String(),
+				PartitionBufferSize: tc.partitionBuffer,
+			}
+			consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
+			require.NoError(t, err)
+
+			var records []*kgo.Record
+			for i := 0; i < numMessages; i++ {
+				records = append(records, &kgo.Record{Topic: testKafkaTopic, Value: []byte(`{"hello": "` + strconv.Itoa(i) + `"}`)})
+				if (i+1)%100 == 0 {
+					err = produceManyRecords(records...)
+					if err != nil {
+						t.Fatal(err)
+					}
+					records = nil
+					t.Logf("produced %d messages", i+1)
+				}
+			}
+
+			t.Logf("all messages produced, 3, 2, 1, go!")
+			time.Sleep(time.Second)
+
+			go func() {
+				err := consumer.Run(ctx)
+				require.ErrorIs(t, err, context.Canceled)
+				close(consumerClosed)
+			}()
+
+			var numProcessed int64
+			go func() {
+				for {
+					select {
+					case <-ctx.Done():
+						return
+					case <-time.After(time.Second):
+						t.Logf("processed %d messages", atomic.LoadInt64(&numProcessed))
+					}
+				}
+			}()
+
+			for i := 0; i < numMessages; i++ {
+				<-messageCh
+				atomic.AddInt64(&numProcessed, 1)
+			}
+			t.Logf("all messages processed")
+			cancel()
+			waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
+			close(doneCh)
+		})
+	}
+}
+
+// TestKafkaConsumer_TestPauseAfterResumeRace tests a scenario where a partition was
+// paused after it was resumed and partition never processed any messages after that.
+func TestKafkaConsumer_TestPauseAfterResumeRace(t *testing.T) {
+	t.Parallel()
+	testKafkaTopic := "consumer_test_" + uuid.New().String()
+	testPayload1 := []byte(`{"input":"value1"}`)
+	testPayload2 := []byte(`{"input":"value2"}`)
+	testPayload3 := []byte(`{"input":"value3"}`)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	defer cancel()
+
+	err := createTestTopic(ctx, testKafkaTopic, 1, 1)
+	require.NoError(t, err)
+
+	consumerClosed := make(chan struct{})
+	doneCh := make(chan struct{})
+
+	messageCh := make(chan struct{}, 128)
+
+	partitionBeforePauseCh := make(chan topicPartition)
+	partitionPauseProceedCh := make(chan struct{})
+	fetchSubmittedCh := make(chan kgo.FetchTopicPartition)
+
+	config := KafkaConfig{
+		Brokers:             []string{testKafkaBrokerURL},
+		Topics:              []string{testKafkaTopic},
+		ConsumerGroup:       uuid.New().String(),
+		PartitionBufferSize: 1,
+	}
+
+	count := 0
+	proceedCh := make(chan struct{})
+	firstMessageReceived := make(chan struct{})
+
+	mockDispatcher := &MockDispatcher{
+		onDispatch: func(ctx context.Context, method string, data []byte) error {
+			if count == 0 {
+				close(firstMessageReceived)
+				// Block until we are allowed to proceed
+				t.Logf("waiting for proceed")
+				<-proceedCh
+				t.Logf("proceeding")
+			}
+			count++
+			messageCh <- struct{}{}
+			t.Logf("message processed")
+			return nil
+		},
+	}
+	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
+	require.NoError(t, err)
+
+	consumer.testOnlyConfig = testOnlyConfig{
+		topicPartitionBeforePauseCh:    partitionBeforePauseCh,
+		topicPartitionPauseProceedCh:   partitionPauseProceedCh,
+		fetchTopicPartitionSubmittedCh: fetchSubmittedCh,
+	}
+
+	go func() {
+		err := consumer.Run(ctx)
+		require.ErrorIs(t, err, context.Canceled)
+		close(consumerClosed)
+	}()
+
+	go func() {
+		err = produceTestMessage(testKafkaTopic, testPayload1, nil)
+		require.NoError(t, err)
+
+		<-fetchSubmittedCh
+		t.Logf("fetch 1 submitted")
+
+		// This one should be buffered.
+		err = produceTestMessage(testKafkaTopic, testPayload2, nil)
+		require.NoError(t, err)
+
+		<-fetchSubmittedCh
+		t.Logf("fetch 2 submitted")
+
+		// This message pauses the partition consumer.
+		err = produceTestMessage(testKafkaTopic, testPayload3, nil)
+		require.NoError(t, err)
+		<-partitionBeforePauseCh
+		close(proceedCh)
+		// Give consumer some time to process messages, so we can be sure that resume was called.
+		time.Sleep(time.Second)
+		// And now we can proceed so that partition will be paused after resume.
+		close(partitionPauseProceedCh)
+		// Wait for the third message submitted for processing.
+		<-fetchSubmittedCh
+	}()
+
+	for i := 0; i < 3; i++ {
+		<-messageCh
+	}
+
+	cancel()
+	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
+	close(doneCh)
 }
 
 func TestKafkaConsumer_GreenScenario_PublicationDataMode(t *testing.T) {

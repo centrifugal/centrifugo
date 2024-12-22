@@ -620,6 +620,10 @@ type KafkaConsumerConfig struct {
 	// Set to -1 to use non-buffered channel.
 	PartitionBufferSize int `mapstructure:"partition_buffer_size" json:"partition_buffer_size" envconfig:"partition_buffer_size" default:"16" yaml:"partition_buffer_size" toml:"partition_buffer_size"`
 
+	// FetchMaxBytes is the maximum number of bytes to fetch from Kafka in a single request.
+	// If not set the default 50MB is used.
+	FetchMaxBytes int32 `mapstructure:"fetch_max_bytes" json:"fetch_max_bytes" envconfig:"fetch_max_bytes" yaml:"fetch_max_bytes" toml:"fetch_max_bytes"`
+
 	// PublicationDataMode is a configuration for the mode where message payload already
 	// contains data ready to publish into channels, instead of API command.
 	PublicationDataMode KafkaPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" envconfig:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
