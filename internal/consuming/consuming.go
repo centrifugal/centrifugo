@@ -8,7 +8,6 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/service"
 
-	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
@@ -20,12 +19,7 @@ type Dispatcher interface {
 	Broadcast(ctx context.Context, req *apiproto.BroadcastRequest) error
 }
 
-type Logger interface {
-	LogEnabled(level centrifuge.LogLevel) bool
-	Log(node centrifuge.LogEntry)
-}
-
-func New(nodeID string, logger Logger, dispatcher Dispatcher, configs []ConsumerConfig) ([]service.Service, error) {
+func New(nodeID string, dispatcher Dispatcher, configs []ConsumerConfig) ([]service.Service, error) {
 	metrics := newCommonMetrics(prometheus.DefaultRegisterer)
 
 	var services []service.Service
@@ -35,14 +29,14 @@ func New(nodeID string, logger Logger, dispatcher Dispatcher, configs []Consumer
 			continue
 		}
 		if config.Type == configtypes.ConsumerTypePostgres {
-			consumer, err := NewPostgresConsumer(config.Name, logger, dispatcher, config.Postgres, metrics)
+			consumer, err := NewPostgresConsumer(config.Name, dispatcher, config.Postgres, metrics)
 			if err != nil {
 				return nil, fmt.Errorf("error initializing PostgreSQL consumer (%s): %w", config.Name, err)
 			}
 			log.Info().Str("consumer_name", config.Name).Msg("running consumer")
 			services = append(services, consumer)
 		} else if config.Type == configtypes.ConsumerTypeKafka {
-			consumer, err := NewKafkaConsumer(config.Name, nodeID, logger, dispatcher, config.Kafka, metrics)
+			consumer, err := NewKafkaConsumer(config.Name, nodeID, dispatcher, config.Kafka, metrics)
 			if err != nil {
 				return nil, fmt.Errorf("error initializing Kafka consumer (%s): %w", config.Name, err)
 			}

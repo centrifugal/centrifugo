@@ -5,6 +5,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/centrifugal/centrifugo/v5/internal/config"
 
 	"github.com/centrifugal/centrifuge"
@@ -52,7 +54,7 @@ func (l *ConnLimit) Middleware(h http.Handler) http.Handler {
 			now := time.Now().UnixNano()
 			prevLoggedAt := atomic.LoadInt64(&connLimitReachedLoggedAt)
 			if prevLoggedAt == 0 || now-prevLoggedAt > connLimitReachedLogThrottle {
-				l.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "node connection limit reached", map[string]any{"limit": connLimit}))
+				log.Warn().Int("limit", connLimit).Msg("node connection limit reached")
 				atomic.StoreInt64(&connLimitReachedLoggedAt, now)
 			}
 			w.WriteHeader(http.StatusServiceUnavailable)

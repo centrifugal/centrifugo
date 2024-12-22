@@ -43,9 +43,13 @@ func Run(cmd *cobra.Command, configFile string) {
 	if err != nil {
 		log.Fatal().Msgf("error getting config: %v", err)
 	}
-	logFileHandler := logging.Setup(cfg)
-	if logFileHandler != nil {
-		defer func() { _ = logFileHandler.Close() }()
+
+	ctx, serviceCancel := context.WithCancel(context.Background())
+	defer serviceCancel()
+
+	centrifugeLogHandler, logCloseFn := logging.Setup(cfg)
+	if logCloseFn != nil {
+		defer logCloseFn()
 	}
 	if cfgMeta.FileNotFound {
 		log.Warn().Msg("config file not found, continue using environment and flag options")
@@ -97,7 +101,7 @@ func Run(cmd *cobra.Command, configFile string) {
 		log.Fatal().Msgf("error building proxy map: %v", err)
 	}
 
-	nodeCfg := centrifugeNodeConfig(build.Version, cfgContainer)
+	nodeCfg := centrifugeNodeConfig(build.Version, cfgContainer, centrifugeLogHandler)
 
 	node, err := centrifuge.New(nodeCfg)
 	if err != nil {
@@ -173,7 +177,7 @@ func Run(cmd *cobra.Command, configFile string) {
 		UseOpenTelemetry: useConsumingOpentelemetry,
 	})
 
-	consumingServices, err := consuming.New(node.ID(), node, consumingHandler, cfg.Consumers)
+	consumingServices, err := consuming.New(node.ID(), consumingHandler, cfg.Consumers)
 	if err != nil {
 		log.Fatal().Msgf("error initializing consumers: %v", err)
 	}
@@ -235,8 +239,6 @@ func Run(cmd *cobra.Command, configFile string) {
 		log.Fatal().Msgf("error running node: %v", err)
 	}
 
-	ctx, serviceCancel := context.WithCancel(context.Background())
-	defer serviceCancel()
 	serviceManager.Run(ctx)
 
 	var grpcAPIServer *grpc.Server

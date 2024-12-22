@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v5/internal/subsource"
@@ -74,7 +76,7 @@ func (h *SubscribeStreamHandler) Handle(node *centrifuge.Node) SubscribeStreamHa
 		proxyEnabled := chOpts.SubscribeStreamProxyEnabled
 		proxyName := chOpts.SubscribeStreamProxyName
 		if !proxyEnabled {
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe stream proxy not configured for a channel", map[string]any{"channel": e.Channel}))
+			log.Info().Str("channel", e.Channel).Msg("subscribe stream proxy not enabled for a channel")
 			return centrifuge.SubscribeReply{}, nil, nil, centrifuge.ErrorNotAvailable
 		}
 		p = h.config.Proxies[proxyName]
@@ -154,7 +156,7 @@ func (h *SubscribeStreamHandler) Handle(node *centrifuge.Node) SubscribeStreamHa
 			summary.Observe(duration)
 			histogram.Observe(duration)
 			errCounter.Inc()
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error from subscribe stream proxy", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Str("client", client.ID()).Str("channel", e.Channel).Msg("error from subscribe stream proxy")
 			//proxyCallErrorCount.WithLabelValues(proxyName, "subscribe", "internal").Inc()
 			return centrifuge.SubscribeReply{}, nil, nil, err
 		}
@@ -189,7 +191,7 @@ func (h *SubscribeStreamHandler) Handle(node *centrifuge.Node) SubscribeStreamHa
 			if subscribeRep.Result.B64Info != "" {
 				decodedInfo, err := base64.StdEncoding.DecodeString(subscribeRep.Result.B64Info)
 				if err != nil {
-					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]any{"client": client.ID(), "error": err.Error()}))
+					log.Error().Err(err).Str("client", client.ID()).Msg("error decoding base64 info")
 					return centrifuge.SubscribeReply{}, nil, nil, centrifuge.ErrorInternal
 				}
 				info = decodedInfo
@@ -199,7 +201,7 @@ func (h *SubscribeStreamHandler) Handle(node *centrifuge.Node) SubscribeStreamHa
 			if subscribeRep.Result.B64Data != "" {
 				decodedData, err := base64.StdEncoding.DecodeString(subscribeRep.Result.B64Data)
 				if err != nil {
-					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]any{"client": client.ID(), "error": err.Error()}))
+					log.Error().Err(err).Str("client", client.ID()).Msg("error decoding base64 data")
 					return centrifuge.SubscribeReply{}, nil, nil, centrifuge.ErrorInternal
 				}
 				data = decodedData

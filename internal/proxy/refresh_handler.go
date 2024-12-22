@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 
 	"github.com/centrifugal/centrifuge"
@@ -68,7 +70,7 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 			h.summary.Observe(duration)
 			h.histogram.Observe(duration)
 			h.errors.Inc()
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying refresh", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Msg("error proxying refresh")
 			// In case of an error give connection one more minute to live and
 			// then try to check again. This way we gracefully handle temporary
 			// problems on application backend side.
@@ -84,7 +86,7 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 		result := refreshRep.Result
 		if result == nil {
 			// User will be disconnected.
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "no refresh result found", map[string]any{}))
+			log.Error().Msg("no refresh result found")
 			return centrifuge.RefreshReply{
 				Expired: true,
 			}, RefreshExtra{}, nil
@@ -100,7 +102,7 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 		if result.B64Info != "" {
 			decodedInfo, err := base64.StdEncoding.DecodeString(result.B64Info)
 			if err != nil {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]any{"client": client.ID(), "error": err.Error()}))
+				log.Error().Err(err).Str("client", client.ID()).Msg("error decoding base64 info")
 				return centrifuge.RefreshReply{}, RefreshExtra{}, centrifuge.ErrorInternal
 			}
 			info = decodedInfo

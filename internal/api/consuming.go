@@ -7,6 +7,7 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/apiproto"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -34,7 +35,7 @@ func NewConsumingHandler(n *centrifuge.Node, apiExecutor *Executor, c ConsumingH
 }
 
 func (h *ConsumingHandler) logNonRetryableConsumingError(err error, method string) {
-	h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "non retryable error during consuming, skip message", map[string]any{"error": err.Error(), "method": method}))
+	log.Error().Err(err).Str("method", method).Msg("non retryable error during consuming, skip message")
 }
 
 func (h *ConsumingHandler) Broadcast(ctx context.Context, req *apiproto.BroadcastRequest) error {

@@ -7,9 +7,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 
-	"github.com/centrifugal/centrifuge"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/sync/errgroup"
@@ -21,7 +22,7 @@ const (
 )
 
 func NewPostgresConsumer(
-	name string, logger Logger, dispatcher Dispatcher, config PostgresConfig, metrics *commonMetrics,
+	name string, dispatcher Dispatcher, config PostgresConfig, metrics *commonMetrics,
 ) (*PostgresConsumer, error) {
 	if config.DSN == "" {
 		return nil, errors.New("dsn is required")
@@ -62,7 +63,6 @@ func NewPostgresConsumer(
 	return &PostgresConsumer{
 		name:       name,
 		pool:       pool,
-		logger:     logger,
 		dispatcher: dispatcher,
 		config:     config,
 		lockPrefix: "centrifugo_partition_lock_" + name,
@@ -75,7 +75,6 @@ type PostgresConfig = configtypes.PostgresConsumerConfig
 type PostgresConsumer struct {
 	name       string
 	pool       *pgxpool.Pool
-	logger     Logger
 	config     PostgresConfig
 	dispatcher Dispatcher
 	lockPrefix string
@@ -113,12 +112,12 @@ func (c *PostgresConsumer) listenForNotifications(ctx context.Context, triggerCh
 		}
 		partition, err := strconv.Atoi(notification.Payload)
 		if err != nil {
-			c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error converting postgresql notification", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Str("consumer_name", c.name).Msg("error converting postgresql notification")
 			continue
 		}
 
 		if partition > len(triggerChannels)-1 {
-			c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "outbox partition is larger than configured number", map[string]any{"partition": partition}))
+			log.Error().Str("consumer_name", c.name).Int("partition", partition).Msg("outbox partition is larger than configured number")
 			continue
 		}
 		select {
@@ -182,7 +181,7 @@ func (c *PostgresConsumer) processOnce(ctx context.Context, partition int) (int,
 		dispatchErr = c.dispatcher.Dispatch(context.Background(), event.Method, event.Payload)
 		if dispatchErr != nil {
 			// Stop here, all processed events will be removed, and we will start from this one.
-			c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing consumed event", map[string]any{"error": dispatchErr.Error(), "method": event.Method}))
+			log.Error().Err(dispatchErr).Str("consumer_name", c.name).Str("method", event.Method).Msg("error processing consumed event")
 			break
 		} else {
 			numProcessedRows++
@@ -230,7 +229,7 @@ func (c *PostgresConsumer) Run(ctx context.Context) error {
 					if errors.Is(err, context.Canceled) {
 						return ctx.Err()
 					}
-					c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error listening outbox notifications", map[string]any{"error": err.Error()}))
+					log.Error().Err(err).Str("consumer_name", c.name).Msg("error listening outbox notifications")
 					select {
 					case <-time.After(time.Second):
 					case <-ctx.Done():
@@ -263,7 +262,7 @@ func (c *PostgresConsumer) Run(ctx context.Context) error {
 					retries++
 					backoffDuration = getNextBackoffDuration(backoffDuration, retries)
 					c.metrics.errorsTotal.WithLabelValues(c.name).Inc()
-					c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing postgresql outbox", map[string]any{"error": err.Error(), "partition": i}))
+					log.Error().Err(err).Str("consumer_name", c.name).Int("partition", i).Msg("error processing postgresql outbox")
 					select {
 					case <-ctx.Done():
 						return ctx.Err()

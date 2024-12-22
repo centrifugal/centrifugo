@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/FZambia/eagle v0.1.0
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
-	github.com/centrifugal/centrifuge v0.33.5-0.20241222090232-3a3fceb66a3d
+	github.com/centrifugal/centrifuge v0.33.5-0.20241222164738-7c718f40f348
 	github.com/centrifugal/protocol v0.13.5-0.20241111155425-6c360178091e
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.2.1
@@ -14,7 +14,7 @@ require (
 	github.com/gorilla/securecookie v1.1.2
 	github.com/gorilla/websocket v1.5.0
 	github.com/hashicorp/go-envparse v0.1.0
-	github.com/jackc/pgx/v5 v5.7.1
+	github.com/jackc/pgx/v5 v5.7.2
 	github.com/justinas/alice v1.2.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/nats-io/nats.go v1.38.0

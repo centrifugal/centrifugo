@@ -15,7 +15,7 @@ import (
 	"github.com/centrifugal/centrifugo/v5/internal/apiproto"
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 
-	"github.com/centrifugal/centrifuge"
+	"github.com/rs/zerolog/log"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/kmsg"
 	"github.com/twmb/franz-go/pkg/sasl/aws"
@@ -40,7 +40,6 @@ type KafkaConsumer struct {
 	name           string
 	client         *kgo.Client
 	nodeID         string
-	logger         Logger
 	dispatcher     Dispatcher
 	config         KafkaConfig
 	consumers      map[topicPartition]*partitionConsumer
@@ -83,7 +82,7 @@ type KafkaJSONEvent struct {
 }
 
 func NewKafkaConsumer(
-	name string, nodeID string, logger Logger, dispatcher Dispatcher, config KafkaConfig, metrics *commonMetrics,
+	name string, nodeID string, dispatcher Dispatcher, config KafkaConfig, metrics *commonMetrics,
 ) (*KafkaConsumer, error) {
 	if len(config.Brokers) == 0 {
 		return nil, errors.New("brokers required")
@@ -103,7 +102,6 @@ func NewKafkaConsumer(
 	consumer := &KafkaConsumer{
 		name:       name,
 		nodeID:     nodeID,
-		logger:     logger,
 		dispatcher: dispatcher,
 		config:     config,
 		consumers:  make(map[topicPartition]*partitionConsumer),
@@ -219,11 +217,11 @@ func (c *KafkaConsumer) Run(ctx context.Context) error {
 			// consumers to skip calling CommitMarkedOffsets on revoke. Otherwise, we get
 			// "UNKNOWN_MEMBER_ID" error (since group already left).
 			if err := c.client.CommitMarkedOffsets(closeCtx); err != nil {
-				c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "commit marked offsets error on shutdown", map[string]any{"error": err.Error()}))
+				log.Error().Err(err).Str("consumer", c.name).Msg("error committing marked offsets on shutdown")
 			}
 			err := c.leaveGroup(closeCtx, c.client)
 			if err != nil {
-				c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error leaving consumer group", map[string]any{"error": err.Error()}))
+				log.Error().Err(err).Str("consumer", c.name).Msg("error leaving consumer group")
 			}
 			c.client.CloseAllowingRebalance()
 		}
@@ -234,18 +232,18 @@ func (c *KafkaConsumer) Run(ctx context.Context) error {
 			if errors.Is(err, context.Canceled) {
 				return ctx.Err()
 			}
-			c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error polling Kafka", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Str("consumer", c.name).Msg("error polling Kafka")
 		}
 		// Upon returning from polling loop we are re-initializing consumer client.
 		c.client.CloseAllowingRebalance()
 		c.client = nil
-		c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "start re-initializing Kafka consumer client", map[string]any{}))
+		log.Info().Str("consumer", c.name).Msg("re-initializing Kafka consumer client")
 		err = c.reInitClient(ctx)
 		if err != nil {
 			// Only context.Canceled may be returned.
 			return err
 		}
-		c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "Kafka consumer client re-initialized", map[string]any{}))
+		log.Info().Str("consumer", c.name).Msg("Kafka consumer client re-initialized")
 	}
 }
 
@@ -270,10 +268,7 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 						return ctx.Err()
 					}
 					errs = append(errs, fetchErr.Err)
-					c.logger.Log(centrifuge.NewLogEntry(
-						centrifuge.LogLevelError, "error while polling Kafka",
-						map[string]any{"error": fetchErr.Err.Error(), "topic": fetchErr.Topic, "partition": fetchErr.Partition}),
-					)
+					log.Error().Err(fetchErr.Err).Str("topic", fetchErr.Topic).Int32("partition", fetchErr.Partition).Msg("error while polling Kafka")
 				}
 				return fmt.Errorf("poll error: %w", errors.Join(errs...))
 			}
@@ -361,7 +356,7 @@ func (c *KafkaConsumer) reInitClient(ctx context.Context) error {
 		if err != nil {
 			retries++
 			backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-			c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error initializing Kafka client", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Str("consumer", c.name).Msg("error initializing Kafka client")
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -397,7 +392,6 @@ func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned m
 			pc := &partitionConsumer{
 				partitionCtx: partitionCtx,
 				dispatcher:   c.dispatcher,
-				logger:       c.logger,
 				cl:           cl,
 				topic:        topic,
 				partition:    partition,
@@ -422,7 +416,7 @@ func (c *KafkaConsumer) revoked(ctx context.Context, cl *kgo.Client, revoked map
 		// Do not try to CommitMarkedOffsets since on shutdown we call it manually.
 	default:
 		if err := cl.CommitMarkedOffsets(ctx); err != nil {
-			c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "commit error on revoked partitions", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Str("consumer", c.name).Msg("error committing marked offsets on revoke")
 		}
 	}
 }
@@ -451,7 +445,6 @@ func (c *KafkaConsumer) killConsumers(lost map[string][]int32) {
 type partitionConsumer struct {
 	partitionCtx context.Context
 	dispatcher   Dispatcher
-	logger       Logger
 	cl           *kgo.Client
 	topic        string
 	partition    int32
@@ -482,7 +475,7 @@ func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, r
 		var err error
 		delta, err = strconv.ParseBool(getHeaderValue(record, pc.config.PublicationDataMode.DeltaHeader))
 		if err != nil {
-			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error parsing delta header value, skip message", map[string]any{"error": err.Error(), "topic": record.Topic, "partition": record.Partition}))
+			log.Error().Err(err).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error parsing delta header value, skip message")
 			return nil
 		}
 	}
@@ -499,7 +492,7 @@ func (pc *partitionConsumer) processAPICommandRecord(ctx context.Context, record
 	var e KafkaJSONEvent
 	err := json.Unmarshal(record.Value, &e)
 	if err != nil {
-		pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error unmarshalling event from Kafka, skip message", map[string]any{"error": err.Error(), "topic": record.Topic, "partition": record.Partition}))
+		log.Error().Err(err).Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error unmarshalling event from Kafka, skip message")
 		return nil
 	}
 	return pc.dispatcher.Dispatch(ctx, e.Method, e.Payload)
@@ -526,7 +519,7 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 			err := pc.processRecord(pc.partitionCtx, record)
 			if err == nil {
 				if retries > 0 {
-					pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "OK processing message after errors", map[string]any{"topic": record.Topic, "partition": record.Partition}))
+					log.Info().Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("OK processing message after errors")
 				}
 				pc.metrics.processedTotal.WithLabelValues(pc.name).Inc()
 				pc.cl.MarkCommitRecords(record)
@@ -535,7 +528,7 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 			retries++
 			backoffDuration = getNextBackoffDuration(backoffDuration, retries)
 			pc.metrics.errorsTotal.WithLabelValues(pc.name).Inc()
-			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing consumed record", map[string]any{"error": err.Error(), "next_attempt_in": backoffDuration.String(), "topic": record.Topic, "partition": record.Partition}))
+			log.Error().Err(err).Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Dur("next_attempt_in", backoffDuration).Msg("error processing consumed record")
 			select {
 			case <-time.After(backoffDuration):
 			case <-pc.partitionCtx.Done():

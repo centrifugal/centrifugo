@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 
@@ -59,7 +61,7 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 		proxyEnabled := chOpts.PublishProxyEnabled
 		proxyName := chOpts.PublishProxyName
 		if !proxyEnabled {
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "publish proxy not configured for a channel", map[string]any{"channel": e.Channel}))
+			log.Info().Str("channel", e.Channel).Msg("publish proxy not enabled for a channel")
 			return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
 		}
 		p = h.config.Proxies[proxyName]
@@ -97,7 +99,7 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 			summary.Observe(duration)
 			histogram.Observe(duration)
 			errors.Inc()
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying publish", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Str("client", client.ID()).Str("channel", e.Channel).Msg("error proxying publish")
 			return centrifuge.PublishReply{}, err
 		}
 		summary.Observe(duration)
@@ -121,7 +123,7 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 			} else if publishRep.Result.B64Data != "" {
 				decodedData, err := base64.StdEncoding.DecodeString(publishRep.Result.B64Data)
 				if err != nil {
-					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]any{"client": client.ID(), "error": err.Error()}))
+					log.Error().Err(err).Str("client", client.ID()).Msg("error decoding base64 data")
 					return centrifuge.PublishReply{}, centrifuge.ErrorInternal
 				}
 				data = decodedData

@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v5/internal/logging"
 	"github.com/centrifugal/centrifugo/v5/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
+	"github.com/rs/zerolog/log"
 )
 
 type Handler struct {
@@ -40,7 +42,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, maxBytesSize)
 		connectRequestData, err := io.ReadAll(r.Body)
 		if err != nil {
-			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "error reading uni http stream request body", map[string]any{"error": err.Error()}))
+			log.Info().Err(err).Str("transport", "uni_http_stream").Msg("error reading uni http stream request body")
 			if len(connectRequestData) >= int(maxBytesSize) {
 				w.WriteHeader(http.StatusRequestEntityTooLarge)
 				return
@@ -49,8 +51,8 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		err = json.Unmarshal(connectRequestData, &req)
 		if err != nil {
-			if h.node.LogEnabled(centrifuge.LogLevelDebug) {
-				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "malformed connect request", map[string]any{"error": err.Error()}))
+			if logging.Enabled(logging.DebugLevel) {
+				log.Error().Err(err).Str("transport", "uni_http_stream").Msg("malformed connect request")
 			}
 			return
 		}
@@ -62,16 +64,16 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	transport := newStreamTransport(r, h.pingPong)
 	c, closeFn, err := centrifuge.NewClient(r.Context(), h.node, transport)
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error create client", map[string]any{"error": err.Error(), "transport": "uni_http_stream"}))
+		log.Error().Err(err).Str("transport", "uni_http_stream").Msg("error create client")
 		return
 	}
 	defer func() { _ = closeFn() }()
 	defer close(transport.closedCh) // need to execute this after client closeFn.
 
-	if h.node.LogEnabled(centrifuge.LogLevelDebug) {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection established", map[string]any{"transport": transport.Name(), "client": c.ID()}))
+	if logging.Enabled(logging.DebugLevel) {
+		log.Debug().Str("transport", "uni_http_stream").Str("client", c.ID()).Msg("client connection established")
 		defer func(started time.Time) {
-			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection completed", map[string]any{"duration": time.Since(started).String(), "transport": transport.Name(), "client": c.ID()}))
+			log.Debug().Str("transport", "uni_http_stream").Str("client", c.ID()).Dur("duration", time.Since(started)).Msg("client connection completed")
 		}(time.Now())
 	}
 

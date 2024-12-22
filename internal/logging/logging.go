@@ -14,6 +14,14 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	TraceLevel = zerolog.TraceLevel
+	DebugLevel = zerolog.DebugLevel
+	InfoLevel  = zerolog.InfoLevel
+	WarnLevel  = zerolog.WarnLevel
+	ErrorLevel = zerolog.ErrorLevel
+)
+
 var logLevelMatches = map[string]zerolog.Level{
 	"NONE":  zerolog.NoLevel,
 	"TRACE": zerolog.TraceLevel,
@@ -24,41 +32,6 @@ var logLevelMatches = map[string]zerolog.Level{
 	"FATAL": zerolog.FatalLevel,
 }
 
-func configureConsoleWriter() {
-	if isTerminalAttached() {
-		log.Logger = log.Output(zerolog.ConsoleWriter{
-			Out:                 os.Stdout,
-			TimeFormat:          "2006-01-02 15:04:05",
-			FormatLevel:         logutils.ConsoleFormatLevel(),
-			FormatErrFieldName:  logutils.ConsoleFormatErrFieldName(),
-			FormatErrFieldValue: logutils.ConsoleFormatErrFieldValue(),
-		})
-	}
-}
-
-func isTerminalAttached() bool {
-	//goland:noinspection GoBoolExpressions – Goland is not smart enough here.
-	return isatty.IsTerminal(os.Stdout.Fd()) && runtime.GOOS != "windows"
-}
-
-func Setup(cfg config.Config) *os.File {
-	configureConsoleWriter()
-	logLevel, ok := logLevelMatches[strings.ToUpper(cfg.LogLevel)]
-	if !ok {
-		logLevel = zerolog.InfoLevel
-	}
-	zerolog.SetGlobalLevel(logLevel)
-	if cfg.LogFile != "" {
-		f, err := os.OpenFile(cfg.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-		if err != nil {
-			log.Fatal().Msgf("error opening log file: %v", err)
-		}
-		log.Logger = log.Output(f)
-		return f
-	}
-	return nil
-}
-
 func CentrifugeLogLevel(level string) centrifuge.LogLevel {
 	if l, ok := logStringToLevel[strings.ToLower(level)]; ok {
 		return l
@@ -66,7 +39,7 @@ func CentrifugeLogLevel(level string) centrifuge.LogLevel {
 	return centrifuge.LogLevelInfo
 }
 
-// LogStringToLevel matches level string to Centrifuge LogLevel.
+// logStringToLevel matches level string to Centrifuge LogLevel.
 var logStringToLevel = map[string]centrifuge.LogLevel{
 	"trace": centrifuge.LogLevelTrace,
 	"debug": centrifuge.LogLevelDebug,
@@ -75,19 +48,19 @@ var logStringToLevel = map[string]centrifuge.LogLevel{
 	"none":  centrifuge.LogLevelNone,
 }
 
-type LogHandler struct {
+type centrifugeLogHandler struct {
 	entries chan centrifuge.LogEntry
 }
 
-func NewCentrifugeLogHandler() *LogHandler {
-	h := &LogHandler{
+func newCentrifugeLogHandler() *centrifugeLogHandler {
+	h := &centrifugeLogHandler{
 		entries: make(chan centrifuge.LogEntry, 64),
 	}
 	go h.readEntries()
 	return h
 }
 
-func (h *LogHandler) readEntries() {
+func (h *centrifugeLogHandler) readEntries() {
 	for entry := range h.entries {
 		var l *zerolog.Event
 		switch entry.Level {
@@ -112,10 +85,51 @@ func (h *LogHandler) readEntries() {
 	}
 }
 
-func (h *LogHandler) Handle(entry centrifuge.LogEntry) {
+func (h *centrifugeLogHandler) Handle(entry centrifuge.LogEntry) {
 	select {
 	case h.entries <- entry:
 	default:
 		return
 	}
+}
+
+func configureConsoleWriter() {
+	if isTerminalAttached() {
+		log.Logger = log.Output(zerolog.ConsoleWriter{
+			Out:                 os.Stdout,
+			TimeFormat:          "2006-01-02 15:04:05",
+			FormatLevel:         logutils.ConsoleFormatLevel(),
+			FormatErrFieldName:  logutils.ConsoleFormatErrFieldName(),
+			FormatErrFieldValue: logutils.ConsoleFormatErrFieldValue(),
+		})
+	}
+}
+
+func isTerminalAttached() bool {
+	return isatty.IsTerminal(os.Stdout.Fd()) && runtime.GOOS != "windows"
+}
+
+func Setup(cfg config.Config) (centrifuge.LogHandler, func()) {
+	configureConsoleWriter()
+	logLevel, ok := logLevelMatches[strings.ToUpper(cfg.LogLevel)]
+	if !ok {
+		logLevel = zerolog.InfoLevel
+	}
+	zerolog.SetGlobalLevel(logLevel)
+	if cfg.LogFile != "" {
+		f, err := os.OpenFile(cfg.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+		if err != nil {
+			log.Fatal().Msgf("error opening log file: %v", err)
+		}
+		log.Logger = log.Output(f)
+		return newCentrifugeLogHandler().Handle, func() {
+			_ = f.Close()
+		}
+	}
+	return newCentrifugeLogHandler().Handle, nil
+}
+
+// Enabled checks if a specific logging level is enabled
+func Enabled(level zerolog.Level) bool {
+	return level >= zerolog.GlobalLevel()
 }

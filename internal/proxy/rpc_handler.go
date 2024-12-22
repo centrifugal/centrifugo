@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/centrifugal/centrifugo/v5/internal/config"
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 
@@ -58,17 +60,17 @@ func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
 
 		rpcOpts, ok, err := cfgContainer.RpcOptions(e.Method)
 		if err != nil {
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error getting RPC options", map[string]any{"method": e.Method, "error": err.Error()}))
+			log.Error().Err(err).Str("method", e.Method).Msg("error getting RPC options")
 			return centrifuge.RPCReply{}, centrifuge.ErrorInternal
 		}
 		if !ok {
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "rpc options not found", map[string]any{"method": e.Method}))
+			log.Info().Str("method", e.Method).Msg("rpc options not found")
 			return centrifuge.RPCReply{}, centrifuge.ErrorMethodNotFound
 		}
 		proxyEnabled := rpcOpts.ProxyEnabled
 		proxyName := rpcOpts.ProxyName
 		if !proxyEnabled {
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "rpc proxy not configured for a method", map[string]any{"method": e.Method}))
+			log.Info().Str("method", e.Method).Msg("rpc proxy not enabled for a method")
 			return centrifuge.RPCReply{}, centrifuge.ErrorNotAvailable
 		}
 		p = h.config.Proxies[proxyName]
@@ -106,7 +108,7 @@ func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
 			summary.Observe(duration)
 			histogram.Observe(duration)
 			errors.Inc()
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying RPC", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Msg("error proxying RPC")
 			return centrifuge.RPCReply{}, err
 		}
 		summary.Observe(duration)
@@ -124,7 +126,7 @@ func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
 			if rpcData.B64Data != "" {
 				decodedData, err := base64.StdEncoding.DecodeString(rpcData.B64Data)
 				if err != nil {
-					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]any{"client": client.ID(), "error": err.Error()}))
+					log.Error().Err(err).Str("client", client.ID()).Msg("error decoding base64 data")
 					return centrifuge.RPCReply{}, centrifuge.ErrorInternal
 				}
 				data = decodedData

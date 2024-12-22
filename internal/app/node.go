@@ -11,7 +11,7 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
-func centrifugeNodeConfig(version string, cfgContainer *config.Container) centrifuge.Config {
+func centrifugeNodeConfig(version string, cfgContainer *config.Container, logHandler centrifuge.LogHandler) centrifuge.Config {
 	appCfg := cfgContainer.Config()
 	cfg := centrifuge.Config{}
 	cfg.Version = version
@@ -35,7 +35,7 @@ func centrifugeNodeConfig(version string, cfgContainer *config.Container) centri
 	cfg.HistoryMetaTTL = appCfg.Channel.HistoryMetaTTL.ToDuration()
 	cfg.ClientConnectIncludeServerTime = appCfg.Client.ConnectIncludeServerTime
 	cfg.LogLevel = logging.CentrifugeLogLevel(strings.ToLower(appCfg.LogLevel))
-	cfg.LogHandler = logging.NewCentrifugeLogHandler().Handle
+	cfg.LogHandler = logHandler
 	if appCfg.Client.ConnectCodeToUnidirectionalDisconnect.Enabled {
 		uniCodeTransforms := make(map[uint32]centrifuge.Disconnect)
 		for _, transform := range appCfg.Client.ConnectCodeToUnidirectionalDisconnect.Transforms {
