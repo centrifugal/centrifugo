@@ -41,7 +41,7 @@ const edition = "oss"
 func Run(cmd *cobra.Command, configFile string) {
 	cfg, cfgMeta, err := config.GetConfig(cmd, configFile)
 	if err != nil {
-		log.Fatal().Msgf("error getting config: %v", err)
+		log.Fatal().Err(err).Msg("error getting config")
 	}
 
 	ctx, serviceCancel := context.WithCancel(context.Background())
@@ -59,7 +59,7 @@ func Run(cmd *cobra.Command, configFile string) {
 	}
 	err = tools.WritePidFile(cfg.PidFile)
 	if err != nil {
-		log.Fatal().Msgf("error writing PID: %v", err)
+		log.Fatal().Err(err).Msg("error writing PID")
 	}
 	_, _ = maxprocs.Set(maxprocs.Logger(func(s string, i ...interface{}) {
 		log.Info().Msgf(strings.ToLower(s), i...)
@@ -88,46 +88,45 @@ func Run(cmd *cobra.Command, configFile string) {
 
 	err = cfg.Validate()
 	if err != nil {
-		log.Fatal().Msgf("error validating config: %v", err)
+		log.Fatal().Err(err).Msg("error validating config")
 	}
 	cfgContainer, err := config.NewContainer(cfg)
 	if err != nil {
-		log.Fatal().Msgf("error creating config: %v", err)
+		log.Fatal().Err(err).Msg("error creating config")
 	}
 	cfgContainer.ChannelOptionsCacheTTL = 200 * time.Millisecond
 
 	proxyMap, keepHeadersInContext, err := buildProxyMap(cfg)
 	if err != nil {
-		log.Fatal().Msgf("error building proxy map: %v", err)
+		log.Fatal().Err(err).Msg("error building proxy map")
 	}
 
 	nodeCfg := centrifugeNodeConfig(build.Version, cfgContainer, centrifugeLogHandler)
-
 	node, err := centrifuge.New(nodeCfg)
 	if err != nil {
-		log.Fatal().Msgf("error creating Centrifuge Node: %v", err)
+		log.Fatal().Err(err).Msg("error creating Centrifuge Node")
 	}
 
 	if cfg.OpenTelemetry.Enabled {
 		_, err := telemetry.SetupTracing(context.Background())
 		if err != nil {
-			log.Fatal().Msgf("error setting up opentelemetry tracing: %v", err)
+			log.Fatal().Err(err).Msg("error setting up opentelemetry tracing")
 		}
 	}
 
 	modes, err := configureEngines(node, cfgContainer)
 	if err != nil {
-		log.Fatal().Msgf("%v", err)
+		log.Fatal().Err(err).Msg("configure engines error")
 	}
 
 	verifierConfig, err := confighelpers.MakeVerifierConfig(cfg.Client.Token)
 	if err != nil {
-		log.Fatal().Msgf("error creating JWT verifier config: %v", err)
+		log.Fatal().Err(err).Msg("error creating JWT verifier config")
 	}
 
 	tokenVerifier, err := jwtverify.NewTokenVerifierJWT(verifierConfig, cfgContainer)
 	if err != nil {
-		log.Fatal().Msgf("error creating token verifier: %v", err)
+		log.Fatal().Err(err).Msg("error creating token verifier")
 	}
 
 	var subTokenVerifier *jwtverify.VerifierJWT
@@ -135,18 +134,18 @@ func Run(cmd *cobra.Command, configFile string) {
 		log.Info().Msg("initializing separate verifier for subscription tokens")
 		subVerifier, err := confighelpers.MakeVerifierConfig(cfg.Client.SubscriptionToken.Token)
 		if err != nil {
-			log.Fatal().Msgf("error creating subscription JWT verifier config: %v", err)
+			log.Fatal().Err(err).Msg("error creating subscription JWT verifier config")
 		}
 		subTokenVerifier, err = jwtverify.NewTokenVerifierJWT(subVerifier, cfgContainer)
 		if err != nil {
-			log.Fatal().Msgf("error creating token verifier: %v", err)
+			log.Fatal().Err(err).Msg("error creating token verifier")
 		}
 	}
 
 	clientHandler := client.NewHandler(node, cfgContainer, tokenVerifier, subTokenVerifier, proxyMap)
 	err = clientHandler.Setup()
 	if err != nil {
-		log.Fatal().Msgf("error setting up client handler: %v", err)
+		log.Fatal().Err(err).Msg("error setting up client handler")
 	}
 	if cfg.RPC.Ping {
 		log.Info().Str("method", cfg.RPC.PingMethod).Msg("RPC ping extension enabled")
@@ -179,7 +178,7 @@ func Run(cmd *cobra.Command, configFile string) {
 
 	consumingServices, err := consuming.New(node.ID(), consumingHandler, cfg.Consumers)
 	if err != nil {
-		log.Fatal().Msgf("error initializing consumers: %v", err)
+		log.Fatal().Err(err).Msg("error initializing consumers")
 	}
 
 	serviceManager.Register(consumingServices...)
@@ -236,7 +235,7 @@ func Run(cmd *cobra.Command, configFile string) {
 	notify.RegisterHandlers(node, statsSender)
 
 	if err = node.Run(); err != nil {
-		log.Fatal().Msgf("error running node: %v", err)
+		log.Fatal().Err(err).Msg("error running node")
 	}
 
 	serviceManager.Run(ctx)
@@ -246,7 +245,7 @@ func Run(cmd *cobra.Command, configFile string) {
 		var err error
 		grpcAPIServer, err = runGRPCAPIServer(cfg, node, useAPIOpentelemetry, grpcAPIExecutor)
 		if err != nil {
-			log.Fatal().Msgf("error creating GRPC API server: %v", err)
+			log.Fatal().Err(err).Msg("error creating GRPC API server")
 		}
 	}
 
@@ -255,13 +254,13 @@ func Run(cmd *cobra.Command, configFile string) {
 		var err error
 		grpcAPIServer, err = runGRPCUniServer(cfg, node)
 		if err != nil {
-			log.Fatal().Msgf("error creating GRPC API server: %v", err)
+			log.Fatal().Err(err).Msg("error creating GRPC API server")
 		}
 	}
 
 	httpServers, err := runHTTPServers(node, cfgContainer, httpAPIExecutor, keepHeadersInContext)
 	if err != nil {
-		log.Fatal().Msgf("error running HTTP server: %v", err)
+		log.Fatal().Err(err).Msg("error running HTTP server")
 	}
 
 	logStartWarnings(cfg, cfgMeta)

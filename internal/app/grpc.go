@@ -63,7 +63,7 @@ func runGRPCAPIServer(cfg config.Config, node *centrifuge.Node, useAPIOpenteleme
 	log.Info().Msgf("serving GRPC API service on %s", grpcAPIAddr)
 	go func() {
 		if err := grpcAPIServer.Serve(grpcAPIConn); err != nil {
-			log.Fatal().Msgf("serve GRPC API: %v", err)
+			log.Fatal().Err(err).Msg("serve GRPC API")
 		}
 	}()
 	return grpcAPIServer, nil
@@ -106,7 +106,7 @@ func runGRPCUniServer(cfg config.Config, node *centrifuge.Node) (*grpc.Server, e
 	log.Info().Msgf("serving unidirectional GRPC on %s", grpcUniAddr)
 	go func() {
 		if err := grpcUniServer.Serve(grpcUniConn); err != nil {
-			log.Fatal().Msgf("serve uni GRPC: %v", err)
+			log.Fatal().Err(err).Msg("serve uni GRPC")
 		}
 	}()
 	return grpcUniServer, nil

@@ -218,7 +218,7 @@ func Mux(
 		// register HTTP API endpoints.
 		httpErrorMode, err := tools.OptionalStringChoice(cfg.HttpAPI.ErrorMode, []string{config.TransportErrorMode})
 		if err != nil {
-			log.Fatal().Msgf("error in config: %v", err)
+			log.Fatal().Err(err).Msg("error in config")
 		}
 		useOpenTelemetry := cfg.OpenTelemetry.Enabled && cfg.OpenTelemetry.API
 		apiHandler := api.NewHandler(n, apiExecutor, api.Config{
@@ -441,13 +441,13 @@ func runHTTPServers(
 
 	tlsConfig, err := GetTLSConfig(cfg)
 	if err != nil {
-		log.Fatal().Msgf("can not get TLS config: %v", err)
+		log.Fatal().Err(err).Msg("can not get TLS config")
 	}
 	var internalTLSConfig *tls.Config
 	if cfg.InternalTLS.Enabled {
 		internalTLSConfig, err = cfg.InternalTLS.ToGoTLSConfig("internal_tls")
 		if err != nil {
-			log.Fatal().Msgf("can not get internal TLS config: %v", err)
+			log.Fatal().Err(err).Msg("can not get internal TLS config")
 		}
 	}
 
@@ -518,21 +518,21 @@ func runHTTPServers(
 
 				udpAddr, err := net.ResolveUDPAddr("udp", addr)
 				if err != nil {
-					log.Fatal().Msgf("can not start HTTP/3, resolve UDP: %v", err)
+					log.Fatal().Err(err).Msg("can not start HTTP/3, resolve UDP")
 				}
 				udpConn, err := net.ListenUDP("udp", udpAddr)
 				if err != nil {
-					log.Fatal().Msgf("can not start HTTP/3, listen UDP: %v", err)
+					log.Fatal().Err(err).Msg("can not start HTTP/3, listen UDP")
 				}
 				defer func() { _ = udpConn.Close() }()
 
 				tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 				if err != nil {
-					log.Fatal().Msgf("can not start HTTP/3, resolve TCP: %v", err)
+					log.Fatal().Err(err).Msg("can not start HTTP/3, resolve TCP")
 				}
 				tcpConn, err := net.ListenTCP("tcp", tcpAddr)
 				if err != nil {
-					log.Fatal().Msgf("can not start HTTP/3, listen TCP: %v", err)
+					log.Fatal().Err(err).Msg("can not start HTTP/3, listen TCP")
 				}
 				defer func() { _ = tcpConn.Close() }()
 
@@ -552,23 +552,23 @@ func runHTTPServers(
 				case err := <-hErr:
 					_ = wtServer.Close()
 					if !errors.Is(err, http.ErrServerClosed) {
-						log.Fatal().Msgf("ListenAndServe: %v", err)
+						log.Fatal().Err(err).Msg("error ListenAndServe")
 					}
 				case err := <-qErr:
 					// Cannot close the HTTP server or wait for requests to complete properly.
-					log.Fatal().Msgf("ListenAndServe HTTP/3: %v", err)
+					log.Fatal().Err(err).Msg("error ListenAndServe HTTP/3")
 				}
 			} else {
 				if addrTLSConfig != nil {
 					if err := server.ListenAndServeTLS("", ""); err != nil {
 						if !errors.Is(err, http.ErrServerClosed) {
-							log.Fatal().Msgf("ListenAndServe: %v", err)
+							log.Fatal().Err(err).Msg("error ListenAndServeTLS")
 						}
 					}
 				} else {
 					if err := server.ListenAndServe(); err != nil {
 						if !errors.Is(err, http.ErrServerClosed) {
-							log.Fatal().Msgf("ListenAndServe: %v", err)
+							log.Fatal().Err(err).Msgf("error ListenAndServe")
 						}
 					}
 				}

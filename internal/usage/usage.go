@@ -16,14 +16,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/centrifugal/centrifugo/v5/internal/build"
 	"github.com/centrifugal/centrifugo/v5/internal/config"
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/consuming"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/rs/zerolog/log"
 )
 
 var statsRand *rand.Rand

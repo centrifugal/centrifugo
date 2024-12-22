@@ -14,6 +14,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type Level = zerolog.Level
+
 const (
 	TraceLevel = zerolog.TraceLevel
 	DebugLevel = zerolog.DebugLevel
@@ -119,7 +121,7 @@ func Setup(cfg config.Config) (centrifuge.LogHandler, func()) {
 	if cfg.LogFile != "" {
 		f, err := os.OpenFile(cfg.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
-			log.Fatal().Msgf("error opening log file: %v", err)
+			log.Fatal().Err(err).Msg("error opening log file")
 		}
 		log.Logger = log.Output(f)
 		return newCentrifugeLogHandler().Handle, func() {
@@ -130,6 +132,6 @@ func Setup(cfg config.Config) (centrifuge.LogHandler, func()) {
 }
 
 // Enabled checks if a specific logging level is enabled
-func Enabled(level zerolog.Level) bool {
+func Enabled(level Level) bool {
 	return level >= zerolog.GlobalLevel()
 }

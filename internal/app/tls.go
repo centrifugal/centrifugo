@@ -48,7 +48,7 @@ func GetTLSConfig(cfg config.Config) (*tls.Config, error) {
 				go func() {
 					log.Info().Msgf("serving ACME http_01 challenge on %s", tlsAutocertHTTPAddr)
 					if err := acmeHTTPServer.ListenAndServe(); err != nil {
-						log.Fatal().Msgf("can't create server on %s to serve acme http challenge: %v", tlsAutocertHTTPAddr, err)
+						log.Fatal().Err(err).Msgf("can't create server on %s to serve acme http challenge", tlsAutocertHTTPAddr)
 					}
 				}()
 			})

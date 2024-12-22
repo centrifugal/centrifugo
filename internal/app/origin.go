@@ -27,7 +27,7 @@ func getCheckOrigin(cfg config.Config) func(r *http.Request) bool {
 	}
 	originChecker, err := origin.NewPatternChecker(allowedOrigins)
 	if err != nil {
-		log.Fatal().Msgf("error creating origin checker: %v", err)
+		log.Fatal().Err(err).Msg("error creating origin checker")
 	}
 	if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
 		// Fast path for *.
