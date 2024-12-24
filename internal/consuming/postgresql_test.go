@@ -134,7 +134,7 @@ func TestPostgresConsumer_GreenScenario(t *testing.T) {
 		PartitionPollInterval:        configtypes.Duration(300 * time.Millisecond),
 		PartitionNotificationChannel: testNotificationChannel,
 	}
-	consumer, err := NewPostgresConsumer("test", &MockLogger{}, &MockDispatcher{
+	consumer, err := NewPostgresConsumer("test", &MockDispatcher{
 		onDispatch: func(ctx context.Context, method string, data []byte) error {
 			require.Equal(t, testMethod, method)
 			require.Equal(t, testPayload, data)
@@ -191,7 +191,7 @@ func TestPostgresConsumer_SeveralConsumers(t *testing.T) {
 	numConsumers := 10
 
 	for i := 0; i < numConsumers; i++ {
-		consumer, err := NewPostgresConsumer("test", &MockLogger{}, &MockDispatcher{
+		consumer, err := NewPostgresConsumer("test", &MockDispatcher{
 			onDispatch: func(ctx context.Context, method string, data []byte) error {
 				require.Equal(t, testMethod, method)
 				require.Equal(t, testPayload, data)
@@ -249,7 +249,7 @@ func TestPostgresConsumer_NotificationTrigger(t *testing.T) {
 
 	numEvents := 0
 
-	consumer, err := NewPostgresConsumer("test", &MockLogger{}, &MockDispatcher{
+	consumer, err := NewPostgresConsumer("test", &MockDispatcher{
 		onDispatch: func(ctx context.Context, method string, data []byte) error {
 			require.Equal(t, testMethod, method)
 			require.Equal(t, testPayload, data)
@@ -317,7 +317,7 @@ func TestPostgresConsumer_DifferentPartitions(t *testing.T) {
 
 	var dispatchMu sync.Mutex
 
-	consumer, err := NewPostgresConsumer("test", &MockLogger{}, &MockDispatcher{
+	consumer, err := NewPostgresConsumer("test", &MockDispatcher{
 		onDispatch: func(ctx context.Context, method string, data []byte) error {
 			dispatchMu.Lock()
 			defer dispatchMu.Unlock()
