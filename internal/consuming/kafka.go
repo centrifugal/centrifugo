@@ -528,7 +528,7 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 			retries++
 			backoffDuration = getNextBackoffDuration(backoffDuration, retries)
 			pc.metrics.errorsTotal.WithLabelValues(pc.name).Inc()
-			log.Error().Err(err).Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Dur("next_attempt_in", backoffDuration).Msg("error processing consumed record")
+			log.Error().Err(err).Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Str("next_attempt_in", backoffDuration.String()).Msg("error processing consumed record")
 			select {
 			case <-time.After(backoffDuration):
 			case <-pc.partitionCtx.Done():

@@ -141,7 +141,7 @@ func (s *Sender) isDev() bool {
 func (s *Sender) Run(ctx context.Context) error {
 	firstTimeSend := time.Now().Add(initialDelay)
 	if s.isDev() {
-		log.Debug().Dur("delay", initialDelay).Msg("usage stats: schedule next send")
+		log.Debug().Str("delay", initialDelay.String()).Msg("usage stats: schedule next send")
 	}
 
 	// Wait 1/4 of a delay to randomize hourly ticks on different nodes.

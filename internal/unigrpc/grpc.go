@@ -64,7 +64,7 @@ func (s *Service) Consume(req *unistream.ConnectRequest, stream unistream.Centri
 	if logging.Enabled(logging.DebugLevel) {
 		log.Debug().Str("transport", transport.Name()).Str("client", c.ID()).Msg("client connection established")
 		defer func(started time.Time) {
-			log.Debug().Str("transport", transport.Name()).Str("client", c.ID()).Dur("duration", time.Since(started)).Msg("client connection completed")
+			log.Debug().Str("transport", transport.Name()).Str("client", c.ID()).Str("duration", time.Since(started).String()).Msg("client connection completed")
 		}(time.Now())
 	}
 

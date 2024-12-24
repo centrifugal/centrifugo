@@ -1,15 +1,16 @@
 package logging
 
 import (
+	"io"
 	"os"
 	"runtime"
 	"strings"
 
 	"github.com/centrifugal/centrifugo/v5/internal/config"
 	"github.com/centrifugal/centrifugo/v5/internal/logutils"
+	"github.com/mattn/go-isatty"
 
 	"github.com/centrifugal/centrifuge"
-	"github.com/mattn/go-isatty"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -80,8 +81,16 @@ func (h *centrifugeLogHandler) readEntries() {
 			continue
 		}
 		if entry.Fields != nil {
+			if entry.Error != nil {
+				l = l.Err(entry.Error)
+				delete(entry.Fields, "error")
+			}
 			l.Fields(entry.Fields).Msg(entry.Message)
 		} else {
+			if entry.Error != nil {
+				l = l.Err(entry.Error)
+				delete(entry.Fields, "error")
+			}
 			l.Msg(entry.Message)
 		}
 	}
@@ -95,16 +104,17 @@ func (h *centrifugeLogHandler) Handle(entry centrifuge.LogEntry) {
 	}
 }
 
-func configureConsoleWriter() {
+func configureConsoleWriter() *zerolog.ConsoleWriter {
 	if isTerminalAttached() {
-		log.Logger = log.Output(zerolog.ConsoleWriter{
+		return &zerolog.ConsoleWriter{
 			Out:                 os.Stdout,
 			TimeFormat:          "2006-01-02 15:04:05",
 			FormatLevel:         logutils.ConsoleFormatLevel(),
 			FormatErrFieldName:  logutils.ConsoleFormatErrFieldName(),
 			FormatErrFieldValue: logutils.ConsoleFormatErrFieldValue(),
-		})
+		}
 	}
+	return nil
 }
 
 func isTerminalAttached() bool {
@@ -112,23 +122,41 @@ func isTerminalAttached() bool {
 }
 
 func Setup(cfg config.Config) (centrifuge.LogHandler, func()) {
-	configureConsoleWriter()
+	var writers []io.Writer
+
+	var file *os.File
+	if cfg.LogFile != "" {
+		var err error
+		file, err = os.OpenFile(cfg.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+		if err != nil {
+			log.Fatal().Err(err).Msg("error opening log file")
+		}
+		writers = append(writers, file)
+	} else {
+		consoleWriter := configureConsoleWriter()
+		if consoleWriter != nil {
+			writers = append(writers, consoleWriter)
+		} else {
+			writers = append(writers, os.Stderr)
+		}
+	}
+
 	logLevel, ok := logLevelMatches[strings.ToUpper(cfg.LogLevel)]
 	if !ok {
 		logLevel = zerolog.InfoLevel
 	}
 	zerolog.SetGlobalLevel(logLevel)
-	if cfg.LogFile != "" {
-		f, err := os.OpenFile(cfg.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-		if err != nil {
-			log.Fatal().Err(err).Msg("error opening log file")
-		}
-		log.Logger = log.Output(f)
-		return newCentrifugeLogHandler().Handle, func() {
-			_ = f.Close()
+
+	if len(writers) > 0 {
+		mw := io.MultiWriter(writers...)
+		log.Logger = log.Output(mw)
+	}
+
+	return newCentrifugeLogHandler().Handle, func() {
+		if file != nil {
+			_ = file.Close()
 		}
 	}
-	return newCentrifugeLogHandler().Handle, nil
 }
 
 // Enabled checks if a specific logging level is enabled
