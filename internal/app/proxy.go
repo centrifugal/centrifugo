@@ -146,7 +146,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			}
 		}
 		if strings.HasPrefix(p.Endpoint, "http") {
-			log.Fatal().Msgf("error creating subscribe stream proxy %s only GRPC endpoints supported", "default")
+			log.Fatal().Str("name", subscribeStreamProxyName).Msg("error creating subscribe stream proxy – only GRPC endpoints supported")
 		}
 		if _, ok := proxyMap.SubscribeStreamProxies[subscribeStreamProxyName]; !ok {
 			sp, err := proxy.NewSubscribeStreamProxy(subscribeStreamProxyName, p)

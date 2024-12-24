@@ -295,7 +295,8 @@ func getPingPongConfig(cfg config.Config) centrifuge.PingPongConfig {
 	pingInterval := cfg.Client.PingInterval
 	pongTimeout := cfg.Client.PongTimeout
 	if pingInterval <= pongTimeout {
-		log.Fatal().Msgf("ping_interval (%s) must be greater than pong_timeout (%s)", pingInterval, pongTimeout)
+		log.Fatal().Str("ping_interval", pingInterval.String()).Str("pong_timeout", pongTimeout.String()).
+			Msg("ping_interval must be greater than pong_timeout")
 	}
 	return centrifuge.PingPongConfig{
 		PingInterval: pingInterval.ToDuration(),
@@ -510,10 +511,10 @@ func runHTTPServers(
 		go func() {
 			if useHTTP3 {
 				if addrTLSConfig == nil {
-					log.Fatal().Msgf("HTTP/3 requires TLS configured")
+					log.Fatal().Msg("HTTP/3 requires TLS configured")
 				}
 				if cfg.TLSAutocert.Enabled {
-					log.Fatal().Msgf("can not use HTTP/3 with autocert")
+					log.Fatal().Msg("can not use HTTP/3 with autocert")
 				}
 
 				udpAddr, err := net.ResolveUDPAddr("udp", addr)
