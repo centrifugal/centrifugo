@@ -394,10 +394,14 @@ type RPC struct {
 	WithoutNamespace RpcOptions `mapstructure:"without_namespace" json:"without_namespace" envconfig:"without_namespace" yaml:"without_namespace" toml:"without_namespace"`
 	// RPCNamespaces is a list of rpc namespaces. Each rpc namespace can have its own set of rules.
 	Namespaces RPCNamespaces `mapstructure:"namespaces" default:"[]" json:"namespaces" envconfig:"namespaces" yaml:"namespaces" toml:"namespaces"`
+	// Ping is a configuration for RPC ping method.
+	Ping              RPCPing `mapstructure:"ping" json:"ping" envconfig:"ping" yaml:"ping" toml:"ping"`
+	NamespaceBoundary string  `mapstructure:"namespace_boundary" json:"namespace_boundary" envconfig:"namespace_boundary" default:":" yaml:"namespace_boundary" toml:"namespace_boundary"`
+}
 
-	Ping              bool   `mapstructure:"ping" json:"ping" envconfig:"ping" yaml:"ping" toml:"ping"`
-	PingMethod        string `mapstructure:"ping_method" json:"ping_method" envconfig:"ping_method" default:"ping" yaml:"ping_method" toml:"ping_method"`
-	NamespaceBoundary string `mapstructure:"namespace_boundary" json:"namespace_boundary" envconfig:"namespace_boundary" default:":" yaml:"namespace_boundary" toml:"namespace_boundary"`
+type RPCPing struct {
+	Enabled bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	Method  string `mapstructure:"method" json:"method" envconfig:"method" default:"ping" yaml:"method" toml:"method"`
 }
 
 type NamedProxy struct {
