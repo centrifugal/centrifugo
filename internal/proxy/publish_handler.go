@@ -23,6 +23,7 @@ type PublishHandler struct {
 	summary   map[string]prometheus.Observer
 	histogram map[string]prometheus.Observer
 	errors    map[string]prometheus.Counter
+	inflight  map[string]prometheus.Gauge
 }
 
 // NewPublishHandler ...
@@ -33,14 +34,17 @@ func NewPublishHandler(c PublishHandlerConfig) *PublishHandler {
 	summary := map[string]prometheus.Observer{}
 	histogram := map[string]prometheus.Observer{}
 	errors := map[string]prometheus.Counter{}
+	inflight := map[string]prometheus.Gauge{}
 	for name, p := range c.Proxies {
 		summary[name] = proxyCallDurationSummary.WithLabelValues(p.Protocol(), "publish", name)
 		histogram[name] = proxyCallDurationHistogram.WithLabelValues(p.Protocol(), "publish", name)
 		errors[name] = proxyCallErrorCount.WithLabelValues(p.Protocol(), "publish", name)
+		inflight[name] = proxyCallInflightRequests.WithLabelValues(p.Protocol(), "publish", name)
 	}
 	h.summary = summary
 	h.histogram = histogram
 	h.errors = errors
+	h.inflight = inflight
 	return h
 }
 
@@ -67,6 +71,9 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 		summary = h.summary[proxyName]
 		histogram = h.histogram[proxyName]
 		errors = h.errors[proxyName]
+		inflight := h.inflight[proxyName]
+		inflight.Inc()
+		defer inflight.Dec()
 
 		req := &proxyproto.PublishRequest{
 			Client:    client.ID(),

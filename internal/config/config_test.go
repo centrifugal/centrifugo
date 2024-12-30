@@ -32,6 +32,7 @@ func checkConfig(t *testing.T, conf Config) {
 	require.Equal(t, configtypes.Duration(2*time.Second), conf.WebSocket.WriteTimeout)
 	require.Equal(t, "redis", conf.Engine.Type)
 	require.Equal(t, 30*time.Second, time.Duration(conf.Engine.Redis.PresenceTTL))
+	require.Equal(t, []string{"redis:6379"}, conf.Engine.Redis.Address)
 }
 
 func TestConfigJSON(t *testing.T) {

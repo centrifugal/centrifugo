@@ -16,6 +16,7 @@ type ConsumerConfig = configtypes.Consumer
 
 type Dispatcher interface {
 	Dispatch(ctx context.Context, method string, data []byte) error
+	Publish(ctx context.Context, req *apiproto.PublishRequest) error
 	Broadcast(ctx context.Context, req *apiproto.BroadcastRequest) error
 }
 

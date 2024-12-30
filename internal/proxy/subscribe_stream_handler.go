@@ -29,6 +29,7 @@ type SubscribeStreamHandler struct {
 	summary   map[string]prometheus.Observer
 	histogram map[string]prometheus.Observer
 	errors    map[string]prometheus.Counter
+	inflight  map[string]prometheus.Gauge
 }
 
 // NewSubscribeStreamHandler ...
@@ -40,14 +41,17 @@ func NewSubscribeStreamHandler(c SubscribeStreamHandlerConfig) *SubscribeStreamH
 	summary := map[string]prometheus.Observer{}
 	histogram := map[string]prometheus.Observer{}
 	errCounters := map[string]prometheus.Counter{}
+	inflight := map[string]prometheus.Gauge{}
 	for name := range c.Proxies {
 		summary[name] = proxyCallDurationSummary.WithLabelValues("grpc", "subscribe_stream", name)
 		histogram[name] = proxyCallDurationHistogram.WithLabelValues("grpc", "subscribe_stream", name)
 		errCounters[name] = proxyCallErrorCount.WithLabelValues("grpc", "subscribe_stream", name)
+		inflight[name] = proxyCallInflightRequests.WithLabelValues("grpc", "subscribe_stream", name)
 	}
 	h.summary = summary
 	h.histogram = histogram
 	h.errors = errCounters
+	h.inflight = inflight
 	return h
 }
 
@@ -82,6 +86,9 @@ func (h *SubscribeStreamHandler) Handle(node *centrifuge.Node) SubscribeStreamHa
 		summary = h.summary[proxyName]
 		histogram = h.histogram[proxyName]
 		errCounter = h.errors[proxyName]
+		inflight := h.inflight[proxyName]
+		inflight.Inc()
+		defer inflight.Dec()
 
 		req := &proxyproto.SubscribeRequest{
 			Client:    client.ID(),

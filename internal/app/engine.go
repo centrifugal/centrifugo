@@ -164,7 +164,7 @@ func NatsBroker(node *centrifuge.Node, cfg config.Config) (*natsbroker.NatsBroke
 
 func createRedisEngine(n *centrifuge.Node, cfgContainer *config.Container) (*centrifuge.RedisBroker, centrifuge.PresenceManager, string, error) {
 	cfg := cfgContainer.Config()
-	redisShards, mode, err := confighelpers.CentrifugeRedisShards(n, cfg.Broker.Redis.Redis)
+	redisShards, mode, err := confighelpers.CentrifugeRedisShards(n, cfg.Engine.Redis.Redis)
 	if err != nil {
 		return nil, nil, mode, fmt.Errorf("error creating Redis shards: %w", err)
 	}

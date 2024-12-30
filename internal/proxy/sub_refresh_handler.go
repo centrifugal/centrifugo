@@ -23,6 +23,7 @@ type SubRefreshHandler struct {
 	summary   map[string]prometheus.Observer
 	histogram map[string]prometheus.Observer
 	errors    map[string]prometheus.Counter
+	inflight  map[string]prometheus.Gauge
 }
 
 // NewSubRefreshHandler ...
@@ -33,14 +34,17 @@ func NewSubRefreshHandler(c SubRefreshHandlerConfig) *SubRefreshHandler {
 	summary := map[string]prometheus.Observer{}
 	histogram := map[string]prometheus.Observer{}
 	errors := map[string]prometheus.Counter{}
+	inflight := map[string]prometheus.Gauge{}
 	for name, p := range c.Proxies {
 		summary[name] = proxyCallDurationSummary.WithLabelValues(p.Protocol(), "sub_refresh", name)
 		histogram[name] = proxyCallDurationHistogram.WithLabelValues(p.Protocol(), "sub_refresh", name)
 		errors[name] = proxyCallErrorCount.WithLabelValues(p.Protocol(), "sub_refresh", name)
+		inflight[name] = proxyCallInflightRequests.WithLabelValues(p.Protocol(), "sub_refresh", name)
 	}
 	h.summary = summary
 	h.histogram = histogram
 	h.errors = errors
+	h.inflight = inflight
 	return h
 }
 
@@ -70,6 +74,9 @@ func (h *SubRefreshHandler) Handle(node *centrifuge.Node) SubRefreshHandlerFunc 
 		summary = h.summary[proxyName]
 		histogram = h.histogram[proxyName]
 		errors = h.errors[proxyName]
+		inflight := h.inflight[proxyName]
+		inflight.Inc()
+		defer inflight.Dec()
 
 		req := &proxyproto.SubRefreshRequest{
 			Client:    client.ID(),

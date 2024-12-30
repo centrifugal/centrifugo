@@ -5,6 +5,7 @@
   "engine": {
     "type": "redis",
     "redis": {
+      "address": "redis:6379",
       "presence_ttl": "30s"
     }
   },

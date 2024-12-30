@@ -27,10 +27,17 @@ var (
 		Name:      "errors",
 		Help:      "Proxy call error count.",
 	}, []string{"protocol", "type", "name"})
+	proxyCallInflightRequests = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: metricsNamespace,
+		Subsystem: "proxy",
+		Name:      "inflight_requests",
+		Help:      "Number of inflight proxy requests.",
+	}, []string{"protocol", "type", "name"})
 )
 
 func init() {
 	prometheus.MustRegister(proxyCallDurationSummary)
 	prometheus.MustRegister(proxyCallDurationHistogram)
 	prometheus.MustRegister(proxyCallErrorCount)
+	prometheus.MustRegister(proxyCallInflightRequests)
 }

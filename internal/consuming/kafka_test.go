@@ -30,11 +30,16 @@ const (
 // MockDispatcher implements the Dispatcher interface for testing.
 type MockDispatcher struct {
 	onDispatch  func(ctx context.Context, method string, data []byte) error
+	onPublish   func(ctx context.Context, req *apiproto.PublishRequest) error
 	onBroadcast func(ctx context.Context, req *apiproto.BroadcastRequest) error
 }
 
 func (m *MockDispatcher) Dispatch(ctx context.Context, method string, data []byte) error {
 	return m.onDispatch(ctx, method, data)
+}
+
+func (m *MockDispatcher) Publish(ctx context.Context, req *apiproto.PublishRequest) error {
+	return m.onPublish(ctx, req)
 }
 
 func (m *MockDispatcher) Broadcast(ctx context.Context, req *apiproto.BroadcastRequest) error {
@@ -754,16 +759,25 @@ func TestKafkaConsumer_GreenScenario_PublicationDataMode(t *testing.T) {
 		},
 	}
 
-	eventReceived := make(chan struct{})
+	event1Received := make(chan struct{})
+	event2Received := make(chan struct{})
 	consumerClosed := make(chan struct{})
 
 	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockDispatcher{
+		onPublish: func(ctx context.Context, req *apiproto.PublishRequest) error {
+			require.Equal(t, testChannels[0], req.Channel)
+			require.Equal(t, apiproto.Raw(testPayload), req.Data)
+			require.Equal(t, testIdempotencyKey, req.IdempotencyKey)
+			require.Equal(t, testDelta, req.Delta)
+			close(event1Received)
+			return nil
+		},
 		onBroadcast: func(ctx context.Context, req *apiproto.BroadcastRequest) error {
 			require.Equal(t, testChannels, req.Channels)
 			require.Equal(t, apiproto.Raw(testPayload), req.Data)
 			require.Equal(t, testIdempotencyKey, req.IdempotencyKey)
 			require.Equal(t, testDelta, req.Delta)
-			close(eventReceived)
+			close(event2Received)
 			return nil
 		},
 	}, config, newCommonMetrics(prometheus.NewRegistry()))
@@ -774,6 +788,22 @@ func TestKafkaConsumer_GreenScenario_PublicationDataMode(t *testing.T) {
 		require.ErrorIs(t, err, context.Canceled)
 		close(consumerClosed)
 	}()
+
+	err = produceTestMessage(testKafkaTopic, testPayload, []kgo.RecordHeader{
+		{
+			Key:   config.PublicationDataMode.ChannelsHeader,
+			Value: []byte(testChannels[0]),
+		},
+		{
+			Key:   config.PublicationDataMode.IdempotencyKeyHeader,
+			Value: []byte(testIdempotencyKey),
+		},
+		{
+			Key:   config.PublicationDataMode.DeltaHeader,
+			Value: []byte(fmt.Sprintf("%v", testDelta)),
+		},
+	})
+	require.NoError(t, err)
 
 	err = produceTestMessage(testKafkaTopic, testPayload, []kgo.RecordHeader{
 		{
@@ -791,7 +821,8 @@ func TestKafkaConsumer_GreenScenario_PublicationDataMode(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	waitCh(t, eventReceived, 30*time.Second, "timeout waiting for event")
+	waitCh(t, event1Received, 30*time.Second, "timeout waiting for event1")
+	waitCh(t, event2Received, 30*time.Second, "timeout waiting for event2")
 	cancel()
 	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
 }

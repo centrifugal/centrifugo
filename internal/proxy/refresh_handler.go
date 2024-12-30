@@ -23,6 +23,7 @@ type RefreshHandler struct {
 	summary   prometheus.Observer
 	histogram prometheus.Observer
 	errors    prometheus.Counter
+	inflight  prometheus.Gauge
 }
 
 // NewRefreshHandler ...
@@ -32,6 +33,7 @@ func NewRefreshHandler(c RefreshHandlerConfig) *RefreshHandler {
 		summary:   proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "refresh", "default"),
 		histogram: proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "refresh", "default"),
 		errors:    proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "refresh", "default"),
+		inflight:  proxyCallInflightRequests.WithLabelValues(c.Proxy.Protocol(), "refresh", "default"),
 	}
 }
 
@@ -46,6 +48,8 @@ type RefreshHandlerFunc func(Client, centrifuge.RefreshEvent, PerCallData) (cent
 func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 	return func(client Client, e centrifuge.RefreshEvent, pcd PerCallData) (centrifuge.RefreshReply, RefreshExtra, error) {
 		started := time.Now()
+		h.inflight.Inc()
+		defer h.inflight.Dec()
 		req := &proxyproto.RefreshRequest{
 			Client:    client.ID(),
 			Protocol:  string(client.Transport().Protocol()),

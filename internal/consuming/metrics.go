@@ -4,6 +4,8 @@ import "github.com/prometheus/client_golang/prometheus"
 
 const metricsNamespace = "centrifugo"
 
+// commonMetrics contains common metrics for all consumers to inherit. Consumers may
+// provide their own metrics in addition to these.
 type commonMetrics struct {
 	processedTotal *prometheus.CounterVec
 	errorsTotal    *prometheus.CounterVec

@@ -28,6 +28,7 @@ type ConnectHandler struct {
 	summary      prometheus.Observer
 	histogram    prometheus.Observer
 	errors       prometheus.Counter
+	inflight     prometheus.Gauge
 }
 
 // NewConnectHandler ...
@@ -38,6 +39,7 @@ func NewConnectHandler(c ConnectHandlerConfig, cfgContainer *config.Container) *
 		summary:      proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
 		histogram:    proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
 		errors:       proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
+		inflight:     proxyCallInflightRequests.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
 	}
 }
 
@@ -50,6 +52,8 @@ type ConnectingHandlerFunc func(context.Context, centrifuge.ConnectEvent) (centr
 func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 	return func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, ConnectExtra, error) {
 		started := time.Now()
+		h.inflight.Inc()
+		defer h.inflight.Dec()
 		req := &proxyproto.ConnectRequest{
 			Client:    e.ClientID,
 			Protocol:  string(e.Transport.Protocol()),

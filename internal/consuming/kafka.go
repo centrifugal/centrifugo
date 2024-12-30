@@ -470,6 +470,8 @@ func getHeaderValue(record *kgo.Record, headerKey string) string {
 }
 
 func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, record *kgo.Record) error {
+	data := record.Value
+	idempotencyKey := getHeaderValue(record, pc.config.PublicationDataMode.IdempotencyKeyHeader)
 	var delta bool
 	if pc.config.PublicationDataMode.DeltaHeader != "" {
 		var err error
@@ -479,10 +481,24 @@ func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, r
 			return nil
 		}
 	}
+	channels := strings.Split(getHeaderValue(record, pc.config.PublicationDataMode.ChannelsHeader), ",")
+	if len(channels) == 0 {
+		log.Info().Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("no channels found, skip message")
+		return nil
+	}
+	if len(channels) == 1 {
+		req := &apiproto.PublishRequest{
+			Data:           data,
+			Channel:        channels[0],
+			IdempotencyKey: idempotencyKey,
+			Delta:          delta,
+		}
+		return pc.dispatcher.Publish(ctx, req)
+	}
 	req := &apiproto.BroadcastRequest{
-		Data:           record.Value,
-		Channels:       strings.Split(getHeaderValue(record, pc.config.PublicationDataMode.ChannelsHeader), ","),
-		IdempotencyKey: getHeaderValue(record, pc.config.PublicationDataMode.IdempotencyKeyHeader),
+		Data:           data,
+		Channels:       channels,
+		IdempotencyKey: idempotencyKey,
 		Delta:          delta,
 	}
 	return pc.dispatcher.Broadcast(ctx, req)

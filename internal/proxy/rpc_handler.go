@@ -23,6 +23,7 @@ type RPCHandler struct {
 	summary   map[string]prometheus.Observer
 	histogram map[string]prometheus.Observer
 	errors    map[string]prometheus.Counter
+	inflight  map[string]prometheus.Gauge
 }
 
 // NewRPCHandler ...
@@ -33,14 +34,17 @@ func NewRPCHandler(c RPCHandlerConfig) *RPCHandler {
 	summary := map[string]prometheus.Observer{}
 	histogram := map[string]prometheus.Observer{}
 	errors := map[string]prometheus.Counter{}
+	inflight := map[string]prometheus.Gauge{}
 	for name, p := range c.Proxies {
 		summary[name] = proxyCallDurationSummary.WithLabelValues(p.Protocol(), "rpc", name)
 		histogram[name] = proxyCallDurationHistogram.WithLabelValues(p.Protocol(), "rpc", name)
 		errors[name] = proxyCallErrorCount.WithLabelValues(p.Protocol(), "rpc", name)
+		inflight[name] = proxyCallInflightRequests.WithLabelValues(p.Protocol(), "rpc", name)
 	}
 	h.summary = summary
 	h.histogram = histogram
 	h.errors = errors
+	h.inflight = inflight
 	return h
 }
 
@@ -76,6 +80,9 @@ func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
 		summary = h.summary[proxyName]
 		histogram = h.histogram[proxyName]
 		errors = h.errors[proxyName]
+		inflight := h.inflight[proxyName]
+		inflight.Inc()
+		defer inflight.Dec()
 
 		req := &proxyproto.RPCRequest{
 			Client:    client.ID(),

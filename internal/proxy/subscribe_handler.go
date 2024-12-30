@@ -24,6 +24,7 @@ type SubscribeHandler struct {
 	summary   map[string]prometheus.Observer
 	histogram map[string]prometheus.Observer
 	errors    map[string]prometheus.Counter
+	inflight  map[string]prometheus.Gauge
 }
 
 // NewSubscribeHandler ...
@@ -34,14 +35,17 @@ func NewSubscribeHandler(c SubscribeHandlerConfig) *SubscribeHandler {
 	summary := map[string]prometheus.Observer{}
 	histogram := map[string]prometheus.Observer{}
 	errors := map[string]prometheus.Counter{}
+	inflight := map[string]prometheus.Gauge{}
 	for name, p := range c.Proxies {
 		summary[name] = proxyCallDurationSummary.WithLabelValues(p.Protocol(), "subscribe", name)
 		histogram[name] = proxyCallDurationHistogram.WithLabelValues(p.Protocol(), "subscribe", name)
 		errors[name] = proxyCallErrorCount.WithLabelValues(p.Protocol(), "subscribe", name)
+		inflight[name] = proxyCallInflightRequests.WithLabelValues(p.Protocol(), "subscribe", name)
 	}
 	h.summary = summary
 	h.histogram = histogram
 	h.errors = errors
+	h.inflight = inflight
 	return h
 }
 
@@ -71,6 +75,9 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 		summary = h.summary[proxyName]
 		histogram = h.histogram[proxyName]
 		errors = h.errors[proxyName]
+		inflight := h.inflight[proxyName]
+		inflight.Inc()
+		defer inflight.Dec()
 
 		req := &proxyproto.SubscribeRequest{
 			Client:    client.ID(),
