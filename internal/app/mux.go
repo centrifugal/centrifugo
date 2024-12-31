@@ -110,6 +110,9 @@ func Mux(
 	if useLoggingMW {
 		commonMiddlewares = append(commonMiddlewares, middleware.LogRequest)
 	}
+	if cfg.Prometheus.Enabled && cfg.Prometheus.InstrumentHTTPHandlers {
+		commonMiddlewares = append(commonMiddlewares, middleware.HTTPServerInstrumentation)
+	}
 
 	basicMiddlewares := append([]alice.Constructor{}, commonMiddlewares...)
 	basicChain := alice.New(basicMiddlewares...)
