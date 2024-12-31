@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/FZambia/eagle v0.1.0
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
-	github.com/centrifugal/centrifuge v0.33.5-0.20241224183222-166b628bf2ca
+	github.com/centrifugal/centrifuge v0.33.6-0.20241230104150-322332d6f848
 	github.com/centrifugal/protocol v0.13.5-0.20241111155425-6c360178091e
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.2.1
@@ -95,7 +95,7 @@ require (
 	github.com/prometheus/common v0.60.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
-	github.com/redis/rueidis v1.0.51 // indirect
+	github.com/redis/rueidis v1.0.52 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/segmentio/encoding v0.4.1 // indirect
 	github.com/spf13/cast v1.7.0 // indirect
