@@ -11,10 +11,10 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
-func centrifugeNodeConfig(version string, cfgContainer *config.Container, logHandler centrifuge.LogHandler) centrifuge.Config {
+func centrifugeNodeConfig(version string, edition string, cfgContainer *config.Container, logHandler centrifuge.LogHandler) centrifuge.Config {
 	appCfg := cfgContainer.Config()
 	cfg := centrifuge.Config{}
-	cfg.Version = version
+	cfg.Version = version + " " + strings.ToUpper(edition)
 	cfg.Metrics = centrifuge.MetricsConfig{
 		MetricsNamespace: "centrifugo",
 	}

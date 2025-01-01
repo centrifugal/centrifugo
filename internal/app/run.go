@@ -101,7 +101,7 @@ func Run(cmd *cobra.Command, configFile string) {
 		log.Fatal().Err(err).Msg("error building proxy map")
 	}
 
-	nodeCfg := centrifugeNodeConfig(build.Version, cfgContainer, centrifugeLogHandler)
+	nodeCfg := centrifugeNodeConfig(build.Version, edition, cfgContainer, centrifugeLogHandler)
 	node, err := centrifuge.New(nodeCfg)
 	if err != nil {
 		log.Fatal().Err(err).Msg("error creating Centrifuge Node")
