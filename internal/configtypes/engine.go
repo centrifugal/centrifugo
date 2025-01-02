@@ -8,7 +8,7 @@ type Engine struct {
 }
 
 type RedisBrokerCommon struct {
-	UseLists bool `mapstructure:"use_lists" json:"use_lists" envconfig:"use_lists" yaml:"use_lists" toml:"use_lists"`
+	UseLists bool `mapstructure:"history_use_lists" json:"history_use_lists" envconfig:"history_use_lists" yaml:"history_use_lists" toml:"history_use_lists"`
 }
 
 type RedisBroker struct {

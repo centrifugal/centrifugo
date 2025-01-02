@@ -165,7 +165,7 @@ type ChannelOptions struct {
 	// SubscribeStreamProxyName of proxy to use for subscribe stream operations in namespace.
 	SubscribeStreamProxyName string `mapstructure:"subscribe_stream_proxy_name" default:"default" json:"subscribe_stream_proxy_name" envconfig:"subscribe_stream_proxy_name" yaml:"subscribe_stream_proxy_name" toml:"subscribe_stream_proxy_name"`
 	// SubscribeStreamBidirectional enables using bidirectional stream proxy for the namespace.
-	SubscribeStreamBidirectional bool `mapstructure:"subscribe_stream_bidirectional" json:"subscribe_stream_bidirectional" envconfig:"subscribe_stream_bidirectional" yaml:"subscribe_stream_bidirectional" toml:"subscribe_stream_bidirectional"`
+	SubscribeStreamBidirectional bool `mapstructure:"subscribe_stream_proxy_bidirectional" json:"subscribe_stream_proxy_bidirectional" envconfig:"subscribe_stream_proxy_bidirectional" yaml:"subscribe_stream_proxy_bidirectional" toml:"subscribe_stream_proxy_bidirectional"`
 
 	Compiled `json:"-" yaml:"-" toml:"-"`
 }
