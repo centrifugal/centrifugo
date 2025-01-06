@@ -1,10 +1,13 @@
-[tls]
-enabled = true
+[http_server]
+
+  [http_server.tls]
+  enabled = true
 
 [engine]
 type = "redis"
 
   [engine.redis]
+  address = "redis:6379"
   presence_ttl = "30s"
 
 [client]

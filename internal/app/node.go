@@ -34,7 +34,7 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 	cfg.RecoveryMaxPublicationLimit = appCfg.Client.RecoveryMaxPublicationLimit
 	cfg.HistoryMetaTTL = appCfg.Channel.HistoryMetaTTL.ToDuration()
 	cfg.ClientConnectIncludeServerTime = appCfg.Client.ConnectIncludeServerTime
-	cfg.LogLevel = logging.CentrifugeLogLevel(strings.ToLower(appCfg.LogLevel))
+	cfg.LogLevel = logging.CentrifugeLogLevel(strings.ToLower(appCfg.Log.Level))
 	cfg.LogHandler = logHandler
 	if appCfg.Client.ConnectCodeToUnidirectionalDisconnect.Enabled {
 		uniCodeTransforms := make(map[uint32]centrifuge.Disconnect)
@@ -53,7 +53,7 @@ func nodeName(cfg config.Config) string {
 	if name != "" {
 		return name
 	}
-	port := strconv.Itoa(cfg.Port)
+	port := strconv.Itoa(cfg.HTTP.Port)
 	var hostname string
 	hostname, err := os.Hostname()
 	if err != nil {

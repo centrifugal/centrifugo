@@ -71,10 +71,3 @@ func (lrw *statusResponseWriter) Connection() http3.Connection {
 func (lrw *statusResponseWriter) HTTPStream() http3.Stream {
 	return lrw.ResponseWriter.(http3.HTTPStreamer).HTTPStream()
 }
-
-// CloseNotify implements http.CloseNotifier.
-//
-//goland:noinspection GoDeprecation
-func (lrw *statusResponseWriter) CloseNotify() <-chan bool {
-	return lrw.ResponseWriter.(http.CloseNotifier).CloseNotify()
-}

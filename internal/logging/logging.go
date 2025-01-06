@@ -125,9 +125,9 @@ func Setup(cfg config.Config) (centrifuge.LogHandler, func()) {
 	var writers []io.Writer
 
 	var file *os.File
-	if cfg.LogFile != "" {
+	if cfg.Log.File != "" {
 		var err error
-		file, err = os.OpenFile(cfg.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+		file, err = os.OpenFile(cfg.Log.File, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
 			log.Fatal().Err(err).Msg("error opening log file")
 		}
@@ -141,7 +141,7 @@ func Setup(cfg config.Config) (centrifuge.LogHandler, func()) {
 		}
 	}
 
-	logLevel, ok := logLevelMatches[strings.ToUpper(cfg.LogLevel)]
+	logLevel, ok := logLevelMatches[strings.ToUpper(cfg.Log.Level)]
 	if !ok {
 		logLevel = zerolog.InfoLevel
 	}

@@ -358,10 +358,10 @@ func runHTTPServers(
 
 	apiDisabled := cfg.HttpAPI.Disabled
 
-	httpAddress := cfg.Address
-	httpPort := strconv.Itoa(cfg.Port)
-	httpInternalAddress := cfg.InternalAddress
-	httpInternalPort := cfg.InternalPort
+	httpAddress := cfg.HTTP.Address
+	httpPort := strconv.Itoa(cfg.HTTP.Port)
+	httpInternalAddress := cfg.HTTP.InternalAddress
+	httpInternalPort := cfg.HTTP.InternalPort
 
 	if httpInternalAddress == "" && httpAddress != "" {
 		// If custom internal address not explicitly set we try to reuse main
@@ -387,7 +387,7 @@ func runHTTPServers(
 		portFlags |= HandlerWebsocket
 	}
 	if cfg.WebTransport.Enabled {
-		if !cfg.HTTP3.Enabled {
+		if !cfg.HTTP.HTTP3.Enabled {
 			log.Fatal().Msg("can not enable webtransport without experimental HTTP/3")
 		}
 		portFlags |= HandlerWebtransport
@@ -448,8 +448,8 @@ func runHTTPServers(
 		log.Fatal().Err(err).Msg("can not get TLS config")
 	}
 	var internalTLSConfig *tls.Config
-	if cfg.InternalTLS.Enabled {
-		internalTLSConfig, err = cfg.InternalTLS.ToGoTLSConfig("internal_tls")
+	if cfg.HTTP.InternalTLS.Enabled {
+		internalTLSConfig, err = cfg.HTTP.InternalTLS.ToGoTLSConfig("internal_tls")
 		if err != nil {
 			log.Fatal().Err(err).Msg("can not get internal TLS config")
 		}
@@ -463,14 +463,14 @@ func runHTTPServers(
 			continue
 		}
 		var addrTLSConfig *tls.Config
-		if !cfg.TLSExternal || addr == externalAddr {
+		if !cfg.HTTP.TLSExternal || addr == externalAddr {
 			addrTLSConfig = tlsConfig
 		}
-		if addr != externalAddr && cfg.InternalTLS.Enabled {
+		if addr != externalAddr && cfg.HTTP.InternalTLS.Enabled {
 			addrTLSConfig = internalTLSConfig
 		}
 
-		useHTTP3 := cfg.HTTP3.Enabled && addr == externalAddr
+		useHTTP3 := cfg.HTTP.HTTP3.Enabled && addr == externalAddr
 
 		var wtServer *webtransport.Server
 		if useHTTP3 {
@@ -516,7 +516,7 @@ func runHTTPServers(
 				if addrTLSConfig == nil {
 					log.Fatal().Msg("HTTP/3 requires TLS configured")
 				}
-				if cfg.TLSAutocert.Enabled {
+				if cfg.HTTP.TLSAutocert.Enabled {
 					log.Fatal().Msg("can not use HTTP/3 with autocert")
 				}
 

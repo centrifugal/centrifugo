@@ -18,31 +18,12 @@ import (
 )
 
 type Config struct {
-	// Address to bind HTTP server to.
-	Address string `mapstructure:"address" json:"address" envconfig:"address" toml:"address" yaml:"address"`
-	// Port to bind HTTP server to.
-	Port int `mapstructure:"port" json:"port" envconfig:"port" default:"8000" toml:"port" yaml:"port"`
-	// InternalAddress to bind internal HTTP server to. Internal server is used to serve endpoints
-	// which are normally should not be exposed to the outside world.
-	InternalAddress string `mapstructure:"internal_address" json:"internal_address" envconfig:"internal_address" toml:"internal_address" yaml:"internal_address"`
-	// InternalPort to bind internal HTTP server to.
-	InternalPort string `mapstructure:"internal_port" json:"internal_port" envconfig:"internal_port" toml:"internal_port" yaml:"internal_port"`
-	// PidFile is a path to write PID file with server's PID.
+	// PidFile is a path to write a file with Centrifugo process PID.
 	PidFile string `mapstructure:"pid_file" json:"pid_file" envconfig:"pid_file" toml:"pid_file" yaml:"pid_file"`
-	// LogLevel is a log level for Centrifugo logger. Supported values: none, trace, debug, info, warn, error.
-	LogLevel string `mapstructure:"log_level" json:"log_level" envconfig:"log_level" default:"info" toml:"log_level" yaml:"log_level"`
-	// LogFile is a path to log file. If not set logs go to stdout.
-	LogFile string `mapstructure:"log_file" json:"log_file" envconfig:"log_file" toml:"log_file" yaml:"log_file"`
-
-	// TLS configuration for HTTP server.
-	TLS configtypes.TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" toml:"tls" yaml:"tls"`
-	// TLSAutocert for automatic TLS certificates from ACME provider (ex. Let's Encrypt).
-	TLSAutocert configtypes.TLSAutocert `mapstructure:"tls_autocert" json:"tls_autocert" envconfig:"tls_autocert" toml:"tls_autocert" yaml:"tls_autocert"`
-	// TLSExternal enables TLS only for external HTTP endpoints.
-	TLSExternal bool `mapstructure:"tls_external" json:"tls_external" envconfig:"tls_external" toml:"tls_external" yaml:"tls_external"`
-	// InternalTLS is a custom configuration for internal HTTP endpoints. If not set InternalTLS will be the same as TLS.
-	InternalTLS configtypes.TLSConfig `mapstructure:"internal_tls" json:"internal_tls" envconfig:"internal_tls" toml:"internal_tls" yaml:"internal_tls"`
-
+	// HTTP is a configuration for Centrifugo HTTP server.
+	HTTP configtypes.HTTPServer `mapstructure:"http_server" json:"http_server" envconfig:"http_server" toml:"http_server" yaml:"http_server"`
+	// Log is a configuration for logging.
+	Log configtypes.Log `mapstructure:"log" json:"log" envconfig:"log" toml:"log" yaml:"log"`
 	// Engine is a configuration for Centrifugo engine. It's a handy combination of Broker and PresenceManager.
 	// Currently only memory and redis engines are supported – both implement all the features. For more granular
 	// control use Broker and PresenceManager options.
@@ -109,9 +90,6 @@ type Config struct {
 	// Debug helps to enable Go profiling endpoints.
 	Debug configtypes.Debug `mapstructure:"debug" json:"debug" envconfig:"debug" toml:"debug" yaml:"debug"`
 
-	// HTTP3 enables HTTP/3 support. EXPERIMENTAL.
-	HTTP3 configtypes.HTTP3 `mapstructure:"http3" json:"http3" envconfig:"http3" toml:"http3" yaml:"http3"`
-
 	// OpenTelemetry is a configuration for OpenTelemetry tracing.
 	OpenTelemetry configtypes.OpenTelemetry `mapstructure:"opentelemetry" json:"opentelemetry" envconfig:"opentelemetry" toml:"opentelemetry" yaml:"opentelemetry"`
 	// Graphite is a configuration for export metrics to Graphite.
@@ -136,18 +114,18 @@ type Meta struct {
 }
 
 func DefineFlags(rootCmd *cobra.Command) {
-	rootCmd.Flags().StringP("address", "a", "", "interface address to listen on")
-	rootCmd.Flags().StringP("port", "p", "8000", "port to bind HTTP server to")
-	rootCmd.Flags().StringP("internal_address", "", "", "custom interface address to listen on for internal endpoints")
-	rootCmd.Flags().StringP("internal_port", "", "", "custom port for internal endpoints")
+	rootCmd.Flags().StringP("pid_file", "", "", "optional path to create PID file")
+	rootCmd.Flags().StringP("http_server.address", "a", "", "interface address to listen on")
+	rootCmd.Flags().StringP("http_server.port", "p", "8000", "port to bind HTTP server to")
+	rootCmd.Flags().StringP("http_server.internal_address", "", "", "custom interface address to listen on for internal endpoints")
+	rootCmd.Flags().StringP("http_server.internal_port", "", "", "custom port for internal endpoints")
 	rootCmd.Flags().StringP("engine.type", "", "memory", "broker to use: ex. redis")
 	rootCmd.Flags().BoolP("broker.enabled", "", false, "enable broker")
 	rootCmd.Flags().StringP("broker.type", "", "memory", "broker to use: ex. redis")
 	rootCmd.Flags().BoolP("presence_manager.enabled", "", false, "enable presence manager")
 	rootCmd.Flags().StringP("presence_manager.type", "", "memory", "presence manager to use: ex. redis")
-	rootCmd.Flags().StringP("log_level", "", "info", "set the log level: trace, debug, info, error, fatal or none")
-	rootCmd.Flags().StringP("log_file", "", "", "optional log file - if not specified logs go to STDOUT")
-	rootCmd.Flags().StringP("pid_file", "", "", "optional path to create PID file")
+	rootCmd.Flags().StringP("log.level", "", "info", "set the log level: trace, debug, info, error, fatal or none")
+	rootCmd.Flags().StringP("log.file", "", "", "optional log file - if not specified logs go to STDOUT")
 	rootCmd.Flags().BoolP("debug.enabled", "", false, "enable debug endpoints")
 	rootCmd.Flags().BoolP("admin.enabled", "", false, "enable admin web interface")
 	rootCmd.Flags().BoolP("admin.external", "", false, "expose admin web interface on external port")

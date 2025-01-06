@@ -16,14 +16,14 @@ import (
 var startHTTPChallengeServerOnce sync.Once
 
 func GetTLSConfig(cfg config.Config) (*tls.Config, error) {
-	tlsEnabled := cfg.TLS.Enabled
-	tlsAutocertEnabled := cfg.TLSAutocert.Enabled
-	tlsAutocertHostWhitelist := cfg.TLSAutocert.HostWhitelist
-	tlsAutocertCacheDir := cfg.TLSAutocert.CacheDir
-	tlsAutocertEmail := cfg.TLSAutocert.Email
-	tlsAutocertServerName := cfg.TLSAutocert.ServerName
-	tlsAutocertHTTP := cfg.TLSAutocert.HTTP
-	tlsAutocertHTTPAddr := cfg.TLSAutocert.HTTPAddr
+	tlsEnabled := cfg.HTTP.TLS.Enabled
+	tlsAutocertEnabled := cfg.HTTP.TLSAutocert.Enabled
+	tlsAutocertHostWhitelist := cfg.HTTP.TLSAutocert.HostWhitelist
+	tlsAutocertCacheDir := cfg.HTTP.TLSAutocert.CacheDir
+	tlsAutocertEmail := cfg.HTTP.TLSAutocert.Email
+	tlsAutocertServerName := cfg.HTTP.TLSAutocert.ServerName
+	tlsAutocertHTTP := cfg.HTTP.TLSAutocert.HTTP
+	tlsAutocertHTTPAddr := cfg.HTTP.TLSAutocert.HTTPAddr
 
 	if tlsAutocertEnabled {
 		certManager := autocert.Manager{
@@ -69,7 +69,7 @@ func GetTLSConfig(cfg config.Config) (*tls.Config, error) {
 
 	} else if tlsEnabled {
 		// Autocert disabled - just try to use provided SSL cert and key files.
-		return cfg.TLS.ToGoTLSConfig("http_server")
+		return cfg.HTTP.TLS.ToGoTLSConfig("http_server")
 	}
 
 	return nil, nil

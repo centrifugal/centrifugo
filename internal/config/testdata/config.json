@@ -1,6 +1,8 @@
 {
-  "tls": {
-    "enabled": true
+  "http_server": {
+    "tls": {
+      "enabled": true
+    }
   },
   "engine": {
     "type": "redis",

@@ -1,9 +1,11 @@
 ---
-tls:
-  enabled: true
+http_server:
+  tls:
+    enabled: true
 engine:
   type: redis
   redis:
+    address: redis:6379
     presence_ttl: 30s
 client:
   allowed_origins:

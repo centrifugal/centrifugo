@@ -8,6 +8,37 @@ import (
 	"net"
 )
 
+// HTTPServer configuration.
+type HTTPServer struct {
+	// Address to bind HTTP server to.
+	Address string `mapstructure:"address" json:"address" envconfig:"address" toml:"address" yaml:"address"`
+	// Port to bind HTTP server to.
+	Port int `mapstructure:"port" json:"port" envconfig:"port" default:"8000" toml:"port" yaml:"port"`
+	// InternalAddress to bind internal HTTP server to. Internal server is used to serve endpoints
+	// which are normally should not be exposed to the outside world.
+	InternalAddress string `mapstructure:"internal_address" json:"internal_address" envconfig:"internal_address" toml:"internal_address" yaml:"internal_address"`
+	// InternalPort to bind internal HTTP server to.
+	InternalPort string `mapstructure:"internal_port" json:"internal_port" envconfig:"internal_port" toml:"internal_port" yaml:"internal_port"`
+	// TLS configuration for HTTP server.
+	TLS TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" toml:"tls" yaml:"tls"`
+	// TLSAutocert for automatic TLS certificates from ACME provider (ex. Let's Encrypt).
+	TLSAutocert TLSAutocert `mapstructure:"tls_autocert" json:"tls_autocert" envconfig:"tls_autocert" toml:"tls_autocert" yaml:"tls_autocert"`
+	// TLSExternal enables TLS only for external HTTP endpoints.
+	TLSExternal bool `mapstructure:"tls_external" json:"tls_external" envconfig:"tls_external" toml:"tls_external" yaml:"tls_external"`
+	// InternalTLS is a custom configuration for internal HTTP endpoints. If not set InternalTLS will be the same as TLS.
+	InternalTLS TLSConfig `mapstructure:"internal_tls" json:"internal_tls" envconfig:"internal_tls" toml:"internal_tls" yaml:"internal_tls"`
+	// HTTP3 allows enabling HTTP/3 support. EXPERIMENTAL!
+	HTTP3 HTTP3 `mapstructure:"http3" json:"http3" envconfig:"http3" toml:"http3" yaml:"http3"`
+}
+
+// Log configuration.
+type Log struct {
+	// Level is a log level for Centrifugo logger. Supported values: none, trace, debug, info, warn, error.
+	Level string `mapstructure:"level" default:"info" json:"level" envconfig:"level" toml:"level" yaml:"level"`
+	// File is a path to log file. If not set logs go to stdout.
+	File string `mapstructure:"file" json:"file" envconfig:"file" toml:"file" yaml:"file"`
+}
+
 // Token common configuration.
 type Token struct {
 	HMACSecretKey      string `mapstructure:"hmac_secret_key" json:"hmac_secret_key" envconfig:"hmac_secret_key" yaml:"hmac_secret_key" toml:"hmac_secret_key"`
