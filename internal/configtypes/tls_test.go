@@ -2,12 +2,10 @@ package configtypes
 
 import (
 	"crypto/tls"
-	"errors"
 	"os"
 	"testing"
 
 	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,10 +23,6 @@ func mockReadFileInvalid(name string) ([]byte, error) {
 
 func mockStatFileSuccess(name string) (os.FileInfo, error) {
 	return nil, nil // Mock successful stat
-}
-
-func mockStatFileFailure(name string) (os.FileInfo, error) {
-	return nil, errors.New("failed to stat file")
 }
 
 // Sample valid PEM strings
@@ -94,8 +88,8 @@ func TestToGoTLSConfig_Disabled(t *testing.T) {
 		Enabled: false,
 	}
 	tlsCfg, err := cfg.ToGoTLSConfig("test-entity")
-	assert.NoError(t, err)
-	assert.Nil(t, tlsCfg)
+	require.NoError(t, err)
+	require.Nil(t, tlsCfg)
 }
 
 func TestToGoTLSConfig_Valid(t *testing.T) {
@@ -113,8 +107,8 @@ func TestToGoTLSConfig_Valid(t *testing.T) {
 	tlsCfg, err := makeTLSConfig(cfg, logger, mockReadFileSuccess, mockStatFileSuccess)
 	require.NoError(t, err)
 	require.NotNil(t, tlsCfg)
-	assert.Equal(t, "test.server", tlsCfg.ServerName)
-	assert.False(t, tlsCfg.InsecureSkipVerify)
+	require.Equal(t, "test.server", tlsCfg.ServerName)
+	require.False(t, tlsCfg.InsecureSkipVerify)
 }
 
 func TestMakeTLSConfig_InvalidCertKey(t *testing.T) {
@@ -128,8 +122,7 @@ func TestMakeTLSConfig_InvalidCertKey(t *testing.T) {
 
 	_, err := makeTLSConfig(cfg, logger, mockReadFileSuccess, mockStatFileSuccess)
 	require.Error(t, err)
-	t.Logf(err.Error())
-	assert.Contains(t, err.Error(), "error load certificate")
+	require.Contains(t, err.Error(), "error load certificate")
 }
 
 func TestMakeTLSConfig_InsecureSkipVerify(t *testing.T) {
@@ -145,7 +138,7 @@ func TestMakeTLSConfig_InsecureSkipVerify(t *testing.T) {
 	tlsCfg, err := makeTLSConfig(cfg, logger, mockReadFileSuccess, mockStatFileSuccess)
 	require.NoError(t, err)
 	require.NotNil(t, tlsCfg)
-	assert.True(t, tlsCfg.InsecureSkipVerify)
+	require.True(t, tlsCfg.InsecureSkipVerify)
 }
 
 func TestLoadCertificate_NoPEM(t *testing.T) {
@@ -153,8 +146,8 @@ func TestLoadCertificate_NoPEM(t *testing.T) {
 	tlsCfg := &tls.Config{}
 
 	err := loadCertificate(TLSConfig{}, logger, tlsCfg, mockReadFileSuccess, mockStatFileSuccess)
-	assert.NoError(t, err)
-	assert.Empty(t, tlsCfg.Certificates)
+	require.NoError(t, err)
+	require.Empty(t, tlsCfg.Certificates)
 }
 
 func TestLoadServerCA_NoPEM(t *testing.T) {
@@ -162,8 +155,8 @@ func TestLoadServerCA_NoPEM(t *testing.T) {
 	tlsCfg := &tls.Config{}
 
 	err := loadServerCA(TLSConfig{}, logger, tlsCfg, mockReadFileSuccess, mockStatFileSuccess)
-	assert.NoError(t, err)
-	assert.Nil(t, tlsCfg.RootCAs)
+	require.NoError(t, err)
+	require.Nil(t, tlsCfg.RootCAs)
 }
 
 func TestLoadClientCA_NoPEM(t *testing.T) {
@@ -171,16 +164,16 @@ func TestLoadClientCA_NoPEM(t *testing.T) {
 	tlsCfg := &tls.Config{}
 
 	err := loadClientCA(TLSConfig{}, logger, tlsCfg, mockReadFileSuccess, mockStatFileSuccess)
-	assert.NoError(t, err)
-	assert.Nil(t, tlsCfg.ClientCAs)
+	require.NoError(t, err)
+	require.Nil(t, tlsCfg.ClientCAs)
 }
 
 func TestNewCertPoolFromPEM_Invalid(t *testing.T) {
 	_, err := newCertPoolFromPEM([]byte("invalid"))
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestNewCertPoolFromPEM_Valid(t *testing.T) {
 	_, err := newCertPoolFromPEM([]byte(validPEM))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
