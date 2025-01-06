@@ -151,16 +151,18 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 	v := viper.NewWithOptions(viper.WithDecodeHook(mapstructure.ComposeDecodeHookFunc(
 		mapstructure.StringToTimeDurationHookFunc(),
 		configtypes.StringToDurationHookFunc(),
+		configtypes.StringToPEMDataHookFunc(),
 	)))
 
 	if cmd != nil {
 		bindPFlags := []string{
-			"port", "address", "internal_port", "internal_address", "log_level", "log_file", "pid_file",
-			"engine.type", "broker.enabled", "broker.type", "presence_manager.enabled", "presence_manager.type",
-			"debug.enabled", "admin.enabled", "admin.external", "admin.insecure", "client.insecure", "http_api.insecure",
-			"http_api.external", "prometheus.enabled", "health.enabled", "grpc_api.enabled", "grpc_api.port",
-			"uni_grpc.enabled", "uni_grpc.port", "uni_websocket.enabled", "uni_sse.enabled", "uni_http_stream.enabled",
-			"sse.enabled", "http_stream.enabled", "swagger.enabled",
+			"pid_file", "http_server.port", "http_server.address", "http_server.internal_port",
+			"http_server.internal_address", "log.level", "log.file", "engine.type", "broker.enabled", "broker.type",
+			"presence_manager.enabled", "presence_manager.type", "debug.enabled", "admin.enabled", "admin.external",
+			"admin.insecure", "client.insecure", "http_api.insecure", "http_api.external", "prometheus.enabled",
+			"health.enabled", "grpc_api.enabled", "grpc_api.port", "uni_grpc.enabled", "uni_grpc.port",
+			"uni_websocket.enabled", "uni_sse.enabled", "uni_http_stream.enabled", "sse.enabled", "http_stream.enabled",
+			"swagger.enabled",
 		}
 		for _, flag := range bindPFlags {
 			_ = v.BindPFlag(flag, cmd.Flags().Lookup(flag))

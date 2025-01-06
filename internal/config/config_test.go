@@ -20,6 +20,10 @@ func getConfig(t *testing.T, configFile string) (Config, Meta) {
 func checkConfig(t *testing.T, conf Config) {
 	t.Helper()
 	require.NotNil(t, conf)
+	require.True(t, conf.HTTP.TLS.Enabled)
+	require.NotZero(t, conf.HTTP.TLS.ServerCAPem)
+	_, err := conf.HTTP.TLS.ToGoTLSConfig("test")
+	require.NoError(t, err)
 	require.Equal(t, "https://example.com/jwks", conf.Client.Token.JWKSPublicEndpoint)
 	require.Len(t, conf.Client.AllowedOrigins, 1)
 	require.Equal(t, "http://localhost:3000", conf.Client.AllowedOrigins[0])
