@@ -16,7 +16,7 @@ import (
 	"github.com/tidwall/sjson"
 )
 
-func GenTokenCommand() *cobra.Command {
+func GenToken() *cobra.Command {
 	var genTokenConfigFile string
 	var genTokenUser string
 	var genTokenTTL int64
@@ -26,7 +26,7 @@ func GenTokenCommand() *cobra.Command {
 		Short: "Generate sample connection JWT for user",
 		Long:  `Generate sample connection JWT for user`,
 		Run: func(cmd *cobra.Command, args []string) {
-			GenToken(cmd, genTokenConfigFile, genTokenUser, genTokenTTL, genTokenQuiet)
+			genToken(cmd, genTokenConfigFile, genTokenUser, genTokenTTL, genTokenQuiet)
 		},
 	}
 	genTokenCmd.Flags().StringVarP(&genTokenConfigFile, "config", "c", "config.json", "path to config file")
@@ -36,7 +36,7 @@ func GenTokenCommand() *cobra.Command {
 	return genTokenCmd
 }
 
-func GenToken(cmd *cobra.Command, genTokenConfigFile string, genTokenUser string, genTokenTTL int64, genTokenQuiet bool) {
+func genToken(cmd *cobra.Command, genTokenConfigFile string, genTokenUser string, genTokenTTL int64, genTokenQuiet bool) {
 	cfg, _, err := config.GetConfig(cmd, genTokenConfigFile)
 	if err != nil {
 		fmt.Printf("error getting config: %v\n", err)

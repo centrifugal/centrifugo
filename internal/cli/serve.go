@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func ServeCommand() *cobra.Command {
+func Serve() *cobra.Command {
 	var serveDir string
 	var servePort int
 	var serveAddr string
@@ -19,7 +19,7 @@ func ServeCommand() *cobra.Command {
 		Short: "Run static file server (for development only)",
 		Long:  `Run static file server (for development only)`,
 		Run: func(cmd *cobra.Command, args []string) {
-			Serve(serveAddr, servePort, serveDir)
+			serve(serveAddr, servePort, serveDir)
 		},
 	}
 	serveCmd.Flags().StringVarP(&serveDir, "dir", "d", "./", "path to directory")
@@ -28,7 +28,7 @@ func ServeCommand() *cobra.Command {
 	return serveCmd
 }
 
-func Serve(serveAddr string, servePort int, serveDir string) {
+func serve(serveAddr string, servePort int, serveDir string) {
 	address := net.JoinHostPort(serveAddr, strconv.Itoa(servePort))
 	fmt.Printf("start serving %s on %s\n", serveDir, address)
 	if err := http.ListenAndServe(address, http.FileServer(http.Dir(serveDir))); err != nil {

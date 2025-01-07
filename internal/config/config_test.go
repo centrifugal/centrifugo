@@ -92,3 +92,36 @@ func TestConfigEnvVars(t *testing.T) {
 	require.Equal(t, configtypes.Duration(300*time.Millisecond), conf.WebSocket.WriteTimeout)
 	require.Len(t, conf.Proxies, 0)
 }
+
+// TestIsKubernetesEnvVar validates the isKubernetesEnvVar function
+func TestIsKubernetesEnvVar(t *testing.T) {
+	tests := []struct {
+		envKey   string
+		expected bool
+	}{
+		{"CENTRIFUGO_PORT_11000_TCP", true},
+		{"CENTRIFUGO_SERVICE_", true},
+		{"CENTRIFUGO_PORT_11000", true},
+		{"CENTRIFUGO_SERVICE_22000", true},
+		{"CENTRIFUGO_APP_PORT_", true},
+		{"CENTRIFUGO_APP_SERVICE_", true},
+		{"CENTRIFUGO_APP_SERVICE_PORT_INTERNAL", true},
+		{"CENTRIFUGO_APP_PORT", true},
+
+		{"FOO_CENTRIFUGO_PORT_", false},
+		{"CENTRIFUGO__PORT_", false},
+		{"CENTRIFUGO_INVALID_", false},
+		{"CENTRIFUGO_APP", false},
+		{"CENTRIFUGO_APP_INVALID_", false},
+		{"centrifugo_port_", false},
+
+		{"CENTRIFUGO_LOG_FILE", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.envKey, func(t *testing.T) {
+			result := isKubernetesEnvVar(tt.envKey)
+			require.Equal(t, tt.expected, result, "Test failed for input: %s", tt.envKey)
+		})
+	}
+}

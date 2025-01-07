@@ -14,21 +14,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func DefaultEnvCommand() *cobra.Command {
+func DefaultEnv() *cobra.Command {
 	var baseConfigFile string
 	var defaultEnvCmd = &cobra.Command{
 		Use:   "defaultenv",
 		Short: "Generate full environment var list with defaults",
 		Long:  `Generate full Centrifugo environment var list with defaults`,
 		Run: func(cmd *cobra.Command, args []string) {
-			DefaultEnv(baseConfigFile)
+			defaultEnv(baseConfigFile)
 		},
 	}
 	defaultEnvCmd.Flags().StringVarP(&baseConfigFile, "base", "b", "", "path to the base config file to use")
 	return defaultEnvCmd
 }
 
-func DefaultEnv(baseFile string) {
+func defaultEnv(baseFile string) {
 	conf, meta, err := config.GetConfig(nil, baseFile)
 	if err != nil {
 		fmt.Printf("error: %v\n", err)

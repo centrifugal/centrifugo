@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/centrifugal/centrifugo/v5/internal/config/envconfig"
@@ -18,8 +19,6 @@ import (
 )
 
 type Config struct {
-	// PidFile is a path to write a file with Centrifugo process PID.
-	PidFile string `mapstructure:"pid_file" json:"pid_file" envconfig:"pid_file" toml:"pid_file" yaml:"pid_file"`
 	// HTTP is a configuration for Centrifugo HTTP server.
 	HTTP configtypes.HTTPServer `mapstructure:"http_server" json:"http_server" envconfig:"http_server" toml:"http_server" yaml:"http_server"`
 	// Log is a configuration for logging.
@@ -101,6 +100,8 @@ type Config struct {
 	// Shutdown is a configuration for graceful shutdown.
 	Shutdown configtypes.Shutdown `mapstructure:"shutdown" json:"shutdown" envconfig:"shutdown" toml:"shutdown" yaml:"shutdown"`
 
+	// PidFile is a path to write a file with Centrifugo process PID.
+	PidFile string `mapstructure:"pid_file" json:"pid_file" envconfig:"pid_file" toml:"pid_file" yaml:"pid_file"`
 	// EnableUnreleasedFeatures enables unreleased features. These features are not stable and may be removed even
 	// in minor release update. Evaluate and share feedback if you find some feature useful and want it to be stabilized.
 	EnableUnreleasedFeatures bool `mapstructure:"enable_unreleased_features" json:"enable_unreleased_features" envconfig:"enable_unreleased_features" toml:"enable_unreleased_features" yaml:"enable_unreleased_features"`
@@ -364,18 +365,10 @@ func checkEnvironmentVars(knownEnvVars map[string]envconfig.VarInfo) []string {
 	return unknownEnvs
 }
 
-var k8sPrefixes = []string{
-	"CENTRIFUGO_PORT_",
-	"CENTRIFUGO_SERVICE_",
-}
+var k8sEnvRegex = regexp.MustCompile(`^CENTRIFUGO(?:_[A-Z]+)?_(PORT|SERVICE_)`)
 
 func isKubernetesEnvVar(envKey string) bool {
-	for _, k8sPrefix := range k8sPrefixes {
-		if strings.HasPrefix(envKey, k8sPrefix) {
-			return true
-		}
-	}
-	return false
+	return k8sEnvRegex.MatchString(envKey)
 }
 
 // DefaultConfig is a helper to be used in tests.

@@ -13,21 +13,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func CheckTokenCommand() *cobra.Command {
+func CheckToken() *cobra.Command {
 	var checkTokenConfigFile string
 	var checkTokenCmd = &cobra.Command{
 		Use:   "checktoken [TOKEN]",
 		Short: "Check connection JWT",
 		Long:  `Check connection JWT`,
 		Run: func(cmd *cobra.Command, args []string) {
-			CheckToken(cmd, checkTokenConfigFile, args)
+			checkToken(cmd, checkTokenConfigFile, args)
 		},
 	}
 	checkTokenCmd.Flags().StringVarP(&checkTokenConfigFile, "config", "c", "config.json", "path to config file")
 	return checkTokenCmd
 }
 
-func CheckToken(cmd *cobra.Command, checkTokenConfigFile string, args []string) {
+func checkToken(cmd *cobra.Command, checkTokenConfigFile string, args []string) {
 	cfg, _, err := config.GetConfig(cmd, checkTokenConfigFile)
 	if err != nil {
 		fmt.Printf("error getting config: %v\n", err)
@@ -42,7 +42,7 @@ func CheckToken(cmd *cobra.Command, checkTokenConfigFile string, args []string) 
 		fmt.Printf("error: provide token to check [centrifugo checktoken <TOKEN>]\n")
 		os.Exit(1)
 	}
-	subject, claims, err := checkToken(verifierConfig, cfg, args[0])
+	subject, claims, err := parseAndVerifyToken(verifierConfig, cfg, args[0])
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		os.Exit(1)
@@ -54,8 +54,8 @@ func CheckToken(cmd *cobra.Command, checkTokenConfigFile string, args []string) 
 	fmt.Printf("valid token for %s\npayload: %s\n", user, string(claims))
 }
 
-// checkToken checks JWT for user.
-func checkToken(config jwtverify.VerifierConfig, ruleConfig config.Config, t string) (string, []byte, error) {
+// parseAndVerifyToken checks JWT for user.
+func parseAndVerifyToken(config jwtverify.VerifierConfig, ruleConfig config.Config, t string) (string, []byte, error) {
 	token, err := jwt.ParseNoVerify([]byte(t)) // Will be verified later.
 	if err != nil {
 		return "", nil, err

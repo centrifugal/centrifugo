@@ -13,21 +13,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func CheckSubTokenCommand() *cobra.Command {
+func CheckSubToken() *cobra.Command {
 	var checkSubTokenConfigFile string
 	var checkSubTokenCmd = &cobra.Command{
 		Use:   "checksubtoken [TOKEN]",
 		Short: "Check subscription JWT",
 		Long:  `Check subscription JWT`,
 		Run: func(cmd *cobra.Command, args []string) {
-			CheckSubToken(cmd, checkSubTokenConfigFile, args)
+			checkSubToken(cmd, checkSubTokenConfigFile, args)
 		},
 	}
 	checkSubTokenCmd.Flags().StringVarP(&checkSubTokenConfigFile, "config", "c", "config.json", "path to config file")
 	return checkSubTokenCmd
 }
 
-func CheckSubToken(cmd *cobra.Command, checkSubTokenConfigFile string, args []string) {
+func checkSubToken(cmd *cobra.Command, checkSubTokenConfigFile string, args []string) {
 	cfg, _, err := config.GetConfig(cmd, checkSubTokenConfigFile)
 	if err != nil {
 		fmt.Printf("error getting config: %v\n", err)
@@ -49,7 +49,7 @@ func CheckSubToken(cmd *cobra.Command, checkSubTokenConfigFile string, args []st
 		fmt.Printf("error: provide token to check [centrifugo checksubtoken <TOKEN>]\n")
 		os.Exit(1)
 	}
-	subject, channel, claims, err := checkSubToken(verifierConfig, cfg, args[0])
+	subject, channel, claims, err := parseAndVerifySubToken(verifierConfig, cfg, args[0])
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		os.Exit(1)
@@ -61,8 +61,8 @@ func CheckSubToken(cmd *cobra.Command, checkSubTokenConfigFile string, args []st
 	fmt.Printf("valid subscription token for %s and channel \"%s\"\npayload: %s\n", user, channel, string(claims))
 }
 
-// checkSubToken checks subscription JWT for user.
-func checkSubToken(config jwtverify.VerifierConfig, cfg config.Config, t string) (string, string, []byte, error) {
+// parseAndVerifySubToken checks subscription JWT for user.
+func parseAndVerifySubToken(config jwtverify.VerifierConfig, cfg config.Config, t string) (string, string, []byte, error) {
 	token, err := jwt.ParseNoVerify([]byte(t)) // Will be verified later.
 	if err != nil {
 		return "", "", nil, err

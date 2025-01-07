@@ -16,37 +16,14 @@ package main
 import (
 	"github.com/centrifugal/centrifugo/v5/internal/app"
 	"github.com/centrifugal/centrifugo/v5/internal/cli"
-	"github.com/centrifugal/centrifugo/v5/internal/config"
-
-	"github.com/spf13/cobra"
 )
 
 //go:generate go run internal/gen/api/main.go
-
 func main() {
-	var configFile string
-	rootCmd := &cobra.Command{
-		Use:   "",
-		Short: "Centrifugo",
-		Long:  "Centrifugo – scalable real-time messaging server in language-agnostic way",
-		Run: func(cmd *cobra.Command, args []string) {
-			app.Run(cmd, configFile)
-		},
-	}
-	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
-	config.DefineFlags(rootCmd)
-
-	// Add additional helper CLI, see `centrifugo -h` and https://centrifugal.dev/docs/server/console_commands.
-	rootCmd.AddCommand(cli.ServeCommand())
-	rootCmd.AddCommand(cli.VersionCommand())
-	rootCmd.AddCommand(cli.CheckConfigCommand())
-	rootCmd.AddCommand(cli.GenConfigCommand())
-	rootCmd.AddCommand(cli.GenTokenCommand())
-	rootCmd.AddCommand(cli.GenSubTokenCommand())
-	rootCmd.AddCommand(cli.CheckTokenCommand())
-	rootCmd.AddCommand(cli.CheckSubTokenCommand())
-	rootCmd.AddCommand(cli.DefaultConfigCommand())
-	rootCmd.AddCommand(cli.DefaultEnvCommand())
-
-	_ = rootCmd.Execute()
+	root := app.Centrifugo()
+	root.AddCommand( // Add helper CLI. See `centrifugo -h` and https://centrifugal.dev/docs/server/console_commands.
+		cli.Version(), cli.CheckConfig(), cli.GenConfig(), cli.GenToken(), cli.GenSubToken(),
+		cli.CheckToken(), cli.CheckSubToken(), cli.DefaultConfig(), cli.DefaultEnv(), cli.Serve(),
+	)
+	_ = root.Execute()
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func CheckConfigCommand() *cobra.Command {
+func CheckConfig() *cobra.Command {
 	var checkConfigFile string
 	var checkConfigStrict bool
 	var checkConfigCmd = &cobra.Command{
@@ -18,7 +18,7 @@ func CheckConfigCommand() *cobra.Command {
 		Short: "Check configuration file",
 		Long:  `Check Centrifugo configuration file`,
 		Run: func(cmd *cobra.Command, args []string) {
-			CheckConfig(cmd, checkConfigFile, checkConfigStrict)
+			checkConfig(cmd, checkConfigFile, checkConfigStrict)
 		},
 	}
 	checkConfigCmd.Flags().StringVarP(&checkConfigFile, "config", "c", "config.json", "path to config file to check")
@@ -26,7 +26,7 @@ func CheckConfigCommand() *cobra.Command {
 	return checkConfigCmd
 }
 
-func CheckConfig(cmd *cobra.Command, checkConfigFile string, strict bool) {
+func checkConfig(cmd *cobra.Command, checkConfigFile string, strict bool) {
 	cfg, cfgMeta, err := config.GetConfig(cmd, checkConfigFile)
 	if err != nil {
 		fmt.Printf("error getting config: %v\n", err)

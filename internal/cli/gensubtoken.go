@@ -16,7 +16,7 @@ import (
 	"github.com/tidwall/sjson"
 )
 
-func GenSubTokenCommand() *cobra.Command {
+func GenSubToken() *cobra.Command {
 	var genSubTokenConfigFile string
 	var genSubTokenUser string
 	var genSubTokenChannel string
@@ -27,7 +27,7 @@ func GenSubTokenCommand() *cobra.Command {
 		Short: "Generate sample subscription JWT for user",
 		Long:  `Generate sample subscription JWT for user`,
 		Run: func(cmd *cobra.Command, args []string) {
-			GenSubToken(cmd, genSubTokenConfigFile, genSubTokenUser, genSubTokenChannel, genSubTokenTTL, genSubTokenQuiet)
+			genSubToken(cmd, genSubTokenConfigFile, genSubTokenUser, genSubTokenChannel, genSubTokenTTL, genSubTokenQuiet)
 		},
 	}
 	genSubTokenCmd.Flags().StringVarP(&genSubTokenConfigFile, "config", "c", "config.json", "path to config file")
@@ -38,7 +38,7 @@ func GenSubTokenCommand() *cobra.Command {
 	return genSubTokenCmd
 }
 
-func GenSubToken(
+func genSubToken(
 	cmd *cobra.Command, genSubTokenConfigFile string, genSubTokenUser string,
 	genSubTokenChannel string, genSubTokenTTL int64, genSubTokenQuiet bool,
 ) {

@@ -16,7 +16,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func DefaultConfigCommand() *cobra.Command {
+func DefaultConfig() *cobra.Command {
 	var defaultConfigFile string
 	var baseConfigFile string
 	var dryRun bool
@@ -25,7 +25,7 @@ func DefaultConfigCommand() *cobra.Command {
 		Short: "Generate full configuration file with defaults",
 		Long:  `Generate full Centrifugo configuration file with defaults`,
 		Run: func(cmd *cobra.Command, args []string) {
-			DefaultConfig(defaultConfigFile, baseConfigFile, dryRun)
+			defaultConfig(defaultConfigFile, baseConfigFile, dryRun)
 		},
 	}
 	defaultConfigCmd.Flags().StringVarP(&defaultConfigFile, "config", "c", "config.json", "path to default config file to generate")
@@ -34,7 +34,7 @@ func DefaultConfigCommand() *cobra.Command {
 	return defaultConfigCmd
 }
 
-func DefaultConfig(configFile string, baseFile string, dryRun bool) {
+func defaultConfig(configFile string, baseFile string, dryRun bool) {
 	if !dryRun {
 		exists, err := tools.PathExists(configFile)
 		if err != nil {
