@@ -21,9 +21,12 @@ import (
 //go:generate go run internal/gen/api/main.go
 func main() {
 	root := app.Centrifugo()
-	root.AddCommand( // Add helper CLI. See `centrifugo -h` and https://centrifugal.dev/docs/server/console_commands.
-		cli.Version(), cli.CheckConfig(), cli.GenConfig(), cli.GenToken(), cli.GenSubToken(),
-		cli.CheckToken(), cli.CheckSubToken(), cli.DefaultConfig(), cli.DefaultEnv(), cli.Serve(),
+	// Register helper CLI.
+	// See `centrifugo -h` and https://centrifugal.dev/docs/server/console_commands.
+	root.AddCommand(
+		cli.Version(), cli.CheckConfig(), cli.GenConfig(), cli.GenToken(),
+		cli.GenSubToken(), cli.CheckToken(), cli.CheckSubToken(), cli.DefaultConfig(),
+		cli.DefaultEnv(), cli.Serve(),
 	)
 	_ = root.Execute()
 }

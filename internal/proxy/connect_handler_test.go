@@ -110,7 +110,7 @@ func (c connHandleTestCase) invokeHandle(ctx context.Context) (reply centrifuge.
 		Transport: tools.NewTestTransport(),
 	}
 
-	connHandler := c.connectProxyHandler.Handle(c.node)
+	connHandler := c.connectProxyHandler.Handle()
 	reply, _, err = connHandler(ctx, connectEvent)
 
 	return reply, err

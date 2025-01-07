@@ -69,7 +69,7 @@ type rpcHandleTestCase struct {
 }
 
 func (c rpcHandleTestCase) invokeHandle() (reply centrifuge.RPCReply, err error) {
-	rpcHandler := c.rpcProxyHandler.Handle(c.node)
+	rpcHandler := c.rpcProxyHandler.Handle()
 	cfg := config.DefaultConfig()
 	cfg.RPC = configtypes.RPC{
 		WithoutNamespace: configtypes.RpcOptions{

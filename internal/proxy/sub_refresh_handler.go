@@ -55,7 +55,7 @@ type SubRefreshExtra struct {
 type SubRefreshHandlerFunc func(Client, centrifuge.SubRefreshEvent, configtypes.ChannelOptions, PerCallData) (centrifuge.SubRefreshReply, SubRefreshExtra, error)
 
 // Handle refresh.
-func (h *SubRefreshHandler) Handle(node *centrifuge.Node) SubRefreshHandlerFunc {
+func (h *SubRefreshHandler) Handle() SubRefreshHandlerFunc {
 	return func(client Client, e centrifuge.SubRefreshEvent, chOpts configtypes.ChannelOptions, pcd PerCallData) (centrifuge.SubRefreshReply, SubRefreshExtra, error) {
 		started := time.Now()
 

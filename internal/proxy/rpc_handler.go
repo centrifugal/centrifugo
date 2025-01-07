@@ -52,7 +52,7 @@ func NewRPCHandler(c RPCHandlerConfig) *RPCHandler {
 type RPCHandlerFunc func(Client, centrifuge.RPCEvent, *config.Container, PerCallData) (centrifuge.RPCReply, error)
 
 // Handle RPC.
-func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
+func (h *RPCHandler) Handle() RPCHandlerFunc {
 	return func(client Client, e centrifuge.RPCEvent, cfgContainer *config.Container, pcd PerCallData) (centrifuge.RPCReply, error) {
 		started := time.Now()
 

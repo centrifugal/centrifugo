@@ -45,7 +45,7 @@ type RefreshExtra struct {
 type RefreshHandlerFunc func(Client, centrifuge.RefreshEvent, PerCallData) (centrifuge.RefreshReply, RefreshExtra, error)
 
 // Handle refresh.
-func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
+func (h *RefreshHandler) Handle() RefreshHandlerFunc {
 	return func(client Client, e centrifuge.RefreshEvent, pcd PerCallData) (centrifuge.RefreshReply, RefreshExtra, error) {
 		started := time.Now()
 		h.inflight.Inc()

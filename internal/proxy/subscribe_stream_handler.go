@@ -64,7 +64,7 @@ type SubscribeStreamHandlerFunc func(
 ) (centrifuge.SubscribeReply, StreamPublishFunc, func(), error)
 
 // Handle ...
-func (h *SubscribeStreamHandler) Handle(node *centrifuge.Node) SubscribeStreamHandlerFunc {
+func (h *SubscribeStreamHandler) Handle() SubscribeStreamHandlerFunc {
 	return func(
 		client Client, bidi bool, e centrifuge.SubscribeEvent,
 		chOpts configtypes.ChannelOptions, pcd PerCallData,

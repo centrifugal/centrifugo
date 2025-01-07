@@ -49,7 +49,7 @@ type ConnectExtra struct {
 type ConnectingHandlerFunc func(context.Context, centrifuge.ConnectEvent) (centrifuge.ConnectReply, ConnectExtra, error)
 
 // Handle returns connecting handler func.
-func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
+func (h *ConnectHandler) Handle() ConnectingHandlerFunc {
 	return func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, ConnectExtra, error) {
 		started := time.Now()
 		h.inflight.Inc()

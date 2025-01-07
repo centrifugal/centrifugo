@@ -73,14 +73,14 @@ func (h *Handler) Setup() error {
 	if h.proxyMap.ConnectProxy != nil {
 		connectProxyHandler = proxy.NewConnectHandler(proxy.ConnectHandlerConfig{
 			Proxy: h.proxyMap.ConnectProxy,
-		}, h.cfgContainer).Handle(h.node)
+		}, h.cfgContainer).Handle()
 	}
 
 	var refreshProxyHandler proxy.RefreshHandlerFunc
 	if h.proxyMap.RefreshProxy != nil {
 		refreshProxyHandler = proxy.NewRefreshHandler(proxy.RefreshHandlerConfig{
 			Proxy: h.proxyMap.RefreshProxy,
-		}).Handle(h.node)
+		}).Handle()
 	}
 
 	h.node.OnConnecting(func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
@@ -95,7 +95,7 @@ func (h *Handler) Setup() error {
 	if len(h.proxyMap.RpcProxies) > 0 {
 		rpcProxyHandler = proxy.NewRPCHandler(proxy.RPCHandlerConfig{
 			Proxies: h.proxyMap.RpcProxies,
-		}).Handle(h.node)
+		}).Handle()
 	}
 
 	var publishProxyHandler proxy.PublishHandlerFunc
@@ -109,21 +109,21 @@ func (h *Handler) Setup() error {
 	if len(h.proxyMap.SubscribeProxies) > 0 {
 		subscribeProxyHandler = proxy.NewSubscribeHandler(proxy.SubscribeHandlerConfig{
 			Proxies: h.proxyMap.SubscribeProxies,
-		}).Handle(h.node)
+		}).Handle()
 	}
 
 	var proxySubscribeStreamHandler proxy.SubscribeStreamHandlerFunc
 	if len(h.proxyMap.SubscribeStreamProxies) > 0 {
 		proxySubscribeStreamHandler = proxy.NewSubscribeStreamHandler(proxy.SubscribeStreamHandlerConfig{
 			Proxies: h.proxyMap.SubscribeStreamProxies,
-		}).Handle(h.node)
+		}).Handle()
 	}
 
 	var subRefreshProxyHandler proxy.SubRefreshHandlerFunc
 	if len(h.proxyMap.SubRefreshProxies) > 0 {
 		subRefreshProxyHandler = proxy.NewSubRefreshHandler(proxy.SubRefreshHandlerConfig{
 			Proxies: h.proxyMap.SubRefreshProxies,
-		}).Handle(h.node)
+		}).Handle()
 	}
 
 	cfg := h.cfgContainer.Config()
