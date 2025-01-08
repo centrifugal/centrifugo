@@ -526,6 +526,7 @@ func (d *HttpStatusToCodeTransforms) Decode(value string) error {
 }
 
 type ProxyCommonHTTP struct {
+	TLS TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
 	// StaticHeaders is a static set of key/value pairs to attach to HTTP proxy request as
 	// headers. Headers received from HTTP client request or metadata from GRPC client request
 	// both have priority over values set in StaticHttpHeaders map.

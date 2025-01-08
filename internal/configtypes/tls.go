@@ -37,7 +37,11 @@ func (c TLSConfig) ToGoTLSConfig(logTraceEntity string) (*tls.Config, error) {
 	}
 	logger := log.With().Str("entity", logTraceEntity).Logger()
 	logger.Debug().Msg("TLS enabled")
-	return makeTLSConfig(c, logger, os.ReadFile, os.Stat)
+	tlsConfig, err := makeTLSConfig(c, logger, os.ReadFile, os.Stat)
+	if err != nil {
+		return nil, fmt.Errorf("error make TLS config (for %s): %w", logTraceEntity, err)
+	}
+	return tlsConfig, nil
 }
 
 // ReadFileFunc is like os.ReadFile but helps in testing.

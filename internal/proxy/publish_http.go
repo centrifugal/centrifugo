@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 )
@@ -29,8 +30,12 @@ var _ PublishProxy = (*HTTPPublishProxy)(nil)
 
 // NewHTTPPublishProxy ...
 func NewHTTPPublishProxy(p Config) (*HTTPPublishProxy, error) {
+	httpClient, err := proxyHTTPClient(p, "publish_proxy")
+	if err != nil {
+		return nil, fmt.Errorf("error creating HTTP client: %w", err)
+	}
 	return &HTTPPublishProxy{
-		httpCaller: NewHTTPCaller(proxyHTTPClient(p.Timeout.ToDuration())),
+		httpCaller: NewHTTPCaller(httpClient),
 		config:     p,
 	}, nil
 }

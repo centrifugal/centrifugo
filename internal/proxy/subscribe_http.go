@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 )
@@ -16,9 +17,13 @@ var _ SubscribeProxy = (*HTTPSubscribeProxy)(nil)
 
 // NewHTTPSubscribeProxy ...
 func NewHTTPSubscribeProxy(p Config) (*HTTPSubscribeProxy, error) {
+	httpClient, err := proxyHTTPClient(p, "subscribe_proxy")
+	if err != nil {
+		return nil, fmt.Errorf("error creating HTTP client: %w", err)
+	}
 	return &HTTPSubscribeProxy{
 		config:     p,
-		httpCaller: NewHTTPCaller(proxyHTTPClient(p.Timeout.ToDuration())),
+		httpCaller: NewHTTPCaller(httpClient),
 	}, nil
 }
 

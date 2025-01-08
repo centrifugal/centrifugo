@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
 )
@@ -23,9 +24,13 @@ var _ RefreshProxy = (*HTTPRefreshProxy)(nil)
 
 // NewHTTPRefreshProxy ...
 func NewHTTPRefreshProxy(p Config) (*HTTPRefreshProxy, error) {
+	httpClient, err := proxyHTTPClient(p, "refresh_proxy")
+	if err != nil {
+		return nil, fmt.Errorf("error creating HTTP client: %w", err)
+	}
 	return &HTTPRefreshProxy{
 		config:     p,
-		httpCaller: NewHTTPCaller(proxyHTTPClient(p.Timeout.ToDuration())),
+		httpCaller: NewHTTPCaller(httpClient),
 	}, nil
 }
 

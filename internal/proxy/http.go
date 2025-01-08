@@ -3,13 +3,13 @@ package proxy
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
@@ -45,13 +45,22 @@ func NewHTTPCaller(httpClient *http.Client) HTTPCaller {
 	}
 }
 
-func proxyHTTPClient(timeout time.Duration) *http.Client {
+func proxyHTTPClient(p configtypes.Proxy, logTraceEntity string) (*http.Client, error) {
+	var tlsConfig *tls.Config
+	if p.HTTP.TLS.Enabled {
+		var err error
+		tlsConfig, err = p.HTTP.TLS.ToGoTLSConfig(logTraceEntity)
+		if err != nil {
+			return nil, fmt.Errorf("error creating TLS config: %w", err)
+		}
+	}
 	return &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConnsPerHost: DefaultMaxIdleConnsPerHost,
+			TLSClientConfig:     tlsConfig,
 		},
-		Timeout: timeout,
-	}
+		Timeout: p.Timeout.ToDuration(),
+	}, nil
 }
 
 type statusCodeError struct {
