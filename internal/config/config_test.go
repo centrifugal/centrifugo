@@ -59,7 +59,7 @@ func TestConfigTOML(t *testing.T) {
 }
 
 func TestConfigEnvVars(t *testing.T) {
-	// Set environment variables for the test
+	// Set environment variables for the test.
 	_ = os.Setenv("CENTRIFUGO_CLIENT_ALLOWED_ORIGINS", "* http://localhost:4000")
 	_ = os.Setenv("CENTRIFUGO_CLIENT_TOKEN_JWKS_PUBLIC_ENDPOINT", "https://example.com/jwks/new")
 	_ = os.Setenv("CENTRIFUGO_CONSUMERS_KAFKA_KAFKA_TLS_ENABLED", "false")
@@ -68,6 +68,9 @@ func TestConfigEnvVars(t *testing.T) {
 	_ = os.Setenv("CENTRIFUGO_CLIENT_PROXY_CONNECT_HTTP_STATIC_HEADERS", `{"key": "value"}`)
 	_ = os.Setenv("CENTRIFUGO_WEBSOCKET_WRITE_TIMEOUT", `300ms`)
 	_ = os.Setenv("CENTRIFUGO_PROXIES", `[]`)
+	_ = os.Setenv("CENTRIFUGO_ENABLE_UNRELEASED_FEATURES", ``)   // Empty options should be treated as unset.
+	_ = os.Setenv("CENTRIFUGO_RPC_NAMESPACES", ``)               // Empty options should be treated as unset.
+	_ = os.Setenv("CENTRIFUGO_CLIENT_PROXY_CONNECT_TIMEOUT", ``) // Empty unset value should inherit default.
 	defer func() {
 		_ = os.Unsetenv("CENTRIFUGO_CONSUMERS_KAFKA_KAFKA_TLS_ENABLED")
 		_ = os.Unsetenv("CENTRIFUGO_UNKNOWN_ENV")
@@ -77,6 +80,9 @@ func TestConfigEnvVars(t *testing.T) {
 		_ = os.Unsetenv("CENTRIFUGO_CLIENT_PROXY_CONNECT_HTTP_STATIC_HEADERS")
 		_ = os.Unsetenv("CENTRIFUGO_WEBSOCKET_WRITE_TIMEOUT")
 		_ = os.Unsetenv("CENTRIFUGO_PROXIES")
+		_ = os.Unsetenv("CENTRIFUGO_ENABLE_UNRELEASED_FEATURES")
+		_ = os.Unsetenv("CENTRIFUGO_RPC_NAMESPACES")
+		_ = os.Unsetenv("CENTRIFUGO_CLIENT_PROXY_CONNECT_TIMEOUT")
 	}()
 	// Proceed with the test
 	conf, meta := getConfig(t, "testdata/config.json")
@@ -90,10 +96,12 @@ func TestConfigEnvVars(t *testing.T) {
 	require.Contains(t, meta.UnknownEnvs, "CENTRIFUGO_UNKNOWN_ENV")
 	require.Equal(t, configtypes.MapStringString(map[string]string{"key": "value"}), conf.Client.Proxy.Connect.HTTP.StaticHeaders)
 	require.Equal(t, configtypes.Duration(300*time.Millisecond), conf.WebSocket.WriteTimeout)
+	require.Equal(t, time.Second, time.Duration(conf.Client.Proxy.Connect.Timeout))
+	require.Len(t, conf.RPC.Namespaces, 0)
 	require.Len(t, conf.Proxies, 0)
 }
 
-// TestIsKubernetesEnvVar validates the isKubernetesEnvVar function
+// TestIsKubernetesEnvVar validates the isKubernetesEnvVar function.
 func TestIsKubernetesEnvVar(t *testing.T) {
 	tests := []struct {
 		envKey   string

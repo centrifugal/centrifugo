@@ -423,7 +423,7 @@ func TestExplicitBlankDefaultVar(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	if s.DefaultVar != "" {
+	if s.DefaultVar != "foobar" { // Empty values are considered unset.
 		t.Errorf("expected %s, got %s", "\"\"", s.DefaultVar)
 	}
 }
@@ -482,7 +482,7 @@ func TestEmptyMapFieldOverride(t *testing.T) {
 	var s Specification
 	os.Clearenv()
 	os.Setenv("ENV_CONFIG_REQUIREDVAR", "foo")
-	os.Setenv("ENV_CONFIG_MAPFIELD", "")
+	os.Setenv("ENV_CONFIG_MAPFIELD", "") // Empty values are considered unset.
 	if _, err := Process("env_config", &s); err != nil {
 		t.Error(err.Error())
 	}
@@ -491,8 +491,8 @@ func TestEmptyMapFieldOverride(t *testing.T) {
 		t.Error("expected empty map, got <nil>")
 	}
 
-	if len(s.MapField) != 0 {
-		t.Errorf("expected empty map, got map of size %d", len(s.MapField))
+	if len(s.MapField) != 2 {
+		t.Errorf("expected map with default values, got map of size %d", len(s.MapField))
 	}
 }
 

@@ -201,7 +201,7 @@ func Process(prefix string, spec interface{}) ([]VarInfo, error) {
 
 		var defaultIsUsed bool
 		def := info.Tags.Get("default")
-		if def != "" && !ok {
+		if def != "" && (!ok || value == "") { // Empty values are considered unset.
 			value = def
 			defaultIsUsed = true
 		}
@@ -245,6 +245,9 @@ const SliceSep = " "
 func processField(value string, field reflect.Value, defaultIsUsed bool) error {
 	// If the value is default but field is not zero already, we don't want to overwrite it.
 	if defaultIsUsed && !field.IsZero() {
+		return nil
+	}
+	if value == "" {
 		return nil
 	}
 
