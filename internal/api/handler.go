@@ -6,11 +6,10 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/rs/zerolog/log"
-
 	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
