@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/centrifugal/centrifugo/v5/internal/client"
-	"github.com/centrifugal/centrifugo/v5/internal/config"
-	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
-	"github.com/centrifugal/centrifugo/v5/internal/proxy"
-	"github.com/centrifugal/centrifugo/v5/internal/tools"
+	"github.com/centrifugal/centrifugo/internal/client"
+	"github.com/centrifugal/centrifugo/internal/config"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
+	"github.com/centrifugal/centrifugo/internal/proxy"
+	"github.com/centrifugal/centrifugo/internal/tools"
 
 	"github.com/rs/zerolog/log"
 )

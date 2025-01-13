@@ -8,9 +8,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/centrifugal/centrifugo/v5/internal/clientcontext"
-	"github.com/centrifugal/centrifugo/v5/internal/middleware"
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/internal/clientcontext"
+	"github.com/centrifugal/centrifugo/internal/middleware"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

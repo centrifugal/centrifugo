@@ -8,9 +8,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/centrifugal/centrifugo/v5/internal/config/envconfig"
+	"github.com/centrifugal/centrifugo/internal/config/envconfig"
 
-	"github.com/centrifugal/centrifugo/v5/internal/config"
+	"github.com/centrifugal/centrifugo/internal/config"
 	"github.com/spf13/cobra"
 )
 

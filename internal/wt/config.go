@@ -1,5 +1,5 @@
 package wt
 
-import "github.com/centrifugal/centrifugo/v5/internal/configtypes"
+import "github.com/centrifugal/centrifugo/internal/configtypes"
 
 type Config = configtypes.WebTransport

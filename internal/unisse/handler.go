@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/logging"
-	"github.com/centrifugal/centrifugo/v5/internal/tools"
+	"github.com/centrifugal/centrifugo/internal/logging"
+	"github.com/centrifugal/centrifugo/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"

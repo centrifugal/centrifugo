@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/config"
-	"github.com/centrifugal/centrifugo/v5/internal/confighelpers"
-	"github.com/centrifugal/centrifugo/v5/internal/jwtverify"
+	"github.com/centrifugal/centrifugo/internal/config"
+	"github.com/centrifugal/centrifugo/internal/confighelpers"
+	"github.com/centrifugal/centrifugo/internal/jwtverify"
 
 	"github.com/cristalhq/jwt/v5"
 	"github.com/spf13/cobra"

@@ -3,9 +3,9 @@ package confighelpers
 import (
 	"fmt"
 
-	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
-	"github.com/centrifugal/centrifugo/v5/internal/jwtutils"
-	"github.com/centrifugal/centrifugo/v5/internal/jwtverify"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
+	"github.com/centrifugal/centrifugo/internal/jwtutils"
+	"github.com/centrifugal/centrifugo/internal/jwtverify"
 )
 
 func MakeVerifierConfig(tokenConf configtypes.Token) (jwtverify.VerifierConfig, error) {

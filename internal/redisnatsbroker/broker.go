@@ -1,7 +1,7 @@
 package redisnatsbroker
 
 import (
-	"github.com/centrifugal/centrifugo/v5/internal/natsbroker"
+	"github.com/centrifugal/centrifugo/internal/natsbroker"
 
 	"github.com/centrifugal/centrifuge"
 )

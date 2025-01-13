@@ -1,4 +1,4 @@
-module github.com/centrifugal/centrifugo/v5
+module github.com/centrifugal/centrifugo
 
 go 1.23.0
 

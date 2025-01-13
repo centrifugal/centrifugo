@@ -11,8 +11,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
 )
 
 type baseRequestHTTP struct {

@@ -3,7 +3,7 @@ package tools
 import (
 	"net/http"
 
-	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
 
 	"github.com/centrifugal/centrifuge"
 )

@@ -1,7 +1,7 @@
 package unisse
 
 import (
-	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
 )
 
 type Config = configtypes.UniSSE

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"

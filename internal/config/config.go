@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/centrifugal/centrifugo/v5/internal/config/envconfig"
-	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
+	"github.com/centrifugal/centrifugo/internal/config/envconfig"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
 
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-envparse"

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/centrifugal/centrifugo/v5/internal/config"
-	"github.com/centrifugal/centrifugo/v5/internal/tools"
+	"github.com/centrifugal/centrifugo/internal/config"
+	"github.com/centrifugal/centrifugo/internal/tools"
 
 	"github.com/spf13/cobra"
 )

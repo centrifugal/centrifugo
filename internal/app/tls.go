@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/centrifugal/centrifugo/v5/internal/config"
+	"github.com/centrifugal/centrifugo/internal/config"
 
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/acme"

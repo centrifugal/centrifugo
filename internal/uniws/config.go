@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/configtypes"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
 )
 
 // Defaults.
