@@ -3,7 +3,7 @@ package unigrpc
 import (
 	"sync"
 
-	"github.com/centrifugal/centrifugo/v5/internal/unigrpc/unistream"
+	"github.com/centrifugal/centrifugo/internal/unigrpc/unistream"
 
 	"github.com/centrifugal/centrifuge"
 )

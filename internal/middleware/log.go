@@ -15,7 +15,7 @@ import (
 func LogRequest(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		lrw := &logResponseWriter{w, 0}
+		lrw := &statusResponseWriter{w, http.StatusOK}
 		h.ServeHTTP(lrw, r)
 		addr := r.Header.Get("X-Real-IP")
 		if addr == "" {
@@ -28,19 +28,19 @@ func LogRequest(h http.Handler) http.Handler {
 	})
 }
 
-type logResponseWriter struct {
+type statusResponseWriter struct {
 	http.ResponseWriter
 	status int
 }
 
 // WriteHeader allows us to save status code.
-func (lrw *logResponseWriter) WriteHeader(status int) {
+func (lrw *statusResponseWriter) WriteHeader(status int) {
 	lrw.status = status
 	lrw.ResponseWriter.WriteHeader(status)
 }
 
 // Status code allows to get saved status code after handler finished its work.
-func (lrw *logResponseWriter) Status() int {
+func (lrw *statusResponseWriter) Status() int {
 	if lrw.status == 0 {
 		return http.StatusOK
 	}
@@ -48,7 +48,7 @@ func (lrw *logResponseWriter) Status() int {
 }
 
 // Hijack as we need it for Websocket.
-func (lrw *logResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+func (lrw *statusResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	lrw.status = http.StatusSwitchingProtocols
 	hijacker, ok := lrw.ResponseWriter.(http.Hijacker)
 	if !ok {
@@ -57,25 +57,17 @@ func (lrw *logResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return hijacker.Hijack()
 }
 
-// Flush as SockJS uses http.Flusher.
-func (lrw *logResponseWriter) Flush() {
+// Flush implements http.Flusher.
+func (lrw *statusResponseWriter) Flush() {
 	lrw.ResponseWriter.(http.Flusher).Flush()
 }
 
 // Connection for WebTransport.
-func (lrw *logResponseWriter) Connection() http3.Connection {
+func (lrw *statusResponseWriter) Connection() http3.Connection {
 	return lrw.ResponseWriter.(http3.Hijacker).Connection()
 }
 
 // HTTPStream for WebTransport.
-func (lrw *logResponseWriter) HTTPStream() http3.Stream {
+func (lrw *statusResponseWriter) HTTPStream() http3.Stream {
 	return lrw.ResponseWriter.(http3.HTTPStreamer).HTTPStream()
-}
-
-// CloseNotify as SockJS uses http.CloseNotifier.
-//
-//goland:noinspection GoDeprecation
-func (lrw *logResponseWriter) CloseNotify() <-chan bool {
-	//nolint:staticcheck
-	return lrw.ResponseWriter.(http.CloseNotifier).CloseNotify()
 }

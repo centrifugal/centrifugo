@@ -2,9 +2,9 @@ package proxy
 
 import (
 	"context"
-	"time"
+	"fmt"
 
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
 )
 
 // RefreshRequestHTTP ...
@@ -24,9 +24,13 @@ var _ RefreshProxy = (*HTTPRefreshProxy)(nil)
 
 // NewHTTPRefreshProxy ...
 func NewHTTPRefreshProxy(p Config) (*HTTPRefreshProxy, error) {
+	httpClient, err := proxyHTTPClient(p, "refresh_proxy")
+	if err != nil {
+		return nil, fmt.Errorf("error creating HTTP client: %w", err)
+	}
 	return &HTTPRefreshProxy{
 		config:     p,
-		httpCaller: NewHTTPCaller(proxyHTTPClient(time.Duration(p.Timeout))),
+		httpCaller: NewHTTPCaller(httpClient),
 	}, nil
 }
 
@@ -40,7 +44,7 @@ func (p *HTTPRefreshProxy) ProxyRefresh(ctx context.Context, req *proxyproto.Ref
 	if err != nil {
 		return nil, err
 	}
-	protocolError, protocolDisconnect := transformHTTPStatusError(err, p.config.HttpStatusTransforms)
+	protocolError, protocolDisconnect := transformHTTPStatusError(err, p.config.HTTP.StatusToCodeTransforms)
 	if protocolError != nil || protocolDisconnect != nil {
 		return &proxyproto.RefreshResponse{
 			Error:      protocolError,
@@ -48,6 +52,11 @@ func (p *HTTPRefreshProxy) ProxyRefresh(ctx context.Context, req *proxyproto.Ref
 		}, nil
 	}
 	return httpDecoder.DecodeRefreshResponse(respData)
+}
+
+// Name ...
+func (p *HTTPRefreshProxy) Name() string {
+	return "default"
 }
 
 // Protocol ...

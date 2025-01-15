@@ -4,28 +4,26 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
+	"github.com/centrifugal/centrifugo/internal/config"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog/log"
 )
 
 // RPCHandlerConfig ...
 type RPCHandlerConfig struct {
-	Proxies           map[string]RPCProxy
-	GranularProxyMode bool
+	Proxies map[string]RPCProxy
 }
 
 // RPCHandler ...
 type RPCHandler struct {
-	config            RPCHandlerConfig
-	summary           prometheus.Observer
-	histogram         prometheus.Observer
-	errors            prometheus.Counter
-	granularSummary   map[string]prometheus.Observer
-	granularHistogram map[string]prometheus.Observer
-	granularErrors    map[string]prometheus.Counter
+	config    RPCHandlerConfig
+	summary   map[string]prometheus.Observer
+	histogram map[string]prometheus.Observer
+	errors    map[string]prometheus.Counter
+	inflight  map[string]prometheus.Gauge
 }
 
 // NewRPCHandler ...
@@ -33,36 +31,29 @@ func NewRPCHandler(c RPCHandlerConfig) *RPCHandler {
 	h := &RPCHandler{
 		config: c,
 	}
-	if h.config.GranularProxyMode {
-		summary := map[string]prometheus.Observer{}
-		histogram := map[string]prometheus.Observer{}
-		errors := map[string]prometheus.Counter{}
-		for k := range c.Proxies {
-			name := k
-			if name == "" {
-				name = "__default__"
-			}
-			summary[name] = granularProxyCallDurationSummary.WithLabelValues("rpc", name)
-			histogram[name] = granularProxyCallDurationHistogram.WithLabelValues("rpc", name)
-			errors[name] = granularProxyCallErrorCount.WithLabelValues("rpc", name)
-		}
-		h.granularSummary = summary
-		h.granularHistogram = histogram
-		h.granularErrors = errors
-	} else {
-		h.summary = proxyCallDurationSummary.WithLabelValues(h.config.Proxies[""].Protocol(), "rpc")
-		h.histogram = proxyCallDurationHistogram.WithLabelValues(h.config.Proxies[""].Protocol(), "rpc")
-		h.errors = proxyCallErrorCount.WithLabelValues(h.config.Proxies[""].Protocol(), "rpc")
+	summary := map[string]prometheus.Observer{}
+	histogram := map[string]prometheus.Observer{}
+	errors := map[string]prometheus.Counter{}
+	inflight := map[string]prometheus.Gauge{}
+	for name, p := range c.Proxies {
+		summary[name] = proxyCallDurationSummary.WithLabelValues(p.Protocol(), "rpc", name)
+		histogram[name] = proxyCallDurationHistogram.WithLabelValues(p.Protocol(), "rpc", name)
+		errors[name] = proxyCallErrorCount.WithLabelValues(p.Protocol(), "rpc", name)
+		inflight[name] = proxyCallInflightRequests.WithLabelValues(p.Protocol(), "rpc", name)
 	}
+	h.summary = summary
+	h.histogram = histogram
+	h.errors = errors
+	h.inflight = inflight
 	return h
 }
 
 // RPCHandlerFunc ...
-type RPCHandlerFunc func(Client, centrifuge.RPCEvent, *rule.Container, PerCallData) (centrifuge.RPCReply, error)
+type RPCHandlerFunc func(Client, centrifuge.RPCEvent, *config.Container, PerCallData) (centrifuge.RPCReply, error)
 
 // Handle RPC.
-func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
-	return func(client Client, e centrifuge.RPCEvent, ruleContainer *rule.Container, pcd PerCallData) (centrifuge.RPCReply, error) {
+func (h *RPCHandler) Handle() RPCHandlerFunc {
+	return func(client Client, e centrifuge.RPCEvent, cfgContainer *config.Container, pcd PerCallData) (centrifuge.RPCReply, error) {
 		started := time.Now()
 
 		var p RPCProxy
@@ -70,31 +61,28 @@ func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
 		var histogram prometheus.Observer
 		var errors prometheus.Counter
 
-		if h.config.GranularProxyMode {
-			rpcOpts, ok, err := ruleContainer.RpcOptions(e.Method)
-			if err != nil {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error getting RPC options", map[string]any{"method": e.Method, "error": err.Error()}))
-				return centrifuge.RPCReply{}, centrifuge.ErrorInternal
-			}
-			if !ok {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "rpc options not found", map[string]any{"method": e.Method}))
-				return centrifuge.RPCReply{}, centrifuge.ErrorMethodNotFound
-			}
-			proxyName := rpcOpts.RpcProxyName
-			if proxyName == "" {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "rpc proxy not configured for a method", map[string]any{"method": e.Method}))
-				return centrifuge.RPCReply{}, centrifuge.ErrorNotAvailable
-			}
-			p = h.config.Proxies[proxyName]
-			summary = h.granularSummary[proxyName]
-			histogram = h.granularHistogram[proxyName]
-			errors = h.granularErrors[proxyName]
-		} else {
-			p = h.config.Proxies[""]
-			summary = h.summary
-			histogram = h.histogram
-			errors = h.errors
+		rpcOpts, ok, err := cfgContainer.RpcOptions(e.Method)
+		if err != nil {
+			log.Error().Err(err).Str("method", e.Method).Msg("error getting RPC options")
+			return centrifuge.RPCReply{}, centrifuge.ErrorInternal
 		}
+		if !ok {
+			log.Info().Str("method", e.Method).Msg("rpc options not found")
+			return centrifuge.RPCReply{}, centrifuge.ErrorMethodNotFound
+		}
+		proxyEnabled := rpcOpts.ProxyEnabled
+		proxyName := rpcOpts.ProxyName
+		if !proxyEnabled {
+			log.Info().Str("method", e.Method).Msg("rpc proxy not enabled for a method")
+			return centrifuge.RPCReply{}, centrifuge.ErrorNotAvailable
+		}
+		p = h.config.Proxies[proxyName]
+		summary = h.summary[proxyName]
+		histogram = h.histogram[proxyName]
+		errors = h.errors[proxyName]
+		inflight := h.inflight[proxyName]
+		inflight.Inc()
+		defer inflight.Dec()
 
 		req := &proxyproto.RPCRequest{
 			Client:    client.ID(),
@@ -126,8 +114,8 @@ func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
 			summary.Observe(duration)
 			histogram.Observe(duration)
 			errors.Inc()
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying RPC", map[string]any{"error": err.Error()}))
-			return centrifuge.RPCReply{}, centrifuge.ErrorInternal
+			log.Error().Err(err).Msg("error proxying RPC")
+			return centrifuge.RPCReply{}, err
 		}
 		summary.Observe(duration)
 		histogram.Observe(duration)
@@ -144,7 +132,7 @@ func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
 			if rpcData.B64Data != "" {
 				decodedData, err := base64.StdEncoding.DecodeString(rpcData.B64Data)
 				if err != nil {
-					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]any{"client": client.ID(), "error": err.Error()}))
+					log.Error().Err(err).Str("client", client.ID()).Msg("error decoding base64 data")
 					return centrifuge.RPCReply{}, centrifuge.ErrorInternal
 				}
 				data = decodedData

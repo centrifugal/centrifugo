@@ -4,29 +4,27 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
-	"github.com/centrifugal/centrifugo/v5/internal/subsource"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog/log"
 )
 
 // SubscribeHandlerConfig ...
 type SubscribeHandlerConfig struct {
-	Proxies           map[string]SubscribeProxy
-	GranularProxyMode bool
+	Proxies map[string]SubscribeProxy
 }
 
 // SubscribeHandler ...
 type SubscribeHandler struct {
-	config            SubscribeHandlerConfig
-	summary           prometheus.Observer
-	histogram         prometheus.Observer
-	errors            prometheus.Counter
-	granularSummary   map[string]prometheus.Observer
-	granularHistogram map[string]prometheus.Observer
-	granularErrors    map[string]prometheus.Counter
+	config    SubscribeHandlerConfig
+	summary   map[string]prometheus.Observer
+	histogram map[string]prometheus.Observer
+	errors    map[string]prometheus.Counter
+	inflight  map[string]prometheus.Gauge
 }
 
 // NewSubscribeHandler ...
@@ -34,27 +32,20 @@ func NewSubscribeHandler(c SubscribeHandlerConfig) *SubscribeHandler {
 	h := &SubscribeHandler{
 		config: c,
 	}
-	if h.config.GranularProxyMode {
-		summary := map[string]prometheus.Observer{}
-		histogram := map[string]prometheus.Observer{}
-		errors := map[string]prometheus.Counter{}
-		for k := range c.Proxies {
-			name := k
-			if name == "" {
-				name = "__default__"
-			}
-			summary[name] = granularProxyCallDurationSummary.WithLabelValues("subscribe", name)
-			histogram[name] = granularProxyCallDurationHistogram.WithLabelValues("subscribe", name)
-			errors[name] = granularProxyCallErrorCount.WithLabelValues("subscribe", name)
-		}
-		h.granularSummary = summary
-		h.granularHistogram = histogram
-		h.granularErrors = errors
-	} else {
-		h.summary = proxyCallDurationSummary.WithLabelValues(h.config.Proxies[""].Protocol(), "subscribe")
-		h.histogram = proxyCallDurationHistogram.WithLabelValues(h.config.Proxies[""].Protocol(), "subscribe")
-		h.errors = proxyCallErrorCount.WithLabelValues(h.config.Proxies[""].Protocol(), "subscribe")
+	summary := map[string]prometheus.Observer{}
+	histogram := map[string]prometheus.Observer{}
+	errors := map[string]prometheus.Counter{}
+	inflight := map[string]prometheus.Gauge{}
+	for name, p := range c.Proxies {
+		summary[name] = proxyCallDurationSummary.WithLabelValues(p.Protocol(), "subscribe", name)
+		histogram[name] = proxyCallDurationHistogram.WithLabelValues(p.Protocol(), "subscribe", name)
+		errors[name] = proxyCallErrorCount.WithLabelValues(p.Protocol(), "subscribe", name)
+		inflight[name] = proxyCallInflightRequests.WithLabelValues(p.Protocol(), "subscribe", name)
 	}
+	h.summary = summary
+	h.histogram = histogram
+	h.errors = errors
+	h.inflight = inflight
 	return h
 }
 
@@ -62,11 +53,11 @@ type SubscribeExtra struct {
 }
 
 // SubscribeHandlerFunc ...
-type SubscribeHandlerFunc func(Client, centrifuge.SubscribeEvent, rule.ChannelOptions, PerCallData) (centrifuge.SubscribeReply, SubscribeExtra, error)
+type SubscribeHandlerFunc func(Client, centrifuge.SubscribeEvent, configtypes.ChannelOptions, PerCallData) (centrifuge.SubscribeReply, SubscribeExtra, error)
 
 // Handle Subscribe.
-func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
-	return func(client Client, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions, pcd PerCallData) (centrifuge.SubscribeReply, SubscribeExtra, error) {
+func (h *SubscribeHandler) Handle() SubscribeHandlerFunc {
+	return func(client Client, e centrifuge.SubscribeEvent, chOpts configtypes.ChannelOptions, pcd PerCallData) (centrifuge.SubscribeReply, SubscribeExtra, error) {
 		started := time.Now()
 
 		var p SubscribeProxy
@@ -74,22 +65,19 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 		var histogram prometheus.Observer
 		var errors prometheus.Counter
 
-		if h.config.GranularProxyMode {
-			proxyName := chOpts.SubscribeProxyName
-			if proxyName == "" {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe proxy not configured for a channel", map[string]any{"channel": e.Channel}))
-				return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
-			}
-			p = h.config.Proxies[proxyName]
-			summary = h.granularSummary[proxyName]
-			histogram = h.granularHistogram[proxyName]
-			errors = h.granularErrors[proxyName]
-		} else {
-			p = h.config.Proxies[""]
-			summary = h.summary
-			histogram = h.histogram
-			errors = h.errors
+		proxyEnabled := chOpts.SubscribeProxyEnabled
+		proxyName := chOpts.SubscribeProxyName
+		if !proxyEnabled {
+			log.Info().Str("channel", e.Channel).Msg("subscribe proxy not enabled for a channel")
+			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
 		}
+		p = h.config.Proxies[proxyName]
+		summary = h.summary[proxyName]
+		histogram = h.histogram[proxyName]
+		errors = h.errors[proxyName]
+		inflight := h.inflight[proxyName]
+		inflight.Inc()
+		defer inflight.Dec()
 
 		req := &proxyproto.SubscribeRequest{
 			Client:    client.ID(),
@@ -121,8 +109,8 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 			summary.Observe(duration)
 			histogram.Observe(duration)
 			errors.Inc()
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying subscribe", map[string]any{"error": err.Error()}))
-			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorInternal
+			log.Error().Err(err).Str("client", client.ID()).Str("channel", e.Channel).Msg("error proxying subscribe")
+			return centrifuge.SubscribeReply{}, SubscribeExtra{}, err
 		}
 		summary.Observe(duration)
 		histogram.Observe(duration)
@@ -149,7 +137,7 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 			if subscribeRep.Result.B64Info != "" {
 				decodedInfo, err := base64.StdEncoding.DecodeString(subscribeRep.Result.B64Info)
 				if err != nil {
-					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]any{"client": client.ID(), "error": err.Error()}))
+					log.Error().Err(err).Str("client", client.ID()).Msg("error decoding base64 info")
 					return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorInternal
 				}
 				info = decodedInfo
@@ -159,7 +147,7 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 			if subscribeRep.Result.B64Data != "" {
 				decodedData, err := base64.StdEncoding.DecodeString(subscribeRep.Result.B64Data)
 				if err != nil {
-					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]any{"client": client.ID(), "error": err.Error()}))
+					log.Error().Err(err).Str("client", client.ID()).Msg("error decoding base64 data")
 					return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorInternal
 				}
 				data = decodedData

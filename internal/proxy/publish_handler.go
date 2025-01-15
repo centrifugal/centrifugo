@@ -4,28 +4,26 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog/log"
 )
 
 // PublishHandlerConfig ...
 type PublishHandlerConfig struct {
-	Proxies           map[string]PublishProxy
-	GranularProxyMode bool
+	Proxies map[string]PublishProxy
 }
 
 // PublishHandler ...
 type PublishHandler struct {
-	config            PublishHandlerConfig
-	summary           prometheus.Observer
-	histogram         prometheus.Observer
-	errors            prometheus.Counter
-	granularSummary   map[string]prometheus.Observer
-	granularHistogram map[string]prometheus.Observer
-	granularErrors    map[string]prometheus.Counter
+	config    PublishHandlerConfig
+	summary   map[string]prometheus.Observer
+	histogram map[string]prometheus.Observer
+	errors    map[string]prometheus.Counter
+	inflight  map[string]prometheus.Gauge
 }
 
 // NewPublishHandler ...
@@ -33,36 +31,29 @@ func NewPublishHandler(c PublishHandlerConfig) *PublishHandler {
 	h := &PublishHandler{
 		config: c,
 	}
-	if h.config.GranularProxyMode {
-		summary := map[string]prometheus.Observer{}
-		histogram := map[string]prometheus.Observer{}
-		errors := map[string]prometheus.Counter{}
-		for k := range c.Proxies {
-			name := k
-			if name == "" {
-				name = "__default__"
-			}
-			summary[name] = granularProxyCallDurationSummary.WithLabelValues("publish", name)
-			histogram[name] = granularProxyCallDurationHistogram.WithLabelValues("publish", name)
-			errors[name] = granularProxyCallErrorCount.WithLabelValues("publish", name)
-		}
-		h.granularSummary = summary
-		h.granularHistogram = histogram
-		h.granularErrors = errors
-	} else {
-		h.summary = proxyCallDurationSummary.WithLabelValues(h.config.Proxies[""].Protocol(), "publish")
-		h.histogram = proxyCallDurationHistogram.WithLabelValues(h.config.Proxies[""].Protocol(), "publish")
-		h.errors = proxyCallErrorCount.WithLabelValues(h.config.Proxies[""].Protocol(), "publish")
+	summary := map[string]prometheus.Observer{}
+	histogram := map[string]prometheus.Observer{}
+	errors := map[string]prometheus.Counter{}
+	inflight := map[string]prometheus.Gauge{}
+	for name, p := range c.Proxies {
+		summary[name] = proxyCallDurationSummary.WithLabelValues(p.Protocol(), "publish", name)
+		histogram[name] = proxyCallDurationHistogram.WithLabelValues(p.Protocol(), "publish", name)
+		errors[name] = proxyCallErrorCount.WithLabelValues(p.Protocol(), "publish", name)
+		inflight[name] = proxyCallInflightRequests.WithLabelValues(p.Protocol(), "publish", name)
 	}
+	h.summary = summary
+	h.histogram = histogram
+	h.errors = errors
+	h.inflight = inflight
 	return h
 }
 
 // PublishHandlerFunc ...
-type PublishHandlerFunc func(Client, centrifuge.PublishEvent, rule.ChannelOptions, PerCallData) (centrifuge.PublishReply, error)
+type PublishHandlerFunc func(Client, centrifuge.PublishEvent, configtypes.ChannelOptions, PerCallData) (centrifuge.PublishReply, error)
 
 // Handle Publish.
 func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
-	return func(client Client, e centrifuge.PublishEvent, chOpts rule.ChannelOptions, pcd PerCallData) (centrifuge.PublishReply, error) {
+	return func(client Client, e centrifuge.PublishEvent, chOpts configtypes.ChannelOptions, pcd PerCallData) (centrifuge.PublishReply, error) {
 		started := time.Now()
 
 		var p PublishProxy
@@ -70,22 +61,19 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 		var histogram prometheus.Observer
 		var errors prometheus.Counter
 
-		if h.config.GranularProxyMode {
-			proxyName := chOpts.PublishProxyName
-			if proxyName == "" {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "publish proxy not configured for a channel", map[string]any{"channel": e.Channel}))
-				return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
-			}
-			p = h.config.Proxies[proxyName]
-			summary = h.granularSummary[proxyName]
-			histogram = h.granularHistogram[proxyName]
-			errors = h.granularErrors[proxyName]
-		} else {
-			p = h.config.Proxies[""]
-			summary = h.summary
-			histogram = h.histogram
-			errors = h.errors
+		proxyEnabled := chOpts.PublishProxyEnabled
+		proxyName := chOpts.PublishProxyName
+		if !proxyEnabled {
+			log.Info().Str("channel", e.Channel).Msg("publish proxy not enabled for a channel")
+			return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
 		}
+		p = h.config.Proxies[proxyName]
+		summary = h.summary[proxyName]
+		histogram = h.histogram[proxyName]
+		errors = h.errors[proxyName]
+		inflight := h.inflight[proxyName]
+		inflight.Inc()
+		defer inflight.Dec()
 
 		req := &proxyproto.PublishRequest{
 			Client:    client.ID(),
@@ -117,8 +105,8 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 			summary.Observe(duration)
 			histogram.Observe(duration)
 			errors.Inc()
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying publish", map[string]any{"error": err.Error()}))
-			return centrifuge.PublishReply{}, centrifuge.ErrorInternal
+			log.Error().Err(err).Str("client", client.ID()).Str("channel", e.Channel).Msg("error proxying publish")
+			return centrifuge.PublishReply{}, err
 		}
 		summary.Observe(duration)
 		histogram.Observe(duration)
@@ -141,7 +129,7 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 			} else if publishRep.Result.B64Data != "" {
 				decodedData, err := base64.StdEncoding.DecodeString(publishRep.Result.B64Data)
 				if err != nil {
-					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]any{"client": client.ID(), "error": err.Error()}))
+					log.Error().Err(err).Str("client", client.ID()).Msg("error decoding base64 data")
 					return centrifuge.PublishReply{}, centrifuge.ErrorInternal
 				}
 				data = decodedData
@@ -156,7 +144,7 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 		result, err := node.Publish(
 			e.Channel, data,
 			centrifuge.WithClientInfo(e.ClientInfo),
-			centrifuge.WithHistory(historySize, time.Duration(historyTTL), time.Duration(historyMetaTTL)),
+			centrifuge.WithHistory(historySize, historyTTL.ToDuration(), historyMetaTTL.ToDuration()),
 		)
 		return centrifuge.PublishReply{Result: &result}, err
 	}

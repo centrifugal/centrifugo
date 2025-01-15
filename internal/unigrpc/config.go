@@ -1,3 +1,5 @@
 package unigrpc
 
-type Config struct{}
+import "github.com/centrifugal/centrifugo/internal/configtypes"
+
+type Config = configtypes.UniGRPC

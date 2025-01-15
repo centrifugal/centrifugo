@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/tools"
+	"github.com/centrifugal/centrifugo/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"
@@ -23,7 +23,7 @@ type grpcRefreshHandleTestCase struct {
 func newRefreshHandlerGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTestServer) grpcRefreshHandleTestCase {
 	commonProxyTestCase := tools.NewCommonGRPCProxyTestCase(ctx, proxyGRPCServer)
 
-	refreshProxy, err := NewGRPCRefreshProxy(getTestGrpcProxy(commonProxyTestCase))
+	refreshProxy, err := NewGRPCRefreshProxy("default", getTestGrpcProxy(commonProxyTestCase))
 	if err != nil {
 		log.Fatalln("could not create grpc refresh proxy: ", err)
 	}
@@ -63,7 +63,7 @@ type refreshHandleTestCase struct {
 }
 
 func (c refreshHandleTestCase) invokeHandle() (reply centrifuge.RefreshReply, err error) {
-	refreshHandler := c.refreshProxyHandler.Handle(c.node)
+	refreshHandler := c.refreshProxyHandler.Handle()
 	reply, _, err = refreshHandler(c.client, centrifuge.RefreshEvent{}, PerCallData{})
 
 	return reply, err

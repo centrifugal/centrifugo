@@ -1,10 +1,5 @@
 package wt
 
-import (
-	"github.com/centrifugal/centrifuge"
-)
+import "github.com/centrifugal/centrifugo/internal/configtypes"
 
-// Config for Handler.
-type Config struct {
-	centrifuge.PingPongConfig
-}
+type Config = configtypes.WebTransport

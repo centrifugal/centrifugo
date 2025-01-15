@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/centrifugal/centrifugo/v5/internal/build"
+	"github.com/centrifugal/centrifugo/internal/build"
 
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"

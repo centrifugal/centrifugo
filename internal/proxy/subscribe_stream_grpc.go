@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
 
 	"google.golang.org/grpc"
 )
@@ -14,12 +14,12 @@ type SubscribeStreamProxy struct {
 	client proxyproto.CentrifugoProxyClient
 }
 
-func NewSubscribeStreamProxy(p Config) (*SubscribeStreamProxy, error) {
+func NewSubscribeStreamProxy(name string, p Config) (*SubscribeStreamProxy, error) {
 	host, err := getGrpcHost(p.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("error getting grpc host: %v", err)
 	}
-	dialOpts, err := getDialOpts(p)
+	dialOpts, err := getDialOpts(name, p)
 	if err != nil {
 		return nil, fmt.Errorf("error creating GRPC dial options: %v", err)
 	}

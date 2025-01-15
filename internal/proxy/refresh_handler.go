@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog/log"
 )
 
 // RefreshHandlerConfig ...
@@ -22,15 +23,17 @@ type RefreshHandler struct {
 	summary   prometheus.Observer
 	histogram prometheus.Observer
 	errors    prometheus.Counter
+	inflight  prometheus.Gauge
 }
 
 // NewRefreshHandler ...
 func NewRefreshHandler(c RefreshHandlerConfig) *RefreshHandler {
 	return &RefreshHandler{
 		config:    c,
-		summary:   proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "refresh"),
-		histogram: proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "refresh"),
-		errors:    proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "refresh"),
+		summary:   proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "refresh", "default"),
+		histogram: proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "refresh", "default"),
+		errors:    proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "refresh", "default"),
+		inflight:  proxyCallInflightRequests.WithLabelValues(c.Proxy.Protocol(), "refresh", "default"),
 	}
 }
 
@@ -42,9 +45,11 @@ type RefreshExtra struct {
 type RefreshHandlerFunc func(Client, centrifuge.RefreshEvent, PerCallData) (centrifuge.RefreshReply, RefreshExtra, error)
 
 // Handle refresh.
-func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
+func (h *RefreshHandler) Handle() RefreshHandlerFunc {
 	return func(client Client, e centrifuge.RefreshEvent, pcd PerCallData) (centrifuge.RefreshReply, RefreshExtra, error) {
 		started := time.Now()
+		h.inflight.Inc()
+		defer h.inflight.Dec()
 		req := &proxyproto.RefreshRequest{
 			Client:    client.ID(),
 			Protocol:  string(client.Transport().Protocol()),
@@ -68,7 +73,7 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 			h.summary.Observe(duration)
 			h.histogram.Observe(duration)
 			h.errors.Inc()
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying refresh", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Msg("error proxying refresh")
 			// In case of an error give connection one more minute to live and
 			// then try to check again. This way we gracefully handle temporary
 			// problems on application backend side.
@@ -84,7 +89,7 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 		result := refreshRep.Result
 		if result == nil {
 			// User will be disconnected.
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "no refresh result found", map[string]any{}))
+			log.Error().Msg("no refresh result found")
 			return centrifuge.RefreshReply{
 				Expired: true,
 			}, RefreshExtra{}, nil
@@ -100,7 +105,7 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 		if result.B64Info != "" {
 			decodedInfo, err := base64.StdEncoding.DecodeString(result.B64Info)
 			if err != nil {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]any{"client": client.ID(), "error": err.Error()}))
+				log.Error().Err(err).Str("client", client.ID()).Msg("error decoding base64 info")
 				return centrifuge.RefreshReply{}, RefreshExtra{}, centrifuge.ErrorInternal
 			}
 			info = decodedInfo

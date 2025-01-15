@@ -3,9 +3,8 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
 
 	"google.golang.org/grpc"
 )
@@ -19,12 +18,12 @@ type GRPCSubRefreshProxy struct {
 var _ SubRefreshProxy = (*GRPCSubRefreshProxy)(nil)
 
 // NewGRPCSubRefreshProxy ...
-func NewGRPCSubRefreshProxy(p Config) (*GRPCSubRefreshProxy, error) {
+func NewGRPCSubRefreshProxy(name string, p Config) (*GRPCSubRefreshProxy, error) {
 	host, err := getGrpcHost(p.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("error getting grpc host: %v", err)
 	}
-	dialOpts, err := getDialOpts(p)
+	dialOpts, err := getDialOpts(name, p)
 	if err != nil {
 		return nil, fmt.Errorf("error creating GRPC dial options: %v", err)
 	}
@@ -40,7 +39,7 @@ func NewGRPCSubRefreshProxy(p Config) (*GRPCSubRefreshProxy, error) {
 
 // ProxySubRefresh proxies refresh to application backend.
 func (p *GRPCSubRefreshProxy) ProxySubRefresh(ctx context.Context, req *proxyproto.SubRefreshRequest) (*proxyproto.SubRefreshResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(p.config.Timeout))
+	ctx, cancel := context.WithTimeout(ctx, p.config.Timeout.ToDuration())
 	defer cancel()
 	return p.client.SubRefresh(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
 }

@@ -3,17 +3,17 @@ package natsbroker
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
 	"github.com/nats-io/nats.go"
+	"github.com/rs/zerolog/log"
 )
 
 type (
@@ -21,55 +21,7 @@ type (
 	channelID string
 )
 
-// Config of NatsBroker.
-type Config struct {
-	// URL is a Nats server URL.
-	URL string
-	// Prefix allows customizing channel prefix in Nats to work with a single Nats from different
-	// unrelated Centrifugo setups.
-	Prefix string
-	// DialTimeout is a timeout for establishing connection to Nats.
-	DialTimeout time.Duration
-	// WriteTimeout is a timeout for write operation to Nats.
-	WriteTimeout time.Duration
-	// TLS for the Nats connection. TLS is not used if nil.
-	TLS *tls.Config
-
-	// AllowWildcards allows to enable wildcard subscriptions. By default, wildcard subscriptions
-	// are not allowed. Using wildcard subscriptions can't be combined with join/leave events and presence
-	// because subscriptions do not belong to a concrete channel after with wildcards, while join/leave events
-	// require concrete channel to be published. And presence does not make a lot of sense for wildcard
-	// subscriptions - there could be subscribers which use different mask, but still receive subset of updates.
-	// It's required to use channels without wildcards to for mentioned features to work properly. When
-	// using wildcard subscriptions a special care is needed regarding security - pay additional
-	// attention to a proper permission management.
-	AllowWildcards bool
-
-	// RawMode allows enabling raw communication with Nats. When on, Centrifugo subscribes to channels
-	// without adding any prefixes to channel name. Proper prefixes must be managed by the application in this
-	// case. Data consumed from Nats is sent directly to subscribers without any processing. When publishing
-	// to Nats Centrifugo does not add any prefixes to channel names also. Centrifugo features like Publication
-	// tags, Publication ClientInfo, join/leave events are not supported in raw mode.
-	RawMode RawModeConfig
-}
-
-type RawModeConfig struct {
-	// Enabled enables raw mode when true.
-	Enabled bool
-
-	// ChannelReplacements is a map where keys are strings to replace and values are replacements.
-	// For example, you have Centrifugo namespace "chat" and using channel "chat:index", but you want to
-	// use channel "chat.index" in Nats. Then you can define SymbolReplacements map like this: {":": "."}.
-	// In this case Centrifugo will replace all ":" symbols in channel name with "." before sending to Nats.
-	// Broker keeps reverse mapping to the original channel to broadcast to proper channels when processing
-	// messages received from Nats.
-	ChannelReplacements map[string]string
-
-	// Prefix is a string that will be added to all channels when publishing messages to Nats, subscribing
-	// to channels in Nats. It's also stripped from channel name when processing messages received from Nats.
-	// By default, no prefix is used.
-	Prefix string
-}
+type Config = configtypes.NatsBroker
 
 type subWrapper struct {
 	sub         *nats.Subscription
@@ -100,7 +52,7 @@ func New(n *centrifuge.Node, conf Config) (*NatsBroker, error) {
 		clientChannelPrefix: conf.Prefix + ".client.",
 	}
 	if conf.RawMode.Enabled {
-		log.Info().Str("rawModePrefix", conf.RawMode.Prefix).Msg("Nats raw mode enabled")
+		log.Info().Str("raw_mode_prefix", conf.RawMode.Prefix).Msg("raw mode of Nats enabled")
 		if len(conf.RawMode.ChannelReplacements) > 0 {
 			var replacerArgs []string
 			for k, v := range conf.RawMode.ChannelReplacements {
@@ -140,11 +92,15 @@ func (b *NatsBroker) Run(h centrifuge.BrokerEventHandler) error {
 	options := []nats.Option{
 		nats.ReconnectBufSize(-1),
 		nats.MaxReconnects(-1),
-		nats.Timeout(b.config.DialTimeout),
-		nats.FlusherTimeout(b.config.WriteTimeout),
+		nats.Timeout(b.config.DialTimeout.ToDuration()),
+		nats.FlusherTimeout(b.config.WriteTimeout.ToDuration()),
 	}
-	if b.config.TLS != nil {
-		options = append(options, nats.Secure(b.config.TLS))
+	if b.config.TLS.Enabled {
+		tlsConfig, err := b.config.TLS.ToGoTLSConfig("nats")
+		if err != nil {
+			return fmt.Errorf("error creating TLS config: %w", err)
+		}
+		options = append(options, nats.Secure(tlsConfig))
 	}
 	nc, err := nats.Connect(url, options...)
 	if err != nil {
@@ -159,7 +115,7 @@ func (b *NatsBroker) Run(h centrifuge.BrokerEventHandler) error {
 		return err
 	}
 	b.nc = nc
-	b.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, fmt.Sprintf("Nats Broker connected to: %s", url)))
+	log.Info().Str("broker", "nats").Str("url", url).Msg("broker running")
 	return nil
 }
 
@@ -322,7 +278,7 @@ func (b *NatsBroker) handleClientMessage(subject string, data []byte, sub *nats.
 	var push protocol.Push
 	err := push.UnmarshalVT(data)
 	if err != nil {
-		b.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "can't unmarshal push from Nats", map[string]any{"error": err.Error()}))
+		log.Error().Err(err).Msg("error unmarshal push from Nats")
 		return
 	}
 
@@ -346,7 +302,7 @@ func (b *NatsBroker) handleClientMessage(subject string, data []byte, sub *nats.
 	} else if push.Leave != nil {
 		_ = b.eventHandler.HandleLeave(push.Channel, infoFromProto(push.Leave.Info))
 	} else {
-		b.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "unknown push from Nats", map[string]any{"push": fmt.Sprintf("%v", &push)}))
+		log.Warn().Str("push", fmt.Sprintf("%v", &push)).Msg("unknown push from Nats")
 	}
 }
 

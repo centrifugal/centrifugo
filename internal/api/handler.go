@@ -2,12 +2,14 @@ package api
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 
-	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
+	. "github.com/centrifugal/centrifugo/internal/apiproto"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -80,13 +82,13 @@ func (s *Handler) handleAPI(w http.ResponseWriter, r *http.Request) {
 
 	data, err = io.ReadAll(r.Body)
 	if err != nil {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error reading API request body", map[string]any{"error": err.Error()}))
+		log.Error().Err(err).Msg("error reading API request body")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	if len(data) == 0 {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "no data in API request"))
+		log.Error().Err(errors.New("no data in API request")).Msg("bad request")
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
@@ -100,7 +102,7 @@ func (s *Handler) handleAPI(w http.ResponseWriter, r *http.Request) {
 	for {
 		command, decodeErr := decoder.Decode()
 		if decodeErr != nil && decodeErr != io.EOF {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding API data", map[string]any{"error": decodeErr.Error()}))
+			log.Error().Err(decodeErr).Msg("error decoding API data")
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
@@ -115,7 +117,7 @@ func (s *Handler) handleAPI(w http.ResponseWriter, r *http.Request) {
 					span := trace.SpanFromContext(r.Context())
 					span.SetStatus(codes.Error, err.Error())
 				}
-				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error handling API command", map[string]any{"error": err.Error()}))
+				log.Error().Err(err).Msg("error handling API command")
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
@@ -125,7 +127,7 @@ func (s *Handler) handleAPI(w http.ResponseWriter, r *http.Request) {
 			}
 			err = encoder.Encode(rep)
 			if err != nil {
-				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error encoding API reply", map[string]any{"error": err.Error()}))
+				log.Error().Err(err).Msg("error encoding API reply")
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
@@ -158,7 +160,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 	case Command_PUBLISH:
 		cmd, err := decoder.DecodePublish(params)
 		if err != nil {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding publish params", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Msg("error decoding publish params")
 			rep.Error = ErrorBadRequest
 			return rep, nil
 		}
@@ -176,7 +178,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 	case Command_BROADCAST:
 		cmd, err := decoder.DecodeBroadcast(params)
 		if err != nil {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding broadcast params", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Msg("error decoding broadcast params")
 			rep.Error = ErrorBadRequest
 			return rep, nil
 		}
@@ -194,7 +196,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 	case Command_SUBSCRIBE:
 		cmd, err := decoder.DecodeSubscribe(params)
 		if err != nil {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding subscribe params", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Msg("error decoding subscribe params")
 			rep.Error = ErrorBadRequest
 			return rep, nil
 		}
@@ -212,7 +214,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 	case Command_UNSUBSCRIBE:
 		cmd, err := decoder.DecodeUnsubscribe(params)
 		if err != nil {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding unsubscribe params", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Msg("error decoding unsubscribe params")
 			rep.Error = ErrorBadRequest
 			return rep, nil
 		}
@@ -230,7 +232,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 	case Command_DISCONNECT:
 		cmd, err := decoder.DecodeDisconnect(params)
 		if err != nil {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding disconnect params", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Msg("error decoding disconnect params")
 			rep.Error = ErrorBadRequest
 			return rep, nil
 		}
@@ -248,7 +250,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 	case Command_PRESENCE:
 		cmd, err := decoder.DecodePresence(params)
 		if err != nil {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding presence params", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Msg("error decoding presence params")
 			rep.Error = ErrorBadRequest
 			return rep, nil
 		}
@@ -266,7 +268,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 	case Command_PRESENCE_STATS:
 		cmd, err := decoder.DecodePresenceStats(params)
 		if err != nil {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding presence stats params", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Msg("error decoding presence stats params")
 			rep.Error = ErrorBadRequest
 			return rep, nil
 		}
@@ -284,7 +286,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 	case Command_HISTORY:
 		cmd, err := decoder.DecodeHistory(params)
 		if err != nil {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding history params", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Msg("error decoding history params")
 			rep.Error = ErrorBadRequest
 			return rep, nil
 		}
@@ -302,7 +304,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 	case Command_HISTORY_REMOVE:
 		cmd, err := decoder.DecodeHistoryRemove(params)
 		if err != nil {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding history remove params", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Msg("error decoding history remove params")
 			rep.Error = ErrorBadRequest
 			return rep, nil
 		}
@@ -333,7 +335,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 	case Command_RPC:
 		cmd, err := decoder.DecodeRPC(params)
 		if err != nil {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding rpc params", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Msg("error decoding rpc params")
 			rep.Error = ErrorBadRequest
 			return rep, nil
 		}
@@ -351,7 +353,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 	case Command_REFRESH:
 		cmd, err := decoder.DecodeRefresh(params)
 		if err != nil {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding refresh params", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Msg("error decoding refresh params")
 			rep.Error = ErrorBadRequest
 			return rep, nil
 		}
@@ -369,7 +371,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 	case Command_CHANNELS:
 		cmd, err := decoder.DecodeChannels(params)
 		if err != nil {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding channels params", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Msg("error decoding channels params")
 			rep.Error = ErrorBadRequest
 			return rep, nil
 		}
@@ -396,17 +398,17 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 }
 
 func (s *Handler) handleReadDataError(r *http.Request, w http.ResponseWriter, err error) {
-	s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error reading API request body", map[string]any{"error": err.Error(), "path": r.URL.Path}))
+	log.Error().Err(err).Str("path", r.URL.Path).Msg("error reading API request body")
 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
 
 func (s *Handler) handleUnmarshalError(r *http.Request, w http.ResponseWriter, err error) {
-	s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding API request body", map[string]any{"error": err.Error(), "path": r.URL.Path}))
+	log.Error().Err(err).Str("path", r.URL.Path).Msg("error decoding API request body")
 	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 }
 
 func (s *Handler) handleMarshalError(r *http.Request, w http.ResponseWriter, err error) {
-	s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error encoding API response", map[string]any{"error": err.Error(), "path": r.URL.Path}))
+	log.Error().Err(err).Str("path", r.URL.Path).Msg("error encoding API response")
 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
 

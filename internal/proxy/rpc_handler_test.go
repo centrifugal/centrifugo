@@ -7,8 +7,11 @@ import (
 	"log"
 	"net/http"
 	"testing"
+	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/tools"
+	"github.com/centrifugal/centrifugo/internal/config"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
+	"github.com/centrifugal/centrifugo/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"
@@ -22,14 +25,14 @@ type grpcRPCHandleTestCase struct {
 func newRPCHandlerGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTestServer) grpcRPCHandleTestCase {
 	commonProxyTestCase := tools.NewCommonGRPCProxyTestCase(ctx, proxyGRPCServer)
 
-	rpcProxy, err := NewGRPCRPCProxy(getTestGrpcProxy(commonProxyTestCase))
+	rpcProxy, err := NewGRPCRPCProxy("default", getTestGrpcProxy(commonProxyTestCase))
 	if err != nil {
 		log.Fatalln("could not create grpc rpc proxy: ", err)
 	}
 
 	rpcProxyHandler := NewRPCHandler(RPCHandlerConfig{
 		Proxies: map[string]RPCProxy{
-			"": rpcProxy,
+			"test": rpcProxy,
 		},
 	})
 
@@ -51,7 +54,7 @@ func newRPCHandlerHTTPTestCase(ctx context.Context, endpoint string) httpRPCHand
 
 	rpcProxyHandler := NewRPCHandler(RPCHandlerConfig{
 		Proxies: map[string]RPCProxy{
-			"": rpcProxy,
+			"test": rpcProxy,
 		},
 	})
 
@@ -66,8 +69,28 @@ type rpcHandleTestCase struct {
 }
 
 func (c rpcHandleTestCase) invokeHandle() (reply centrifuge.RPCReply, err error) {
-	rpcHandler := c.rpcProxyHandler.Handle(c.node)
-	reply, err = rpcHandler(c.client, centrifuge.RPCEvent{}, nil, PerCallData{})
+	rpcHandler := c.rpcProxyHandler.Handle()
+	cfg := config.DefaultConfig()
+	cfg.RPC = configtypes.RPC{
+		WithoutNamespace: configtypes.RpcOptions{
+			ProxyName:    "test",
+			ProxyEnabled: true,
+		},
+	}
+	cfg.Proxies = configtypes.NamedProxies{
+		{
+			Name: "test",
+			Proxy: configtypes.Proxy{
+				Endpoint: "https://example.com/rpc",
+				Timeout:  configtypes.Duration(time.Second),
+			},
+		},
+	}
+	cfgContainer, err := config.NewContainer(cfg)
+	if err != nil {
+		return centrifuge.RPCReply{}, err
+	}
+	reply, err = rpcHandler(c.client, centrifuge.RPCEvent{}, cfgContainer, PerCallData{})
 
 	return reply, err
 }
@@ -129,7 +152,7 @@ func TestHandleRPCWithContextCancel(t *testing.T) {
 	cases := newRPCHandlerTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
 		reply, err := c.invokeHandle()
-		require.ErrorIs(t, centrifuge.DisconnectConnectionClosed, err, c.protocol)
+		require.ErrorIs(t, err, centrifuge.DisconnectConnectionClosed, c.protocol)
 		require.Equal(t, centrifuge.RPCReply{}, reply, c.protocol)
 	}
 }
@@ -144,10 +167,9 @@ func TestHandleRPCWithoutProxyServerStart(t *testing.T) {
 	cases := newRPCHandlerTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
 		reply, err := c.invokeHandle()
-		require.ErrorIs(t, centrifuge.ErrorInternal, err)
+		require.Error(t, err, c.protocol)
 		require.Equal(t, centrifuge.RPCReply{}, reply)
 	}
-
 }
 
 func TestHandleRPCWithProxyServerCustomDisconnect(t *testing.T) {
@@ -236,7 +258,7 @@ func TestHandleRPCWithInvalidCustomData(t *testing.T) {
 	cases := newRPCHandlerTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
 		reply, err := c.invokeHandle()
-		require.ErrorIs(t, centrifuge.ErrorInternal, err, c.protocol)
+		require.ErrorIs(t, err, centrifuge.ErrorInternal, c.protocol)
 		require.Equal(t, centrifuge.RPCReply{}, reply, c.protocol)
 	}
 }

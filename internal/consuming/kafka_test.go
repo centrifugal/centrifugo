@@ -13,8 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifuge"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
+
+	"github.com/centrifugal/centrifugo/internal/apiproto"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
@@ -26,24 +29,42 @@ const (
 
 // MockDispatcher implements the Dispatcher interface for testing.
 type MockDispatcher struct {
-	onDispatch func(ctx context.Context, method string, data []byte) error
+	onDispatch  func(ctx context.Context, method string, data []byte) error
+	onPublish   func(ctx context.Context, req *apiproto.PublishRequest) error
+	onBroadcast func(ctx context.Context, req *apiproto.BroadcastRequest) error
 }
 
 func (m *MockDispatcher) Dispatch(ctx context.Context, method string, data []byte) error {
 	return m.onDispatch(ctx, method, data)
 }
 
-// MockLogger implements the Logger interface for testing.
-type MockLogger struct {
-	// Add necessary fields to simulate behavior or record calls
+func (m *MockDispatcher) Publish(ctx context.Context, req *apiproto.PublishRequest) error {
+	return m.onPublish(ctx, req)
 }
 
-func (m *MockLogger) LogEnabled(_ centrifuge.LogLevel) bool {
-	return true // or false based on your test needs
+func (m *MockDispatcher) Broadcast(ctx context.Context, req *apiproto.BroadcastRequest) error {
+	return m.onBroadcast(ctx, req)
 }
 
-func (m *MockLogger) Log(_ centrifuge.LogEntry) {
-	// Implement mock logic, e.g., storing log entries for assertions
+func produceTestMessage(topic string, message []byte, headers []kgo.RecordHeader) error {
+	// Create a new client
+	client, err := kgo.NewClient(kgo.SeedBrokers(testKafkaBrokerURL))
+	if err != nil {
+		return fmt.Errorf("failed to create Kafka client: %w", err)
+	}
+	defer client.Close()
+
+	// Produce a message
+	err = client.ProduceSync(context.Background(), &kgo.Record{
+		Topic:     topic,
+		Partition: 0,
+		Value:     message,
+		Headers:   headers,
+	}).FirstErr()
+	if err != nil {
+		return fmt.Errorf("failed to produce message: %w", err)
+	}
+	return nil
 }
 
 func produceManyRecords(records ...*kgo.Record) error {
@@ -53,20 +74,6 @@ func produceManyRecords(records ...*kgo.Record) error {
 	}
 	defer client.Close()
 	err = client.ProduceSync(context.Background(), records...).FirstErr()
-	if err != nil {
-		return fmt.Errorf("failed to produce message: %w", err)
-	}
-	return nil
-}
-
-func produceTestMessage(topic string, message []byte) error {
-	client, err := kgo.NewClient(kgo.SeedBrokers(testKafkaBrokerURL))
-	if err != nil {
-		return fmt.Errorf("failed to create Kafka client: %w", err)
-	}
-	defer client.Close()
-
-	err = client.ProduceSync(context.Background(), &kgo.Record{Topic: topic, Partition: 0, Value: message}).FirstErr()
 	if err != nil {
 		return fmt.Errorf("failed to produce message: %w", err)
 	}
@@ -152,14 +159,14 @@ func TestKafkaConsumer_GreenScenario(t *testing.T) {
 	eventReceived := make(chan struct{})
 	consumerClosed := make(chan struct{})
 
-	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, &MockDispatcher{
+	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockDispatcher{
 		onDispatch: func(ctx context.Context, method string, data []byte) error {
 			require.Equal(t, testMethod, method)
 			require.Equal(t, testPayload, data)
 			close(eventReceived)
 			return nil
 		},
-	}, config)
+	}, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	go func() {
@@ -173,7 +180,7 @@ func TestKafkaConsumer_GreenScenario(t *testing.T) {
 		Payload: JSONRawOrString(testPayload),
 	}
 	testMessage, _ := json.Marshal(testEvent)
-	err = produceTestMessage(testKafkaTopic, testMessage)
+	err = produceTestMessage(testKafkaTopic, testMessage, nil)
 	require.NoError(t, err)
 
 	waitCh(t, eventReceived, 30*time.Second, "timeout waiting for event")
@@ -203,14 +210,14 @@ func TestKafkaConsumer_SeveralConsumers(t *testing.T) {
 	consumerClosed := make(chan struct{})
 
 	for i := 0; i < 3; i++ {
-		consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, &MockDispatcher{
+		consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockDispatcher{
 			onDispatch: func(ctx context.Context, method string, data []byte) error {
 				require.Equal(t, testMethod, method)
 				require.Equal(t, testPayload, data)
 				close(eventReceived)
 				return nil
 			},
-		}, config)
+		}, config, newCommonMetrics(prometheus.NewRegistry()))
 		require.NoError(t, err)
 
 		go func() {
@@ -225,7 +232,7 @@ func TestKafkaConsumer_SeveralConsumers(t *testing.T) {
 		Payload: JSONRawOrString(testPayload),
 	}
 	testMessage, _ := json.Marshal(testEvent)
-	err = produceTestMessage(testKafkaTopic, testMessage)
+	err = produceTestMessage(testKafkaTopic, testMessage, nil)
 	require.NoError(t, err)
 
 	waitCh(t, eventReceived, 30*time.Second, "timeout waiting for event")
@@ -269,7 +276,7 @@ func TestKafkaConsumer_RetryAfterDispatchError(t *testing.T) {
 			return nil
 		},
 	}
-	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config)
+	consumer, err := NewKafkaConsumer("test", uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	go func() {
@@ -283,7 +290,7 @@ func TestKafkaConsumer_RetryAfterDispatchError(t *testing.T) {
 		Payload: JSONRawOrString(testPayload),
 	}
 	testMessage, _ := json.Marshal(testEvent)
-	err = produceTestMessage(testKafkaTopic, testMessage)
+	err = produceTestMessage(testKafkaTopic, testMessage, nil)
 	require.NoError(t, err)
 
 	waitCh(t, successCh, 30*time.Second, "timeout waiting for successful event process")
@@ -339,16 +346,16 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherTopic(t *testing.T) {
 			return nil
 		},
 	}
-	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config)
+	consumer, err := NewKafkaConsumer("test", uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	go func() {
-		err = produceTestMessage(testKafkaTopic1, testPayload1)
+		err = produceTestMessage(testKafkaTopic1, testPayload1, nil)
 		require.NoError(t, err)
 
 		// Wait until the first message is received to make sure messages read by separate PollRecords calls.
 		<-event1Received
-		err = produceTestMessage(testKafkaTopic2, testPayload2)
+		err = produceTestMessage(testKafkaTopic2, testPayload2, nil)
 		require.NoError(t, err)
 	}()
 
@@ -412,7 +419,7 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherPartition(t *testing.T
 					return nil
 				},
 			}
-			consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config)
+			consumer, err := NewKafkaConsumer("test", uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
 			require.NoError(t, err)
 
 			go func() {
@@ -438,7 +445,6 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherPartition(t *testing.T
 		})
 	}
 }
-
 func TestKafkaConsumer_PausePartitions(t *testing.T) {
 	t.Parallel()
 	testKafkaTopic := "consumer_test_" + uuid.New().String()
@@ -467,16 +473,16 @@ func TestKafkaConsumer_PausePartitions(t *testing.T) {
 		ConsumerGroup: uuid.New().String(),
 
 		PartitionBufferSize: 1,
-
-		testOnlyConfig: testOnlyConfig{
-			fetchTopicPartitionSubmittedCh: fetchSubmittedCh,
-			topicPartitionBeforePauseCh:    beforePauseCh,
-		},
 	}
 
 	numCalls := 0
 
 	unblockCh := make(chan struct{})
+
+	testConfig := testOnlyConfig{
+		fetchTopicPartitionSubmittedCh: fetchSubmittedCh,
+		topicPartitionBeforePauseCh:    beforePauseCh,
+	}
 
 	mockDispatcher := &MockDispatcher{
 		onDispatch: func(ctx context.Context, method string, data []byte) error {
@@ -493,22 +499,24 @@ func TestKafkaConsumer_PausePartitions(t *testing.T) {
 			return nil
 		},
 	}
-	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config)
+	consumer, err := NewKafkaConsumer("test", uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
+	consumer.testOnlyConfig = testConfig
+
 	go func() {
-		err = produceTestMessage(testKafkaTopic, testPayload1)
+		err = produceTestMessage(testKafkaTopic, testPayload1, nil)
 		require.NoError(t, err)
 		<-fetchSubmittedCh
 		<-event1Received
 
-		err = produceTestMessage(testKafkaTopic, testPayload2)
+		err = produceTestMessage(testKafkaTopic, testPayload2, nil)
 		require.NoError(t, err)
 		<-fetchSubmittedCh
 
 		// At this point message 1 is being processed and the next produced message must
 		// cause a partition pause.
-		err = produceTestMessage(testKafkaTopic, testPayload3)
+		err = produceTestMessage(testKafkaTopic, testPayload3, nil)
 		require.NoError(t, err)
 		<-beforePauseCh // Wait for triggering the partition pause.
 
@@ -575,7 +583,7 @@ func TestKafkaConsumer_WorksCorrectlyInLoadedTopic(t *testing.T) {
 				ConsumerGroup:       uuid.New().String(),
 				PartitionBufferSize: tc.partitionBuffer,
 			}
-			consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config)
+			consumer, err := NewKafkaConsumer("test", uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
 			require.NoError(t, err)
 
 			var records []*kgo.Record
@@ -653,12 +661,6 @@ func TestKafkaConsumer_TestPauseAfterResumeRace(t *testing.T) {
 		Topics:              []string{testKafkaTopic},
 		ConsumerGroup:       uuid.New().String(),
 		PartitionBufferSize: 1,
-
-		testOnlyConfig: testOnlyConfig{
-			topicPartitionBeforePauseCh:    partitionBeforePauseCh,
-			topicPartitionPauseProceedCh:   partitionPauseProceedCh,
-			fetchTopicPartitionSubmittedCh: fetchSubmittedCh,
-		},
 	}
 
 	count := 0
@@ -680,8 +682,14 @@ func TestKafkaConsumer_TestPauseAfterResumeRace(t *testing.T) {
 			return nil
 		},
 	}
-	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockLogger{}, mockDispatcher, config)
+	consumer, err := NewKafkaConsumer("test", uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
+
+	consumer.testOnlyConfig = testOnlyConfig{
+		topicPartitionBeforePauseCh:    partitionBeforePauseCh,
+		topicPartitionPauseProceedCh:   partitionPauseProceedCh,
+		fetchTopicPartitionSubmittedCh: fetchSubmittedCh,
+	}
 
 	go func() {
 		err := consumer.Run(ctx)
@@ -690,21 +698,21 @@ func TestKafkaConsumer_TestPauseAfterResumeRace(t *testing.T) {
 	}()
 
 	go func() {
-		err = produceTestMessage(testKafkaTopic, testPayload1)
+		err = produceTestMessage(testKafkaTopic, testPayload1, nil)
 		require.NoError(t, err)
 
 		<-fetchSubmittedCh
 		t.Logf("fetch 1 submitted")
 
 		// This one should be buffered.
-		err = produceTestMessage(testKafkaTopic, testPayload2)
+		err = produceTestMessage(testKafkaTopic, testPayload2, nil)
 		require.NoError(t, err)
 
 		<-fetchSubmittedCh
 		t.Logf("fetch 2 submitted")
 
 		// This message pauses the partition consumer.
-		err = produceTestMessage(testKafkaTopic, testPayload3)
+		err = produceTestMessage(testKafkaTopic, testPayload3, nil)
 		require.NoError(t, err)
 		<-partitionBeforePauseCh
 		close(proceedCh)
@@ -723,4 +731,98 @@ func TestKafkaConsumer_TestPauseAfterResumeRace(t *testing.T) {
 	cancel()
 	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
 	close(doneCh)
+}
+
+func TestKafkaConsumer_GreenScenario_PublicationDataMode(t *testing.T) {
+	t.Parallel()
+	testKafkaTopic := "centrifugo_consumer_test_" + uuid.New().String()
+	testChannels := []string{"channel1", "channel2"}
+	testPayload := []byte(`{"key":"value"}`)
+	testIdempotencyKey := "test-idempotency-key"
+	const testDelta = true
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	err := createTestTopic(ctx, testKafkaTopic, 1, 1)
+	require.NoError(t, err)
+
+	config := KafkaConfig{
+		Brokers:       []string{testKafkaBrokerURL}, // Adjust as needed
+		Topics:        []string{testKafkaTopic},
+		ConsumerGroup: uuid.New().String(),
+		PublicationDataMode: configtypes.KafkaPublicationDataModeConfig{
+			Enabled:              true,
+			ChannelsHeader:       "centrifugo-channels",
+			IdempotencyKeyHeader: "centrifugo-idempotency-key",
+			DeltaHeader:          "centrifugo-delta",
+		},
+	}
+
+	event1Received := make(chan struct{})
+	event2Received := make(chan struct{})
+	consumerClosed := make(chan struct{})
+
+	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockDispatcher{
+		onPublish: func(ctx context.Context, req *apiproto.PublishRequest) error {
+			require.Equal(t, testChannels[0], req.Channel)
+			require.Equal(t, apiproto.Raw(testPayload), req.Data)
+			require.Equal(t, testIdempotencyKey, req.IdempotencyKey)
+			require.Equal(t, testDelta, req.Delta)
+			close(event1Received)
+			return nil
+		},
+		onBroadcast: func(ctx context.Context, req *apiproto.BroadcastRequest) error {
+			require.Equal(t, testChannels, req.Channels)
+			require.Equal(t, apiproto.Raw(testPayload), req.Data)
+			require.Equal(t, testIdempotencyKey, req.IdempotencyKey)
+			require.Equal(t, testDelta, req.Delta)
+			close(event2Received)
+			return nil
+		},
+	}, config, newCommonMetrics(prometheus.NewRegistry()))
+	require.NoError(t, err)
+
+	go func() {
+		err := consumer.Run(ctx)
+		require.ErrorIs(t, err, context.Canceled)
+		close(consumerClosed)
+	}()
+
+	err = produceTestMessage(testKafkaTopic, testPayload, []kgo.RecordHeader{
+		{
+			Key:   config.PublicationDataMode.ChannelsHeader,
+			Value: []byte(testChannels[0]),
+		},
+		{
+			Key:   config.PublicationDataMode.IdempotencyKeyHeader,
+			Value: []byte(testIdempotencyKey),
+		},
+		{
+			Key:   config.PublicationDataMode.DeltaHeader,
+			Value: []byte(fmt.Sprintf("%v", testDelta)),
+		},
+	})
+	require.NoError(t, err)
+
+	err = produceTestMessage(testKafkaTopic, testPayload, []kgo.RecordHeader{
+		{
+			Key:   config.PublicationDataMode.ChannelsHeader,
+			Value: []byte(strings.Join(testChannels, ",")),
+		},
+		{
+			Key:   config.PublicationDataMode.IdempotencyKeyHeader,
+			Value: []byte(testIdempotencyKey),
+		},
+		{
+			Key:   config.PublicationDataMode.DeltaHeader,
+			Value: []byte(fmt.Sprintf("%v", testDelta)),
+		},
+	})
+	require.NoError(t, err)
+
+	waitCh(t, event1Received, 30*time.Second, "timeout waiting for event1")
+	waitCh(t, event2Received, 30*time.Second, "timeout waiting for event2")
+	cancel()
+	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
 }

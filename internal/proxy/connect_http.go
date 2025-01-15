@@ -2,9 +2,9 @@ package proxy
 
 import (
 	"context"
-	"time"
+	"fmt"
 
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
 )
 
 // HTTPConnectProxy ...
@@ -17,15 +17,23 @@ var _ ConnectProxy = (*HTTPConnectProxy)(nil)
 
 // NewHTTPConnectProxy ...
 func NewHTTPConnectProxy(p Config) (*HTTPConnectProxy, error) {
+	httpClient, err := proxyHTTPClient(p, "connect_proxy")
+	if err != nil {
+		return nil, fmt.Errorf("error creating HTTP client: %w", err)
+	}
 	return &HTTPConnectProxy{
 		config:     p,
-		httpCaller: NewHTTPCaller(proxyHTTPClient(time.Duration(p.Timeout))),
+		httpCaller: NewHTTPCaller(httpClient),
 	}, nil
 }
 
 // Protocol ...
 func (p *HTTPConnectProxy) Protocol() string {
 	return "http"
+}
+
+func (p *HTTPConnectProxy) Name() string {
+	return "default"
 }
 
 // UseBase64 ...
@@ -41,7 +49,7 @@ func (p *HTTPConnectProxy) ProxyConnect(ctx context.Context, req *proxyproto.Con
 	}
 	respData, err := p.httpCaller.CallHTTP(ctx, p.config.Endpoint, httpRequestHeaders(ctx, p.config), data)
 	if err != nil {
-		protocolError, protocolDisconnect := transformHTTPStatusError(err, p.config.HttpStatusTransforms)
+		protocolError, protocolDisconnect := transformHTTPStatusError(err, p.config.HTTP.StatusToCodeTransforms)
 		if protocolError != nil || protocolDisconnect != nil {
 			return &proxyproto.ConnectResponse{
 				Error:      protocolError,

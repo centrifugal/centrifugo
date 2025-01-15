@@ -6,21 +6,25 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/tools"
+	"github.com/centrifugal/centrifugo/internal/logging"
+	"github.com/centrifugal/centrifugo/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
+	"github.com/rs/zerolog/log"
 )
 
 type Handler struct {
-	node   *centrifuge.Node
-	config Config
+	node     *centrifuge.Node
+	config   Config
+	pingPong centrifuge.PingPongConfig
 }
 
-func NewHandler(n *centrifuge.Node, c Config) *Handler {
+func NewHandler(n *centrifuge.Node, c Config, pingPong centrifuge.PingPongConfig) *Handler {
 	return &Handler{
-		node:   n,
-		config: c,
+		node:     n,
+		config:   c,
+		pingPong: pingPong,
 	}
 }
 
@@ -37,7 +41,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if connectRequestString != "" {
 			err := json.Unmarshal([]byte(connectRequestString), &req)
 			if err != nil {
-				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "malformed connect request", map[string]any{"error": err.Error()}))
+				log.Info().Err(err).Str("transport", transportName).Msg("error unmarshalling connect request")
 				return
 			}
 		} else {
@@ -48,7 +52,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytesSize))
 		connectRequestData, err := io.ReadAll(r.Body)
 		if err != nil {
-			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "error reading uni sse request body", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Msg("error reading uni sse request body")
 			if len(connectRequestData) >= maxBytesSize {
 				w.WriteHeader(http.StatusRequestEntityTooLarge)
 				return
@@ -57,8 +61,8 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		err = json.Unmarshal(connectRequestData, &req)
 		if err != nil {
-			if h.node.LogEnabled(centrifuge.LogLevelDebug) {
-				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "malformed connect request", map[string]any{"error": err.Error()}))
+			if logging.Enabled(logging.DebugLevel) {
+				log.Debug().Err(err).Str("transport", transportName).Msg("malformed connect request")
 			}
 			return
 		}
@@ -67,19 +71,19 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	transport := newEventsourceTransport(r, h.config.PingPongConfig)
+	transport := newEventsourceTransport(r, h.pingPong)
 	c, closeFn, err := centrifuge.NewClient(r.Context(), h.node, transport)
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error create client", map[string]any{"error": err.Error(), "transport": "uni_sse"}))
+		log.Error().Err(err).Str("transport", transportName).Msg("error create client")
 		return
 	}
 	defer func() { _ = closeFn() }()
 	defer close(transport.closedCh) // need to execute this after client closeFn.
 
-	if h.node.LogEnabled(centrifuge.LogLevelDebug) {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection established", map[string]any{"transport": transport.Name(), "client": c.ID()}))
+	if logging.Enabled(logging.DebugLevel) {
+		log.Debug().Str("transport", transportName).Str("client", c.ID()).Msg("client connection established")
 		defer func(started time.Time) {
-			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection completed", map[string]any{"duration": time.Since(started).String(), "transport": transport.Name(), "client": c.ID()}))
+			log.Debug().Str("transport", transportName).Str("client", c.ID()).Str("duration", time.Since(started).String()).Msg("client connection completed")
 		}(time.Now())
 	}
 
@@ -101,12 +105,12 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		connectRequest.Subs = subs
 	}
 
-	if h.config.ConnectCodeToHTTPStatus.Enabled {
+	if h.config.ConnectCodeToHTTPResponse.Enabled {
 		err = c.ConnectNoErrorToDisconnect(connectRequest)
 		if err != nil {
-			resp, ok := tools.ConnectErrorToToHTTPResponse(err, h.config.ConnectCodeToHTTPStatus.Transforms)
+			resp, ok := tools.ConnectErrorToToHTTPResponse(err, h.config.ConnectCodeToHTTPResponse.Transforms)
 			if ok {
-				w.WriteHeader(resp.Status)
+				w.WriteHeader(resp.StatusCode)
 				_, _ = w.Write([]byte(resp.Body))
 				return
 			}

@@ -1,0 +1,70 @@
+{
+  "http_server": {
+    "tls": {
+      "enabled": true,
+      "server_ca_pem": "-----BEGIN CERTIFICATE-----\nMIIEbjCCAtagAwIBAgIRAN1ZJEYl5ZNIOHsbJizQpucwDQYJKoZIhvcNAQELBQAw\ngZ8xHjAcBgNVBAoTFW1rY2VydCBkZXZlbG9wbWVudCBDQTE6MDgGA1UECwwxZnpA\nTWFjQm9vay1Qcm8tQWxleGFuZGVyLmxvY2FsIChBbGV4YW5kZXIgRW1lbGluKTFB\nMD8GA1UEAww4bWtjZXJ0IGZ6QE1hY0Jvb2stUHJvLUFsZXhhbmRlci5sb2NhbCAo\nQWxleGFuZGVyIEVtZWxpbikwHhcNMjIwNjE2MDYxOTM0WhcNMjQwOTE2MDYxOTM0\nWjBlMScwJQYDVQQKEx5ta2NlcnQgZGV2ZWxvcG1lbnQgY2VydGlmaWNhdGUxOjA4\nBgNVBAsMMWZ6QE1hY0Jvb2stUHJvLUFsZXhhbmRlci5sb2NhbCAoQWxleGFuZGVy\nIEVtZWxpbikwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDLCNVIle5k\nlfRtzjHe9sEo8zU9pqXfK9fxc2PZqfd6HVDVWyrOHNv9zWV8awEEgwX2kg+sY4ch\nuKmNdD19UWxLovCMkA92gKhzJoPPBMlVRtSA9QWNw4cXXB25KErPPyBXyyFA13X/\n6N408I26Aj6ewA0WLISkNgiCddUo31FygTNH4yWXF+F+lol0EJhG+K3E8diYub4P\n1Ul417sQ/1FxcoGo43fGl8j4y6wCnBQkSNaQCr1vvNEzdmiIYF02a51Efdb3PrSu\n90nJJBbFQxNhpcl98tLRF5t3wZJ+R2Xy4xPUZYwNNWTdICqW7a4bfD4foByp85kr\nu44kw7laXghhAgMBAAGjXjBcMA4GA1UdDwEB/wQEAwIFoDATBgNVHSUEDDAKBggr\nBgEFBQcDATAfBgNVHSMEGDAWgBSMh55IrbevJTB4kiFUXsarEAIjXjAUBgNVHREE\nDTALgglsb2NhbGhvc3QwDQYJKoZIhvcNAQELBQADggGBAG9yTMOybS6ike/UoIrj\nxLE3a9nPuFdt9anS0XgYicCYNFLc5H6MUXubsqBz30zigFbNP/FR2DKvIP+1cySP\nDKqnimTdxZWjzT9d0YHEYcD971yk/whXmKOcla2VmYMuPmUr6M3BmUmYcoWve/ML\nnc8qKJ+CsM80zxFSRbqCVqgPfNDzPHqGbJmOn0KbLPWzkUsIbii/O4IjqycJiDMS\nCyuat2Q8TYGiRhDJnouD/semDtqaIGGT77/5QLoEhFRwRKbOfgTT0hjLgTbeKPrx\nQKARxjVC/QF59nhdf+je/BgrF7jfR1UuCSxwl0xg2Ub2JB5A77efWEoQh2fuSgZk\nmVTZqDnfGvfYcGE9oiAMl21DimEAdYFSAUTtVI6T0S8BagN3jD+FLV7+TJgPiyIO\nLz9gcDP1Zn3jIp4Vy2HawWt+8rta351L70ie9Sk6Cx5fV0slvTFteWYdm26BuKbp\nNF7OqlGSRzM2iEVaMFLqnrRwDF4bR7qwGukppEXPrsAq2Q==\n-----END CERTIFICATE-----"
+    }
+  },
+  "engine": {
+    "type": "redis",
+    "redis": {
+      "address": "redis:6379",
+      "presence_ttl": "30s"
+    }
+  },
+  "client": {
+    "allowed_origins": ["http://localhost:3000"],
+    "token": {
+      "jwks_public_endpoint": "https://example.com/jwks"
+    },
+    "ping_interval": "12s",
+    "proxy": {
+      "connect": {
+        "http": {
+          "static_headers": {
+            "x": "y"
+          }
+        }
+      }
+    }
+  },
+  "channel": {
+    "without_namespace": {
+        "presence": true
+    },
+    "namespaces": [
+      {
+        "name": "ns1",
+        "presence": true
+      },
+      {
+        "name": "ns2",
+        "presence": false
+      }
+    ]
+  },
+  "proxies": [
+    {
+      "name": "ppp"
+    }
+  ],
+  "consumers": [
+    {
+      "name": "kafka",
+      "enabled": true,
+      "type": "kafka",
+      "kafka": {
+        "brokers": ["localhost:9092"],
+        "topics": ["postgres.public.chat_cdc"],
+        "consumer_group": "centrifugo",
+        "tls": {
+          "enabled": true,
+          "cert_pem": "xxx"
+        }
+      }
+    }
+  ],
+  "websocket": {
+    "write_timeout": "2s"
+  }
+}

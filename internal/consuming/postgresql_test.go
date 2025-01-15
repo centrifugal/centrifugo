@@ -10,10 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/tools"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -130,17 +131,17 @@ func TestPostgresConsumer_GreenScenario(t *testing.T) {
 		OutboxTableName:              testTableName,
 		PartitionSelectLimit:         10,
 		NumPartitions:                1,
-		PartitionPollInterval:        tools.Duration(300 * time.Millisecond),
+		PartitionPollInterval:        configtypes.Duration(300 * time.Millisecond),
 		PartitionNotificationChannel: testNotificationChannel,
 	}
-	consumer, err := NewPostgresConsumer("test", &MockLogger{}, &MockDispatcher{
+	consumer, err := NewPostgresConsumer("test", &MockDispatcher{
 		onDispatch: func(ctx context.Context, method string, data []byte) error {
 			require.Equal(t, testMethod, method)
 			require.Equal(t, testPayload, data)
 			close(eventReceived)
 			return nil
 		},
-	}, config)
+	}, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	// Start the consumer
@@ -181,7 +182,7 @@ func TestPostgresConsumer_SeveralConsumers(t *testing.T) {
 		OutboxTableName:              testTableName,
 		PartitionSelectLimit:         10,
 		NumPartitions:                1,
-		PartitionPollInterval:        tools.Duration(300 * time.Millisecond),
+		PartitionPollInterval:        configtypes.Duration(300 * time.Millisecond),
 		PartitionNotificationChannel: testNotificationChannel,
 	}
 
@@ -190,14 +191,14 @@ func TestPostgresConsumer_SeveralConsumers(t *testing.T) {
 	numConsumers := 10
 
 	for i := 0; i < numConsumers; i++ {
-		consumer, err := NewPostgresConsumer("test", &MockLogger{}, &MockDispatcher{
+		consumer, err := NewPostgresConsumer("test", &MockDispatcher{
 			onDispatch: func(ctx context.Context, method string, data []byte) error {
 				require.Equal(t, testMethod, method)
 				require.Equal(t, testPayload, data)
 				close(eventReceived)
 				return nil
 			},
-		}, config)
+		}, config, newCommonMetrics(prometheus.NewRegistry()))
 		require.NoError(t, err)
 
 		pool = consumer.pool
@@ -242,13 +243,13 @@ func TestPostgresConsumer_NotificationTrigger(t *testing.T) {
 		OutboxTableName:              testTableName,
 		PartitionSelectLimit:         1,
 		NumPartitions:                1,
-		PartitionPollInterval:        tools.Duration(300 * time.Hour), // Set a long poll interval
+		PartitionPollInterval:        configtypes.Duration(300 * time.Hour), // Set a long poll interval
 		PartitionNotificationChannel: testNotificationChannel,
 	}
 
 	numEvents := 0
 
-	consumer, err := NewPostgresConsumer("test", &MockLogger{}, &MockDispatcher{
+	consumer, err := NewPostgresConsumer("test", &MockDispatcher{
 		onDispatch: func(ctx context.Context, method string, data []byte) error {
 			require.Equal(t, testMethod, method)
 			require.Equal(t, testPayload, data)
@@ -256,7 +257,7 @@ func TestPostgresConsumer_NotificationTrigger(t *testing.T) {
 			eventsReceived <- struct{}{}
 			return nil
 		},
-	}, config)
+	}, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	go func() {
@@ -308,7 +309,7 @@ func TestPostgresConsumer_DifferentPartitions(t *testing.T) {
 		OutboxTableName:              testTableName,
 		PartitionSelectLimit:         10,
 		NumPartitions:                2,
-		PartitionPollInterval:        tools.Duration(100 * time.Millisecond),
+		PartitionPollInterval:        configtypes.Duration(100 * time.Millisecond),
 		PartitionNotificationChannel: testNotificationChannel,
 	}
 
@@ -316,7 +317,7 @@ func TestPostgresConsumer_DifferentPartitions(t *testing.T) {
 
 	var dispatchMu sync.Mutex
 
-	consumer, err := NewPostgresConsumer("test", &MockLogger{}, &MockDispatcher{
+	consumer, err := NewPostgresConsumer("test", &MockDispatcher{
 		onDispatch: func(ctx context.Context, method string, data []byte) error {
 			dispatchMu.Lock()
 			defer dispatchMu.Unlock()
@@ -326,7 +327,7 @@ func TestPostgresConsumer_DifferentPartitions(t *testing.T) {
 			eventsReceived <- struct{}{}
 			return nil
 		},
-	}, config)
+	}, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	go func() {

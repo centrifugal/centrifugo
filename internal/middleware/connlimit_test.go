@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
-	"github.com/centrifugal/centrifugo/v5/internal/tools"
+	"github.com/centrifugal/centrifugo/internal/config"
+	"github.com/centrifugal/centrifugo/internal/tools"
 
 	"github.com/stretchr/testify/require"
 )
@@ -16,12 +16,12 @@ func TestConnLimit_ConnectionRate(t *testing.T) {
 	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig, err := rule.NewContainer(rule.Config{
-		ClientConnectionRateLimit: 10,
-	})
+	cfg := config.DefaultConfig()
+	cfg.Client.ConnectionRateLimit = 10
+	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 
-	ts := httptest.NewServer(NewConnLimit(node, ruleConfig).Middleware(testHandler()))
+	ts := httptest.NewServer(NewConnLimit(node, cfgContainer).Middleware(testHandler()))
 	defer ts.Close()
 
 	for i := 0; i < 20; i++ {

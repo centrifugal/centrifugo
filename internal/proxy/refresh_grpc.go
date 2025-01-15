@@ -3,9 +3,8 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
 
 	"google.golang.org/grpc"
 )
@@ -19,12 +18,12 @@ type GRPCRefreshProxy struct {
 var _ RefreshProxy = (*GRPCRefreshProxy)(nil)
 
 // NewGRPCRefreshProxy ...
-func NewGRPCRefreshProxy(p Config) (*GRPCRefreshProxy, error) {
+func NewGRPCRefreshProxy(name string, p Config) (*GRPCRefreshProxy, error) {
 	host, err := getGrpcHost(p.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("error getting grpc host: %v", err)
 	}
-	dialOpts, err := getDialOpts(p)
+	dialOpts, err := getDialOpts(name, p)
 	if err != nil {
 		return nil, fmt.Errorf("error creating GRPC dial options: %v", err)
 	}
@@ -40,9 +39,14 @@ func NewGRPCRefreshProxy(p Config) (*GRPCRefreshProxy, error) {
 
 // ProxyRefresh proxies refresh to application backend.
 func (p *GRPCRefreshProxy) ProxyRefresh(ctx context.Context, req *proxyproto.RefreshRequest) (*proxyproto.RefreshResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(p.config.Timeout))
+	ctx, cancel := context.WithTimeout(ctx, p.config.Timeout.ToDuration())
 	defer cancel()
 	return p.client.Refresh(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
+}
+
+// Name ...
+func (p *GRPCRefreshProxy) Name() string {
+	return "default"
 }
 
 // Protocol ...

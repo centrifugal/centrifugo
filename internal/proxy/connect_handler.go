@@ -6,13 +6,14 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/clientstorage"
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
-	"github.com/centrifugal/centrifugo/v5/internal/subsource"
+	"github.com/centrifugal/centrifugo/internal/clientstorage"
+	"github.com/centrifugal/centrifugo/internal/config"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog/log"
 )
 
 // ConnectHandlerConfig ...
@@ -22,21 +23,23 @@ type ConnectHandlerConfig struct {
 
 // ConnectHandler ...
 type ConnectHandler struct {
-	config        ConnectHandlerConfig
-	ruleContainer *rule.Container
-	summary       prometheus.Observer
-	histogram     prometheus.Observer
-	errors        prometheus.Counter
+	config       ConnectHandlerConfig
+	cfgContainer *config.Container
+	summary      prometheus.Observer
+	histogram    prometheus.Observer
+	errors       prometheus.Counter
+	inflight     prometheus.Gauge
 }
 
 // NewConnectHandler ...
-func NewConnectHandler(c ConnectHandlerConfig, ruleContainer *rule.Container) *ConnectHandler {
+func NewConnectHandler(c ConnectHandlerConfig, cfgContainer *config.Container) *ConnectHandler {
 	return &ConnectHandler{
-		config:        c,
-		ruleContainer: ruleContainer,
-		summary:       proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "connect"),
-		histogram:     proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "connect"),
-		errors:        proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "connect"),
+		config:       c,
+		cfgContainer: cfgContainer,
+		summary:      proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
+		histogram:    proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
+		errors:       proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
+		inflight:     proxyCallInflightRequests.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
 	}
 }
 
@@ -46,9 +49,11 @@ type ConnectExtra struct {
 type ConnectingHandlerFunc func(context.Context, centrifuge.ConnectEvent) (centrifuge.ConnectReply, ConnectExtra, error)
 
 // Handle returns connecting handler func.
-func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
+func (h *ConnectHandler) Handle() ConnectingHandlerFunc {
 	return func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, ConnectExtra, error) {
 		started := time.Now()
+		h.inflight.Inc()
+		defer h.inflight.Dec()
 		req := &proxyproto.ConnectRequest{
 			Client:    e.ClientID,
 			Protocol:  string(e.Transport.Protocol()),
@@ -76,7 +81,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 			h.summary.Observe(duration)
 			h.histogram.Observe(duration)
 			h.errors.Inc()
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying connect", map[string]any{"client": e.ClientID, "error": err.Error()}))
+			log.Error().Err(err).Str("client", e.ClientID).Msg("error proxying connect")
 			return centrifuge.ConnectReply{}, ConnectExtra{}, err
 		}
 		h.summary.Observe(duration)
@@ -97,7 +102,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 		if result.B64Info != "" {
 			decodedInfo, err := base64.StdEncoding.DecodeString(result.B64Info)
 			if err != nil {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]any{"client": e.ClientID, "error": err.Error()}))
+				log.Error().Err(err).Str("client", e.ClientID).Msg("error decoding base64 info")
 				return centrifuge.ConnectReply{}, ConnectExtra{}, centrifuge.ErrorInternal
 			}
 			info = decodedInfo
@@ -109,7 +114,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 		if result.B64Data != "" {
 			decodedData, err := base64.StdEncoding.DecodeString(result.B64Data)
 			if err != nil {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]any{"client": e.ClientID, "error": err.Error()}))
+				log.Error().Err(err).Str("client", e.ClientID).Msg("error decoding base64 data")
 				return centrifuge.ConnectReply{}, ConnectExtra{}, centrifuge.ErrorInternal
 			}
 			data = decodedData
@@ -132,12 +137,12 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 				reply.Subscriptions = make(map[string]centrifuge.SubscribeOptions, len(result.Channels))
 			}
 			for _, ch := range result.Channels {
-				_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+				_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 				if err != nil {
 					return centrifuge.ConnectReply{}, ConnectExtra{}, err
 				}
 				if !found {
-					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "unknown channel in connect result channels", map[string]any{"client": e.ClientID, "channel": ch}))
+					log.Warn().Str("client", e.ClientID).Str("channel", ch).Msg("unknown channel in connect result channels")
 					return centrifuge.ConnectReply{}, ConnectExtra{}, centrifuge.ErrorUnknownChannel
 				}
 				reply.Subscriptions[ch] = centrifuge.SubscribeOptions{
@@ -148,7 +153,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 					EnablePositioning: chOpts.ForcePositioning,
 					RecoveryMode:      chOpts.GetRecoveryMode(),
 					Source:            subsource.ConnectProxy,
-					HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
+					HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
 				}
 			}
 		}
@@ -157,12 +162,12 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 				reply.Subscriptions = make(map[string]centrifuge.SubscribeOptions, len(result.Subs))
 			}
 			for ch, options := range result.Subs {
-				_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+				_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 				if err != nil {
 					return centrifuge.ConnectReply{}, ConnectExtra{}, err
 				}
 				if !found {
-					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "unknown channel in connect result subs", map[string]any{"client": e.ClientID, "channel": ch}))
+					log.Warn().Str("client", e.ClientID).Str("channel", ch).Msg("unknown channel in connect result subs")
 					return centrifuge.ConnectReply{}, ConnectExtra{}, centrifuge.ErrorUnknownChannel
 				}
 				var chInfo []byte
@@ -216,7 +221,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) ConnectingHandlerFunc {
 					RecoveryMode:      recoveryMode,
 					Data:              chData,
 					Source:            subsource.ConnectProxy,
-					HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
+					HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
 				}
 			}
 		}

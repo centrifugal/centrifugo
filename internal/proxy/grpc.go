@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
-	"github.com/centrifugal/centrifugo/v5/internal/middleware"
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/internal/clientcontext"
+	"github.com/centrifugal/centrifugo/internal/middleware"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -48,35 +50,29 @@ func getGrpcHost(endpoint string) (string, error) {
 	return host, nil
 }
 
-func getDialOpts(p Config) ([]grpc.DialOption, error) {
+func getDialOpts(name string, p Config) ([]grpc.DialOption, error) {
 	var dialOpts []grpc.DialOption
-	if p.GrpcCredentialsKey != "" {
+	if p.GRPC.CredentialsKey != "" {
 		dialOpts = append(dialOpts, grpc.WithPerRPCCredentials(&rpcCredentials{
-			key:   p.GrpcCredentialsKey,
-			value: p.GrpcCredentialsValue,
+			key:   p.GRPC.CredentialsKey,
+			value: p.GRPC.CredentialsValue,
 		}))
 	}
-	if p.GrpcTLS.Enabled {
-		tlsConfig, err := p.GrpcTLS.ToGoTLSConfig()
+	if p.GRPC.TLS.Enabled {
+		tlsConfig, err := p.GRPC.TLS.ToGoTLSConfig("proxy_grpc:" + name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create TLS config %v", err)
 		}
 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
-	} else if p.GrpcCertFile != "" {
-		cred, err := credentials.NewClientTLSFromFile(p.GrpcCertFile, "")
-		if err != nil {
-			return nil, fmt.Errorf("failed to create TLS credentials %v", err)
-		}
-		dialOpts = append(dialOpts, grpc.WithTransportCredentials(cred))
 	} else {
 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
-	if p.GrpcCompression {
+	if p.GRPC.Compression {
 		dialOpts = append(dialOpts, grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)))
 	}
 
-	if p.testGrpcDialer != nil {
-		dialOpts = append(dialOpts, grpc.WithContextDialer(p.testGrpcDialer))
+	if p.TestGrpcDialer != nil {
+		dialOpts = append(dialOpts, grpc.WithContextDialer(p.TestGrpcDialer))
 	}
 
 	return dialOpts, nil
@@ -88,14 +84,20 @@ func grpcRequestContext(ctx context.Context, proxy Config) context.Context {
 }
 
 func httpRequestHeaders(ctx context.Context, proxy Config) http.Header {
-	return requestHeaders(ctx, proxy.HttpHeaders, proxy.GrpcMetadata, proxy.StaticHttpHeaders)
+	return requestHeaders(ctx, proxy.HttpHeaders, proxy.GrpcMetadata, proxy.HTTP.StaticHeaders)
 }
 
 func requestMetadata(ctx context.Context, allowedHeaders []string, allowedMetaKeys []string) metadata.MD {
 	requestMD := metadata.MD{}
+	emulatedHeaders, _ := clientcontext.GetEmulatedHeadersFromContext(ctx)
+	for k, v := range emulatedHeaders {
+		if slices.Contains(allowedHeaders, strings.ToLower(k)) {
+			requestMD.Set(k, v)
+		}
+	}
 	if headers, ok := middleware.GetHeadersFromContext(ctx); ok {
 		for k, vv := range headers {
-			if stringInSlice(strings.ToLower(k), allowedHeaders) {
+			if slices.Contains(allowedHeaders, strings.ToLower(k)) {
 				requestMD.Set(k, vv...)
 			}
 		}
@@ -103,7 +105,7 @@ func requestMetadata(ctx context.Context, allowedHeaders []string, allowedMetaKe
 	}
 	md, _ := metadata.FromIncomingContext(ctx)
 	for k, vv := range md {
-		if stringInSlice(k, allowedMetaKeys) {
+		if slices.Contains(allowedMetaKeys, k) {
 			requestMD[k] = vv
 		}
 	}
@@ -111,17 +113,23 @@ func requestMetadata(ctx context.Context, allowedHeaders []string, allowedMetaKe
 }
 
 func requestHeaders(ctx context.Context, allowedHeaders []string, allowedMetaKeys []string, staticHeaders map[string]string) http.Header {
+	emulatedHeaders, _ := clientcontext.GetEmulatedHeadersFromContext(ctx)
 	if headers, ok := middleware.GetHeadersFromContext(ctx); ok {
-		return getProxyHeader(headers, allowedHeaders, staticHeaders)
+		return getProxyHeader(headers, allowedHeaders, staticHeaders, emulatedHeaders)
 	}
 	headers := http.Header{}
 	for k, v := range staticHeaders {
 		headers.Set(k, v)
 	}
+	for k, v := range emulatedHeaders {
+		if slices.Contains(allowedHeaders, strings.ToLower(k)) {
+			headers.Set(k, v)
+		}
+	}
 	headers.Set("Content-Type", "application/json")
 	md, _ := metadata.FromIncomingContext(ctx)
 	for k, vv := range md {
-		if stringInSlice(k, allowedMetaKeys) {
+		if slices.Contains(allowedMetaKeys, k) {
 			headers[k] = vv
 		}
 	}

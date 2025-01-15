@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
+	"github.com/centrifugal/centrifugo/internal/config"
 
 	"github.com/stretchr/testify/require"
 )
@@ -17,10 +17,10 @@ func TestAPIHandler(t *testing.T) {
 	n := nodeWithMemoryEngine()
 	defer func() { _ = n.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultConfig
-	ruleContainer, err := rule.NewContainer(ruleConfig)
+	cfg := config.DefaultConfig()
+	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
-	apiExecutor := NewExecutor(n, ruleContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test", UseOpenTelemetry: false})
+	apiExecutor := NewExecutor(n, cfgContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test", UseOpenTelemetry: false})
 
 	mux := http.NewServeMux()
 	apiHandler := NewHandler(n, apiExecutor, Config{})
@@ -74,12 +74,12 @@ func BenchmarkAPIHandler(b *testing.B) {
 	n := nodeWithMemoryEngine()
 	defer func() { _ = n.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultConfig
-	ruleConfig.ClientInsecure = true
-	ruleContainer, err := rule.NewContainer(ruleConfig)
+	cfg := config.DefaultConfig()
+	cfg.Client.Insecure = true
+	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(b, err)
 
-	handler := NewHandler(n, NewExecutor(n, ruleContainer, nil, ExecutorConfig{
+	handler := NewHandler(n, NewExecutor(n, cfgContainer, nil, ExecutorConfig{
 		Protocol:         "http",
 		UseOpenTelemetry: false,
 	}), Config{})

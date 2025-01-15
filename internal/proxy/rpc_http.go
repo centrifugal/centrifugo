@@ -2,9 +2,9 @@ package proxy
 
 import (
 	"context"
-	"time"
+	"fmt"
 
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
 )
 
 // HTTPRPCProxy ...
@@ -17,9 +17,13 @@ var _ RPCProxy = (*HTTPRPCProxy)(nil)
 
 // NewHTTPRPCProxy ...
 func NewHTTPRPCProxy(p Config) (*HTTPRPCProxy, error) {
+	httpClient, err := proxyHTTPClient(p, "rpc_proxy")
+	if err != nil {
+		return nil, fmt.Errorf("error creating HTTP client: %w", err)
+	}
 	return &HTTPRPCProxy{
 		config:     p,
-		httpCaller: NewHTTPCaller(proxyHTTPClient(time.Duration(p.Timeout))),
+		httpCaller: NewHTTPCaller(httpClient),
 	}, nil
 }
 
@@ -31,7 +35,7 @@ func (p *HTTPRPCProxy) ProxyRPC(ctx context.Context, req *proxyproto.RPCRequest)
 	}
 	respData, err := p.httpCaller.CallHTTP(ctx, p.config.Endpoint, httpRequestHeaders(ctx, p.config), data)
 	if err != nil {
-		protocolError, protocolDisconnect := transformHTTPStatusError(err, p.config.HttpStatusTransforms)
+		protocolError, protocolDisconnect := transformHTTPStatusError(err, p.config.HTTP.StatusToCodeTransforms)
 		if protocolError != nil || protocolDisconnect != nil {
 			return &proxyproto.RPCResponse{
 				Error:      protocolError,

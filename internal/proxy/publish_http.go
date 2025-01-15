@@ -3,9 +3,9 @@ package proxy
 import (
 	"context"
 	"encoding/json"
-	"time"
+	"fmt"
 
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
 )
 
 // PublishRequestHTTP ...
@@ -30,8 +30,12 @@ var _ PublishProxy = (*HTTPPublishProxy)(nil)
 
 // NewHTTPPublishProxy ...
 func NewHTTPPublishProxy(p Config) (*HTTPPublishProxy, error) {
+	httpClient, err := proxyHTTPClient(p, "publish_proxy")
+	if err != nil {
+		return nil, fmt.Errorf("error creating HTTP client: %w", err)
+	}
 	return &HTTPPublishProxy{
-		httpCaller: NewHTTPCaller(proxyHTTPClient(time.Duration(p.Timeout))),
+		httpCaller: NewHTTPCaller(httpClient),
 		config:     p,
 	}, nil
 }
@@ -44,7 +48,7 @@ func (p *HTTPPublishProxy) ProxyPublish(ctx context.Context, req *proxyproto.Pub
 	}
 	respData, err := p.httpCaller.CallHTTP(ctx, p.config.Endpoint, httpRequestHeaders(ctx, p.config), data)
 	if err != nil {
-		protocolError, protocolDisconnect := transformHTTPStatusError(err, p.config.HttpStatusTransforms)
+		protocolError, protocolDisconnect := transformHTTPStatusError(err, p.config.HTTP.StatusToCodeTransforms)
 		if protocolError != nil || protocolDisconnect != nil {
 			return &proxyproto.PublishResponse{
 				Error:      protocolError,

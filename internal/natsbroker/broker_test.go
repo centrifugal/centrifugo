@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/internal/configtypes"
+
 	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"
 )
@@ -96,8 +98,8 @@ type natsTest struct {
 
 var natsTests = []natsTest{
 	{"default_mode", Config{}, true, false},
-	{"raw_mode", Config{RawMode: RawModeConfig{Enabled: true}}, false, false},
-	{"raw_mode_wildcards", Config{AllowWildcards: true, RawMode: RawModeConfig{Enabled: true}}, false, true},
+	{"raw_mode", Config{RawMode: configtypes.RawModeConfig{Enabled: true}}, false, false},
+	{"raw_mode_wildcards", Config{AllowWildcards: true, RawMode: configtypes.RawModeConfig{Enabled: true}}, false, true},
 }
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")

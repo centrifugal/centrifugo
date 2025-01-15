@@ -6,9 +6,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/internal/logging"
+
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
 	"github.com/gorilla/websocket"
+	"github.com/rs/zerolog/log"
 )
 
 // Handler handles WebSocket client connections. Usually WebSocket protocol
@@ -16,15 +19,18 @@ import (
 // communication. Here we utilize only one direction - giving users an additional
 // option for unidirectional transport.
 type Handler struct {
-	node    *centrifuge.Node
-	upgrade *websocket.Upgrader
-	config  Config
+	node     *centrifuge.Node
+	upgrade  *websocket.Upgrader
+	config   Config
+	pingPong centrifuge.PingPongConfig
 }
 
 var writeBufferPool = &sync.Pool{}
 
 // NewHandler creates new Handler.
-func NewHandler(n *centrifuge.Node, c Config) *Handler {
+func NewHandler(
+	n *centrifuge.Node, c Config, CheckOrigin func(r *http.Request) bool, pingPong centrifuge.PingPongConfig,
+) *Handler {
 	upgrade := &websocket.Upgrader{
 		ReadBufferSize:    c.ReadBufferSize,
 		EnableCompression: c.Compression,
@@ -34,15 +40,16 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 	} else {
 		upgrade.WriteBufferSize = c.WriteBufferSize
 	}
-	if c.CheckOrigin != nil {
-		upgrade.CheckOrigin = c.CheckOrigin
+	if CheckOrigin != nil {
+		upgrade.CheckOrigin = CheckOrigin
 	} else {
 		upgrade.CheckOrigin = sameHostOriginCheck()
 	}
 	return &Handler{
-		node:    n,
-		config:  c,
-		upgrade: upgrade,
+		node:     n,
+		config:   c,
+		upgrade:  upgrade,
+		pingPong: pingPong,
 	}
 }
 
@@ -67,22 +74,22 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	conn, err := s.upgrade.Upgrade(rw, r, nil)
 	if err != nil {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "websocket upgrade error", map[string]any{"error": err.Error()}))
+		log.Error().Err(err).Str("transport", transportName).Msg("websocket upgrade error")
 		return
 	}
 
 	if compression {
 		err := conn.SetCompressionLevel(compressionLevel)
 		if err != nil {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "websocket error setting compression level", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Msg("websocket error setting compression level")
 		}
 	}
 
-	pingInterval := s.config.PingInterval
+	pingInterval := s.pingPong.PingInterval
 	if pingInterval == 0 {
 		pingInterval = DefaultWebsocketPingInterval
 	}
-	writeTimeout := s.config.WriteTimeout
+	writeTimeout := s.config.WriteTimeout.ToDuration()
 	if writeTimeout == 0 {
 		writeTimeout = DefaultWebsocketWriteTimeout
 	}
@@ -109,7 +116,7 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			pingInterval:       pingInterval,
 			writeTimeout:       writeTimeout,
 			compressionMinSize: compressionMinSize,
-			pingPongConfig:     s.config.PingPongConfig,
+			pingPongConfig:     s.pingPong,
 		}
 
 		graceCh := make(chan struct{})
@@ -127,15 +134,15 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 		c, closeFn, err := centrifuge.NewClient(NewCancelContext(r.Context(), ctxCh), s.node, transport)
 		if err != nil {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error creating client", map[string]any{"transport": transport.Name()}))
+			log.Error().Err(err).Str("transport", transportName).Msg("error creating client")
 			return
 		}
 		defer func() { _ = closeFn() }()
 
-		if s.node.LogEnabled(centrifuge.LogLevelDebug) {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection established", map[string]any{"client": c.ID(), "transport": transport.Name()}))
+		if logging.Enabled(logging.DebugLevel) {
+			log.Debug().Str("transport", transportName).Str("client", c.ID()).Msg("client connection established")
 			defer func(started time.Time) {
-				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection completed", map[string]any{"client": c.ID(), "transport": transport.Name(), "duration": time.Since(started).String()}))
+				log.Debug().Str("transport", transportName).Str("client", c.ID()).Str("duration", time.Since(started).String()).Msg("client connection completed")
 			}(time.Now())
 		}
 

@@ -3,10 +3,11 @@ package main
 import (
 	"bytes"
 	"os"
+	"slices"
 	"strings"
 	"text/template"
 
-	"github.com/centrifugal/centrifugo/v5/internal/gen"
+	"github.com/centrifugal/centrifugo/internal/gen"
 )
 
 func main() {
@@ -21,15 +22,7 @@ func main() {
 type TemplateData struct {
 	RequestCapitalized string
 	RequestLower       string
-}
-
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
+	RequestSnake       string
 }
 
 func generateToFile(header, funcTmpl, outFile string, excludeRequests []string, includeRequests []string) {
@@ -39,15 +32,16 @@ func generateToFile(header, funcTmpl, outFile string, excludeRequests []string, 
 	buf.WriteString(header)
 
 	for _, req := range gen.Requests {
-		if stringInSlice(req, excludeRequests) {
+		if slices.Contains(excludeRequests, req) {
 			continue
 		}
-		if len(includeRequests) > 0 && !stringInSlice(req, includeRequests) {
+		if len(includeRequests) > 0 && !slices.Contains(includeRequests, req) {
 			continue
 		}
 		err := tmpl.Execute(&buf, TemplateData{
 			RequestCapitalized: req,
 			RequestLower:       strings.ToLower(req),
+			RequestSnake:       gen.CamelToSnake(req),
 		})
 		if err != nil {
 			panic(err)
@@ -72,7 +66,7 @@ import (
 	"io"
 	"net/http"
 
-	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
+	. "github.com/centrifugal/centrifugo/internal/apiproto"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -83,12 +77,14 @@ var templateFuncHandlersHTTP = `
 func (s *Handler) handle{{ .RequestCapitalized }}(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "{{ .RequestSnake }}", "read_body")
 		s.handleReadDataError(r, w, err)
 		return
 	}
 
 	req, err := paramsDecoder.Decode{{ .RequestCapitalized }}(data)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "{{ .RequestSnake }}", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
 		return
 	}
@@ -102,6 +98,7 @@ func (s *Handler) handle{{ .RequestCapitalized }}(w http.ResponseWriter, r *http
 	}
 
 	if resp.Error != nil && s.useTransportErrorMode(r) {
+		incError(s.api.config.Protocol, "{{ .RequestSnake }}", resp.Error.Code)
 		statusCode := MapErrorToHTTPCode(resp.Error)
 		data, _ = EncodeError(resp.Error)
 		s.writeJsonCustomStatus(w, statusCode, data)
@@ -111,9 +108,16 @@ func (s *Handler) handle{{ .RequestCapitalized }}(w http.ResponseWriter, r *http
 
 	data, err = responseEncoder.Encode{{ .RequestCapitalized }}(resp)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "{{ .RequestSnake }}", "marshal")
 		s.handleMarshalError(r, w, err)
 		return
 	}
+
+{{- if ne .RequestCapitalized "Batch" }}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "{{ .RequestSnake }}", resp.Error.Code)
+	}
+{{- end}}
 
 	s.writeJson(w, data)
 }
@@ -130,7 +134,7 @@ package api
 import (
 	"context"
 
-	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
+	. "github.com/centrifugal/centrifugo/internal/apiproto"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -148,9 +152,15 @@ func (s *grpcAPIService) {{ .RequestCapitalized }}(ctx context.Context, req *{{ 
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		incError(s.api.config.Protocol, "{{ .RequestSnake }}", resp.Error.Code)
 		statusCode := MapErrorToGRPCCode(resp.Error)
 		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
 		return nil, transportError.Err()
+	}
+{{- end}}
+{{- if ne .RequestCapitalized "Batch" }}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "{{ .RequestSnake }}", resp.Error.Code)
 	}
 {{- end}}
 	return resp, nil
@@ -207,7 +217,7 @@ package api
 import (
 	"context"
 
-	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
+	. "github.com/centrifugal/centrifugo/internal/apiproto"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -226,6 +236,7 @@ func (h *ConsumingHandler) handle{{ .RequestCapitalized }}(ctx context.Context, 
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil {
+		incError(h.api.config.Protocol, "{{ .RequestSnake }}", resp.Error.Code)
 		return nil, resp.Error
 	}
 	return resp.Result, nil

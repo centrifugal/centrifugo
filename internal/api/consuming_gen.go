@@ -5,7 +5,7 @@ package api
 import (
 	"context"
 
-	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
+	. "github.com/centrifugal/centrifugo/internal/apiproto"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -22,6 +22,7 @@ func (h *ConsumingHandler) handlePublish(ctx context.Context, data []byte) (*Pub
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil {
+		incError(h.api.config.Protocol, "publish", resp.Error.Code)
 		return nil, resp.Error
 	}
 	return resp.Result, nil
@@ -38,6 +39,7 @@ func (h *ConsumingHandler) handleBroadcast(ctx context.Context, data []byte) (*B
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil {
+		incError(h.api.config.Protocol, "broadcast", resp.Error.Code)
 		return nil, resp.Error
 	}
 	return resp.Result, nil
@@ -54,6 +56,7 @@ func (h *ConsumingHandler) handleSubscribe(ctx context.Context, data []byte) (*S
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil {
+		incError(h.api.config.Protocol, "subscribe", resp.Error.Code)
 		return nil, resp.Error
 	}
 	return resp.Result, nil
@@ -70,6 +73,7 @@ func (h *ConsumingHandler) handleUnsubscribe(ctx context.Context, data []byte) (
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil {
+		incError(h.api.config.Protocol, "unsubscribe", resp.Error.Code)
 		return nil, resp.Error
 	}
 	return resp.Result, nil
@@ -86,6 +90,7 @@ func (h *ConsumingHandler) handleDisconnect(ctx context.Context, data []byte) (*
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil {
+		incError(h.api.config.Protocol, "disconnect", resp.Error.Code)
 		return nil, resp.Error
 	}
 	return resp.Result, nil
@@ -102,6 +107,7 @@ func (h *ConsumingHandler) handleHistoryRemove(ctx context.Context, data []byte)
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil {
+		incError(h.api.config.Protocol, "history_remove", resp.Error.Code)
 		return nil, resp.Error
 	}
 	return resp.Result, nil
@@ -118,6 +124,7 @@ func (h *ConsumingHandler) handleRefresh(ctx context.Context, data []byte) (*Ref
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil {
+		incError(h.api.config.Protocol, "refresh", resp.Error.Code)
 		return nil, resp.Error
 	}
 	return resp.Result, nil

@@ -5,10 +5,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
+	"github.com/centrifugal/centrifugo/internal/config"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/time/rate"
 )
 
@@ -30,14 +31,14 @@ func init() {
 }
 
 type ConnLimit struct {
-	node          *centrifuge.Node
-	ruleContainer *rule.Container
-	rl            *rate.Limiter
+	node         *centrifuge.Node
+	cfgContainer *config.Container
+	rl           *rate.Limiter
 }
 
-func NewConnLimit(node *centrifuge.Node, ruleContainer *rule.Container) *ConnLimit {
-	rl := connectionRateLimiter(ruleContainer.Config().ClientConnectionRateLimit)
-	return &ConnLimit{node: node, ruleContainer: ruleContainer, rl: rl}
+func NewConnLimit(node *centrifuge.Node, cfgContainer *config.Container) *ConnLimit {
+	rl := connectionRateLimiter(cfgContainer.Config().Client.ConnectionRateLimit)
+	return &ConnLimit{node: node, cfgContainer: cfgContainer, rl: rl}
 }
 
 func (l *ConnLimit) Middleware(h http.Handler) http.Handler {
@@ -46,13 +47,13 @@ func (l *ConnLimit) Middleware(h http.Handler) http.Handler {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
-		connLimit := l.ruleContainer.Config().ClientConnectionLimit
+		connLimit := l.cfgContainer.Config().Client.ConnectionLimit
 		if connLimit > 0 && l.node.Hub().NumClients() >= connLimit {
 			connLimitReached.Inc()
 			now := time.Now().UnixNano()
 			prevLoggedAt := atomic.LoadInt64(&connLimitReachedLoggedAt)
 			if prevLoggedAt == 0 || now-prevLoggedAt > connLimitReachedLogThrottle {
-				l.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelWarn, "node connection limit reached", map[string]any{"limit": connLimit}))
+				log.Warn().Int("limit", connLimit).Msg("node connection limit reached")
 				atomic.StoreInt64(&connLimitReachedLoggedAt, now)
 			}
 			w.WriteHeader(http.StatusServiceUnavailable)

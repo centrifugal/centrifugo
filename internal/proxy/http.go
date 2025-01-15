@@ -3,14 +3,16 @@ package proxy
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
-	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
 )
 
 type baseRequestHTTP struct {
@@ -43,13 +45,22 @@ func NewHTTPCaller(httpClient *http.Client) HTTPCaller {
 	}
 }
 
-func proxyHTTPClient(timeout time.Duration) *http.Client {
+func proxyHTTPClient(p configtypes.Proxy, logTraceEntity string) (*http.Client, error) {
+	var tlsConfig *tls.Config
+	if p.HTTP.TLS.Enabled {
+		var err error
+		tlsConfig, err = p.HTTP.TLS.ToGoTLSConfig(logTraceEntity)
+		if err != nil {
+			return nil, fmt.Errorf("error creating TLS config: %w", err)
+		}
+	}
 	return &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConnsPerHost: DefaultMaxIdleConnsPerHost,
+			TLSClientConfig:     tlsConfig,
 		},
-		Timeout: timeout,
-	}
+		Timeout: p.Timeout.ToDuration(),
+	}, nil
 }
 
 type statusCodeError struct {
@@ -81,9 +92,12 @@ func (c *httpCaller) CallHTTP(ctx context.Context, endpoint string, header http.
 	return respData, nil
 }
 
-func getProxyHeader(allHeader http.Header, allowedHeaders []string, staticHeaders map[string]string) http.Header {
+func getProxyHeader(allHeader http.Header, allowedHeaders []string, staticHeaders map[string]string, emulatedHeaders map[string]string) http.Header {
 	proxyHeader := http.Header{}
 	for k, v := range staticHeaders {
+		proxyHeader.Set(k, v)
+	}
+	for k, v := range emulatedHeaders {
 		proxyHeader.Set(k, v)
 	}
 	copyHeader(proxyHeader, allHeader, allowedHeaders)
@@ -93,23 +107,14 @@ func getProxyHeader(allHeader http.Header, allowedHeaders []string, staticHeader
 
 func copyHeader(dst, src http.Header, extraHeaders []string) {
 	for k, vv := range src {
-		if !stringInSlice(strings.ToLower(k), extraHeaders) {
+		if !slices.Contains(extraHeaders, strings.ToLower(k)) {
 			continue
 		}
 		dst[k] = vv
 	}
 }
 
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
-func transformHTTPStatusError(err error, transforms []HttpStatusToCodeTransform) (*proxyproto.Error, *proxyproto.Disconnect) {
+func transformHTTPStatusError(err error, transforms []configtypes.HttpStatusToCodeTransform) (*proxyproto.Error, *proxyproto.Disconnect) {
 	if len(transforms) == 0 {
 		return nil, nil
 	}

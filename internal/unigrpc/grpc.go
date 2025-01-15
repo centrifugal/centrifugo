@@ -3,9 +3,11 @@ package unigrpc
 import (
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/unigrpc/unistream"
+	"github.com/centrifugal/centrifugo/internal/logging"
+	"github.com/centrifugal/centrifugo/internal/unigrpc/unistream"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 )
 
@@ -59,10 +61,10 @@ func (s *Service) Consume(req *unistream.ConnectRequest, stream unistream.Centri
 	}
 	defer func() { _ = closeFn() }()
 
-	if s.node.LogEnabled(centrifuge.LogLevelDebug) {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection established", map[string]any{"transport": transport.Name(), "client": c.ID()}))
+	if logging.Enabled(logging.DebugLevel) {
+		log.Debug().Str("transport", transport.Name()).Str("client", c.ID()).Msg("client connection established")
 		defer func(started time.Time) {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection completed", map[string]any{"duration": time.Since(started).String(), "transport": transport.Name(), "client": c.ID()}))
+			log.Debug().Str("transport", transport.Name()).Str("client", c.ID()).Str("duration", time.Since(started).String()).Msg("client connection completed")
 		}(time.Now())
 	}
 

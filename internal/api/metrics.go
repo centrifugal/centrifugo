@@ -1,6 +1,7 @@
 package api
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -9,6 +10,12 @@ import (
 var metricsNamespace = "centrifugo"
 
 var (
+	apiCommandErrorsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: metricsNamespace,
+		Subsystem: "api",
+		Name:      "command_errors_total",
+		Help:      "Total errors in API commands.",
+	}, []string{"protocol", "method", "error"})
 	apiCommandDurationSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 		Namespace:  metricsNamespace,
 		Subsystem:  "api",
@@ -33,9 +40,18 @@ var (
 )
 
 func init() {
+	prometheus.MustRegister(apiCommandErrorsTotal)
 	prometheus.MustRegister(apiCommandDurationSummary)
 	prometheus.MustRegister(apiCommandDurationHistogram)
 	prometheus.MustRegister(rpcDurationSummary)
+}
+
+func incError(protocol string, method string, code uint32) {
+	apiCommandErrorsTotal.WithLabelValues(protocol, method, strconv.FormatUint(uint64(code), 10)).Inc()
+}
+
+func incErrorStringCode(protocol string, method string, code string) {
+	apiCommandErrorsTotal.WithLabelValues(protocol, method, code).Inc()
 }
 
 func observe(started time.Time, protocol string, method string) {

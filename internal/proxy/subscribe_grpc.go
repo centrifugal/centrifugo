@@ -3,9 +3,8 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
 
 	"google.golang.org/grpc"
 )
@@ -19,12 +18,12 @@ type GRPCSubscribeProxy struct {
 var _ SubscribeProxy = (*GRPCSubscribeProxy)(nil)
 
 // NewGRPCSubscribeProxy ...
-func NewGRPCSubscribeProxy(p Config) (*GRPCSubscribeProxy, error) {
+func NewGRPCSubscribeProxy(name string, p Config) (*GRPCSubscribeProxy, error) {
 	host, err := getGrpcHost(p.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("error getting grpc host: %v", err)
 	}
-	dialOpts, err := getDialOpts(p)
+	dialOpts, err := getDialOpts(name, p)
 	if err != nil {
 		return nil, fmt.Errorf("error creating GRPC dial options: %v", err)
 	}
@@ -40,7 +39,7 @@ func NewGRPCSubscribeProxy(p Config) (*GRPCSubscribeProxy, error) {
 
 // ProxySubscribe proxies Subscribe to application backend.
 func (p *GRPCSubscribeProxy) ProxySubscribe(ctx context.Context, req *proxyproto.SubscribeRequest) (*proxyproto.SubscribeResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(p.config.Timeout))
+	ctx, cancel := context.WithTimeout(ctx, p.config.Timeout.ToDuration())
 	defer cancel()
 	return p.client.Subscribe(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
 }

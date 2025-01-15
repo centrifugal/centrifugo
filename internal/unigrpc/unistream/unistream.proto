@@ -15,6 +15,7 @@ message ConnectRequest {
   map<string, SubscribeRequest> subs = 3;
   string name = 4;
   string version = 5;
+  map<string, string> headers = 6;
 }
 
 message SubscribeRequest {

@@ -1,61 +1,14 @@
 package tools
 
 import (
-	"errors"
 	"net/http"
+
+	"github.com/centrifugal/centrifugo/internal/configtypes"
 
 	"github.com/centrifugal/centrifuge"
 )
 
-type TransformDisconnect struct {
-	Code   uint32 `mapstructure:"code" json:"code"`
-	Reason string `mapstructure:"reason" json:"reason"`
-}
-
-type UniConnectCodeToDisconnectTransform struct {
-	Code uint32              `mapstructure:"code" json:"code"`
-	To   TransformDisconnect `mapstructure:"to" json:"to"`
-}
-
-func (t UniConnectCodeToDisconnectTransform) Validate() error {
-	if t.Code == 0 {
-		return errors.New("no code specified")
-	}
-	if t.To.Code == 0 {
-		return errors.New("no disconnect code specified")
-	}
-	if !IsASCII(t.To.Reason) {
-		return errors.New("disconnect reason must be ASCII")
-	}
-	return nil
-}
-
-type ConnectCodeToHTTPStatus struct {
-	Enabled    bool                               `mapstructure:"enabled" json:"enabled"`
-	Transforms []ConnectCodeToHTTPStatusTransform `mapstructure:"transforms" json:"transforms"`
-}
-
-type ConnectCodeToHTTPStatusTransform struct {
-	Code uint32                              `mapstructure:"code" json:"code"`
-	To   TransformedConnectErrorHttpResponse `mapstructure:"to" json:"to"`
-}
-
-func (t ConnectCodeToHTTPStatusTransform) Validate() error {
-	if t.Code == 0 {
-		return errors.New("no code specified")
-	}
-	if t.To.Status == 0 {
-		return errors.New("no status_code specified")
-	}
-	return nil
-}
-
-type TransformedConnectErrorHttpResponse struct {
-	Status int    `mapstructure:"status_code" json:"status_code"`
-	Body   string `mapstructure:"body" json:"body"`
-}
-
-func ConnectErrorToToHTTPResponse(err error, transforms []ConnectCodeToHTTPStatusTransform) (TransformedConnectErrorHttpResponse, bool) {
+func ConnectErrorToToHTTPResponse(err error, transforms []configtypes.ConnectCodeToHTTPResponseTransform) (configtypes.TransformedConnectErrorHttpResponse, bool) {
 	var code uint32
 	var body string
 	switch t := err.(type) {
@@ -81,8 +34,8 @@ func ConnectErrorToToHTTPResponse(err error, transforms []ConnectCodeToHTTPStatu
 			return t.To, true
 		}
 	}
-	return TransformedConnectErrorHttpResponse{
-		Status: http.StatusInternalServerError,
-		Body:   http.StatusText(http.StatusInternalServerError),
+	return configtypes.TransformedConnectErrorHttpResponse{
+		StatusCode: http.StatusInternalServerError,
+		Body:       http.StatusText(http.StatusInternalServerError),
 	}, false
 }

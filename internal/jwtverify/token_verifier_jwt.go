@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/jwks"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
-	"github.com/centrifugal/centrifugo/v5/internal/subsource"
+	"github.com/centrifugal/centrifugo/internal/config"
+	"github.com/centrifugal/centrifugo/internal/jwks"
+	"github.com/centrifugal/centrifugo/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/cristalhq/jwt/v5"
@@ -73,7 +73,7 @@ func (c VerifierConfig) Validate() error {
 	return nil
 }
 
-func NewTokenVerifierJWT(config VerifierConfig, ruleContainer *rule.Container) (*VerifierJWT, error) {
+func NewTokenVerifierJWT(config VerifierConfig, cfgContainer *config.Container) (*VerifierJWT, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("error validating token verifier config: %w", err)
 	}
@@ -94,12 +94,12 @@ func NewTokenVerifierJWT(config VerifierConfig, ruleContainer *rule.Container) (
 	}
 
 	verifier := &VerifierJWT{
-		ruleContainer: ruleContainer,
-		issuer:        config.Issuer,
-		issuerRe:      issuerRe,
-		audience:      config.Audience,
-		audienceRe:    audienceRe,
-		userIDClaim:   config.UserIDClaim,
+		cfgContainer: cfgContainer,
+		issuer:       config.Issuer,
+		issuerRe:     issuerRe,
+		audience:     config.Audience,
+		audienceRe:   audienceRe,
+		userIDClaim:  config.UserIDClaim,
 	}
 
 	algorithms, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey, config.ECDSAPublicKey)
@@ -120,15 +120,15 @@ func NewTokenVerifierJWT(config VerifierConfig, ruleContainer *rule.Container) (
 }
 
 type VerifierJWT struct {
-	mu            sync.RWMutex
-	jwksManager   *jwksManager
-	algorithms    *algorithms
-	ruleContainer *rule.Container
-	audience      string
-	audienceRe    *regexp.Regexp
-	issuer        string
-	issuerRe      *regexp.Regexp
-	userIDClaim   string
+	mu           sync.RWMutex
+	jwksManager  *jwksManager
+	algorithms   *algorithms
+	cfgContainer *config.Container
+	audience     string
+	audienceRe   *regexp.Regexp
+	issuer       string
+	issuerRe     *regexp.Regexp
+	userIDClaim  string
 }
 
 var (
@@ -301,7 +301,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 	// RSA.
 	if rsaPubKey != nil {
 		if verifierRS256, err := jwt.NewVerifierRS(jwt.RS256, rsaPubKey); err != nil {
-			if err != jwt.ErrInvalidKey {
+			if !errors.Is(err, jwt.ErrInvalidKey) {
 				return nil, err
 			}
 		} else {
@@ -309,7 +309,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 			algorithms = append(algorithms, "RS256")
 		}
 		if verifierRS384, err := jwt.NewVerifierRS(jwt.RS384, rsaPubKey); err != nil {
-			if err != jwt.ErrInvalidKey {
+			if !errors.Is(err, jwt.ErrInvalidKey) {
 				return nil, err
 			}
 		} else {
@@ -317,7 +317,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 			algorithms = append(algorithms, "RS384")
 		}
 		if verifierRS512, err := jwt.NewVerifierRS(jwt.RS512, rsaPubKey); err != nil {
-			if err != jwt.ErrInvalidKey {
+			if !errors.Is(err, jwt.ErrInvalidKey) {
 				return nil, err
 			}
 		} else {
@@ -329,7 +329,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 	// ECDSA.
 	if ecdsaPubKey != nil {
 		if verifierES256, err := jwt.NewVerifierES(jwt.ES256, ecdsaPubKey); err != nil {
-			if err != jwt.ErrInvalidKey {
+			if !errors.Is(err, jwt.ErrInvalidKey) {
 				return nil, err
 			}
 		} else {
@@ -337,7 +337,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 			algorithms = append(algorithms, "ES256")
 		}
 		if verifierES384, err := jwt.NewVerifierES(jwt.ES384, ecdsaPubKey); err != nil {
-			if err != jwt.ErrInvalidKey {
+			if !errors.Is(err, jwt.ErrInvalidKey) {
 				return nil, err
 			}
 		} else {
@@ -345,7 +345,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 			algorithms = append(algorithms, "ES384")
 		}
 		if verifierES512, err := jwt.NewVerifierES(jwt.ES512, ecdsaPubKey); err != nil {
-			if err != jwt.ErrInvalidKey {
+			if !errors.Is(err, jwt.ErrInvalidKey) {
 				return nil, err
 			}
 		} else {
@@ -483,7 +483,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 
 	if len(claims.Subs) > 0 {
 		for ch, v := range claims.Subs {
-			_, _, chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
+			_, _, chOpts, found, err := verifier.cfgContainer.ChannelOptions(ch)
 			if err != nil {
 				return ConnectToken{}, err
 			}
@@ -541,12 +541,12 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 				RecoveryMode:      recoveryMode,
 				Data:              data,
 				Source:            subsource.ConnectionToken,
-				HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
+				HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
 			}
 		}
 	} else if len(claims.Channels) > 0 {
 		for _, ch := range claims.Channels {
-			_, _, chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
+			_, _, chOpts, found, err := verifier.cfgContainer.ChannelOptions(ch)
 			if err != nil {
 				return ConnectToken{}, err
 			}
@@ -561,7 +561,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 				EnablePositioning: chOpts.ForcePositioning,
 				RecoveryMode:      chOpts.GetRecoveryMode(),
 				Source:            subsource.ConnectionToken,
-				HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),
+				HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
 			}
 		}
 	}
@@ -676,7 +676,7 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 		return SubscribeToken{}, fmt.Errorf("%w: channel claim is required for subscription JWT", ErrInvalidToken)
 	}
 
-	_, _, chOpts, found, err := verifier.ruleContainer.ChannelOptions(claims.Channel)
+	_, _, chOpts, found, err := verifier.cfgContainer.ChannelOptions(claims.Channel)
 	if err != nil {
 		return SubscribeToken{}, err
 	}

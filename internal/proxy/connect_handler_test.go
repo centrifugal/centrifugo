@@ -10,8 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
-	"github.com/centrifugal/centrifugo/v5/internal/tools"
+	"github.com/centrifugal/centrifugo/internal/config"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
+	"github.com/centrifugal/centrifugo/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"
@@ -24,27 +25,31 @@ type grpcConnHandleTestCase struct {
 	connectProxyHandler *ConnectHandler
 }
 
-func getTestGrpcProxy(commonProxyTestCase *tools.CommonGRPCProxyTestCase) Config {
-	return Config{
+func getTestGrpcProxy(commonProxyTestCase *tools.CommonGRPCProxyTestCase) configtypes.Proxy {
+	return configtypes.Proxy{
 		// Using passthrough is required for in-memory bufconn since grpc-go v1.63.0.
 		// See https://github.com/grpc/grpc-go/issues/7091.
 		Endpoint: "passthrough:///" + commonProxyTestCase.Listener.Addr().String(),
-		Timeout:  tools.Duration(5 * time.Second),
-		testGrpcDialer: func(ctx context.Context, s string) (net.Conn, error) {
+		Timeout:  configtypes.Duration(5 * time.Second),
+		TestGrpcDialer: func(ctx context.Context, s string) (net.Conn, error) {
 			return commonProxyTestCase.Listener.Dial()
 		},
 	}
 }
 
-func getTestHttpProxy(commonProxyTestCase *tools.CommonHTTPProxyTestCase, endpoint string) Config {
-	return Config{
+func getTestHttpProxy(commonProxyTestCase *tools.CommonHTTPProxyTestCase, endpoint string) configtypes.Proxy {
+	return configtypes.Proxy{
 		Endpoint: commonProxyTestCase.Server.URL + endpoint,
-		Timeout:  tools.Duration(5 * time.Second),
-		StaticHttpHeaders: map[string]string{
-			"X-Test": "test",
-		},
-		HttpStatusTransforms: []HttpStatusToCodeTransform{
-			{StatusCode: 404, ToDisconnect: TransformDisconnect{Code: 4504, Reason: "not found"}},
+		Timeout:  configtypes.Duration(5 * time.Second),
+		ProxyCommon: configtypes.ProxyCommon{
+			HTTP: configtypes.ProxyCommonHTTP{
+				StaticHeaders: map[string]string{
+					"X-Test": "test",
+				},
+				StatusToCodeTransforms: []configtypes.HttpStatusToCodeTransform{
+					{StatusCode: 404, ToDisconnect: configtypes.TransformDisconnect{Code: 4504, Reason: "not found"}},
+				},
+			},
 		},
 	}
 }
@@ -52,19 +57,19 @@ func getTestHttpProxy(commonProxyTestCase *tools.CommonHTTPProxyTestCase, endpoi
 func newConnHandleGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTestServer) grpcConnHandleTestCase {
 	commonProxyTestCase := tools.NewCommonGRPCProxyTestCase(ctx, proxyGRPCServer)
 
-	connectProxy, err := NewGRPCConnectProxy(getTestGrpcProxy(commonProxyTestCase))
+	connectProxy, err := NewGRPCConnectProxy("default", getTestGrpcProxy(commonProxyTestCase))
 	if err != nil {
 		log.Fatalln("could not create grpc connect proxy: ", err)
 	}
 
-	ruleContainer, err := rule.NewContainer(rule.DefaultConfig)
+	cfgContainer, err := config.NewContainer(config.DefaultConfig())
 	if err != nil {
 		panic(err)
 	}
 
 	connectProxyHandler := NewConnectHandler(ConnectHandlerConfig{
 		Proxy: connectProxy,
-	}, ruleContainer)
+	}, cfgContainer)
 
 	return grpcConnHandleTestCase{commonProxyTestCase, connectProxyHandler}
 }
@@ -82,14 +87,14 @@ func newConnHandleHTTPTestCase(ctx context.Context, endpoint string) httpConnHan
 		log.Fatalln("could not create http connect proxy: ", err)
 	}
 
-	ruleContainer, err := rule.NewContainer(rule.DefaultConfig)
+	cfgContainer, err := config.NewContainer(config.DefaultConfig())
 	if err != nil {
 		panic(err)
 	}
 
 	connectProxyHandler := NewConnectHandler(ConnectHandlerConfig{
 		Proxy: connectProxy,
-	}, ruleContainer)
+	}, cfgContainer)
 
 	return httpConnHandleTestCase{commonProxyTestCase, connectProxyHandler}
 }
@@ -105,7 +110,7 @@ func (c connHandleTestCase) invokeHandle(ctx context.Context) (reply centrifuge.
 		Transport: tools.NewTestTransport(),
 	}
 
-	connHandler := c.connectProxyHandler.Handle(c.node)
+	connHandler := c.connectProxyHandler.Handle()
 	reply, _, err = connHandler(ctx, connectEvent)
 
 	return reply, err

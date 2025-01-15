@@ -7,13 +7,15 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/tools"
+	"github.com/centrifugal/centrifugo/internal/apiproto"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
 
-	"github.com/centrifugal/centrifuge"
+	"github.com/rs/zerolog/log"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/kmsg"
 	"github.com/twmb/franz-go/pkg/sasl/aws"
@@ -21,38 +23,7 @@ import (
 	"github.com/twmb/franz-go/pkg/sasl/scram"
 )
 
-type KafkaConfig struct {
-	Brokers        []string `mapstructure:"brokers" json:"brokers"`
-	Topics         []string `mapstructure:"topics" json:"topics"`
-	ConsumerGroup  string   `mapstructure:"consumer_group" json:"consumer_group"`
-	MaxPollRecords int      `mapstructure:"max_poll_records" json:"max_poll_records"`
-
-	// TLS may be enabled, and mTLS auth may be configured.
-	TLS              bool `mapstructure:"tls" json:"tls"`
-	tools.TLSOptions `mapstructure:",squash"`
-
-	// SASLMechanism when not empty enables SASL auth. For now, Centrifugo only
-	// supports "plain" SASL mechanism.
-	SASLMechanism string `mapstructure:"sasl_mechanism" json:"sasl_mechanism"`
-	SASLUser      string `mapstructure:"sasl_user" json:"sasl_user"`
-	SASLPassword  string `mapstructure:"sasl_password" json:"sasl_password"`
-
-	// PartitionBufferSize is the size of the buffer for each partition consumer.
-	// This is the number of records that can be buffered before the consumer
-	// will pause fetching records from Kafka. By default, this is 8.
-	// Note, due to the way the consumer works with Kafka partitions, we do not
-	// allow using unbuffered channels for partition consumers. Specifically
-	// due to the race condition of the consumer pausing/resuming, covered in
-	// TestKafkaConsumer_TestPauseAfterResumeRace test case.
-	PartitionBufferSize int `mapstructure:"partition_buffer_size" json:"partition_buffer_size"`
-
-	// FetchMaxBytes is the maximum number of bytes to fetch from Kafka in a single request.
-	// If not set the default 50MB is used.
-	FetchMaxBytes int32 `mapstructure:"fetch_max_bytes" json:"fetch_max_bytes"`
-
-	// testOnlyConfig is an additional options which are used for testing purposes only.
-	testOnlyConfig testOnlyConfig
-}
+type KafkaConfig = configtypes.KafkaConsumerConfig
 
 type testOnlyConfig struct {
 	topicPartitionBeforePauseCh    chan topicPartition
@@ -66,14 +37,15 @@ type topicPartition struct {
 }
 
 type KafkaConsumer struct {
-	name       string
-	client     *kgo.Client
-	nodeID     string
-	logger     Logger
-	dispatcher Dispatcher
-	config     KafkaConfig
-	consumers  map[topicPartition]*partitionConsumer
-	doneCh     chan struct{}
+	name           string
+	client         *kgo.Client
+	nodeID         string
+	dispatcher     Dispatcher
+	config         KafkaConfig
+	consumers      map[topicPartition]*partitionConsumer
+	doneCh         chan struct{}
+	metrics        *commonMetrics
+	testOnlyConfig testOnlyConfig
 }
 
 // JSONRawOrString can decode payload from bytes and from JSON string. This gives
@@ -109,7 +81,9 @@ type KafkaJSONEvent struct {
 	Payload JSONRawOrString `json:"payload"`
 }
 
-func NewKafkaConsumer(name string, nodeID string, logger Logger, dispatcher Dispatcher, config KafkaConfig) (*KafkaConsumer, error) {
+func NewKafkaConsumer(
+	name string, nodeID string, dispatcher Dispatcher, config KafkaConfig, metrics *commonMetrics,
+) (*KafkaConsumer, error) {
 	if len(config.Brokers) == 0 {
 		return nil, errors.New("brokers required")
 	}
@@ -128,11 +102,11 @@ func NewKafkaConsumer(name string, nodeID string, logger Logger, dispatcher Disp
 	consumer := &KafkaConsumer{
 		name:       name,
 		nodeID:     nodeID,
-		logger:     logger,
 		dispatcher: dispatcher,
 		config:     config,
 		consumers:  make(map[topicPartition]*partitionConsumer),
 		doneCh:     make(chan struct{}),
+		metrics:    metrics,
 	}
 	cl, err := consumer.initClient()
 	if err != nil {
@@ -164,12 +138,8 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 	if c.config.FetchMaxBytes > 0 {
 		opts = append(opts, kgo.FetchMaxBytes(c.config.FetchMaxBytes))
 	}
-	if c.config.TLS {
-		tlsOptionsMap, err := c.config.TLSOptions.ToMap()
-		if err != nil {
-			return nil, fmt.Errorf("error in TLS configuration: %w", err)
-		}
-		tlsConfig, err := tools.MakeTLSConfig(tlsOptionsMap, "", os.ReadFile)
+	if c.config.TLS.Enabled {
+		tlsConfig, err := c.config.TLS.ToGoTLSConfig("kafka:" + c.name)
 		if err != nil {
 			return nil, fmt.Errorf("error making TLS configuration: %w", err)
 		}
@@ -247,11 +217,11 @@ func (c *KafkaConsumer) Run(ctx context.Context) error {
 			// consumers to skip calling CommitMarkedOffsets on revoke. Otherwise, we get
 			// "UNKNOWN_MEMBER_ID" error (since group already left).
 			if err := c.client.CommitMarkedOffsets(closeCtx); err != nil {
-				c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "commit marked offsets error on shutdown", map[string]any{"error": err.Error()}))
+				log.Error().Err(err).Str("consumer", c.name).Msg("error committing marked offsets on shutdown")
 			}
 			err := c.leaveGroup(closeCtx, c.client)
 			if err != nil {
-				c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error leaving consumer group", map[string]any{"error": err.Error()}))
+				log.Error().Err(err).Str("consumer", c.name).Msg("error leaving consumer group")
 			}
 			c.client.CloseAllowingRebalance()
 		}
@@ -262,18 +232,18 @@ func (c *KafkaConsumer) Run(ctx context.Context) error {
 			if errors.Is(err, context.Canceled) {
 				return ctx.Err()
 			}
-			c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error polling Kafka", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Str("consumer", c.name).Msg("error polling Kafka")
 		}
 		// Upon returning from polling loop we are re-initializing consumer client.
 		c.client.CloseAllowingRebalance()
 		c.client = nil
-		c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "start re-initializing Kafka consumer client", map[string]any{}))
+		log.Info().Str("consumer", c.name).Msg("re-initializing Kafka consumer client")
 		err = c.reInitClient(ctx)
 		if err != nil {
 			// Only context.Canceled may be returned.
 			return err
 		}
-		c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "Kafka consumer client re-initialized", map[string]any{}))
+		log.Info().Str("consumer", c.name).Msg("Kafka consumer client re-initialized")
 	}
 }
 
@@ -298,10 +268,7 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 						return ctx.Err()
 					}
 					errs = append(errs, fetchErr.Err)
-					c.logger.Log(centrifuge.NewLogEntry(
-						centrifuge.LogLevelError, "error while polling Kafka",
-						map[string]any{"error": fetchErr.Err.Error(), "topic": fetchErr.Topic, "partition": fetchErr.Partition}),
-					)
+					log.Error().Err(fetchErr.Err).Str("topic", fetchErr.Topic).Int32("partition", fetchErr.Partition).Msg("error while polling Kafka")
 				}
 				return fmt.Errorf("poll error: %w", errors.Join(errs...))
 			}
@@ -332,15 +299,15 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 				case <-c.consumers[tp].quit:
 					return
 				case c.consumers[tp].recs <- p:
-					if c.config.testOnlyConfig.fetchTopicPartitionSubmittedCh != nil { // Only set in tests.
-						c.config.testOnlyConfig.fetchTopicPartitionSubmittedCh <- p
+					if c.testOnlyConfig.fetchTopicPartitionSubmittedCh != nil { // Only set in tests.
+						c.testOnlyConfig.fetchTopicPartitionSubmittedCh <- p
 					}
 				default:
-					if c.config.testOnlyConfig.topicPartitionBeforePauseCh != nil { // Only set in tests.
-						c.config.testOnlyConfig.topicPartitionBeforePauseCh <- tp
+					if c.testOnlyConfig.topicPartitionBeforePauseCh != nil { // Only set in tests.
+						c.testOnlyConfig.topicPartitionBeforePauseCh <- tp
 					}
-					if c.config.testOnlyConfig.topicPartitionPauseProceedCh != nil { // Only set in tests.
-						<-c.config.testOnlyConfig.topicPartitionPauseProceedCh
+					if c.testOnlyConfig.topicPartitionPauseProceedCh != nil { // Only set in tests.
+						<-c.testOnlyConfig.topicPartitionPauseProceedCh
 					}
 
 					partitionsToPause := map[string][]int32{p.Topic: {p.Partition}}
@@ -389,7 +356,7 @@ func (c *KafkaConsumer) reInitClient(ctx context.Context) error {
 		if err != nil {
 			retries++
 			backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-			c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error initializing Kafka client", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Str("consumer", c.name).Msg("error initializing Kafka client")
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -425,10 +392,12 @@ func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned m
 			pc := &partitionConsumer{
 				partitionCtx: partitionCtx,
 				dispatcher:   c.dispatcher,
-				logger:       c.logger,
 				cl:           cl,
 				topic:        topic,
 				partition:    partition,
+				config:       c.config,
+				name:         c.name,
+				metrics:      c.metrics,
 
 				quit: quitCh,
 				done: make(chan struct{}),
@@ -447,7 +416,7 @@ func (c *KafkaConsumer) revoked(ctx context.Context, cl *kgo.Client, revoked map
 		// Do not try to CommitMarkedOffsets since on shutdown we call it manually.
 	default:
 		if err := cl.CommitMarkedOffsets(ctx); err != nil {
-			c.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "commit error on revoked partitions", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Str("consumer", c.name).Msg("error committing marked offsets on revoke")
 		}
 	}
 }
@@ -476,14 +445,80 @@ func (c *KafkaConsumer) killConsumers(lost map[string][]int32) {
 type partitionConsumer struct {
 	partitionCtx context.Context
 	dispatcher   Dispatcher
-	logger       Logger
 	cl           *kgo.Client
 	topic        string
 	partition    int32
+	config       KafkaConfig
+	name         string
+	metrics      *commonMetrics
 
 	quit chan struct{}
 	done chan struct{}
 	recs chan kgo.FetchTopicPartition
+}
+
+func getHeaderValue(record *kgo.Record, headerKey string) string {
+	if headerKey == "" {
+		return ""
+	}
+	for _, header := range record.Headers {
+		if header.Key == headerKey {
+			return string(header.Value)
+		}
+	}
+	return ""
+}
+
+func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, record *kgo.Record) error {
+	data := record.Value
+	idempotencyKey := getHeaderValue(record, pc.config.PublicationDataMode.IdempotencyKeyHeader)
+	var delta bool
+	if pc.config.PublicationDataMode.DeltaHeader != "" {
+		var err error
+		delta, err = strconv.ParseBool(getHeaderValue(record, pc.config.PublicationDataMode.DeltaHeader))
+		if err != nil {
+			log.Error().Err(err).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error parsing delta header value, skip message")
+			return nil
+		}
+	}
+	channels := strings.Split(getHeaderValue(record, pc.config.PublicationDataMode.ChannelsHeader), ",")
+	if len(channels) == 0 {
+		log.Info().Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("no channels found, skip message")
+		return nil
+	}
+	if len(channels) == 1 {
+		req := &apiproto.PublishRequest{
+			Data:           data,
+			Channel:        channels[0],
+			IdempotencyKey: idempotencyKey,
+			Delta:          delta,
+		}
+		return pc.dispatcher.Publish(ctx, req)
+	}
+	req := &apiproto.BroadcastRequest{
+		Data:           data,
+		Channels:       channels,
+		IdempotencyKey: idempotencyKey,
+		Delta:          delta,
+	}
+	return pc.dispatcher.Broadcast(ctx, req)
+}
+
+func (pc *partitionConsumer) processAPICommandRecord(ctx context.Context, record *kgo.Record) error {
+	var e KafkaJSONEvent
+	err := json.Unmarshal(record.Value, &e)
+	if err != nil {
+		log.Error().Err(err).Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error unmarshalling event from Kafka, skip message")
+		return nil
+	}
+	return pc.dispatcher.Dispatch(ctx, e.Method, e.Payload)
+}
+
+func (pc *partitionConsumer) processRecord(ctx context.Context, record *kgo.Record) error {
+	if pc.config.PublicationDataMode.Enabled {
+		return pc.processPublicationDataRecord(ctx, record)
+	}
+	return pc.processAPICommandRecord(ctx, record)
 }
 
 func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
@@ -494,28 +529,22 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 		default:
 		}
 
-		var e KafkaJSONEvent
-		err := json.Unmarshal(record.Value, &e)
-		if err != nil {
-			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error unmarshalling record value from Kafka", map[string]any{"error": err.Error(), "topic": record.Topic, "partition": record.Partition}))
-			pc.cl.MarkCommitRecords(record)
-			continue
-		}
-
 		var backoffDuration time.Duration = 0
 		retries := 0
 		for {
-			err := pc.dispatcher.Dispatch(pc.partitionCtx, e.Method, e.Payload)
+			err := pc.processRecord(pc.partitionCtx, record)
 			if err == nil {
 				if retries > 0 {
-					pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "OK processing record after errors", map[string]any{}))
+					log.Info().Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("OK processing message after errors")
 				}
+				pc.metrics.processedTotal.WithLabelValues(pc.name).Inc()
 				pc.cl.MarkCommitRecords(record)
 				break
 			}
 			retries++
 			backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-			pc.logger.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error processing consumed record", map[string]any{"error": err.Error(), "method": e.Method, "next_attempt_in": backoffDuration.String()}))
+			pc.metrics.errorsTotal.WithLabelValues(pc.name).Inc()
+			log.Error().Err(err).Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Str("next_attempt_in", backoffDuration.String()).Msg("error processing consumed record")
 			select {
 			case <-time.After(backoffDuration):
 			case <-pc.partitionCtx.Done():

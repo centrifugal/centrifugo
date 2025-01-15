@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/centrifugal/centrifugo/v5/internal/apiproto"
+	"github.com/centrifugal/centrifugo/internal/apiproto"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // ConsumingHandlerConfig configures ConsumingHandler.
@@ -32,7 +35,45 @@ func NewConsumingHandler(n *centrifuge.Node, apiExecutor *Executor, c ConsumingH
 }
 
 func (h *ConsumingHandler) logNonRetryableConsumingError(err error, method string) {
-	h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "non retryable error during consuming", map[string]any{"error": err.Error(), "method": method}))
+	log.Error().Err(err).Str("method", method).Msg("non retryable error during consuming, skip message")
+}
+
+func (h *ConsumingHandler) Publish(ctx context.Context, req *apiproto.PublishRequest) error {
+	resp := h.api.Publish(ctx, req)
+	if h.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && resp.Error.Code == apiproto.ErrorInternal.Code {
+		return resp.Error
+	}
+	if resp.Error != nil {
+		h.logNonRetryableConsumingError(resp.Error, "publish")
+	}
+	return nil
+}
+
+func (h *ConsumingHandler) Broadcast(ctx context.Context, req *apiproto.BroadcastRequest) error {
+	resp := h.api.Broadcast(ctx, req)
+	if h.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && resp.Error.Code == apiproto.ErrorInternal.Code {
+		return resp.Error
+	}
+	if resp.Error != nil {
+		h.logNonRetryableConsumingError(resp.Error, "broadcast")
+		return nil
+	}
+	for _, response := range resp.Result.Responses {
+		if response.Error != nil && response.Error.Code == apiproto.ErrorInternal.Code {
+			// Any internal error in any channel response will result into a retry by a consumer.
+			// To prevent duplicate messages publishers may use idempotency keys.
+			return response.Error
+		}
+	}
+	return nil
 }
 
 // Dispatch processes commands received from asynchronous consumers.

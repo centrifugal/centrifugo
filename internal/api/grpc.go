@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/subtle"
 
-	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
+	. "github.com/centrifugal/centrifugo/internal/apiproto"
 
 	"github.com/centrifugal/centrifuge"
 	"google.golang.org/grpc"

@@ -7,11 +7,13 @@ import (
 	"sync"
 	"time"
 
-	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
-	"github.com/centrifugal/centrifugo/v5/internal/subsource"
+	. "github.com/centrifugal/centrifugo/internal/apiproto"
+	"github.com/centrifugal/centrifugo/internal/config"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
+	"github.com/centrifugal/centrifugo/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -21,11 +23,11 @@ type RPCHandler func(ctx context.Context, params Raw) (Raw, error)
 
 // Executor can run API methods.
 type Executor struct {
-	node          *centrifuge.Node
-	ruleContainer *rule.Container
-	config        ExecutorConfig
-	rpcExtension  map[string]RPCHandler
-	surveyCaller  SurveyCaller
+	node         *centrifuge.Node
+	cfgContainer *config.Container
+	config       ExecutorConfig
+	rpcExtension map[string]RPCHandler
+	surveyCaller SurveyCaller
 }
 
 // SurveyCaller can do surveys.
@@ -39,13 +41,13 @@ type ExecutorConfig struct {
 }
 
 // NewExecutor ...
-func NewExecutor(n *centrifuge.Node, ruleContainer *rule.Container, surveyCaller SurveyCaller, config ExecutorConfig) *Executor {
+func NewExecutor(n *centrifuge.Node, cfgContainer *config.Container, surveyCaller SurveyCaller, config ExecutorConfig) *Executor {
 	e := &Executor{
-		node:          n,
-		ruleContainer: ruleContainer,
-		config:        config,
-		surveyCaller:  surveyCaller,
-		rpcExtension:  make(map[string]RPCHandler),
+		node:         n,
+		cfgContainer: cfgContainer,
+		config:       config,
+		surveyCaller: surveyCaller,
+		rpcExtension: make(map[string]RPCHandler),
 	}
 	return e
 }
@@ -56,47 +58,65 @@ func (h *Executor) SetRPCExtension(method string, handler RPCHandler) {
 }
 
 func (h *Executor) processCmd(ctx context.Context, cmd *Command, i int, replies []*Reply) {
+	var method string
 	if cmd.Publish != nil {
+		method = "publish"
 		res := h.Publish(ctx, cmd.Publish)
 		replies[i].Publish, replies[i].Error = res.Result, res.Error
 	} else if cmd.Broadcast != nil {
+		method = "broadcast"
 		res := h.Broadcast(ctx, cmd.Broadcast)
 		replies[i].Broadcast, replies[i].Error = res.Result, res.Error
 	} else if cmd.Subscribe != nil {
+		method = "subscribe"
 		res := h.Subscribe(ctx, cmd.Subscribe)
 		replies[i].Subscribe, replies[i].Error = res.Result, res.Error
 	} else if cmd.Unsubscribe != nil {
+		method = "unsubscribe"
 		res := h.Unsubscribe(ctx, cmd.Unsubscribe)
 		replies[i].Unsubscribe, replies[i].Error = res.Result, res.Error
 	} else if cmd.Disconnect != nil {
+		method = "disconnect"
 		res := h.Disconnect(ctx, cmd.Disconnect)
 		replies[i].Disconnect, replies[i].Error = res.Result, res.Error
 	} else if cmd.History != nil {
+		method = "history"
 		res := h.History(ctx, cmd.History)
 		replies[i].History, replies[i].Error = res.Result, res.Error
 	} else if cmd.HistoryRemove != nil {
+		method = "history_remove"
 		res := h.HistoryRemove(ctx, cmd.HistoryRemove)
 		replies[i].HistoryRemove, replies[i].Error = res.Result, res.Error
 	} else if cmd.Presence != nil {
+		method = "presence"
 		res := h.Presence(ctx, cmd.Presence)
 		replies[i].Presence, replies[i].Error = res.Result, res.Error
 	} else if cmd.PresenceStats != nil {
+		method = "presence_stats"
 		res := h.PresenceStats(ctx, cmd.PresenceStats)
 		replies[i].PresenceStats, replies[i].Error = res.Result, res.Error
 	} else if cmd.Info != nil {
+		method = "info"
 		res := h.Info(ctx, cmd.Info)
 		replies[i].Info, replies[i].Error = res.Result, res.Error
 	} else if cmd.Rpc != nil {
+		method = "rpc"
 		res := h.RPC(ctx, cmd.Rpc)
 		replies[i].Rpc, replies[i].Error = res.Result, res.Error
 	} else if cmd.Refresh != nil {
+		method = "refresh"
 		res := h.Refresh(ctx, cmd.Refresh)
 		replies[i].Refresh, replies[i].Error = res.Result, res.Error
 	} else if cmd.Channels != nil {
+		method = "channels"
 		res := h.Channels(ctx, cmd.Channels)
 		replies[i].Channels, replies[i].Error = res.Result, res.Error
 	} else {
+		method = "unknown"
 		replies[i].Error = ErrorNotFound
+	}
+	if replies[i].Error != nil {
+		incError(h.config.Protocol, method, replies[i].Error.Code)
 	}
 }
 
@@ -145,7 +165,7 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 	resp := &PublishResponse{}
 
 	if ch == "" {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "channel required for publish", nil))
+		log.Error().Err(errors.New("channel required for publish")).Msg("bad publish request")
 		resp.Error = ErrorBadRequest
 		return resp
 	}
@@ -163,12 +183,12 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 	}
 
 	if len(data) == 0 {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "data required for publish", nil))
+		log.Error().Err(errors.New("data required for publish")).Msg("bad publish request")
 		resp.Error = ErrorBadRequest
 		return resp
 	}
 
-	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -183,7 +203,7 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 	historyMetaTTL := chOpts.HistoryMetaTTL
 	if cmd.SkipHistory {
 		historySize = 0
-		historyTTL = 0
+		historyTTL = configtypes.Duration(0)
 	}
 
 	delta := cmd.Delta
@@ -193,13 +213,13 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 
 	result, err := h.node.Publish(
 		cmd.Channel, data,
-		centrifuge.WithHistory(historySize, time.Duration(historyTTL), time.Duration(historyMetaTTL)),
+		centrifuge.WithHistory(historySize, historyTTL.ToDuration(), historyMetaTTL.ToDuration()),
 		centrifuge.WithTags(cmd.GetTags()),
 		centrifuge.WithIdempotencyKey(cmd.GetIdempotencyKey()),
 		centrifuge.WithDelta(delta),
 	)
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error publishing data to channel", map[string]any{"error": err.Error(), "channel": cmd.Channel}))
+		log.Error().Err(err).Str("channel", cmd.Channel).Msg("error publishing data to channel")
 		resp.Error = ErrorInternal
 		return resp
 	}
@@ -226,7 +246,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 	}
 
 	if len(channels) == 0 {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "channels required for broadcast", nil))
+		log.Error().Err(errors.New("channels required for broadcast")).Msg("bad broadcast request")
 		resp.Error = ErrorBadRequest
 		return resp
 	}
@@ -244,7 +264,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 	}
 
 	if len(data) == 0 {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "data required for broadcast", nil))
+		log.Error().Err(errors.New("data required for broadcast")).Msg("bad broadcast request")
 		resp.Error = ErrorBadRequest
 		return resp
 	}
@@ -260,20 +280,26 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 			defer func() { <-sem }()
 			defer wg.Done()
 			if ch == "" {
-				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "channel can not be blank in broadcast", nil))
-				responses[i] = &PublishResponse{Error: ErrorBadRequest}
+				respError := ErrorBadRequest
+				incError(h.config.Protocol, "broadcast_publish", respError.Code)
+				log.Error().Err(errors.New("channel can not be blank in broadcast")).Msg("bad broadcast request")
+				responses[i] = &PublishResponse{Error: respError}
 				return
 			}
 
-			_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+			_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 			if err != nil {
-				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error getting options for channel", map[string]any{"channel": ch, "error": err.Error()}))
-				responses[i] = &PublishResponse{Error: ErrorInternal}
+				respError := ErrorInternal
+				incError(h.config.Protocol, "broadcast_publish", respError.Code)
+				log.Error().Err(err).Str("channel", ch).Msg("error getting options for channel")
+				responses[i] = &PublishResponse{Error: respError}
 				return
 			}
 			if !found {
-				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "can't find namespace for channel", map[string]any{"channel": ch}))
-				responses[i] = &PublishResponse{Error: ErrorUnknownChannel}
+				respError := ErrorUnknownChannel
+				incError(h.config.Protocol, "broadcast_publish", respError.Code)
+				log.Error().Err(errors.New("channel not found")).Str("channel", ch).Msg("error getting options for channel")
+				responses[i] = &PublishResponse{Error: respError}
 				return
 			}
 
@@ -282,7 +308,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 			historyMetaTTL := chOpts.HistoryMetaTTL
 			if cmd.SkipHistory {
 				historySize = 0
-				historyTTL = 0
+				historyTTL = configtypes.Duration(0)
 			}
 
 			delta := cmd.Delta
@@ -292,7 +318,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 
 			result, err := h.node.Publish(
 				ch, data,
-				centrifuge.WithHistory(historySize, time.Duration(historyTTL), time.Duration(historyMetaTTL)),
+				centrifuge.WithHistory(historySize, historyTTL.ToDuration(), historyMetaTTL.ToDuration()),
 				centrifuge.WithTags(cmd.GetTags()),
 				centrifuge.WithIdempotencyKey(cmd.GetIdempotencyKey()),
 				centrifuge.WithDelta(delta),
@@ -304,8 +330,10 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 					Epoch:  result.StreamPosition.Epoch,
 				}
 			} else {
-				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error publishing data to channel during broadcast", map[string]any{"channel": ch, "error": err.Error()}))
-				resp.Error = ErrorInternal
+				respError := ErrorInternal
+				incError(h.config.Protocol, "publish", respError.Code)
+				log.Error().Err(err).Str("channel", ch).Msg("error publishing data to channel during broadcast")
+				resp.Error = respError
 			}
 			responses[i] = resp
 		}(i, ch)
@@ -326,12 +354,12 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 	channel := cmd.Channel
 
 	if channel == "" {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "channel required for subscribe", map[string]any{"channel": channel, "user": user}))
+		log.Error().Err(errors.New("channel required for subscribe")).Msg("bad subscribe request")
 		resp.Error = ErrorBadRequest
 		return resp
 	}
 
-	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(channel)
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(channel)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -383,10 +411,10 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 		centrifuge.WithEmitPresence(presence),
 		centrifuge.WithRecoverSince(recoverSince),
 		centrifuge.WithSubscribeSource(subsource.ServerAPI),
-		centrifuge.WithSubscribeHistoryMetaTTL(time.Duration(chOpts.HistoryMetaTTL)),
+		centrifuge.WithSubscribeHistoryMetaTTL(chOpts.HistoryMetaTTL.ToDuration()),
 	)
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error subscribing user to a channel", map[string]any{"channel": channel, "user": user, "error": err.Error()}))
+		log.Error().Err(err).Str("channel", channel).Str("user", user).Msg("error subscribing user to channel")
 		resp.Error = ErrorInternal
 		return resp
 	}
@@ -405,7 +433,7 @@ func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *Unsu
 	channel := cmd.Channel
 
 	if channel != "" {
-		_, _, _, found, err := h.ruleContainer.ChannelOptions(channel)
+		_, _, _, found, err := h.cfgContainer.ChannelOptions(channel)
 		if err != nil {
 			resp.Error = ErrorInternal
 			return resp
@@ -418,7 +446,7 @@ func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *Unsu
 
 	err := h.node.Unsubscribe(user, channel, centrifuge.WithUnsubscribeClient(cmd.Client), centrifuge.WithUnsubscribeSession(cmd.Session))
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error unsubscribing user from a channel", map[string]any{"channel": channel, "user": user, "error": err.Error()}))
+		log.Error().Err(err).Str("channel", channel).Str("user", user).Msg("error unsubscribing user from channel")
 		resp.Error = ErrorInternal
 		return resp
 	}
@@ -450,7 +478,7 @@ func (h *Executor) Disconnect(_ context.Context, cmd *DisconnectRequest) *Discon
 		centrifuge.WithDisconnectSession(cmd.Session),
 		centrifuge.WithDisconnectClientWhitelist(cmd.Whitelist))
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error disconnecting user", map[string]any{"user": cmd.User, "error": err.Error()}))
+		log.Error().Err(err).Str("user", user).Msg("error disconnecting user")
 		resp.Error = ErrorInternal
 		return resp
 	}
@@ -474,7 +502,7 @@ func (h *Executor) Refresh(_ context.Context, cmd *RefreshRequest) *RefreshRespo
 		centrifuge.WithRefreshInfo(cmd.Info),
 	)
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error refreshing user", map[string]any{"user": cmd.User, "error": err.Error()}))
+		log.Error().Err(err).Str("user", user).Msg("error refreshing user")
 		resp.Error = ErrorInternal
 		return resp
 	}
@@ -495,7 +523,7 @@ func (h *Executor) Presence(_ context.Context, cmd *PresenceRequest) *PresenceRe
 		return resp
 	}
 
-	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -512,7 +540,7 @@ func (h *Executor) Presence(_ context.Context, cmd *PresenceRequest) *PresenceRe
 
 	presence, err := h.node.Presence(ch)
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error calling presence", map[string]any{"error": err.Error()}))
+		log.Error().Err(err).Str("channel", ch).Msg("error getting presence for channel")
 		resp.Error = ErrorInternal
 		return resp
 	}
@@ -546,7 +574,7 @@ func (h *Executor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest) *
 		return resp
 	}
 
-	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -563,7 +591,7 @@ func (h *Executor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest) *
 
 	stats, err := h.node.PresenceStats(cmd.Channel)
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error calling presence stats", map[string]any{"error": err.Error()}))
+		log.Error().Err(err).Str("channel", ch).Msg("error getting presence stats for channel")
 		resp.Error = ErrorInternal
 		return resp
 	}
@@ -589,7 +617,7 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 		return resp
 	}
 
-	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -616,13 +644,13 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 
 	history, err := h.node.History(
 		ch,
-		centrifuge.WithHistoryMetaTTL(time.Duration(historyMetaTTL)),
+		centrifuge.WithHistoryMetaTTL(historyMetaTTL.ToDuration()),
 		centrifuge.WithLimit(int(cmd.Limit)),
 		centrifuge.WithSince(sp),
 		centrifuge.WithReverse(cmd.Reverse),
 	)
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error calling history", map[string]any{"error": err.Error()}))
+		log.Error().Err(err).Str("channel", ch).Msg("error getting history for channel")
 		if errors.Is(err, centrifuge.ErrorUnrecoverablePosition) {
 			resp.Error = ErrorUnrecoverablePosition
 			return resp
@@ -671,7 +699,7 @@ func (h *Executor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest) *
 		return resp
 	}
 
-	_, _, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -688,7 +716,7 @@ func (h *Executor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest) *
 
 	err = h.node.RemoveHistory(ch)
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error calling history remove", map[string]any{"error": err.Error()}))
+		log.Error().Err(err).Str("channel", ch).Msg("error removing history for channel")
 		resp.Error = ErrorInternal
 		return resp
 	}
@@ -704,7 +732,7 @@ func (h *Executor) Info(_ context.Context, _ *InfoRequest) *InfoResponse {
 
 	info, err := h.node.Info()
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error calling info", map[string]any{"error": err.Error()}))
+		log.Error().Err(err).Msg("error calling info")
 		resp.Error = ErrorInternal
 		return resp
 	}
@@ -744,7 +772,7 @@ func (h *Executor) RPC(ctx context.Context, cmd *RPCRequest) *RPCResponse {
 	resp := &RPCResponse{}
 
 	if cmd.Method == "" {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "rpc method required", map[string]any{}))
+		log.Error().Err(errors.New("rpc method required")).Msg("bad rpc request")
 		resp.Error = ErrorBadRequest
 		return resp
 	}
@@ -759,7 +787,7 @@ func (h *Executor) RPC(ctx context.Context, cmd *RPCRequest) *RPCResponse {
 
 	data, err := handler(ctx, cmd.Params)
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error sending rpc", map[string]any{"error": err.Error()}))
+		log.Error().Err(err).Str("method", cmd.Method).Msg("error calling rpc method")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -780,7 +808,7 @@ func (h *Executor) Channels(ctx context.Context, cmd *ChannelsRequest) *Channels
 
 	channels, err := h.surveyCaller.Channels(ctx, cmd)
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error calling channels", map[string]any{"error": err.Error()}))
+		log.Error().Err(err).Msg("error calling channels")
 		resp.Error = toAPIErr(err)
 		return resp
 	}

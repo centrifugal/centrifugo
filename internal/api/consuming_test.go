@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
+	"github.com/centrifugal/centrifugo/internal/config"
 
 	"github.com/stretchr/testify/require"
 )
@@ -13,12 +13,11 @@ func TestNewConsumingHandler(t *testing.T) {
 	n := nodeWithMemoryEngine()
 	defer func() { _ = n.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultConfig
-	ruleConfig.ClientInsecure = true
-	ruleContainer, err := rule.NewContainer(ruleConfig)
+	cfg := config.DefaultConfig()
+	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 
-	handler := NewConsumingHandler(n, NewExecutor(n, ruleContainer, nil, ExecutorConfig{
+	handler := NewConsumingHandler(n, NewExecutor(n, cfgContainer, nil, ExecutorConfig{
 		Protocol:         "consumer",
 		UseOpenTelemetry: false,
 	}), ConsumingHandlerConfig{})

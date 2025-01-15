@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	. "github.com/centrifugal/centrifugo/v5/internal/apiproto"
+	. "github.com/centrifugal/centrifugo/internal/apiproto"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -15,12 +15,14 @@ import (
 func (s *Handler) handleBatch(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "batch", "read_body")
 		s.handleReadDataError(r, w, err)
 		return
 	}
 
 	req, err := paramsDecoder.DecodeBatch(data)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "batch", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
 		return
 	}
@@ -29,6 +31,7 @@ func (s *Handler) handleBatch(w http.ResponseWriter, r *http.Request) {
 
 	data, err = responseEncoder.EncodeBatch(resp)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "batch", "marshal")
 		s.handleMarshalError(r, w, err)
 		return
 	}
@@ -39,12 +42,14 @@ func (s *Handler) handleBatch(w http.ResponseWriter, r *http.Request) {
 func (s *Handler) handlePublish(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "publish", "read_body")
 		s.handleReadDataError(r, w, err)
 		return
 	}
 
 	req, err := paramsDecoder.DecodePublish(data)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "publish", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
 		return
 	}
@@ -56,6 +61,7 @@ func (s *Handler) handlePublish(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.Error != nil && s.useTransportErrorMode(r) {
+		incError(s.api.config.Protocol, "publish", resp.Error.Code)
 		statusCode := MapErrorToHTTPCode(resp.Error)
 		data, _ = EncodeError(resp.Error)
 		s.writeJsonCustomStatus(w, statusCode, data)
@@ -64,8 +70,12 @@ func (s *Handler) handlePublish(w http.ResponseWriter, r *http.Request) {
 
 	data, err = responseEncoder.EncodePublish(resp)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "publish", "marshal")
 		s.handleMarshalError(r, w, err)
 		return
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "publish", resp.Error.Code)
 	}
 
 	s.writeJson(w, data)
@@ -74,12 +84,14 @@ func (s *Handler) handlePublish(w http.ResponseWriter, r *http.Request) {
 func (s *Handler) handleBroadcast(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "broadcast", "read_body")
 		s.handleReadDataError(r, w, err)
 		return
 	}
 
 	req, err := paramsDecoder.DecodeBroadcast(data)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "broadcast", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
 		return
 	}
@@ -91,6 +103,7 @@ func (s *Handler) handleBroadcast(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.Error != nil && s.useTransportErrorMode(r) {
+		incError(s.api.config.Protocol, "broadcast", resp.Error.Code)
 		statusCode := MapErrorToHTTPCode(resp.Error)
 		data, _ = EncodeError(resp.Error)
 		s.writeJsonCustomStatus(w, statusCode, data)
@@ -99,8 +112,12 @@ func (s *Handler) handleBroadcast(w http.ResponseWriter, r *http.Request) {
 
 	data, err = responseEncoder.EncodeBroadcast(resp)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "broadcast", "marshal")
 		s.handleMarshalError(r, w, err)
 		return
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "broadcast", resp.Error.Code)
 	}
 
 	s.writeJson(w, data)
@@ -109,12 +126,14 @@ func (s *Handler) handleBroadcast(w http.ResponseWriter, r *http.Request) {
 func (s *Handler) handleSubscribe(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "subscribe", "read_body")
 		s.handleReadDataError(r, w, err)
 		return
 	}
 
 	req, err := paramsDecoder.DecodeSubscribe(data)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "subscribe", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
 		return
 	}
@@ -126,6 +145,7 @@ func (s *Handler) handleSubscribe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.Error != nil && s.useTransportErrorMode(r) {
+		incError(s.api.config.Protocol, "subscribe", resp.Error.Code)
 		statusCode := MapErrorToHTTPCode(resp.Error)
 		data, _ = EncodeError(resp.Error)
 		s.writeJsonCustomStatus(w, statusCode, data)
@@ -134,8 +154,12 @@ func (s *Handler) handleSubscribe(w http.ResponseWriter, r *http.Request) {
 
 	data, err = responseEncoder.EncodeSubscribe(resp)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "subscribe", "marshal")
 		s.handleMarshalError(r, w, err)
 		return
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "subscribe", resp.Error.Code)
 	}
 
 	s.writeJson(w, data)
@@ -144,12 +168,14 @@ func (s *Handler) handleSubscribe(w http.ResponseWriter, r *http.Request) {
 func (s *Handler) handleUnsubscribe(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "unsubscribe", "read_body")
 		s.handleReadDataError(r, w, err)
 		return
 	}
 
 	req, err := paramsDecoder.DecodeUnsubscribe(data)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "unsubscribe", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
 		return
 	}
@@ -161,6 +187,7 @@ func (s *Handler) handleUnsubscribe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.Error != nil && s.useTransportErrorMode(r) {
+		incError(s.api.config.Protocol, "unsubscribe", resp.Error.Code)
 		statusCode := MapErrorToHTTPCode(resp.Error)
 		data, _ = EncodeError(resp.Error)
 		s.writeJsonCustomStatus(w, statusCode, data)
@@ -169,8 +196,12 @@ func (s *Handler) handleUnsubscribe(w http.ResponseWriter, r *http.Request) {
 
 	data, err = responseEncoder.EncodeUnsubscribe(resp)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "unsubscribe", "marshal")
 		s.handleMarshalError(r, w, err)
 		return
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "unsubscribe", resp.Error.Code)
 	}
 
 	s.writeJson(w, data)
@@ -179,12 +210,14 @@ func (s *Handler) handleUnsubscribe(w http.ResponseWriter, r *http.Request) {
 func (s *Handler) handleDisconnect(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "disconnect", "read_body")
 		s.handleReadDataError(r, w, err)
 		return
 	}
 
 	req, err := paramsDecoder.DecodeDisconnect(data)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "disconnect", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
 		return
 	}
@@ -196,6 +229,7 @@ func (s *Handler) handleDisconnect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.Error != nil && s.useTransportErrorMode(r) {
+		incError(s.api.config.Protocol, "disconnect", resp.Error.Code)
 		statusCode := MapErrorToHTTPCode(resp.Error)
 		data, _ = EncodeError(resp.Error)
 		s.writeJsonCustomStatus(w, statusCode, data)
@@ -204,8 +238,12 @@ func (s *Handler) handleDisconnect(w http.ResponseWriter, r *http.Request) {
 
 	data, err = responseEncoder.EncodeDisconnect(resp)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "disconnect", "marshal")
 		s.handleMarshalError(r, w, err)
 		return
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "disconnect", resp.Error.Code)
 	}
 
 	s.writeJson(w, data)
@@ -214,12 +252,14 @@ func (s *Handler) handleDisconnect(w http.ResponseWriter, r *http.Request) {
 func (s *Handler) handlePresence(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "presence", "read_body")
 		s.handleReadDataError(r, w, err)
 		return
 	}
 
 	req, err := paramsDecoder.DecodePresence(data)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "presence", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
 		return
 	}
@@ -231,6 +271,7 @@ func (s *Handler) handlePresence(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.Error != nil && s.useTransportErrorMode(r) {
+		incError(s.api.config.Protocol, "presence", resp.Error.Code)
 		statusCode := MapErrorToHTTPCode(resp.Error)
 		data, _ = EncodeError(resp.Error)
 		s.writeJsonCustomStatus(w, statusCode, data)
@@ -239,8 +280,12 @@ func (s *Handler) handlePresence(w http.ResponseWriter, r *http.Request) {
 
 	data, err = responseEncoder.EncodePresence(resp)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "presence", "marshal")
 		s.handleMarshalError(r, w, err)
 		return
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "presence", resp.Error.Code)
 	}
 
 	s.writeJson(w, data)
@@ -249,12 +294,14 @@ func (s *Handler) handlePresence(w http.ResponseWriter, r *http.Request) {
 func (s *Handler) handlePresenceStats(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "presence_stats", "read_body")
 		s.handleReadDataError(r, w, err)
 		return
 	}
 
 	req, err := paramsDecoder.DecodePresenceStats(data)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "presence_stats", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
 		return
 	}
@@ -266,6 +313,7 @@ func (s *Handler) handlePresenceStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.Error != nil && s.useTransportErrorMode(r) {
+		incError(s.api.config.Protocol, "presence_stats", resp.Error.Code)
 		statusCode := MapErrorToHTTPCode(resp.Error)
 		data, _ = EncodeError(resp.Error)
 		s.writeJsonCustomStatus(w, statusCode, data)
@@ -274,8 +322,12 @@ func (s *Handler) handlePresenceStats(w http.ResponseWriter, r *http.Request) {
 
 	data, err = responseEncoder.EncodePresenceStats(resp)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "presence_stats", "marshal")
 		s.handleMarshalError(r, w, err)
 		return
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "presence_stats", resp.Error.Code)
 	}
 
 	s.writeJson(w, data)
@@ -284,12 +336,14 @@ func (s *Handler) handlePresenceStats(w http.ResponseWriter, r *http.Request) {
 func (s *Handler) handleHistory(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "history", "read_body")
 		s.handleReadDataError(r, w, err)
 		return
 	}
 
 	req, err := paramsDecoder.DecodeHistory(data)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "history", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
 		return
 	}
@@ -301,6 +355,7 @@ func (s *Handler) handleHistory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.Error != nil && s.useTransportErrorMode(r) {
+		incError(s.api.config.Protocol, "history", resp.Error.Code)
 		statusCode := MapErrorToHTTPCode(resp.Error)
 		data, _ = EncodeError(resp.Error)
 		s.writeJsonCustomStatus(w, statusCode, data)
@@ -309,8 +364,12 @@ func (s *Handler) handleHistory(w http.ResponseWriter, r *http.Request) {
 
 	data, err = responseEncoder.EncodeHistory(resp)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "history", "marshal")
 		s.handleMarshalError(r, w, err)
 		return
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "history", resp.Error.Code)
 	}
 
 	s.writeJson(w, data)
@@ -319,12 +378,14 @@ func (s *Handler) handleHistory(w http.ResponseWriter, r *http.Request) {
 func (s *Handler) handleHistoryRemove(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "history_remove", "read_body")
 		s.handleReadDataError(r, w, err)
 		return
 	}
 
 	req, err := paramsDecoder.DecodeHistoryRemove(data)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "history_remove", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
 		return
 	}
@@ -336,6 +397,7 @@ func (s *Handler) handleHistoryRemove(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.Error != nil && s.useTransportErrorMode(r) {
+		incError(s.api.config.Protocol, "history_remove", resp.Error.Code)
 		statusCode := MapErrorToHTTPCode(resp.Error)
 		data, _ = EncodeError(resp.Error)
 		s.writeJsonCustomStatus(w, statusCode, data)
@@ -344,8 +406,12 @@ func (s *Handler) handleHistoryRemove(w http.ResponseWriter, r *http.Request) {
 
 	data, err = responseEncoder.EncodeHistoryRemove(resp)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "history_remove", "marshal")
 		s.handleMarshalError(r, w, err)
 		return
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "history_remove", resp.Error.Code)
 	}
 
 	s.writeJson(w, data)
@@ -354,12 +420,14 @@ func (s *Handler) handleHistoryRemove(w http.ResponseWriter, r *http.Request) {
 func (s *Handler) handleInfo(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "info", "read_body")
 		s.handleReadDataError(r, w, err)
 		return
 	}
 
 	req, err := paramsDecoder.DecodeInfo(data)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "info", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
 		return
 	}
@@ -371,6 +439,7 @@ func (s *Handler) handleInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.Error != nil && s.useTransportErrorMode(r) {
+		incError(s.api.config.Protocol, "info", resp.Error.Code)
 		statusCode := MapErrorToHTTPCode(resp.Error)
 		data, _ = EncodeError(resp.Error)
 		s.writeJsonCustomStatus(w, statusCode, data)
@@ -379,8 +448,12 @@ func (s *Handler) handleInfo(w http.ResponseWriter, r *http.Request) {
 
 	data, err = responseEncoder.EncodeInfo(resp)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "info", "marshal")
 		s.handleMarshalError(r, w, err)
 		return
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "info", resp.Error.Code)
 	}
 
 	s.writeJson(w, data)
@@ -389,12 +462,14 @@ func (s *Handler) handleInfo(w http.ResponseWriter, r *http.Request) {
 func (s *Handler) handleRPC(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "rpc", "read_body")
 		s.handleReadDataError(r, w, err)
 		return
 	}
 
 	req, err := paramsDecoder.DecodeRPC(data)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "rpc", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
 		return
 	}
@@ -406,6 +481,7 @@ func (s *Handler) handleRPC(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.Error != nil && s.useTransportErrorMode(r) {
+		incError(s.api.config.Protocol, "rpc", resp.Error.Code)
 		statusCode := MapErrorToHTTPCode(resp.Error)
 		data, _ = EncodeError(resp.Error)
 		s.writeJsonCustomStatus(w, statusCode, data)
@@ -414,8 +490,12 @@ func (s *Handler) handleRPC(w http.ResponseWriter, r *http.Request) {
 
 	data, err = responseEncoder.EncodeRPC(resp)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "rpc", "marshal")
 		s.handleMarshalError(r, w, err)
 		return
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "rpc", resp.Error.Code)
 	}
 
 	s.writeJson(w, data)
@@ -424,12 +504,14 @@ func (s *Handler) handleRPC(w http.ResponseWriter, r *http.Request) {
 func (s *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "refresh", "read_body")
 		s.handleReadDataError(r, w, err)
 		return
 	}
 
 	req, err := paramsDecoder.DecodeRefresh(data)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "refresh", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
 		return
 	}
@@ -441,6 +523,7 @@ func (s *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.Error != nil && s.useTransportErrorMode(r) {
+		incError(s.api.config.Protocol, "refresh", resp.Error.Code)
 		statusCode := MapErrorToHTTPCode(resp.Error)
 		data, _ = EncodeError(resp.Error)
 		s.writeJsonCustomStatus(w, statusCode, data)
@@ -449,8 +532,12 @@ func (s *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 
 	data, err = responseEncoder.EncodeRefresh(resp)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "refresh", "marshal")
 		s.handleMarshalError(r, w, err)
 		return
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "refresh", resp.Error.Code)
 	}
 
 	s.writeJson(w, data)
@@ -459,12 +546,14 @@ func (s *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 func (s *Handler) handleChannels(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "channels", "read_body")
 		s.handleReadDataError(r, w, err)
 		return
 	}
 
 	req, err := paramsDecoder.DecodeChannels(data)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "channels", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
 		return
 	}
@@ -476,6 +565,7 @@ func (s *Handler) handleChannels(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.Error != nil && s.useTransportErrorMode(r) {
+		incError(s.api.config.Protocol, "channels", resp.Error.Code)
 		statusCode := MapErrorToHTTPCode(resp.Error)
 		data, _ = EncodeError(resp.Error)
 		s.writeJsonCustomStatus(w, statusCode, data)
@@ -484,8 +574,12 @@ func (s *Handler) handleChannels(w http.ResponseWriter, r *http.Request) {
 
 	data, err = responseEncoder.EncodeChannels(resp)
 	if err != nil {
+		incErrorStringCode(s.api.config.Protocol, "channels", "marshal")
 		s.handleMarshalError(r, w, err)
 		return
+	}
+	if resp.Error != nil {
+		incError(s.api.config.Protocol, "channels", resp.Error.Code)
 	}
 
 	s.writeJson(w, data)

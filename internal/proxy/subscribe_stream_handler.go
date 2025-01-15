@@ -8,30 +8,28 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v5/internal/proxyproto"
-	"github.com/centrifugal/centrifugo/v5/internal/rule"
-	"github.com/centrifugal/centrifugo/v5/internal/subsource"
+	"github.com/centrifugal/centrifugo/internal/configtypes"
+	"github.com/centrifugal/centrifugo/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog/log"
 )
 
 // SubscribeStreamHandlerConfig ...
 type SubscribeStreamHandlerConfig struct {
-	Proxies           map[string]*SubscribeStreamProxy
-	GranularProxyMode bool
+	Proxies map[string]*SubscribeStreamProxy
 }
 
 // SubscribeStreamHandler ...
 type SubscribeStreamHandler struct {
 	config SubscribeStreamHandlerConfig
 
-	summary           prometheus.Observer
-	histogram         prometheus.Observer
-	errors            prometheus.Counter
-	granularSummary   map[string]prometheus.Observer
-	granularHistogram map[string]prometheus.Observer
-	granularErrors    map[string]prometheus.Counter
+	summary   map[string]prometheus.Observer
+	histogram map[string]prometheus.Observer
+	errors    map[string]prometheus.Counter
+	inflight  map[string]prometheus.Gauge
 }
 
 // NewSubscribeStreamHandler ...
@@ -39,27 +37,21 @@ func NewSubscribeStreamHandler(c SubscribeStreamHandlerConfig) *SubscribeStreamH
 	h := &SubscribeStreamHandler{
 		config: c,
 	}
-	if h.config.GranularProxyMode {
-		summary := map[string]prometheus.Observer{}
-		histogram := map[string]prometheus.Observer{}
-		errCounters := map[string]prometheus.Counter{}
-		for k := range c.Proxies {
-			name := k
-			if name == "" {
-				name = "__default__"
-			}
-			summary[name] = granularProxyCallDurationSummary.WithLabelValues("subscribe_stream", name)
-			histogram[name] = granularProxyCallDurationHistogram.WithLabelValues("subscribe_stream", name)
-			errCounters[name] = granularProxyCallErrorCount.WithLabelValues("subscribe_stream", name)
-		}
-		h.granularSummary = summary
-		h.granularHistogram = histogram
-		h.granularErrors = errCounters
-	} else {
-		h.summary = proxyCallDurationSummary.WithLabelValues("grpc", "subscribe_stream")
-		h.histogram = proxyCallDurationHistogram.WithLabelValues("grpc", "subscribe_stream")
-		h.errors = proxyCallErrorCount.WithLabelValues("grpc", "subscribe_stream")
+
+	summary := map[string]prometheus.Observer{}
+	histogram := map[string]prometheus.Observer{}
+	errCounters := map[string]prometheus.Counter{}
+	inflight := map[string]prometheus.Gauge{}
+	for name := range c.Proxies {
+		summary[name] = proxyCallDurationSummary.WithLabelValues("grpc", "subscribe_stream", name)
+		histogram[name] = proxyCallDurationHistogram.WithLabelValues("grpc", "subscribe_stream", name)
+		errCounters[name] = proxyCallErrorCount.WithLabelValues("grpc", "subscribe_stream", name)
+		inflight[name] = proxyCallInflightRequests.WithLabelValues("grpc", "subscribe_stream", name)
 	}
+	h.summary = summary
+	h.histogram = histogram
+	h.errors = errCounters
+	h.inflight = inflight
 	return h
 }
 
@@ -68,14 +60,14 @@ type StreamPublishFunc func(data []byte) error
 
 // SubscribeStreamHandlerFunc ...
 type SubscribeStreamHandlerFunc func(
-	Client, bool, centrifuge.SubscribeEvent, rule.ChannelOptions, PerCallData,
+	Client, bool, centrifuge.SubscribeEvent, configtypes.ChannelOptions, PerCallData,
 ) (centrifuge.SubscribeReply, StreamPublishFunc, func(), error)
 
 // Handle ...
-func (h *SubscribeStreamHandler) Handle(node *centrifuge.Node) SubscribeStreamHandlerFunc {
+func (h *SubscribeStreamHandler) Handle() SubscribeStreamHandlerFunc {
 	return func(
 		client Client, bidi bool, e centrifuge.SubscribeEvent,
-		chOpts rule.ChannelOptions, pcd PerCallData,
+		chOpts configtypes.ChannelOptions, pcd PerCallData,
 	) (centrifuge.SubscribeReply, StreamPublishFunc, func(), error) {
 		started := time.Now()
 
@@ -84,22 +76,19 @@ func (h *SubscribeStreamHandler) Handle(node *centrifuge.Node) SubscribeStreamHa
 		var histogram prometheus.Observer
 		var errCounter prometheus.Counter
 
-		if h.config.GranularProxyMode {
-			proxyName := chOpts.SubscribeStreamProxyName
-			if proxyName == "" {
-				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe stream proxy not configured for a channel", map[string]any{"channel": e.Channel}))
-				return centrifuge.SubscribeReply{}, nil, nil, centrifuge.ErrorNotAvailable
-			}
-			p = h.config.Proxies[proxyName]
-			summary = h.granularSummary[proxyName]
-			histogram = h.granularHistogram[proxyName]
-			errCounter = h.granularErrors[proxyName]
-		} else {
-			p = h.config.Proxies[""]
-			summary = h.summary
-			histogram = h.histogram
-			errCounter = h.errors
+		proxyEnabled := chOpts.SubscribeStreamProxyEnabled
+		proxyName := chOpts.SubscribeStreamProxyName
+		if !proxyEnabled {
+			log.Info().Str("channel", e.Channel).Msg("subscribe stream proxy not enabled for a channel")
+			return centrifuge.SubscribeReply{}, nil, nil, centrifuge.ErrorNotAvailable
 		}
+		p = h.config.Proxies[proxyName]
+		summary = h.summary[proxyName]
+		histogram = h.histogram[proxyName]
+		errCounter = h.errors[proxyName]
+		inflight := h.inflight[proxyName]
+		inflight.Inc()
+		defer inflight.Dec()
 
 		req := &proxyproto.SubscribeRequest{
 			Client:    client.ID(),
@@ -173,7 +162,7 @@ func (h *SubscribeStreamHandler) Handle(node *centrifuge.Node) SubscribeStreamHa
 			summary.Observe(duration)
 			histogram.Observe(duration)
 			errCounter.Inc()
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error from subscribe stream proxy", map[string]any{"error": err.Error()}))
+			log.Error().Err(err).Str("client", client.ID()).Str("channel", e.Channel).Msg("error from subscribe stream proxy")
 			//proxyCallErrorCount.WithLabelValues(proxyName, "subscribe", "internal").Inc()
 			return centrifuge.SubscribeReply{}, nil, nil, err
 		}
@@ -208,7 +197,7 @@ func (h *SubscribeStreamHandler) Handle(node *centrifuge.Node) SubscribeStreamHa
 			if subscribeRep.Result.B64Info != "" {
 				decodedInfo, err := base64.StdEncoding.DecodeString(subscribeRep.Result.B64Info)
 				if err != nil {
-					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]any{"client": client.ID(), "error": err.Error()}))
+					log.Error().Err(err).Str("client", client.ID()).Msg("error decoding base64 info")
 					return centrifuge.SubscribeReply{}, nil, nil, centrifuge.ErrorInternal
 				}
 				info = decodedInfo
@@ -218,7 +207,7 @@ func (h *SubscribeStreamHandler) Handle(node *centrifuge.Node) SubscribeStreamHa
 			if subscribeRep.Result.B64Data != "" {
 				decodedData, err := base64.StdEncoding.DecodeString(subscribeRep.Result.B64Data)
 				if err != nil {
-					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]any{"client": client.ID(), "error": err.Error()}))
+					log.Error().Err(err).Str("client", client.ID()).Msg("error decoding base64 data")
 					return centrifuge.SubscribeReply{}, nil, nil, centrifuge.ErrorInternal
 				}
 				data = decodedData
@@ -316,7 +305,7 @@ func (p *SubscribeStreamProxy) SubscribeStream(
 		case <-ctx.Done():
 			cancel()
 			return
-		case <-time.After(time.Duration(p.config.Timeout)):
+		case <-time.After(p.config.Timeout.ToDuration()):
 			cancel()
 			return
 		case <-firstMessageReceived:
