@@ -1,9 +1,8 @@
 package configtypes
 
 import (
-	"encoding/json"
-	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/centrifugal/centrifuge"
 )
@@ -12,14 +11,7 @@ type ChannelNamespaces []ChannelNamespace
 
 // Decode to implement the envconfig.Decoder interface
 func (d *ChannelNamespaces) Decode(value string) error {
-	// If the source is a string and the target is a slice, try to parse it as JSON.
-	var items ChannelNamespaces
-	err := json.Unmarshal([]byte(value), &items)
-	if err != nil {
-		return fmt.Errorf("error parsing items from JSON: %v", err)
-	}
-	*d = items
-	return nil
+	return decodeToNamedSlice(value, d)
 }
 
 // ChannelNamespace allows creating channels with different channel options.
@@ -37,6 +29,12 @@ func (o ChannelOptions) GetRecoveryMode() centrifuge.RecoveryMode {
 		return centrifuge.RecoveryModeCache
 	}
 	return centrifuge.RecoveryModeStream
+}
+
+func NameForEnv(input string) string {
+	// Create a new replacer to replace '.' and '-' with '_'
+	replacer := strings.NewReplacer(".", "_", "-", "_")
+	return replacer.Replace(input)
 }
 
 // ChannelOptions represent channel specific configuration for namespace

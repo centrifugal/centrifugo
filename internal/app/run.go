@@ -28,6 +28,7 @@ import (
 	"github.com/centrifugal/centrifugo/internal/usage"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/joho/godotenv"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"go.uber.org/automaxprocs/maxprocs"
@@ -39,6 +40,14 @@ import (
 const edition = "oss"
 
 func Run(cmd *cobra.Command, configFile string) {
+	dotEnvUsed := false
+	if tools.FileExists(".env") {
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatal().Err(err).Msg("error loading .env file")
+		}
+		dotEnvUsed = true
+	}
 	cfg, cfgMeta, err := config.GetConfig(cmd, configFile)
 	if err != nil {
 		log.Fatal().Err(err).Msg("error getting config")
@@ -56,6 +65,9 @@ func Run(cmd *cobra.Command, configFile string) {
 	} else {
 		absConfPath, _ := filepath.Abs(configFile)
 		log.Info().Str("path", absConfPath).Msg("using config file")
+		if dotEnvUsed {
+			log.Info().Msg("environment variables have been loaded from .env file")
+		}
 	}
 	err = tools.WritePidFile(cfg.PidFile)
 	if err != nil {

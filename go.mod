@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/FZambia/eagle v0.1.0
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
-	github.com/centrifugal/centrifuge v0.33.7-0.20250112181853-2a4eccd03c0b
+	github.com/centrifugal/centrifuge v0.33.7-0.20250115221636-66e8709d50e4
 	github.com/centrifugal/protocol v0.14.0
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.2.1
@@ -15,6 +15,7 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/hashicorp/go-envparse v0.1.0
 	github.com/jackc/pgx/v5 v5.7.2
+	github.com/joho/godotenv v1.5.1
 	github.com/justinas/alice v1.2.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/nats-io/nats.go v1.38.0
@@ -40,10 +41,10 @@ require (
 	go.opentelemetry.io/otel/sdk v1.33.0
 	go.opentelemetry.io/otel/trace v1.33.0
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/crypto v0.31.0
+	golang.org/x/crypto v0.32.0
 	golang.org/x/sync v0.10.0
-	golang.org/x/time v0.8.0
-	google.golang.org/grpc v1.69.2
+	golang.org/x/time v0.9.0
+	google.golang.org/grpc v1.69.4
 	google.golang.org/protobuf v1.36.1
 )
 
@@ -96,7 +97,7 @@ require (
 	github.com/prometheus/common v0.60.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
-	github.com/redis/rueidis v1.0.52 // indirect
+	github.com/redis/rueidis v1.0.53 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/segmentio/encoding v0.4.1 // indirect
 	github.com/spf13/cast v1.7.0 // indirect
@@ -109,7 +110,7 @@ require (
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/mod v0.19.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/tools v0.23.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241209162323-e6fa225c2576 // indirect

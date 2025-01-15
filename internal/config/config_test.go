@@ -84,7 +84,7 @@ func TestConfigEnvVars(t *testing.T) {
 		_ = os.Unsetenv("CENTRIFUGO_RPC_NAMESPACES")
 		_ = os.Unsetenv("CENTRIFUGO_CLIENT_PROXY_CONNECT_TIMEOUT")
 	}()
-	// Proceed with the test
+	// Proceed with the test.
 	conf, meta := getConfig(t, "testdata/config.json")
 	require.Equal(t, "https://example.com/jwks/new", conf.Client.Token.JWKSPublicEndpoint)
 	require.Equal(t, false, conf.Consumers[0].Kafka.TLS.Enabled)
@@ -99,6 +99,24 @@ func TestConfigEnvVars(t *testing.T) {
 	require.Equal(t, time.Second, time.Duration(conf.Client.Proxy.Connect.Timeout))
 	require.Len(t, conf.RPC.Namespaces, 0)
 	require.Len(t, conf.Proxies, 0)
+}
+
+func TestConfigEnvVarsNamedArray(t *testing.T) {
+	_ = os.Setenv("CENTRIFUGO_RPC_NAMESPACES", `rpc1 rpc2`)
+	_ = os.Setenv("CENTRIFUGO_RPC_NAMESPACES_RPC1_PROXY_ENABLED", `true`)
+	_ = os.Setenv("CENTRIFUGO_RPC_NAMESPACES_RPC1_PROXY_NAME", `custom`)
+	defer func() {
+		_ = os.Unsetenv("CENTRIFUGO_RPC_NAMESPACES")
+		_ = os.Unsetenv("CENTRIFUGO_RPC_NAMESPACES_RPC1_PROXY_ENABLED")
+		_ = os.Unsetenv("CENTRIFUGO_RPC_NAMESPACES_RPC1_PROXY_NAME")
+	}()
+	conf, meta := getConfig(t, "testdata/config.json")
+	require.Len(t, meta.UnknownEnvs, 0)
+	require.Len(t, conf.RPC.Namespaces, 2)
+	require.Equal(t, "rpc1", conf.RPC.Namespaces[0].Name)
+	require.Equal(t, "rpc2", conf.RPC.Namespaces[1].Name)
+	require.Equal(t, true, conf.RPC.Namespaces[0].ProxyEnabled)
+	require.Equal(t, "custom", conf.RPC.Namespaces[0].ProxyName)
 }
 
 // TestIsKubernetesEnvVar validates the isKubernetesEnvVar function.

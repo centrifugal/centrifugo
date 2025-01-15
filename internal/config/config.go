@@ -200,7 +200,7 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 	extendKnownEnvVars(knownEnvVars, varInfo)
 
 	for i, item := range conf.Channel.Namespaces {
-		varInfo, err = envconfig.Process("CENTRIFUGO_CHANNEL_NAMESPACES_"+item.Name, &item)
+		varInfo, err = envconfig.Process("CENTRIFUGO_CHANNEL_NAMESPACES_"+configtypes.NameForEnv(item.Name), &item)
 		if err != nil {
 			return Config{}, Meta{}, fmt.Errorf("error processing env namespaces: %w", err)
 		}
@@ -209,7 +209,7 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 	}
 
 	for i, item := range conf.RPC.Namespaces {
-		varInfo, err = envconfig.Process("CENTRIFUGO_RPC_NAMESPACES_"+item.Name, &item)
+		varInfo, err = envconfig.Process("CENTRIFUGO_RPC_NAMESPACES_"+configtypes.NameForEnv(item.Name), &item)
 		if err != nil {
 			return Config{}, Meta{}, fmt.Errorf("error processing env rpc namespaces: %w", err)
 		}
@@ -218,7 +218,7 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 	}
 
 	for i, item := range conf.Proxies {
-		varInfo, err = envconfig.Process("CENTRIFUGO_PROXIES_"+item.Name, &item)
+		varInfo, err = envconfig.Process("CENTRIFUGO_PROXIES_"+configtypes.NameForEnv(item.Name), &item)
 		if err != nil {
 			return Config{}, Meta{}, fmt.Errorf("error processing env named proxies: %w", err)
 		}
@@ -227,7 +227,7 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 	}
 
 	for i, item := range conf.Consumers {
-		varInfo, err = envconfig.Process("CENTRIFUGO_CONSUMERS_"+item.Name, &item)
+		varInfo, err = envconfig.Process("CENTRIFUGO_CONSUMERS_"+configtypes.NameForEnv(item.Name), &item)
 		if err != nil {
 			return Config{}, Meta{}, fmt.Errorf("error processing env consumers: %w", err)
 		}

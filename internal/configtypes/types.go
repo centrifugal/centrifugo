@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"reflect"
+	"strings"
 )
 
 // HTTPServer configuration.
@@ -445,14 +447,7 @@ type NamedProxies []NamedProxy
 
 // Decode to implement the envconfig.Decoder interface
 func (d *NamedProxies) Decode(value string) error {
-	// If the source is a string and the target is a slice, try to parse it as JSON.
-	var items NamedProxies
-	err := json.Unmarshal([]byte(value), &items)
-	if err != nil {
-		return fmt.Errorf("error parsing utems from JSON: %v", err)
-	}
-	*d = items
-	return nil
+	return decodeToNamedSlice(value, d)
 }
 
 type SubscribeToUserPersonalChannel struct {
@@ -601,18 +596,44 @@ type Consumer struct {
 	Kafka KafkaConsumerConfig `mapstructure:"kafka" json:"kafka" envconfig:"kafka" yaml:"kafka" toml:"kafka"`
 }
 
+func decodeToNamedSlice(value string, target interface{}) error {
+	targetVal := reflect.ValueOf(target)
+	if targetVal.Kind() != reflect.Ptr || targetVal.Elem().Kind() != reflect.Slice {
+		return fmt.Errorf("target must be a pointer to a slice")
+	}
+	targetSlice := targetVal.Elem()
+	elemType := targetSlice.Type().Elem()
+
+	if value == "" {
+		// If the value is empty, leave the slice as it is.
+		return nil
+	}
+	if strings.HasPrefix(value, "[") && strings.HasSuffix(value, "]") {
+		// Unmarshal JSON array into a temporary slice
+		if err := json.Unmarshal([]byte(value), target); err != nil {
+			return fmt.Errorf("failed to unmarshal JSON array: %w", err)
+		}
+	} else {
+		// Parse space-separated values
+		for _, item := range strings.Split(value, " ") {
+			elem := reflect.New(elemType).Elem()
+			if elem.Kind() == reflect.Struct {
+				field := elem.FieldByName("Name")
+				if field.IsValid() && field.Kind() == reflect.String {
+					field.SetString(item)
+				}
+			}
+			targetSlice.Set(reflect.Append(targetSlice, elem))
+		}
+	}
+	return nil
+}
+
 type Consumers []Consumer
 
 // Decode to implement the envconfig.Decoder interface
 func (d *Consumers) Decode(value string) error {
-	// If the source is a string and the target is a slice, try to parse it as JSON.
-	var items Consumers
-	err := json.Unmarshal([]byte(value), &items)
-	if err != nil {
-		return fmt.Errorf("error parsing items from JSON: %v", err)
-	}
-	*d = items
-	return nil
+	return decodeToNamedSlice(value, d)
 }
 
 // PostgresConsumerConfig is a configuration for Postgres async outbox table consumer.

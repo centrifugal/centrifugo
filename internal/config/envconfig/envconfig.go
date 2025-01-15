@@ -55,6 +55,8 @@ type VarInfo struct {
 	Key   string
 	Field reflect.Value
 	Tags  reflect.StructTag
+
+	NonZeroInFile bool
 }
 
 // GatherInfo gathers information about the specified struct
@@ -102,6 +104,7 @@ func gatherInfo(prefix string, spec interface{}) ([]VarInfo, error) {
 			Field: f,
 			Tags:  ftype.Tag,
 			//Alt:   strings.ToUpper(ftype.Tag.Get("envconfig")),
+			NonZeroInFile: !f.IsZero(),
 		}
 
 		// Default to the field name as the env var name (will be upcased)
@@ -188,7 +191,6 @@ func CheckDisallowed(prefix string, spec interface{}) error {
 // Process populates the specified struct based on environment variables
 func Process(prefix string, spec interface{}) ([]VarInfo, error) {
 	infos, err := gatherInfo(prefix, spec)
-
 	for _, info := range infos {
 		// `os.Getenv` cannot differentiate between an explicitly set empty value
 		// and an unset value. `os.LookupEnv` is preferred to `syscall.Getenv`,
