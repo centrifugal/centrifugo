@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"

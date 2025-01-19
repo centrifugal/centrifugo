@@ -3,7 +3,7 @@ package proxy
 import (
 	"context"
 
-	"github.com/centrifugal/centrifugo/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/v6/internal/proxyproto"
 )
 
 // RPCProxy allows to proxy RPC requests to application backend.

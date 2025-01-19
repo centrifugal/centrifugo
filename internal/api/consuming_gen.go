@@ -5,7 +5,7 @@ package api
 import (
 	"context"
 
-	. "github.com/centrifugal/centrifugo/internal/apiproto"
+	. "github.com/centrifugal/centrifugo/v6/internal/apiproto"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"

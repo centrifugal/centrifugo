@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/centrifugal/centrifugo/internal/tools"
+	"github.com/centrifugal/centrifugo/v6/internal/tools"
 
 	"github.com/rs/zerolog/log"
 )

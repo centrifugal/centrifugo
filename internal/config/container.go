@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/centrifugal/centrifugo/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 )
 
 // Container wraps configuration providing sync access, reload and compilation of required parts.

@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/centrifugal/centrifugo/internal/config"
-	"github.com/centrifugal/centrifugo/internal/config/envconfig"
+	"github.com/centrifugal/centrifugo/v6/internal/config"
+	"github.com/centrifugal/centrifugo/v6/internal/config/envconfig"
 
 	"github.com/spf13/cobra"
 )

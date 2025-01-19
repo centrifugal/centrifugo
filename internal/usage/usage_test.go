@@ -3,7 +3,7 @@ package usage
 import (
 	"testing"
 
-	"github.com/centrifugal/centrifugo/internal/config"
+	"github.com/centrifugal/centrifugo/v6/internal/config"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/centrifugal/centrifugo/internal/config"
+	"github.com/centrifugal/centrifugo/v6/internal/config"
 
 	"github.com/stretchr/testify/require"
 )

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/centrifugal/centrifugo/internal/build"
+	"github.com/centrifugal/centrifugo/v6/internal/build"
 
 	"github.com/spf13/cobra"
 )

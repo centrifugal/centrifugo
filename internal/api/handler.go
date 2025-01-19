@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	. "github.com/centrifugal/centrifugo/internal/apiproto"
+	. "github.com/centrifugal/centrifugo/v6/internal/apiproto"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/rs/zerolog/log"

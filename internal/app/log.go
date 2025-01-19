@@ -3,7 +3,7 @@ package app
 import (
 	"strings"
 
-	"github.com/centrifugal/centrifugo/internal/config"
+	"github.com/centrifugal/centrifugo/v6/internal/config"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"

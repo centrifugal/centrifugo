@@ -14,8 +14,8 @@
 package main
 
 import (
-	"github.com/centrifugal/centrifugo/internal/app"
-	"github.com/centrifugal/centrifugo/internal/cli"
+	"github.com/centrifugal/centrifugo/v6/internal/app"
+	"github.com/centrifugal/centrifugo/v6/internal/cli"
 )
 
 //go:generate go run internal/gen/api/main.go
