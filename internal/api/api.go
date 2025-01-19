@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	. "github.com/centrifugal/centrifugo/internal/apiproto"
-	"github.com/centrifugal/centrifugo/internal/config"
-	"github.com/centrifugal/centrifugo/internal/configtypes"
-	"github.com/centrifugal/centrifugo/internal/subsource"
+	. "github.com/centrifugal/centrifugo/v6/internal/apiproto"
+	"github.com/centrifugal/centrifugo/v6/internal/config"
+	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/rs/zerolog/log"

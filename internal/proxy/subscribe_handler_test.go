@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/centrifugal/centrifugo/internal/configtypes"
-	"github.com/centrifugal/centrifugo/internal/subsource"
-	"github.com/centrifugal/centrifugo/internal/tools"
+	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/subsource"
+	"github.com/centrifugal/centrifugo/v6/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"

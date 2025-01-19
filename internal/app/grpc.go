@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/centrifugal/centrifugo/internal/api"
-	"github.com/centrifugal/centrifugo/internal/config"
-	"github.com/centrifugal/centrifugo/internal/tools"
-	"github.com/centrifugal/centrifugo/internal/unigrpc"
+	"github.com/centrifugal/centrifugo/v6/internal/api"
+	"github.com/centrifugal/centrifugo/v6/internal/config"
+	"github.com/centrifugal/centrifugo/v6/internal/tools"
+	"github.com/centrifugal/centrifugo/v6/internal/unigrpc"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/rs/zerolog/log"

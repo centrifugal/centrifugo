@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/centrifugal/centrifugo/internal/config"
-	"github.com/centrifugal/centrifugo/internal/logutils"
+	"github.com/centrifugal/centrifugo/v6/internal/config"
+	"github.com/centrifugal/centrifugo/v6/internal/logutils"
 	"github.com/mattn/go-isatty"
 
 	"github.com/centrifugal/centrifuge"

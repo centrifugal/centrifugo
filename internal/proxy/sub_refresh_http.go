@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/centrifugal/centrifugo/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/v6/internal/proxyproto"
 )
 
 // SubRefreshRequestHTTP ...

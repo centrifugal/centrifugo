@@ -3,8 +3,8 @@ package unigrpc
 import (
 	"time"
 
-	"github.com/centrifugal/centrifugo/internal/logging"
-	"github.com/centrifugal/centrifugo/internal/unigrpc/unistream"
+	"github.com/centrifugal/centrifugo/v6/internal/logging"
+	"github.com/centrifugal/centrifugo/v6/internal/unigrpc/unistream"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/rs/zerolog/log"

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/centrifugal/centrifugo/internal/config"
-	"github.com/centrifugal/centrifugo/internal/confighelpers"
-	"github.com/centrifugal/centrifugo/internal/jwtverify"
+	"github.com/centrifugal/centrifugo/v6/internal/config"
+	"github.com/centrifugal/centrifugo/v6/internal/confighelpers"
+	"github.com/centrifugal/centrifugo/v6/internal/jwtverify"
 
 	"github.com/cristalhq/jwt/v5"
 	"github.com/spf13/cobra"

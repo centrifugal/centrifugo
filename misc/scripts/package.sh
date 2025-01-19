@@ -106,7 +106,7 @@ do_build() {
         echo "STATS_TOKEN found"
     fi
 
-    CGO_ENABLED=0 GOOS="linux" GOARCH="amd64" go build -ldflags="-X github.com/centrifugal/centrifugo/internal/build.Version=$VERSION -X github.com/centrifugal/centrifugo/internal/build.UsageStatsEndpoint=$STATS_ENDPOINT -X github.com/centrifugal/centrifugo/internal/build.UsageStatsToken=$STATS_TOKEN" -o "$TMP_BINARIES_DIR/centrifugo"
+    CGO_ENABLED=0 GOOS="linux" GOARCH="amd64" go build -ldflags="-X github.com/centrifugal/centrifugo/v6/internal/build.Version=$VERSION -X github.com/centrifugal/centrifugo/v6/internal/build.UsageStatsEndpoint=$STATS_ENDPOINT -X github.com/centrifugal/centrifugo/v6/internal/build.UsageStatsToken=$STATS_TOKEN" -o "$TMP_BINARIES_DIR/centrifugo"
     echo "Binary build completed successfully"
     "$TMP_BINARIES_DIR"/centrifugo version
 }

@@ -16,10 +16,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/internal/build"
-	"github.com/centrifugal/centrifugo/internal/config"
-	"github.com/centrifugal/centrifugo/internal/configtypes"
-	"github.com/centrifugal/centrifugo/internal/consuming"
+	"github.com/centrifugal/centrifugo/v6/internal/build"
+	"github.com/centrifugal/centrifugo/v6/internal/config"
+	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/consuming"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/rs/zerolog/log"

@@ -3,10 +3,10 @@ package app
 import (
 	"fmt"
 
-	"github.com/centrifugal/centrifugo/internal/config"
-	"github.com/centrifugal/centrifugo/internal/confighelpers"
-	"github.com/centrifugal/centrifugo/internal/natsbroker"
-	"github.com/centrifugal/centrifugo/internal/redisnatsbroker"
+	"github.com/centrifugal/centrifugo/v6/internal/config"
+	"github.com/centrifugal/centrifugo/v6/internal/confighelpers"
+	"github.com/centrifugal/centrifugo/v6/internal/natsbroker"
+	"github.com/centrifugal/centrifugo/v6/internal/redisnatsbroker"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/rs/zerolog/log"

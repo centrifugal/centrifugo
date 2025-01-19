@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/centrifugal/centrifugo/internal/api"
-	"github.com/centrifugal/centrifugo/internal/configtypes"
-	"github.com/centrifugal/centrifugo/internal/middleware"
-	"github.com/centrifugal/centrifugo/internal/reverseproxy"
-	"github.com/centrifugal/centrifugo/internal/tools"
-	"github.com/centrifugal/centrifugo/internal/webui"
+	"github.com/centrifugal/centrifugo/v6/internal/api"
+	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/middleware"
+	"github.com/centrifugal/centrifugo/v6/internal/reverseproxy"
+	"github.com/centrifugal/centrifugo/v6/internal/tools"
+	"github.com/centrifugal/centrifugo/v6/internal/webui"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/gorilla/securecookie"

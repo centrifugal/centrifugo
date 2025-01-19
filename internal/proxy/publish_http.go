@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/centrifugal/centrifugo/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/v6/internal/proxyproto"
 )
 
 // PublishRequestHTTP ...

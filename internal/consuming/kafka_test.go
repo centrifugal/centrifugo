@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 
-	"github.com/centrifugal/centrifugo/internal/apiproto"
+	"github.com/centrifugal/centrifugo/v6/internal/apiproto"
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
