@@ -98,6 +98,10 @@ func Run(cmd *cobra.Command, configFile string) {
 	}
 	entry.Msg("starting Centrifugo")
 
+	if build.Version == "0.0.0" {
+		log.Warn().Msg("running a development build of Centrifugo (version 0.0.0), ensure to use release build in production")
+	}
+
 	err = cfg.Validate()
 	if err != nil {
 		log.Fatal().Err(err).Msg("error validating config")
