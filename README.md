@@ -31,6 +31,7 @@ The hard part is to make this concept production-ready, efficient, flexible and 
 * Efficient real-time transports: WebSocket, HTTP-streaming, Server-Sent Events (SSE), GRPC, WebTransport
 * Built-in scalability with Redis (or Redis Cluster, or Redis-compatible storage – ex. AWS Elasticache, KeyDB, DragonflyDB, etc), or Nats.
 * Simple HTTP and GRPC server API to communicate with Centrifugo from the app backend
+* Asynchronous PostgreSQL and Kafka consumers to support transactional outbox and CDC patterns
 * Flexible connection authentication mechanisms: JWT and proxy-like
 * Channel subscription multiplexing over a single connection
 * Different types of subscriptions: client-side and server-side
