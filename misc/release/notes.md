@@ -6,15 +6,18 @@ Several official client SDKs for browser and mobile development wrap the bidirec
 
 For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
-## Centrifugo v6 released 💻✨🔮✨💻
-
-We are excited to announce Centrifugo v6 – a new major release that is now live. This release includes fundamental improvements in the configuration to simplify working with Centrifugo from both user and core development perspectives. It also adds several useful features and enhances observability for both Centrifugo OSS and Centrifugo PRO.
+## What's changed
 
 ### Improvements
 
-See the details in the [Centrifugo v6 release blog post](https://centrifugal.dev/blog/2025/01/16/centrifugo-v6-released)
+* Add development build warning in logs [#934](https://github.com/centrifugal/centrifugo/pull/934). On start, if Centrifugo is built from source without proper version attached (which is done in CI upon release workflow), the warning is now shown in logs.
+
+### Fixes
+
+* Fix not using redis prefix for Redis stream support check [centrifugal/centrifuge#456](https://github.com/centrifugal/centrifuge/pull/456). Addresses issue with Redis ACL, see [#935](https://github.com/centrifugal/centrifugo/issues/935).
 
 ### Miscellaneous
 
-* This release is built with Go 1.23.4.
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.0.0).
+* Centrifugo v6 has been recently released 💻✨🔮✨💻. See the details in the [Centrifugo v6 release blog post](https://centrifugal.dev/blog/2025/01/16/centrifugo-v6-released).
+* This release is built with Go 1.23.5.
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.0.2).
