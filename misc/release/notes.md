@@ -16,6 +16,7 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 * Fix not using redis prefix for Redis stream support check [centrifugal/centrifuge#456](https://github.com/centrifugal/centrifuge/pull/456). Addresses issue with Redis ACL, see [#935](https://github.com/centrifugal/centrifugo/issues/935).
 * Only non-empty tokens will be redacted in info logs now, which allows to distinguish the case when token was not sent at all, [centrifugal/centrifuge#455](https://github.com/centrifugal/centrifuge/pull/455)
+* Redact header values upon writing info logs with connect command since they can contain sensitive values, [centrifugal/centrifuge#458](https://github.com/centrifugal/centrifuge/pull/458)
 
 ### Miscellaneous
 
