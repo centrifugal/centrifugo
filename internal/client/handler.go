@@ -384,6 +384,7 @@ func (h *Handler) OnClientConnecting(
 			RecoveryMode:      chOpts.GetRecoveryMode(),
 			Source:            subsource.UserPersonal,
 			HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
+			AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
 		}
 	}
 
@@ -436,6 +437,7 @@ func (h *Handler) OnClientConnecting(
 						RecoveryMode:      chOpts.GetRecoveryMode(),
 						Source:            subsource.UniConnect,
 						HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
+						AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
 					}
 				}
 			} else {

@@ -154,6 +154,7 @@ func (h *ConnectHandler) Handle() ConnectingHandlerFunc {
 					RecoveryMode:      chOpts.GetRecoveryMode(),
 					Source:            subsource.ConnectProxy,
 					HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
+					AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
 				}
 			}
 		}
@@ -222,6 +223,7 @@ func (h *ConnectHandler) Handle() ConnectingHandlerFunc {
 					Data:              chData,
 					Source:            subsource.ConnectProxy,
 					HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
+					AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
 				}
 			}
 		}

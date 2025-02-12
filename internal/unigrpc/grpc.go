@@ -7,6 +7,7 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/unigrpc/unistream"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/centrifugal/protocol"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 )
@@ -37,16 +38,17 @@ func (s *Service) Consume(req *unistream.ConnectRequest, stream unistream.Centri
 	streamDataCh := make(chan rawFrame)
 	transport := newGRPCTransport(stream, streamDataCh)
 
-	connectRequest := centrifuge.ConnectRequest{
+	connectRequest := &protocol.ConnectRequest{
 		Token:   req.Token,
 		Data:    req.Data,
 		Name:    req.Name,
 		Version: req.Version,
+		Headers: req.Headers,
 	}
 	if req.Subs != nil {
-		subs := make(map[string]centrifuge.SubscribeRequest, len(req.Subs))
+		subs := make(map[string]*protocol.SubscribeRequest, len(req.Subs))
 		for k, v := range req.Subs {
-			subs[k] = centrifuge.SubscribeRequest{
+			subs[k] = &protocol.SubscribeRequest{
 				Recover: v.Recover,
 				Offset:  v.Offset,
 				Epoch:   v.Epoch,
@@ -64,11 +66,12 @@ func (s *Service) Consume(req *unistream.ConnectRequest, stream unistream.Centri
 	if logging.Enabled(logging.DebugLevel) {
 		log.Debug().Str("transport", transport.Name()).Str("client", c.ID()).Msg("client connection established")
 		defer func(started time.Time) {
-			log.Debug().Str("transport", transport.Name()).Str("client", c.ID()).Str("duration", time.Since(started).String()).Msg("client connection completed")
+			log.Debug().Str("transport", transport.Name()).Str("client", c.ID()).
+				Str("duration", time.Since(started).String()).Msg("client connection completed")
 		}(time.Now())
 	}
 
-	c.Connect(connectRequest)
+	c.ProtocolConnect(connectRequest)
 
 	for {
 		select {

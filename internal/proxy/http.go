@@ -11,8 +11,12 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/centrifugal/centrifugo/v6/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/middleware"
 	"github.com/centrifugal/centrifugo/v6/internal/proxyproto"
+
+	"google.golang.org/grpc/metadata"
 )
 
 type baseRequestHTTP struct {
@@ -92,28 +96,6 @@ func (c *httpCaller) CallHTTP(ctx context.Context, endpoint string, header http.
 	return respData, nil
 }
 
-func getProxyHeader(allHeader http.Header, allowedHeaders []string, staticHeaders map[string]string, emulatedHeaders map[string]string) http.Header {
-	proxyHeader := http.Header{}
-	for k, v := range staticHeaders {
-		proxyHeader.Set(k, v)
-	}
-	for k, v := range emulatedHeaders {
-		proxyHeader.Set(k, v)
-	}
-	copyHeader(proxyHeader, allHeader, allowedHeaders)
-	proxyHeader.Set("Content-Type", "application/json")
-	return proxyHeader
-}
-
-func copyHeader(dst, src http.Header, extraHeaders []string) {
-	for k, vv := range src {
-		if !slices.Contains(extraHeaders, strings.ToLower(k)) {
-			continue
-		}
-		dst[k] = vv
-	}
-}
-
 func transformHTTPStatusError(err error, transforms []configtypes.HttpStatusToCodeTransform) (*proxyproto.Error, *proxyproto.Disconnect) {
 	if len(transforms) == 0 {
 		return nil, nil
@@ -140,4 +122,43 @@ func transformHTTPStatusError(err error, transforms []configtypes.HttpStatusToCo
 		}
 	}
 	return nil, nil
+}
+
+func httpRequestHeaders(ctx context.Context, proxy Config) http.Header {
+	return requestHeaders(ctx, proxy.HttpHeaders, proxy.GrpcMetadata, proxy.HTTP.StaticHeaders)
+}
+
+func requestHeaders(ctx context.Context, allowedHeaders, allowedMetaKeys []string, staticHeaders map[string]string) http.Header {
+	headers := http.Header{}
+
+	emulatedHeaders, _ := clientcontext.GetEmulatedHeadersFromContext(ctx)
+	for k, v := range emulatedHeaders {
+		if slices.Contains(allowedHeaders, strings.ToLower(k)) {
+			headers.Set(k, v)
+		}
+	}
+
+	httpHeaders, hasHTTPHeaders := middleware.GetHeadersFromContext(ctx)
+	for k, vv := range httpHeaders {
+		if slices.Contains(allowedHeaders, strings.ToLower(k)) {
+			headers[k] = vv
+		}
+	}
+
+	if !hasHTTPHeaders {
+		md, _ := metadata.FromIncomingContext(ctx)
+		for k, vv := range md {
+			if slices.Contains(allowedMetaKeys, k) {
+				headers[k] = vv
+			}
+		}
+	}
+
+	for k, v := range staticHeaders {
+		headers.Set(k, v)
+	}
+
+	headers.Set("Content-Type", "application/json")
+
+	return headers
 }

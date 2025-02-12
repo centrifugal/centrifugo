@@ -542,6 +542,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 				Data:              data,
 				Source:            subsource.ConnectionToken,
 				HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
+				AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
 			}
 		}
 	} else if len(claims.Channels) > 0 {
@@ -562,6 +563,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 				RecoveryMode:      chOpts.GetRecoveryMode(),
 				Source:            subsource.ConnectionToken,
 				HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
+				AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
 			}
 		}
 	}
