@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/FZambia/eagle v0.2.0
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
-	github.com/centrifugal/centrifuge v0.34.3-0.20250211212305-cd3ff94bc530
+	github.com/centrifugal/centrifuge v0.34.3-0.20250214060629-37f569996fc0
 	github.com/centrifugal/protocol v0.16.0
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.2.1
