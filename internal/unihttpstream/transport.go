@@ -10,7 +10,7 @@ import (
 type streamTransport struct {
 	mu             sync.Mutex
 	req            *http.Request
-	messages       chan []byte
+	messages       chan [][]byte
 	disconnectCh   chan *centrifuge.Disconnect
 	closedCh       chan struct{}
 	closed         bool
@@ -19,7 +19,7 @@ type streamTransport struct {
 
 func newStreamTransport(req *http.Request, pingPongConfig centrifuge.PingPongConfig) *streamTransport {
 	return &streamTransport{
-		messages:       make(chan []byte),
+		messages:       make(chan [][]byte),
 		disconnectCh:   make(chan *centrifuge.Disconnect),
 		closedCh:       make(chan struct{}),
 		req:            req,
@@ -72,12 +72,10 @@ func (t *streamTransport) WriteMany(messages ...[]byte) error {
 	if t.closed {
 		return nil
 	}
-	for i := 0; i < len(messages); i++ {
-		select {
-		case t.messages <- messages[i]:
-		case <-t.closedCh:
-			return nil
-		}
+	select {
+	case t.messages <- messages:
+	case <-t.closedCh:
+		return nil
 	}
 	return nil
 }

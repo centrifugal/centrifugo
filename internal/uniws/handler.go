@@ -117,6 +117,7 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			writeTimeout:       writeTimeout,
 			compressionMinSize: compressionMinSize,
 			pingPongConfig:     s.pingPong,
+			joinMessages:       s.config.JoinPushMessages,
 		}
 
 		graceCh := make(chan struct{})
@@ -142,7 +143,8 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		if logging.Enabled(logging.DebugLevel) {
 			log.Debug().Str("transport", transportName).Str("client", c.ID()).Msg("client connection established")
 			defer func(started time.Time) {
-				log.Debug().Str("transport", transportName).Str("client", c.ID()).Str("duration", time.Since(started).String()).Msg("client connection completed")
+				log.Debug().Str("transport", transportName).Str("client", c.ID()).
+					Str("duration", time.Since(started).String()).Msg("client connection completed")
 			}(time.Now())
 		}
 

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/centrifugal/protocol"
 	"github.com/gorilla/websocket"
 )
 
@@ -14,11 +15,11 @@ type websocketTransport struct {
 	mu        sync.RWMutex
 	writeMu   sync.Mutex // sync general write with unidirectional ping write.
 	conn      *websocket.Conn
-	closed    bool
 	closeCh   chan struct{}
 	graceCh   chan struct{}
 	opts      websocketTransportOptions
 	pingTimer *time.Timer
+	closed    bool
 }
 
 type websocketTransportOptions struct {
@@ -26,6 +27,7 @@ type websocketTransportOptions struct {
 	writeTimeout       time.Duration
 	compressionMinSize int
 	pingPongConfig     centrifuge.PingPongConfig
+	joinMessages       bool
 }
 
 func newWebsocketTransport(conn *websocket.Conn, opts websocketTransportOptions, graceCh chan struct{}) *websocketTransport {
@@ -129,6 +131,19 @@ func (t *websocketTransport) writeData(data []byte) error {
 	return nil
 }
 
+func (t *websocketTransport) writeMany(messages ...[]byte) error {
+	protoType := protocol.TypeJSON
+	if t.Protocol() == centrifuge.ProtocolTypeProtobuf {
+		protoType = protocol.TypeProtobuf
+	}
+	encoder := protocol.GetDataEncoder(protoType)
+	defer protocol.PutDataEncoder(protoType, encoder)
+	for i := range messages {
+		_ = encoder.Encode(messages[i])
+	}
+	return t.writeData(encoder.Finish())
+}
+
 // Write data to transport.
 func (t *websocketTransport) Write(message []byte) error {
 	return t.WriteMany(message)
@@ -140,10 +155,22 @@ func (t *websocketTransport) WriteMany(messages ...[]byte) error {
 	case <-t.closeCh:
 		return nil
 	default:
-		for i := 0; i < len(messages); i++ {
-			err := t.writeData(messages[i])
+		var err error
+		if t.opts.joinMessages {
+			if len(messages) == 1 && t.Protocol() == centrifuge.ProtocolTypeJSON {
+				// Fast path for one JSON message.
+				return t.writeData(messages[0])
+			}
+			err = t.writeMany(messages...)
 			if err != nil {
 				return err
+			}
+		} else {
+			for i := 0; i < len(messages); i++ {
+				err = t.writeData(messages[i])
+				if err != nil {
+					return err
+				}
 			}
 		}
 		return nil

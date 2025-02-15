@@ -1,17 +1,18 @@
 package unisse
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/convert"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
 	"github.com/centrifugal/centrifugo/v6/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
 	"github.com/rs/zerolog/log"
+	"github.com/segmentio/encoding/json"
 )
 
 type Handler struct {
@@ -35,11 +36,17 @@ const connectUrlParam = "cf_connect"
 const streamWriteTimeout = time.Second
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	_, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "expected http.ResponseWriter to be http.Flusher", http.StatusInternalServerError)
+		return
+	}
+
 	var req *protocol.ConnectRequest
 	if r.Method == http.MethodGet {
 		connectRequestString := r.URL.Query().Get(connectUrlParam)
 		if connectRequestString != "" {
-			err := json.Unmarshal([]byte(connectRequestString), &req)
+			_, err := json.Parse([]byte(connectRequestString), &req, json.ZeroCopy)
 			if err != nil {
 				log.Info().Err(err).Str("transport", transportName).Msg("error unmarshalling connect request")
 				return
@@ -59,11 +66,12 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		err = json.Unmarshal(connectRequestData, &req)
+		_, err = json.Parse(connectRequestData, &req, json.ZeroCopy)
 		if err != nil {
 			if logging.Enabled(logging.DebugLevel) {
 				log.Debug().Err(err).Str("transport", transportName).Msg("malformed connect request")
 			}
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 	} else {
@@ -83,30 +91,13 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if logging.Enabled(logging.DebugLevel) {
 		log.Debug().Str("transport", transportName).Str("client", c.ID()).Msg("client connection established")
 		defer func(started time.Time) {
-			log.Debug().Str("transport", transportName).Str("client", c.ID()).Str("duration", time.Since(started).String()).Msg("client connection completed")
+			log.Debug().Str("transport", transportName).Str("client", c.ID()).
+				Str("duration", time.Since(started).String()).Msg("client connection completed")
 		}(time.Now())
 	}
 
-	connectRequest := centrifuge.ConnectRequest{
-		Token:   req.Token,
-		Data:    req.Data,
-		Name:    req.Name,
-		Version: req.Version,
-	}
-	if req.Subs != nil {
-		subs := make(map[string]centrifuge.SubscribeRequest, len(req.Subs))
-		for k, v := range req.Subs {
-			subs[k] = centrifuge.SubscribeRequest{
-				Recover: v.Recover,
-				Offset:  v.Offset,
-				Epoch:   v.Epoch,
-			}
-		}
-		connectRequest.Subs = subs
-	}
-
 	if h.config.ConnectCodeToHTTPResponse.Enabled {
-		err = c.ConnectNoErrorToDisconnect(connectRequest)
+		err = c.ProtocolConnectNoErrorToDisconnect(req)
 		if err != nil {
 			resp, ok := tools.ConnectErrorToToHTTPResponse(err, h.config.ConnectCodeToHTTPResponse.Transforms)
 			if ok {
@@ -119,7 +110,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		c.Connect(connectRequest)
+		c.ProtocolConnect(req)
 	}
 
 	if r.ProtoMajor == 1 {
@@ -133,11 +124,6 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expire", "0")
 	w.WriteHeader(http.StatusOK)
-
-	_, ok := w.(http.Flusher)
-	if !ok {
-		return
-	}
 
 	rc := http.NewResponseController(w)
 	_ = rc.SetWriteDeadline(time.Now().Add(streamWriteTimeout))
@@ -153,16 +139,19 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		case <-transport.disconnectCh:
 			return
-		case data, ok := <-transport.messages:
-			if !ok {
+		case messages, messagesOK := <-transport.messages:
+			if !messagesOK {
 				return
 			}
 			_ = rc.SetWriteDeadline(time.Now().Add(streamWriteTimeout))
-			_, err = w.Write([]byte("data: " + string(data) + "\n\n"))
-			if err != nil {
-				return
+			for _, msg := range messages {
+				_, err = w.Write(convert.StringToBytes("data: " + convert.BytesToString(msg) + "\n\n"))
+				if err != nil {
+					return
+				}
 			}
 			_ = rc.Flush()
+			_ = rc.SetWriteDeadline(time.Time{})
 		}
 	}
 }

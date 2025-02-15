@@ -3,7 +3,6 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"net/url"
 	"slices"
 	"strings"
@@ -83,55 +82,31 @@ func grpcRequestContext(ctx context.Context, proxy Config) context.Context {
 	return metadata.NewOutgoingContext(ctx, md)
 }
 
-func httpRequestHeaders(ctx context.Context, proxy Config) http.Header {
-	return requestHeaders(ctx, proxy.HttpHeaders, proxy.GrpcMetadata, proxy.HTTP.StaticHeaders)
-}
-
 func requestMetadata(ctx context.Context, allowedHeaders []string, allowedMetaKeys []string) metadata.MD {
 	requestMD := metadata.MD{}
+
 	emulatedHeaders, _ := clientcontext.GetEmulatedHeadersFromContext(ctx)
 	for k, v := range emulatedHeaders {
 		if slices.Contains(allowedHeaders, strings.ToLower(k)) {
 			requestMD.Set(k, v)
 		}
 	}
-	if headers, ok := middleware.GetHeadersFromContext(ctx); ok {
-		for k, vv := range headers {
-			if slices.Contains(allowedHeaders, strings.ToLower(k)) {
-				requestMD.Set(k, vv...)
+
+	httpHeaders, hasHTTPHeaders := middleware.GetHeadersFromContext(ctx)
+	for k, vv := range httpHeaders {
+		if slices.Contains(allowedHeaders, strings.ToLower(k)) {
+			requestMD.Set(k, vv...)
+		}
+	}
+
+	if !hasHTTPHeaders {
+		md, _ := metadata.FromIncomingContext(ctx)
+		for k, vv := range md {
+			if slices.Contains(allowedMetaKeys, k) {
+				requestMD[k] = vv
 			}
 		}
-		return requestMD
 	}
-	md, _ := metadata.FromIncomingContext(ctx)
-	for k, vv := range md {
-		if slices.Contains(allowedMetaKeys, k) {
-			requestMD[k] = vv
-		}
-	}
-	return requestMD
-}
 
-func requestHeaders(ctx context.Context, allowedHeaders []string, allowedMetaKeys []string, staticHeaders map[string]string) http.Header {
-	emulatedHeaders, _ := clientcontext.GetEmulatedHeadersFromContext(ctx)
-	if headers, ok := middleware.GetHeadersFromContext(ctx); ok {
-		return getProxyHeader(headers, allowedHeaders, staticHeaders, emulatedHeaders)
-	}
-	headers := http.Header{}
-	for k, v := range staticHeaders {
-		headers.Set(k, v)
-	}
-	for k, v := range emulatedHeaders {
-		if slices.Contains(allowedHeaders, strings.ToLower(k)) {
-			headers.Set(k, v)
-		}
-	}
-	headers.Set("Content-Type", "application/json")
-	md, _ := metadata.FromIncomingContext(ctx)
-	for k, vv := range md {
-		if slices.Contains(allowedMetaKeys, k) {
-			headers[k] = vv
-		}
-	}
-	return headers
+	return requestMD
 }

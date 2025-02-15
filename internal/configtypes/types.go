@@ -112,6 +112,13 @@ type UniWebSocket struct {
 	WriteBufferSize    int      `mapstructure:"write_buffer_size" json:"write_buffer_size" envconfig:"write_buffer_size" yaml:"write_buffer_size" toml:"write_buffer_size"`
 	WriteTimeout       Duration `mapstructure:"write_timeout" json:"write_timeout" envconfig:"write_timeout" default:"1000ms" yaml:"write_timeout" toml:"write_timeout"`
 	MessageSizeLimit   int      `mapstructure:"message_size_limit" json:"message_size_limit" envconfig:"message_size_limit" default:"65536" yaml:"message_size_limit" toml:"message_size_limit"`
+
+	// JoinPushMessages when enabled allow uni_websocket transport to join messages together into
+	// one frame using Centrifugal client protocol delimiters: new line for JSON protocol and
+	// length-prefixed format for Protobuf protocol. This can be useful to reduce system call
+	// overhead when sending many small messages. The client side must be ready to handle such
+	// joined messages coming in one WebSocket frame.
+	JoinPushMessages bool `mapstructure:"join_push_messages" json:"join_push_messages" envconfig:"join_push_messages" yaml:"join_push_messages" toml:"join_push_messages"`
 }
 
 // UniHTTPStream client real-time transport configuration.
