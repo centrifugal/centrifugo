@@ -35,14 +35,7 @@ func (p *HTTPRPCProxy) ProxyRPC(ctx context.Context, req *proxyproto.RPCRequest)
 	}
 	respData, err := p.httpCaller.CallHTTP(ctx, p.config.Endpoint, httpRequestHeaders(ctx, p.config), data)
 	if err != nil {
-		protocolError, protocolDisconnect := transformHTTPStatusError(err, p.config.HTTP.StatusToCodeTransforms)
-		if protocolError != nil || protocolDisconnect != nil {
-			return &proxyproto.RPCResponse{
-				Error:      protocolError,
-				Disconnect: protocolDisconnect,
-			}, nil
-		}
-		return nil, err
+		return transformRPCResponse(err, p.config.HTTP.StatusToCodeTransforms)
 	}
 	return httpDecoder.DecodeRPCResponse(respData)
 }

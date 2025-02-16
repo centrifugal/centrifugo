@@ -49,14 +49,7 @@ func (p *HTTPConnectProxy) ProxyConnect(ctx context.Context, req *proxyproto.Con
 	}
 	respData, err := p.httpCaller.CallHTTP(ctx, p.config.Endpoint, httpRequestHeaders(ctx, p.config), data)
 	if err != nil {
-		protocolError, protocolDisconnect := transformHTTPStatusError(err, p.config.HTTP.StatusToCodeTransforms)
-		if protocolError != nil || protocolDisconnect != nil {
-			return &proxyproto.ConnectResponse{
-				Error:      protocolError,
-				Disconnect: protocolDisconnect,
-			}, nil
-		}
-		return nil, err
+		return transformConnectResponse(err, p.config.HTTP.StatusToCodeTransforms)
 	}
 	return httpDecoder.DecodeConnectResponse(respData)
 }
