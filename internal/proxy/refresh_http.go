@@ -42,14 +42,7 @@ func (p *HTTPRefreshProxy) ProxyRefresh(ctx context.Context, req *proxyproto.Ref
 	}
 	respData, err := p.httpCaller.CallHTTP(ctx, p.config.Endpoint, httpRequestHeaders(ctx, p.config), data)
 	if err != nil {
-		return nil, err
-	}
-	protocolError, protocolDisconnect := transformHTTPStatusError(err, p.config.HTTP.StatusToCodeTransforms)
-	if protocolError != nil || protocolDisconnect != nil {
-		return &proxyproto.RefreshResponse{
-			Error:      protocolError,
-			Disconnect: protocolDisconnect,
-		}, nil
+		return transformRefreshResponse(err, p.config.HTTP.StatusToCodeTransforms)
 	}
 	return httpDecoder.DecodeRefreshResponse(respData)
 }
