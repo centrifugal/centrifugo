@@ -36,10 +36,10 @@ func NewSubscribeStreamProxy(name string, p Config) (*SubscribeStreamProxy, erro
 
 // SubscribeUnidirectional ...
 func (p *SubscribeStreamProxy) SubscribeUnidirectional(ctx context.Context, req *proxyproto.SubscribeRequest) (proxyproto.CentrifugoProxy_SubscribeUnidirectionalClient, error) {
-	return p.client.SubscribeUnidirectional(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
+	return p.client.SubscribeUnidirectional(grpcRequestContext(ctx, p.config), req)
 }
 
 // SubscribeBidirectional ...
 func (p *SubscribeStreamProxy) SubscribeBidirectional(ctx context.Context) (proxyproto.CentrifugoProxy_SubscribeBidirectionalClient, error) {
-	return p.client.SubscribeBidirectional(grpcRequestContext(ctx, p.config), grpc.ForceCodec(grpcCodec))
+	return p.client.SubscribeBidirectional(grpcRequestContext(ctx, p.config))
 }

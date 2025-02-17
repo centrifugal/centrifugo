@@ -41,7 +41,7 @@ func NewGRPCRefreshProxy(name string, p Config) (*GRPCRefreshProxy, error) {
 func (p *GRPCRefreshProxy) ProxyRefresh(ctx context.Context, req *proxyproto.RefreshRequest) (*proxyproto.RefreshResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, p.config.Timeout.ToDuration())
 	defer cancel()
-	return p.client.Refresh(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
+	return p.client.Refresh(grpcRequestContext(ctx, p.config), req)
 }
 
 // Name ...
