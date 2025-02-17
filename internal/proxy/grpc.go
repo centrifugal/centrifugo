@@ -9,7 +9,6 @@ import (
 
 	"github.com/centrifugal/centrifugo/v6/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v6/internal/middleware"
-	"github.com/centrifugal/centrifugo/v6/internal/proxyproto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -17,8 +16,6 @@ import (
 	"google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/metadata"
 )
-
-var grpcCodec = proxyproto.Codec{}
 
 type rpcCredentials struct {
 	key   string

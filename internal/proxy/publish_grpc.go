@@ -41,7 +41,7 @@ func NewGRPCPublishProxy(name string, p Config) (*GRPCPublishProxy, error) {
 func (p *GRPCPublishProxy) ProxyPublish(ctx context.Context, req *proxyproto.PublishRequest) (*proxyproto.PublishResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, p.config.Timeout.ToDuration())
 	defer cancel()
-	return p.client.Publish(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
+	return p.client.Publish(grpcRequestContext(ctx, p.config), req)
 }
 
 // Protocol ...

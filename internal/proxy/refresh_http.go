@@ -7,13 +7,6 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/proxyproto"
 )
 
-// RefreshRequestHTTP ...
-type RefreshRequestHTTP struct {
-	baseRequestHTTP
-
-	UserID string `json:"user"`
-}
-
 // HTTPRefreshProxy ...
 type HTTPRefreshProxy struct {
 	config     Config

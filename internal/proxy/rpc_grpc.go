@@ -41,7 +41,7 @@ func NewGRPCRPCProxy(name string, p Config) (*GRPCRPCProxy, error) {
 func (p *GRPCRPCProxy) ProxyRPC(ctx context.Context, req *proxyproto.RPCRequest) (*proxyproto.RPCResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, p.config.Timeout.ToDuration())
 	defer cancel()
-	return p.client.RPC(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(grpcCodec))
+	return p.client.RPC(grpcRequestContext(ctx, p.config), req)
 }
 
 // Protocol ...

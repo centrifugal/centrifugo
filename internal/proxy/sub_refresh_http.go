@@ -7,14 +7,6 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/proxyproto"
 )
 
-// SubRefreshRequestHTTP ...
-type SubRefreshRequestHTTP struct {
-	baseRequestHTTP
-
-	UserID  string `json:"user"`
-	Channel string `json:"channel"`
-}
-
 // HTTPSubRefreshProxy ...
 type HTTPSubRefreshProxy struct {
 	config     Config
