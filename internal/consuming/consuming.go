@@ -29,21 +29,20 @@ func New(nodeID string, dispatcher Dispatcher, configs []ConsumerConfig) ([]serv
 			log.Info().Str("consumer_name", config.Name).Str("consumer_type", config.Type).Msg("consumer is not enabled, skip")
 			continue
 		}
-		if config.Type == configtypes.ConsumerTypePostgres {
+		switch config.Type {
+		case configtypes.ConsumerTypePostgres:
 			consumer, err := NewPostgresConsumer(config.Name, dispatcher, config.Postgres, metrics)
 			if err != nil {
 				return nil, fmt.Errorf("error initializing PostgreSQL consumer (%s): %w", config.Name, err)
 			}
-			log.Info().Str("consumer_name", config.Name).Msg("running consumer")
 			services = append(services, consumer)
-		} else if config.Type == configtypes.ConsumerTypeKafka {
+		case configtypes.ConsumerTypeKafka:
 			consumer, err := NewKafkaConsumer(config.Name, nodeID, dispatcher, config.Kafka, metrics)
 			if err != nil {
 				return nil, fmt.Errorf("error initializing Kafka consumer (%s): %w", config.Name, err)
 			}
-			log.Info().Str("consumer_name", config.Name).Msg("running consumer")
 			services = append(services, consumer)
-		} else {
+		default:
 			return nil, fmt.Errorf("unknown consumer type: %s", config.Type)
 		}
 		log.Info().Str("consumer_name", config.Name).Str("consumer_type", config.Type).Msg("running consumer")

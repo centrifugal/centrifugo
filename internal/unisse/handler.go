@@ -46,7 +46,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		connectRequestString := r.URL.Query().Get(connectUrlParam)
 		if connectRequestString != "" {
-			_, err := json.Parse([]byte(connectRequestString), &req, json.ZeroCopy)
+			_, err := json.Parse(convert.StringToBytes(connectRequestString), &req, json.ZeroCopy)
 			if err != nil {
 				log.Info().Err(err).Str("transport", transportName).Msg("error unmarshalling connect request")
 				return

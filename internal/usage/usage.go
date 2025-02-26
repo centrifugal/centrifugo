@@ -105,12 +105,8 @@ type Features struct {
 	Admin bool
 	// Uses automatic personal channel subscribe.
 	SubscribeToPersonal bool
-
-	// PRO features.
-	ClickhouseAnalytics bool
-	UserStatus          bool
-	Throttling          bool
-	Singleflight        bool
+	// Uses Swagger
+	Swagger bool
 }
 
 // NewSender creates usage stats sender.
@@ -424,17 +420,8 @@ func (s *Sender) prepareMetrics() ([]*metric, error) {
 	if s.features.Admin {
 		metrics = append(metrics, createPoint("features_enabled.admin_ui"))
 	}
-	if s.features.ClickhouseAnalytics {
-		metrics = append(metrics, createPoint("features_enabled.clickhouse_analytics"))
-	}
-	if s.features.UserStatus {
-		metrics = append(metrics, createPoint("features_enabled.user_status"))
-	}
-	if s.features.Throttling {
-		metrics = append(metrics, createPoint("features_enabled.throttling"))
-	}
-	if s.features.Singleflight {
-		metrics = append(metrics, createPoint("features_enabled.singleflight"))
+	if s.features.Swagger {
+		metrics = append(metrics, createPoint("features_enabled.swagger"))
 	}
 
 	var usesHistory bool

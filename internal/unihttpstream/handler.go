@@ -32,7 +32,13 @@ const streamWriteTimeout = time.Second
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Access-Control-Max-Age", "300")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 	_, ok := w.(http.Flusher)
@@ -41,28 +47,24 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req *protocol.ConnectRequest
-	if r.Method == http.MethodPost {
-		maxBytesSize := int64(h.config.MaxRequestBodySize)
-		r.Body = http.MaxBytesReader(w, r.Body, maxBytesSize)
-		connectRequestData, err := io.ReadAll(r.Body)
-		if err != nil {
-			log.Info().Err(err).Str("transport", transportName).Msg("error reading uni http stream request body")
-			if len(connectRequestData) >= int(maxBytesSize) {
-				w.WriteHeader(http.StatusRequestEntityTooLarge)
-				return
-			}
+
+	maxBytesSize := int64(h.config.MaxRequestBodySize)
+	r.Body = http.MaxBytesReader(w, r.Body, maxBytesSize)
+	connectRequestData, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Info().Err(err).Str("transport", transportName).Msg("error reading uni http stream request body")
+		if len(connectRequestData) >= int(maxBytesSize) {
+			w.WriteHeader(http.StatusRequestEntityTooLarge)
 			return
 		}
-		_, err = json.Parse(connectRequestData, &req, json.ZeroCopy)
-		if err != nil {
-			if logging.Enabled(logging.DebugLevel) {
-				log.Debug().Err(err).Str("transport", transportName).Msg("malformed connect request")
-			}
-			w.WriteHeader(http.StatusBadRequest)
-			return
+		return
+	}
+	_, err = json.Parse(connectRequestData, &req, json.ZeroCopy)
+	if err != nil {
+		if logging.Enabled(logging.DebugLevel) {
+			log.Debug().Err(err).Str("transport", transportName).Msg("malformed connect request")
 		}
-	} else {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 

@@ -126,7 +126,7 @@ func Mux(
 	}
 
 	if flags&HandlerEmulation != 0 {
-		// register bidirectional SSE connection endpoint.
+		// register bidirectional emulation endpoint.
 		emulationMiddlewares := append([]alice.Constructor{}, commonMiddlewares...)
 		emulationMiddlewares = append(emulationMiddlewares, middleware.NewCORS(getCheckOrigin(cfg)).Middleware)
 		emulationChain := alice.New(emulationMiddlewares...)

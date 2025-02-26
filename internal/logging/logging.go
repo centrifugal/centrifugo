@@ -8,9 +8,9 @@ import (
 
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 	"github.com/centrifugal/centrifugo/v6/internal/logutils"
-	"github.com/mattn/go-isatty"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/mattn/go-isatty"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )

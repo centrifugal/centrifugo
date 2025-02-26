@@ -239,11 +239,7 @@ func Run(cmd *cobra.Command, configFile string) {
 			RPCProxy:             len(proxyMap.RpcProxies) > 0,
 			SubRefreshProxy:      len(proxyMap.SubRefreshProxies) > 0,
 			SubscribeStreamProxy: len(proxyMap.SubscribeStreamProxies) > 0,
-
-			ClickhouseAnalytics: false,
-			UserStatus:          false,
-			Throttling:          false,
-			Singleflight:        false,
+			Swagger:              cfg.Swagger.Enabled,
 		})
 		serviceManager.Register(statsSender)
 	}
