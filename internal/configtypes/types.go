@@ -682,7 +682,6 @@ type KafkaConsumerConfig struct {
 	// PartitionBufferSize is the size of the buffer for each partition consumer.
 	// This is the number of records that can be buffered before the consumer
 	// will pause fetching records from Kafka. By default, this is 16.
-	// Set to -1 to use non-buffered channel.
 	PartitionBufferSize int `mapstructure:"partition_buffer_size" json:"partition_buffer_size" envconfig:"partition_buffer_size" default:"16" yaml:"partition_buffer_size" toml:"partition_buffer_size"`
 
 	// FetchMaxBytes is the maximum number of bytes to fetch from Kafka in a single request.

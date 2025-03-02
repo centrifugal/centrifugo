@@ -486,6 +486,15 @@ func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, r
 		log.Info().Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("no channels found, skip message")
 		return nil
 	}
+	return publishData(ctx, pc.dispatcher, data, idempotencyKey, delta, channels...)
+}
+
+func publishData(
+	ctx context.Context, dispatcher Dispatcher, data []byte, idempotencyKey string, delta bool, channels ...string,
+) error {
+	if len(channels) == 0 {
+		return nil
+	}
 	if len(channels) == 1 {
 		req := &apiproto.PublishRequest{
 			Data:           data,
@@ -493,7 +502,7 @@ func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, r
 			IdempotencyKey: idempotencyKey,
 			Delta:          delta,
 		}
-		return pc.dispatcher.Publish(ctx, req)
+		return dispatcher.Publish(ctx, req)
 	}
 	req := &apiproto.BroadcastRequest{
 		Data:           data,
@@ -501,7 +510,7 @@ func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, r
 		IdempotencyKey: idempotencyKey,
 		Delta:          delta,
 	}
-	return pc.dispatcher.Broadcast(ctx, req)
+	return dispatcher.Broadcast(ctx, req)
 }
 
 func (pc *partitionConsumer) processAPICommandRecord(ctx context.Context, record *kgo.Record) error {

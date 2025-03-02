@@ -62,6 +62,11 @@ func (lrw *statusResponseWriter) Flush() {
 	lrw.ResponseWriter.(http.Flusher).Flush()
 }
 
+// Unwrap is required for http.ResponseController.
+func (lrw *statusResponseWriter) Unwrap() http.ResponseWriter {
+	return lrw.ResponseWriter
+}
+
 // Connection for WebTransport.
 func (lrw *statusResponseWriter) Connection() http3.Connection {
 	return lrw.ResponseWriter.(http3.Hijacker).Connection()
