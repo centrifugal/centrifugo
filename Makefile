@@ -34,9 +34,9 @@ packagecloud-deb:
 	package_cloud push FZambia/centrifugo/debian/bullseye PACKAGES/*.deb
 	package_cloud push FZambia/centrifugo/debian/bookworm PACKAGES/*.deb
 
-	package_cloud push FZambia/centrifugo/ubuntu/bionic PACKAGES/*.deb
 	package_cloud push FZambia/centrifugo/ubuntu/focal PACKAGES/*.deb
 	package_cloud push FZambia/centrifugo/ubuntu/jammy PACKAGES/*.deb
+	package_cloud push FZambia/centrifugo/ubuntu/noble PACKAGES/*.deb
 
 packagecloud-rpm:
 	# PACKAGECLOUD_TOKEN env must be set
