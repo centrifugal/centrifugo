@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/FZambia/eagle v0.2.0
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
-	github.com/centrifugal/centrifuge v0.34.4-0.20250302064007-be760dd8b27d
+	github.com/centrifugal/centrifuge v0.34.4
 	github.com/centrifugal/protocol v0.16.0
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.2.1
@@ -18,10 +18,10 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/justinas/alice v1.2.0
 	github.com/mattn/go-isatty v0.0.20
-	github.com/nats-io/nats.go v1.39.0
+	github.com/nats-io/nats.go v1.39.1
 	github.com/pelletier/go-toml/v2 v2.2.3
-	github.com/prometheus/client_golang v1.20.5
-	github.com/quic-go/quic-go v0.49.0
+	github.com/prometheus/client_golang v1.21.1
+	github.com/quic-go/quic-go v0.50.0
 	github.com/quic-go/webtransport-go v0.8.1-0.20241018022711-4ac2c9250e66
 	github.com/rakutentech/jwk-go v1.2.0
 	github.com/rs/zerolog v1.33.0
@@ -41,10 +41,10 @@ require (
 	go.opentelemetry.io/otel/sdk v1.34.0
 	go.opentelemetry.io/otel/trace v1.34.0
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/crypto v0.33.0
+	golang.org/x/crypto v0.35.0
 	golang.org/x/sync v0.11.0
 	golang.org/x/time v0.10.0
-	google.golang.org/grpc v1.70.0
+	google.golang.org/grpc v1.71.0
 	google.golang.org/protobuf v1.36.5
 )
 
@@ -93,7 +93,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.22.2 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.60.0 // indirect
+	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/redis/rueidis v1.0.53 // indirect
