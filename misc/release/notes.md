@@ -10,22 +10,18 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Added Valkey - https://valkey.io/ - to the Redis engine integration tests suite. This is becoming important as AWS moves Elasticache to Valkey under the hood.
-* Optimizations for unidirectional transports [#941](https://github.com/centrifugal/centrifugo/pull/941)
-    * `uni_sse` – now supports writing many messages to the underlying HTTP connection buffer before `Flush`, thereby inheriting Centrifugo client protocol message batching capabilities. This may result into fewer syscalls => better CPU usage.
-    * `uni_http_stream` – implements the same improvements as `uni_sse`.
-    * `uni_websocket` – new boolean option `uni_websocket.join_push_messages`. Once enabled, it allows joining messages into a single websocket frame. It is a separate option for `uni_websocket` because, in this case, the client side must be prepared to decode the frame into separate messages. The messages follow the Centrifugal client protocol format (for JSON – new-line delimited). Essentially, this mirrors the format used by Centrifugo for the bidirectional websocket.
-    * Reduced allocations during the unidirectional connect stage by eliminating the intermediary `ConnectRequest` object.
-* Optimizations for bidirectional emulation:
-    * The `http_stream` and `sse` transports used in bidirectional emulation now benefit from the same improvements regarding connection buffer writes as described for unidirectional transports.
-    * The `/emulation` endpoint now uses faster JSON decoder for incoming requests.
-* Improved documentation:
-    * Enhanced readability in the [configuration](https://centrifugal.dev/docs/server/configuration) docs – available options are now clearly visible.
-    * More detailed [unidirectional protocol description](https://centrifugal.dev/docs/transports/uni_client_protocol).
-    * More structured descriptions for specific real-time transports.
+* Centrifugo now automatically detects Redis Cluster and no longer requires explicit Cluster configuration. See [#951](https://github.com/centrifugal/centrifugo/pull/951) for more background on this decision. TLDR: Modern cloud providers usually provide `redis://host:port` or `rediss://host:port` URLs to users, which may correspond to either standalone Redis or Redis Cluster under the hood. Things should now work out of the box for Centrifugo users when using this string as the Redis `address`, making Centrifugo more cloud-friendly.
+* Added support for the `rediss` scheme (enabling TLS). Previously, this was possible via settings like `engine.redis.tls.enabled=true` or `tls_enabled=true` in the Redis URL. However, `rediss://` is part of Redis specification and very common. See [#951](https://github.com/centrifugal/centrifugo/pull/951).
+* Centrifugo now uses Go 1.24.x (specifically 1.24.1 for this release), inheriting [performance optimizations](https://go.dev/blog/go1.24#performance-improvements) introduced in the latest Go version. If you follow our community channels, you may have seen that we tried Centrifugo's PUB/SUB throughput benchmark with Go 1.24 and observed nice improvements. The previous maximum throughput on an Apple M1 Pro (2021) was 1.62 million msgs/sec, which increased to 1.74 million msgs/sec with Go 1.24—without any code changes on our side.
+* Centrifugo now adds the `Access-Control-Max-Age: 300` header for HTTP-based transport preflight responses and emulation endpoint preflight responses. This prevents browsers from sending preflight OPTIONS request before every POST request in cross-origin setups. As a result, bidirectional emulation in cross-origin environments is now more efficient, reducing latency for client-to-server emulation requests (since it requires 1 RTT instead of 2 RTTs) and reducing the number of HTTP requests. Note that you need to use the latest `centrifuge-js` (>=5.3.4) to benefit from this change.
+* Added a DEB package for Ubuntu 24.04 Noble Numbat. Removed support for Ubuntu Bionic Beaver due to its EOL. Addresses [#946](https://github.com/centrifugal/centrifugo/issues/946).
+
+### Fixes
+
+* Downgraded the `rueidis` dependency to v1.0.53 to avoid AUTH errors when RESP2 is forced. See [redis/rueidis#788](https://github.com/redis/rueidis/issues/788).
 
 ### Miscellaneous
 
-* Centrifugo v6 has been recently released. See the details in the [Centrifugo v6 release blog post](https://centrifugal.dev/blog/2025/01/16/centrifugo-v6-released).
-* This release is built with Go 1.23.6.
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.0.3).
+* Centrifugo v6 has been recently released. See details in the [Centrifugo v6 release blog post](https://centrifugal.dev/blog/2025/01/16/centrifugo-v6-released).
+* This release is built with Go 1.24.1.
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.1.0).
