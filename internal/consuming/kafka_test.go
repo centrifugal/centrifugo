@@ -15,7 +15,6 @@ import (
 
 	"github.com/centrifugal/centrifugo/v6/internal/api"
 
-	"github.com/centrifugal/centrifugo/v6/internal/apiproto"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 
 	"github.com/google/uuid"
@@ -141,6 +140,12 @@ func TestKafkaConsumer_GreenScenario(t *testing.T) {
 	testMethod := "method"
 	testPayload := []byte(`{"key":"value"}`)
 
+	testEvent := api.MethodWithRequestPayload{
+		Method:  testMethod,
+		Payload: api.JSONRawOrString(testPayload),
+	}
+	testMessage, _ := json.Marshal(testEvent)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -158,8 +163,8 @@ func TestKafkaConsumer_GreenScenario(t *testing.T) {
 
 	consumer, err := NewKafkaConsumer("test", configtypes.ConsumerContentModeMethodPayload, uuid.NewString(), &MockDispatcher{
 		onDispatchAPICommand: func(ctx context.Context, mode configtypes.ConsumerContentMode, method string, data []byte) error {
-			require.Equal(t, testMethod, method)
-			require.Equal(t, testPayload, data)
+			require.Equal(t, "", method)
+			require.Equal(t, testMessage, data)
 			close(eventReceived)
 			return nil
 		},
@@ -172,11 +177,6 @@ func TestKafkaConsumer_GreenScenario(t *testing.T) {
 		close(consumerClosed)
 	}()
 
-	testEvent := api.MethodWithRequestPayload{
-		Method:  testMethod,
-		Payload: api.JSONRawOrString(testPayload),
-	}
-	testMessage, _ := json.Marshal(testEvent)
 	err = produceTestMessage(testKafkaTopic, testMessage, nil)
 	require.NoError(t, err)
 
@@ -206,11 +206,16 @@ func TestKafkaConsumer_SeveralConsumers(t *testing.T) {
 	eventReceived := make(chan struct{})
 	consumerClosed := make(chan struct{})
 
+	testEvent := api.MethodWithRequestPayload{
+		Method:  testMethod,
+		Payload: api.JSONRawOrString(testPayload),
+	}
+	testMessage, _ := json.Marshal(testEvent)
+
 	for i := 0; i < 3; i++ {
 		consumer, err := NewKafkaConsumer("test", configtypes.ConsumerContentModeMethodPayload, uuid.NewString(), &MockDispatcher{
 			onDispatchAPICommand: func(ctx context.Context, mode configtypes.ConsumerContentMode, method string, data []byte) error {
-				require.Equal(t, testMethod, method)
-				require.Equal(t, testPayload, data)
+				require.Equal(t, testMessage, data)
 				close(eventReceived)
 				return nil
 			},
@@ -224,11 +229,6 @@ func TestKafkaConsumer_SeveralConsumers(t *testing.T) {
 		}()
 	}
 
-	testEvent := api.MethodWithRequestPayload{
-		Method:  testMethod,
-		Payload: api.JSONRawOrString(testPayload),
-	}
-	testMessage, _ := json.Marshal(testEvent)
 	err = produceTestMessage(testKafkaTopic, testMessage, nil)
 	require.NoError(t, err)
 
@@ -774,13 +774,13 @@ func TestKafkaConsumer_GreenScenario_PublicationDataMode(t *testing.T) {
 			if count == 0 {
 				require.Len(t, channels, 1)
 				require.Equal(t, testChannels[0], channels[0])
-				require.Equal(t, apiproto.Raw(testPayload), data)
+				require.Equal(t, testPayload, data)
 				require.Equal(t, testIdempotencyKey, idempotencyKey)
 				require.Equal(t, testDelta, delta)
 				close(event1Received)
 			} else {
 				require.Equal(t, testChannels, channels)
-				require.Equal(t, apiproto.Raw(testPayload), data)
+				require.Equal(t, testPayload, data)
 				require.Equal(t, testIdempotencyKey, idempotencyKey)
 				require.Equal(t, testDelta, delta)
 				close(event2Received)
