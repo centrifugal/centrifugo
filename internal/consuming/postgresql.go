@@ -21,7 +21,8 @@ const (
 )
 
 func NewPostgresConsumer(
-	name string, mode configtypes.ConsumerContentMode, dispatcher Dispatcher, config PostgresConfig, metrics *commonMetrics,
+	name string, mode configtypes.ConsumerContentMode, dispatcher Dispatcher,
+	config PostgresConfig, metrics *commonMetrics,
 ) (*PostgresConsumer, error) {
 	if config.DSN == "" {
 		return nil, errors.New("dsn is required")
@@ -179,7 +180,7 @@ func (c *PostgresConsumer) processOnce(ctx context.Context, partition int) (int,
 	var dispatchErr error
 
 	for _, event := range events {
-		dispatchErr = c.dispatcher.DispatchAPICommand(ctx, c.mode, event.Method, event.Payload)
+		dispatchErr = c.dispatcher.DispatchCommand(ctx, c.mode, event.Method, event.Payload)
 		if dispatchErr != nil {
 			// Stop here, all processed events will be removed, and we will start from this one.
 			log.Error().Err(dispatchErr).Str("consumer_name", c.name).Str("method", event.Method).Msg("error processing consumed event")

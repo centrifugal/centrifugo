@@ -120,14 +120,17 @@ func (c Config) Validate() error {
 		if !slices.Contains(configtypes.KnownConsumerTypes, config.Type) {
 			return fmt.Errorf("unknown consumer type: %s", config.Type)
 		}
+		if !slices.Contains(configtypes.KnownConsumerContentModes, config.ContentMode) {
+			return fmt.Errorf("unknown consumer content mode: %s", config.ContentMode)
+		}
 		if config.Enabled {
 			switch config.Type {
 			case configtypes.ConsumerTypeKafka:
-				if err := config.Kafka.Validate(); err != nil {
+				if err := config.Kafka.Validate(config); err != nil {
 					return fmt.Errorf("in consumer %s (kafka): %w", config.Name, err)
 				}
 			case configtypes.ConsumerTypePostgres:
-				if err := config.Postgres.Validate(); err != nil {
+				if err := config.Postgres.Validate(config); err != nil {
 					return fmt.Errorf("in consumer %s (postgres): %w", config.Name, err)
 				}
 			default:

@@ -18,7 +18,6 @@ import (
 
 	"github.com/centrifugal/centrifugo/v6/internal/build"
 	"github.com/centrifugal/centrifugo/v6/internal/config"
-	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/consuming"
 
 	"github.com/centrifugal/centrifuge"
@@ -97,7 +96,8 @@ type Features struct {
 	SubRefreshProxy      bool
 	SubscribeStreamProxy bool
 
-	EnabledConsumers []string
+	EnabledConsumers     []string
+	EnabledConsumerModes []string
 
 	// Uses GRPC server API.
 	GrpcAPI bool
@@ -411,6 +411,9 @@ func (s *Sender) prepareMetrics() ([]*metric, error) {
 	for _, consumerType := range s.features.EnabledConsumers {
 		metrics = append(metrics, createPoint("consumers_enabled."+consumerType))
 	}
+	for _, consumerMode := range s.features.EnabledConsumerModes {
+		metrics = append(metrics, createPoint("consumers_mode_enabled."+consumerMode))
+	}
 	if s.features.GrpcAPI {
 		metrics = append(metrics, createPoint("features_enabled.grpc_api"))
 	}
@@ -616,9 +619,17 @@ func GetEnabledConsumers(consumers []consuming.ConsumerConfig) []string {
 	var enabledConsumers []string
 	for _, c := range consumers {
 		consumerType := c.Type
-		if c.Type == configtypes.ConsumerTypeKafka && c.Kafka.PublicationDataMode.Enabled {
-			consumerType += "_publication_data"
+		if c.Enabled && !slices.Contains(enabledConsumers, consumerType) {
+			enabledConsumers = append(enabledConsumers, consumerType)
 		}
+	}
+	return enabledConsumers
+}
+
+func GetEnabledConsumerModes(consumers []consuming.ConsumerConfig) []string {
+	var enabledConsumers []string
+	for _, c := range consumers {
+		consumerType := c.Type + "_" + string(c.ContentMode)
 		if c.Enabled && !slices.Contains(enabledConsumers, consumerType) {
 			enabledConsumers = append(enabledConsumers, consumerType)
 		}

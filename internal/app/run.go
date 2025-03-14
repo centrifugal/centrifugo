@@ -226,7 +226,8 @@ func Run(cmd *cobra.Command, configFile string) {
 			UniSSE:        cfg.UniSSE.Enabled,
 			UniGRPC:       cfg.UniGRPC.Enabled,
 
-			EnabledConsumers: usage.GetEnabledConsumers(cfg.Consumers),
+			EnabledConsumers:     usage.GetEnabledConsumers(cfg.Consumers),
+			EnabledConsumerModes: usage.GetEnabledConsumerModes(cfg.Consumers),
 
 			GrpcAPI:             cfg.GrpcAPI.Enabled,
 			SubscribeToPersonal: cfg.Client.SubscribeToUserPersonalChannel.Enabled,

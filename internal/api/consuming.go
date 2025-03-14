@@ -259,13 +259,14 @@ type MethodWithRequestPayload struct {
 	Payload JSONRawOrString `json:"payload"`
 }
 
-func (h *ConsumingHandler) DispatchAPICommand(ctx context.Context, mode configtypes.ConsumerContentMode, method string, payload []byte) error {
+func (h *ConsumingHandler) DispatchCommand(ctx context.Context, mode configtypes.ConsumerContentMode, method string, payload []byte) error {
 	switch mode {
 	case configtypes.ConsumerContentModeMethodPayload:
 		if method != "" {
 			// If method is set then we expect payload to be encoded request.
 			return h.dispatchMethodPayload(ctx, method, payload)
 		}
+		// Otherwise we expect payload to be MethodWithRequestPayload.
 		var e MethodWithRequestPayload
 		err := json.Unmarshal(payload, &e)
 		if err != nil {

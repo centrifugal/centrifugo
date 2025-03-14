@@ -590,9 +590,16 @@ var KnownConsumerTypes = []string{
 type ConsumerContentMode string
 
 const (
-	ConsumerContentModeMethodPayload ConsumerContentMode = "api_method_request_payload"
-	ConsumerContentModeAPICommand    ConsumerContentMode = "api_command"
+	ConsumerContentModeMethodPayload   ConsumerContentMode = "api_method_payload"
+	ConsumerContentModeAPICommand      ConsumerContentMode = "api_command"
+	ConsumerContentModePublicationData ConsumerContentMode = "publication_data"
 )
+
+var KnownConsumerContentModes = []ConsumerContentMode{
+	ConsumerContentModeMethodPayload,
+	ConsumerContentModeAPICommand,
+	ConsumerContentModePublicationData,
+}
 
 type Consumer struct {
 	// Name is a unique name required for each consumer.
@@ -605,7 +612,7 @@ type Consumer struct {
 	Type string `mapstructure:"type" json:"type" envconfig:"type" yaml:"type" toml:"type"`
 
 	// ContentMode gives a hint to Centrifugo how to extract API command from incoming messages.
-	ContentMode ConsumerContentMode `mapstructure:"content_mode" json:"content_mode" envconfig:"content_mode" yaml:"content_mode" toml:"content_mode"`
+	ContentMode ConsumerContentMode `mapstructure:"content_mode" default:"api_method_payload" json:"content_mode" envconfig:"content_mode" yaml:"content_mode" toml:"content_mode"`
 
 	// Postgres allows defining options for consumer of postgresql type.
 	Postgres PostgresConsumerConfig `mapstructure:"postgresql" json:"postgresql" envconfig:"postgresql" yaml:"postgresql" toml:"postgresql"`
@@ -664,12 +671,15 @@ type PostgresConsumerConfig struct {
 	TLS                          TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
 }
 
-func (c PostgresConsumerConfig) Validate() error {
+func (c PostgresConsumerConfig) Validate(config Consumer) error {
 	if c.DSN == "" {
 		return errors.New("no Postgres DSN provided")
 	}
 	if c.OutboxTableName == "" {
 		return errors.New("no Postgres outbox table name provided")
+	}
+	if config.ContentMode == ConsumerContentModePublicationData {
+		return errors.New("publication data mode not supported for Postgres consumer")
 	}
 	return nil
 }
@@ -703,7 +713,7 @@ type KafkaConsumerConfig struct {
 	PublicationDataMode KafkaPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" envconfig:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
 }
 
-func (c KafkaConsumerConfig) Validate() error {
+func (c KafkaConsumerConfig) Validate(config Consumer) error {
 	if len(c.Brokers) == 0 {
 		return errors.New("no Kafka brokers provided")
 	}
@@ -713,8 +723,8 @@ func (c KafkaConsumerConfig) Validate() error {
 	if c.ConsumerGroup == "" {
 		return errors.New("no Kafka consumer group provided")
 	}
-	if c.PublicationDataMode.Enabled && c.PublicationDataMode.ChannelsHeader == "" {
-		return errors.New("no Kafka channels_header_name provided for publication data mode")
+	if config.ContentMode == ConsumerContentModePublicationData && c.PublicationDataMode.ChannelsHeader == "" {
+		return errors.New("no Kafka channels_header_name provided for publication data content mode")
 	}
 	return nil
 }
@@ -729,13 +739,13 @@ type KafkaPublicationDataModeConfig struct {
 	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	// ChannelsHeader is a header name to extract channels to publish data into
 	// (channels must be comma-separated). Ex. of value: "channel1,channel2".
-	ChannelsHeader string `mapstructure:"channels_header" json:"channels_header" envconfig:"channels_header" yaml:"channels_header" toml:"channels_header"`
+	ChannelsHeader string `mapstructure:"channels_header" default:"centrifugo-channels" json:"channels_header" envconfig:"channels_header" yaml:"channels_header" toml:"channels_header"`
 	// IdempotencyKeyHeader is a header name to extract Publication idempotency key from
 	// Kafka message. See https://centrifugal.dev/docs/server/server_api#publishrequest.
-	IdempotencyKeyHeader string `mapstructure:"idempotency_key_header" json:"idempotency_key_header" envconfig:"idempotency_key_header" yaml:"idempotency_key_header" toml:"idempotency_key_header"`
+	IdempotencyKeyHeader string `mapstructure:"idempotency_key_header"  default:"centrifugo-idempotency-key" json:"idempotency_key_header" envconfig:"idempotency_key_header" yaml:"idempotency_key_header" toml:"idempotency_key_header"`
 	// DeltaHeader is a header name to extract Publication delta flag from Kafka message
 	// which tells Centrifugo whether to use delta compression for message or not.
 	// See https://centrifugal.dev/docs/server/delta_compression and
 	// https://centrifugal.dev/docs/server/server_api#publishrequest.
-	DeltaHeader string `mapstructure:"delta_header" json:"delta_header" envconfig:"delta_header" yaml:"delta_header" toml:"delta_header"`
+	DeltaHeader string `mapstructure:"delta_header" json:"delta_header" default:"centrifugo-delta" envconfig:"delta_header" yaml:"delta_header" toml:"delta_header"`
 }

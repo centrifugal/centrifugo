@@ -14,7 +14,7 @@ import (
 type ConsumerConfig = configtypes.Consumer
 
 type Dispatcher interface {
-	DispatchAPICommand(ctx context.Context, mode configtypes.ConsumerContentMode, method string, data []byte) error
+	DispatchCommand(ctx context.Context, mode configtypes.ConsumerContentMode, method string, data []byte) error
 	DispatchPublication(ctx context.Context, data []byte, idempotencyKey string, delta bool, channels ...string) error
 }
 
@@ -24,7 +24,9 @@ func New(nodeID string, dispatcher Dispatcher, configs []ConsumerConfig) ([]serv
 	var services []service.Service
 	for _, config := range configs {
 		if !config.Enabled { // Important to keep this check inside specific type for proper config validation.
-			log.Info().Str("consumer_name", config.Name).Str("consumer_type", config.Type).
+			log.Info().
+				Str("consumer_name", config.Name).
+				Str("consumer_type", config.Type).
 				Msg("consumer is not enabled, skip")
 			continue
 		}
@@ -44,7 +46,10 @@ func New(nodeID string, dispatcher Dispatcher, configs []ConsumerConfig) ([]serv
 		default:
 			return nil, fmt.Errorf("unknown consumer type: %s", config.Type)
 		}
-		log.Info().Str("consumer_name", config.Name).Str("consumer_type", config.Type).Msg("running consumer")
+		log.Info().
+			Str("consumer_name", config.Name).
+			Str("consumer_type", config.Type).
+			Msg("running consumer")
 	}
 
 	for _, config := range configs {

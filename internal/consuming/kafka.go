@@ -48,7 +48,8 @@ type KafkaConsumer struct {
 }
 
 func NewKafkaConsumer(
-	name string, mode configtypes.ConsumerContentMode, nodeID string, dispatcher Dispatcher, config KafkaConfig, metrics *commonMetrics,
+	name string, mode configtypes.ConsumerContentMode, nodeID string, dispatcher Dispatcher,
+	config KafkaConfig, metrics *commonMetrics,
 ) (*KafkaConsumer, error) {
 	if len(config.Brokers) == 0 {
 		return nil, errors.New("brokers required")
@@ -442,9 +443,10 @@ func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, r
 	data := record.Value
 	idempotencyKey := getHeaderValue(record, pc.config.PublicationDataMode.IdempotencyKeyHeader)
 	var delta bool
-	if pc.config.PublicationDataMode.DeltaHeader != "" {
+	deltaValue := getHeaderValue(record, pc.config.PublicationDataMode.DeltaHeader)
+	if deltaValue != "" {
 		var err error
-		delta, err = strconv.ParseBool(getHeaderValue(record, pc.config.PublicationDataMode.DeltaHeader))
+		delta, err = strconv.ParseBool(deltaValue)
 		if err != nil {
 			log.Error().Err(err).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error parsing delta header value, skip message")
 			return nil
@@ -459,10 +461,10 @@ func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, r
 }
 
 func (pc *partitionConsumer) processRecord(ctx context.Context, record *kgo.Record) error {
-	if pc.config.PublicationDataMode.Enabled {
+	if pc.mode == configtypes.ConsumerContentModePublicationData {
 		return pc.processPublicationDataRecord(ctx, record)
 	}
-	return pc.dispatcher.DispatchAPICommand(ctx, pc.mode, "", record.Value)
+	return pc.dispatcher.DispatchCommand(ctx, pc.mode, "", record.Value)
 }
 
 func (pc *partitionConsumer) processRecords(records []*kgo.Record) {

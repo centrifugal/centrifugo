@@ -34,7 +34,7 @@ type MockDispatcher struct {
 	onDispatchPublication func(ctx context.Context, data []byte, idempotencyKey string, delta bool, channels ...string) error
 }
 
-func (m *MockDispatcher) DispatchAPICommand(ctx context.Context, mode configtypes.ConsumerContentMode, method string, data []byte) error {
+func (m *MockDispatcher) DispatchCommand(ctx context.Context, mode configtypes.ConsumerContentMode, method string, data []byte) error {
 	return m.onDispatchAPICommand(ctx, mode, method, data)
 }
 
@@ -756,7 +756,6 @@ func TestKafkaConsumer_GreenScenario_PublicationDataMode(t *testing.T) {
 		Topics:        []string{testKafkaTopic},
 		ConsumerGroup: uuid.New().String(),
 		PublicationDataMode: configtypes.KafkaPublicationDataModeConfig{
-			Enabled:              true,
 			ChannelsHeader:       "centrifugo-channels",
 			IdempotencyKeyHeader: "centrifugo-idempotency-key",
 			DeltaHeader:          "centrifugo-delta",
@@ -790,7 +789,7 @@ func TestKafkaConsumer_GreenScenario_PublicationDataMode(t *testing.T) {
 		},
 	}
 
-	consumer, err := NewKafkaConsumer("test", configtypes.ConsumerContentModeMethodPayload,
+	consumer, err := NewKafkaConsumer("test", configtypes.ConsumerContentModePublicationData,
 		uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
