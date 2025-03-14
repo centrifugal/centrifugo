@@ -5,8 +5,9 @@ import (
 )
 
 var (
-	jsonReplyEncoderPool   sync.Pool
-	jsonCommandDecoderPool sync.Pool
+	jsonReplyEncoderPool       sync.Pool
+	jsonCommandDecoderPool     sync.Pool
+	protobufCommandDecoderPool sync.Pool
 )
 
 // GetReplyEncoder ...
@@ -38,6 +39,22 @@ func GetCommandDecoder(data []byte) CommandDecoder {
 // PutCommandDecoder ...
 func PutCommandDecoder(d CommandDecoder) {
 	jsonCommandDecoderPool.Put(d)
+}
+
+// GetProtobufCommandDecoder ...
+func GetProtobufCommandDecoder(data []byte) CommandDecoder {
+	e := protobufCommandDecoderPool.Get()
+	if e == nil {
+		return NewProtobufCommandDecoder(data)
+	}
+	decoder := e.(CommandDecoder)
+	decoder.Reset(data)
+	return decoder
+}
+
+// PutProtobufCommandDecoder ...
+func PutProtobufCommandDecoder(d CommandDecoder) {
+	protobufCommandDecoderPool.Put(d)
 }
 
 // GetParamsDecoder ...

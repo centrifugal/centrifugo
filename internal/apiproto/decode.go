@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"strconv"
 	"strings"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // UnmarshalJSON helps to unmarshal command method when set as string.
@@ -52,6 +54,31 @@ func (d *JSONCommandDecoder) Reset(data []byte) {
 func (d *JSONCommandDecoder) Decode() (*Command, error) {
 	var c Command
 	err := d.decoder.Decode(&c)
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+// ProtobufCommandDecoder ...
+type ProtobufCommandDecoder struct {
+	data []byte
+}
+
+func NewProtobufCommandDecoder(data []byte) *ProtobufCommandDecoder {
+	return &ProtobufCommandDecoder{
+		data: data,
+	}
+}
+
+// Reset ...
+func (d *ProtobufCommandDecoder) Reset(data []byte) {
+	d.data = data
+}
+
+func (d *ProtobufCommandDecoder) Decode() (*Command, error) {
+	var c Command
+	err := proto.Unmarshal(d.data, &c)
 	if err != nil {
 		return nil, err
 	}

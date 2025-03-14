@@ -587,6 +587,13 @@ var KnownConsumerTypes = []string{
 	ConsumerTypeKafka,
 }
 
+type ConsumerContentMode string
+
+const (
+	ConsumerContentModeMethodPayload ConsumerContentMode = "api_method_request_payload"
+	ConsumerContentModeAPICommand    ConsumerContentMode = "api_command"
+)
+
 type Consumer struct {
 	// Name is a unique name required for each consumer.
 	Name string `mapstructure:"name" json:"name" envconfig:"name" yaml:"name" toml:"name"`
@@ -596,6 +603,9 @@ type Consumer struct {
 
 	// Type describes the type of consumer.
 	Type string `mapstructure:"type" json:"type" envconfig:"type" yaml:"type" toml:"type"`
+
+	// ContentMode gives a hint to Centrifugo how to extract API command from incoming messages.
+	ContentMode ConsumerContentMode `mapstructure:"content_mode" json:"content_mode" envconfig:"content_mode" yaml:"content_mode" toml:"content_mode"`
 
 	// Postgres allows defining options for consumer of postgresql type.
 	Postgres PostgresConsumerConfig `mapstructure:"postgresql" json:"postgresql" envconfig:"postgresql" yaml:"postgresql" toml:"postgresql"`

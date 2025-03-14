@@ -13,9 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/api"
 
 	"github.com/centrifugal/centrifugo/v6/internal/apiproto"
+	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
@@ -29,21 +31,16 @@ const (
 
 // MockDispatcher implements the Dispatcher interface for testing.
 type MockDispatcher struct {
-	onDispatch  func(ctx context.Context, method string, data []byte) error
-	onPublish   func(ctx context.Context, req *apiproto.PublishRequest) error
-	onBroadcast func(ctx context.Context, req *apiproto.BroadcastRequest) error
+	onDispatchAPICommand  func(ctx context.Context, mode configtypes.ConsumerContentMode, method string, data []byte) error
+	onDispatchPublication func(ctx context.Context, data []byte, idempotencyKey string, delta bool, channels ...string) error
 }
 
-func (m *MockDispatcher) Dispatch(ctx context.Context, method string, data []byte) error {
-	return m.onDispatch(ctx, method, data)
+func (m *MockDispatcher) DispatchAPICommand(ctx context.Context, mode configtypes.ConsumerContentMode, method string, data []byte) error {
+	return m.onDispatchAPICommand(ctx, mode, method, data)
 }
 
-func (m *MockDispatcher) Publish(ctx context.Context, req *apiproto.PublishRequest) error {
-	return m.onPublish(ctx, req)
-}
-
-func (m *MockDispatcher) Broadcast(ctx context.Context, req *apiproto.BroadcastRequest) error {
-	return m.onBroadcast(ctx, req)
+func (m *MockDispatcher) DispatchPublication(ctx context.Context, data []byte, idempotencyKey string, delta bool, channels ...string) error {
+	return m.onDispatchPublication(ctx, data, idempotencyKey, delta, channels...)
 }
 
 func produceTestMessage(topic string, message []byte, headers []kgo.RecordHeader) error {
@@ -159,8 +156,8 @@ func TestKafkaConsumer_GreenScenario(t *testing.T) {
 	eventReceived := make(chan struct{})
 	consumerClosed := make(chan struct{})
 
-	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockDispatcher{
-		onDispatch: func(ctx context.Context, method string, data []byte) error {
+	consumer, err := NewKafkaConsumer("test", configtypes.ConsumerContentModeMethodPayload, uuid.NewString(), &MockDispatcher{
+		onDispatchAPICommand: func(ctx context.Context, mode configtypes.ConsumerContentMode, method string, data []byte) error {
 			require.Equal(t, testMethod, method)
 			require.Equal(t, testPayload, data)
 			close(eventReceived)
@@ -175,9 +172,9 @@ func TestKafkaConsumer_GreenScenario(t *testing.T) {
 		close(consumerClosed)
 	}()
 
-	testEvent := KafkaJSONEvent{
+	testEvent := api.MethodWithRequestPayload{
 		Method:  testMethod,
-		Payload: JSONRawOrString(testPayload),
+		Payload: api.JSONRawOrString(testPayload),
 	}
 	testMessage, _ := json.Marshal(testEvent)
 	err = produceTestMessage(testKafkaTopic, testMessage, nil)
@@ -210,8 +207,8 @@ func TestKafkaConsumer_SeveralConsumers(t *testing.T) {
 	consumerClosed := make(chan struct{})
 
 	for i := 0; i < 3; i++ {
-		consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockDispatcher{
-			onDispatch: func(ctx context.Context, method string, data []byte) error {
+		consumer, err := NewKafkaConsumer("test", configtypes.ConsumerContentModeMethodPayload, uuid.NewString(), &MockDispatcher{
+			onDispatchAPICommand: func(ctx context.Context, mode configtypes.ConsumerContentMode, method string, data []byte) error {
 				require.Equal(t, testMethod, method)
 				require.Equal(t, testPayload, data)
 				close(eventReceived)
@@ -227,9 +224,9 @@ func TestKafkaConsumer_SeveralConsumers(t *testing.T) {
 		}()
 	}
 
-	testEvent := KafkaJSONEvent{
+	testEvent := api.MethodWithRequestPayload{
 		Method:  testMethod,
-		Payload: JSONRawOrString(testPayload),
+		Payload: api.JSONRawOrString(testPayload),
 	}
 	testMessage, _ := json.Marshal(testEvent)
 	err = produceTestMessage(testKafkaTopic, testMessage, nil)
@@ -267,7 +264,7 @@ func TestKafkaConsumer_RetryAfterDispatchError(t *testing.T) {
 	numFailures := 3
 
 	mockDispatcher := &MockDispatcher{
-		onDispatch: func(ctx context.Context, method string, data []byte) error {
+		onDispatchAPICommand: func(ctx context.Context, mode configtypes.ConsumerContentMode, method string, data []byte) error {
 			if retryCount < numFailures {
 				retryCount++
 				return errors.New("dispatch error")
@@ -276,7 +273,9 @@ func TestKafkaConsumer_RetryAfterDispatchError(t *testing.T) {
 			return nil
 		},
 	}
-	consumer, err := NewKafkaConsumer("test", uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
+	consumer, err := NewKafkaConsumer(
+		"test", configtypes.ConsumerContentModeMethodPayload, uuid.NewString(),
+		mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	go func() {
@@ -285,9 +284,9 @@ func TestKafkaConsumer_RetryAfterDispatchError(t *testing.T) {
 		close(consumerClosed)
 	}()
 
-	testEvent := KafkaJSONEvent{
+	testEvent := api.MethodWithRequestPayload{
 		Method:  testMethod,
-		Payload: JSONRawOrString(testPayload),
+		Payload: api.JSONRawOrString(testPayload),
 	}
 	testMessage, _ := json.Marshal(testEvent)
 	err = produceTestMessage(testKafkaTopic, testMessage, nil)
@@ -333,7 +332,7 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherTopic(t *testing.T) {
 	numCalls := 0
 
 	mockDispatcher := &MockDispatcher{
-		onDispatch: func(ctx context.Context, method string, data []byte) error {
+		onDispatchAPICommand: func(ctx context.Context, mode configtypes.ConsumerContentMode, method string, data []byte) error {
 			if numCalls == 0 {
 				numCalls++
 				close(event1Received)
@@ -346,7 +345,8 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherTopic(t *testing.T) {
 			return nil
 		},
 	}
-	consumer, err := NewKafkaConsumer("test", uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
+	consumer, err := NewKafkaConsumer("test", configtypes.ConsumerContentModeMethodPayload,
+		uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	go func() {
@@ -406,7 +406,7 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherPartition(t *testing.T
 			numCalls := 0
 
 			mockDispatcher := &MockDispatcher{
-				onDispatch: func(ctx context.Context, method string, data []byte) error {
+				onDispatchAPICommand: func(ctx context.Context, mode configtypes.ConsumerContentMode, method string, data []byte) error {
 					if numCalls == 0 {
 						numCalls++
 						close(event1Received)
@@ -419,7 +419,8 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherPartition(t *testing.T
 					return nil
 				},
 			}
-			consumer, err := NewKafkaConsumer("test", uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
+			consumer, err := NewKafkaConsumer("test", configtypes.ConsumerContentModeMethodPayload,
+				uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
 			require.NoError(t, err)
 
 			go func() {
@@ -485,7 +486,7 @@ func TestKafkaConsumer_PausePartitions(t *testing.T) {
 	}
 
 	mockDispatcher := &MockDispatcher{
-		onDispatch: func(ctx context.Context, method string, data []byte) error {
+		onDispatchAPICommand: func(ctx context.Context, mode configtypes.ConsumerContentMode, method string, data []byte) error {
 			numCalls++
 			if numCalls == 1 {
 				close(event1Received)
@@ -499,7 +500,8 @@ func TestKafkaConsumer_PausePartitions(t *testing.T) {
 			return nil
 		},
 	}
-	consumer, err := NewKafkaConsumer("test", uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
+	consumer, err := NewKafkaConsumer("test", configtypes.ConsumerContentModeMethodPayload,
+		uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	consumer.testOnlyConfig = testConfig
@@ -570,7 +572,7 @@ func TestKafkaConsumer_WorksCorrectlyInLoadedTopic(t *testing.T) {
 			messageCh := make(chan struct{}, numMessages)
 
 			mockDispatcher := &MockDispatcher{
-				onDispatch: func(ctx context.Context, method string, data []byte) error {
+				onDispatchAPICommand: func(ctx context.Context, mode configtypes.ConsumerContentMode, method string, data []byte) error {
 					// Emulate delay due to some work.
 					time.Sleep(20 * time.Millisecond)
 					messageCh <- struct{}{}
@@ -583,7 +585,8 @@ func TestKafkaConsumer_WorksCorrectlyInLoadedTopic(t *testing.T) {
 				ConsumerGroup:       uuid.New().String(),
 				PartitionBufferSize: tc.partitionBuffer,
 			}
-			consumer, err := NewKafkaConsumer("test", uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
+			consumer, err := NewKafkaConsumer("test", configtypes.ConsumerContentModeMethodPayload,
+				uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
 			require.NoError(t, err)
 
 			var records []*kgo.Record
@@ -668,7 +671,7 @@ func TestKafkaConsumer_TestPauseAfterResumeRace(t *testing.T) {
 	firstMessageReceived := make(chan struct{})
 
 	mockDispatcher := &MockDispatcher{
-		onDispatch: func(ctx context.Context, method string, data []byte) error {
+		onDispatchAPICommand: func(ctx context.Context, mode configtypes.ConsumerContentMode, method string, data []byte) error {
 			if count == 0 {
 				close(firstMessageReceived)
 				// Block until we are allowed to proceed
@@ -682,7 +685,8 @@ func TestKafkaConsumer_TestPauseAfterResumeRace(t *testing.T) {
 			return nil
 		},
 	}
-	consumer, err := NewKafkaConsumer("test", uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
+	consumer, err := NewKafkaConsumer("test", configtypes.ConsumerContentModeMethodPayload,
+		uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	consumer.testOnlyConfig = testOnlyConfig{
@@ -763,24 +767,31 @@ func TestKafkaConsumer_GreenScenario_PublicationDataMode(t *testing.T) {
 	event2Received := make(chan struct{})
 	consumerClosed := make(chan struct{})
 
-	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockDispatcher{
-		onPublish: func(ctx context.Context, req *apiproto.PublishRequest) error {
-			require.Equal(t, testChannels[0], req.Channel)
-			require.Equal(t, apiproto.Raw(testPayload), req.Data)
-			require.Equal(t, testIdempotencyKey, req.IdempotencyKey)
-			require.Equal(t, testDelta, req.Delta)
-			close(event1Received)
+	count := 0
+
+	mockDispatcher := &MockDispatcher{
+		onDispatchPublication: func(ctx context.Context, data []byte, idempotencyKey string, delta bool, channels ...string) error {
+			if count == 0 {
+				require.Len(t, channels, 1)
+				require.Equal(t, testChannels[0], channels[0])
+				require.Equal(t, apiproto.Raw(testPayload), data)
+				require.Equal(t, testIdempotencyKey, idempotencyKey)
+				require.Equal(t, testDelta, delta)
+				close(event1Received)
+			} else {
+				require.Equal(t, testChannels, channels)
+				require.Equal(t, apiproto.Raw(testPayload), data)
+				require.Equal(t, testIdempotencyKey, idempotencyKey)
+				require.Equal(t, testDelta, delta)
+				close(event2Received)
+			}
+			count++
 			return nil
 		},
-		onBroadcast: func(ctx context.Context, req *apiproto.BroadcastRequest) error {
-			require.Equal(t, testChannels, req.Channels)
-			require.Equal(t, apiproto.Raw(testPayload), req.Data)
-			require.Equal(t, testIdempotencyKey, req.IdempotencyKey)
-			require.Equal(t, testDelta, req.Delta)
-			close(event2Received)
-			return nil
-		},
-	}, config, newCommonMetrics(prometheus.NewRegistry()))
+	}
+
+	consumer, err := NewKafkaConsumer("test", configtypes.ConsumerContentModeMethodPayload,
+		uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	go func() {

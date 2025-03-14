@@ -57,7 +57,7 @@ func (h *Executor) SetRPCExtension(method string, handler RPCHandler) {
 	h.rpcExtension[method] = handler
 }
 
-func (h *Executor) processCmd(ctx context.Context, cmd *Command, i int, replies []*Reply) {
+func (h *Executor) processCmd(ctx context.Context, cmd *Command, i int, replies []*Reply) string {
 	var method string
 	if cmd.Publish != nil {
 		method = "publish"
@@ -118,6 +118,7 @@ func (h *Executor) processCmd(ctx context.Context, cmd *Command, i int, replies 
 	if replies[i].Error != nil {
 		incError(h.config.Protocol, method, replies[i].Error.Code)
 	}
+	return method
 }
 
 // batchRequestMaxConcurrency is applied for the parallel batch request.
