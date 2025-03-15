@@ -688,6 +688,9 @@ type KafkaConsumerConfig struct {
 	// If not set the default 50MB is used.
 	FetchMaxBytes int32 `mapstructure:"fetch_max_bytes" json:"fetch_max_bytes" envconfig:"fetch_max_bytes" yaml:"fetch_max_bytes" toml:"fetch_max_bytes"`
 
+	// MethodHeader is a header name to extract method name from Kafka message.
+	MethodHeader string `mapstructure:"method_header" default:"centrifugo-api-method" json:"method_header" envconfig:"method_header" yaml:"method_header" toml:"method_header"`
+
 	// PublicationDataMode is a configuration for the mode where message payload already
 	// contains data ready to publish into channels, instead of API command.
 	PublicationDataMode KafkaPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" envconfig:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
@@ -728,4 +731,6 @@ type KafkaPublicationDataModeConfig struct {
 	// See https://centrifugal.dev/docs/server/delta_compression and
 	// https://centrifugal.dev/docs/server/server_api#publishrequest.
 	DeltaHeader string `mapstructure:"delta_header" default:"centrifugo-delta" json:"delta_header" envconfig:"delta_header" yaml:"delta_header" toml:"delta_header"`
+	// TagsHeaderPrefix is a prefix for headers that contain tags to attach to Publication.
+	TagsHeaderPrefix string `mapstructure:"tags_header_prefix" default:"centrifugo-tag-" json:"tags_header_prefix" envconfig:"tags_header_prefix" yaml:"tags_header_prefix" toml:"tags_header_prefix"`
 }

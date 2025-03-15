@@ -3,7 +3,6 @@ package consuming
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -45,39 +44,6 @@ type KafkaConsumer struct {
 	doneCh         chan struct{}
 	metrics        *commonMetrics
 	testOnlyConfig testOnlyConfig
-}
-
-// JSONRawOrString can decode payload from bytes and from JSON string. This gives
-// us better interoperability. For example, JSONB field is encoded as JSON string in
-// Debezium PostgreSQL connector.
-type JSONRawOrString json.RawMessage
-
-func (j *JSONRawOrString) UnmarshalJSON(data []byte) error {
-	if len(data) > 0 && data[0] == '"' {
-		// Unmarshal as a string, then convert the string to json.RawMessage.
-		var str string
-		if err := json.Unmarshal(data, &str); err != nil {
-			return err
-		}
-		*j = JSONRawOrString(str)
-	} else {
-		// Unmarshal directly as json.RawMessage
-		*j = data
-	}
-	return nil
-}
-
-// MarshalJSON returns m as the JSON encoding of m.
-func (j JSONRawOrString) MarshalJSON() ([]byte, error) {
-	if j == nil {
-		return []byte("null"), nil
-	}
-	return j, nil
-}
-
-type KafkaJSONEvent struct {
-	Method  string          `json:"method"`
-	Payload JSONRawOrString `json:"payload"`
 }
 
 func NewKafkaConsumer(
@@ -468,6 +434,19 @@ func getHeaderValue(record *kgo.Record, headerKey string) string {
 	return ""
 }
 
+func publicationTagsFromKafkaRecord(record *kgo.Record, tagsHeaderPrefix string) map[string]string {
+	var tags map[string]string
+	for _, header := range record.Headers {
+		if strings.HasPrefix(header.Key, tagsHeaderPrefix) {
+			if tags == nil {
+				tags = make(map[string]string)
+			}
+			tags[header.Key[len(tagsHeaderPrefix):]] = string(header.Value)
+		}
+	}
+	return tags
+}
+
 func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, record *kgo.Record) error {
 	data := record.Value
 	idempotencyKey := getHeaderValue(record, pc.config.PublicationDataMode.IdempotencyKeyHeader)
@@ -486,14 +465,19 @@ func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, r
 		log.Info().Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("no channels found, skip message")
 		return nil
 	}
-	return pc.dispatcher.DispatchPublication(ctx, data, idempotencyKey, delta, nil, channels...)
+	return pc.dispatcher.DispatchPublication(
+		ctx, data, idempotencyKey, delta,
+		publicationTagsFromKafkaRecord(record, pc.config.PublicationDataMode.TagsHeaderPrefix),
+		channels...,
+	)
 }
 
 func (pc *partitionConsumer) processRecord(ctx context.Context, record *kgo.Record) error {
 	if pc.config.PublicationDataMode.Enabled {
 		return pc.processPublicationDataRecord(ctx, record)
 	}
-	return pc.dispatcher.DispatchCommand(ctx, "", record.Value)
+	method := getHeaderValue(record, pc.config.MethodHeader)
+	return pc.dispatcher.DispatchCommand(ctx, method, record.Value)
 }
 
 func (pc *partitionConsumer) processRecords(records []*kgo.Record) {

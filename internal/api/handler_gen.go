@@ -20,7 +20,7 @@ func (s *Handler) handleBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := paramsDecoder.DecodeBatch(data)
+	req, err := requestDecoder.DecodeBatch(data)
 	if err != nil {
 		incErrorStringCode(s.api.config.Protocol, "batch", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
@@ -47,7 +47,7 @@ func (s *Handler) handlePublish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := paramsDecoder.DecodePublish(data)
+	req, err := requestDecoder.DecodePublish(data)
 	if err != nil {
 		incErrorStringCode(s.api.config.Protocol, "publish", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
@@ -89,7 +89,7 @@ func (s *Handler) handleBroadcast(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := paramsDecoder.DecodeBroadcast(data)
+	req, err := requestDecoder.DecodeBroadcast(data)
 	if err != nil {
 		incErrorStringCode(s.api.config.Protocol, "broadcast", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
@@ -131,7 +131,7 @@ func (s *Handler) handleSubscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := paramsDecoder.DecodeSubscribe(data)
+	req, err := requestDecoder.DecodeSubscribe(data)
 	if err != nil {
 		incErrorStringCode(s.api.config.Protocol, "subscribe", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
@@ -173,7 +173,7 @@ func (s *Handler) handleUnsubscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := paramsDecoder.DecodeUnsubscribe(data)
+	req, err := requestDecoder.DecodeUnsubscribe(data)
 	if err != nil {
 		incErrorStringCode(s.api.config.Protocol, "unsubscribe", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
@@ -215,7 +215,7 @@ func (s *Handler) handleDisconnect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := paramsDecoder.DecodeDisconnect(data)
+	req, err := requestDecoder.DecodeDisconnect(data)
 	if err != nil {
 		incErrorStringCode(s.api.config.Protocol, "disconnect", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
@@ -257,7 +257,7 @@ func (s *Handler) handlePresence(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := paramsDecoder.DecodePresence(data)
+	req, err := requestDecoder.DecodePresence(data)
 	if err != nil {
 		incErrorStringCode(s.api.config.Protocol, "presence", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
@@ -299,7 +299,7 @@ func (s *Handler) handlePresenceStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := paramsDecoder.DecodePresenceStats(data)
+	req, err := requestDecoder.DecodePresenceStats(data)
 	if err != nil {
 		incErrorStringCode(s.api.config.Protocol, "presence_stats", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
@@ -341,7 +341,7 @@ func (s *Handler) handleHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := paramsDecoder.DecodeHistory(data)
+	req, err := requestDecoder.DecodeHistory(data)
 	if err != nil {
 		incErrorStringCode(s.api.config.Protocol, "history", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
@@ -383,7 +383,7 @@ func (s *Handler) handleHistoryRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := paramsDecoder.DecodeHistoryRemove(data)
+	req, err := requestDecoder.DecodeHistoryRemove(data)
 	if err != nil {
 		incErrorStringCode(s.api.config.Protocol, "history_remove", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
@@ -425,7 +425,7 @@ func (s *Handler) handleInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := paramsDecoder.DecodeInfo(data)
+	req, err := requestDecoder.DecodeInfo(data)
 	if err != nil {
 		incErrorStringCode(s.api.config.Protocol, "info", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
@@ -467,7 +467,7 @@ func (s *Handler) handleRPC(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := paramsDecoder.DecodeRPC(data)
+	req, err := requestDecoder.DecodeRPC(data)
 	if err != nil {
 		incErrorStringCode(s.api.config.Protocol, "rpc", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
@@ -509,7 +509,7 @@ func (s *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := paramsDecoder.DecodeRefresh(data)
+	req, err := requestDecoder.DecodeRefresh(data)
 	if err != nil {
 		incErrorStringCode(s.api.config.Protocol, "refresh", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
@@ -551,7 +551,7 @@ func (s *Handler) handleChannels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := paramsDecoder.DecodeChannels(data)
+	req, err := requestDecoder.DecodeChannels(data)
 	if err != nil {
 		incErrorStringCode(s.api.config.Protocol, "channels", "unmarshal")
 		s.handleUnmarshalError(r, w, err)

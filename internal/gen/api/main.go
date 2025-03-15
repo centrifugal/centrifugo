@@ -82,7 +82,7 @@ func (s *Handler) handle{{ .RequestCapitalized }}(w http.ResponseWriter, r *http
 		return
 	}
 
-	req, err := paramsDecoder.Decode{{ .RequestCapitalized }}(data)
+	req, err := requestDecoder.Decode{{ .RequestCapitalized }}(data)
 	if err != nil {
 		incErrorStringCode(s.api.config.Protocol, "{{ .RequestSnake }}", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
@@ -226,7 +226,7 @@ import (
 
 var templateFuncHandlersConsuming = `
 func (h *ConsumingHandler) handle{{ .RequestCapitalized }}(ctx context.Context, data []byte) (*{{ .RequestCapitalized }}Result, error) {
-	req, err := paramsDecoder.Decode{{ .RequestCapitalized }}(data)
+	req, err := requestDecoder.Decode{{ .RequestCapitalized }}(data)
 	if err != nil {
 		return nil, ErrInvalidData
 	}

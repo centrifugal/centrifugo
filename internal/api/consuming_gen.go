@@ -12,7 +12,7 @@ import (
 )
 
 func (h *ConsumingHandler) handlePublish(ctx context.Context, data []byte) (*PublishResult, error) {
-	req, err := paramsDecoder.DecodePublish(data)
+	req, err := requestDecoder.DecodePublish(data)
 	if err != nil {
 		return nil, ErrInvalidData
 	}
@@ -29,7 +29,7 @@ func (h *ConsumingHandler) handlePublish(ctx context.Context, data []byte) (*Pub
 }
 
 func (h *ConsumingHandler) handleBroadcast(ctx context.Context, data []byte) (*BroadcastResult, error) {
-	req, err := paramsDecoder.DecodeBroadcast(data)
+	req, err := requestDecoder.DecodeBroadcast(data)
 	if err != nil {
 		return nil, ErrInvalidData
 	}
@@ -46,7 +46,7 @@ func (h *ConsumingHandler) handleBroadcast(ctx context.Context, data []byte) (*B
 }
 
 func (h *ConsumingHandler) handleSubscribe(ctx context.Context, data []byte) (*SubscribeResult, error) {
-	req, err := paramsDecoder.DecodeSubscribe(data)
+	req, err := requestDecoder.DecodeSubscribe(data)
 	if err != nil {
 		return nil, ErrInvalidData
 	}
@@ -63,7 +63,7 @@ func (h *ConsumingHandler) handleSubscribe(ctx context.Context, data []byte) (*S
 }
 
 func (h *ConsumingHandler) handleUnsubscribe(ctx context.Context, data []byte) (*UnsubscribeResult, error) {
-	req, err := paramsDecoder.DecodeUnsubscribe(data)
+	req, err := requestDecoder.DecodeUnsubscribe(data)
 	if err != nil {
 		return nil, ErrInvalidData
 	}
@@ -80,7 +80,7 @@ func (h *ConsumingHandler) handleUnsubscribe(ctx context.Context, data []byte) (
 }
 
 func (h *ConsumingHandler) handleDisconnect(ctx context.Context, data []byte) (*DisconnectResult, error) {
-	req, err := paramsDecoder.DecodeDisconnect(data)
+	req, err := requestDecoder.DecodeDisconnect(data)
 	if err != nil {
 		return nil, ErrInvalidData
 	}
@@ -97,7 +97,7 @@ func (h *ConsumingHandler) handleDisconnect(ctx context.Context, data []byte) (*
 }
 
 func (h *ConsumingHandler) handleHistoryRemove(ctx context.Context, data []byte) (*HistoryRemoveResult, error) {
-	req, err := paramsDecoder.DecodeHistoryRemove(data)
+	req, err := requestDecoder.DecodeHistoryRemove(data)
 	if err != nil {
 		return nil, ErrInvalidData
 	}
@@ -114,7 +114,7 @@ func (h *ConsumingHandler) handleHistoryRemove(ctx context.Context, data []byte)
 }
 
 func (h *ConsumingHandler) handleRefresh(ctx context.Context, data []byte) (*RefreshResult, error) {
-	req, err := paramsDecoder.DecodeRefresh(data)
+	req, err := requestDecoder.DecodeRefresh(data)
 	if err != nil {
 		return nil, ErrInvalidData
 	}

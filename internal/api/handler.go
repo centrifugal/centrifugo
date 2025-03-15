@@ -23,7 +23,7 @@ type Handler struct {
 	api    *Executor
 }
 
-var paramsDecoder = NewJSONRequestDecoder()
+var requestDecoder = NewJSONRequestDecoder()
 var responseEncoder = NewJSONResponseEncoder()
 
 // NewHandler creates new Handler.
