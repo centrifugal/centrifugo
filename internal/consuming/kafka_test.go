@@ -29,14 +29,14 @@ const (
 
 // MockDispatcher implements the Dispatcher interface for testing.
 type MockDispatcher struct {
-	onDispatchAPICommand  func(ctx context.Context, method string, data []byte) error
+	onDispatchCommand     func(ctx context.Context, method string, data []byte) error
 	onDispatchPublication func(
 		ctx context.Context, data []byte, idempotencyKey string, delta bool, tags map[string]string, channels ...string,
 	) error
 }
 
 func (m *MockDispatcher) DispatchCommand(ctx context.Context, method string, data []byte) error {
-	return m.onDispatchAPICommand(ctx, method, data)
+	return m.onDispatchCommand(ctx, method, data)
 }
 
 func (m *MockDispatcher) DispatchPublication(ctx context.Context, data []byte, idempotencyKey string, delta bool, tags map[string]string, channels ...string) error {
@@ -163,7 +163,7 @@ func TestKafkaConsumer_GreenScenario(t *testing.T) {
 	consumerClosed := make(chan struct{})
 
 	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockDispatcher{
-		onDispatchAPICommand: func(ctx context.Context, method string, data []byte) error {
+		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
 			require.Equal(t, "", method)
 			require.Equal(t, testMessage, data)
 			close(eventReceived)
@@ -215,7 +215,7 @@ func TestKafkaConsumer_SeveralConsumers(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockDispatcher{
-			onDispatchAPICommand: func(ctx context.Context, method string, data []byte) error {
+			onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
 				require.Equal(t, testMessage, data)
 				close(eventReceived)
 				return nil
@@ -265,7 +265,7 @@ func TestKafkaConsumer_RetryAfterDispatchError(t *testing.T) {
 	numFailures := 3
 
 	mockDispatcher := &MockDispatcher{
-		onDispatchAPICommand: func(ctx context.Context, method string, data []byte) error {
+		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
 			if retryCount < numFailures {
 				retryCount++
 				return errors.New("dispatch error")
@@ -333,7 +333,7 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherTopic(t *testing.T) {
 	numCalls := 0
 
 	mockDispatcher := &MockDispatcher{
-		onDispatchAPICommand: func(ctx context.Context, method string, data []byte) error {
+		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
 			if numCalls == 0 {
 				numCalls++
 				close(event1Received)
@@ -407,7 +407,7 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherPartition(t *testing.T
 			numCalls := 0
 
 			mockDispatcher := &MockDispatcher{
-				onDispatchAPICommand: func(ctx context.Context, method string, data []byte) error {
+				onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
 					if numCalls == 0 {
 						numCalls++
 						close(event1Received)
@@ -487,7 +487,7 @@ func TestKafkaConsumer_PausePartitions(t *testing.T) {
 	}
 
 	mockDispatcher := &MockDispatcher{
-		onDispatchAPICommand: func(ctx context.Context, method string, data []byte) error {
+		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
 			numCalls++
 			if numCalls == 1 {
 				close(event1Received)
@@ -573,7 +573,7 @@ func TestKafkaConsumer_WorksCorrectlyInLoadedTopic(t *testing.T) {
 			messageCh := make(chan struct{}, numMessages)
 
 			mockDispatcher := &MockDispatcher{
-				onDispatchAPICommand: func(ctx context.Context, method string, data []byte) error {
+				onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
 					// Emulate delay due to some work.
 					time.Sleep(20 * time.Millisecond)
 					messageCh <- struct{}{}
@@ -672,7 +672,7 @@ func TestKafkaConsumer_TestPauseAfterResumeRace(t *testing.T) {
 	firstMessageReceived := make(chan struct{})
 
 	mockDispatcher := &MockDispatcher{
-		onDispatchAPICommand: func(ctx context.Context, method string, data []byte) error {
+		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
 			if count == 0 {
 				close(firstMessageReceived)
 				// Block until we are allowed to proceed
@@ -757,6 +757,7 @@ func TestKafkaConsumer_GreenScenario_PublicationDataMode(t *testing.T) {
 		Topics:        []string{testKafkaTopic},
 		ConsumerGroup: uuid.New().String(),
 		PublicationDataMode: configtypes.KafkaPublicationDataModeConfig{
+			Enabled:              true,
 			ChannelsHeader:       "centrifugo-channels",
 			IdempotencyKeyHeader: "centrifugo-idempotency-key",
 			DeltaHeader:          "centrifugo-delta",

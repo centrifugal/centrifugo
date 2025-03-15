@@ -226,7 +226,7 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 			}
 			fetchErrors := fetches.Errors()
 			if len(fetchErrors) > 0 {
-				// Non-retriable errors returned. We will restart consumer client, but log errors first.
+				// Non-retryable errors returned. We will restart consumer client, but log errors first.
 				var errs []error
 				for _, fetchErr := range fetchErrors {
 					if errors.Is(fetchErr.Err, context.Canceled) {
@@ -435,6 +435,9 @@ func getHeaderValue(record *kgo.Record, headerKey string) string {
 }
 
 func publicationTagsFromKafkaRecord(record *kgo.Record, tagsHeaderPrefix string) map[string]string {
+	if tagsHeaderPrefix == "" {
+		return nil
+	}
 	var tags map[string]string
 	for _, header := range record.Headers {
 		if strings.HasPrefix(header.Key, tagsHeaderPrefix) {
