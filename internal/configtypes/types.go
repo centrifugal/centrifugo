@@ -719,13 +719,13 @@ type KafkaPublicationDataModeConfig struct {
 	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	// ChannelsHeader is a header name to extract channels to publish data into
 	// (channels must be comma-separated). Ex. of value: "channel1,channel2".
-	ChannelsHeader string `mapstructure:"channels_header" json:"channels_header" envconfig:"channels_header" yaml:"channels_header" toml:"channels_header"`
+	ChannelsHeader string `mapstructure:"channels_header" default:"centrifugo-channels" json:"channels_header" envconfig:"channels_header" yaml:"channels_header" toml:"channels_header"`
 	// IdempotencyKeyHeader is a header name to extract Publication idempotency key from
 	// Kafka message. See https://centrifugal.dev/docs/server/server_api#publishrequest.
-	IdempotencyKeyHeader string `mapstructure:"idempotency_key_header" json:"idempotency_key_header" envconfig:"idempotency_key_header" yaml:"idempotency_key_header" toml:"idempotency_key_header"`
+	IdempotencyKeyHeader string `mapstructure:"idempotency_key_header" default:"centrifugo-idempotency-key" json:"idempotency_key_header" envconfig:"idempotency_key_header" yaml:"idempotency_key_header" toml:"idempotency_key_header"`
 	// DeltaHeader is a header name to extract Publication delta flag from Kafka message
 	// which tells Centrifugo whether to use delta compression for message or not.
 	// See https://centrifugal.dev/docs/server/delta_compression and
 	// https://centrifugal.dev/docs/server/server_api#publishrequest.
-	DeltaHeader string `mapstructure:"delta_header" json:"delta_header" envconfig:"delta_header" yaml:"delta_header" toml:"delta_header"`
+	DeltaHeader string `mapstructure:"delta_header" default:"centrifugo-delta" json:"delta_header" envconfig:"delta_header" yaml:"delta_header" toml:"delta_header"`
 }

@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v6/internal/apiproto"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 
 	"github.com/rs/zerolog/log"
@@ -473,9 +472,10 @@ func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, r
 	data := record.Value
 	idempotencyKey := getHeaderValue(record, pc.config.PublicationDataMode.IdempotencyKeyHeader)
 	var delta bool
-	if pc.config.PublicationDataMode.DeltaHeader != "" {
+	deltaValue := getHeaderValue(record, pc.config.PublicationDataMode.DeltaHeader)
+	if deltaValue != "" {
 		var err error
-		delta, err = strconv.ParseBool(getHeaderValue(record, pc.config.PublicationDataMode.DeltaHeader))
+		delta, err = strconv.ParseBool(deltaValue)
 		if err != nil {
 			log.Error().Err(err).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error parsing delta header value, skip message")
 			return nil
@@ -486,48 +486,14 @@ func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, r
 		log.Info().Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("no channels found, skip message")
 		return nil
 	}
-	return publishData(ctx, pc.dispatcher, data, idempotencyKey, delta, channels...)
-}
-
-func publishData(
-	ctx context.Context, dispatcher Dispatcher, data []byte, idempotencyKey string, delta bool, channels ...string,
-) error {
-	if len(channels) == 0 {
-		return nil
-	}
-	if len(channels) == 1 {
-		req := &apiproto.PublishRequest{
-			Data:           data,
-			Channel:        channels[0],
-			IdempotencyKey: idempotencyKey,
-			Delta:          delta,
-		}
-		return dispatcher.Publish(ctx, req)
-	}
-	req := &apiproto.BroadcastRequest{
-		Data:           data,
-		Channels:       channels,
-		IdempotencyKey: idempotencyKey,
-		Delta:          delta,
-	}
-	return dispatcher.Broadcast(ctx, req)
-}
-
-func (pc *partitionConsumer) processAPICommandRecord(ctx context.Context, record *kgo.Record) error {
-	var e KafkaJSONEvent
-	err := json.Unmarshal(record.Value, &e)
-	if err != nil {
-		log.Error().Err(err).Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error unmarshalling event from Kafka, skip message")
-		return nil
-	}
-	return pc.dispatcher.Dispatch(ctx, e.Method, e.Payload)
+	return pc.dispatcher.DispatchPublication(ctx, data, idempotencyKey, delta, nil, channels...)
 }
 
 func (pc *partitionConsumer) processRecord(ctx context.Context, record *kgo.Record) error {
 	if pc.config.PublicationDataMode.Enabled {
 		return pc.processPublicationDataRecord(ctx, record)
 	}
-	return pc.processAPICommandRecord(ctx, record)
+	return pc.dispatcher.DispatchCommand(ctx, "", record.Value)
 }
 
 func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
@@ -549,6 +515,9 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 				pc.metrics.processedTotal.WithLabelValues(pc.name).Inc()
 				pc.cl.MarkCommitRecords(record)
 				break
+			}
+			if errors.Is(err, context.Canceled) {
+				return
 			}
 			retries++
 			backoffDuration = getNextBackoffDuration(backoffDuration, retries)

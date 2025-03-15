@@ -29,6 +29,9 @@ func logStartWarnings(cfg config.Config, cfgMeta config.Meta) {
 	for _, key := range cfgMeta.UnknownEnvs {
 		log.Warn().Str("var", key).Msg("unknown var in environment")
 	}
+	for _, msg := range cfgMeta.DeprecationWarnings {
+		log.Warn().Msg(msg)
+	}
 }
 
 type httpErrorLogWriter struct {
