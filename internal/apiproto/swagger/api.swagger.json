@@ -1627,8 +1627,7 @@
           "type": "string"
         },
         "user": {
-          "type": "string",
-          "description": "5-7 dropped for backwards compatibility."
+          "type": "string"
         },
         "state": {
           "$ref": "#/definitions/ConnectionState"
@@ -2802,15 +2801,8 @@
     "Reply": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "integer",
-          "format": "int64"
-        },
         "error": {
           "$ref": "#/definitions/Error"
-        },
-        "result": {
-          "type": "object"
         },
         "publish": {
           "$ref": "#/definitions/PublishResult"

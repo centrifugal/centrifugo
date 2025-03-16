@@ -689,7 +689,7 @@ type KafkaConsumerConfig struct {
 	FetchMaxBytes int32 `mapstructure:"fetch_max_bytes" json:"fetch_max_bytes" envconfig:"fetch_max_bytes" yaml:"fetch_max_bytes" toml:"fetch_max_bytes"`
 
 	// MethodHeader is a header name to extract method name from Kafka message.
-	MethodHeader string `mapstructure:"method_header" default:"centrifugo-api-method" json:"method_header" envconfig:"method_header" yaml:"method_header" toml:"method_header"`
+	MethodHeader string `mapstructure:"method_header" default:"centrifugo-method" json:"method_header" envconfig:"method_header" yaml:"method_header" toml:"method_header"`
 
 	// PublicationDataMode is a configuration for the mode where message payload already
 	// contains data ready to publish into channels, instead of API command.

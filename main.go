@@ -18,7 +18,7 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/cli"
 )
 
-//go:generate go run internal/gen/api/main.go
+//go:generate internal/gen/api/generate.sh
 func main() {
 	root := app.Centrifugo()
 	// Register helper CLI.
