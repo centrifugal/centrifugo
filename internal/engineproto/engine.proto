@@ -2,47 +2,63 @@ syntax = "proto3";
 
 package centrifugal.centrifugo.engine;
 
-import "google/protobuf/empty.proto";
-
 option go_package = "./;engineproto";
 
+// Controller service defines methods for inter-node communication.
 service Controller {
-  rpc PublishControl(PublishControlRequest) returns (google.protobuf.Empty);
+  // StreamControlEvents delivers a unidirectional stream of messages from other nodes in
+  // the cluster.
   rpc StreamControlEvents(StreamControlEventsRequest) returns (stream ControlEvent);
+  // PublishControl sends a control message to other nodes. See PublishControlRequest
+  // for more semantics description.
+  rpc PublishControl(PublishControlRequest) returns (PublishControlResponse);
 }
 
-// Broker service defines PUB/SUB operations.
+// Broker service defines methods for PUB/SUB implementation. It can optionally provide
+// history management in channels.
 service Broker {
-  // EventStream delivers a unidirectional stream of broker events.
+  // StreamBrokerEvents delivers a unidirectional stream of broker events to the node.
   rpc StreamBrokerEvents(StreamBrokerEventsRequest) returns (stream BrokerEvent);
   // Subscribe to a channel.
-  rpc Subscribe(SubscribeRequest) returns (google.protobuf.Empty);
+  rpc Subscribe(SubscribeRequest) returns (SubscribeResponse);
   // Unsubscribe from a channel.
-  rpc Unsubscribe(UnsubscribeRequest) returns (google.protobuf.Empty);
-  // Publish sends data into a channel.
+  rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
+  // Publish sends data into a channel. See PublishRequest for more semantics description.
   rpc Publish(PublishRequest) returns (PublishResponse);
   // PublishJoin sends a Join message into a channel.
-  rpc PublishJoin(PublishJoinRequest) returns (google.protobuf.Empty);
+  rpc PublishJoin(PublishJoinRequest) returns (PublishJoinResponse);
   // PublishLeave sends a Leave message into a channel.
-  rpc PublishLeave(PublishLeaveRequest) returns (google.protobuf.Empty);
-  // PublishControl sends a control message.
-  rpc PublishControl(PublishControlRequest) returns (google.protobuf.Empty);
+  rpc PublishLeave(PublishLeaveRequest) returns (PublishLeaveResponse);
   // History extracts publications from a channel’s history stream.
   rpc History(HistoryRequest) returns (HistoryResponse);
   // RemoveHistory removes the history from a channel.
-  rpc RemoveHistory(RemoveHistoryRequest) returns (google.protobuf.Empty);
+  rpc RemoveHistory(RemoveHistoryRequest) returns (RemoveHistoryResponse);
+
+  // Below, we also have Controller methods. Generally, these methods are not
+  // required to be implemented if Controller explicitly configured in Centrifugo
+  // (in-memory, Redis-based or Nats-based), or it's a Broker defined for a
+  // channel namespace.
+
+  // StreamControlEvents is the same as Controller.StreamControlEvents.
+  rpc StreamControlEvents(StreamControlEventsRequest) returns (stream ControlEvent);
+  // PublishControl is the same as Controller.PublishControl.
+  rpc PublishControl(PublishControlRequest) returns (PublishControlResponse);
 }
 
 // PresenceManager service is responsible for channel presence management.
 service PresenceManager {
-  // Presence returns full presence data for a channel.
+  // Presence returns full actual presence data for a channel.
   rpc Presence(PresenceRequest) returns (PresenceResponse);
   // PresenceStats returns short statistics of current presence data.
   rpc PresenceStats(PresenceStatsRequest) returns (PresenceStats);
-  // AddPresence sets or updates presence information for a client.
-  rpc AddPresence(AddPresenceRequest) returns (google.protobuf.Empty);
-  // RemovePresence removes presence information for a client.
-  rpc RemovePresence(RemovePresenceRequest) returns (google.protobuf.Empty);
+  // AddPresence sets or updates presence information for a client. This is
+  // called on connection start and periodically for channels with presence on.
+  rpc AddPresence(AddPresenceRequest) returns (AddPresenceResponse);
+  // RemovePresence removes presence information for a client. This is called when
+  // client leaves channel. If this method returns error then request won't
+  // be retried – PresenceManager implementation should detect and eventually
+  // expire stale (not updated) client entries.
+  rpc RemovePresence(RemovePresenceRequest) returns (RemovePresenceResponse);
 }
 
 // ControlEvent represents a control event carrying arbitrary control data.
@@ -50,7 +66,10 @@ message ControlEvent {
   bytes data = 1;
 }
 
-message StreamControlEventsRequest {}
+message StreamControlEventsRequest {
+  // The identifier of current Centrifugo node.
+  string node_id = 1;
+}
 
 // Publication is a data sent to a channel.
 message Publication {
@@ -108,21 +127,21 @@ message HistoryOptions {
 
 // PublishOptions define fields to alter the behaviour of the Publish operation.
 message PublishOptions {
-  // HistoryTTL sets history expiration for inactive streams.
+  // history_ttl sets history expiration for inactive streams.
   int64 history_ttl = 1;
-  // HistorySize sets a limit on history size.
+  // history_size sets a limit on history size.
   int32 history_size = 2;
-  // HistoryMetaTTL sets a history meta information expiration time upon publish.
+  // history_meta_ttl sets a history meta information expiration time upon publish.
   int64 history_meta_ttl = 3;
-  // ClientInfo to include into the Publication.
+  // client_info to include into the Publication.
   ClientInfo client_info = 4;
-  // Tags to attach to the Publication.
+  // tags to attach to the Publication.
   map<string, string> tags = 5;
-  // IdempotencyKey for idempotent publish.
+  // idempotency_key for idempotent publish.
   string idempotency_key = 6;
-  // IdempotentResultTTL sets expiration for idempotency results.
+  // idempotent_result_ttl sets expiration for idempotency results in channel.
   int64 idempotent_result_ttl = 7;
-  // UseDelta enables delta encoding for the publication.
+  // use_delta is set to true when delta encoding should be used for this publication.
   bool use_delta = 8;
 }
 
@@ -132,7 +151,7 @@ message PublicationEvent {
   Publication publication = 2;
   StreamPosition stream_position = 3;
   bool use_delta = 4;
-  Publication previous_publication = 5; // Optional previous publication (if applicable).
+  Publication previous_publication = 5; // Optional previous publication (if use_delta was true).
 }
 
 // JoinEvent represents an event when a client joins a channel.
@@ -148,30 +167,37 @@ message LeaveEvent {
 }
 
 // BrokerEvent is a wrapper that can carry one of the event types.
+// Should contain ONE OF the defined events. We are not using oneof
+// feature of Protobuf for better interoperability with different
+// systems
 message BrokerEvent {
-  oneof event {
-    PublicationEvent publication_event = 1;
-    JoinEvent join_event = 2;
-    LeaveEvent leave_event = 3;
-    ControlEvent control_event = 4;
-  }
+  PublicationEvent publication_event = 1;
+  JoinEvent join_event = 2;
+  LeaveEvent leave_event = 3;
 }
 
-// EventStreamRequest allows a client to subscribe for a stream of events.
-// You can extend this with filters (e.g. channels) as needed.
 message StreamBrokerEventsRequest {}
 
 message SubscribeRequest {
   string channel = 1;
 }
 
+message SubscribeResponse {
+}
+
 message UnsubscribeRequest {
   string channel = 1;
 }
 
+message UnsubscribeResponse {
+}
+
 message PublishRequest {
+  // channel to publish to.
   string channel = 1;
+  // data to publish.
   bytes data = 2;
+  // various options for publish operation.
   PublishOptions opts = 3;
 }
 
@@ -187,17 +213,23 @@ message PublishJoinRequest {
   ClientInfo info = 2;
 }
 
+message PublishJoinResponse {}
+
 message PublishLeaveRequest {
   string channel = 1;
   ClientInfo info = 2;
 }
 
+message PublishLeaveResponse {}
+
 message PublishControlRequest {
+  // data is a payload set by Centrifuge, it should be delivered untouched to other nodes.
   bytes data = 1;
-  // If node_id is empty then the message must be delivered to all nodes.
+  // If node_id is empty then the message must be delivered to all nodes. If set – only to node with that identifier.
   string node_id = 2;
-  string shard_key = 3;
 }
+
+message PublishControlResponse {}
 
 message HistoryRequest {
   string channel = 1;
@@ -213,6 +245,8 @@ message HistoryResponse {
 message RemoveHistoryRequest {
   string channel = 1;
 }
+
+message RemoveHistoryResponse {}
 
 // ------------------------
 // Presence Manager Messages
@@ -246,9 +280,13 @@ message AddPresenceRequest {
   ClientInfo info = 3;
 }
 
+message AddPresenceResponse {}
+
 // RemovePresenceRequest removes presence information.
 message RemovePresenceRequest {
   string channel = 1;
   string client_id = 2;
   string user_id = 3;
 }
+
+message RemovePresenceResponse {}
