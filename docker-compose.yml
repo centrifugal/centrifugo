@@ -37,7 +37,6 @@ services:
     container_name: localstack
     ports:
       - "4566:4566"   # Edge port for all services.
-      - "4571:4571"   # Optional: for additional services.
     environment:
       - SERVICES=sqs,sns
       - DEFAULT_REGION=us-east-1

@@ -9,9 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/google/uuid"
 )
 
 func TestGooglePubSubConsumer(t *testing.T) {
@@ -24,9 +25,9 @@ func TestGooglePubSubConsumer(t *testing.T) {
 	ctx := context.Background()
 
 	// Setup project, topic, and subscription IDs for testing.
-	projectID := "test-project"
+	projectID := "test-project" + uuid.NewString()
 	topicID := "test-topic-" + uuid.NewString()
-	subscriptionID := "test-subscription"
+	subscriptionID := "test-subscription" + uuid.NewString()
 
 	// Create a Pub/Sub client (will connect to the emulator).
 	client, err := pubsub.NewClient(ctx, projectID)
@@ -101,7 +102,7 @@ func TestGooglePubSubConsumer(t *testing.T) {
 			return nil
 		},
 	}
-	consumer, err := NewGooglePubSubConsumer(ctx, "test", config, dispatcher)
+	consumer, err := NewGooglePubSubConsumer("test", config, dispatcher, newCommonMetrics(prometheus.NewRegistry()))
 	if err != nil {
 		t.Fatalf("failed to create consumer: %v", err)
 	}

@@ -162,14 +162,14 @@ func TestKafkaConsumer_GreenScenario(t *testing.T) {
 	eventReceived := make(chan struct{})
 	consumerClosed := make(chan struct{})
 
-	consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockDispatcher{
+	consumer, err := NewKafkaConsumer("test", config, &MockDispatcher{
 		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
 			require.Equal(t, "", method)
 			require.Equal(t, testMessage, data)
 			close(eventReceived)
 			return nil
 		},
-	}, config, newCommonMetrics(prometheus.NewRegistry()))
+	}, newCommonMetrics(prometheus.NewRegistry()), uuid.NewString())
 	require.NoError(t, err)
 
 	go func() {
@@ -214,13 +214,13 @@ func TestKafkaConsumer_SeveralConsumers(t *testing.T) {
 	testMessage, _ := json.Marshal(testEvent)
 
 	for i := 0; i < 3; i++ {
-		consumer, err := NewKafkaConsumer("test", uuid.NewString(), &MockDispatcher{
+		consumer, err := NewKafkaConsumer("test", config, &MockDispatcher{
 			onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
 				require.Equal(t, testMessage, data)
 				close(eventReceived)
 				return nil
 			},
-		}, config, newCommonMetrics(prometheus.NewRegistry()))
+		}, newCommonMetrics(prometheus.NewRegistry()), uuid.NewString())
 		require.NoError(t, err)
 
 		go func() {
@@ -275,8 +275,8 @@ func TestKafkaConsumer_RetryAfterDispatchError(t *testing.T) {
 		},
 	}
 	consumer, err := NewKafkaConsumer(
-		"test", uuid.NewString(),
-		mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
+		"test", config,
+		mockDispatcher, newCommonMetrics(prometheus.NewRegistry()), uuid.NewString())
 	require.NoError(t, err)
 
 	go func() {
@@ -347,7 +347,7 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherTopic(t *testing.T) {
 		},
 	}
 	consumer, err := NewKafkaConsumer("test",
-		uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
+		config, mockDispatcher, newCommonMetrics(prometheus.NewRegistry()), uuid.NewString())
 	require.NoError(t, err)
 
 	go func() {
@@ -421,7 +421,7 @@ func TestKafkaConsumer_BlockedPartitionDoesNotBlockAnotherPartition(t *testing.T
 				},
 			}
 			consumer, err := NewKafkaConsumer("test",
-				uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
+				config, mockDispatcher, newCommonMetrics(prometheus.NewRegistry()), uuid.NewString())
 			require.NoError(t, err)
 
 			go func() {
@@ -502,7 +502,7 @@ func TestKafkaConsumer_PausePartitions(t *testing.T) {
 		},
 	}
 	consumer, err := NewKafkaConsumer("test",
-		uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
+		config, mockDispatcher, newCommonMetrics(prometheus.NewRegistry()), uuid.NewString())
 	require.NoError(t, err)
 
 	consumer.testOnlyConfig = testConfig
@@ -587,7 +587,7 @@ func TestKafkaConsumer_WorksCorrectlyInLoadedTopic(t *testing.T) {
 				PartitionBufferSize: tc.partitionBuffer,
 			}
 			consumer, err := NewKafkaConsumer("test",
-				uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
+				config, mockDispatcher, newCommonMetrics(prometheus.NewRegistry()), uuid.NewString())
 			require.NoError(t, err)
 
 			var records []*kgo.Record
@@ -687,7 +687,7 @@ func TestKafkaConsumer_TestPauseAfterResumeRace(t *testing.T) {
 		},
 	}
 	consumer, err := NewKafkaConsumer("test",
-		uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
+		config, mockDispatcher, newCommonMetrics(prometheus.NewRegistry()), uuid.NewString())
 	require.NoError(t, err)
 
 	consumer.testOnlyConfig = testOnlyConfig{
@@ -795,7 +795,7 @@ func TestKafkaConsumer_GreenScenario_PublicationDataMode(t *testing.T) {
 	}
 
 	consumer, err := NewKafkaConsumer("test",
-		uuid.NewString(), mockDispatcher, config, newCommonMetrics(prometheus.NewRegistry()))
+		config, mockDispatcher, newCommonMetrics(prometheus.NewRegistry()), uuid.NewString())
 	require.NoError(t, err)
 
 	go func() {

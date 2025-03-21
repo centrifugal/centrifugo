@@ -191,7 +191,8 @@ func (h *ConsumingHandler) dispatchMethodPayload(ctx context.Context, method str
 		}
 		return nil
 	default:
-		// Ignore unsupported.
+		// Skip unsupported.
+		log.Info().Msg("skip unsupported API command method")
 		return nil
 	}
 }

@@ -10,72 +10,19 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
-// AWSConsumerConfig holds configuration for the AWS consumer.
-type AWSConsumerConfig struct {
-	// Provider should be set to "sqs" for direct SQS messages or "sns" if the queue contains SNS envelopes.
-	Provider string `mapstructure:"provider" json:"provider" envconfig:"provider" yaml:"provider" toml:"provider"`
-	// Region is the AWS region.
-	Region string `mapstructure:"region" json:"region" envconfig:"region" yaml:"region" toml:"region"`
-	// QueueURL is the URL of the SQS queue to poll.
-	QueueURL string `mapstructure:"queue_url" json:"queue_url" envconfig:"queue_url" yaml:"queue_url" toml:"queue_url"`
-	// MaxNumberOfMessages is the maximum number of messages to receive per poll.
-	MaxNumberOfMessages int32 `mapstructure:"max_number_of_messages" json:"max_number_of_messages" envconfig:"max_number_of_messages" default:"10" yaml:"max_number_of_messages" toml:"max_number_of_messages"`
-	// WaitTimeSeconds is the long-poll wait time.
-	WaitTimeSeconds int32 `mapstructure:"wait_time_seconds" json:"wait_time_seconds" envconfig:"wait_time_seconds" default:"20" yaml:"wait_time_seconds" toml:"wait_time_seconds"`
-	// EnableMessageOrdering, when true, processes messages with a non-empty MessageGroupId sequentially.
-	EnableMessageOrdering bool `mapstructure:"enable_message_ordering" json:"enable_message_ordering" envconfig:"enable_message_ordering" yaml:"enable_message_ordering" toml:"enable_message_ordering"`
-
-	// PublicationDataMode holds settings for the mode where message payload already contains data
-	// ready to publish into channels.
-	PublicationDataMode AWSPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" envconfig:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
-
-	// Authentication options:
-	// CredentialsProfile is the name of a shared credentials profile to use.
-	CredentialsProfile string `mapstructure:"credentials_profile" json:"credentials_profile" envconfig:"credentials_profile" yaml:"credentials_profile" toml:"credentials_profile"`
-	// AssumeRoleARN, if provided, will cause the consumer to assume the given IAM role.
-	AssumeRoleARN string `mapstructure:"assume_role_arn" json:"assume_role_arn" envconfig:"assume_role_arn" yaml:"assume_role_arn" toml:"assume_role_arn"`
-	// MethodAttribute is the attribute name to extract a method for command messages.
-	MethodAttribute string `mapstructure:"method_attribute" json:"method_attribute" envconfig:"method_attribute" yaml:"method_attribute" toml:"method_attribute"`
-
-	useLocalStack bool // internal flag for testing.
-}
-
-// Validate ensures required fields are set.
-func (c AWSConsumerConfig) Validate() error {
-	if c.Region == "" {
-		return errors.New("region is required")
-	}
-	if c.QueueURL == "" {
-		return errors.New("queue_url is required")
-	}
-	if c.PublicationDataMode.Enabled && c.PublicationDataMode.ChannelsAttribute == "" {
-		return errors.New("channels_attribute is required for publication data mode")
-	}
-	return nil
-}
-
-// AWSPublicationDataModeConfig holds configuration for the publication data mode.
-type AWSPublicationDataModeConfig struct {
-	// Enabled enables publication data mode.
-	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
-	// ChannelsAttribute is the attribute name containing comma-separated channel names.
-	ChannelsAttribute string `mapstructure:"channels_attribute" json:"channels_attribute" envconfig:"channels_attribute" yaml:"channels_attribute" toml:"channels_attribute"`
-	// IdempotencyKeyAttribute is the attribute name for an idempotency key.
-	IdempotencyKeyAttribute string `mapstructure:"idempotency_key_attribute" json:"idempotency_key_attribute" envconfig:"idempotency_key_attribute" yaml:"idempotency_key_attribute" toml:"idempotency_key_attribute"`
-	// DeltaAttribute is the attribute name for a delta flag.
-	DeltaAttribute string `mapstructure:"delta_attribute" json:"delta_attribute" envconfig:"delta_attribute" yaml:"delta_attribute" toml:"delta_attribute"`
-	// TagsAttributePrefix is the prefix for attributes containing tags.
-	TagsAttributePrefix string `mapstructure:"tags_attribute_prefix" json:"tags_attribute_prefix" envconfig:"tags_attribute_prefix" yaml:"tags_attribute_prefix" toml:"tags_attribute_prefix"`
-}
+type AWSConsumerConfig = configtypes.AWSConsumerConfig
 
 // AWSConsumer consumes messages from AWS SQS (or SNS delivered to SQS).
 // It uses per-group ordering when enabled and supports both command and publication data modes.
@@ -89,51 +36,57 @@ type AWSConsumer struct {
 	// orderQueues holds channels of messages keyed by MessageGroupId.
 	orderQueues   map[string]chan types.Message
 	orderQueuesMu sync.Mutex
+
+	log zerolog.Logger
 }
 
 // NewAWSConsumer creates and initializes a new AWSConsumer.
-func NewAWSConsumer(ctx context.Context, name string, cfg AWSConsumerConfig, dispatcher Dispatcher) (*AWSConsumer, error) {
+func NewAWSConsumer(
+	name string, cfg AWSConsumerConfig, dispatcher Dispatcher, metrics *commonMetrics,
+) (*AWSConsumer, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
 
-	// Load AWS configuration.
 	loadOpts := []func(*config.LoadOptions) error{
 		config.WithRegion(cfg.Region),
 	}
 	if cfg.CredentialsProfile != "" {
 		loadOpts = append(loadOpts, config.WithSharedConfigProfile(cfg.CredentialsProfile))
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	awsCfg, err := config.LoadDefaultConfig(ctx, loadOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
-	// If AssumeRoleARN is provided, assume that role.
-	if cfg.AssumeRoleARN != "" {
-		stsClient := sts.NewFromConfig(awsCfg)
-		assumeRoleProvider := stscreds.NewAssumeRoleProvider(stsClient, cfg.AssumeRoleARN)
-		awsCfg.Credentials = aws.NewCredentialsCache(assumeRoleProvider)
-	}
-
-	client := sqs.NewFromConfig(awsCfg)
-	if cfg.useLocalStack {
+	var client *sqs.Client
+	if cfg.LocalStackURL != "" {
 		client = sqs.NewFromConfig(awsCfg, func(o *sqs.Options) {
 			o.EndpointResolver = sqs.EndpointResolverFunc(func(region string, options sqs.EndpointResolverOptions) (aws.Endpoint, error) {
 				return aws.Endpoint{
-					URL:               "http://localhost:4566",
+					URL:               cfg.LocalStackURL,
 					HostnameImmutable: true,
 					SigningRegion:     "us-east-1",
 				}, nil
 			})
 		})
+	} else {
+		// If AssumeRoleARN is provided, assume that role.
+		if cfg.AssumeRoleARN != "" {
+			stsClient := sts.NewFromConfig(awsCfg)
+			assumeRoleProvider := stscreds.NewAssumeRoleProvider(stsClient, cfg.AssumeRoleARN)
+			awsCfg.Credentials = aws.NewCredentialsCache(assumeRoleProvider)
+		}
+		client = sqs.NewFromConfig(awsCfg)
 	}
-
 	consumer := &AWSConsumer{
 		name:       name,
 		config:     cfg,
 		dispatcher: dispatcher,
 		client:     client,
+		log:        log.With().Str("consumer", name).Logger(),
 	}
 	if cfg.EnableMessageOrdering {
 		consumer.orderQueues = make(map[string]chan types.Message)
@@ -151,15 +104,19 @@ func (c *AWSConsumer) Run(ctx context.Context) error {
 		}
 
 		out, err := c.client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
-			QueueUrl:              &c.config.QueueURL,
-			MaxNumberOfMessages:   c.config.MaxNumberOfMessages,
-			WaitTimeSeconds:       c.config.WaitTimeSeconds,
-			MessageAttributeNames: []string{"All"},
-			AttributeNames:        []types.QueueAttributeName{"All"},
+			QueueUrl:                    &c.config.QueueURL,
+			MaxNumberOfMessages:         c.config.MaxNumberOfMessages,
+			WaitTimeSeconds:             c.config.WaitTimeSeconds,
+			MessageAttributeNames:       []string{"All"},
+			MessageSystemAttributeNames: []types.MessageSystemAttributeName{"All"},
 		})
 		if err != nil {
-			log.Error().Err(err).Msg("failed to receive messages")
-			time.Sleep(1 * time.Second)
+			c.log.Error().Err(err).Msg("failed to receive messages")
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(1 * time.Second):
+			}
 			continue
 		}
 
@@ -168,8 +125,7 @@ func (c *AWSConsumer) Run(ctx context.Context) error {
 		}
 
 		for _, msg := range out.Messages {
-			// Process each message concurrently.
-			go c.dispatchMessage(ctx, msg)
+			c.dispatchMessage(ctx, msg)
 		}
 	}
 }
@@ -187,7 +143,7 @@ func (c *AWSConsumer) dispatchMessage(ctx context.Context, msg types.Message) {
 		c.orderQueuesMu.Lock()
 		queue, exists := c.orderQueues[orderKey]
 		if !exists {
-			queue = make(chan types.Message, 100) // Adjust buffer size as needed.
+			queue = make(chan types.Message, 100)
 			c.orderQueues[orderKey] = queue
 			go c.processOrderingQueue(ctx, orderKey, queue)
 		}
@@ -217,7 +173,7 @@ func (c *AWSConsumer) processOrderingQueue(ctx context.Context, key string, queu
 func (c *AWSConsumer) processSingleMessage(ctx context.Context, msg types.Message) {
 	data, err := c.extractMessageData(&msg)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to extract message data")
+		c.log.Error().Err(err).Msg("failed to extract message data")
 		c.deleteMessage(ctx, &msg)
 		return
 	}
@@ -234,7 +190,7 @@ func (c *AWSConsumer) processSingleMessage(ctx context.Context, msg types.Messag
 		}
 		if processErr == nil {
 			if retries > 0 {
-				log.Info().Str("consumer_name", c.name).Msg("OK processing message after errors")
+				c.log.Info().Str("consumer_name", c.name).Msg("OK processing message after errors")
 			}
 			break
 		}
@@ -243,7 +199,7 @@ func (c *AWSConsumer) processSingleMessage(ctx context.Context, msg types.Messag
 		}
 		retries++
 		backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-		log.Error().Err(processErr).Msgf("error processing message, retrying in %v", backoffDuration)
+		c.log.Error().Err(processErr).Msgf("error processing message, retrying in %v", backoffDuration)
 		select {
 		case <-time.After(backoffDuration):
 		case <-ctx.Done():
@@ -334,6 +290,6 @@ func (c *AWSConsumer) deleteMessage(ctx context.Context, msg *types.Message) {
 		ReceiptHandle: msg.ReceiptHandle,
 	})
 	if err != nil {
-		log.Error().Err(err).Msg("failed to delete message")
+		c.log.Error().Err(err).Msg("failed to delete message")
 	}
 }

@@ -36,15 +36,45 @@ func New(nodeID string, dispatcher Dispatcher, configs []ConsumerConfig) ([]serv
 		}
 		switch config.Type {
 		case configtypes.ConsumerTypePostgres:
-			consumer, err := NewPostgresConsumer(config.Name, dispatcher, config.Postgres, metrics)
+			consumer, err := NewPostgresConsumer(config.Name, config.Postgres, dispatcher, metrics)
 			if err != nil {
 				return nil, fmt.Errorf("error initializing PostgreSQL consumer (%s): %w", config.Name, err)
 			}
 			services = append(services, consumer)
 		case configtypes.ConsumerTypeKafka:
-			consumer, err := NewKafkaConsumer(config.Name, nodeID, dispatcher, config.Kafka, metrics)
+			consumer, err := NewKafkaConsumer(config.Name, config.Kafka, dispatcher, metrics, nodeID)
 			if err != nil {
 				return nil, fmt.Errorf("error initializing Kafka consumer (%s): %w", config.Name, err)
+			}
+			services = append(services, consumer)
+		case configtypes.ConsumerTypeNatsJetStream:
+			consumer, err := NewNatsJetStreamConsumer(config.Name, config.NatsJetStream, dispatcher, metrics)
+			if err != nil {
+				return nil, fmt.Errorf("error initializing Nats JetStream consumer (%s): %w", config.Name, err)
+			}
+			services = append(services, consumer)
+		case configtypes.ConsumerTypeRedisStream:
+			consumer, err := NewRedisStreamConsumer(config.Name, config.RedisStream, dispatcher, metrics, nodeID)
+			if err != nil {
+				return nil, fmt.Errorf("error initializing Redis Stream consumer (%s): %w", config.Name, err)
+			}
+			services = append(services, consumer)
+		case configtypes.ConsumerTypeGooglePubSub:
+			consumer, err := NewGooglePubSubConsumer(config.Name, config.GooglePubSub, dispatcher, metrics)
+			if err != nil {
+				return nil, fmt.Errorf("error initializing Google Pub/Sub consumer (%s): %w", config.Name, err)
+			}
+			services = append(services, consumer)
+		case configtypes.ConsumerTypeAWSSNSSQS:
+			consumer, err := NewAWSConsumer(config.Name, config.AwsSnsSqs, dispatcher, metrics)
+			if err != nil {
+				return nil, fmt.Errorf("error initializing AWS SNS/SQS consumer (%s): %w", config.Name, err)
+			}
+			services = append(services, consumer)
+		case configtypes.ConsumerTypeAzureServiceBus:
+			consumer, err := NewAzureServiceBusConsumer(config.Name, config.AzureServiceBus, dispatcher, metrics)
+			if err != nil {
+				return nil, fmt.Errorf("error initializing Azure Service Bus consumer (%s): %w", config.Name, err)
 			}
 			services = append(services, consumer)
 		default:

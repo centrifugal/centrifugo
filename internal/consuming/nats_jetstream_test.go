@@ -4,33 +4,33 @@ package consuming
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func TestNatsJetStreamConsumer(t *testing.T) {
-	// Set NATS server URL.
 	url := "nats://localhost:4222"
-	subject := "test.subject"
-	durable := "test-durable"
+	subject := "test.subject" + uuid.NewString()
+	durable := "test-durable" + uuid.NewString()
 
-	// Connect to the NATS server.
 	nc, err := nats.Connect(url)
 	if err != nil {
 		t.Fatalf("failed to connect to NATS: %v", err)
 	}
 	defer nc.Close()
 
-	// Create a JetStream context.
 	js, err := nc.JetStream()
 	if err != nil {
 		t.Fatalf("failed to create JetStream context: %v", err)
 	}
 
 	// Ensure a stream exists for our subject.
-	streamName := "TEST_STREAM"
+	streamName := "TEST_STREAM" + uuid.NewString()
 	_, err = js.StreamInfo(streamName)
 	if err != nil {
 		// Assume the stream doesn't exist; create it using in-memory storage.
@@ -44,10 +44,8 @@ func TestNatsJetStreamConsumer(t *testing.T) {
 		}
 	}
 
-	// Create a done channel to signal message processing.
 	done := make(chan struct{})
 
-	// Create a dummy dispatcher that signals done when a message is processed.
 	dispatcher := &MockDispatcher{
 		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
 			close(done)
@@ -55,7 +53,6 @@ func TestNatsJetStreamConsumer(t *testing.T) {
 		},
 	}
 
-	// Create consumer configuration.
 	cfg := NatsJetStreamConsumerConfig{
 		URL:                 url,
 		Subjects:            []string{subject},
@@ -65,25 +62,23 @@ func TestNatsJetStreamConsumer(t *testing.T) {
 		// PublicationDataMode remains disabled for this test.
 	}
 
-	// Create the consumer.
-	consumer, err := NewNatsJetStreamConsumer("test", cfg, dispatcher)
+	consumer, err := NewNatsJetStreamConsumer("test", cfg, dispatcher, newCommonMetrics(prometheus.NewRegistry()))
 	if err != nil {
 		t.Fatalf("failed to create NATS JetStream consumer: %v", err)
 	}
 
-	// Run the consumer in a separate goroutine.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	go func() {
-		if err := consumer.Run(ctx); err != nil && err != context.Canceled {
+		if err := consumer.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 			t.Errorf("consumer error: %v", err)
 		}
 	}()
 
-	// Publish a message. Using a header (test-method) to trigger command mode.
+	// Publish a message. Using a header (test-method) to specify that payload is PublishRequest.
 	msg := nats.NewMsg(subject)
 	msg.Data = []byte("Hello, NATS JetStream!")
-	msg.Header.Set("test-method", "myMethod")
+	msg.Header.Set("test-method", "publish")
 	_, err = js.PublishMsg(msg)
 	if err != nil {
 		t.Fatalf("failed to publish message: %v", err)

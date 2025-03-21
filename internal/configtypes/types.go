@@ -578,13 +578,25 @@ type Proxy struct {
 }
 
 const (
-	ConsumerTypePostgres = "postgresql"
-	ConsumerTypeKafka    = "kafka"
+	ConsumerTypePostgres        = "postgresql"
+	ConsumerTypeKafka           = "kafka"
+	ConsumerTypeNatsJetStream   = "nats_jetstream"
+	ConsumerTypeGooglePubSub    = "google_pub_sub"
+	ConsumerTypeAWSSNSSQS       = "aws_sns_sqs"
+	ConsumerTypeAzureServiceBus = "azure_service_bus"
+	ConsumerTypeRedisStream     = "redis_stream"
+	//ConsumerTypeRabbitMQ        = "rabbitmq"
 )
 
 var KnownConsumerTypes = []string{
 	ConsumerTypePostgres,
 	ConsumerTypeKafka,
+	ConsumerTypeNatsJetStream,
+	ConsumerTypeGooglePubSub,
+	ConsumerTypeAWSSNSSQS,
+	ConsumerTypeAzureServiceBus,
+	ConsumerTypeRedisStream,
+	//ConsumerTypeRabbitMQ,
 }
 
 type Consumer struct {
@@ -601,6 +613,16 @@ type Consumer struct {
 	Postgres PostgresConsumerConfig `mapstructure:"postgresql" json:"postgresql" envconfig:"postgresql" yaml:"postgresql" toml:"postgresql"`
 	// Kafka allows defining options for consumer of kafka type.
 	Kafka KafkaConsumerConfig `mapstructure:"kafka" json:"kafka" envconfig:"kafka" yaml:"kafka" toml:"kafka"`
+	// NatsJetStream allows defining options for consumer of nats_jetstream type.
+	NatsJetStream NatsJetStreamConsumerConfig `mapstructure:"nats_jetstream" json:"nats_jetstream" envconfig:"nats_jetstream" yaml:"nats_jetstream" toml:"nats_jetstream"`
+	// RedisStream allows defining options for consumer of redis_stream type.
+	RedisStream RedisStreamConsumerConfig `mapstructure:"redis_stream" json:"redis_stream" envconfig:"redis_stream" yaml:"redis_stream" toml:"redis_stream"`
+	// GooglePubSub allows defining options for consumer of google_pub_sub type.
+	GooglePubSub GooglePubSubConsumerConfig `mapstructure:"google_pub_sub" json:"google_pub_sub" envconfig:"google_pub_sub" yaml:"google_pub_sub" toml:"google_pub_sub"`
+	// AwsSnsSqs allows defining options for consumer of aws_sns_sqs type.
+	AwsSnsSqs AWSConsumerConfig `mapstructure:"aws_sns_sqs" json:"aws_sns_sqs" envconfig:"aws_sns_sqs" yaml:"aws_sns_sqs" toml:"aws_sns_sqs"`
+	// AzureServiceBus allows defining options for consumer of azure_service_bus type.
+	AzureServiceBus AzureServiceBusConsumerConfig `mapstructure:"azure_service_bus" json:"azure_service_bus" envconfig:"azure_service_bus" yaml:"azure_service_bus" toml:"azure_service_bus"`
 }
 
 func decodeToNamedSlice(value string, target interface{}) error {
@@ -733,4 +755,270 @@ type KafkaPublicationDataModeConfig struct {
 	DeltaHeader string `mapstructure:"delta_header" default:"centrifugo-delta" json:"delta_header" envconfig:"delta_header" yaml:"delta_header" toml:"delta_header"`
 	// TagsHeaderPrefix is a prefix for headers that contain tags to attach to Publication.
 	TagsHeaderPrefix string `mapstructure:"tags_header_prefix" default:"centrifugo-tag-" json:"tags_header_prefix" envconfig:"tags_header_prefix" yaml:"tags_header_prefix" toml:"tags_header_prefix"`
+}
+
+// RedisStreamPublicationDataModeConfig holds configuration for publication data mode.
+type RedisStreamPublicationDataModeConfig struct {
+	Enabled             bool   `mapstructure:"enabled" json:"enabled" yaml:"enabled" toml:"enabled"`
+	ChannelsValue       string `mapstructure:"channels_value" json:"channels_value" yaml:"channels_value" toml:"channels_value"`
+	IdempotencyKeyValue string `mapstructure:"idempotency_key_value" json:"idempotency_key_value" yaml:"idempotency_key_value" toml:"idempotency_key_value"`
+	DeltaValue          string `mapstructure:"delta_value" json:"delta_value" yaml:"delta_value" toml:"delta_value"`
+	TagsValuePrefix     string `mapstructure:"tags_value_prefix" json:"tags_value_prefix" yaml:"tags_value_prefix" toml:"tags_value_prefix"`
+}
+
+// RedisStreamConsumerConfig holds configuration for the Redis Streams consumer.
+type RedisStreamConsumerConfig struct {
+	Redis `mapstructure:",squash" yaml:",inline"`
+	// Streams to consume.
+	Streams []string `mapstructure:"streams" json:"streams" yaml:"streams" toml:"streams"`
+	// ConsumerGroup name to use.
+	ConsumerGroup string `mapstructure:"consumer_group" json:"consumer_group" yaml:"consumer_group" toml:"consumer_group"`
+	// PayloadValue is used to extract data from Redis Stream message.
+	PayloadValue string `mapstructure:"payload_value" default:"payload" json:"payload_value" yaml:"payload_value" toml:"payload_value"`
+	// MethodValue is used to extract a method for command messages.
+	MethodValue string `mapstructure:"method_value" default:"method" json:"method_value" yaml:"method_value" toml:"method_value"`
+	// PublicationDataMode configures publication data mode.
+	PublicationDataMode RedisStreamPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
+}
+
+// Validate validates required fields in the config.
+func (c RedisStreamConsumerConfig) Validate() error {
+	if len(c.Redis.Address) == 0 {
+		return errors.New("redis address is required")
+	}
+	if len(c.Streams) == 0 {
+		return errors.New("streams can't be empty")
+	}
+	if c.ConsumerGroup == "" {
+		return errors.New("consumer_group is required")
+	}
+	if c.PublicationDataMode.Enabled && c.PublicationDataMode.ChannelsValue == "" {
+		return errors.New("channels_value is required when publication data mode is enabled")
+	}
+	return nil
+}
+
+// NatsJetStreamConsumerConfig holds configuration for the NATS JetStream consumer.
+type NatsJetStreamConsumerConfig struct {
+	// URL of the NATS server.
+	URL string `mapstructure:"url" default:"nats://127.0.0.1:4222" json:"url" toml:"url" yaml:"url"`
+	// Optional authentication:
+	// If CredentialsFile is provided, it is used via nats.UserCredentials.
+	// Otherwise, if Username is provided, Username and Password are used.
+	// Alternatively, Token can be used.
+	CredentialsFile string `mapstructure:"credentials_file" json:"credentials_file" toml:"credentials_file" yaml:"credentials_file"`
+	Username        string `mapstructure:"username" json:"username" toml:"username" yaml:"username"`
+	Password        string `mapstructure:"password" json:"password" toml:"password" yaml:"password"`
+	Token           string `mapstructure:"token" json:"token" toml:"token" yaml:"token"`
+
+	// Subjects to subscribe to.
+	Subjects []string `mapstructure:"subjects" json:"subjects" toml:"subjects" yaml:"subjects"`
+	// DurableConsumerName to use.
+	DurableConsumerName string `mapstructure:"durable_consumer_name" json:"durable_consumer_name" toml:"durable_consumer_name" yaml:"durable_consumer_name"`
+
+	// Ordered, when true, uses JetStream's native ordered consumer mode.
+	// In this mode, the server guarantees ordered delivery; only one consumer instance
+	// will actively receive messages for the durable consumer.
+	Ordered bool `mapstructure:"ordered" json:"ordered" toml:"ordered" yaml:"ordered"`
+
+	// MethodHeader is the header name used to extract the method for API command request.
+	MethodHeader string `mapstructure:"method_header" json:"method_header" toml:"method_header" yaml:"method_header"`
+
+	// PublicationDataMode holds settings for the mode where the message payload is ready to be published.
+	PublicationDataMode NatsJetStreamPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" toml:"publication_data_mode" yaml:"publication_data_mode"`
+}
+
+// NatsJetStreamPublicationDataModeConfig holds settings for publication data mode.
+type NatsJetStreamPublicationDataModeConfig struct {
+	// Enabled enables publication data mode.
+	Enabled bool `mapstructure:"enabled" json:"enabled" toml:"enabled" yaml:"enabled"`
+	// ChannelsHeader is the header containing comma-separated channel names.
+	ChannelsHeader string `mapstructure:"channels_header" json:"channels_header" toml:"channels_header" yaml:"channels_header"`
+	// IdempotencyKeyHeader is the header for an idempotency key.
+	IdempotencyKeyHeader string `mapstructure:"idempotency_key_header" json:"idempotency_key_header" toml:"idempotency_key_header" yaml:"idempotency_key_header"`
+	// DeltaHeader is the header for a delta flag.
+	DeltaHeader string `mapstructure:"delta_header" json:"delta_header" toml:"delta_header" yaml:"delta_header"`
+	// TagsHeaderPrefix is the prefix for headers that should be treated as tags.
+	TagsHeaderPrefix string `mapstructure:"tags_header_prefix" json:"tags_header_prefix" toml:"tags_header_prefix" yaml:"tags_header_prefix"`
+}
+
+// Validate validates the required fields.
+func (cfg NatsJetStreamConsumerConfig) Validate() error {
+	if cfg.URL == "" {
+		return errors.New("url is required")
+	}
+	if len(cfg.Subjects) == 0 {
+		return errors.New("subjects can't be empty")
+	}
+	if cfg.DurableConsumerName == "" {
+		return errors.New("durable is required")
+	}
+	if cfg.PublicationDataMode.Enabled && cfg.PublicationDataMode.ChannelsHeader == "" {
+		return errors.New("channels_header is required for publication data mode")
+	}
+	return nil
+}
+
+// GooglePubSubConsumerConfig is a configuration for the Google Pub/Sub consumer.
+type GooglePubSubConsumerConfig struct {
+	// Google Cloud project ID.
+	ProjectID string `mapstructure:"project_id" json:"project_id" envconfig:"project_id" yaml:"project_id" toml:"project_id"`
+	// SubscriptionID is the Pub/Sub subscription to consume from.
+	SubscriptionID string `mapstructure:"subscription_id" json:"subscription_id" envconfig:"subscription_id" yaml:"subscription_id" toml:"subscription_id"`
+	// MaxOutstandingMessages controls the maximum number of unprocessed messages.
+	MaxOutstandingMessages int `mapstructure:"max_outstanding_messages" json:"max_outstanding_messages" envconfig:"max_outstanding_messages" default:"100" yaml:"max_outstanding_messages" toml:"max_outstanding_messages"`
+	// AuthMechanism specifies which authentication mechanism to use:
+	// "default", "service_account", or "impersonate".
+	AuthMechanism string `mapstructure:"auth_mechanism" json:"auth_mechanism" envconfig:"auth_mechanism" yaml:"auth_mechanism" toml:"auth_mechanism"`
+	// CredentialsFile is the path to the service account JSON file if required.
+	CredentialsFile string `mapstructure:"credentials_file" json:"credentials_file" envconfig:"credentials_file" yaml:"credentials_file" toml:"credentials_file"`
+	// EnableMessageOrdering, when set to true, processes messages with a non-empty ordering key sequentially.
+	EnableMessageOrdering bool `mapstructure:"enable_message_ordering" json:"enable_message_ordering" envconfig:"enable_message_ordering" yaml:"enable_message_ordering" toml:"enable_message_ordering"`
+	// MethodAttribute is an attribute name to extract a method name from the message.
+	MethodAttribute string `mapstructure:"method_attribute" json:"method_attribute" envconfig:"method_attribute" yaml:"method_attribute" toml:"method_attribute"`
+	// PublicationDataMode holds settings for the mode where message payload already contains data
+	// ready to publish into channels.
+	PublicationDataMode GooglePubSubPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" envconfig:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
+}
+
+// Validate ensures required fields are set.
+func (c GooglePubSubConsumerConfig) Validate() error {
+	if c.ProjectID == "" {
+		return errors.New("project_id is required")
+	}
+	if c.SubscriptionID == "" {
+		return errors.New("subscription_id is required")
+	}
+	if c.PublicationDataMode.Enabled && c.PublicationDataMode.ChannelsAttribute == "" {
+		return errors.New("channels_attribute is required for publication data mode")
+	}
+	return nil
+}
+
+// GooglePubSubPublicationDataModeConfig is the configuration for the publication data mode.
+type GooglePubSubPublicationDataModeConfig struct {
+	// Enabled enables publication data mode.
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	// ChannelsAttribute is the attribute name containing comma-separated channel names.
+	ChannelsAttribute string `mapstructure:"channels_attribute" json:"channels_attribute" envconfig:"channels_attribute" yaml:"channels_attribute" toml:"channels_attribute"`
+	// IdempotencyKeyAttribute is the attribute name for an idempotency key.
+	IdempotencyKeyAttribute string `mapstructure:"idempotency_key_attribute" json:"idempotency_key_attribute" envconfig:"idempotency_key_attribute" yaml:"idempotency_key_attribute" toml:"idempotency_key_attribute"`
+	// DeltaAttribute is the attribute name for a delta flag.
+	DeltaAttribute string `mapstructure:"delta_attribute" json:"delta_attribute" envconfig:"delta_attribute" yaml:"delta_attribute" toml:"delta_attribute"`
+	// TagsAttributePrefix is the prefix for attributes containing tags.
+	TagsAttributePrefix string `mapstructure:"tags_attribute_prefix" json:"tags_attribute_prefix" envconfig:"tags_attribute_prefix" yaml:"tags_attribute_prefix" toml:"tags_attribute_prefix"`
+}
+
+// AzureServiceBusPublicationDataModeConfig holds configuration for publication data mode.
+type AzureServiceBusPublicationDataModeConfig struct {
+	Enabled                bool   `mapstructure:"enabled" json:"enabled" yaml:"enabled" toml:"enabled"`
+	ChannelsProperty       string `mapstructure:"channels_property" json:"channels_property" yaml:"channels_property" toml:"channels_property"`
+	IdempotencyKeyProperty string `mapstructure:"idempotency_key_property" json:"idempotency_key_property" yaml:"idempotency_key_property" toml:"idempotency_key_property"`
+	DeltaProperty          string `mapstructure:"delta_property" json:"delta_property" yaml:"delta_property" toml:"delta_property"`
+	TagsPropertyPrefix     string `mapstructure:"tags_property_prefix" json:"tags_property_prefix" yaml:"tags_property_prefix" toml:"tags_property_prefix"`
+}
+
+// AzureServiceBusConsumerConfig holds configuration for the Azure Service Bus consumer.
+type AzureServiceBusConsumerConfig struct {
+	// For connection-string–based auth.
+	ConnectionString string `mapstructure:"connection_string" json:"connection_string" yaml:"connection_string" toml:"connection_string"`
+	// For Azure Identity based auth.
+	UseAzureIdentity        bool   `mapstructure:"use_azure_identity" json:"use_azure_identity" yaml:"use_azure_identity" toml:"use_azure_identity"`
+	FullyQualifiedNamespace string `mapstructure:"fully_qualified_namespace" json:"fully_qualified_namespace" yaml:"fully_qualified_namespace" toml:"fully_qualified_namespace"`
+	TenantID                string `mapstructure:"tenant_id" json:"tenant_id" yaml:"tenant_id" toml:"tenant_id"`
+	ClientID                string `mapstructure:"client_id" json:"client_id" yaml:"client_id" toml:"client_id"`
+	ClientSecret            string `mapstructure:"client_secret" json:"client_secret" yaml:"client_secret" toml:"client_secret"`
+	// The name of the queue.
+	Queue string `mapstructure:"queue" json:"queue" yaml:"queue" toml:"queue"`
+	// When true, the consumer uses native session-based ordering.
+	// All messages must have a SessionID and Service Bus guarantees in-order delivery for each session.
+	UseSessions bool `mapstructure:"use_sessions" json:"use_sessions" yaml:"use_sessions" toml:"use_sessions"`
+	// MaxConcurrentCalls controls parallel processing.
+	MaxConcurrentCalls int `mapstructure:"max_concurrent_calls" json:"max_concurrent_calls" yaml:"max_concurrent_calls" toml:"max_concurrent_calls"`
+	// MaxReceiveMessages controls the number of messages to receive in a single call.
+	MaxReceiveMessages int `mapstructure:"max_receive_messages" default:"1" json:"max_receive_messages" yaml:"max_receive_messages" toml:"max_receive_messages"`
+	// MethodProperty is the property name used to extract a method for command messages.
+	MethodProperty string `mapstructure:"method_property" json:"method_property" yaml:"method_property" toml:"method_property"`
+	// PublicationDataMode configures publication data mode.
+	PublicationDataMode AzureServiceBusPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
+}
+
+// Validate checks that required fields are set.
+func (c AzureServiceBusConsumerConfig) Validate() error {
+	if c.UseAzureIdentity {
+		if c.FullyQualifiedNamespace == "" || c.TenantID == "" || c.ClientID == "" || c.ClientSecret == "" {
+			return errors.New("when using Azure Identity, fully_qualified_namespace, tenant_id, client_id and client_secret are required")
+		}
+	} else {
+		if c.ConnectionString == "" {
+			return errors.New("connection_string is required when not using Azure Identity")
+		}
+	}
+	if c.Queue == "" {
+		return errors.New("entity_path is required")
+	}
+	if c.PublicationDataMode.Enabled && c.PublicationDataMode.ChannelsProperty == "" {
+		return errors.New("channels_property is required for publication data mode")
+	}
+	if c.MaxConcurrentCalls <= 0 {
+		c.MaxConcurrentCalls = 1
+	}
+	return nil
+}
+
+// AWSConsumerConfig holds configuration for the AWS consumer.
+type AWSConsumerConfig struct {
+	// Provider should be set to "sqs" for direct SQS messages or "sns" if the queue contains SNS envelopes.
+	Provider string `mapstructure:"provider" json:"provider" envconfig:"provider" yaml:"provider" toml:"provider"`
+	// Region is the AWS region.
+	Region string `mapstructure:"region" json:"region" envconfig:"region" yaml:"region" toml:"region"`
+	// QueueURL is the URL of the SQS queue to poll.
+	QueueURL string `mapstructure:"queue_url" json:"queue_url" envconfig:"queue_url" yaml:"queue_url" toml:"queue_url"`
+	// MaxNumberOfMessages is the maximum number of messages to receive per poll.
+	MaxNumberOfMessages int32 `mapstructure:"max_number_of_messages" json:"max_number_of_messages" envconfig:"max_number_of_messages" default:"10" yaml:"max_number_of_messages" toml:"max_number_of_messages"`
+	// WaitTimeSeconds is the long-poll wait time.
+	WaitTimeSeconds int32 `mapstructure:"wait_time_seconds" json:"wait_time_seconds" envconfig:"wait_time_seconds" default:"20" yaml:"wait_time_seconds" toml:"wait_time_seconds"`
+	// EnableMessageOrdering, when true, processes messages with a non-empty MessageGroupId sequentially.
+	EnableMessageOrdering bool `mapstructure:"enable_message_ordering" json:"enable_message_ordering" envconfig:"enable_message_ordering" yaml:"enable_message_ordering" toml:"enable_message_ordering"`
+	// PublicationDataMode holds settings for the mode where message payload already contains data
+	// ready to publish into channels.
+	PublicationDataMode AWSPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" envconfig:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
+
+	// Authentication options:
+	// CredentialsProfile is the name of a shared credentials profile to use.
+	CredentialsProfile string `mapstructure:"credentials_profile" json:"credentials_profile" envconfig:"credentials_profile" yaml:"credentials_profile" toml:"credentials_profile"`
+	// AssumeRoleARN, if provided, will cause the consumer to assume the given IAM role.
+	AssumeRoleARN string `mapstructure:"assume_role_arn" json:"assume_role_arn" envconfig:"assume_role_arn" yaml:"assume_role_arn" toml:"assume_role_arn"`
+	// MethodAttribute is the attribute name to extract a method for command messages.
+	MethodAttribute string `mapstructure:"method_attribute" json:"method_attribute" envconfig:"method_attribute" yaml:"method_attribute" toml:"method_attribute"`
+	// LocalStackURL if set enables using localstack with provided URL.
+	LocalStackURL string `mapstructure:"localstack_url" json:"localstack_url" envconfig:"localstack_url" yaml:"localstack_url" toml:"localstack_url"`
+}
+
+// AWSPublicationDataModeConfig holds configuration for the publication data mode.
+type AWSPublicationDataModeConfig struct {
+	// Enabled enables publication data mode.
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	// ChannelsAttribute is the attribute name containing comma-separated channel names.
+	ChannelsAttribute string `mapstructure:"channels_attribute" json:"channels_attribute" envconfig:"channels_attribute" yaml:"channels_attribute" toml:"channels_attribute"`
+	// IdempotencyKeyAttribute is the attribute name for an idempotency key.
+	IdempotencyKeyAttribute string `mapstructure:"idempotency_key_attribute" json:"idempotency_key_attribute" envconfig:"idempotency_key_attribute" yaml:"idempotency_key_attribute" toml:"idempotency_key_attribute"`
+	// DeltaAttribute is the attribute name for a delta flag.
+	DeltaAttribute string `mapstructure:"delta_attribute" json:"delta_attribute" envconfig:"delta_attribute" yaml:"delta_attribute" toml:"delta_attribute"`
+	// TagsAttributePrefix is the prefix for attributes containing tags.
+	TagsAttributePrefix string `mapstructure:"tags_attribute_prefix" json:"tags_attribute_prefix" envconfig:"tags_attribute_prefix" yaml:"tags_attribute_prefix" toml:"tags_attribute_prefix"`
+}
+
+// Validate ensures required fields are set.
+func (c AWSConsumerConfig) Validate() error {
+	if c.Region == "" {
+		return errors.New("region is required")
+	}
+	if c.QueueURL == "" {
+		return errors.New("queue_url is required")
+	}
+	if c.PublicationDataMode.Enabled && c.PublicationDataMode.ChannelsAttribute == "" {
+		return errors.New("channels_attribute is required for publication data mode")
+	}
+	return nil
 }
