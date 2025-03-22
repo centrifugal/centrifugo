@@ -67,7 +67,8 @@ func markdownHandler(w http.ResponseWriter, r *http.Request) {
 		font-size: 1.2rem;
 		margin-top: 1.5rem;
 	}
-	h2 code, h3 code, h4 code, h5 code, h6 code { color: #04416d }
+	code { color: #139f87; }
+	h2 code, h3 code, h4 code, h5 code, h6 code { color: #04416d; }
     /* Set initial left margins for headers */
     h1 { margin-left: 0rem; }
     h2 { margin-left: 0rem; }
