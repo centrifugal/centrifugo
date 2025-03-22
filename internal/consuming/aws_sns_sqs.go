@@ -26,12 +26,12 @@ type AWSConsumerConfig = configtypes.AWSConsumerConfig
 
 // AWSConsumer consumes messages from AWS SQS (or SNS delivered to SQS).
 // It uses per-group ordering when enabled and supports both command and publication data modes.
-// (Assume Dispatcher and getNextBackoffDuration are defined in another file.)
 type AWSConsumer struct {
 	name       string
 	config     AWSConsumerConfig
 	dispatcher Dispatcher
 	client     *sqs.Client
+	metrics    *commonMetrics
 
 	// orderQueues holds channels of messages keyed by MessageGroupId.
 	orderQueues   map[string]chan types.Message
@@ -54,6 +54,7 @@ func NewAWSConsumer(
 	if cfg.CredentialsProfile != "" {
 		loadOpts = append(loadOpts, config.WithSharedConfigProfile(cfg.CredentialsProfile))
 	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	awsCfg, err := config.LoadDefaultConfig(ctx, loadOpts...)
@@ -62,11 +63,11 @@ func NewAWSConsumer(
 	}
 
 	var client *sqs.Client
-	if cfg.LocalStackURL != "" {
+	if cfg.LocalStackEndpoint != "" {
 		client = sqs.NewFromConfig(awsCfg, func(o *sqs.Options) {
 			o.EndpointResolver = sqs.EndpointResolverFunc(func(region string, options sqs.EndpointResolverOptions) (aws.Endpoint, error) {
 				return aws.Endpoint{
-					URL:               cfg.LocalStackURL,
+					URL:               cfg.LocalStackEndpoint,
 					HostnameImmutable: true,
 					SigningRegion:     "us-east-1",
 				}, nil
@@ -81,12 +82,14 @@ func NewAWSConsumer(
 		}
 		client = sqs.NewFromConfig(awsCfg)
 	}
+
 	consumer := &AWSConsumer{
 		name:       name,
 		config:     cfg,
 		dispatcher: dispatcher,
 		client:     client,
 		log:        log.With().Str("consumer", name).Logger(),
+		metrics:    metrics,
 	}
 	if cfg.EnableMessageOrdering {
 		consumer.orderQueues = make(map[string]chan types.Message)
@@ -131,7 +134,6 @@ func (c *AWSConsumer) Run(ctx context.Context) error {
 }
 
 // dispatchMessage routes the message to an ordering queue if enabled and if a MessageGroupId is present.
-// MessageGroupId is extracted from msg.Attributes.
 func (c *AWSConsumer) dispatchMessage(ctx context.Context, msg types.Message) {
 	orderKey := ""
 	if c.config.EnableMessageOrdering && msg.Attributes != nil {
@@ -139,6 +141,7 @@ func (c *AWSConsumer) dispatchMessage(ctx context.Context, msg types.Message) {
 			orderKey = key
 		}
 	}
+
 	if orderKey != "" {
 		c.orderQueuesMu.Lock()
 		queue, exists := c.orderQueues[orderKey]
@@ -155,6 +158,7 @@ func (c *AWSConsumer) dispatchMessage(ctx context.Context, msg types.Message) {
 		}
 		return
 	}
+
 	c.processSingleMessage(ctx, msg)
 }
 
@@ -170,6 +174,7 @@ func (c *AWSConsumer) processOrderingQueue(ctx context.Context, key string, queu
 	}
 }
 
+// processSingleMessage processes a single message with retry and backoff logic.
 func (c *AWSConsumer) processSingleMessage(ctx context.Context, msg types.Message) {
 	data, err := c.extractMessageData(&msg)
 	if err != nil {
@@ -190,13 +195,14 @@ func (c *AWSConsumer) processSingleMessage(ctx context.Context, msg types.Messag
 		}
 		if processErr == nil {
 			if retries > 0 {
-				c.log.Info().Str("consumer_name", c.name).Msg("OK processing message after errors")
+				c.log.Info().Msg("message processed successfully after retries")
 			}
 			break
 		}
 		if ctx.Err() != nil {
 			return
 		}
+		c.metrics.errorsTotal.WithLabelValues(c.name).Inc()
 		retries++
 		backoffDuration = getNextBackoffDuration(backoffDuration, retries)
 		c.log.Error().Err(processErr).Msgf("error processing message, retrying in %v", backoffDuration)
@@ -206,13 +212,14 @@ func (c *AWSConsumer) processSingleMessage(ctx context.Context, msg types.Messag
 			return
 		}
 	}
+	c.metrics.processedTotal.WithLabelValues(c.name).Inc()
 	c.deleteMessage(ctx, &msg)
 }
 
 // processPublicationDataMessage handles messages in publication data mode.
 func (c *AWSConsumer) processPublicationDataMessage(ctx context.Context, msg types.Message, data []byte) error {
 	idempotencyKey := getMessageAttributeValue(msg, c.config.PublicationDataMode.IdempotencyKeyAttribute)
-	delta := false
+	var delta bool
 	if deltaVal := getMessageAttributeValue(msg, c.config.PublicationDataMode.DeltaAttribute); deltaVal != "" {
 		var err error
 		delta, err = strconv.ParseBool(deltaVal)

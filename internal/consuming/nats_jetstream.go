@@ -25,11 +25,15 @@ type NatsJetStreamConsumer struct {
 	subs       []*nats.Subscription
 	ctx        context.Context
 	log        zerolog.Logger
+	metrics    *commonMetrics
 }
 
 // NewNatsJetStreamConsumer creates a new NatsJetStreamConsumer.
 func NewNatsJetStreamConsumer(
-	name string, cfg NatsJetStreamConsumerConfig, dispatcher Dispatcher, metrics *commonMetrics,
+	name string,
+	cfg NatsJetStreamConsumerConfig,
+	dispatcher Dispatcher,
+	metrics *commonMetrics,
 ) (*NatsJetStreamConsumer, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
@@ -37,11 +41,12 @@ func NewNatsJetStreamConsumer(
 
 	// Prepare NATS connection options for authentication.
 	var opts []nats.Option
-	if cfg.CredentialsFile != "" {
+	switch {
+	case cfg.CredentialsFile != "":
 		opts = append(opts, nats.UserCredentials(cfg.CredentialsFile))
-	} else if cfg.Username != "" {
+	case cfg.Username != "":
 		opts = append(opts, nats.UserInfo(cfg.Username, cfg.Password))
-	} else if cfg.Token != "" {
+	case cfg.Token != "":
 		opts = append(opts, nats.Token(cfg.Token))
 	}
 
@@ -65,8 +70,8 @@ func NewNatsJetStreamConsumer(
 		nc:         nc,
 		js:         js,
 		log:        log.With().Str("consumer", name).Logger(),
+		metrics:    metrics,
 	}
-
 	return consumer, nil
 }
 
@@ -74,14 +79,19 @@ func NewNatsJetStreamConsumer(
 func (c *NatsJetStreamConsumer) msgHandler(msg *nats.Msg) {
 	data := msg.Data
 	var processErr error
+
 	if c.config.PublicationDataMode.Enabled {
 		processErr = c.processPublicationDataMessage(msg, data)
 	} else {
 		processErr = c.processCommandMessage(msg, data)
 	}
+
 	if processErr == nil {
 		if err := msg.Ack(); err != nil {
 			c.log.Error().Err(err).Msg("failed to ack message")
+			c.metrics.errorsTotal.WithLabelValues(c.name).Inc()
+		} else {
+			c.metrics.processedTotal.WithLabelValues(c.name).Inc()
 		}
 	} else {
 		c.log.Error().Err(processErr).Msg("processing message failed")
@@ -118,7 +128,7 @@ func (c *NatsJetStreamConsumer) processCommandMessage(msg *nats.Msg, data []byte
 	return c.dispatcher.DispatchCommand(c.ctx, method, data)
 }
 
-// getNatsHeaderValue retrieves a header value from the Nats message.
+// getNatsHeaderValue retrieves a header value from the NATS message.
 func getNatsHeaderValue(msg *nats.Msg, key string) string {
 	if key == "" {
 		return ""
@@ -144,6 +154,7 @@ func publicationTagsFromNatsHeaders(msg *nats.Msg, prefix string) map[string]str
 // When canceled, it unsubscribes and drains the connection.
 func (c *NatsJetStreamConsumer) Run(ctx context.Context) error {
 	c.ctx = ctx
+
 	subOpts := []nats.SubOpt{
 		nats.Durable(c.config.DurableConsumerName),
 		nats.ManualAck(),
@@ -152,15 +163,19 @@ func (c *NatsJetStreamConsumer) Run(ctx context.Context) error {
 	if c.config.Ordered {
 		subOpts = append(subOpts, nats.OrderedConsumer())
 	}
+
 	for _, subject := range c.config.Subjects {
 		sub, err := c.js.Subscribe(subject, c.msgHandler, subOpts...)
 		if err != nil {
 			c.nc.Close()
-			return fmt.Errorf("failed to subscribe: %w", err)
+			return fmt.Errorf("failed to subscribe to subject %q: %w", subject, err)
 		}
 		c.subs = append(c.subs, sub)
 	}
+
+	// Block until context cancellation.
 	<-ctx.Done()
+
 	for _, sub := range c.subs {
 		_ = sub.Unsubscribe()
 	}

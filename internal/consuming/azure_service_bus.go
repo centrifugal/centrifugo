@@ -25,11 +25,15 @@ type AzureServiceBusConsumer struct {
 	dispatcher Dispatcher
 	client     *azservicebus.Client
 	log        zerolog.Logger
+	metrics    *commonMetrics
 }
 
-// NewAzureServiceBusConsumer creates a new consumer.
+// NewAzureServiceBusConsumer creates and initializes a new AzureServiceBusConsumer.
 func NewAzureServiceBusConsumer(
-	name string, cfg AzureServiceBusConsumerConfig, dispatcher Dispatcher, metrics *commonMetrics,
+	name string,
+	cfg AzureServiceBusConsumerConfig,
+	dispatcher Dispatcher,
+	metrics *commonMetrics,
 ) (*AzureServiceBusConsumer, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
@@ -59,60 +63,70 @@ func NewAzureServiceBusConsumer(
 		dispatcher: dispatcher,
 		client:     client,
 		log:        log.With().Str("consumer", name).Logger(),
+		metrics:    metrics,
 	}, nil
 }
 
-// Run starts the consumer until the context is canceled.
+// Run starts the consumer and processes messages until the context is canceled.
 func (c *AzureServiceBusConsumer) Run(ctx context.Context) error {
-	// --- SESSION MODE (native ordering) ---
 	if c.config.UseSessions {
-		var wg sync.WaitGroup
-		// Spawn a fixed number of workers. Each worker continuously accepts the next available session.
-		for i := 0; i < c.config.MaxConcurrentCalls; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				for {
-					// Accept next available session.
-					sr, err := c.client.AcceptNextSessionForQueue(ctx, c.config.Queue, nil)
-					if err != nil {
-						if ctx.Err() != nil {
-							return
-						}
-						c.log.Error().Err(err).Msg("error accepting next session; retrying")
-						select {
-						case <-ctx.Done():
-							return
-						case <-time.After(1 * time.Second):
-						}
-						continue
+		return c.runSessionMode(ctx)
+	}
+	return c.runNonSessionMode(ctx)
+}
+
+// runSessionMode processes messages using session mode (native ordering).
+func (c *AzureServiceBusConsumer) runSessionMode(ctx context.Context) error {
+	var wg sync.WaitGroup
+
+	// Spawn a fixed number of workers. Each continuously accepts the next available session.
+	for i := 0; i < c.config.MaxConcurrentCalls; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				sr, err := c.client.AcceptNextSessionForQueue(ctx, c.config.Queue, nil)
+				if err != nil {
+					if ctx.Err() != nil {
+						return
 					}
-					// Process messages for this session sequentially.
-					for {
-						messages, err := sr.ReceiveMessages(ctx, c.config.MaxReceiveMessages, nil)
-						if err != nil {
-							c.log.Error().Err(err).Msg("error receiving messages for session; closing session")
-							_ = sr.Close(ctx)
-							break // Accept a new session.
-						}
-						if len(messages) == 0 {
-							_ = sr.Close(ctx)
-							break
-						}
-						for _, msg := range messages {
-							c.processMessage(ctx, msg, sr)
-						}
+					c.log.Error().Err(err).Msg("error accepting next session; retrying")
+					select {
+					case <-ctx.Done():
+						return
+					case <-time.After(1 * time.Second):
+					}
+					continue
+				}
+
+				// Process messages for this session sequentially.
+				for {
+					messages, err := sr.ReceiveMessages(ctx, c.config.MaxReceiveMessages, nil)
+					if err != nil {
+						c.log.Error().Err(err).Msg("error receiving messages for session; closing session")
+						_ = sr.Close(ctx)
+						break // Accept a new session.
+					}
+					if len(messages) == 0 {
+						_ = sr.Close(ctx)
+						break
+					}
+					for _, msg := range messages {
+						c.processMessage(ctx, msg, sr)
 					}
 				}
-			}()
-		}
-		wg.Wait()
-		return ctx.Err()
+			}
+		}()
 	}
+	wg.Wait()
+	return ctx.Err()
+}
 
-	// --- NON-SESSION MODE (unordered) ---
-	// Create a separate receiver for each worker so that each one can call ReceiveMessages concurrently.
+// runNonSessionMode processes messages without sessions (unordered).
+func (c *AzureServiceBusConsumer) runNonSessionMode(ctx context.Context) error {
 	var wg sync.WaitGroup
+
+	// Create a separate receiver for each worker for concurrent message receiving.
 	for i := 0; i < c.config.MaxConcurrentCalls; i++ {
 		receiver, err := c.client.NewReceiverForQueue(c.config.Queue, nil)
 		if err != nil {
@@ -148,10 +162,12 @@ func (c *AzureServiceBusConsumer) Run(ctx context.Context) error {
 	return ctx.Err()
 }
 
+// azureCompleter defines an interface for message completion.
 type azureCompleter interface {
 	CompleteMessage(context.Context, *azservicebus.ReceivedMessage, *azservicebus.CompleteMessageOptions) error
 }
 
+// processMessage handles a single message with retry and backoff logic.
 func (c *AzureServiceBusConsumer) processMessage(ctx context.Context, msg *azservicebus.ReceivedMessage, completer azureCompleter) {
 	var retries int
 	var backoffDuration time.Duration
@@ -166,7 +182,7 @@ func (c *AzureServiceBusConsumer) processMessage(ctx context.Context, msg *azser
 		}
 		if err == nil {
 			if retries > 0 {
-				c.log.Info().Str("consumer_name", c.name).Msg("OK processing message after errors")
+				c.log.Info().Msg("message processed successfully after retries")
 			}
 			break
 		}
@@ -185,10 +201,13 @@ func (c *AzureServiceBusConsumer) processMessage(ctx context.Context, msg *azser
 
 	if err := completer.CompleteMessage(ctx, msg, nil); err != nil {
 		c.log.Error().Err(err).Msg("failed to complete message")
+		c.metrics.errorsTotal.WithLabelValues(c.name).Inc()
+	} else {
+		c.metrics.processedTotal.WithLabelValues(c.name).Inc()
 	}
 }
 
-// processPublicationDataMessage processes a message in publication data mode.
+// processPublicationDataMessage handles messages in publication data mode.
 func (c *AzureServiceBusConsumer) processPublicationDataMessage(ctx context.Context, msg *azservicebus.ReceivedMessage, data []byte) error {
 	idempotencyKey, _ := getProperty(msg, c.config.PublicationDataMode.IdempotencyKeyProperty)
 	deltaStr, _ := getProperty(msg, c.config.PublicationDataMode.DeltaProperty)
@@ -211,7 +230,7 @@ func (c *AzureServiceBusConsumer) processPublicationDataMessage(ctx context.Cont
 	return c.dispatcher.DispatchPublication(ctx, data, idempotencyKey, delta, tags, channels...)
 }
 
-// processCommandMessage processes a message in command mode.
+// processCommandMessage handles messages in command mode.
 func (c *AzureServiceBusConsumer) processCommandMessage(ctx context.Context, msg *azservicebus.ReceivedMessage, data []byte) error {
 	method, _ := getProperty(msg, c.config.MethodProperty)
 	return c.dispatcher.DispatchCommand(ctx, method, data)
@@ -230,7 +249,7 @@ func getProperty(msg *azservicebus.ReceivedMessage, key string) (string, bool) {
 	return "", false
 }
 
-// getTagsFromProperties extracts tag values from message properties with a given prefix.
+// getTagsFromProperties extracts tag values from message properties using the given prefix.
 func getTagsFromProperties(msg *azservicebus.ReceivedMessage, prefix string) map[string]string {
 	tags := make(map[string]string)
 	if prefix == "" {

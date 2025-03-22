@@ -89,6 +89,7 @@ func (h *ConsumingHandler) DispatchPublication(
 			Channel:        channels[0],
 			IdempotencyKey: idempotencyKey,
 			Delta:          delta,
+			Tags:           tags,
 		}
 		return h.Publish(ctx, req)
 	}
@@ -97,6 +98,7 @@ func (h *ConsumingHandler) DispatchPublication(
 		Channels:       channels,
 		IdempotencyKey: idempotencyKey,
 		Delta:          delta,
+		Tags:           tags,
 	}
 	return h.Broadcast(ctx, req)
 }
@@ -234,7 +236,7 @@ type MethodWithRequestPayload struct {
 
 func (h *ConsumingHandler) DispatchCommand(ctx context.Context, method string, payload []byte) error {
 	if method != "" {
-		// If method is set then we expect payload to be encoded request.
+		// If method is set then we expect payload to be encoded request from Protobuf schema.
 		return h.dispatchMethodPayload(ctx, method, payload)
 	}
 	// Otherwise we expect payload to be MethodWithRequestPayload.

@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAWSConsumerWithLocalStack(t *testing.T) {
@@ -65,13 +65,14 @@ func TestAWSConsumerWithLocalStack(t *testing.T) {
 		WaitTimeSeconds:       2,
 		EnableMessageOrdering: false,    // Set to true for FIFO queues
 		MethodAttribute:       "Method", // This attribute should be in the message attributes.
-		LocalStackURL:         "http://localhost:4566",
+		LocalStackEndpoint:    "http://localhost:4566",
 	}
 
 	// Set up a dispatcher that signals when a message is processed.
 	done := make(chan struct{})
 	dispatcher := &MockDispatcher{
 		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
+			require.Equal(t, "testMethod", method)
 			close(done)
 			return nil
 		},

@@ -991,8 +991,8 @@ type AWSConsumerConfig struct {
 	AssumeRoleARN string `mapstructure:"assume_role_arn" json:"assume_role_arn" envconfig:"assume_role_arn" yaml:"assume_role_arn" toml:"assume_role_arn"`
 	// MethodAttribute is the attribute name to extract a method for command messages.
 	MethodAttribute string `mapstructure:"method_attribute" json:"method_attribute" envconfig:"method_attribute" yaml:"method_attribute" toml:"method_attribute"`
-	// LocalStackURL if set enables using localstack with provided URL.
-	LocalStackURL string `mapstructure:"localstack_url" json:"localstack_url" envconfig:"localstack_url" yaml:"localstack_url" toml:"localstack_url"`
+	// LocalStackEndpoint if set enables using localstack with provided URL.
+	LocalStackEndpoint string `mapstructure:"localstack_endpoint" json:"localstack_endpoint" envconfig:"localstack_endpoint" yaml:"localstack_endpoint" toml:"localstack_endpoint"`
 }
 
 // AWSPublicationDataModeConfig holds configuration for the publication data mode.

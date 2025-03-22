@@ -21,15 +21,20 @@ type RedisStreamConsumerConfig = configtypes.RedisStreamConsumerConfig
 
 // RedisStreamConsumer consumes messages from a Redis Stream.
 type RedisStreamConsumer struct {
+	name       string
 	config     RedisStreamConsumerConfig
 	dispatcher Dispatcher
 	consumers  map[string]*redisqueue.Consumer
 	log        zerolog.Logger
+	metrics    *commonMetrics
 }
 
 // NewRedisStreamConsumer creates a new Redis Streams consumer.
 func NewRedisStreamConsumer(
-	name string, cfg RedisStreamConsumerConfig, dispatcher Dispatcher, metrics *commonMetrics,
+	name string,
+	cfg RedisStreamConsumerConfig,
+	dispatcher Dispatcher,
+	metrics *commonMetrics,
 	nodeID string,
 ) (*RedisStreamConsumer, error) {
 	if err := cfg.Validate(); err != nil {
@@ -40,11 +45,9 @@ func NewRedisStreamConsumer(
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Redis shards: %w", err)
 	}
-
 	if len(shards) != 1 {
 		return nil, errors.New("expected a single Redis shard")
 	}
-
 	shard := shards[0]
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -56,11 +59,12 @@ func NewRedisStreamConsumer(
 	}
 
 	consumer := &RedisStreamConsumer{
+		name:       name,
 		config:     cfg,
 		dispatcher: dispatcher,
 		log:        log.With().Str("consumer", name).Logger(),
+		metrics:    metrics,
 	}
-
 	consumers := make(map[string]*redisqueue.Consumer)
 	for _, stream := range cfg.Streams {
 		streamConsumer, err := redisqueue.NewConsumer(shard, redisqueue.ConsumerOptions{
@@ -75,7 +79,7 @@ func NewRedisStreamConsumer(
 			UseLegacyReclaim:  false,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to create consumer: %w", err)
+			return nil, fmt.Errorf("failed to create consumer for stream %q: %w", stream, err)
 		}
 		consumers[stream] = streamConsumer
 	}
@@ -83,30 +87,39 @@ func NewRedisStreamConsumer(
 	return consumer, nil
 }
 
+// process is the ConsumerFunc for redisqueue.Consumer.
 func (c *RedisStreamConsumer) process(msg *redisqueue.Message) error {
 	dataStr, ok := msg.Values[c.config.PayloadValue]
 	if !ok {
-		c.log.Error().Str("expected_value", c.config.PayloadValue).Msg("payload value not found in redis stream message")
+		c.log.Error().
+			Str("expected_value", c.config.PayloadValue).
+			Msg("payload value not found in redis stream message")
 		return nil
 	}
-	var processErr error
+
+	// Using context.Background() here as no caller context is provided.
+	ctx := context.Background()
+	var err error
 	if c.config.PublicationDataMode.Enabled {
-		processErr = c.processPublicationDataMessage(context.Background(), msg, []byte(dataStr))
+		err = c.processPublicationDataMessage(ctx, msg, []byte(dataStr))
 	} else {
-		processErr = c.processCommandMessage(context.Background(), msg, []byte(dataStr))
+		err = c.processCommandMessage(ctx, msg, []byte(dataStr))
 	}
-	if processErr != nil {
-		c.log.Error().Err(processErr).Msg("error processing redis stream message")
+	if err != nil {
+		c.metrics.errorsTotal.WithLabelValues(c.name).Inc()
+		c.log.Error().Err(err).
+			Msg("error processing redis stream message")
+	} else {
+		c.metrics.processedTotal.WithLabelValues(c.name).Inc()
 	}
-	return processErr
+	return err
 }
 
-// Run starts the consumer loop. It continuously reads messages from the stream.
+// Run starts the consumer loop by starting each underlying consumer in a separate goroutine.
+// It also listens for context cancellation to gracefully shutdown all consumers.
 func (c *RedisStreamConsumer) Run(ctx context.Context) error {
 	for _, consumer := range c.consumers {
-		go func() {
-			consumer.Run()
-		}()
+		go consumer.Run()
 	}
 	go func() {
 		<-ctx.Done()
@@ -126,7 +139,9 @@ func (c *RedisStreamConsumer) processPublicationDataMessage(ctx context.Context,
 		var err error
 		delta, err = strconv.ParseBool(deltaStr)
 		if err != nil {
-			c.log.Error().Err(err).Msg("error parsing delta property, skipping message")
+			c.log.Error().
+				Err(err).
+				Msg("error parsing delta property, skipping message")
 			return nil
 		}
 	}
@@ -155,7 +170,7 @@ func getStringProperty(msg *redisqueue.Message, key string) (string, bool) {
 	return val, ok
 }
 
-// getTagsFromRedisValues extracts tag values from message values with a given prefix.
+// getTagsFromRedisValues extracts tag values from message values with the specified prefix.
 func getTagsFromRedisValues(msg *redisqueue.Message, prefix string) map[string]string {
 	var tags map[string]string
 	if prefix == "" {

@@ -14,7 +14,6 @@ import (
 	"cloud.google.com/go/pubsub"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/oauth2"
 	"google.golang.org/api/option"
 )
 
@@ -27,6 +26,7 @@ type GooglePubSubConsumer struct {
 	dispatcher Dispatcher
 	client     *pubsub.Client
 	sub        *pubsub.Subscription
+	metrics    *commonMetrics
 
 	// orderQueues holds channels keyed by message ordering key.
 	orderQueues   map[string]chan *pubsub.Message
@@ -50,16 +50,6 @@ func NewGooglePubSubConsumer(name string, config GooglePubSubConsumerConfig, dis
 			return nil, errors.New("credentials_file must be provided for service_account auth")
 		}
 		clientOpts = append(clientOpts, option.WithCredentialsFile(config.CredentialsFile))
-	case "impersonate":
-		// Placeholder: implement impersonation logic as needed.
-		if config.CredentialsFile == "" {
-			return nil, errors.New("credentials_file must be provided for impersonate auth")
-		}
-		ts, err := getImpersonatedTokenSource(config.CredentialsFile)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get impersonated token source: %w", err)
-		}
-		clientOpts = append(clientOpts, option.WithTokenSource(ts))
 	default:
 		return nil, fmt.Errorf("unsupported auth mechanism: %s", config.AuthMechanism)
 	}
@@ -81,6 +71,7 @@ func NewGooglePubSubConsumer(name string, config GooglePubSubConsumerConfig, dis
 		client:     client,
 		sub:        sub,
 		log:        log.With().Str("consumer", name).Logger(),
+		metrics:    metrics,
 	}
 	if config.EnableMessageOrdering {
 		consumer.orderQueues = make(map[string]chan *pubsub.Message)
@@ -106,7 +97,7 @@ func (c *GooglePubSubConsumer) dispatchMessage(ctx context.Context, msg *pubsub.
 			c.orderQueuesMu.Lock()
 			queue, exists := c.orderQueues[key]
 			if !exists {
-				queue = make(chan *pubsub.Message, 100) // Buffer size can be adjusted if needed.
+				queue = make(chan *pubsub.Message, 100)
 				c.orderQueues[key] = queue
 				go c.processOrderingQueue(ctx, key, queue)
 			}
@@ -135,7 +126,7 @@ func (c *GooglePubSubConsumer) processOrderingQueue(ctx context.Context, key str
 	}
 }
 
-// processSingleMessage processes a single message with retries (using the existing retry logic).
+// processSingleMessage processes a single message with retry and backoff logic.
 func (c *GooglePubSubConsumer) processSingleMessage(ctx context.Context, msg *pubsub.Message) {
 	var retries int
 	var backoffDuration time.Duration
@@ -148,14 +139,16 @@ func (c *GooglePubSubConsumer) processSingleMessage(ctx context.Context, msg *pu
 		}
 		if err == nil {
 			msg.Ack()
+			c.metrics.processedTotal.WithLabelValues(c.name).Inc()
 			if retries > 0 {
-				c.log.Info().Str("consumer_name", c.name).Msg("OK processing message after errors")
+				c.log.Info().Msg("OK processing message after errors")
 			}
 			return
 		}
 		if ctx.Err() != nil {
 			return
 		}
+		c.metrics.errorsTotal.WithLabelValues(c.name).Inc()
 		retries++
 		backoffDuration = getNextBackoffDuration(backoffDuration, retries)
 		c.log.Error().Err(err).Msgf("error processing message, retrying in %v", backoffDuration)
@@ -216,11 +209,4 @@ func publicationTagsFromAttributes(msg *pubsub.Message, prefix string) map[strin
 		}
 	}
 	return tags
-}
-
-// getImpersonatedTokenSource is a placeholder for creating an OAuth2 token source for impersonation.
-// Replace this with your own logic if you need to support impersonated credentials.
-func getImpersonatedTokenSource(credentialsFile string) (oauth2.TokenSource, error) {
-	// Implement your impersonation logic here.
-	return nil, errors.New("impersonation auth mechanism is not implemented")
 }
