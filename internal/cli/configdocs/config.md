@@ -1,7 +1,3 @@
-# Centrifugo configuration options
-
-Config contains configuration options of Centrifugo.
-
 ## `http_server`
 
 Type: `HTTPServer` object.
@@ -191,7 +187,7 @@ Type: `string`.
 
 Type: `HTTP3` object.
 
-`http3` allows enabling HTTP/3 support. EXPERIMENTAL!
+`http3` allows enabling HTTP/3 support. EXPERIMENTAL.
 
 #### `http_server.http3.enabled`
 
@@ -209,7 +205,7 @@ Type: `Log` object.
 
 Type: `string`. Default: `info`.
 
-`level` is a log level for Centrifugo logger. Supported values: none, trace, debug, info, warn, error.
+`level` is a log level for Centrifugo logger. Supported values: `none`, `trace`, `debug`, `info`, `warn`, `error`.
 
 ### `log.file`
 
@@ -223,19 +219,19 @@ Type: `Engine` object.
 
 `engine` is a configuration for Centrifugo engine. It's a handy combination of Broker and PresenceManager.
 Currently only memory and redis engines are supported – both implement all the features. For more granular
-control use Broker and PresenceManager options.
+control use `broker` and `presence_manager` options.
 
 ### `engine.type`
 
 Type: `string`. Default: `memory`.
 
-`type` of broker to use. Can be "memory" or "redis" at this point.
+`type` of broker to use. Can be `memory` or `redis` at this point.
 
 ### `engine.redis`
 
 Type: `RedisEngine` object.
 
-`redis` is a configuration for "redis" broker.
+`redis` is a configuration for `redis` broker.
 
 #### `engine.redis.address`
 
@@ -456,7 +452,7 @@ No documentation available.
 Type: `Broker` object.
 
 `broker` allows to configure a message broker to use. Broker is responsible for PUB/SUB functionality
-and channel message history and idempotency cache .
+and channel message history and idempotency cache.
 By default, memory Broker is used. Memory broker is superfast, but it's not distributed and all
 data stored in memory (thus lost after node restart). Redis Broker provides seamless horizontal
 scalability, fault-tolerance, and persistence over Centrifugo restarts. Centrifugo also supports
@@ -1107,57 +1103,57 @@ Type: `ProxyCommonHTTP` object.
 
 No documentation available.
 
-##### `client.proxy.connect.http.tls`
+###### `client.proxy.connect.http.tls`
 
 Type: `TLSConfig` object.
 
-No documentation available.
+`tls` for HTTP client.
 
-##### `client.proxy.connect.http.tls.enabled`
+###### `client.proxy.connect.http.tls.enabled`
 
 Type: `bool`.
 
 `enabled` turns on using TLS.
 
-##### `client.proxy.connect.http.tls.cert_pem`
+###### `client.proxy.connect.http.tls.cert_pem`
 
 Type: `PEMData`.
 
 `cert_pem` is a PEM certificate.
 
-##### `client.proxy.connect.http.tls.key_pem`
+###### `client.proxy.connect.http.tls.key_pem`
 
 Type: `PEMData`.
 
 `key_pem` is a path to a file with key in PEM format.
 
-##### `client.proxy.connect.http.tls.server_ca_pem`
+###### `client.proxy.connect.http.tls.server_ca_pem`
 
 Type: `PEMData`.
 
 `server_ca_pem` is a server root CA certificate in PEM format.
 The client uses this certificate to verify the server's certificate during the TLS handshake.
 
-##### `client.proxy.connect.http.tls.client_ca_pem`
+###### `client.proxy.connect.http.tls.client_ca_pem`
 
 Type: `PEMData`.
 
 `client_ca_pem` is a client CA certificate in PEM format.
 The server uses this certificate to verify the client's certificate during the TLS handshake.
 
-##### `client.proxy.connect.http.tls.insecure_skip_verify`
+###### `client.proxy.connect.http.tls.insecure_skip_verify`
 
 Type: `bool`.
 
 `insecure_skip_verify` turns off server certificate verification.
 
-##### `client.proxy.connect.http.tls.server_name`
+###### `client.proxy.connect.http.tls.server_name`
 
 Type: `string`.
 
 `server_name` is used to verify the hostname on the returned certificates.
 
-##### `client.proxy.connect.http.static_headers`
+###### `client.proxy.connect.http.static_headers`
 
 Type: `MapStringString`. Default: `{}`.
 
@@ -1165,59 +1161,59 @@ Type: `MapStringString`. Default: `{}`.
 headers. Headers received from HTTP client request or metadata from GRPC client request
 both have priority over values set in StaticHttpHeaders map.
 
-##### `client.proxy.connect.http.status_to_code_transforms`
+###### `client.proxy.connect.http.status_to_code_transforms`
 
 Type: `[]HttpStatusToCodeTransform` object. Default: `[]`.
 
-Status transforms allow to map HTTP status codes from proxy to Disconnect or Error messages.
+`status_to_code_transforms` allow to map HTTP status codes from proxy to Disconnect or Error messages.
 
-##### `client.proxy.connect.http.status_to_code_transforms[].status_code`
+###### `client.proxy.connect.http.status_to_code_transforms[].status_code`
 
 Type: `int`.
 
-No documentation available.
+`status_code` is an HTTP status code to transform.
 
-##### `client.proxy.connect.http.status_to_code_transforms[].to_error`
+###### `client.proxy.connect.http.status_to_code_transforms[].to_error`
 
 Type: `TransformError` object.
 
-No documentation available.
+`to_error` is a transform to protocol error.
 
-##### `client.proxy.connect.http.status_to_code_transforms[].to_error.code`
+###### `client.proxy.connect.http.status_to_code_transforms[].to_error.code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` of error.
 
-##### `client.proxy.connect.http.status_to_code_transforms[].to_error.message`
+###### `client.proxy.connect.http.status_to_code_transforms[].to_error.message`
 
 Type: `string`.
 
-No documentation available.
+`message` is a human-readable message of error.
 
-##### `client.proxy.connect.http.status_to_code_transforms[].to_error.temporary`
+###### `client.proxy.connect.http.status_to_code_transforms[].to_error.temporary`
 
 Type: `bool`.
 
-No documentation available.
+`temporary` is a flag to mark error as temporary.
 
-##### `client.proxy.connect.http.status_to_code_transforms[].to_disconnect`
+###### `client.proxy.connect.http.status_to_code_transforms[].to_disconnect`
 
 Type: `TransformDisconnect` object.
 
-No documentation available.
+`to_disconnect` is a transform to protocol disconnect.
 
-##### `client.proxy.connect.http.status_to_code_transforms[].to_disconnect.code`
+###### `client.proxy.connect.http.status_to_code_transforms[].to_disconnect.code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` of disconnect.
 
-##### `client.proxy.connect.http.status_to_code_transforms[].to_disconnect.reason`
+###### `client.proxy.connect.http.status_to_code_transforms[].to_disconnect.reason`
 
 Type: `string`.
 
-No documentation available.
+`reason` is a human-readable reason of disconnect.
 
 ##### `client.proxy.connect.grpc`
 
@@ -1225,69 +1221,69 @@ Type: `ProxyCommonGRPC` object.
 
 No documentation available.
 
-##### `client.proxy.connect.grpc.tls`
+###### `client.proxy.connect.grpc.tls`
 
 Type: `TLSConfig` object.
 
-`tls` is a common configuration for GRPC TLS.
+`tls` is a common configuration for GRPC client TLS.
 
-##### `client.proxy.connect.grpc.tls.enabled`
+###### `client.proxy.connect.grpc.tls.enabled`
 
 Type: `bool`.
 
 `enabled` turns on using TLS.
 
-##### `client.proxy.connect.grpc.tls.cert_pem`
+###### `client.proxy.connect.grpc.tls.cert_pem`
 
 Type: `PEMData`.
 
 `cert_pem` is a PEM certificate.
 
-##### `client.proxy.connect.grpc.tls.key_pem`
+###### `client.proxy.connect.grpc.tls.key_pem`
 
 Type: `PEMData`.
 
 `key_pem` is a path to a file with key in PEM format.
 
-##### `client.proxy.connect.grpc.tls.server_ca_pem`
+###### `client.proxy.connect.grpc.tls.server_ca_pem`
 
 Type: `PEMData`.
 
 `server_ca_pem` is a server root CA certificate in PEM format.
 The client uses this certificate to verify the server's certificate during the TLS handshake.
 
-##### `client.proxy.connect.grpc.tls.client_ca_pem`
+###### `client.proxy.connect.grpc.tls.client_ca_pem`
 
 Type: `PEMData`.
 
 `client_ca_pem` is a client CA certificate in PEM format.
 The server uses this certificate to verify the client's certificate during the TLS handshake.
 
-##### `client.proxy.connect.grpc.tls.insecure_skip_verify`
+###### `client.proxy.connect.grpc.tls.insecure_skip_verify`
 
 Type: `bool`.
 
 `insecure_skip_verify` turns off server certificate verification.
 
-##### `client.proxy.connect.grpc.tls.server_name`
+###### `client.proxy.connect.grpc.tls.server_name`
 
 Type: `string`.
 
 `server_name` is used to verify the hostname on the returned certificates.
 
-##### `client.proxy.connect.grpc.credentials_key`
+###### `client.proxy.connect.grpc.credentials_key`
 
 Type: `string`.
 
 `credentials_key` is a custom key to add into per-RPC credentials.
 
-##### `client.proxy.connect.grpc.credentials_value`
+###### `client.proxy.connect.grpc.credentials_value`
 
 Type: `string`.
 
-GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
+`credentials_value` is a custom value for GrpcCredentialsKey.
 
-##### `client.proxy.connect.grpc.compression`
+###### `client.proxy.connect.grpc.compression`
 
 Type: `bool`.
 
@@ -1347,57 +1343,57 @@ Type: `ProxyCommonHTTP` object.
 
 No documentation available.
 
-##### `client.proxy.refresh.http.tls`
+###### `client.proxy.refresh.http.tls`
 
 Type: `TLSConfig` object.
 
-No documentation available.
+`tls` for HTTP client.
 
-##### `client.proxy.refresh.http.tls.enabled`
+###### `client.proxy.refresh.http.tls.enabled`
 
 Type: `bool`.
 
 `enabled` turns on using TLS.
 
-##### `client.proxy.refresh.http.tls.cert_pem`
+###### `client.proxy.refresh.http.tls.cert_pem`
 
 Type: `PEMData`.
 
 `cert_pem` is a PEM certificate.
 
-##### `client.proxy.refresh.http.tls.key_pem`
+###### `client.proxy.refresh.http.tls.key_pem`
 
 Type: `PEMData`.
 
 `key_pem` is a path to a file with key in PEM format.
 
-##### `client.proxy.refresh.http.tls.server_ca_pem`
+###### `client.proxy.refresh.http.tls.server_ca_pem`
 
 Type: `PEMData`.
 
 `server_ca_pem` is a server root CA certificate in PEM format.
 The client uses this certificate to verify the server's certificate during the TLS handshake.
 
-##### `client.proxy.refresh.http.tls.client_ca_pem`
+###### `client.proxy.refresh.http.tls.client_ca_pem`
 
 Type: `PEMData`.
 
 `client_ca_pem` is a client CA certificate in PEM format.
 The server uses this certificate to verify the client's certificate during the TLS handshake.
 
-##### `client.proxy.refresh.http.tls.insecure_skip_verify`
+###### `client.proxy.refresh.http.tls.insecure_skip_verify`
 
 Type: `bool`.
 
 `insecure_skip_verify` turns off server certificate verification.
 
-##### `client.proxy.refresh.http.tls.server_name`
+###### `client.proxy.refresh.http.tls.server_name`
 
 Type: `string`.
 
 `server_name` is used to verify the hostname on the returned certificates.
 
-##### `client.proxy.refresh.http.static_headers`
+###### `client.proxy.refresh.http.static_headers`
 
 Type: `MapStringString`. Default: `{}`.
 
@@ -1405,59 +1401,59 @@ Type: `MapStringString`. Default: `{}`.
 headers. Headers received from HTTP client request or metadata from GRPC client request
 both have priority over values set in StaticHttpHeaders map.
 
-##### `client.proxy.refresh.http.status_to_code_transforms`
+###### `client.proxy.refresh.http.status_to_code_transforms`
 
 Type: `[]HttpStatusToCodeTransform` object. Default: `[]`.
 
-Status transforms allow to map HTTP status codes from proxy to Disconnect or Error messages.
+`status_to_code_transforms` allow to map HTTP status codes from proxy to Disconnect or Error messages.
 
-##### `client.proxy.refresh.http.status_to_code_transforms[].status_code`
+###### `client.proxy.refresh.http.status_to_code_transforms[].status_code`
 
 Type: `int`.
 
-No documentation available.
+`status_code` is an HTTP status code to transform.
 
-##### `client.proxy.refresh.http.status_to_code_transforms[].to_error`
+###### `client.proxy.refresh.http.status_to_code_transforms[].to_error`
 
 Type: `TransformError` object.
 
-No documentation available.
+`to_error` is a transform to protocol error.
 
-##### `client.proxy.refresh.http.status_to_code_transforms[].to_error.code`
+###### `client.proxy.refresh.http.status_to_code_transforms[].to_error.code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` of error.
 
-##### `client.proxy.refresh.http.status_to_code_transforms[].to_error.message`
+###### `client.proxy.refresh.http.status_to_code_transforms[].to_error.message`
 
 Type: `string`.
 
-No documentation available.
+`message` is a human-readable message of error.
 
-##### `client.proxy.refresh.http.status_to_code_transforms[].to_error.temporary`
+###### `client.proxy.refresh.http.status_to_code_transforms[].to_error.temporary`
 
 Type: `bool`.
 
-No documentation available.
+`temporary` is a flag to mark error as temporary.
 
-##### `client.proxy.refresh.http.status_to_code_transforms[].to_disconnect`
+###### `client.proxy.refresh.http.status_to_code_transforms[].to_disconnect`
 
 Type: `TransformDisconnect` object.
 
-No documentation available.
+`to_disconnect` is a transform to protocol disconnect.
 
-##### `client.proxy.refresh.http.status_to_code_transforms[].to_disconnect.code`
+###### `client.proxy.refresh.http.status_to_code_transforms[].to_disconnect.code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` of disconnect.
 
-##### `client.proxy.refresh.http.status_to_code_transforms[].to_disconnect.reason`
+###### `client.proxy.refresh.http.status_to_code_transforms[].to_disconnect.reason`
 
 Type: `string`.
 
-No documentation available.
+`reason` is a human-readable reason of disconnect.
 
 ##### `client.proxy.refresh.grpc`
 
@@ -1465,69 +1461,69 @@ Type: `ProxyCommonGRPC` object.
 
 No documentation available.
 
-##### `client.proxy.refresh.grpc.tls`
+###### `client.proxy.refresh.grpc.tls`
 
 Type: `TLSConfig` object.
 
-`tls` is a common configuration for GRPC TLS.
+`tls` is a common configuration for GRPC client TLS.
 
-##### `client.proxy.refresh.grpc.tls.enabled`
+###### `client.proxy.refresh.grpc.tls.enabled`
 
 Type: `bool`.
 
 `enabled` turns on using TLS.
 
-##### `client.proxy.refresh.grpc.tls.cert_pem`
+###### `client.proxy.refresh.grpc.tls.cert_pem`
 
 Type: `PEMData`.
 
 `cert_pem` is a PEM certificate.
 
-##### `client.proxy.refresh.grpc.tls.key_pem`
+###### `client.proxy.refresh.grpc.tls.key_pem`
 
 Type: `PEMData`.
 
 `key_pem` is a path to a file with key in PEM format.
 
-##### `client.proxy.refresh.grpc.tls.server_ca_pem`
+###### `client.proxy.refresh.grpc.tls.server_ca_pem`
 
 Type: `PEMData`.
 
 `server_ca_pem` is a server root CA certificate in PEM format.
 The client uses this certificate to verify the server's certificate during the TLS handshake.
 
-##### `client.proxy.refresh.grpc.tls.client_ca_pem`
+###### `client.proxy.refresh.grpc.tls.client_ca_pem`
 
 Type: `PEMData`.
 
 `client_ca_pem` is a client CA certificate in PEM format.
 The server uses this certificate to verify the client's certificate during the TLS handshake.
 
-##### `client.proxy.refresh.grpc.tls.insecure_skip_verify`
+###### `client.proxy.refresh.grpc.tls.insecure_skip_verify`
 
 Type: `bool`.
 
 `insecure_skip_verify` turns off server certificate verification.
 
-##### `client.proxy.refresh.grpc.tls.server_name`
+###### `client.proxy.refresh.grpc.tls.server_name`
 
 Type: `string`.
 
 `server_name` is used to verify the hostname on the returned certificates.
 
-##### `client.proxy.refresh.grpc.credentials_key`
+###### `client.proxy.refresh.grpc.credentials_key`
 
 Type: `string`.
 
 `credentials_key` is a custom key to add into per-RPC credentials.
 
-##### `client.proxy.refresh.grpc.credentials_value`
+###### `client.proxy.refresh.grpc.credentials_value`
 
 Type: `string`.
 
-GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
+`credentials_value` is a custom value for GrpcCredentialsKey.
 
-##### `client.proxy.refresh.grpc.compression`
+###### `client.proxy.refresh.grpc.compression`
 
 Type: `bool`.
 
@@ -1699,109 +1695,111 @@ No documentation available.
 
 Type: `Duration`. Default: `25s`.
 
-No documentation available.
+ExpiredConnectionCloseDelay is a delay before closing connection after it becomes expired.
 
 ### `client.expired_sub_close_delay`
 
 Type: `Duration`. Default: `25s`.
 
-No documentation available.
+`expired_sub_close_delay` is a delay before closing subscription after it becomes expired.
 
 ### `client.stale_close_delay`
 
 Type: `Duration`. Default: `10s`.
 
-No documentation available.
+StaleConnectionCloseDelay is a delay before closing stale connection (which does not authenticate after connecting).
 
 ### `client.channel_limit`
 
 Type: `int`. Default: `128`.
 
-No documentation available.
+`channel_limit` is a maximum number of channels client can subscribe to.
 
 ### `client.queue_max_size`
 
 Type: `int`. Default: `1048576`.
 
-No documentation available.
+`queue_max_size` is a maximum size of message queue for client connection in bytes.
 
 ### `client.presence_update_interval`
 
 Type: `Duration`. Default: `27s`.
 
-No documentation available.
+`presence_update_interval` is a period of time how often to update presence info for subscriptions of connected client.
 
 ### `client.concurrency`
 
 Type: `int`.
 
-No documentation available.
+`concurrency` is a maximum number of concurrent operations for client connection. If not set only one operation can be processed at a time.
 
 ### `client.channel_position_check_delay`
 
 Type: `Duration`. Default: `40s`.
 
-No documentation available.
+`channel_position_check_delay` is a delay between channel position checks for client subscriptions.
 
 ### `client.channel_position_max_time_lag`
 
 Type: `Duration`.
 
-No documentation available.
+`channel_position_max_time_lag` is a maximum allowed time lag for publications for subscribers with positioning on. When
+exceeded we mark connection with insufficient state. By default, not used - i.e. Centrifugo does not take lag into
+account for positioning. See pub_sub_time_lag_seconds as a helpful Prometheus metric.
 
 ### `client.connection_limit`
 
 Type: `int`.
 
-No documentation available.
+`connection_limit` is a maximum number of connections Centrifugo node can accept.
 
 ### `client.user_connection_limit`
 
 Type: `int`.
 
-No documentation available.
+`user_connection_limit` is a maximum number of connections Centrifugo node can accept from a single user.
 
 ### `client.connection_rate_limit`
 
 Type: `int`.
 
-No documentation available.
+`connection_rate_limit` is a maximum number of connections per second Centrifugo node can accept.
 
 ### `client.connect_include_server_time`
 
 Type: `bool`.
 
-No documentation available.
+`connect_include_server_time` allows to include server time in connect reply of client protocol.
 
 ### `client.history_max_publication_limit`
 
 Type: `int`. Default: `300`.
 
-No documentation available.
+`history_max_publication_limit` is a maximum number of publications Centrifugo returns in client history requests.
 
 ### `client.recovery_max_publication_limit`
 
 Type: `int`. Default: `300`.
 
-No documentation available.
+`recovery_max_publication_limit` is a maximum number of publications Centrifugo returns during client recovery.
 
 ### `client.insecure_skip_token_signature_verify`
 
 Type: `bool`.
 
-No documentation available.
+`insecure_skip_token_signature_verify` allows to skip token signature verification. This can be useful for testing purposes.
 
 ### `client.user_id_http_header`
 
 Type: `string`.
 
-No documentation available.
+`user_id_http_header` is a name of HTTP header to extract user ID from. If set Centrifugo will try to extract user ID from this header.
 
 ### `client.insecure`
 
 Type: `bool`.
 
-No documentation available.
+`insecure` allows to disable auth features in client protocol. Obviously - must not be used in production until you know what you do.
 
 ### `client.subscribe_to_user_personal_channel`
 
@@ -1832,44 +1830,44 @@ No documentation available.
 
 Type: `ConnectCodeToUnidirectionalDisconnect` object.
 
-ConnectCodeToDisconnect is a configuration for a feature to transform connect error codes to the disconnect code
+`connect_code_to_unidirectional_disconnect` is a configuration for a feature to transform connect error codes to the disconnect code
 for unidirectional transports.
 
 #### `client.connect_code_to_unidirectional_disconnect.enabled`
 
 Type: `bool`.
 
-No documentation available.
+`enabled` allows to enable the feature.
 
 #### `client.connect_code_to_unidirectional_disconnect.transforms`
 
 Type: `[]UniConnectCodeToDisconnectTransform` object. Default: `[]`.
 
-No documentation available.
+`transforms` is a list of connect error code to disconnect code transforms.
 
 ##### `client.connect_code_to_unidirectional_disconnect.transforms[].code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` is a connect error code.
 
 ##### `client.connect_code_to_unidirectional_disconnect.transforms[].to`
 
 Type: `TransformDisconnect` object.
 
-No documentation available.
+`to` is a disconnect to transform the code to.
 
-##### `client.connect_code_to_unidirectional_disconnect.transforms[].to.code`
+###### `client.connect_code_to_unidirectional_disconnect.transforms[].to.code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` of disconnect.
 
-##### `client.connect_code_to_unidirectional_disconnect.transforms[].to.reason`
+###### `client.connect_code_to_unidirectional_disconnect.transforms[].to.reason`
 
 Type: `string`.
 
-No documentation available.
+`reason` is a human-readable reason of disconnect.
 
 ## `channel`
 
@@ -1931,57 +1929,57 @@ Type: `ProxyCommonHTTP` object.
 
 No documentation available.
 
-##### `channel.proxy.subscribe.http.tls`
+###### `channel.proxy.subscribe.http.tls`
 
 Type: `TLSConfig` object.
 
-No documentation available.
+`tls` for HTTP client.
 
-##### `channel.proxy.subscribe.http.tls.enabled`
+###### `channel.proxy.subscribe.http.tls.enabled`
 
 Type: `bool`.
 
 `enabled` turns on using TLS.
 
-##### `channel.proxy.subscribe.http.tls.cert_pem`
+###### `channel.proxy.subscribe.http.tls.cert_pem`
 
 Type: `PEMData`.
 
 `cert_pem` is a PEM certificate.
 
-##### `channel.proxy.subscribe.http.tls.key_pem`
+###### `channel.proxy.subscribe.http.tls.key_pem`
 
 Type: `PEMData`.
 
 `key_pem` is a path to a file with key in PEM format.
 
-##### `channel.proxy.subscribe.http.tls.server_ca_pem`
+###### `channel.proxy.subscribe.http.tls.server_ca_pem`
 
 Type: `PEMData`.
 
 `server_ca_pem` is a server root CA certificate in PEM format.
 The client uses this certificate to verify the server's certificate during the TLS handshake.
 
-##### `channel.proxy.subscribe.http.tls.client_ca_pem`
+###### `channel.proxy.subscribe.http.tls.client_ca_pem`
 
 Type: `PEMData`.
 
 `client_ca_pem` is a client CA certificate in PEM format.
 The server uses this certificate to verify the client's certificate during the TLS handshake.
 
-##### `channel.proxy.subscribe.http.tls.insecure_skip_verify`
+###### `channel.proxy.subscribe.http.tls.insecure_skip_verify`
 
 Type: `bool`.
 
 `insecure_skip_verify` turns off server certificate verification.
 
-##### `channel.proxy.subscribe.http.tls.server_name`
+###### `channel.proxy.subscribe.http.tls.server_name`
 
 Type: `string`.
 
 `server_name` is used to verify the hostname on the returned certificates.
 
-##### `channel.proxy.subscribe.http.static_headers`
+###### `channel.proxy.subscribe.http.static_headers`
 
 Type: `MapStringString`. Default: `{}`.
 
@@ -1989,59 +1987,59 @@ Type: `MapStringString`. Default: `{}`.
 headers. Headers received from HTTP client request or metadata from GRPC client request
 both have priority over values set in StaticHttpHeaders map.
 
-##### `channel.proxy.subscribe.http.status_to_code_transforms`
+###### `channel.proxy.subscribe.http.status_to_code_transforms`
 
 Type: `[]HttpStatusToCodeTransform` object. Default: `[]`.
 
-Status transforms allow to map HTTP status codes from proxy to Disconnect or Error messages.
+`status_to_code_transforms` allow to map HTTP status codes from proxy to Disconnect or Error messages.
 
-##### `channel.proxy.subscribe.http.status_to_code_transforms[].status_code`
+###### `channel.proxy.subscribe.http.status_to_code_transforms[].status_code`
 
 Type: `int`.
 
-No documentation available.
+`status_code` is an HTTP status code to transform.
 
-##### `channel.proxy.subscribe.http.status_to_code_transforms[].to_error`
+###### `channel.proxy.subscribe.http.status_to_code_transforms[].to_error`
 
 Type: `TransformError` object.
 
-No documentation available.
+`to_error` is a transform to protocol error.
 
-##### `channel.proxy.subscribe.http.status_to_code_transforms[].to_error.code`
+###### `channel.proxy.subscribe.http.status_to_code_transforms[].to_error.code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` of error.
 
-##### `channel.proxy.subscribe.http.status_to_code_transforms[].to_error.message`
+###### `channel.proxy.subscribe.http.status_to_code_transforms[].to_error.message`
 
 Type: `string`.
 
-No documentation available.
+`message` is a human-readable message of error.
 
-##### `channel.proxy.subscribe.http.status_to_code_transforms[].to_error.temporary`
+###### `channel.proxy.subscribe.http.status_to_code_transforms[].to_error.temporary`
 
 Type: `bool`.
 
-No documentation available.
+`temporary` is a flag to mark error as temporary.
 
-##### `channel.proxy.subscribe.http.status_to_code_transforms[].to_disconnect`
+###### `channel.proxy.subscribe.http.status_to_code_transforms[].to_disconnect`
 
 Type: `TransformDisconnect` object.
 
-No documentation available.
+`to_disconnect` is a transform to protocol disconnect.
 
-##### `channel.proxy.subscribe.http.status_to_code_transforms[].to_disconnect.code`
+###### `channel.proxy.subscribe.http.status_to_code_transforms[].to_disconnect.code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` of disconnect.
 
-##### `channel.proxy.subscribe.http.status_to_code_transforms[].to_disconnect.reason`
+###### `channel.proxy.subscribe.http.status_to_code_transforms[].to_disconnect.reason`
 
 Type: `string`.
 
-No documentation available.
+`reason` is a human-readable reason of disconnect.
 
 ##### `channel.proxy.subscribe.grpc`
 
@@ -2049,69 +2047,69 @@ Type: `ProxyCommonGRPC` object.
 
 No documentation available.
 
-##### `channel.proxy.subscribe.grpc.tls`
+###### `channel.proxy.subscribe.grpc.tls`
 
 Type: `TLSConfig` object.
 
-`tls` is a common configuration for GRPC TLS.
+`tls` is a common configuration for GRPC client TLS.
 
-##### `channel.proxy.subscribe.grpc.tls.enabled`
+###### `channel.proxy.subscribe.grpc.tls.enabled`
 
 Type: `bool`.
 
 `enabled` turns on using TLS.
 
-##### `channel.proxy.subscribe.grpc.tls.cert_pem`
+###### `channel.proxy.subscribe.grpc.tls.cert_pem`
 
 Type: `PEMData`.
 
 `cert_pem` is a PEM certificate.
 
-##### `channel.proxy.subscribe.grpc.tls.key_pem`
+###### `channel.proxy.subscribe.grpc.tls.key_pem`
 
 Type: `PEMData`.
 
 `key_pem` is a path to a file with key in PEM format.
 
-##### `channel.proxy.subscribe.grpc.tls.server_ca_pem`
+###### `channel.proxy.subscribe.grpc.tls.server_ca_pem`
 
 Type: `PEMData`.
 
 `server_ca_pem` is a server root CA certificate in PEM format.
 The client uses this certificate to verify the server's certificate during the TLS handshake.
 
-##### `channel.proxy.subscribe.grpc.tls.client_ca_pem`
+###### `channel.proxy.subscribe.grpc.tls.client_ca_pem`
 
 Type: `PEMData`.
 
 `client_ca_pem` is a client CA certificate in PEM format.
 The server uses this certificate to verify the client's certificate during the TLS handshake.
 
-##### `channel.proxy.subscribe.grpc.tls.insecure_skip_verify`
+###### `channel.proxy.subscribe.grpc.tls.insecure_skip_verify`
 
 Type: `bool`.
 
 `insecure_skip_verify` turns off server certificate verification.
 
-##### `channel.proxy.subscribe.grpc.tls.server_name`
+###### `channel.proxy.subscribe.grpc.tls.server_name`
 
 Type: `string`.
 
 `server_name` is used to verify the hostname on the returned certificates.
 
-##### `channel.proxy.subscribe.grpc.credentials_key`
+###### `channel.proxy.subscribe.grpc.credentials_key`
 
 Type: `string`.
 
 `credentials_key` is a custom key to add into per-RPC credentials.
 
-##### `channel.proxy.subscribe.grpc.credentials_value`
+###### `channel.proxy.subscribe.grpc.credentials_value`
 
 Type: `string`.
 
-GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
+`credentials_value` is a custom value for GrpcCredentialsKey.
 
-##### `channel.proxy.subscribe.grpc.compression`
+###### `channel.proxy.subscribe.grpc.compression`
 
 Type: `bool`.
 
@@ -2165,57 +2163,57 @@ Type: `ProxyCommonHTTP` object.
 
 No documentation available.
 
-##### `channel.proxy.publish.http.tls`
+###### `channel.proxy.publish.http.tls`
 
 Type: `TLSConfig` object.
 
-No documentation available.
+`tls` for HTTP client.
 
-##### `channel.proxy.publish.http.tls.enabled`
+###### `channel.proxy.publish.http.tls.enabled`
 
 Type: `bool`.
 
 `enabled` turns on using TLS.
 
-##### `channel.proxy.publish.http.tls.cert_pem`
+###### `channel.proxy.publish.http.tls.cert_pem`
 
 Type: `PEMData`.
 
 `cert_pem` is a PEM certificate.
 
-##### `channel.proxy.publish.http.tls.key_pem`
+###### `channel.proxy.publish.http.tls.key_pem`
 
 Type: `PEMData`.
 
 `key_pem` is a path to a file with key in PEM format.
 
-##### `channel.proxy.publish.http.tls.server_ca_pem`
+###### `channel.proxy.publish.http.tls.server_ca_pem`
 
 Type: `PEMData`.
 
 `server_ca_pem` is a server root CA certificate in PEM format.
 The client uses this certificate to verify the server's certificate during the TLS handshake.
 
-##### `channel.proxy.publish.http.tls.client_ca_pem`
+###### `channel.proxy.publish.http.tls.client_ca_pem`
 
 Type: `PEMData`.
 
 `client_ca_pem` is a client CA certificate in PEM format.
 The server uses this certificate to verify the client's certificate during the TLS handshake.
 
-##### `channel.proxy.publish.http.tls.insecure_skip_verify`
+###### `channel.proxy.publish.http.tls.insecure_skip_verify`
 
 Type: `bool`.
 
 `insecure_skip_verify` turns off server certificate verification.
 
-##### `channel.proxy.publish.http.tls.server_name`
+###### `channel.proxy.publish.http.tls.server_name`
 
 Type: `string`.
 
 `server_name` is used to verify the hostname on the returned certificates.
 
-##### `channel.proxy.publish.http.static_headers`
+###### `channel.proxy.publish.http.static_headers`
 
 Type: `MapStringString`. Default: `{}`.
 
@@ -2223,59 +2221,59 @@ Type: `MapStringString`. Default: `{}`.
 headers. Headers received from HTTP client request or metadata from GRPC client request
 both have priority over values set in StaticHttpHeaders map.
 
-##### `channel.proxy.publish.http.status_to_code_transforms`
+###### `channel.proxy.publish.http.status_to_code_transforms`
 
 Type: `[]HttpStatusToCodeTransform` object. Default: `[]`.
 
-Status transforms allow to map HTTP status codes from proxy to Disconnect or Error messages.
+`status_to_code_transforms` allow to map HTTP status codes from proxy to Disconnect or Error messages.
 
-##### `channel.proxy.publish.http.status_to_code_transforms[].status_code`
+###### `channel.proxy.publish.http.status_to_code_transforms[].status_code`
 
 Type: `int`.
 
-No documentation available.
+`status_code` is an HTTP status code to transform.
 
-##### `channel.proxy.publish.http.status_to_code_transforms[].to_error`
+###### `channel.proxy.publish.http.status_to_code_transforms[].to_error`
 
 Type: `TransformError` object.
 
-No documentation available.
+`to_error` is a transform to protocol error.
 
-##### `channel.proxy.publish.http.status_to_code_transforms[].to_error.code`
+###### `channel.proxy.publish.http.status_to_code_transforms[].to_error.code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` of error.
 
-##### `channel.proxy.publish.http.status_to_code_transforms[].to_error.message`
+###### `channel.proxy.publish.http.status_to_code_transforms[].to_error.message`
 
 Type: `string`.
 
-No documentation available.
+`message` is a human-readable message of error.
 
-##### `channel.proxy.publish.http.status_to_code_transforms[].to_error.temporary`
+###### `channel.proxy.publish.http.status_to_code_transforms[].to_error.temporary`
 
 Type: `bool`.
 
-No documentation available.
+`temporary` is a flag to mark error as temporary.
 
-##### `channel.proxy.publish.http.status_to_code_transforms[].to_disconnect`
+###### `channel.proxy.publish.http.status_to_code_transforms[].to_disconnect`
 
 Type: `TransformDisconnect` object.
 
-No documentation available.
+`to_disconnect` is a transform to protocol disconnect.
 
-##### `channel.proxy.publish.http.status_to_code_transforms[].to_disconnect.code`
+###### `channel.proxy.publish.http.status_to_code_transforms[].to_disconnect.code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` of disconnect.
 
-##### `channel.proxy.publish.http.status_to_code_transforms[].to_disconnect.reason`
+###### `channel.proxy.publish.http.status_to_code_transforms[].to_disconnect.reason`
 
 Type: `string`.
 
-No documentation available.
+`reason` is a human-readable reason of disconnect.
 
 ##### `channel.proxy.publish.grpc`
 
@@ -2283,69 +2281,69 @@ Type: `ProxyCommonGRPC` object.
 
 No documentation available.
 
-##### `channel.proxy.publish.grpc.tls`
+###### `channel.proxy.publish.grpc.tls`
 
 Type: `TLSConfig` object.
 
-`tls` is a common configuration for GRPC TLS.
+`tls` is a common configuration for GRPC client TLS.
 
-##### `channel.proxy.publish.grpc.tls.enabled`
+###### `channel.proxy.publish.grpc.tls.enabled`
 
 Type: `bool`.
 
 `enabled` turns on using TLS.
 
-##### `channel.proxy.publish.grpc.tls.cert_pem`
+###### `channel.proxy.publish.grpc.tls.cert_pem`
 
 Type: `PEMData`.
 
 `cert_pem` is a PEM certificate.
 
-##### `channel.proxy.publish.grpc.tls.key_pem`
+###### `channel.proxy.publish.grpc.tls.key_pem`
 
 Type: `PEMData`.
 
 `key_pem` is a path to a file with key in PEM format.
 
-##### `channel.proxy.publish.grpc.tls.server_ca_pem`
+###### `channel.proxy.publish.grpc.tls.server_ca_pem`
 
 Type: `PEMData`.
 
 `server_ca_pem` is a server root CA certificate in PEM format.
 The client uses this certificate to verify the server's certificate during the TLS handshake.
 
-##### `channel.proxy.publish.grpc.tls.client_ca_pem`
+###### `channel.proxy.publish.grpc.tls.client_ca_pem`
 
 Type: `PEMData`.
 
 `client_ca_pem` is a client CA certificate in PEM format.
 The server uses this certificate to verify the client's certificate during the TLS handshake.
 
-##### `channel.proxy.publish.grpc.tls.insecure_skip_verify`
+###### `channel.proxy.publish.grpc.tls.insecure_skip_verify`
 
 Type: `bool`.
 
 `insecure_skip_verify` turns off server certificate verification.
 
-##### `channel.proxy.publish.grpc.tls.server_name`
+###### `channel.proxy.publish.grpc.tls.server_name`
 
 Type: `string`.
 
 `server_name` is used to verify the hostname on the returned certificates.
 
-##### `channel.proxy.publish.grpc.credentials_key`
+###### `channel.proxy.publish.grpc.credentials_key`
 
 Type: `string`.
 
 `credentials_key` is a custom key to add into per-RPC credentials.
 
-##### `channel.proxy.publish.grpc.credentials_value`
+###### `channel.proxy.publish.grpc.credentials_value`
 
 Type: `string`.
 
-GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
+`credentials_value` is a custom value for GrpcCredentialsKey.
 
-##### `channel.proxy.publish.grpc.compression`
+###### `channel.proxy.publish.grpc.compression`
 
 Type: `bool`.
 
@@ -2399,57 +2397,57 @@ Type: `ProxyCommonHTTP` object.
 
 No documentation available.
 
-##### `channel.proxy.sub_refresh.http.tls`
+###### `channel.proxy.sub_refresh.http.tls`
 
 Type: `TLSConfig` object.
 
-No documentation available.
+`tls` for HTTP client.
 
-##### `channel.proxy.sub_refresh.http.tls.enabled`
+###### `channel.proxy.sub_refresh.http.tls.enabled`
 
 Type: `bool`.
 
 `enabled` turns on using TLS.
 
-##### `channel.proxy.sub_refresh.http.tls.cert_pem`
+###### `channel.proxy.sub_refresh.http.tls.cert_pem`
 
 Type: `PEMData`.
 
 `cert_pem` is a PEM certificate.
 
-##### `channel.proxy.sub_refresh.http.tls.key_pem`
+###### `channel.proxy.sub_refresh.http.tls.key_pem`
 
 Type: `PEMData`.
 
 `key_pem` is a path to a file with key in PEM format.
 
-##### `channel.proxy.sub_refresh.http.tls.server_ca_pem`
+###### `channel.proxy.sub_refresh.http.tls.server_ca_pem`
 
 Type: `PEMData`.
 
 `server_ca_pem` is a server root CA certificate in PEM format.
 The client uses this certificate to verify the server's certificate during the TLS handshake.
 
-##### `channel.proxy.sub_refresh.http.tls.client_ca_pem`
+###### `channel.proxy.sub_refresh.http.tls.client_ca_pem`
 
 Type: `PEMData`.
 
 `client_ca_pem` is a client CA certificate in PEM format.
 The server uses this certificate to verify the client's certificate during the TLS handshake.
 
-##### `channel.proxy.sub_refresh.http.tls.insecure_skip_verify`
+###### `channel.proxy.sub_refresh.http.tls.insecure_skip_verify`
 
 Type: `bool`.
 
 `insecure_skip_verify` turns off server certificate verification.
 
-##### `channel.proxy.sub_refresh.http.tls.server_name`
+###### `channel.proxy.sub_refresh.http.tls.server_name`
 
 Type: `string`.
 
 `server_name` is used to verify the hostname on the returned certificates.
 
-##### `channel.proxy.sub_refresh.http.static_headers`
+###### `channel.proxy.sub_refresh.http.static_headers`
 
 Type: `MapStringString`. Default: `{}`.
 
@@ -2457,59 +2455,59 @@ Type: `MapStringString`. Default: `{}`.
 headers. Headers received from HTTP client request or metadata from GRPC client request
 both have priority over values set in StaticHttpHeaders map.
 
-##### `channel.proxy.sub_refresh.http.status_to_code_transforms`
+###### `channel.proxy.sub_refresh.http.status_to_code_transforms`
 
 Type: `[]HttpStatusToCodeTransform` object. Default: `[]`.
 
-Status transforms allow to map HTTP status codes from proxy to Disconnect or Error messages.
+`status_to_code_transforms` allow to map HTTP status codes from proxy to Disconnect or Error messages.
 
-##### `channel.proxy.sub_refresh.http.status_to_code_transforms[].status_code`
+###### `channel.proxy.sub_refresh.http.status_to_code_transforms[].status_code`
 
 Type: `int`.
 
-No documentation available.
+`status_code` is an HTTP status code to transform.
 
-##### `channel.proxy.sub_refresh.http.status_to_code_transforms[].to_error`
+###### `channel.proxy.sub_refresh.http.status_to_code_transforms[].to_error`
 
 Type: `TransformError` object.
 
-No documentation available.
+`to_error` is a transform to protocol error.
 
-##### `channel.proxy.sub_refresh.http.status_to_code_transforms[].to_error.code`
+###### `channel.proxy.sub_refresh.http.status_to_code_transforms[].to_error.code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` of error.
 
-##### `channel.proxy.sub_refresh.http.status_to_code_transforms[].to_error.message`
+###### `channel.proxy.sub_refresh.http.status_to_code_transforms[].to_error.message`
 
 Type: `string`.
 
-No documentation available.
+`message` is a human-readable message of error.
 
-##### `channel.proxy.sub_refresh.http.status_to_code_transforms[].to_error.temporary`
+###### `channel.proxy.sub_refresh.http.status_to_code_transforms[].to_error.temporary`
 
 Type: `bool`.
 
-No documentation available.
+`temporary` is a flag to mark error as temporary.
 
-##### `channel.proxy.sub_refresh.http.status_to_code_transforms[].to_disconnect`
+###### `channel.proxy.sub_refresh.http.status_to_code_transforms[].to_disconnect`
 
 Type: `TransformDisconnect` object.
 
-No documentation available.
+`to_disconnect` is a transform to protocol disconnect.
 
-##### `channel.proxy.sub_refresh.http.status_to_code_transforms[].to_disconnect.code`
+###### `channel.proxy.sub_refresh.http.status_to_code_transforms[].to_disconnect.code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` of disconnect.
 
-##### `channel.proxy.sub_refresh.http.status_to_code_transforms[].to_disconnect.reason`
+###### `channel.proxy.sub_refresh.http.status_to_code_transforms[].to_disconnect.reason`
 
 Type: `string`.
 
-No documentation available.
+`reason` is a human-readable reason of disconnect.
 
 ##### `channel.proxy.sub_refresh.grpc`
 
@@ -2517,69 +2515,69 @@ Type: `ProxyCommonGRPC` object.
 
 No documentation available.
 
-##### `channel.proxy.sub_refresh.grpc.tls`
+###### `channel.proxy.sub_refresh.grpc.tls`
 
 Type: `TLSConfig` object.
 
-`tls` is a common configuration for GRPC TLS.
+`tls` is a common configuration for GRPC client TLS.
 
-##### `channel.proxy.sub_refresh.grpc.tls.enabled`
+###### `channel.proxy.sub_refresh.grpc.tls.enabled`
 
 Type: `bool`.
 
 `enabled` turns on using TLS.
 
-##### `channel.proxy.sub_refresh.grpc.tls.cert_pem`
+###### `channel.proxy.sub_refresh.grpc.tls.cert_pem`
 
 Type: `PEMData`.
 
 `cert_pem` is a PEM certificate.
 
-##### `channel.proxy.sub_refresh.grpc.tls.key_pem`
+###### `channel.proxy.sub_refresh.grpc.tls.key_pem`
 
 Type: `PEMData`.
 
 `key_pem` is a path to a file with key in PEM format.
 
-##### `channel.proxy.sub_refresh.grpc.tls.server_ca_pem`
+###### `channel.proxy.sub_refresh.grpc.tls.server_ca_pem`
 
 Type: `PEMData`.
 
 `server_ca_pem` is a server root CA certificate in PEM format.
 The client uses this certificate to verify the server's certificate during the TLS handshake.
 
-##### `channel.proxy.sub_refresh.grpc.tls.client_ca_pem`
+###### `channel.proxy.sub_refresh.grpc.tls.client_ca_pem`
 
 Type: `PEMData`.
 
 `client_ca_pem` is a client CA certificate in PEM format.
 The server uses this certificate to verify the client's certificate during the TLS handshake.
 
-##### `channel.proxy.sub_refresh.grpc.tls.insecure_skip_verify`
+###### `channel.proxy.sub_refresh.grpc.tls.insecure_skip_verify`
 
 Type: `bool`.
 
 `insecure_skip_verify` turns off server certificate verification.
 
-##### `channel.proxy.sub_refresh.grpc.tls.server_name`
+###### `channel.proxy.sub_refresh.grpc.tls.server_name`
 
 Type: `string`.
 
 `server_name` is used to verify the hostname on the returned certificates.
 
-##### `channel.proxy.sub_refresh.grpc.credentials_key`
+###### `channel.proxy.sub_refresh.grpc.credentials_key`
 
 Type: `string`.
 
 `credentials_key` is a custom key to add into per-RPC credentials.
 
-##### `channel.proxy.sub_refresh.grpc.credentials_value`
+###### `channel.proxy.sub_refresh.grpc.credentials_value`
 
 Type: `string`.
 
-GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
+`credentials_value` is a custom value for GrpcCredentialsKey.
 
-##### `channel.proxy.sub_refresh.grpc.compression`
+###### `channel.proxy.sub_refresh.grpc.compression`
 
 Type: `bool`.
 
@@ -2633,57 +2631,57 @@ Type: `ProxyCommonHTTP` object.
 
 No documentation available.
 
-##### `channel.proxy.subscribe_stream.http.tls`
+###### `channel.proxy.subscribe_stream.http.tls`
 
 Type: `TLSConfig` object.
 
-No documentation available.
+`tls` for HTTP client.
 
-##### `channel.proxy.subscribe_stream.http.tls.enabled`
+###### `channel.proxy.subscribe_stream.http.tls.enabled`
 
 Type: `bool`.
 
 `enabled` turns on using TLS.
 
-##### `channel.proxy.subscribe_stream.http.tls.cert_pem`
+###### `channel.proxy.subscribe_stream.http.tls.cert_pem`
 
 Type: `PEMData`.
 
 `cert_pem` is a PEM certificate.
 
-##### `channel.proxy.subscribe_stream.http.tls.key_pem`
+###### `channel.proxy.subscribe_stream.http.tls.key_pem`
 
 Type: `PEMData`.
 
 `key_pem` is a path to a file with key in PEM format.
 
-##### `channel.proxy.subscribe_stream.http.tls.server_ca_pem`
+###### `channel.proxy.subscribe_stream.http.tls.server_ca_pem`
 
 Type: `PEMData`.
 
 `server_ca_pem` is a server root CA certificate in PEM format.
 The client uses this certificate to verify the server's certificate during the TLS handshake.
 
-##### `channel.proxy.subscribe_stream.http.tls.client_ca_pem`
+###### `channel.proxy.subscribe_stream.http.tls.client_ca_pem`
 
 Type: `PEMData`.
 
 `client_ca_pem` is a client CA certificate in PEM format.
 The server uses this certificate to verify the client's certificate during the TLS handshake.
 
-##### `channel.proxy.subscribe_stream.http.tls.insecure_skip_verify`
+###### `channel.proxy.subscribe_stream.http.tls.insecure_skip_verify`
 
 Type: `bool`.
 
 `insecure_skip_verify` turns off server certificate verification.
 
-##### `channel.proxy.subscribe_stream.http.tls.server_name`
+###### `channel.proxy.subscribe_stream.http.tls.server_name`
 
 Type: `string`.
 
 `server_name` is used to verify the hostname on the returned certificates.
 
-##### `channel.proxy.subscribe_stream.http.static_headers`
+###### `channel.proxy.subscribe_stream.http.static_headers`
 
 Type: `MapStringString`. Default: `{}`.
 
@@ -2691,59 +2689,59 @@ Type: `MapStringString`. Default: `{}`.
 headers. Headers received from HTTP client request or metadata from GRPC client request
 both have priority over values set in StaticHttpHeaders map.
 
-##### `channel.proxy.subscribe_stream.http.status_to_code_transforms`
+###### `channel.proxy.subscribe_stream.http.status_to_code_transforms`
 
 Type: `[]HttpStatusToCodeTransform` object. Default: `[]`.
 
-Status transforms allow to map HTTP status codes from proxy to Disconnect or Error messages.
+`status_to_code_transforms` allow to map HTTP status codes from proxy to Disconnect or Error messages.
 
-##### `channel.proxy.subscribe_stream.http.status_to_code_transforms[].status_code`
+###### `channel.proxy.subscribe_stream.http.status_to_code_transforms[].status_code`
 
 Type: `int`.
 
-No documentation available.
+`status_code` is an HTTP status code to transform.
 
-##### `channel.proxy.subscribe_stream.http.status_to_code_transforms[].to_error`
+###### `channel.proxy.subscribe_stream.http.status_to_code_transforms[].to_error`
 
 Type: `TransformError` object.
 
-No documentation available.
+`to_error` is a transform to protocol error.
 
-##### `channel.proxy.subscribe_stream.http.status_to_code_transforms[].to_error.code`
+###### `channel.proxy.subscribe_stream.http.status_to_code_transforms[].to_error.code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` of error.
 
-##### `channel.proxy.subscribe_stream.http.status_to_code_transforms[].to_error.message`
+###### `channel.proxy.subscribe_stream.http.status_to_code_transforms[].to_error.message`
 
 Type: `string`.
 
-No documentation available.
+`message` is a human-readable message of error.
 
-##### `channel.proxy.subscribe_stream.http.status_to_code_transforms[].to_error.temporary`
+###### `channel.proxy.subscribe_stream.http.status_to_code_transforms[].to_error.temporary`
 
 Type: `bool`.
 
-No documentation available.
+`temporary` is a flag to mark error as temporary.
 
-##### `channel.proxy.subscribe_stream.http.status_to_code_transforms[].to_disconnect`
+###### `channel.proxy.subscribe_stream.http.status_to_code_transforms[].to_disconnect`
 
 Type: `TransformDisconnect` object.
 
-No documentation available.
+`to_disconnect` is a transform to protocol disconnect.
 
-##### `channel.proxy.subscribe_stream.http.status_to_code_transforms[].to_disconnect.code`
+###### `channel.proxy.subscribe_stream.http.status_to_code_transforms[].to_disconnect.code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` of disconnect.
 
-##### `channel.proxy.subscribe_stream.http.status_to_code_transforms[].to_disconnect.reason`
+###### `channel.proxy.subscribe_stream.http.status_to_code_transforms[].to_disconnect.reason`
 
 Type: `string`.
 
-No documentation available.
+`reason` is a human-readable reason of disconnect.
 
 ##### `channel.proxy.subscribe_stream.grpc`
 
@@ -2751,69 +2749,69 @@ Type: `ProxyCommonGRPC` object.
 
 No documentation available.
 
-##### `channel.proxy.subscribe_stream.grpc.tls`
+###### `channel.proxy.subscribe_stream.grpc.tls`
 
 Type: `TLSConfig` object.
 
-`tls` is a common configuration for GRPC TLS.
+`tls` is a common configuration for GRPC client TLS.
 
-##### `channel.proxy.subscribe_stream.grpc.tls.enabled`
+###### `channel.proxy.subscribe_stream.grpc.tls.enabled`
 
 Type: `bool`.
 
 `enabled` turns on using TLS.
 
-##### `channel.proxy.subscribe_stream.grpc.tls.cert_pem`
+###### `channel.proxy.subscribe_stream.grpc.tls.cert_pem`
 
 Type: `PEMData`.
 
 `cert_pem` is a PEM certificate.
 
-##### `channel.proxy.subscribe_stream.grpc.tls.key_pem`
+###### `channel.proxy.subscribe_stream.grpc.tls.key_pem`
 
 Type: `PEMData`.
 
 `key_pem` is a path to a file with key in PEM format.
 
-##### `channel.proxy.subscribe_stream.grpc.tls.server_ca_pem`
+###### `channel.proxy.subscribe_stream.grpc.tls.server_ca_pem`
 
 Type: `PEMData`.
 
 `server_ca_pem` is a server root CA certificate in PEM format.
 The client uses this certificate to verify the server's certificate during the TLS handshake.
 
-##### `channel.proxy.subscribe_stream.grpc.tls.client_ca_pem`
+###### `channel.proxy.subscribe_stream.grpc.tls.client_ca_pem`
 
 Type: `PEMData`.
 
 `client_ca_pem` is a client CA certificate in PEM format.
 The server uses this certificate to verify the client's certificate during the TLS handshake.
 
-##### `channel.proxy.subscribe_stream.grpc.tls.insecure_skip_verify`
+###### `channel.proxy.subscribe_stream.grpc.tls.insecure_skip_verify`
 
 Type: `bool`.
 
 `insecure_skip_verify` turns off server certificate verification.
 
-##### `channel.proxy.subscribe_stream.grpc.tls.server_name`
+###### `channel.proxy.subscribe_stream.grpc.tls.server_name`
 
 Type: `string`.
 
 `server_name` is used to verify the hostname on the returned certificates.
 
-##### `channel.proxy.subscribe_stream.grpc.credentials_key`
+###### `channel.proxy.subscribe_stream.grpc.credentials_key`
 
 Type: `string`.
 
 `credentials_key` is a custom key to add into per-RPC credentials.
 
-##### `channel.proxy.subscribe_stream.grpc.credentials_value`
+###### `channel.proxy.subscribe_stream.grpc.credentials_value`
 
 Type: `string`.
 
-GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
+`credentials_value` is a custom value for GrpcCredentialsKey.
 
-##### `channel.proxy.subscribe_stream.grpc.compression`
+###### `channel.proxy.subscribe_stream.grpc.compression`
 
 Type: `bool`.
 
@@ -3378,47 +3376,47 @@ No documentation available.
 
 Type: `TLSConfig` object.
 
-No documentation available.
+`tls` for HTTP client.
 
-##### `rpc.proxy.http.tls.enabled`
+###### `rpc.proxy.http.tls.enabled`
 
 Type: `bool`.
 
 `enabled` turns on using TLS.
 
-##### `rpc.proxy.http.tls.cert_pem`
+###### `rpc.proxy.http.tls.cert_pem`
 
 Type: `PEMData`.
 
 `cert_pem` is a PEM certificate.
 
-##### `rpc.proxy.http.tls.key_pem`
+###### `rpc.proxy.http.tls.key_pem`
 
 Type: `PEMData`.
 
 `key_pem` is a path to a file with key in PEM format.
 
-##### `rpc.proxy.http.tls.server_ca_pem`
+###### `rpc.proxy.http.tls.server_ca_pem`
 
 Type: `PEMData`.
 
 `server_ca_pem` is a server root CA certificate in PEM format.
 The client uses this certificate to verify the server's certificate during the TLS handshake.
 
-##### `rpc.proxy.http.tls.client_ca_pem`
+###### `rpc.proxy.http.tls.client_ca_pem`
 
 Type: `PEMData`.
 
 `client_ca_pem` is a client CA certificate in PEM format.
 The server uses this certificate to verify the client's certificate during the TLS handshake.
 
-##### `rpc.proxy.http.tls.insecure_skip_verify`
+###### `rpc.proxy.http.tls.insecure_skip_verify`
 
 Type: `bool`.
 
 `insecure_skip_verify` turns off server certificate verification.
 
-##### `rpc.proxy.http.tls.server_name`
+###### `rpc.proxy.http.tls.server_name`
 
 Type: `string`.
 
@@ -3436,55 +3434,55 @@ both have priority over values set in StaticHttpHeaders map.
 
 Type: `[]HttpStatusToCodeTransform` object. Default: `[]`.
 
-Status transforms allow to map HTTP status codes from proxy to Disconnect or Error messages.
+`status_to_code_transforms` allow to map HTTP status codes from proxy to Disconnect or Error messages.
 
-##### `rpc.proxy.http.status_to_code_transforms[].status_code`
+###### `rpc.proxy.http.status_to_code_transforms[].status_code`
 
 Type: `int`.
 
-No documentation available.
+`status_code` is an HTTP status code to transform.
 
-##### `rpc.proxy.http.status_to_code_transforms[].to_error`
+###### `rpc.proxy.http.status_to_code_transforms[].to_error`
 
 Type: `TransformError` object.
 
-No documentation available.
+`to_error` is a transform to protocol error.
 
-##### `rpc.proxy.http.status_to_code_transforms[].to_error.code`
+###### `rpc.proxy.http.status_to_code_transforms[].to_error.code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` of error.
 
-##### `rpc.proxy.http.status_to_code_transforms[].to_error.message`
+###### `rpc.proxy.http.status_to_code_transforms[].to_error.message`
 
 Type: `string`.
 
-No documentation available.
+`message` is a human-readable message of error.
 
-##### `rpc.proxy.http.status_to_code_transforms[].to_error.temporary`
+###### `rpc.proxy.http.status_to_code_transforms[].to_error.temporary`
 
 Type: `bool`.
 
-No documentation available.
+`temporary` is a flag to mark error as temporary.
 
-##### `rpc.proxy.http.status_to_code_transforms[].to_disconnect`
+###### `rpc.proxy.http.status_to_code_transforms[].to_disconnect`
 
 Type: `TransformDisconnect` object.
 
-No documentation available.
+`to_disconnect` is a transform to protocol disconnect.
 
-##### `rpc.proxy.http.status_to_code_transforms[].to_disconnect.code`
+###### `rpc.proxy.http.status_to_code_transforms[].to_disconnect.code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` of disconnect.
 
-##### `rpc.proxy.http.status_to_code_transforms[].to_disconnect.reason`
+###### `rpc.proxy.http.status_to_code_transforms[].to_disconnect.reason`
 
 Type: `string`.
 
-No documentation available.
+`reason` is a human-readable reason of disconnect.
 
 #### `rpc.proxy.grpc`
 
@@ -3496,47 +3494,47 @@ No documentation available.
 
 Type: `TLSConfig` object.
 
-`tls` is a common configuration for GRPC TLS.
+`tls` is a common configuration for GRPC client TLS.
 
-##### `rpc.proxy.grpc.tls.enabled`
+###### `rpc.proxy.grpc.tls.enabled`
 
 Type: `bool`.
 
 `enabled` turns on using TLS.
 
-##### `rpc.proxy.grpc.tls.cert_pem`
+###### `rpc.proxy.grpc.tls.cert_pem`
 
 Type: `PEMData`.
 
 `cert_pem` is a PEM certificate.
 
-##### `rpc.proxy.grpc.tls.key_pem`
+###### `rpc.proxy.grpc.tls.key_pem`
 
 Type: `PEMData`.
 
 `key_pem` is a path to a file with key in PEM format.
 
-##### `rpc.proxy.grpc.tls.server_ca_pem`
+###### `rpc.proxy.grpc.tls.server_ca_pem`
 
 Type: `PEMData`.
 
 `server_ca_pem` is a server root CA certificate in PEM format.
 The client uses this certificate to verify the server's certificate during the TLS handshake.
 
-##### `rpc.proxy.grpc.tls.client_ca_pem`
+###### `rpc.proxy.grpc.tls.client_ca_pem`
 
 Type: `PEMData`.
 
 `client_ca_pem` is a client CA certificate in PEM format.
 The server uses this certificate to verify the client's certificate during the TLS handshake.
 
-##### `rpc.proxy.grpc.tls.insecure_skip_verify`
+###### `rpc.proxy.grpc.tls.insecure_skip_verify`
 
 Type: `bool`.
 
 `insecure_skip_verify` turns off server certificate verification.
 
-##### `rpc.proxy.grpc.tls.server_name`
+###### `rpc.proxy.grpc.tls.server_name`
 
 Type: `string`.
 
@@ -3552,7 +3550,7 @@ Type: `string`.
 
 Type: `string`.
 
-GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
+`credentials_value` is a custom value for GrpcCredentialsKey.
 
 ##### `rpc.proxy.grpc.compression`
 
@@ -3686,7 +3684,7 @@ No documentation available.
 
 Type: `TLSConfig` object.
 
-No documentation available.
+`tls` for HTTP client.
 
 ##### `proxies[].http.tls.enabled`
 
@@ -3744,55 +3742,55 @@ both have priority over values set in StaticHttpHeaders map.
 
 Type: `[]HttpStatusToCodeTransform` object. Default: `[]`.
 
-Status transforms allow to map HTTP status codes from proxy to Disconnect or Error messages.
+`status_to_code_transforms` allow to map HTTP status codes from proxy to Disconnect or Error messages.
 
 ##### `proxies[].http.status_to_code_transforms[].status_code`
 
 Type: `int`.
 
-No documentation available.
+`status_code` is an HTTP status code to transform.
 
 ##### `proxies[].http.status_to_code_transforms[].to_error`
 
 Type: `TransformError` object.
 
-No documentation available.
+`to_error` is a transform to protocol error.
 
-##### `proxies[].http.status_to_code_transforms[].to_error.code`
+###### `proxies[].http.status_to_code_transforms[].to_error.code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` of error.
 
-##### `proxies[].http.status_to_code_transforms[].to_error.message`
+###### `proxies[].http.status_to_code_transforms[].to_error.message`
 
 Type: `string`.
 
-No documentation available.
+`message` is a human-readable message of error.
 
-##### `proxies[].http.status_to_code_transforms[].to_error.temporary`
+###### `proxies[].http.status_to_code_transforms[].to_error.temporary`
 
 Type: `bool`.
 
-No documentation available.
+`temporary` is a flag to mark error as temporary.
 
 ##### `proxies[].http.status_to_code_transforms[].to_disconnect`
 
 Type: `TransformDisconnect` object.
 
-No documentation available.
+`to_disconnect` is a transform to protocol disconnect.
 
-##### `proxies[].http.status_to_code_transforms[].to_disconnect.code`
+###### `proxies[].http.status_to_code_transforms[].to_disconnect.code`
 
 Type: `uint32`.
 
-No documentation available.
+`code` of disconnect.
 
-##### `proxies[].http.status_to_code_transforms[].to_disconnect.reason`
+###### `proxies[].http.status_to_code_transforms[].to_disconnect.reason`
 
 Type: `string`.
 
-No documentation available.
+`reason` is a human-readable reason of disconnect.
 
 ### `proxies[].grpc`
 
@@ -3804,7 +3802,7 @@ No documentation available.
 
 Type: `TLSConfig` object.
 
-`tls` is a common configuration for GRPC TLS.
+`tls` is a common configuration for GRPC client TLS.
 
 ##### `proxies[].grpc.tls.enabled`
 
@@ -3860,7 +3858,7 @@ Type: `string`.
 
 Type: `string`.
 
-GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
+`credentials_value` is a custom value for GrpcCredentialsKey.
 
 #### `proxies[].grpc.compression`
 
@@ -4466,13 +4464,13 @@ Type: `TransformedConnectErrorHttpResponse` object.
 
 No documentation available.
 
-##### `uni_sse.connect_code_to_http_response.transforms[].to.status_code`
+###### `uni_sse.connect_code_to_http_response.transforms[].to.status_code`
 
 Type: `int`.
 
 No documentation available.
 
-##### `uni_sse.connect_code_to_http_response.transforms[].to.body`
+###### `uni_sse.connect_code_to_http_response.transforms[].to.body`
 
 Type: `string`.
 
@@ -4532,13 +4530,13 @@ Type: `TransformedConnectErrorHttpResponse` object.
 
 No documentation available.
 
-##### `uni_http_stream.connect_code_to_http_response.transforms[].to.status_code`
+###### `uni_http_stream.connect_code_to_http_response.transforms[].to.status_code`
 
 Type: `int`.
 
 No documentation available.
 
-##### `uni_http_stream.connect_code_to_http_response.transforms[].to.body`
+###### `uni_http_stream.connect_code_to_http_response.transforms[].to.body`
 
 Type: `string`.
 

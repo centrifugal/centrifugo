@@ -177,8 +177,8 @@ func DocumentStruct(cfg interface{}, parentKey string, sb *strings.Builder, comm
 		fieldLevel = level
 	} else {
 		fieldLevel = level + 1
-		if fieldLevel > 5 {
-			fieldLevel = 5
+		if fieldLevel > 6 {
+			fieldLevel = 6
 		}
 	}
 
@@ -306,14 +306,14 @@ func CreateMarkdownDocumentationWithComments(cfg interface{}, packageDirs []stri
 		t = t.Elem()
 	}
 	topFullType := getFullTypeName(t)
-	header := "Centrifugo configuration options"
-	// Print the root config header using level 1.
-	sb.WriteString(fmt.Sprintf("%s %s\n\n", strings.Repeat("#", 1), header))
-	if comment, ok := comments[topFullType]; ok && comment != "" {
-		sb.WriteString(comment + "\n\n")
-	} else {
-		sb.WriteString("No documentation available.\n\n")
-	}
+	//header := "Centrifugo configuration options"
+	//// Print the root config header using level 1.
+	//sb.WriteString(fmt.Sprintf("%s %s\n\n", strings.Repeat("#", 1), header))
+	//if comment, ok := comments[topFullType]; ok && comment != "" {
+	//	sb.WriteString(comment + "\n\n")
+	//} else {
+	//	sb.WriteString("No documentation available.\n\n")
+	//}
 	// Document the fields of the root config.
 	DocumentStruct(cfg, "", &sb, comments, topFullType, 2)
 	return os.WriteFile(outputPath, []byte(sb.String()), 0644)

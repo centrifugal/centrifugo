@@ -26,10 +26,10 @@ type Config struct {
 	Log configtypes.Log `mapstructure:"log" json:"log" envconfig:"log" toml:"log" yaml:"log"`
 	// Engine is a configuration for Centrifugo engine. It's a handy combination of Broker and PresenceManager.
 	// Currently only memory and redis engines are supported – both implement all the features. For more granular
-	// control use Broker and PresenceManager options.
+	// control use `broker` and `presence_manager` options.
 	Engine configtypes.Engine `mapstructure:"engine" json:"engine" envconfig:"engine" toml:"engine" yaml:"engine"`
 	// Broker allows to configure a message broker to use. Broker is responsible for PUB/SUB functionality
-	// and channel message history and idempotency cache .
+	// and channel message history and idempotency cache.
 	// By default, memory Broker is used. Memory broker is superfast, but it's not distributed and all
 	// data stored in memory (thus lost after node restart). Redis Broker provides seamless horizontal
 	// scalability, fault-tolerance, and persistence over Centrifugo restarts. Centrifugo also supports

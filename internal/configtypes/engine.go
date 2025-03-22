@@ -1,9 +1,9 @@
 package configtypes
 
 type Engine struct {
-	// Type of broker to use. Can be "memory" or "redis" at this point.
+	// Type of broker to use. Can be `memory` or `redis` at this point.
 	Type string `mapstructure:"type" default:"memory" json:"type" envconfig:"type" yaml:"type" toml:"type"`
-	// Redis is a configuration for "redis" broker.
+	// Redis is a configuration for `redis` broker.
 	Redis RedisEngine `mapstructure:"redis" json:"redis" envconfig:"redis" toml:"redis" yaml:"redis"`
 }
 

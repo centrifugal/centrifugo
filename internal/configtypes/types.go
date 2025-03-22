@@ -29,13 +29,13 @@ type HTTPServer struct {
 	TLSExternal bool `mapstructure:"tls_external" json:"tls_external" envconfig:"tls_external" toml:"tls_external" yaml:"tls_external"`
 	// InternalTLS is a custom configuration for internal HTTP endpoints. If not set InternalTLS will be the same as TLS.
 	InternalTLS TLSConfig `mapstructure:"internal_tls" json:"internal_tls" envconfig:"internal_tls" toml:"internal_tls" yaml:"internal_tls"`
-	// HTTP3 allows enabling HTTP/3 support. EXPERIMENTAL!
+	// HTTP3 allows enabling HTTP/3 support. EXPERIMENTAL.
 	HTTP3 HTTP3 `mapstructure:"http3" json:"http3" envconfig:"http3" toml:"http3" yaml:"http3"`
 }
 
 // Log configuration.
 type Log struct {
-	// Level is a log level for Centrifugo logger. Supported values: none, trace, debug, info, warn, error.
+	// Level is a log level for Centrifugo logger. Supported values: `none`, `trace`, `debug`, `info`, `warn`, `error`.
 	Level string `mapstructure:"level" default:"info" json:"level" envconfig:"level" toml:"level" yaml:"level"`
 	// File is a path to log file. If not set logs go to stdout.
 	File string `mapstructure:"file" json:"file" envconfig:"file" toml:"file" yaml:"file"`
@@ -346,31 +346,48 @@ type Client struct {
 	DisallowAnonymousConnectionTokens bool `mapstructure:"disallow_anonymous_connection_tokens" json:"disallow_anonymous_connection_tokens" envconfig:"disallow_anonymous_connection_tokens" yaml:"disallow_anonymous_connection_tokens" toml:"disallow_anonymous_connection_tokens"`
 	// PingPong allows configuring application level ping-pong behavior for client connections.
 	PingPong `mapstructure:",squash" yaml:",inline"`
-
-	ExpiredCloseDelay                Duration `mapstructure:"expired_close_delay" json:"expired_close_delay" envconfig:"expired_close_delay" default:"25s" yaml:"expired_close_delay" toml:"expired_close_delay"`
-	ExpiredSubCloseDelay             Duration `mapstructure:"expired_sub_close_delay" json:"expired_sub_close_delay" envconfig:"expired_sub_close_delay" default:"25s" yaml:"expired_sub_close_delay" toml:"expired_sub_close_delay"`
-	StaleCloseDelay                  Duration `mapstructure:"stale_close_delay" json:"stale_close_delay" envconfig:"stale_close_delay" default:"10s" yaml:"stale_close_delay" toml:"stale_close_delay"`
-	ChannelLimit                     int      `mapstructure:"channel_limit" json:"channel_limit" envconfig:"channel_limit" default:"128" yaml:"channel_limit" toml:"channel_limit"`
-	QueueMaxSize                     int      `mapstructure:"queue_max_size" json:"queue_max_size" envconfig:"queue_max_size" default:"1048576" yaml:"queue_max_size" toml:"queue_max_size"`
-	PresenceUpdateInterval           Duration `mapstructure:"presence_update_interval" json:"presence_update_interval" envconfig:"presence_update_interval" default:"27s" yaml:"presence_update_interval" toml:"presence_update_interval"`
-	Concurrency                      int      `mapstructure:"concurrency" json:"concurrency" envconfig:"concurrency" yaml:"concurrency" toml:"concurrency"`
-	ChannelPositionCheckDelay        Duration `mapstructure:"channel_position_check_delay" json:"channel_position_check_delay" envconfig:"channel_position_check_delay" default:"40s" yaml:"channel_position_check_delay" toml:"channel_position_check_delay"`
-	ChannelPositionMaxTimeLag        Duration `mapstructure:"channel_position_max_time_lag" json:"channel_position_max_time_lag" envconfig:"channel_position_max_time_lag" yaml:"channel_position_max_time_lag" toml:"channel_position_max_time_lag"`
-	ConnectionLimit                  int      `mapstructure:"connection_limit" json:"connection_limit" envconfig:"connection_limit" yaml:"connection_limit" toml:"connection_limit"`
-	UserConnectionLimit              int      `mapstructure:"user_connection_limit" json:"user_connection_limit" envconfig:"user_connection_limit" yaml:"user_connection_limit" toml:"user_connection_limit"`
-	ConnectionRateLimit              int      `mapstructure:"connection_rate_limit" json:"connection_rate_limit" envconfig:"connection_rate_limit" yaml:"connection_rate_limit" toml:"connection_rate_limit"`
-	ConnectIncludeServerTime         bool     `mapstructure:"connect_include_server_time" json:"connect_include_server_time" envconfig:"connect_include_server_time" yaml:"connect_include_server_time" toml:"connect_include_server_time"`
-	HistoryMaxPublicationLimit       int      `mapstructure:"history_max_publication_limit" json:"history_max_publication_limit" envconfig:"history_max_publication_limit" default:"300" yaml:"history_max_publication_limit" toml:"history_max_publication_limit"`
-	RecoveryMaxPublicationLimit      int      `mapstructure:"recovery_max_publication_limit" json:"recovery_max_publication_limit" envconfig:"recovery_max_publication_limit" default:"300" yaml:"recovery_max_publication_limit" toml:"recovery_max_publication_limit"`
-	InsecureSkipTokenSignatureVerify bool     `mapstructure:"insecure_skip_token_signature_verify" json:"insecure_skip_token_signature_verify" envconfig:"insecure_skip_token_signature_verify" yaml:"insecure_skip_token_signature_verify" toml:"insecure_skip_token_signature_verify"`
-	UserIDHTTPHeader                 string   `mapstructure:"user_id_http_header" json:"user_id_http_header" envconfig:"user_id_http_header" yaml:"user_id_http_header" toml:"user_id_http_header"`
-	Insecure                         bool     `mapstructure:"insecure" json:"insecure" envconfig:"insecure" yaml:"insecure" toml:"insecure"`
-
+	// ExpiredConnectionCloseDelay is a delay before closing connection after it becomes expired.
+	ExpiredCloseDelay Duration `mapstructure:"expired_close_delay" json:"expired_close_delay" envconfig:"expired_close_delay" default:"25s" yaml:"expired_close_delay" toml:"expired_close_delay"`
+	// ExpiredSubCloseDelay is a delay before closing subscription after it becomes expired.
+	ExpiredSubCloseDelay Duration `mapstructure:"expired_sub_close_delay" json:"expired_sub_close_delay" envconfig:"expired_sub_close_delay" default:"25s" yaml:"expired_sub_close_delay" toml:"expired_sub_close_delay"`
+	// StaleConnectionCloseDelay is a delay before closing stale connection (which does not authenticate after connecting).
+	StaleCloseDelay Duration `mapstructure:"stale_close_delay" json:"stale_close_delay" envconfig:"stale_close_delay" default:"10s" yaml:"stale_close_delay" toml:"stale_close_delay"`
+	// ChannelLimit is a maximum number of channels client can subscribe to.
+	ChannelLimit int `mapstructure:"channel_limit" json:"channel_limit" envconfig:"channel_limit" default:"128" yaml:"channel_limit" toml:"channel_limit"`
+	// QueueMaxSize is a maximum size of message queue for client connection in bytes.
+	QueueMaxSize int `mapstructure:"queue_max_size" json:"queue_max_size" envconfig:"queue_max_size" default:"1048576" yaml:"queue_max_size" toml:"queue_max_size"`
+	// PresenceUpdateInterval is a period of time how often to update presence info for subscriptions of connected client.
+	PresenceUpdateInterval Duration `mapstructure:"presence_update_interval" json:"presence_update_interval" envconfig:"presence_update_interval" default:"27s" yaml:"presence_update_interval" toml:"presence_update_interval"`
+	// Concurrency is a maximum number of concurrent operations for client connection. If not set only one operation can be processed at a time.
+	Concurrency int `mapstructure:"concurrency" json:"concurrency" envconfig:"concurrency" yaml:"concurrency" toml:"concurrency"`
+	// ChannelPositionCheckDelay is a delay between channel position checks for client subscriptions.
+	ChannelPositionCheckDelay Duration `mapstructure:"channel_position_check_delay" json:"channel_position_check_delay" envconfig:"channel_position_check_delay" default:"40s" yaml:"channel_position_check_delay" toml:"channel_position_check_delay"`
+	// ChannelPositionMaxTimeLag is a maximum allowed time lag for publications for subscribers with positioning on. When
+	// exceeded we mark connection with insufficient state. By default, not used - i.e. Centrifugo does not take lag into
+	// account for positioning. See pub_sub_time_lag_seconds as a helpful Prometheus metric.
+	ChannelPositionMaxTimeLag Duration `mapstructure:"channel_position_max_time_lag" json:"channel_position_max_time_lag" envconfig:"channel_position_max_time_lag" yaml:"channel_position_max_time_lag" toml:"channel_position_max_time_lag"`
+	// ConnectionLimit is a maximum number of connections Centrifugo node can accept.
+	ConnectionLimit int `mapstructure:"connection_limit" json:"connection_limit" envconfig:"connection_limit" yaml:"connection_limit" toml:"connection_limit"`
+	// UserConnectionLimit is a maximum number of connections Centrifugo node can accept from a single user.
+	UserConnectionLimit int `mapstructure:"user_connection_limit" json:"user_connection_limit" envconfig:"user_connection_limit" yaml:"user_connection_limit" toml:"user_connection_limit"`
+	// ConnectionRateLimit is a maximum number of connections per second Centrifugo node can accept.
+	ConnectionRateLimit int `mapstructure:"connection_rate_limit" json:"connection_rate_limit" envconfig:"connection_rate_limit" yaml:"connection_rate_limit" toml:"connection_rate_limit"`
+	// ConnectIncludeServerTime allows to include server time in connect reply of client protocol.
+	ConnectIncludeServerTime bool `mapstructure:"connect_include_server_time" json:"connect_include_server_time" envconfig:"connect_include_server_time" yaml:"connect_include_server_time" toml:"connect_include_server_time"`
+	// HistoryMaxPublicationLimit is a maximum number of publications Centrifugo returns in client history requests.
+	HistoryMaxPublicationLimit int `mapstructure:"history_max_publication_limit" json:"history_max_publication_limit" envconfig:"history_max_publication_limit" default:"300" yaml:"history_max_publication_limit" toml:"history_max_publication_limit"`
+	// RecoveryMaxPublicationLimit is a maximum number of publications Centrifugo returns during client recovery.
+	RecoveryMaxPublicationLimit int `mapstructure:"recovery_max_publication_limit" json:"recovery_max_publication_limit" envconfig:"recovery_max_publication_limit" default:"300" yaml:"recovery_max_publication_limit" toml:"recovery_max_publication_limit"`
+	// InsecureSkipTokenSignatureVerify allows to skip token signature verification. This can be useful for testing purposes.
+	InsecureSkipTokenSignatureVerify bool `mapstructure:"insecure_skip_token_signature_verify" json:"insecure_skip_token_signature_verify" envconfig:"insecure_skip_token_signature_verify" yaml:"insecure_skip_token_signature_verify" toml:"insecure_skip_token_signature_verify"`
+	// UserIDHTTPHeader is a name of HTTP header to extract user ID from. If set Centrifugo will try to extract user ID from this header.
+	UserIDHTTPHeader string `mapstructure:"user_id_http_header" json:"user_id_http_header" envconfig:"user_id_http_header" yaml:"user_id_http_header" toml:"user_id_http_header"`
+	// Insecure allows to disable auth features in client protocol. Obviously - must not be used in production until you know what you do.
+	Insecure bool `mapstructure:"insecure" json:"insecure" envconfig:"insecure" yaml:"insecure" toml:"insecure"`
 	// SubscribeToUserPersonalChannel is a configuration for a feature to automatically subscribe user to a personal channel
 	// using server-side subscription.
 	SubscribeToUserPersonalChannel SubscribeToUserPersonalChannel `mapstructure:"subscribe_to_user_personal_channel" json:"subscribe_to_user_personal_channel" envconfig:"subscribe_to_user_personal_channel" yaml:"subscribe_to_user_personal_channel" toml:"subscribe_to_user_personal_channel"`
-
-	// ConnectCodeToDisconnect is a configuration for a feature to transform connect error codes to the disconnect code
+	// ConnectCodeToUnidirectionalDisconnect is a configuration for a feature to transform connect error codes to the disconnect code
 	// for unidirectional transports.
 	ConnectCodeToUnidirectionalDisconnect ConnectCodeToUnidirectionalDisconnect `mapstructure:"connect_code_to_unidirectional_disconnect" json:"connect_code_to_unidirectional_disconnect" envconfig:"connect_code_to_unidirectional_disconnect" yaml:"connect_code_to_unidirectional_disconnect" toml:"connect_code_to_unidirectional_disconnect"`
 }
@@ -390,13 +407,17 @@ func (d *UniConnectCodeToDisconnectTransforms) Decode(value string) error {
 }
 
 type ConnectCodeToUnidirectionalDisconnect struct {
-	Enabled    bool                                 `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	// Enabled allows to enable the feature.
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	// Transforms is a list of connect error code to disconnect code transforms.
 	Transforms UniConnectCodeToDisconnectTransforms `mapstructure:"transforms" default:"[]" json:"transforms" envconfig:"transforms" yaml:"transforms" toml:"transforms"`
 }
 
 type UniConnectCodeToDisconnectTransform struct {
-	Code uint32              `mapstructure:"code" json:"code" envconfig:"code" yaml:"code" toml:"code"`
-	To   TransformDisconnect `mapstructure:"to" json:"to" envconfig:"to" yaml:"to" toml:"to"`
+	// Code is a connect error code.
+	Code uint32 `mapstructure:"code" json:"code" envconfig:"code" yaml:"code" toml:"code"`
+	// To is a disconnect to transform the code to.
+	To TransformDisconnect `mapstructure:"to" json:"to" envconfig:"to" yaml:"to" toml:"to"`
 }
 
 type ChannelProxyContainer struct {
@@ -497,19 +518,27 @@ type Admin struct {
 }
 
 type TransformError struct {
-	Code      uint32 `mapstructure:"code" json:"code" envconfig:"code" yaml:"code" toml:"code"`
-	Message   string `mapstructure:"message" json:"message" envconfig:"message" yaml:"message" toml:"message"`
-	Temporary bool   `mapstructure:"temporary" json:"temporary" envconfig:"temporary" yaml:"temporary" toml:"temporary"`
+	// Code of error.
+	Code uint32 `mapstructure:"code" json:"code" envconfig:"code" yaml:"code" toml:"code"`
+	// Message is a human-readable message of error.
+	Message string `mapstructure:"message" json:"message" envconfig:"message" yaml:"message" toml:"message"`
+	// Temporary is a flag to mark error as temporary.
+	Temporary bool `mapstructure:"temporary" json:"temporary" envconfig:"temporary" yaml:"temporary" toml:"temporary"`
 }
 
 type TransformDisconnect struct {
-	Code   uint32 `mapstructure:"code" json:"code" envconfig:"code" yaml:"code" toml:"code"`
+	// Code of disconnect.
+	Code uint32 `mapstructure:"code" json:"code" envconfig:"code" yaml:"code" toml:"code"`
+	// Reason is a human-readable reason of disconnect.
 	Reason string `mapstructure:"reason" json:"reason" envconfig:"reason" yaml:"reason" toml:"reason"`
 }
 
 type HttpStatusToCodeTransform struct {
-	StatusCode   int                 `mapstructure:"status_code" json:"status_code" envconfig:"status_code" yaml:"status_code" toml:"status_code"`
-	ToError      TransformError      `mapstructure:"to_error" json:"to_error" envconfig:"to_error" yaml:"to_error" toml:"to_error"`
+	// StatusCode is an HTTP status code to transform.
+	StatusCode int `mapstructure:"status_code" json:"status_code" envconfig:"status_code" yaml:"status_code" toml:"status_code"`
+	// ToError is a transform to protocol error.
+	ToError TransformError `mapstructure:"to_error" json:"to_error" envconfig:"to_error" yaml:"to_error" toml:"to_error"`
+	// ToDisconnect is a transform to protocol disconnect.
 	ToDisconnect TransformDisconnect `mapstructure:"to_disconnect" json:"to_disconnect" envconfig:"to_disconnect" yaml:"to_disconnect" toml:"to_disconnect"`
 }
 
@@ -528,31 +557,32 @@ func (d *HttpStatusToCodeTransforms) Decode(value string) error {
 }
 
 type ProxyCommonHTTP struct {
+	// TLS for HTTP client.
 	TLS TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
 	// StaticHeaders is a static set of key/value pairs to attach to HTTP proxy request as
 	// headers. Headers received from HTTP client request or metadata from GRPC client request
 	// both have priority over values set in StaticHttpHeaders map.
 	StaticHeaders MapStringString `mapstructure:"static_headers" default:"{}" json:"static_headers" envconfig:"static_headers" yaml:"static_headers" toml:"static_headers"`
-	// Status transforms allow to map HTTP status codes from proxy to Disconnect or Error messages.
+	// StatusToCodeTransforms allow to map HTTP status codes from proxy to Disconnect or Error messages.
 	StatusToCodeTransforms HttpStatusToCodeTransforms `mapstructure:"status_to_code_transforms" default:"[]" json:"status_to_code_transforms" envconfig:"status_to_code_transforms" yaml:"status_to_code_transforms" toml:"status_to_code_transforms"`
 }
 
 type ProxyCommonGRPC struct {
-	// TLS is a common configuration for GRPC TLS.
+	// TLS is a common configuration for GRPC client TLS.
 	TLS TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
 	// CredentialsKey is a custom key to add into per-RPC credentials.
 	CredentialsKey string `mapstructure:"credentials_key" json:"credentials_key" envconfig:"credentials_key" yaml:"credentials_key" toml:"credentials_key"`
-	// GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
+	// CredentialsValue is a custom value for GrpcCredentialsKey.
 	CredentialsValue string `mapstructure:"credentials_value" json:"credentials_value" envconfig:"credentials_value" yaml:"credentials_value" toml:"credentials_value"`
 	// Compression enables compression for outgoing calls (gzip).
 	Compression bool `mapstructure:"compression" json:"compression" envconfig:"compression" yaml:"compression" toml:"compression"`
 }
 
 type ProxyCommon struct {
-	// HTTPHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.
+	// HttpHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.
 	// If GRPC proxy is used then request HTTP headers set to outgoing request metadata.
 	HttpHeaders []string `mapstructure:"http_headers" json:"http_headers" envconfig:"http_headers" yaml:"http_headers" toml:"http_headers"`
-	// GRPCMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by
+	// GrpcMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by
 	// default. If HTTP proxy is used then these keys become outgoing request HTTP headers.
 	GrpcMetadata []string `mapstructure:"grpc_metadata" json:"grpc_metadata" envconfig:"grpc_metadata" yaml:"grpc_metadata" toml:"grpc_metadata"`
 	// BinaryEncoding makes proxy send data as base64 string (assuming it contains custom

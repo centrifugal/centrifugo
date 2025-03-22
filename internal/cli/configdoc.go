@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/centrifugal/centrifugo/v6/internal/build"
+
 	_ "embed"
 
 	"github.com/pkg/browser"
@@ -19,8 +21,8 @@ var mdContent string
 func ConfigDoc() *cobra.Command {
 	var genConfigCmd = &cobra.Command{
 		Use:   "configdoc",
-		Short: "Generate ???",
-		Long:  `Generate ???`,
+		Short: "Show Centrifugo configuration documentation generated from source code",
+		Long:  `Show Centrifugo configuration documentation generated from source code`,
 		Run: func(cmd *cobra.Command, args []string) {
 			configDoc()
 		},
@@ -82,6 +84,7 @@ func markdownHandler(w http.ResponseWriter, r *http.Request) {
 </head>
 <body>
   <div class="container markdown-body">
+	<h1>Centrifugo %s configuration options</h1>
     %s
   </div>
   <!-- Optional Bootstrap JS Bundle -->
@@ -105,7 +108,7 @@ func markdownHandler(w http.ResponseWriter, r *http.Request) {
     });
   </script>
 </body>
-</html>`, buf.String())
+</html>`, build.Version, buf.String())
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write([]byte(htmlPage))
