@@ -237,12 +237,6 @@ Type: `RedisEngine` object.
 
 `redis` is a configuration for "redis" broker.
 
-#### `engine.redis.Redis`
-
-Type: `Redis` object.
-
-No documentation available.
-
 #### `engine.redis.address`
 
 Type: `[]string`. Default: `redis://127.0.0.1:6379`.
@@ -433,33 +427,9 @@ Type: `string`.
 
 `server_name` is used to verify the hostname on the returned certificates.
 
-#### `engine.redis.EngineRedisBroker`
-
-Type: `EngineRedisBroker` object.
-
-No documentation available.
-
-#### `engine.redis.RedisBrokerCommon`
-
-Type: `RedisBrokerCommon` object.
-
-No documentation available.
-
 #### `engine.redis.history_use_lists`
 
 Type: `bool`.
-
-No documentation available.
-
-#### `engine.redis.EngineRedisPresenceManager`
-
-Type: `EngineRedisPresenceManager` object.
-
-No documentation available.
-
-#### `engine.redis.RedisPresenceManagerCommon`
-
-Type: `RedisPresenceManagerCommon` object.
 
 No documentation available.
 
@@ -509,12 +479,6 @@ Type: `string`. Default: `memory`.
 Type: `RedisBroker` object.
 
 `redis` is a configuration for "redis" broker.
-
-#### `broker.redis.Redis`
-
-Type: `Redis` object.
-
-No documentation available.
 
 #### `broker.redis.address`
 
@@ -706,12 +670,6 @@ Type: `string`.
 
 `server_name` is used to verify the hostname on the returned certificates.
 
-#### `broker.redis.RedisBrokerCommon`
-
-Type: `RedisBrokerCommon` object.
-
-No documentation available.
-
 #### `broker.redis.history_use_lists`
 
 Type: `bool`.
@@ -857,12 +815,6 @@ can only be used when enable_unreleased_features option is set to true.
 #### `broker.redisnats.redis`
 
 Type: `RedisBroker` object.
-
-No documentation available.
-
-##### `broker.redisnats.redis.Redis`
-
-Type: `Redis` object.
 
 No documentation available.
 
@@ -1056,12 +1008,6 @@ Type: `string`.
 
 `server_name` is used to verify the hostname on the returned certificates.
 
-##### `broker.redisnats.redis.RedisBrokerCommon`
-
-Type: `RedisBrokerCommon` object.
-
-No documentation available.
-
 ##### `broker.redisnats.redis.history_use_lists`
 
 Type: `bool`.
@@ -1223,12 +1169,6 @@ Type: `string`. Default: `memory`.
 Type: `RedisPresenceManager` object.
 
 `redis` is a configuration for "redis" broker.
-
-#### `presence_manager.redis.Redis`
-
-Type: `Redis` object.
-
-No documentation available.
 
 #### `presence_manager.redis.address`
 
@@ -1420,12 +1360,6 @@ Type: `string`.
 
 `server_name` is used to verify the hostname on the returned certificates.
 
-#### `presence_manager.redis.RedisPresenceManagerCommon`
-
-Type: `RedisPresenceManagerCommon` object.
-
-No documentation available.
-
 #### `presence_manager.redis.presence_ttl`
 
 Type: `Duration`. Default: `60s`.
@@ -1469,12 +1403,6 @@ Type: `bool`.
 
 `enabled` must be true to tell Centrifugo to enable the configured proxy.
 
-##### `client.proxy.connect.Proxy`
-
-Type: `Proxy` object.
-
-No documentation available.
-
 ##### `client.proxy.connect.endpoint`
 
 Type: `string`.
@@ -1484,12 +1412,6 @@ No documentation available.
 ##### `client.proxy.connect.timeout`
 
 Type: `Duration`. Default: `1s`.
-
-No documentation available.
-
-##### `client.proxy.connect.ProxyCommon`
-
-Type: `ProxyCommon` object.
 
 No documentation available.
 
@@ -1721,12 +1643,6 @@ Type: `bool`.
 
 `enabled` must be true to tell Centrifugo to enable the configured proxy.
 
-##### `client.proxy.refresh.Proxy`
-
-Type: `Proxy` object.
-
-No documentation available.
-
 ##### `client.proxy.refresh.endpoint`
 
 Type: `string`.
@@ -1736,12 +1652,6 @@ No documentation available.
 ##### `client.proxy.refresh.timeout`
 
 Type: `Duration`. Default: `1s`.
-
-No documentation available.
-
-##### `client.proxy.refresh.ProxyCommon`
-
-Type: `ProxyCommon` object.
 
 No documentation available.
 
@@ -2043,12 +1953,6 @@ Type: `bool`.
 
 No documentation available.
 
-#### `client.subscription_token.Token`
-
-Type: `Token` object.
-
-No documentation available.
-
 #### `client.subscription_token.hmac_secret_key`
 
 Type: `string`.
@@ -2116,12 +2020,6 @@ Type: `bool`.
 
 `disallow_anonymous_connection_tokens` disallows anonymous connection tokens. When enabled, Centrifugo will not
 accept connection tokens with empty user ID.
-
-### `client.PingPong`
-
-Type: `PingPong` object.
-
-No documentation available.
 
 ### `client.ping_interval`
 
@@ -2340,12 +2238,6 @@ Type: `string`.
 Type: `Duration`. Default: `1s`.
 
 `timeout` for proxy request.
-
-##### `channel.proxy.subscribe.ProxyCommon`
-
-Type: `ProxyCommon` object.
-
-No documentation available.
 
 ##### `channel.proxy.subscribe.http_headers`
 
@@ -2581,12 +2473,6 @@ Type: `Duration`. Default: `1s`.
 
 `timeout` for proxy request.
 
-##### `channel.proxy.publish.ProxyCommon`
-
-Type: `ProxyCommon` object.
-
-No documentation available.
-
 ##### `channel.proxy.publish.http_headers`
 
 Type: `[]string`.
@@ -2821,12 +2707,6 @@ Type: `Duration`. Default: `1s`.
 
 `timeout` for proxy request.
 
-##### `channel.proxy.sub_refresh.ProxyCommon`
-
-Type: `ProxyCommon` object.
-
-No documentation available.
-
 ##### `channel.proxy.sub_refresh.http_headers`
 
 Type: `[]string`.
@@ -3060,12 +2940,6 @@ Type: `string`.
 Type: `Duration`. Default: `1s`.
 
 `timeout` for proxy request.
-
-##### `channel.proxy.subscribe_stream.ProxyCommon`
-
-Type: `ProxyCommon` object.
-
-No documentation available.
 
 ##### `channel.proxy.subscribe_stream.http_headers`
 
@@ -3537,12 +3411,6 @@ Type: `string`.
 
 `name` is a unique namespace name.
 
-#### `channel.namespaces[].ChannelOptions`
-
-Type: `ChannelOptions` object.
-
-No documentation available.
-
 #### `channel.namespaces[].presence`
 
 Type: `bool`.
@@ -3814,12 +3682,6 @@ Type: `Duration`. Default: `1s`.
 
 `timeout` for proxy request.
 
-#### `rpc.proxy.ProxyCommon`
-
-Type: `ProxyCommon` object.
-
-No documentation available.
-
 #### `rpc.proxy.http_headers`
 
 Type: `[]string`.
@@ -4067,12 +3929,6 @@ Type: `string`.
 
 `name` is a unique rpc namespace name.
 
-#### `rpc.namespaces[].RpcOptions`
-
-Type: `RpcOptions` object.
-
-No documentation available.
-
 #### `rpc.namespaces[].proxy_enabled`
 
 Type: `bool`.
@@ -4122,12 +3978,6 @@ Type: `string`.
 
 No documentation available.
 
-### `proxies[].Proxy`
-
-Type: `Proxy` object.
-
-No documentation available.
-
 ### `proxies[].endpoint`
 
 Type: `string`.
@@ -4137,12 +3987,6 @@ No documentation available.
 ### `proxies[].timeout`
 
 Type: `Duration`. Default: `1s`.
-
-No documentation available.
-
-### `proxies[].ProxyCommon`
-
-Type: `ProxyCommon` object.
 
 No documentation available.
 

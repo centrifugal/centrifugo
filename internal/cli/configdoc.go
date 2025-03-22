@@ -61,12 +61,13 @@ func markdownHandler(w http.ResponseWriter, r *http.Request) {
   <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.0/dist/materia/bootstrap.min.css" rel="stylesheet">
   <style>
     body { padding: 2rem; }
-    .markdown-body { max-width: 900px; margin: auto; }
+    .markdown-body { max-width: 960px; margin: auto; }
+	h1 { font-size: 1.6rem; }
 	h2, h3, h4, h5, h6 {
 		font-size: 1.2rem;
 		margin-top: 1.5rem;
 	}
-	h2 code, h3 code, h4 code, h5 code, h6 code { color: #3e87ba }
+	h2 code, h3 code, h4 code, h5 code, h6 code { color: #04416d }
     /* Set initial left margins for headers */
     h1 { margin-left: 0rem; }
     h2 { margin-left: 0rem; }

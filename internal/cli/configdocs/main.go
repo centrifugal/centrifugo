@@ -167,11 +167,11 @@ func cleanJSONTag(tag string) string {
 //     at the given level (for example "##").
 //   - Otherwise, nested fields are printed one level deeper (e.g. if parent fields are "##", then nested fields are "###").
 //
-// Fields tagged with json:"-" are skipped. If a field is tagged with mapstructure:",squash", then its fields are merged
-// into the current level (i.e. the header level does not increase).
+// Fields tagged with json:"-" are skipped.
+// If a field is tagged with mapstructure:",squash", its own header is omitted and its sub‑fields are merged
+// into the current level.
 func DocumentStruct(cfg interface{}, parentKey string, sb *strings.Builder, comments map[string]string, parentType string, level int) {
-	// level is the header level to use for direct children when parentKey is empty.
-	// For nested fields (when parentKey is not empty) we add one.
+	// Determine the header level for direct children.
 	var fieldLevel int
 	if parentKey == "" {
 		fieldLevel = level
@@ -194,6 +194,24 @@ func DocumentStruct(cfg interface{}, parentKey string, sb *strings.Builder, comm
 		field := t.Field(i)
 		// Skip fields with json:"-"
 		if field.Tag.Get("json") == "-" {
+			continue
+		}
+
+		// Check for squash tag.
+		msTag := field.Tag.Get("mapstructure")
+		if msTag != "" && strings.Contains(msTag, "squash") {
+			var nested interface{}
+			if field.Type.Kind() == reflect.Ptr {
+				if field.Type.Elem().Kind() == reflect.Struct {
+					nested = reflect.New(field.Type.Elem()).Interface()
+				}
+			} else if field.Type.Kind() == reflect.Struct {
+				nested = reflect.New(field.Type).Interface()
+			}
+			if nested != nil {
+				// Merge squashed fields into the current parent.
+				DocumentStruct(nested, parentKey, sb, comments, parentType, level)
+			}
 			continue
 		}
 
@@ -233,7 +251,6 @@ func DocumentStruct(cfg interface{}, parentKey string, sb *strings.Builder, comm
 
 		// Print field comment if available.
 		if comment, ok := comments[fieldDocKey]; ok && comment != "" {
-			// If the comment starts with the Go field name, replace it with the option name in backticks.
 			if strings.HasPrefix(comment, field.Name) {
 				comment = fmt.Sprintf("`%s`%s", keyTag, comment[len(field.Name):])
 			}
@@ -243,9 +260,6 @@ func DocumentStruct(cfg interface{}, parentKey string, sb *strings.Builder, comm
 		}
 
 		// Recurse into nested structs, pointers to structs, or slices of structs.
-		// For squash fields, merge without increasing header level.
-		msTag := field.Tag.Get("mapstructure")
-		squash := msTag != "" && strings.Contains(msTag, "squash")
 		switch field.Type.Kind() {
 		case reflect.Struct:
 			if field.Type.PkgPath() == "time" && field.Type.Name() == "Time" {
@@ -254,22 +268,14 @@ func DocumentStruct(cfg interface{}, parentKey string, sb *strings.Builder, comm
 				nestedType := field.Type
 				nestedFullType := getFullTypeName(nestedType)
 				nested := reflect.New(nestedType).Interface()
-				if squash {
-					DocumentStruct(nested, parentKey, sb, comments, parentType, level)
-				} else {
-					DocumentStruct(nested, fullKey, sb, comments, nestedFullType, fieldLevel)
-				}
+				DocumentStruct(nested, fullKey, sb, comments, nestedFullType, fieldLevel)
 			}
 		case reflect.Ptr:
 			if field.Type.Elem().Kind() == reflect.Struct {
 				nestedType := field.Type.Elem()
 				nestedFullType := getFullTypeName(nestedType)
 				nested := reflect.New(nestedType).Interface()
-				if squash {
-					DocumentStruct(nested, parentKey, sb, comments, parentType, level)
-				} else {
-					DocumentStruct(nested, fullKey, sb, comments, nestedFullType, fieldLevel)
-				}
+				DocumentStruct(nested, fullKey, sb, comments, nestedFullType, fieldLevel)
 			}
 		case reflect.Slice:
 			elemType := field.Type.Elem()
@@ -279,7 +285,6 @@ func DocumentStruct(cfg interface{}, parentKey string, sb *strings.Builder, comm
 			if elemType.Kind() == reflect.Struct {
 				nestedFullType := getFullTypeName(elemType)
 				nested := reflect.New(elemType).Interface()
-				// For slices, treat like a non-squashed nested struct.
 				DocumentStruct(nested, fullKey+"[]", sb, comments, nestedFullType, fieldLevel)
 			}
 		}
@@ -302,7 +307,7 @@ func CreateMarkdownDocumentationWithComments(cfg interface{}, packageDirs []stri
 	}
 	topFullType := getFullTypeName(t)
 	header := "Centrifugo configuration options"
-	// Print the root config header using level 2.
+	// Print the root config header using level 1.
 	sb.WriteString(fmt.Sprintf("%s %s\n\n", strings.Repeat("#", 1), header))
 	if comment, ok := comments[topFullType]; ok && comment != "" {
 		sb.WriteString(comment + "\n\n")
