@@ -13,6 +13,7 @@ test-integration:
 generate:
 	bash misc/scripts/generate.sh
 	go generate ./...
+	go run internal/cli/configdocs/main.go
 
 web:
 	./misc/scripts/update_web.sh
