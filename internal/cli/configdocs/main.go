@@ -23,7 +23,7 @@ func main() {
 		os.Exit(1)
 	}
 	configDirs := []string{"internal/config", "internal/configtypes"}
-	if err := CreateMarkdownDocumentationWithComments(&conf, configDirs, "internal/configdocs/config.md"); err != nil {
+	if err := CreateMarkdownDocumentationWithComments(&conf, configDirs, "internal/cli/configdocs/config.md"); err != nil {
 		fmt.Println("Error writing Markdown:", err)
 	} else {
 		fmt.Println("Markdown documentation generated successfully.")
@@ -192,6 +192,12 @@ func GenerateMarkdownForConfigWithComments(cfg interface{}, parentPath string, s
 
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
+
+		// Skip fields with json:"-"
+		if field.Tag.Get("json") == "-" {
+			continue
+		}
+
 		msTag := field.Tag.Get("mapstructure")
 		squash := msTag != "" && strings.Contains(msTag, "squash")
 		if squash {

@@ -1634,12 +1634,6 @@ Type: `bool`.
 
 `compression` enables compression for outgoing calls (gzip).
 
-### client.proxy.connect.TestGrpcDialer
-
-Type: `func(context.Context, string) (net.Conn, error)`.
-
-No documentation available.
-
 ### client.proxy.refresh
 
 Type: `RefreshProxy` object.
@@ -1882,12 +1876,6 @@ GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
 Type: `bool`.
 
 `compression` enables compression for outgoing calls (gzip).
-
-### client.proxy.refresh.TestGrpcDialer
-
-Type: `func(context.Context, string) (net.Conn, error)`.
-
-No documentation available.
 
 ### client.allowed_origins
 
@@ -2478,12 +2466,6 @@ Type: `bool`.
 
 `compression` enables compression for outgoing calls (gzip).
 
-### channel.proxy.subscribe.TestGrpcDialer
-
-Type: `func(context.Context, string) (net.Conn, error)`.
-
-No documentation available.
-
 ### channel.proxy.publish
 
 Type: `Proxy` object.
@@ -2720,12 +2702,6 @@ GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
 Type: `bool`.
 
 `compression` enables compression for outgoing calls (gzip).
-
-### channel.proxy.publish.TestGrpcDialer
-
-Type: `func(context.Context, string) (net.Conn, error)`.
-
-No documentation available.
 
 ### channel.proxy.sub_refresh
 
@@ -2964,12 +2940,6 @@ Type: `bool`.
 
 `compression` enables compression for outgoing calls (gzip).
 
-### channel.proxy.sub_refresh.TestGrpcDialer
-
-Type: `func(context.Context, string) (net.Conn, error)`.
-
-No documentation available.
-
 ### channel.proxy.subscribe_stream
 
 Type: `Proxy` object.
@@ -3206,12 +3176,6 @@ GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
 Type: `bool`.
 
 `compression` enables compression for outgoing calls (gzip).
-
-### channel.proxy.subscribe_stream.TestGrpcDialer
-
-Type: `func(context.Context, string) (net.Conn, error)`.
-
-No documentation available.
 
 ### channel.without_namespace
 
@@ -3454,210 +3418,6 @@ Type: `string`. Default: `default`.
 Type: `bool`.
 
 `subscribe_stream_proxy_bidirectional` enables using bidirectional stream proxy for the namespace.
-
-### channel.without_namespace.Compiled
-
-Type: `Compiled` object.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex
-
-Type: `Regexp` object.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.expr
-
-Type: `string`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.prog
-
-Type: `Prog` object.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.prog.Inst
-
-Type: `[]Inst` object.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.prog.Inst[].Op
-
-Type: `syntax.InstOp`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.prog.Inst[].Out
-
-Type: `uint32`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.prog.Inst[].Arg
-
-Type: `uint32`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.prog.Inst[].Rune
-
-Type: `[]int32`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.prog.Start
-
-Type: `int`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.prog.NumCap
-
-Type: `int`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.onepass
-
-Type: `onePassProg` object.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.onepass.Inst
-
-Type: `[]onePassInst` object.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.onepass.Inst[].Inst
-
-Type: `Inst` object.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.onepass.Inst[].Inst.Op
-
-Type: `syntax.InstOp`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.onepass.Inst[].Inst.Out
-
-Type: `uint32`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.onepass.Inst[].Inst.Arg
-
-Type: `uint32`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.onepass.Inst[].Inst.Rune
-
-Type: `[]int32`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.onepass.Inst[].Next
-
-Type: `[]uint32`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.onepass.Start
-
-Type: `int`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.onepass.NumCap
-
-Type: `int`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.numSubexp
-
-Type: `int`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.maxBitStateLen
-
-Type: `int`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.subexpNames
-
-Type: `[]string`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.prefix
-
-Type: `string`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.prefixBytes
-
-Type: `[]uint8`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.prefixRune
-
-Type: `int32`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.prefixEnd
-
-Type: `uint32`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.mpool
-
-Type: `int`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.matchcap
-
-Type: `int`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.prefixComplete
-
-Type: `bool`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.cond
-
-Type: `syntax.EmptyOp`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.minInputLen
-
-Type: `int`.
-
-No documentation available.
-
-### channel.without_namespace.Compiled.CompiledChannelRegex.longest
-
-Type: `bool`.
-
-No documentation available.
 
 ### channel.namespaces
 
@@ -3905,210 +3665,6 @@ Type: `string`. Default: `default`.
 Type: `bool`.
 
 `subscribe_stream_proxy_bidirectional` enables using bidirectional stream proxy for the namespace.
-
-### channel.namespaces[].Compiled
-
-Type: `Compiled` object.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex
-
-Type: `Regexp` object.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.expr
-
-Type: `string`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.prog
-
-Type: `Prog` object.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.prog.Inst
-
-Type: `[]Inst` object.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.prog.Inst[].Op
-
-Type: `syntax.InstOp`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.prog.Inst[].Out
-
-Type: `uint32`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.prog.Inst[].Arg
-
-Type: `uint32`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.prog.Inst[].Rune
-
-Type: `[]int32`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.prog.Start
-
-Type: `int`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.prog.NumCap
-
-Type: `int`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.onepass
-
-Type: `onePassProg` object.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.onepass.Inst
-
-Type: `[]onePassInst` object.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.onepass.Inst[].Inst
-
-Type: `Inst` object.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.onepass.Inst[].Inst.Op
-
-Type: `syntax.InstOp`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.onepass.Inst[].Inst.Out
-
-Type: `uint32`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.onepass.Inst[].Inst.Arg
-
-Type: `uint32`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.onepass.Inst[].Inst.Rune
-
-Type: `[]int32`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.onepass.Inst[].Next
-
-Type: `[]uint32`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.onepass.Start
-
-Type: `int`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.onepass.NumCap
-
-Type: `int`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.numSubexp
-
-Type: `int`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.maxBitStateLen
-
-Type: `int`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.subexpNames
-
-Type: `[]string`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.prefix
-
-Type: `string`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.prefixBytes
-
-Type: `[]uint8`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.prefixRune
-
-Type: `int32`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.prefixEnd
-
-Type: `uint32`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.mpool
-
-Type: `int`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.matchcap
-
-Type: `int`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.prefixComplete
-
-Type: `bool`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.cond
-
-Type: `syntax.EmptyOp`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.minInputLen
-
-Type: `int`.
-
-No documentation available.
-
-### channel.namespaces[].Compiled.CompiledChannelRegex.longest
-
-Type: `bool`.
-
-No documentation available.
 
 ### channel.history_meta_ttl
 
@@ -4389,12 +3945,6 @@ GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
 Type: `bool`.
 
 `compression` enables compression for outgoing calls (gzip).
-
-### rpc.proxy.TestGrpcDialer
-
-Type: `func(context.Context, string) (net.Conn, error)`.
-
-No documentation available.
 
 ### rpc.without_namespace
 
@@ -4706,12 +4256,6 @@ GrpcCredentialsValue is a custom value for GrpcCredentialsKey.
 Type: `bool`.
 
 `compression` enables compression for outgoing calls (gzip).
-
-### proxies[].TestGrpcDialer
-
-Type: `func(context.Context, string) (net.Conn, error)`.
-
-No documentation available.
 
 ### http_api
 

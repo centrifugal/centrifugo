@@ -58,7 +58,7 @@ func markdownHandler(w http.ResponseWriter, r *http.Request) {
   <meta charset="utf-8">
   <title>Modern Markdown Display</title>
   <!-- Bootswatch Minty Theme (Bootstrap 5) -->
-  <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.0/dist/minty/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.0/dist/lumen/bootstrap.min.css" rel="stylesheet">
   <style>
     body { padding: 2rem; }
     .markdown-body { max-width: 900px; margin: auto; }
