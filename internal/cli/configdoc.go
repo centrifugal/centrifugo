@@ -58,11 +58,24 @@ func markdownHandler(w http.ResponseWriter, r *http.Request) {
   <meta charset="utf-8">
   <title>Modern Markdown Display</title>
   <!-- Bootswatch Minty Theme (Bootstrap 5) -->
-  <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.0/dist/lumen/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.0/dist/materia/bootstrap.min.css" rel="stylesheet">
   <style>
     body { padding: 2rem; }
     .markdown-body { max-width: 900px; margin: auto; }
-    h1, h2, h3, h4, h5, h6 { margin-top: 1.5rem; }
+	h2, h3, h4, h5, h6 {
+		font-size: 1.2rem;
+		margin-top: 1.5rem;
+	}
+	h2 code, h3 code, h4 code, h5 code, h6 code { color: #3e87ba }
+    /* Set initial left margins for headers */
+    h1 { margin-left: 0rem; }
+    h2 { margin-left: 0rem; }
+    h3 { margin-left: 2rem; }
+    h4 { margin-left: 4rem; }
+    h5 { margin-left: 6rem; }
+    h6 { margin-left: 8rem; }
+    /* Reset paragraphs to no left margin by default */
+    .markdown-body p { margin-left: 0; }
   </style>
 </head>
 <body>
@@ -71,6 +84,24 @@ func markdownHandler(w http.ResponseWriter, r *http.Request) {
   </div>
   <!-- Optional Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // Select all paragraphs inside .markdown-body
+      var paragraphs = document.querySelectorAll(".markdown-body p");
+      paragraphs.forEach(function(p) {
+        var prev = p.previousElementSibling;
+        // Traverse backward until a header is found
+        while (prev && !/^H[1-6]$/.test(prev.tagName)) {
+          prev = prev.previousElementSibling;
+        }
+        if (prev) {
+          // Get computed left margin of the header and assign it to the paragraph
+          var headerMargin = window.getComputedStyle(prev).marginLeft;
+          p.style.marginLeft = headerMargin;
+        }
+      });
+    });
+  </script>
 </body>
 </html>`, buf.String())
 
