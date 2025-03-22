@@ -61,7 +61,7 @@ func markdownHandler(w http.ResponseWriter, r *http.Request) {
   <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.0/dist/materia/bootstrap.min.css" rel="stylesheet">
   <style>
     body { padding: 2rem; }
-    .markdown-body { max-width: 960px; margin: auto; }
+    .markdown-body { max-width: 1024px; margin: auto; }
 	h1 { font-size: 1.6rem; }
 	h2, h3, h4, h5, h6 {
 		font-size: 1.2rem;

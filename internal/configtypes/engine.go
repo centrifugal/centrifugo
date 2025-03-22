@@ -57,7 +57,7 @@ type Broker struct {
 	// Nats is a configuration for NATS broker. It does not support history/recovery/cache.
 	Nats NatsBroker `mapstructure:"nats" json:"nats" envconfig:"nats" toml:"nats" yaml:"nats"`
 	// RedisNats is a configuration for Redis + NATS broker. It's highly experimental, undocumented and
-	// can only be used when enable_unreleased_features option is set to true.
+	// can only be used when enable_unreleased_features option is set to true. NODOC.
 	RedisNats *RedisNatsBroker `mapstructure:"redisnats" json:"redisnats,omitempty" envconfig:"redisnats" toml:"redisnats,omitempty" yaml:"redisnats,omitempty"`
 }
 
