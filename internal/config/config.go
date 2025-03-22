@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Config contains configuration options of Centrifugo.
 type Config struct {
 	// HTTP is a configuration for Centrifugo HTTP server.
 	HTTP configtypes.HTTPServer `mapstructure:"http_server" json:"http_server" envconfig:"http_server" toml:"http_server" yaml:"http_server"`
