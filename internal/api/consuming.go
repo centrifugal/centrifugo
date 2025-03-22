@@ -89,6 +89,7 @@ func (h *ConsumingHandler) DispatchPublication(
 			Channel:        channels[0],
 			IdempotencyKey: idempotencyKey,
 			Delta:          delta,
+			Tags:           tags,
 		}
 		return h.Publish(ctx, req)
 	}
@@ -97,6 +98,7 @@ func (h *ConsumingHandler) DispatchPublication(
 		Channels:       channels,
 		IdempotencyKey: idempotencyKey,
 		Delta:          delta,
+		Tags:           tags,
 	}
 	return h.Broadcast(ctx, req)
 }
