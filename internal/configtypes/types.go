@@ -606,7 +606,8 @@ type Consumer struct {
 	// Enabled must be true to tell Centrifugo to run configured consumer.
 	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 
-	// Type describes the type of consumer.
+	// Type describes the type of consumer. Supported types are: `postgresql`, `kafka`, `nats_jetstream`,
+	// `redis_stream`, `google_pub_sub`, `aws_sns_sqs`, `azure_service_bus`.
 	Type string `mapstructure:"type" json:"type" envconfig:"type" yaml:"type" toml:"type"`
 
 	// Postgres allows defining options for consumer of postgresql type.
