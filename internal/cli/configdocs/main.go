@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -11,6 +12,20 @@ import (
 
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 )
+
+// FieldDoc represents the JSON documentation for a configuration field.
+type FieldDoc struct {
+	Field           string     `json:"field"`
+	Name            string     `json:"name"`
+	GoName          string     `json:"go_name"`
+	Level           int        `json:"level"`
+	Type            string     `json:"type"`
+	Default         string     `json:"default"`
+	TypeDescription string     `json:"type_description"`
+	Comment         string     `json:"comment"`
+	IsComplexType   bool       `json:"is_complex_type"`
+	Children        []FieldDoc `json:"children,omitempty"`
+}
 
 func main() {
 	conf, _, err := config.GetConfig(nil, "")
@@ -23,10 +38,10 @@ func main() {
 		os.Exit(1)
 	}
 	configDirs := []string{"internal/config", "internal/configtypes"}
-	if err := CreateMarkdownDocumentationWithComments(&conf, configDirs, "internal/cli/configdocs/config.md"); err != nil {
-		fmt.Println("Error writing Markdown:", err)
+	if err := CreateJSONDocumentationWithComments(&conf, configDirs, "internal/cli/configdocs/config.json"); err != nil {
+		fmt.Println("Error writing JSON documentation:", err)
 	} else {
-		fmt.Println("Markdown documentation generated successfully.")
+		fmt.Println("JSON documentation generated successfully.")
 	}
 }
 
@@ -47,7 +62,7 @@ func getFullTypeName(t reflect.Type) string {
 }
 
 // getDisplayType returns the base type name (without package prefix) and a boolean indicating
-// whether the type is complex (struct, pointer/slice of struct) so it should be displayed as an "object".
+// whether the type is complex (struct, pointer/slice of struct) so it should be treated as an "object".
 func getDisplayType(t reflect.Type) (string, bool) {
 	// Handle pointer to struct (except time.Time).
 	if t.Kind() == reflect.Ptr {
@@ -161,33 +176,23 @@ func cleanJSONTag(tag string) string {
 	return parts[0]
 }
 
-// DocumentStruct iterates over the fields of a struct (using reflection) and writes Markdown
-// for each field. The headers are chosen as follows:
-//   - If parentKey is empty (i.e. we're documenting the root config), the field headers are printed
-//     at the given level (for example "##").
-//   - Otherwise, nested fields are printed one level deeper (e.g. if parent fields are "##", then nested fields are "###").
-//
-// Fields tagged with json:"-" are skipped.
-// If a field is tagged with mapstructure:",squash", its own header is omitted and its sub‑fields are merged
-// into the current level.
-func DocumentStruct(cfg interface{}, parentKey string, sb *strings.Builder, comments map[string]string, parentType string, level int) {
-	// Determine the header level for direct children.
-	var fieldLevel int
-	if parentKey == "" {
-		fieldLevel = level
-	} else {
-		fieldLevel = level + 1
-		if fieldLevel > 6 {
-			fieldLevel = 6
-		}
-	}
+// DocumentStructJSON iterates over the fields of a struct (using reflection) and builds a JSON structure
+// for each field. It now correctly increments the level for nested fields.
+func DocumentStructJSON(cfg interface{}, parentKey string, parentType string, level int, comments map[string]string) []FieldDoc {
+	var docs []FieldDoc
 
 	t := reflect.TypeOf(cfg)
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
 	if t.Kind() != reflect.Struct {
-		return
+		return docs
+	}
+
+	// Determine the current field level:
+	fieldLevel := level
+	if parentKey != "" {
+		fieldLevel = level + 1
 	}
 
 	for i := 0; i < t.NumField(); i++ {
@@ -209,8 +214,7 @@ func DocumentStruct(cfg interface{}, parentKey string, sb *strings.Builder, comm
 				nested = reflect.New(field.Type).Interface()
 			}
 			if nested != nil {
-				// Merge squashed fields into the current parent.
-				DocumentStruct(nested, parentKey, sb, comments, parentType, level)
+				docs = append(docs, DocumentStructJSON(nested, parentKey, parentType, level, comments)...)
 			}
 			continue
 		}
@@ -233,33 +237,39 @@ func DocumentStruct(cfg interface{}, parentKey string, sb *strings.Builder, comm
 			continue
 		}
 
-		// Print the header for this field.
-		sb.WriteString(fmt.Sprintf("%s `%s`\n\n", strings.Repeat("#", fieldLevel), fullKey))
-
-		// Print type info.
+		// Get default value.
 		defaultVal := field.Tag.Get("default")
+		// Get type info.
 		displayType, isComplex := getDisplayType(field.Type)
+		typeDesc := fmt.Sprintf("Type: `%s`", displayType)
 		if isComplex {
-			sb.WriteString(fmt.Sprintf("Type: `%s` object", displayType))
-		} else {
-			sb.WriteString(fmt.Sprintf("Type: `%s`", displayType))
+			typeDesc = fmt.Sprintf("Type: `%s` object", displayType)
 		}
 		if defaultVal != "" {
-			sb.WriteString(fmt.Sprintf(". Default: `%s`", defaultVal))
+			typeDesc = fmt.Sprintf("%s. Default: `%s`", typeDesc, defaultVal)
 		}
-		sb.WriteString(".\n\n")
 
-		// Print field comment if available.
+		// Get field comment.
+		var commentText string
 		if comment, ok := comments[fieldDocKey]; ok && comment != "" {
-			if strings.HasPrefix(comment, field.Name) {
-				comment = fmt.Sprintf("`%s`%s", keyTag, comment[len(field.Name):])
-			}
-			sb.WriteString(comment + "\n\n")
-		} else {
-			sb.WriteString("No documentation available.\n\n")
+			commentText = comment
+		}
+
+		// Use the computed fieldLevel for the current field.
+		docEntry := FieldDoc{
+			Field:           fullKey,
+			Name:            keyTag,
+			GoName:          field.Name,
+			Level:           fieldLevel, // Use computed fieldLevel here.
+			Type:            displayType,
+			Default:         defaultVal,
+			TypeDescription: typeDesc,
+			IsComplexType:   isComplex,
+			Comment:         commentText,
 		}
 
 		// Recurse into nested structs, pointers to structs, or slices of structs.
+		var children []FieldDoc
 		switch field.Type.Kind() {
 		case reflect.Struct:
 			if field.Type.PkgPath() == "time" && field.Type.Name() == "Time" {
@@ -268,14 +278,14 @@ func DocumentStruct(cfg interface{}, parentKey string, sb *strings.Builder, comm
 				nestedType := field.Type
 				nestedFullType := getFullTypeName(nestedType)
 				nested := reflect.New(nestedType).Interface()
-				DocumentStruct(nested, fullKey, sb, comments, nestedFullType, fieldLevel)
+				children = DocumentStructJSON(nested, fullKey, nestedFullType, fieldLevel, comments)
 			}
 		case reflect.Ptr:
 			if field.Type.Elem().Kind() == reflect.Struct {
 				nestedType := field.Type.Elem()
 				nestedFullType := getFullTypeName(nestedType)
 				nested := reflect.New(nestedType).Interface()
-				DocumentStruct(nested, fullKey, sb, comments, nestedFullType, fieldLevel)
+				children = DocumentStructJSON(nested, fullKey, nestedFullType, fieldLevel, comments)
 			}
 		case reflect.Slice:
 			elemType := field.Type.Elem()
@@ -285,36 +295,40 @@ func DocumentStruct(cfg interface{}, parentKey string, sb *strings.Builder, comm
 			if elemType.Kind() == reflect.Struct {
 				nestedFullType := getFullTypeName(elemType)
 				nested := reflect.New(elemType).Interface()
-				DocumentStruct(nested, fullKey+"[]", sb, comments, nestedFullType, fieldLevel)
+				children = DocumentStructJSON(nested, fullKey+"[]", nestedFullType, fieldLevel, comments)
 			}
 		}
+
+		if len(children) > 0 {
+			docEntry.Children = children
+		}
+
+		docs = append(docs, docEntry)
 	}
+
+	return docs
 }
 
-// CreateMarkdownDocumentationWithComments ties everything together.
-// It extracts comments from the given directories, prints a header for the root configuration,
-// and then documents its fields.
-func CreateMarkdownDocumentationWithComments(cfg interface{}, packageDirs []string, outputPath string) error {
+// CreateJSONDocumentationWithComments ties everything together.
+// It extracts comments from the given directories, builds the JSON documentation for the root configuration,
+// and writes it to the specified output file.
+func CreateJSONDocumentationWithComments(cfg interface{}, packageDirs []string, outputPath string) error {
 	comments, err := ExtractStructCommentsFromDirs(packageDirs)
 	if err != nil {
 		return fmt.Errorf("failed to extract comments: %w", err)
 	}
 
-	var sb strings.Builder
 	t := reflect.TypeOf(cfg)
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
 	topFullType := getFullTypeName(t)
-	//header := "Centrifugo configuration options"
-	//// Print the root config header using level 1.
-	//sb.WriteString(fmt.Sprintf("%s %s\n\n", strings.Repeat("#", 1), header))
-	//if comment, ok := comments[topFullType]; ok && comment != "" {
-	//	sb.WriteString(comment + "\n\n")
-	//} else {
-	//	sb.WriteString("No documentation available.\n\n")
-	//}
-	// Document the fields of the root config.
-	DocumentStruct(cfg, "", &sb, comments, topFullType, 2)
-	return os.WriteFile(outputPath, []byte(sb.String()), 0644)
+
+	docs := DocumentStructJSON(cfg, "", topFullType, 1, comments)
+	jsonBytes, err := json.MarshalIndent(docs, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+
+	return os.WriteFile(outputPath, jsonBytes, 0644)
 }
