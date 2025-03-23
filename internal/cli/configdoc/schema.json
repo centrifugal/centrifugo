@@ -398,7 +398,7 @@
             "level": 3,
             "type": "[]string",
             "default": "redis://127.0.0.1:6379",
-            "comment": "",
+            "comment": "Address is a list of Redis shard addresses. In most cases a single shard is used. But when many\naddresses provided Centrifugo will distribute keys between shards using consistent hashing.",
             "is_complex_type": false
           },
           {
@@ -408,7 +408,7 @@
             "level": 3,
             "type": "string",
             "default": "centrifugo",
-            "comment": "",
+            "comment": "Prefix for all Redis keys and channels.",
             "is_complex_type": false
           },
           {
@@ -418,7 +418,7 @@
             "level": 3,
             "type": "Duration",
             "default": "1s",
-            "comment": "",
+            "comment": "ConnectTimeout is a timeout for establishing connection to Redis.",
             "is_complex_type": false
           },
           {
@@ -428,7 +428,7 @@
             "level": 3,
             "type": "Duration",
             "default": "4s",
-            "comment": "",
+            "comment": "IOTimeout is a timeout for all read/write operations against Redis (can be considered as a request timeout).",
             "is_complex_type": false
           },
           {
@@ -438,7 +438,7 @@
             "level": 3,
             "type": "int",
             "default": "0",
-            "comment": "",
+            "comment": "DB is a Redis database to use. Generally it's not recommended to use non-zero DB. Note, that Redis\nPUB/SUB is global for all databases in a single Redis instance. So when using non-zero DB make sure\nthat different Centrifugo setups use different prefixes.",
             "is_complex_type": false
           },
           {
@@ -448,7 +448,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "User is a Redis user.",
             "is_complex_type": false
           },
           {
@@ -458,7 +458,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "Password is a Redis password.",
             "is_complex_type": false
           },
           {
@@ -468,7 +468,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "ClientName allows changing a Redis client name used when connecting.",
             "is_complex_type": false
           },
           {
@@ -478,7 +478,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "ForceResp2 forces use of Redis Resp2 protocol for communication.",
             "is_complex_type": false
           },
           {
@@ -488,7 +488,7 @@
             "level": 3,
             "type": "[]string",
             "default": "",
-            "comment": "",
+            "comment": "ClusterAddress is a list of Redis cluster addresses. When several provided - data will be sharded\nbetween them using consistent hashing. Several Cluster addresses within one shard may be passed\ncomma-separated.",
             "is_complex_type": false
           },
           {
@@ -498,7 +498,7 @@
             "level": 3,
             "type": "TLSConfig",
             "default": "",
-            "comment": "",
+            "comment": "TLS is a configuration for Redis TLS support.",
             "is_complex_type": true,
             "children": [
               {
@@ -580,7 +580,7 @@
             "level": 3,
             "type": "[]string",
             "default": "",
-            "comment": "",
+            "comment": "SentinelAddress allows setting Redis Sentinel addresses. When provided - Sentinel will be used.\nWhen multiple addresses provided - data will be sharded between them using consistent hashing.\nSeveral Sentinel addresses within one shard may be passed comma-separated.",
             "is_complex_type": false
           },
           {
@@ -590,7 +590,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "SentinelUser is a Redis Sentinel user.",
             "is_complex_type": false
           },
           {
@@ -600,7 +600,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "SentinelPassword is a Redis Sentinel password.",
             "is_complex_type": false
           },
           {
@@ -610,7 +610,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "SentinelMasterName is a Redis master name in Sentinel setup.",
             "is_complex_type": false
           },
           {
@@ -620,7 +620,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "SentinelClientName is a Redis Sentinel client name used when connecting.",
             "is_complex_type": false
           },
           {
@@ -630,7 +630,7 @@
             "level": 3,
             "type": "TLSConfig",
             "default": "",
-            "comment": "",
+            "comment": "SentinelTLS is a configuration for Redis Sentinel TLS support.",
             "is_complex_type": true,
             "children": [
               {
@@ -796,7 +796,7 @@
             "level": 3,
             "type": "[]string",
             "default": "redis://127.0.0.1:6379",
-            "comment": "",
+            "comment": "Address is a list of Redis shard addresses. In most cases a single shard is used. But when many\naddresses provided Centrifugo will distribute keys between shards using consistent hashing.",
             "is_complex_type": false
           },
           {
@@ -806,7 +806,7 @@
             "level": 3,
             "type": "string",
             "default": "centrifugo",
-            "comment": "",
+            "comment": "Prefix for all Redis keys and channels.",
             "is_complex_type": false
           },
           {
@@ -816,7 +816,7 @@
             "level": 3,
             "type": "Duration",
             "default": "1s",
-            "comment": "",
+            "comment": "ConnectTimeout is a timeout for establishing connection to Redis.",
             "is_complex_type": false
           },
           {
@@ -826,7 +826,7 @@
             "level": 3,
             "type": "Duration",
             "default": "4s",
-            "comment": "",
+            "comment": "IOTimeout is a timeout for all read/write operations against Redis (can be considered as a request timeout).",
             "is_complex_type": false
           },
           {
@@ -836,7 +836,7 @@
             "level": 3,
             "type": "int",
             "default": "0",
-            "comment": "",
+            "comment": "DB is a Redis database to use. Generally it's not recommended to use non-zero DB. Note, that Redis\nPUB/SUB is global for all databases in a single Redis instance. So when using non-zero DB make sure\nthat different Centrifugo setups use different prefixes.",
             "is_complex_type": false
           },
           {
@@ -846,7 +846,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "User is a Redis user.",
             "is_complex_type": false
           },
           {
@@ -856,7 +856,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "Password is a Redis password.",
             "is_complex_type": false
           },
           {
@@ -866,7 +866,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "ClientName allows changing a Redis client name used when connecting.",
             "is_complex_type": false
           },
           {
@@ -876,7 +876,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "ForceResp2 forces use of Redis Resp2 protocol for communication.",
             "is_complex_type": false
           },
           {
@@ -886,7 +886,7 @@
             "level": 3,
             "type": "[]string",
             "default": "",
-            "comment": "",
+            "comment": "ClusterAddress is a list of Redis cluster addresses. When several provided - data will be sharded\nbetween them using consistent hashing. Several Cluster addresses within one shard may be passed\ncomma-separated.",
             "is_complex_type": false
           },
           {
@@ -896,7 +896,7 @@
             "level": 3,
             "type": "TLSConfig",
             "default": "",
-            "comment": "",
+            "comment": "TLS is a configuration for Redis TLS support.",
             "is_complex_type": true,
             "children": [
               {
@@ -978,7 +978,7 @@
             "level": 3,
             "type": "[]string",
             "default": "",
-            "comment": "",
+            "comment": "SentinelAddress allows setting Redis Sentinel addresses. When provided - Sentinel will be used.\nWhen multiple addresses provided - data will be sharded between them using consistent hashing.\nSeveral Sentinel addresses within one shard may be passed comma-separated.",
             "is_complex_type": false
           },
           {
@@ -988,7 +988,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "SentinelUser is a Redis Sentinel user.",
             "is_complex_type": false
           },
           {
@@ -998,7 +998,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "SentinelPassword is a Redis Sentinel password.",
             "is_complex_type": false
           },
           {
@@ -1008,7 +1008,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "SentinelMasterName is a Redis master name in Sentinel setup.",
             "is_complex_type": false
           },
           {
@@ -1018,7 +1018,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "SentinelClientName is a Redis Sentinel client name used when connecting.",
             "is_complex_type": false
           },
           {
@@ -1028,7 +1028,7 @@
             "level": 3,
             "type": "TLSConfig",
             "default": "",
-            "comment": "",
+            "comment": "SentinelTLS is a configuration for Redis Sentinel TLS support.",
             "is_complex_type": true,
             "children": [
               {
@@ -1350,7 +1350,7 @@
             "level": 3,
             "type": "[]string",
             "default": "redis://127.0.0.1:6379",
-            "comment": "",
+            "comment": "Address is a list of Redis shard addresses. In most cases a single shard is used. But when many\naddresses provided Centrifugo will distribute keys between shards using consistent hashing.",
             "is_complex_type": false
           },
           {
@@ -1360,7 +1360,7 @@
             "level": 3,
             "type": "string",
             "default": "centrifugo",
-            "comment": "",
+            "comment": "Prefix for all Redis keys and channels.",
             "is_complex_type": false
           },
           {
@@ -1370,7 +1370,7 @@
             "level": 3,
             "type": "Duration",
             "default": "1s",
-            "comment": "",
+            "comment": "ConnectTimeout is a timeout for establishing connection to Redis.",
             "is_complex_type": false
           },
           {
@@ -1380,7 +1380,7 @@
             "level": 3,
             "type": "Duration",
             "default": "4s",
-            "comment": "",
+            "comment": "IOTimeout is a timeout for all read/write operations against Redis (can be considered as a request timeout).",
             "is_complex_type": false
           },
           {
@@ -1390,7 +1390,7 @@
             "level": 3,
             "type": "int",
             "default": "0",
-            "comment": "",
+            "comment": "DB is a Redis database to use. Generally it's not recommended to use non-zero DB. Note, that Redis\nPUB/SUB is global for all databases in a single Redis instance. So when using non-zero DB make sure\nthat different Centrifugo setups use different prefixes.",
             "is_complex_type": false
           },
           {
@@ -1400,7 +1400,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "User is a Redis user.",
             "is_complex_type": false
           },
           {
@@ -1410,7 +1410,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "Password is a Redis password.",
             "is_complex_type": false
           },
           {
@@ -1420,7 +1420,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "ClientName allows changing a Redis client name used when connecting.",
             "is_complex_type": false
           },
           {
@@ -1430,7 +1430,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "ForceResp2 forces use of Redis Resp2 protocol for communication.",
             "is_complex_type": false
           },
           {
@@ -1440,7 +1440,7 @@
             "level": 3,
             "type": "[]string",
             "default": "",
-            "comment": "",
+            "comment": "ClusterAddress is a list of Redis cluster addresses. When several provided - data will be sharded\nbetween them using consistent hashing. Several Cluster addresses within one shard may be passed\ncomma-separated.",
             "is_complex_type": false
           },
           {
@@ -1450,7 +1450,7 @@
             "level": 3,
             "type": "TLSConfig",
             "default": "",
-            "comment": "",
+            "comment": "TLS is a configuration for Redis TLS support.",
             "is_complex_type": true,
             "children": [
               {
@@ -1532,7 +1532,7 @@
             "level": 3,
             "type": "[]string",
             "default": "",
-            "comment": "",
+            "comment": "SentinelAddress allows setting Redis Sentinel addresses. When provided - Sentinel will be used.\nWhen multiple addresses provided - data will be sharded between them using consistent hashing.\nSeveral Sentinel addresses within one shard may be passed comma-separated.",
             "is_complex_type": false
           },
           {
@@ -1542,7 +1542,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "SentinelUser is a Redis Sentinel user.",
             "is_complex_type": false
           },
           {
@@ -1552,7 +1552,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "SentinelPassword is a Redis Sentinel password.",
             "is_complex_type": false
           },
           {
@@ -1562,7 +1562,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "SentinelMasterName is a Redis master name in Sentinel setup.",
             "is_complex_type": false
           },
           {
@@ -1572,7 +1572,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "SentinelClientName is a Redis Sentinel client name used when connecting.",
             "is_complex_type": false
           },
           {
@@ -1582,7 +1582,7 @@
             "level": 3,
             "type": "TLSConfig",
             "default": "",
-            "comment": "",
+            "comment": "SentinelTLS is a configuration for Redis Sentinel TLS support.",
             "is_complex_type": true,
             "children": [
               {
@@ -1738,7 +1738,7 @@
                 "level": 4,
                 "type": "string",
                 "default": "",
-                "comment": "",
+                "comment": "Endpoint - HTTP address or GRPC service endpoint.",
                 "is_complex_type": false
               },
               {
@@ -1748,7 +1748,7 @@
                 "level": 4,
                 "type": "Duration",
                 "default": "1s",
-                "comment": "",
+                "comment": "Timeout for proxy request.",
                 "is_complex_type": false
               },
               {
@@ -1758,7 +1758,7 @@
                 "level": 4,
                 "type": "[]string",
                 "default": "",
-                "comment": "",
+                "comment": "HttpHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.\nIf GRPC proxy is used then request HTTP headers set to outgoing request metadata.",
                 "is_complex_type": false
               },
               {
@@ -1768,7 +1768,7 @@
                 "level": 4,
                 "type": "[]string",
                 "default": "",
-                "comment": "",
+                "comment": "GrpcMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by\ndefault. If HTTP proxy is used then these keys become outgoing request HTTP headers.",
                 "is_complex_type": false
               },
               {
@@ -1778,7 +1778,7 @@
                 "level": 4,
                 "type": "bool",
                 "default": "",
-                "comment": "",
+                "comment": "BinaryEncoding makes proxy send data as base64 string (assuming it contains custom\nnon-JSON payload).",
                 "is_complex_type": false
               },
               {
@@ -1788,7 +1788,7 @@
                 "level": 4,
                 "type": "bool",
                 "default": "",
-                "comment": "",
+                "comment": "IncludeConnectionMeta to each proxy request (except connect proxy where it's obtained).",
                 "is_complex_type": false
               },
               {
@@ -2144,7 +2144,7 @@
                 "level": 4,
                 "type": "string",
                 "default": "",
-                "comment": "",
+                "comment": "Endpoint - HTTP address or GRPC service endpoint.",
                 "is_complex_type": false
               },
               {
@@ -2154,7 +2154,7 @@
                 "level": 4,
                 "type": "Duration",
                 "default": "1s",
-                "comment": "",
+                "comment": "Timeout for proxy request.",
                 "is_complex_type": false
               },
               {
@@ -2164,7 +2164,7 @@
                 "level": 4,
                 "type": "[]string",
                 "default": "",
-                "comment": "",
+                "comment": "HttpHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.\nIf GRPC proxy is used then request HTTP headers set to outgoing request metadata.",
                 "is_complex_type": false
               },
               {
@@ -2174,7 +2174,7 @@
                 "level": 4,
                 "type": "[]string",
                 "default": "",
-                "comment": "",
+                "comment": "GrpcMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by\ndefault. If HTTP proxy is used then these keys become outgoing request HTTP headers.",
                 "is_complex_type": false
               },
               {
@@ -2184,7 +2184,7 @@
                 "level": 4,
                 "type": "bool",
                 "default": "",
-                "comment": "",
+                "comment": "BinaryEncoding makes proxy send data as base64 string (assuming it contains custom\nnon-JSON payload).",
                 "is_complex_type": false
               },
               {
@@ -2194,7 +2194,7 @@
                 "level": 4,
                 "type": "bool",
                 "default": "",
-                "comment": "",
+                "comment": "IncludeConnectionMeta to each proxy request (except connect proxy where it's obtained).",
                 "is_complex_type": false
               },
               {
@@ -2776,7 +2776,7 @@
         "level": 2,
         "type": "Duration",
         "default": "25s",
-        "comment": "",
+        "comment": "PingInterval tells how often to issue server-to-client pings.\nTo disable sending app-level pings use -1.",
         "is_complex_type": false
       },
       {
@@ -2786,7 +2786,7 @@
         "level": 2,
         "type": "Duration",
         "default": "8s",
-        "comment": "",
+        "comment": "PongTimeout sets time for pong check after issuing a ping. To disable pong checks use -1.\nPongTimeout must be less than PingInterval in current implementation.",
         "is_complex_type": false
       },
       {
@@ -3146,7 +3146,7 @@
                 "level": 4,
                 "type": "[]string",
                 "default": "",
-                "comment": "",
+                "comment": "HttpHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.\nIf GRPC proxy is used then request HTTP headers set to outgoing request metadata.",
                 "is_complex_type": false
               },
               {
@@ -3156,7 +3156,7 @@
                 "level": 4,
                 "type": "[]string",
                 "default": "",
-                "comment": "",
+                "comment": "GrpcMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by\ndefault. If HTTP proxy is used then these keys become outgoing request HTTP headers.",
                 "is_complex_type": false
               },
               {
@@ -3166,7 +3166,7 @@
                 "level": 4,
                 "type": "bool",
                 "default": "",
-                "comment": "",
+                "comment": "BinaryEncoding makes proxy send data as base64 string (assuming it contains custom\nnon-JSON payload).",
                 "is_complex_type": false
               },
               {
@@ -3176,7 +3176,7 @@
                 "level": 4,
                 "type": "bool",
                 "default": "",
-                "comment": "",
+                "comment": "IncludeConnectionMeta to each proxy request (except connect proxy where it's obtained).",
                 "is_complex_type": false
               },
               {
@@ -3542,7 +3542,7 @@
                 "level": 4,
                 "type": "[]string",
                 "default": "",
-                "comment": "",
+                "comment": "HttpHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.\nIf GRPC proxy is used then request HTTP headers set to outgoing request metadata.",
                 "is_complex_type": false
               },
               {
@@ -3552,7 +3552,7 @@
                 "level": 4,
                 "type": "[]string",
                 "default": "",
-                "comment": "",
+                "comment": "GrpcMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by\ndefault. If HTTP proxy is used then these keys become outgoing request HTTP headers.",
                 "is_complex_type": false
               },
               {
@@ -3562,7 +3562,7 @@
                 "level": 4,
                 "type": "bool",
                 "default": "",
-                "comment": "",
+                "comment": "BinaryEncoding makes proxy send data as base64 string (assuming it contains custom\nnon-JSON payload).",
                 "is_complex_type": false
               },
               {
@@ -3572,7 +3572,7 @@
                 "level": 4,
                 "type": "bool",
                 "default": "",
-                "comment": "",
+                "comment": "IncludeConnectionMeta to each proxy request (except connect proxy where it's obtained).",
                 "is_complex_type": false
               },
               {
@@ -3938,7 +3938,7 @@
                 "level": 4,
                 "type": "[]string",
                 "default": "",
-                "comment": "",
+                "comment": "HttpHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.\nIf GRPC proxy is used then request HTTP headers set to outgoing request metadata.",
                 "is_complex_type": false
               },
               {
@@ -3948,7 +3948,7 @@
                 "level": 4,
                 "type": "[]string",
                 "default": "",
-                "comment": "",
+                "comment": "GrpcMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by\ndefault. If HTTP proxy is used then these keys become outgoing request HTTP headers.",
                 "is_complex_type": false
               },
               {
@@ -3958,7 +3958,7 @@
                 "level": 4,
                 "type": "bool",
                 "default": "",
-                "comment": "",
+                "comment": "BinaryEncoding makes proxy send data as base64 string (assuming it contains custom\nnon-JSON payload).",
                 "is_complex_type": false
               },
               {
@@ -3968,7 +3968,7 @@
                 "level": 4,
                 "type": "bool",
                 "default": "",
-                "comment": "",
+                "comment": "IncludeConnectionMeta to each proxy request (except connect proxy where it's obtained).",
                 "is_complex_type": false
               },
               {
@@ -4334,7 +4334,7 @@
                 "level": 4,
                 "type": "[]string",
                 "default": "",
-                "comment": "",
+                "comment": "HttpHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.\nIf GRPC proxy is used then request HTTP headers set to outgoing request metadata.",
                 "is_complex_type": false
               },
               {
@@ -4344,7 +4344,7 @@
                 "level": 4,
                 "type": "[]string",
                 "default": "",
-                "comment": "",
+                "comment": "GrpcMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by\ndefault. If HTTP proxy is used then these keys become outgoing request HTTP headers.",
                 "is_complex_type": false
               },
               {
@@ -4354,7 +4354,7 @@
                 "level": 4,
                 "type": "bool",
                 "default": "",
-                "comment": "",
+                "comment": "BinaryEncoding makes proxy send data as base64 string (assuming it contains custom\nnon-JSON payload).",
                 "is_complex_type": false
               },
               {
@@ -4364,7 +4364,7 @@
                 "level": 4,
                 "type": "bool",
                 "default": "",
-                "comment": "",
+                "comment": "IncludeConnectionMeta to each proxy request (except connect proxy where it's obtained).",
                 "is_complex_type": false
               },
               {
@@ -5084,7 +5084,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "Presence turns on presence information for channel. Presence has\ninformation about all clients currently subscribed to a channel.",
             "is_complex_type": false
           },
           {
@@ -5094,7 +5094,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "JoinLeave turns on join/leave messages for a channel.\nWhen client subscribes on a channel join message sent to all\nsubscribers in this channel (including current client). When client\nleaves channel (unsubscribes) leave message sent. This option does\nnot fit well for channels with many subscribers because every\nsubscribe/unsubscribe event results into join/leave event broadcast\nto all other active subscribers thus overloads server with tons of\nmessages. Use accurately for channels with small number of active\nsubscribers.",
             "is_complex_type": false
           },
           {
@@ -5104,7 +5104,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "ForcePushJoinLeave forces sending join/leave messages towards subscribers.",
             "is_complex_type": false
           },
           {
@@ -5114,7 +5114,7 @@
             "level": 3,
             "type": "int",
             "default": "",
-            "comment": "",
+            "comment": "HistorySize determines max amount of history messages for a channel,\nZero value means no history for channel. Centrifuge history has an\nauxiliary role with current Engines – it can not replace your backend\npersistent storage.",
             "is_complex_type": false
           },
           {
@@ -5124,7 +5124,7 @@
             "level": 3,
             "type": "Duration",
             "default": "",
-            "comment": "",
+            "comment": "HistoryTTL is a time to live for history cache. Server maintains a window of\nmessages in memory (or in Redis with Redis engine), to prevent infinite memory\ngrows it's important to remove history for inactive channels.",
             "is_complex_type": false
           },
           {
@@ -5134,7 +5134,7 @@
             "level": 3,
             "type": "Duration",
             "default": "",
-            "comment": "",
+            "comment": "HistoryMetaTTL is a time to live for history stream meta information. Must be\nmuch larger than HistoryTTL in common scenario. If zero, then we use global value\nset over default_history_meta_ttl on configuration top level.",
             "is_complex_type": false
           },
           {
@@ -5144,7 +5144,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "ForcePositioning enables client positioning. This means that StreamPosition\nwill be exposed to the client and server will look that no messages from\nPUB/SUB layer lost. In the loss found – client is disconnected (or unsubscribed)\nwith reconnect (resubscribe) code.",
             "is_complex_type": false
           },
           {
@@ -5154,7 +5154,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "AllowPositioning allows positioning when client asks about it.",
             "is_complex_type": false
           },
           {
@@ -5164,7 +5164,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "ForceRecovery enables recovery mechanism for channels. This means that\nserver will try to recover missed messages for resubscribing client.\nThis option uses publications from history and must be used with reasonable\nHistorySize and HistoryTTL configuration.",
             "is_complex_type": false
           },
           {
@@ -5174,7 +5174,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "AllowRecovery allows recovery when client asks about it.",
             "is_complex_type": false
           },
           {
@@ -5184,7 +5184,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "ForceRecoveryMode can set the recovery mode for all channel subscribers in the namespace which use recovery.",
             "is_complex_type": false
           },
           {
@@ -5194,7 +5194,7 @@
             "level": 3,
             "type": "[]centrifuge.DeltaType",
             "default": "",
-            "comment": "",
+            "comment": "AllowedDeltaTypes is non-empty contains slice of allowed delta types for subscribers to use.",
             "is_complex_type": false
           },
           {
@@ -5204,7 +5204,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "DeltaPublish enables delta publish mechanism for all messages published in namespace channels\nwithout explicit flag usage in publish API request. Setting this option does not guarantee that\npublication will be compressed when going towards subscribers – it still depends on subscriber\nconnection options and whether Centrifugo Node is able to find previous publication in channel.",
             "is_complex_type": false
           },
           {
@@ -5214,7 +5214,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "SubscribeForAnonymous ...",
             "is_complex_type": false
           },
           {
@@ -5224,7 +5224,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "SubscribeForClient ...",
             "is_complex_type": false
           },
           {
@@ -5234,7 +5234,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "PublishForAnonymous ...",
             "is_complex_type": false
           },
           {
@@ -5244,7 +5244,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "PublishForSubscriber ...",
             "is_complex_type": false
           },
           {
@@ -5254,7 +5254,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "PublishForClient ...",
             "is_complex_type": false
           },
           {
@@ -5264,7 +5264,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "PresenceForAnonymous ...",
             "is_complex_type": false
           },
           {
@@ -5274,7 +5274,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "PresenceForSubscriber ...",
             "is_complex_type": false
           },
           {
@@ -5284,7 +5284,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "PresenceForClient ...",
             "is_complex_type": false
           },
           {
@@ -5294,7 +5294,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "HistoryForAnonymous ...",
             "is_complex_type": false
           },
           {
@@ -5304,7 +5304,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "HistoryForSubscriber ...",
             "is_complex_type": false
           },
           {
@@ -5314,7 +5314,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "HistoryForClient ...",
             "is_complex_type": false
           },
           {
@@ -5324,7 +5324,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "UserLimitedChannels ...",
             "is_complex_type": false
           },
           {
@@ -5334,7 +5334,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "ChannelRegex ...",
             "is_complex_type": false
           },
           {
@@ -5344,7 +5344,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "SubscribeProxyEnabled turns on using proxy for subscribe operations in namespace.",
             "is_complex_type": false
           },
           {
@@ -5354,7 +5354,7 @@
             "level": 3,
             "type": "string",
             "default": "default",
-            "comment": "",
+            "comment": "SubscribeProxyName of proxy to use for subscribe operations in namespace.",
             "is_complex_type": false
           },
           {
@@ -5364,7 +5364,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "PublishProxyEnabled turns on using proxy for publish operations in namespace.",
             "is_complex_type": false
           },
           {
@@ -5374,7 +5374,7 @@
             "level": 3,
             "type": "string",
             "default": "default",
-            "comment": "",
+            "comment": "PublishProxyName of proxy to use for publish operations in namespace.",
             "is_complex_type": false
           },
           {
@@ -5384,7 +5384,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "SubRefreshProxyEnabled turns on using proxy for sub refresh operations in namespace.",
             "is_complex_type": false
           },
           {
@@ -5394,7 +5394,7 @@
             "level": 3,
             "type": "string",
             "default": "default",
-            "comment": "",
+            "comment": "SubRefreshProxyName of proxy to use for sub refresh operations in namespace.",
             "is_complex_type": false
           },
           {
@@ -5404,7 +5404,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "SubscribeStreamProxyEnabled turns on using proxy for subscribe stream operations in namespace.",
             "is_complex_type": false
           },
           {
@@ -5414,7 +5414,7 @@
             "level": 3,
             "type": "string",
             "default": "default",
-            "comment": "",
+            "comment": "SubscribeStreamProxyName of proxy to use for subscribe stream operations in namespace.",
             "is_complex_type": false
           },
           {
@@ -5424,7 +5424,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "SubscribeStreamBidirectional enables using bidirectional stream proxy for the namespace.",
             "is_complex_type": false
           }
         ]
@@ -5538,7 +5538,7 @@
             "level": 3,
             "type": "[]string",
             "default": "",
-            "comment": "",
+            "comment": "HttpHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.\nIf GRPC proxy is used then request HTTP headers set to outgoing request metadata.",
             "is_complex_type": false
           },
           {
@@ -5548,7 +5548,7 @@
             "level": 3,
             "type": "[]string",
             "default": "",
-            "comment": "",
+            "comment": "GrpcMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by\ndefault. If HTTP proxy is used then these keys become outgoing request HTTP headers.",
             "is_complex_type": false
           },
           {
@@ -5558,7 +5558,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "BinaryEncoding makes proxy send data as base64 string (assuming it contains custom\nnon-JSON payload).",
             "is_complex_type": false
           },
           {
@@ -5568,7 +5568,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "IncludeConnectionMeta to each proxy request (except connect proxy where it's obtained).",
             "is_complex_type": false
           },
           {
@@ -5956,7 +5956,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "ProxyEnabled allows to enable using RPC proxy for this namespace.",
             "is_complex_type": false
           },
           {
@@ -5966,7 +5966,7 @@
             "level": 3,
             "type": "string",
             "default": "default",
-            "comment": "",
+            "comment": "ProxyName which should be used for RPC namespace.",
             "is_complex_type": false
           }
         ]
@@ -6042,7 +6042,7 @@
         "level": 2,
         "type": "string",
         "default": "",
-        "comment": "",
+        "comment": "Endpoint - HTTP address or GRPC service endpoint.",
         "is_complex_type": false
       },
       {
@@ -6052,7 +6052,7 @@
         "level": 2,
         "type": "Duration",
         "default": "1s",
-        "comment": "",
+        "comment": "Timeout for proxy request.",
         "is_complex_type": false
       },
       {
@@ -6062,7 +6062,7 @@
         "level": 2,
         "type": "[]string",
         "default": "",
-        "comment": "",
+        "comment": "HttpHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.\nIf GRPC proxy is used then request HTTP headers set to outgoing request metadata.",
         "is_complex_type": false
       },
       {
@@ -6072,7 +6072,7 @@
         "level": 2,
         "type": "[]string",
         "default": "",
-        "comment": "",
+        "comment": "GrpcMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by\ndefault. If HTTP proxy is used then these keys become outgoing request HTTP headers.",
         "is_complex_type": false
       },
       {
@@ -6082,7 +6082,7 @@
         "level": 2,
         "type": "bool",
         "default": "",
-        "comment": "",
+        "comment": "BinaryEncoding makes proxy send data as base64 string (assuming it contains custom\nnon-JSON payload).",
         "is_complex_type": false
       },
       {
@@ -6092,7 +6092,7 @@
         "level": 2,
         "type": "bool",
         "default": "",
-        "comment": "",
+        "comment": "IncludeConnectionMeta to each proxy request (except connect proxy where it's obtained).",
         "is_complex_type": false
       },
       {

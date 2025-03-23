@@ -205,15 +205,19 @@ func DocumentStructJSON(cfg interface{}, parentKey string, parentType string, le
 		msTag := field.Tag.Get("mapstructure")
 		if msTag != "" && strings.Contains(msTag, "squash") {
 			var nested interface{}
+			var nestedType reflect.Type
 			if field.Type.Kind() == reflect.Ptr {
 				if field.Type.Elem().Kind() == reflect.Struct {
-					nested = reflect.New(field.Type.Elem()).Interface()
+					nestedType = field.Type.Elem()
+					nested = reflect.New(nestedType).Interface()
 				}
 			} else if field.Type.Kind() == reflect.Struct {
-				nested = reflect.New(field.Type).Interface()
+				nestedType = field.Type
+				nested = reflect.New(nestedType).Interface()
 			}
 			if nested != nil {
-				docs = append(docs, DocumentStructJSON(nested, parentKey, parentType, level, comments)...)
+				nestedFullType := getFullTypeName(nestedType) // Use the actual squashed type.
+				docs = append(docs, DocumentStructJSON(nested, parentKey, nestedFullType, level, comments)...)
 			}
 			continue
 		}
