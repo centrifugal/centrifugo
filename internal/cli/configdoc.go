@@ -6,9 +6,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/centrifugal/centrifugo/v6/internal/build"
-
 	_ "embed"
+
+	"github.com/centrifugal/centrifugo/v6/internal/build"
 
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
@@ -58,7 +58,7 @@ func markdownHandler(w http.ResponseWriter, r *http.Request) {
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Modern Markdown Display</title>
+  <title>Centrifugo configuration</title>
   <!-- Bootswatch Minty Theme (Bootstrap 5) -->
   <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.0/dist/materia/bootstrap.min.css" rel="stylesheet">
   <style>
