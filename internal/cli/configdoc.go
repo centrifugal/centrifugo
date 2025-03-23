@@ -17,7 +17,7 @@ import (
 	"github.com/yuin/goldmark"
 )
 
-//go:embed configdocs/schema.json
+//go:embed configdoc/schema.json
 var configSchema string
 
 func ConfigDoc() *cobra.Command {

@@ -37,7 +37,7 @@ func main() {
 		os.Exit(1)
 	}
 	configDirs := []string{"internal/config", "internal/configtypes"}
-	if err := CreateJSONDocumentationWithComments(&conf, configDirs, "internal/cli/configdocs/schema.json"); err != nil {
+	if err := CreateJSONDocumentationWithComments(&conf, configDirs, "internal/cli/configdoc/schema.json"); err != nil {
 		fmt.Println("Error writing JSON documentation:", err)
 	} else {
 		fmt.Println("JSON documentation generated successfully.")
