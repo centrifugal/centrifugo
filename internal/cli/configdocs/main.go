@@ -15,16 +15,15 @@ import (
 
 // FieldDoc represents the JSON documentation for a configuration field.
 type FieldDoc struct {
-	Field           string     `json:"field"`
-	Name            string     `json:"name"`
-	GoName          string     `json:"go_name"`
-	Level           int        `json:"level"`
-	Type            string     `json:"type"`
-	Default         string     `json:"default"`
-	TypeDescription string     `json:"type_description"`
-	Comment         string     `json:"comment"`
-	IsComplexType   bool       `json:"is_complex_type"`
-	Children        []FieldDoc `json:"children,omitempty"`
+	Field         string     `json:"field"`
+	Name          string     `json:"name"`
+	GoName        string     `json:"go_name"`
+	Level         int        `json:"level"`
+	Type          string     `json:"type"`
+	Default       string     `json:"default"`
+	Comment       string     `json:"comment"`
+	IsComplexType bool       `json:"is_complex_type"`
+	Children      []FieldDoc `json:"children,omitempty"`
 }
 
 func main() {
@@ -38,7 +37,7 @@ func main() {
 		os.Exit(1)
 	}
 	configDirs := []string{"internal/config", "internal/configtypes"}
-	if err := CreateJSONDocumentationWithComments(&conf, configDirs, "internal/cli/configdocs/config.json"); err != nil {
+	if err := CreateJSONDocumentationWithComments(&conf, configDirs, "internal/cli/configdocs/schema.json"); err != nil {
 		fmt.Println("Error writing JSON documentation:", err)
 	} else {
 		fmt.Println("JSON documentation generated successfully.")
@@ -241,13 +240,6 @@ func DocumentStructJSON(cfg interface{}, parentKey string, parentType string, le
 		defaultVal := field.Tag.Get("default")
 		// Get type info.
 		displayType, isComplex := getDisplayType(field.Type)
-		typeDesc := fmt.Sprintf("Type: `%s`", displayType)
-		if isComplex {
-			typeDesc = fmt.Sprintf("Type: `%s` object", displayType)
-		}
-		if defaultVal != "" {
-			typeDesc = fmt.Sprintf("%s. Default: `%s`", typeDesc, defaultVal)
-		}
 
 		// Get field comment.
 		var commentText string
@@ -257,15 +249,14 @@ func DocumentStructJSON(cfg interface{}, parentKey string, parentType string, le
 
 		// Use the computed fieldLevel for the current field.
 		docEntry := FieldDoc{
-			Field:           fullKey,
-			Name:            keyTag,
-			GoName:          field.Name,
-			Level:           fieldLevel, // Use computed fieldLevel here.
-			Type:            displayType,
-			Default:         defaultVal,
-			TypeDescription: typeDesc,
-			IsComplexType:   isComplex,
-			Comment:         commentText,
+			Field:         fullKey,
+			Name:          keyTag,
+			GoName:        field.Name,
+			Level:         fieldLevel, // Use computed fieldLevel here.
+			Type:          displayType,
+			Default:       defaultVal,
+			IsComplexType: isComplex,
+			Comment:       commentText,
 		}
 
 		// Recurse into nested structs, pointers to structs, or slices of structs.

@@ -17,22 +17,39 @@ import (
 	"github.com/yuin/goldmark"
 )
 
-//go:embed configdocs/config.json
-var configRepresentation string
+//go:embed configdocs/schema.json
+var configSchema string
 
 func ConfigDoc() *cobra.Command {
+	var mdOutput bool
+	var section string
 	var genConfigCmd = &cobra.Command{
 		Use:   "configdoc",
 		Short: "Show Centrifugo configuration documentation generated from source code",
 		Long:  `Show Centrifugo configuration documentation generated from source code`,
 		Run: func(cmd *cobra.Command, args []string) {
-			configDoc()
+			configDoc(mdOutput, section)
 		},
 	}
+	genConfigCmd.Flags().BoolVarP(&mdOutput, "markdown", "m", false, "output markdown to stdout")
+	genConfigCmd.Flags().StringVarP(&section, "section", "s", "", "filter by top-level section name")
 	return genConfigCmd
 }
 
-func configDoc() {
+func configDoc(mdOutput bool, section string) {
+	var docs []FieldDoc
+	if err := json.Unmarshal([]byte(configSchema), &docs); err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
+	}
+
+	mdContent := convertDocsToMarkdown(docs, section)
+
+	if mdOutput {
+		fmt.Println(mdContent)
+		return
+	}
+
 	// Start a goroutine to open the URL automatically.
 	go func() {
 		url := "http://localhost:6060"
@@ -42,35 +59,75 @@ func configDoc() {
 		}
 	}()
 
-	http.HandleFunc("/", markdownHandler)
+	http.HandleFunc("/", makeMarkdownHandler(mdContent))
 	log.Println("Server running on http://localhost:6060")
 	log.Fatal(http.ListenAndServe(":6060", nil))
 }
 
 // FieldDoc represents the JSON documentation for a configuration field.
 type FieldDoc struct {
-	Field           string     `json:"field"`
-	Name            string     `json:"name"`
-	GoName          string     `json:"go_name"`
-	Level           int        `json:"level"`
-	Type            string     `json:"type"`
-	Default         string     `json:"default"`
-	TypeDescription string     `json:"type_description"`
-	Comment         string     `json:"comment"`
-	IsComplexType   bool       `json:"is_complex_type"`
-	Children        []FieldDoc `json:"children,omitempty"`
+	Field         string     `json:"field"`
+	Name          string     `json:"name"`
+	GoName        string     `json:"go_name"`
+	Level         int        `json:"level"`
+	Type          string     `json:"type"`
+	Default       string     `json:"default"`
+	Comment       string     `json:"comment"`
+	IsComplexType bool       `json:"is_complex_type"`
+	Children      []FieldDoc `json:"children,omitempty"`
 }
 
 // ConvertDocsToMarkdown recursively converts a slice of FieldDoc entries into Markdown.
-func convertDocsToMarkdown(docs []FieldDoc) string {
+func convertDocsToMarkdown(docs []FieldDoc, section string) string {
 	var sb strings.Builder
 	for _, doc := range docs {
+		if section != "" && !strings.HasPrefix(doc.Field, section) {
+			continue
+		}
 		// Generate a header with the appropriate Markdown level.
 		fieldLevel := doc.Level
 		if fieldLevel > 6 {
 			fieldLevel = 6
 		}
 		header := strings.Repeat("#", fieldLevel)
+
+		typeDesc := fmt.Sprintf("Type: `%s`", doc.Type)
+		if doc.IsComplexType {
+			typeDesc = fmt.Sprintf("Type: `%s` object", doc.Type)
+		}
+		if doc.Default != "" {
+			typeDesc += fmt.Sprintf(". Default: `%s`", doc.Default)
+		}
+
+		var envVar string
+		if !strings.Contains(doc.Field, "[]") {
+			if !doc.IsComplexType {
+				envVar = "CENTRIFUGO_" + strings.ToUpper(strings.ReplaceAll(doc.Field, `.`, "_"))
+			} else {
+				if strings.Contains(doc.Field, "namespaces") || strings.Contains(doc.Field, "proxies") || strings.Contains(doc.Field, "consumers") {
+					envVar = "CENTRIFUGO_" + strings.ToUpper(strings.ReplaceAll(doc.Field, `.`, "_"))
+				} else if doc.Default == "[]" {
+					envVar = "CENTRIFUGO_" + strings.ToUpper(strings.ReplaceAll(doc.Field, `.`, "_"))
+				}
+			}
+		} else {
+			if !strings.HasSuffix(doc.Field, ".name") &&
+				(strings.HasPrefix(doc.Field, "namespaces") ||
+					strings.HasPrefix(doc.Field, "proxies") ||
+					strings.HasPrefix(doc.Field, "consumers")) &&
+				(!doc.IsComplexType || doc.Default == "[]") {
+				field := strings.Replace(doc.Field, `[]`, "_<NAME>", 1)
+				envVar = "CENTRIFUGO_" + strings.ToUpper(strings.ReplaceAll(field, `.`, "_"))
+			}
+			if strings.Contains(envVar, "[]") {
+				envVar = ""
+			}
+		}
+
+		if envVar != "" {
+			typeDesc += fmt.Sprintf("\n\nEnv: `%s`", envVar)
+		}
+
 		comment := doc.Comment
 		if comment == "" {
 			comment = "No documentation available."
@@ -78,31 +135,24 @@ func convertDocsToMarkdown(docs []FieldDoc) string {
 		if strings.HasPrefix(comment, doc.GoName) {
 			comment = fmt.Sprintf("`%s`%s", doc.Name, comment[len(doc.GoName):])
 		}
-		sb.WriteString(fmt.Sprintf("%s `%s`\n\n%s\n\n%s\n\n", header, doc.Field, doc.TypeDescription, comment))
+		sb.WriteString(fmt.Sprintf("%s `%s`\n\n%s\n\n%s\n\n", header, doc.Field, typeDesc, comment))
 		if len(doc.Children) > 0 {
-			sb.WriteString(convertDocsToMarkdown(doc.Children))
+			sb.WriteString(convertDocsToMarkdown(doc.Children, section))
 		}
 	}
 	return sb.String()
 }
 
-func markdownHandler(w http.ResponseWriter, r *http.Request) {
-	var docs []FieldDoc
-	if err := json.Unmarshal([]byte(configRepresentation), &docs); err != nil {
-		http.Error(w, "Error unmarshalling JSON: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+func makeMarkdownHandler(mdContent string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var buf bytes.Buffer
+		if err := goldmark.Convert([]byte(mdContent), &buf); err != nil {
+			http.Error(w, "Error converting markdown: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-	mdContent := convertDocsToMarkdown(docs)
-
-	var buf bytes.Buffer
-	if err := goldmark.Convert([]byte(mdContent), &buf); err != nil {
-		http.Error(w, "Error converting markdown: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Build the complete HTML page using a modern Bootswatch Minty theme.
-	htmlPage := fmt.Sprintf(`<!DOCTYPE html>
+		// Build the complete HTML page using a modern Bootswatch Minty theme.
+		htmlPage := fmt.Sprintf(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -115,7 +165,9 @@ func markdownHandler(w http.ResponseWriter, r *http.Request) {
 	h1, h2, h3, h4, h5, h6 {
 		font-size: 1.2rem;
 		margin-top: 1.5rem;
+		margin-bottom: 0.6rem;
 	}
+	p { margin-bottom: 0.6rem; }
 	code { color: #139f87; }
 	h1 code, h2 code, h3 code, h4 code, h5 code, h6 code { color: #04416d; }
     /* Set initial left margins for headers */
@@ -156,6 +208,7 @@ func markdownHandler(w http.ResponseWriter, r *http.Request) {
 </body>
 </html>`, build.Version, buf.String())
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write([]byte(htmlPage))
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(htmlPage))
+	}
 }
