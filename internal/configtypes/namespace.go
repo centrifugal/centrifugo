@@ -104,43 +104,43 @@ type ChannelOptions struct {
 	// connection options and whether Centrifugo Node is able to find previous publication in channel.
 	DeltaPublish bool `mapstructure:"delta_publish" json:"delta_publish" envconfig:"delta_publish" yaml:"delta_publish" toml:"delta_publish"`
 
-	// SubscribeForAnonymous ...
+	// SubscribeForAnonymous allows anonymous clients to subscribe on channels in namespace.
 	SubscribeForAnonymous bool `mapstructure:"allow_subscribe_for_anonymous" json:"allow_subscribe_for_anonymous" envconfig:"allow_subscribe_for_anonymous" yaml:"allow_subscribe_for_anonymous" toml:"allow_subscribe_for_anonymous"`
 
-	// SubscribeForClient ...
+	// SubscribeForClient allows authenticated clients to subscribe on channels in namespace.
 	SubscribeForClient bool `mapstructure:"allow_subscribe_for_client" json:"allow_subscribe_for_client" envconfig:"allow_subscribe_for_client" yaml:"allow_subscribe_for_client" toml:"allow_subscribe_for_client"`
 
-	// PublishForAnonymous ...
+	// PublishForAnonymous allows anonymous clients to publish messages into channels in namespace.
 	PublishForAnonymous bool `mapstructure:"allow_publish_for_anonymous" json:"allow_publish_for_anonymous" envconfig:"allow_publish_for_anonymous" yaml:"allow_publish_for_anonymous" toml:"allow_publish_for_anonymous"`
 
-	// PublishForSubscriber ...
+	// PublishForSubscriber allows clients subscribed on channel to publish messages into it.
 	PublishForSubscriber bool `mapstructure:"allow_publish_for_subscriber" json:"allow_publish_for_subscriber" envconfig:"allow_publish_for_subscriber" yaml:"allow_publish_for_subscriber" toml:"allow_publish_for_subscriber"`
 
-	// PublishForClient ...
+	// PublishForClient allows authenticated clients to publish messages into channels in namespace.
 	PublishForClient bool `mapstructure:"allow_publish_for_client" json:"allow_publish_for_client" envconfig:"allow_publish_for_client" yaml:"allow_publish_for_client" toml:"allow_publish_for_client"`
 
-	// PresenceForAnonymous ...
+	// PresenceForAnonymous allows anonymous clients to get presence information for channels in namespace.
 	PresenceForAnonymous bool `mapstructure:"allow_presence_for_anonymous" json:"allow_presence_for_anonymous" envconfig:"allow_presence_for_anonymous" yaml:"allow_presence_for_anonymous" toml:"allow_presence_for_anonymous"`
 
-	// PresenceForSubscriber ...
+	// PresenceForSubscriber allows clients subscribed on channel to get presence information for it.
 	PresenceForSubscriber bool `mapstructure:"allow_presence_for_subscriber" json:"allow_presence_for_subscriber" envconfig:"allow_presence_for_subscriber" yaml:"allow_presence_for_subscriber" toml:"allow_presence_for_subscriber"`
 
-	// PresenceForClient ...
+	// PresenceForClient allows authenticated clients to get presence information for channels in namespace.
 	PresenceForClient bool `mapstructure:"allow_presence_for_client" json:"allow_presence_for_client" envconfig:"allow_presence_for_client" yaml:"allow_presence_for_client" toml:"allow_presence_for_client"`
 
-	// HistoryForAnonymous ...
+	// HistoryForAnonymous allows anonymous clients to get history information for channels in namespace.
 	HistoryForAnonymous bool `mapstructure:"allow_history_for_anonymous" json:"allow_history_for_anonymous" envconfig:"allow_history_for_anonymous" yaml:"allow_history_for_anonymous" toml:"allow_history_for_anonymous"`
 
-	// HistoryForSubscriber ...
+	// HistoryForSubscriber allows clients subscribed on channel to get history information for it.
 	HistoryForSubscriber bool `mapstructure:"allow_history_for_subscriber" json:"allow_history_for_subscriber" envconfig:"allow_history_for_subscriber" yaml:"allow_history_for_subscriber" toml:"allow_history_for_subscriber"`
 
-	// HistoryForClient ...
+	// HistoryForClient allows authenticated clients to get history information for channels in namespace.
 	HistoryForClient bool `mapstructure:"allow_history_for_client" json:"allow_history_for_client" envconfig:"allow_history_for_client" yaml:"allow_history_for_client" toml:"allow_history_for_client"`
 
-	// UserLimitedChannels ...
+	// UserLimitedChannels allows to limit number of channels user can subscribe to in namespace.
 	UserLimitedChannels bool `mapstructure:"allow_user_limited_channels" json:"allow_user_limited_channels" envconfig:"allow_user_limited_channels" yaml:"allow_user_limited_channels" toml:"allow_user_limited_channels"`
 
-	// ChannelRegex ...
+	// ChannelRegex sets a regular expression to check channel name against.
 	ChannelRegex string `mapstructure:"channel_regex" json:"channel_regex" envconfig:"channel_regex" yaml:"channel_regex" toml:"channel_regex"`
 
 	// SubscribeProxyEnabled turns on using proxy for subscribe operations in namespace.

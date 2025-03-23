@@ -712,7 +712,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "UseLists enables usage of Redis Lists for history storage. Lists do not support pagination,\nidempotent publish and reverse order history retrieval.",
             "is_complex_type": false
           },
           {
@@ -722,7 +722,7 @@
             "level": 3,
             "type": "Duration",
             "default": "60s",
-            "comment": "",
+            "comment": "PresenceTTL is a period of time while presence information is considered valid.",
             "is_complex_type": false
           },
           {
@@ -732,7 +732,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "PresenceHashFieldTTL enables using hash per-field expiration for presence.",
             "is_complex_type": false
           },
           {
@@ -742,7 +742,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "PresenceUserMapping enables optimization for presence stats keeping a separate hash of subscribed users in Redis.",
             "is_complex_type": false
           }
         ]
@@ -1110,7 +1110,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "UseLists enables usage of Redis Lists for history storage. Lists do not support pagination,\nidempotent publish and reverse order history retrieval.",
             "is_complex_type": false
           }
         ]
@@ -1284,7 +1284,7 @@
                 "level": 4,
                 "type": "MapStringString",
                 "default": "{}",
-                "comment": "ChannelReplacements is a map where keys are strings to replace and values are replacements.\nFor example, you have Centrifugo namespace \"chat\" and using channel \"chat:index\", but you want to\nuse channel \"chat.index\" in Nats. Then you can define SymbolReplacements map like this: {\":\": \".\"}.\nIn this case Centrifugo will replace all \":\" symbols in channel name with \".\" before sending to Nats.\nBroker keeps reverse mapping to the original channel to broadcast to proper channels when processing\nmessages received from Nats.",
+                "comment": "ChannelReplacements is a map where keys are strings to replace and values are replacements.\nFor example, you have Centrifugo namespace \"chat\" and using channel \"chat:index\", but you want to\nuse channel \"chat.index\" in Nats. Then you can define SymbolReplacements map like this: `{\":\": \".\"}`.\nIn this case Centrifugo will replace all \":\" symbols in channel name with \".\" before sending to Nats.\nBroker keeps reverse mapping to the original channel to broadcast to proper channels when processing\nmessages received from Nats.",
                 "is_complex_type": false
               },
               {
@@ -1664,7 +1664,7 @@
             "level": 3,
             "type": "Duration",
             "default": "60s",
-            "comment": "",
+            "comment": "PresenceTTL is a period of time while presence information is considered valid.",
             "is_complex_type": false
           },
           {
@@ -1674,7 +1674,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "PresenceHashFieldTTL enables using hash per-field expiration for presence.",
             "is_complex_type": false
           },
           {
@@ -1684,7 +1684,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "PresenceUserMapping enables optimization for presence stats keeping a separate hash of subscribed users in Redis.",
             "is_complex_type": false
           }
         ]
@@ -2986,7 +2986,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "Enabled allows to enable the feature.",
             "is_complex_type": false
           },
           {
@@ -2996,7 +2996,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "",
+            "comment": "PersonalChannelNamespace is a namespace for personal channels.",
             "is_complex_type": false
           },
           {
@@ -3006,7 +3006,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "SingleConnection allows enabling a mode when Centrifugo will try to maintain a single connection from user.",
             "is_complex_type": false
           }
         ]
@@ -3116,7 +3116,7 @@
             "level": 3,
             "type": "Proxy",
             "default": "",
-            "comment": "",
+            "comment": "Subscribe proxy configuration.",
             "is_complex_type": true,
             "children": [
               {
@@ -3512,7 +3512,7 @@
             "level": 3,
             "type": "Proxy",
             "default": "",
-            "comment": "",
+            "comment": "Publish proxy configuration.",
             "is_complex_type": true,
             "children": [
               {
@@ -3908,7 +3908,7 @@
             "level": 3,
             "type": "Proxy",
             "default": "",
-            "comment": "",
+            "comment": "SubRefresh proxy configuration.",
             "is_complex_type": true,
             "children": [
               {
@@ -4304,7 +4304,7 @@
             "level": 3,
             "type": "Proxy",
             "default": "",
-            "comment": "",
+            "comment": "SubscribeStream proxy configuration.",
             "is_complex_type": true,
             "children": [
               {
@@ -4842,7 +4842,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "SubscribeForAnonymous ...",
+            "comment": "SubscribeForAnonymous allows anonymous clients to subscribe on channels in namespace.",
             "is_complex_type": false
           },
           {
@@ -4852,7 +4852,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "SubscribeForClient ...",
+            "comment": "SubscribeForClient allows authenticated clients to subscribe on channels in namespace.",
             "is_complex_type": false
           },
           {
@@ -4862,7 +4862,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "PublishForAnonymous ...",
+            "comment": "PublishForAnonymous allows anonymous clients to publish messages into channels in namespace.",
             "is_complex_type": false
           },
           {
@@ -4872,7 +4872,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "PublishForSubscriber ...",
+            "comment": "PublishForSubscriber allows clients subscribed on channel to publish messages into it.",
             "is_complex_type": false
           },
           {
@@ -4882,7 +4882,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "PublishForClient ...",
+            "comment": "PublishForClient allows authenticated clients to publish messages into channels in namespace.",
             "is_complex_type": false
           },
           {
@@ -4892,7 +4892,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "PresenceForAnonymous ...",
+            "comment": "PresenceForAnonymous allows anonymous clients to get presence information for channels in namespace.",
             "is_complex_type": false
           },
           {
@@ -4902,7 +4902,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "PresenceForSubscriber ...",
+            "comment": "PresenceForSubscriber allows clients subscribed on channel to get presence information for it.",
             "is_complex_type": false
           },
           {
@@ -4912,7 +4912,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "PresenceForClient ...",
+            "comment": "PresenceForClient allows authenticated clients to get presence information for channels in namespace.",
             "is_complex_type": false
           },
           {
@@ -4922,7 +4922,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "HistoryForAnonymous ...",
+            "comment": "HistoryForAnonymous allows anonymous clients to get history information for channels in namespace.",
             "is_complex_type": false
           },
           {
@@ -4932,7 +4932,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "HistoryForSubscriber ...",
+            "comment": "HistoryForSubscriber allows clients subscribed on channel to get history information for it.",
             "is_complex_type": false
           },
           {
@@ -4942,7 +4942,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "HistoryForClient ...",
+            "comment": "HistoryForClient allows authenticated clients to get history information for channels in namespace.",
             "is_complex_type": false
           },
           {
@@ -4952,7 +4952,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "UserLimitedChannels ...",
+            "comment": "UserLimitedChannels allows to limit number of channels user can subscribe to in namespace.",
             "is_complex_type": false
           },
           {
@@ -4962,7 +4962,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "ChannelRegex ...",
+            "comment": "ChannelRegex sets a regular expression to check channel name against.",
             "is_complex_type": false
           },
           {
@@ -5214,7 +5214,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "SubscribeForAnonymous ...",
+            "comment": "SubscribeForAnonymous allows anonymous clients to subscribe on channels in namespace.",
             "is_complex_type": false
           },
           {
@@ -5224,7 +5224,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "SubscribeForClient ...",
+            "comment": "SubscribeForClient allows authenticated clients to subscribe on channels in namespace.",
             "is_complex_type": false
           },
           {
@@ -5234,7 +5234,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "PublishForAnonymous ...",
+            "comment": "PublishForAnonymous allows anonymous clients to publish messages into channels in namespace.",
             "is_complex_type": false
           },
           {
@@ -5244,7 +5244,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "PublishForSubscriber ...",
+            "comment": "PublishForSubscriber allows clients subscribed on channel to publish messages into it.",
             "is_complex_type": false
           },
           {
@@ -5254,7 +5254,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "PublishForClient ...",
+            "comment": "PublishForClient allows authenticated clients to publish messages into channels in namespace.",
             "is_complex_type": false
           },
           {
@@ -5264,7 +5264,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "PresenceForAnonymous ...",
+            "comment": "PresenceForAnonymous allows anonymous clients to get presence information for channels in namespace.",
             "is_complex_type": false
           },
           {
@@ -5274,7 +5274,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "PresenceForSubscriber ...",
+            "comment": "PresenceForSubscriber allows clients subscribed on channel to get presence information for it.",
             "is_complex_type": false
           },
           {
@@ -5284,7 +5284,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "PresenceForClient ...",
+            "comment": "PresenceForClient allows authenticated clients to get presence information for channels in namespace.",
             "is_complex_type": false
           },
           {
@@ -5294,7 +5294,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "HistoryForAnonymous ...",
+            "comment": "HistoryForAnonymous allows anonymous clients to get history information for channels in namespace.",
             "is_complex_type": false
           },
           {
@@ -5304,7 +5304,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "HistoryForSubscriber ...",
+            "comment": "HistoryForSubscriber allows clients subscribed on channel to get history information for it.",
             "is_complex_type": false
           },
           {
@@ -5314,7 +5314,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "HistoryForClient ...",
+            "comment": "HistoryForClient allows authenticated clients to get history information for channels in namespace.",
             "is_complex_type": false
           },
           {
@@ -5324,7 +5324,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "UserLimitedChannels ...",
+            "comment": "UserLimitedChannels allows to limit number of channels user can subscribe to in namespace.",
             "is_complex_type": false
           },
           {
@@ -5334,7 +5334,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "ChannelRegex ...",
+            "comment": "ChannelRegex sets a regular expression to check channel name against.",
             "is_complex_type": false
           },
           {
@@ -5436,7 +5436,7 @@
         "level": 2,
         "type": "Duration",
         "default": "720h",
-        "comment": "HistoryTTL is a time how long to keep history meta information. This is a global option for all channels,\nbut it can be overridden in channel namespace.",
+        "comment": "HistoryMetaTTL is a time how long to keep history meta information. This is a global option for all channels,\nbut it can be overridden in channel namespace.",
         "is_complex_type": false
       },
       {
@@ -5446,7 +5446,7 @@
         "level": 2,
         "type": "int",
         "default": "255",
-        "comment": "",
+        "comment": "MaxLength is a maximum length of a channel name. This is a global option for all channels.",
         "is_complex_type": false
       },
       {
@@ -5456,7 +5456,7 @@
         "level": 2,
         "type": "string",
         "default": "$",
-        "comment": "",
+        "comment": "PrivatePrefix is a prefix for private channels. Private channels can't be subscribed without\ntoken even if namespace options allows it. This is mostly kept for historic reasons.",
         "is_complex_type": false
       },
       {
@@ -5466,7 +5466,7 @@
         "level": 2,
         "type": "string",
         "default": ":",
-        "comment": "",
+        "comment": "NamespaceBoundary defines a boundary for channel namespaces.",
         "is_complex_type": false
       },
       {
@@ -5476,7 +5476,7 @@
         "level": 2,
         "type": "string",
         "default": "#",
-        "comment": "",
+        "comment": "UserBoundary defines a boundary for user part in channel name.",
         "is_complex_type": false
       },
       {
@@ -5486,7 +5486,7 @@
         "level": 2,
         "type": "string",
         "default": ",",
-        "comment": "",
+        "comment": "UserSeparator is used for passing several users in user part of channel name.",
         "is_complex_type": false
       }
     ]
@@ -5988,7 +5988,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "Enabled allows to enable ping method.",
             "is_complex_type": false
           },
           {
@@ -5998,7 +5998,7 @@
             "level": 3,
             "type": "string",
             "default": "ping",
-            "comment": "",
+            "comment": "Method can be used to override the name of ping method to use.",
             "is_complex_type": false
           }
         ]
@@ -6010,7 +6010,7 @@
         "level": 2,
         "type": "string",
         "default": ":",
-        "comment": "",
+        "comment": "NamespaceBoundary allows to set a custom boundary for rpc namespaces.",
         "is_complex_type": false
       }
     ]
@@ -6032,7 +6032,7 @@
         "level": 2,
         "type": "string",
         "default": "",
-        "comment": "",
+        "comment": "Name of proxy.",
         "is_complex_type": false
       },
       {

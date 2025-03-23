@@ -3,9 +3,10 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -25,45 +26,49 @@ func ConfigDoc() *cobra.Command {
 	var mdOutput bool
 	var section string
 	var port int
+	var baseLevel int
 	var configDocCmd = &cobra.Command{
 		Use:   "configdoc",
 		Short: "Show Centrifugo configuration documentation generated from source code",
 		Long:  `Show Centrifugo configuration documentation generated from source code`,
 		Run: func(cmd *cobra.Command, args []string) {
-			configDoc(port, mdOutput, section)
+			configDoc(port, mdOutput, section, baseLevel)
 		},
 	}
 	configDocCmd.Flags().BoolVarP(&mdOutput, "markdown", "m", false, "output markdown to stdout")
 	configDocCmd.Flags().StringVarP(&section, "section", "s", "", "filter by top-level section name")
 	configDocCmd.Flags().IntVarP(&port, "port", "p", 6060, "port to run server on")
+	configDocCmd.Flags().IntVarP(&baseLevel, "base-level", "l", 0, "base level to use")
 	return configDocCmd
 }
 
-func configDoc(port int, mdOutput bool, section string) {
+func configDoc(port int, mdOutput bool, section string, baseLevel int) {
 	var docs []FieldDoc
 	if err := json.Unmarshal([]byte(configSchema), &docs); err != nil {
-		fmt.Printf("error: %v\n", err)
-		return
+		fmt.Printf("error unmarshaling config schema: %v\n", err)
+		os.Exit(1)
 	}
 
-	mdContent := convertDocsToMarkdown(docs, section)
+	mdContent := convertDocsToMarkdown(docs, section, baseLevel)
 
 	if mdOutput {
 		fmt.Println(mdContent)
 		return
 	}
 
-	// Start a goroutine to open the URL automatically.
 	go func() {
 		url := "http://localhost:" + strconv.Itoa(port)
 		// OpenURL will open the default browser.
 		if err := browser.OpenURL(url); err != nil {
-			log.Printf("Failed to open browser automatically: %v", err)
+			fmt.Printf("Failed to open browser automatically: %v, see %s\n", err, url)
 		}
 	}()
 
 	http.HandleFunc("/", makeMarkdownHandler(mdContent))
-	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(port), nil))
+	if err := http.ListenAndServe(":"+strconv.Itoa(port), nil); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		fmt.Println("Failed to start server:", err)
+		os.Exit(1)
+	}
 }
 
 // FieldDoc represents the JSON documentation for a configuration field.
@@ -80,14 +85,14 @@ type FieldDoc struct {
 }
 
 // ConvertDocsToMarkdown recursively converts a slice of FieldDoc entries into Markdown.
-func convertDocsToMarkdown(docs []FieldDoc, section string) string {
+func convertDocsToMarkdown(docs []FieldDoc, section string, baseLevel int) string {
 	var sb strings.Builder
 	for _, doc := range docs {
 		if section != "" && !strings.HasPrefix(doc.Field, section) {
 			continue
 		}
 		// Generate a header with the appropriate Markdown level.
-		fieldLevel := doc.Level
+		fieldLevel := doc.Level + baseLevel
 		if fieldLevel > 6 {
 			fieldLevel = 6
 		}
@@ -139,7 +144,7 @@ func convertDocsToMarkdown(docs []FieldDoc, section string) string {
 		}
 		sb.WriteString(fmt.Sprintf("%s `%s`\n\n%s\n\n%s\n\n", header, doc.Field, typeDesc, comment))
 		if len(doc.Children) > 0 {
-			sb.WriteString(convertDocsToMarkdown(doc.Children, section))
+			sb.WriteString(convertDocsToMarkdown(doc.Children, section, baseLevel))
 		}
 	}
 	return sb.String()

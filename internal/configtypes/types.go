@@ -224,7 +224,7 @@ type RawModeConfig struct {
 
 	// ChannelReplacements is a map where keys are strings to replace and values are replacements.
 	// For example, you have Centrifugo namespace "chat" and using channel "chat:index", but you want to
-	// use channel "chat.index" in Nats. Then you can define SymbolReplacements map like this: {":": "."}.
+	// use channel "chat.index" in Nats. Then you can define SymbolReplacements map like this: `{":": "."}`.
 	// In this case Centrifugo will replace all ":" symbols in channel name with "." before sending to Nats.
 	// Broker keeps reverse mapping to the original channel to broadcast to proper channels when processing
 	// messages received from Nats.
@@ -421,9 +421,13 @@ type UniConnectCodeToDisconnectTransform struct {
 }
 
 type ChannelProxyContainer struct {
-	Subscribe       Proxy `mapstructure:"subscribe" json:"subscribe" envconfig:"subscribe" yaml:"subscribe" toml:"subscribe"`
-	Publish         Proxy `mapstructure:"publish" json:"publish" envconfig:"publish" yaml:"publish" toml:"publish"`
-	SubRefresh      Proxy `mapstructure:"sub_refresh" json:"sub_refresh" envconfig:"sub_refresh" yaml:"sub_refresh" toml:"sub_refresh"`
+	// Subscribe proxy configuration.
+	Subscribe Proxy `mapstructure:"subscribe" json:"subscribe" envconfig:"subscribe" yaml:"subscribe" toml:"subscribe"`
+	// Publish proxy configuration.
+	Publish Proxy `mapstructure:"publish" json:"publish" envconfig:"publish" yaml:"publish" toml:"publish"`
+	// SubRefresh proxy configuration.
+	SubRefresh Proxy `mapstructure:"sub_refresh" json:"sub_refresh" envconfig:"sub_refresh" yaml:"sub_refresh" toml:"sub_refresh"`
+	// SubscribeStream proxy configuration.
 	SubscribeStream Proxy `mapstructure:"subscribe_stream" json:"subscribe_stream" envconfig:"subscribe_stream" yaml:"subscribe_stream" toml:"subscribe_stream"`
 }
 
@@ -437,15 +441,21 @@ type Channel struct {
 	// Namespaces is a list of channel namespaces. Each channel namespace can have its own set of rules.
 	Namespaces ChannelNamespaces `mapstructure:"namespaces" default:"[]" json:"namespaces" envconfig:"namespaces" yaml:"namespaces" toml:"namespaces"`
 
-	// HistoryTTL is a time how long to keep history meta information. This is a global option for all channels,
+	// HistoryMetaTTL is a time how long to keep history meta information. This is a global option for all channels,
 	// but it can be overridden in channel namespace.
 	HistoryMetaTTL Duration `mapstructure:"history_meta_ttl" json:"history_meta_ttl" envconfig:"history_meta_ttl" default:"720h" yaml:"history_meta_ttl" toml:"history_meta_ttl"`
 
-	MaxLength         int    `mapstructure:"max_length" json:"max_length" envconfig:"max_length" default:"255" yaml:"max_length" toml:"max_length"`
-	PrivatePrefix     string `mapstructure:"private_prefix" json:"private_prefix" envconfig:"private_prefix" default:"$" yaml:"private_prefix" toml:"private_prefix"`
+	// MaxLength is a maximum length of a channel name. This is a global option for all channels.
+	MaxLength int `mapstructure:"max_length" json:"max_length" envconfig:"max_length" default:"255" yaml:"max_length" toml:"max_length"`
+	// PrivatePrefix is a prefix for private channels. Private channels can't be subscribed without
+	// token even if namespace options allows it. This is mostly kept for historic reasons.
+	PrivatePrefix string `mapstructure:"private_prefix" json:"private_prefix" envconfig:"private_prefix" default:"$" yaml:"private_prefix" toml:"private_prefix"`
+	// NamespaceBoundary defines a boundary for channel namespaces.
 	NamespaceBoundary string `mapstructure:"namespace_boundary" json:"namespace_boundary" envconfig:"namespace_boundary" default:":" yaml:"namespace_boundary" toml:"namespace_boundary"`
-	UserBoundary      string `mapstructure:"user_boundary" json:"user_boundary" envconfig:"user_boundary" default:"#" yaml:"user_boundary" toml:"user_boundary"`
-	UserSeparator     string `mapstructure:"user_separator" json:"user_separator" envconfig:"user_separator" default:"," yaml:"user_separator" toml:"user_separator"`
+	// UserBoundary defines a boundary for user part in channel name.
+	UserBoundary string `mapstructure:"user_boundary" json:"user_boundary" envconfig:"user_boundary" default:"#" yaml:"user_boundary" toml:"user_boundary"`
+	// UserSeparator is used for passing several users in user part of channel name.
+	UserSeparator string `mapstructure:"user_separator" json:"user_separator" envconfig:"user_separator" default:"," yaml:"user_separator" toml:"user_separator"`
 }
 
 type RPC struct {
@@ -457,16 +467,20 @@ type RPC struct {
 	// RPCNamespaces is a list of rpc namespaces. Each rpc namespace can have its own set of rules.
 	Namespaces RPCNamespaces `mapstructure:"namespaces" default:"[]" json:"namespaces" envconfig:"namespaces" yaml:"namespaces" toml:"namespaces"`
 	// Ping is a configuration for RPC ping method.
-	Ping              RPCPing `mapstructure:"ping" json:"ping" envconfig:"ping" yaml:"ping" toml:"ping"`
-	NamespaceBoundary string  `mapstructure:"namespace_boundary" json:"namespace_boundary" envconfig:"namespace_boundary" default:":" yaml:"namespace_boundary" toml:"namespace_boundary"`
+	Ping RPCPing `mapstructure:"ping" json:"ping" envconfig:"ping" yaml:"ping" toml:"ping"`
+	// NamespaceBoundary allows to set a custom boundary for rpc namespaces.
+	NamespaceBoundary string `mapstructure:"namespace_boundary" json:"namespace_boundary" envconfig:"namespace_boundary" default:":" yaml:"namespace_boundary" toml:"namespace_boundary"`
 }
 
 type RPCPing struct {
-	Enabled bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
-	Method  string `mapstructure:"method" json:"method" envconfig:"method" default:"ping" yaml:"method" toml:"method"`
+	// Enabled allows to enable ping method.
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	// Method can be used to override the name of ping method to use.
+	Method string `mapstructure:"method" json:"method" envconfig:"method" default:"ping" yaml:"method" toml:"method"`
 }
 
 type NamedProxy struct {
+	// Name of proxy.
 	Name  string `mapstructure:"name" json:"name" envconfig:"name" yaml:"name" toml:"name"`
 	Proxy `mapstructure:",squash" yaml:",inline"`
 }
@@ -479,9 +493,12 @@ func (d *NamedProxies) Decode(value string) error {
 }
 
 type SubscribeToUserPersonalChannel struct {
-	Enabled                  bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	// Enabled allows to enable the feature.
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	// PersonalChannelNamespace is a namespace for personal channels.
 	PersonalChannelNamespace string `mapstructure:"personal_channel_namespace" json:"personal_channel_namespace" envconfig:"personal_channel_namespace" yaml:"personal_channel_namespace" toml:"personal_channel_namespace"`
-	SingleConnection         bool   `mapstructure:"single_connection" json:"single_connection" yaml:"single_connection" toml:"single_connection" envconfig:"single_connection"`
+	// SingleConnection allows enabling a mode when Centrifugo will try to maintain a single connection from user.
+	SingleConnection bool `mapstructure:"single_connection" json:"single_connection" yaml:"single_connection" toml:"single_connection" envconfig:"single_connection"`
 }
 
 type Node struct {

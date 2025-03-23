@@ -8,6 +8,8 @@ type Engine struct {
 }
 
 type RedisBrokerCommon struct {
+	// UseLists enables usage of Redis Lists for history storage. Lists do not support pagination,
+	// idempotent publish and reverse order history retrieval.
 	UseLists bool `mapstructure:"history_use_lists" json:"history_use_lists" envconfig:"history_use_lists" yaml:"history_use_lists" toml:"history_use_lists"`
 }
 
@@ -21,9 +23,12 @@ type EngineRedisBroker struct {
 }
 
 type RedisPresenceManagerCommon struct {
-	PresenceTTL          Duration `mapstructure:"presence_ttl" json:"presence_ttl" envconfig:"presence_ttl" default:"60s" yaml:"presence_ttl" toml:"presence_ttl"`
-	PresenceHashFieldTTL bool     `mapstructure:"presence_hash_field_ttl" json:"presence_hash_field_ttl" envconfig:"presence_hash_field_ttl" yaml:"presence_hash_field_ttl" toml:"presence_hash_field_ttl"`
-	PresenceUserMapping  bool     `mapstructure:"presence_user_mapping" json:"presence_user_mapping" envconfig:"presence_user_mapping" yaml:"presence_user_mapping" toml:"presence_user_mapping"`
+	// PresenceTTL is a period of time while presence information is considered valid.
+	PresenceTTL Duration `mapstructure:"presence_ttl" json:"presence_ttl" envconfig:"presence_ttl" default:"60s" yaml:"presence_ttl" toml:"presence_ttl"`
+	// PresenceHashFieldTTL enables using hash per-field expiration for presence.
+	PresenceHashFieldTTL bool `mapstructure:"presence_hash_field_ttl" json:"presence_hash_field_ttl" envconfig:"presence_hash_field_ttl" yaml:"presence_hash_field_ttl" toml:"presence_hash_field_ttl"`
+	// PresenceUserMapping enables optimization for presence stats keeping a separate hash of subscribed users in Redis.
+	PresenceUserMapping bool `mapstructure:"presence_user_mapping" json:"presence_user_mapping" envconfig:"presence_user_mapping" yaml:"presence_user_mapping" toml:"presence_user_mapping"`
 }
 
 type EngineRedisPresenceManager struct {
