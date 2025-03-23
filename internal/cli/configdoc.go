@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	_ "embed"
@@ -23,20 +24,22 @@ var configSchema string
 func ConfigDoc() *cobra.Command {
 	var mdOutput bool
 	var section string
-	var genConfigCmd = &cobra.Command{
+	var port int
+	var configDocCmd = &cobra.Command{
 		Use:   "configdoc",
 		Short: "Show Centrifugo configuration documentation generated from source code",
 		Long:  `Show Centrifugo configuration documentation generated from source code`,
 		Run: func(cmd *cobra.Command, args []string) {
-			configDoc(mdOutput, section)
+			configDoc(port, mdOutput, section)
 		},
 	}
-	genConfigCmd.Flags().BoolVarP(&mdOutput, "markdown", "m", false, "output markdown to stdout")
-	genConfigCmd.Flags().StringVarP(&section, "section", "s", "", "filter by top-level section name")
-	return genConfigCmd
+	configDocCmd.Flags().BoolVarP(&mdOutput, "markdown", "m", false, "output markdown to stdout")
+	configDocCmd.Flags().StringVarP(&section, "section", "s", "", "filter by top-level section name")
+	configDocCmd.Flags().IntVarP(&port, "port", "p", 6060, "port to run server on")
+	return configDocCmd
 }
 
-func configDoc(mdOutput bool, section string) {
+func configDoc(port int, mdOutput bool, section string) {
 	var docs []FieldDoc
 	if err := json.Unmarshal([]byte(configSchema), &docs); err != nil {
 		fmt.Printf("error: %v\n", err)
@@ -52,7 +55,7 @@ func configDoc(mdOutput bool, section string) {
 
 	// Start a goroutine to open the URL automatically.
 	go func() {
-		url := "http://localhost:6060"
+		url := "http://localhost:" + strconv.Itoa(port)
 		// OpenURL will open the default browser.
 		if err := browser.OpenURL(url); err != nil {
 			log.Printf("Failed to open browser automatically: %v", err)
@@ -60,8 +63,7 @@ func configDoc(mdOutput bool, section string) {
 	}()
 
 	http.HandleFunc("/", makeMarkdownHandler(mdContent))
-	log.Println("Server running on http://localhost:6060")
-	log.Fatal(http.ListenAndServe(":6060", nil))
+	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(port), nil))
 }
 
 // FieldDoc represents the JSON documentation for a configuration field.
