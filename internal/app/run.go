@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"os"
 	"os/signal"
@@ -250,7 +251,16 @@ func Run(cmd *cobra.Command, configFile string) {
 		log.Fatal().Err(err).Msg("error running node")
 	}
 
+	serviceDone := make(chan struct{})
 	serviceManager.Run(ctx)
+	go func() {
+		defer close(serviceDone)
+		err := serviceManager.Wait()
+		if err != nil && !errors.Is(err, context.Canceled) {
+			log.Error().Err(err).Msg("error running service")
+			os.Exit(1)
+		}
+	}()
 
 	var grpcAPIServer *grpc.Server
 	if cfg.GrpcAPI.Enabled {
@@ -280,14 +290,14 @@ func Run(cmd *cobra.Command, configFile string) {
 	handleSignals(
 		cmd, configFile, node, cfgContainer, tokenVerifier, subTokenVerifier,
 		httpServers, grpcAPIServer, grpcUniServer,
-		serviceManager, serviceCancel,
+		serviceDone, serviceCancel,
 	)
 }
 
 func handleSignals(
 	cmd *cobra.Command, configFile string, n *centrifuge.Node, cfgContainer *config.Container,
 	tokenVerifier *jwtverify.VerifierJWT, subTokenVerifier *jwtverify.VerifierJWT, httpServers []*http.Server,
-	grpcAPIServer *grpc.Server, grpcUniServer *grpc.Server, serviceManager *service.Manager,
+	grpcAPIServer *grpc.Server, grpcUniServer *grpc.Server, serviceDone chan struct{},
 	serviceCancel context.CancelFunc,
 ) {
 	cfg := cfgContainer.Config()
@@ -377,7 +387,7 @@ func handleSignals(
 			wg.Wait()
 
 			serviceCancel()
-			_ = serviceManager.Wait()
+			<-serviceDone
 
 			if pidFile != "" {
 				_ = os.Remove(pidFile)
