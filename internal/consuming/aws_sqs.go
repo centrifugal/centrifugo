@@ -22,13 +22,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type AWSConsumerConfig = configtypes.AWSConsumerConfig
+type AwsSqsConsumerConfig = configtypes.AwsSqsConsumerConfig
 
-// AWSConsumer consumes messages from AWS SQS (or SNS delivered to SQS).
+// AwsSqsConsumer consumes messages from AWS SQS (or SNS delivered to SQS).
 // It uses per-group ordering when enabled and supports both command and publication data modes.
-type AWSConsumer struct {
+type AwsSqsConsumer struct {
 	name       string
-	config     AWSConsumerConfig
+	config     AwsSqsConsumerConfig
 	dispatcher Dispatcher
 	client     *sqs.Client
 	metrics    *commonMetrics
@@ -40,10 +40,10 @@ type AWSConsumer struct {
 	log zerolog.Logger
 }
 
-// NewAWSConsumer creates and initializes a new AWSConsumer.
-func NewAWSConsumer(
-	name string, cfg AWSConsumerConfig, dispatcher Dispatcher, metrics *commonMetrics,
-) (*AWSConsumer, error) {
+// NewAwsSqsConsumer creates and initializes a new AwsSqsConsumer.
+func NewAwsSqsConsumer(
+	name string, cfg AwsSqsConsumerConfig, dispatcher Dispatcher, metrics *commonMetrics,
+) (*AwsSqsConsumer, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func NewAWSConsumer(
 		client = sqs.NewFromConfig(awsCfg)
 	}
 
-	consumer := &AWSConsumer{
+	consumer := &AwsSqsConsumer{
 		name:       name,
 		config:     cfg,
 		dispatcher: dispatcher,
@@ -98,7 +98,7 @@ func NewAWSConsumer(
 }
 
 // Run polls SQS messages in a loop until the context is canceled.
-func (c *AWSConsumer) Run(ctx context.Context) error {
+func (c *AwsSqsConsumer) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -110,6 +110,7 @@ func (c *AWSConsumer) Run(ctx context.Context) error {
 			QueueUrl:                    &c.config.QueueURL,
 			MaxNumberOfMessages:         c.config.MaxNumberOfMessages,
 			WaitTimeSeconds:             c.config.WaitTimeSeconds,
+			VisibilityTimeout:           c.config.VisibilityTimeoutSeconds,
 			MessageAttributeNames:       []string{"All"},
 			MessageSystemAttributeNames: []types.MessageSystemAttributeName{"All"},
 		})
@@ -134,7 +135,7 @@ func (c *AWSConsumer) Run(ctx context.Context) error {
 }
 
 // dispatchMessage routes the message to an ordering queue if enabled and if a MessageGroupId is present.
-func (c *AWSConsumer) dispatchMessage(ctx context.Context, msg types.Message) {
+func (c *AwsSqsConsumer) dispatchMessage(ctx context.Context, msg types.Message) {
 	orderKey := ""
 	if c.config.EnableMessageOrdering && msg.Attributes != nil {
 		if key, ok := msg.Attributes["MessageGroupId"]; ok && key != "" {
@@ -163,7 +164,7 @@ func (c *AWSConsumer) dispatchMessage(ctx context.Context, msg types.Message) {
 }
 
 // processOrderingQueue processes messages sequentially for a given MessageGroupId.
-func (c *AWSConsumer) processOrderingQueue(ctx context.Context, key string, queue chan types.Message) {
+func (c *AwsSqsConsumer) processOrderingQueue(ctx context.Context, key string, queue chan types.Message) {
 	for {
 		select {
 		case msg := <-queue:
@@ -175,7 +176,7 @@ func (c *AWSConsumer) processOrderingQueue(ctx context.Context, key string, queu
 }
 
 // processSingleMessage processes a single message with retry and backoff logic.
-func (c *AWSConsumer) processSingleMessage(ctx context.Context, msg types.Message) {
+func (c *AwsSqsConsumer) processSingleMessage(ctx context.Context, msg types.Message) {
 	data, err := c.extractMessageData(&msg)
 	if err != nil {
 		c.log.Error().Err(err).Msg("failed to extract message data")
@@ -217,7 +218,12 @@ func (c *AWSConsumer) processSingleMessage(ctx context.Context, msg types.Messag
 }
 
 // processPublicationDataMessage handles messages in publication data mode.
-func (c *AWSConsumer) processPublicationDataMessage(ctx context.Context, msg types.Message, data []byte) error {
+func (c *AwsSqsConsumer) processPublicationDataMessage(ctx context.Context, msg types.Message, data []byte) error {
+	channelsAttr := getMessageAttributeValue(msg, c.config.PublicationDataMode.ChannelsAttribute)
+	if channelsAttr == "" {
+		log.Info().Msg("no channels found, skipping message")
+		return nil
+	}
 	idempotencyKey := getMessageAttributeValue(msg, c.config.PublicationDataMode.IdempotencyKeyAttribute)
 	var delta bool
 	if deltaVal := getMessageAttributeValue(msg, c.config.PublicationDataMode.DeltaAttribute); deltaVal != "" {
@@ -228,26 +234,21 @@ func (c *AWSConsumer) processPublicationDataMessage(ctx context.Context, msg typ
 			return nil // Skip message on parsing error.
 		}
 	}
-	channelsAttr := getMessageAttributeValue(msg, c.config.PublicationDataMode.ChannelsAttribute)
 	channels := strings.Split(channelsAttr, ",")
-	if len(channels) == 0 || (len(channels) == 1 && channels[0] == "") {
-		log.Info().Msg("no channels found, skipping message")
-		return nil
-	}
 	tags := publicationTagsFromMessageAttributes(msg, c.config.PublicationDataMode.TagsAttributePrefix)
 	return c.dispatcher.DispatchPublication(ctx, data, idempotencyKey, delta, tags, channels...)
 }
 
 // processCommandMessage handles non-publication messages.
-func (c *AWSConsumer) processCommandMessage(ctx context.Context, msg types.Message, data []byte) error {
+func (c *AwsSqsConsumer) processCommandMessage(ctx context.Context, msg types.Message, data []byte) error {
 	method := getMessageAttributeValue(msg, c.config.MethodAttribute)
 	return c.dispatcher.DispatchCommand(ctx, method, data)
 }
 
 // extractMessageData returns the payload to be dispatched.
 // If the provider is "sns", it unmarshals the SNS envelope.
-func (c *AWSConsumer) extractMessageData(msg *types.Message) ([]byte, error) {
-	if strings.ToLower(c.config.Provider) == "sns" {
+func (c *AwsSqsConsumer) extractMessageData(msg *types.Message) ([]byte, error) {
+	if c.config.SNSEnvelope {
 		var envelope struct {
 			Message string `json:"Message"`
 		}
@@ -278,12 +279,15 @@ func getMessageAttributeValue(msg types.Message, key string) string {
 
 // publicationTagsFromMessageAttributes extracts tag values from message attributes using the given prefix.
 func publicationTagsFromMessageAttributes(msg types.Message, prefix string) map[string]string {
-	tags := make(map[string]string)
+	var tags map[string]string
 	if prefix == "" {
 		return tags
 	}
 	for k, v := range msg.MessageAttributes {
 		if strings.HasPrefix(k, prefix) && v.StringValue != nil {
+			if tags == nil {
+				tags = make(map[string]string)
+			}
 			tags[strings.TrimPrefix(k, prefix)] = *v.StringValue
 		}
 	}
@@ -291,7 +295,7 @@ func publicationTagsFromMessageAttributes(msg types.Message, prefix string) map[
 }
 
 // deleteMessage removes the message from the SQS queue.
-func (c *AWSConsumer) deleteMessage(ctx context.Context, msg *types.Message) {
+func (c *AwsSqsConsumer) deleteMessage(ctx context.Context, msg *types.Message) {
 	_, err := c.client.DeleteMessage(ctx, &sqs.DeleteMessageInput{
 		QueueUrl:      &c.config.QueueURL,
 		ReceiptHandle: msg.ReceiptHandle,

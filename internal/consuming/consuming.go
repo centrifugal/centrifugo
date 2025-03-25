@@ -65,8 +65,8 @@ func New(nodeID string, dispatcher Dispatcher, configs []ConsumerConfig) ([]serv
 				return nil, fmt.Errorf("error initializing Google Pub/Sub consumer (%s): %w", config.Name, err)
 			}
 			services = append(services, consumer)
-		case configtypes.ConsumerTypeAWSSNSSQS:
-			consumer, err := NewAWSConsumer(config.Name, config.AwsSnsSqs, dispatcher, metrics)
+		case configtypes.ConsumerTypeAwsSqs:
+			consumer, err := NewAwsSqsConsumer(config.Name, config.AwsSqs, dispatcher, metrics)
 			if err != nil {
 				return nil, fmt.Errorf("error initializing AWS SNS/SQS consumer (%s): %w", config.Name, err)
 			}

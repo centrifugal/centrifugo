@@ -57,8 +57,7 @@ func TestAWSConsumerWithLocalStack(t *testing.T) {
 	queueURL := *createQueueOutput.QueueUrl
 
 	// Configure the AWS consumer.
-	cfg := AWSConsumerConfig{
-		Provider:              "sqs",
+	cfg := AwsSqsConsumerConfig{
 		Region:                "us-east-1",
 		QueueURL:              queueURL,
 		MaxNumberOfMessages:   10,
@@ -78,7 +77,7 @@ func TestAWSConsumerWithLocalStack(t *testing.T) {
 		},
 	}
 
-	consumer, err := NewAWSConsumer("test", cfg, dispatcher, newCommonMetrics(prometheus.NewRegistry()))
+	consumer, err := NewAwsSqsConsumer("test", cfg, dispatcher, newCommonMetrics(prometheus.NewRegistry()))
 	if err != nil {
 		t.Fatalf("failed to create AWS consumer: %v", err)
 	}

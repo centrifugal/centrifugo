@@ -251,13 +251,16 @@ func getProperty(msg *azservicebus.ReceivedMessage, key string) (string, bool) {
 
 // getTagsFromProperties extracts tag values from message properties using the given prefix.
 func getTagsFromProperties(msg *azservicebus.ReceivedMessage, prefix string) map[string]string {
-	tags := make(map[string]string)
+	var tags map[string]string
 	if prefix == "" {
 		return tags
 	}
 	for k, v := range msg.ApplicationProperties {
 		if strings.HasPrefix(k, prefix) {
 			if str, ok := v.(string); ok {
+				if tags == nil {
+					tags = make(map[string]string)
+				}
 				tags[strings.TrimPrefix(k, prefix)] = str
 			}
 		}

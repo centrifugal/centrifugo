@@ -49,6 +49,13 @@ func NewNatsJetStreamConsumer(
 	case cfg.Token != "":
 		opts = append(opts, nats.Token(cfg.Token))
 	}
+	if cfg.TLS.Enabled {
+		tlsConfig, err := cfg.TLS.ToGoTLSConfig("nats_jetstream")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create TLS config: %w", err)
+		}
+		opts = append(opts, nats.Secure(tlsConfig))
+	}
 
 	// Connect to NATS.
 	nc, err := nats.Connect(cfg.URL, opts...)
@@ -138,12 +145,15 @@ func getNatsHeaderValue(msg *nats.Msg, key string) string {
 
 // publicationTagsFromNatsHeaders extracts tags from message headers using the given prefix.
 func publicationTagsFromNatsHeaders(msg *nats.Msg, prefix string) map[string]string {
-	tags := make(map[string]string)
+	var tags map[string]string
 	if prefix == "" {
 		return tags
 	}
 	for key, vals := range msg.Header {
 		if strings.HasPrefix(key, prefix) && len(vals) > 0 {
+			if tags == nil {
+				tags = make(map[string]string)
+			}
 			tags[strings.TrimPrefix(key, prefix)] = vals[0]
 		}
 	}

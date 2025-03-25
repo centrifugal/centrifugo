@@ -202,9 +202,12 @@ func publicationTagsFromAttributes(msg *pubsub.Message, prefix string) map[strin
 	if prefix == "" {
 		return nil
 	}
-	tags := make(map[string]string)
+	var tags map[string]string
 	for k, v := range msg.Attributes {
 		if strings.HasPrefix(k, prefix) {
+			if tags == nil {
+				tags = make(map[string]string)
+			}
 			tags[strings.TrimPrefix(k, prefix)] = v
 		}
 	}
