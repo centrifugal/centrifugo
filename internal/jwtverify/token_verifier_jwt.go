@@ -226,9 +226,19 @@ func (j *jwksManager) verify(token *jwt.Token, tokenVars map[string]any) error {
 			return errPublicKeyInvalid
 		}
 
-		verifier, err := jwt.NewVerifierRS(jwt.Algorithm(spec.Algorithm), pubKey)
+		keySetAlgorithm := spec.Algorithm
+		if keySetAlgorithm == "" { // "alg" is optional: https://datatracker.ietf.org/doc/html/rfc7517#section-4.4.
+			switch token.Header().Algorithm {
+			case jwt.RS256, jwt.RS384, jwt.RS512:
+				keySetAlgorithm = string(token.Header().Algorithm)
+			default:
+				return fmt.Errorf("%w: no match in algorithms", errUnsupportedAlgorithm)
+			}
+		}
+
+		verifier, err := jwt.NewVerifierRS(jwt.Algorithm(keySetAlgorithm), pubKey)
 		if err != nil {
-			return fmt.Errorf("%w: %s", errUnsupportedAlgorithm, spec.Algorithm)
+			return fmt.Errorf("%w: %s", errUnsupportedAlgorithm, keySetAlgorithm)
 		}
 
 		return verifier.Verify(token)
@@ -238,9 +248,19 @@ func (j *jwksManager) verify(token *jwt.Token, tokenVars map[string]any) error {
 			return errPublicKeyInvalid
 		}
 
-		verifier, err := jwt.NewVerifierES(jwt.Algorithm(spec.Algorithm), pubKey)
+		keySetAlgorithm := spec.Algorithm
+		if keySetAlgorithm == "" { // "alg" is optional: https://datatracker.ietf.org/doc/html/rfc7517#section-4.4.
+			switch token.Header().Algorithm {
+			case jwt.ES256, jwt.ES384, jwt.ES512:
+				keySetAlgorithm = string(token.Header().Algorithm)
+			default:
+				return fmt.Errorf("%w: no match in algorithms", errUnsupportedAlgorithm)
+			}
+		}
+
+		verifier, err := jwt.NewVerifierES(jwt.Algorithm(keySetAlgorithm), pubKey)
 		if err != nil {
-			return fmt.Errorf("%w: %s", errUnsupportedAlgorithm, spec.Algorithm)
+			return fmt.Errorf("%w: %s", errUnsupportedAlgorithm, keySetAlgorithm)
 		}
 
 		return verifier.Verify(token)
