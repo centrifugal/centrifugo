@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
@@ -27,12 +26,7 @@ type GooglePubSubConsumer struct {
 	client     *pubsub.Client
 	sub        *pubsub.Subscription
 	metrics    *commonMetrics
-
-	// orderQueues holds channels keyed by message ordering key.
-	orderQueues   map[string]chan *pubsub.Message
-	orderQueuesMu sync.Mutex
-
-	log zerolog.Logger
+	log        zerolog.Logger
 }
 
 // NewGooglePubSubConsumer creates a new Google Pub/Sub consumer with the provided auth mechanism.
@@ -54,7 +48,7 @@ func NewGooglePubSubConsumer(name string, config GooglePubSubConsumerConfig, dis
 		return nil, fmt.Errorf("unsupported auth mechanism: %s", config.AuthMechanism)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := pubsub.NewClient(ctx, config.ProjectID, clientOpts...)
 	if err != nil {
@@ -63,6 +57,8 @@ func NewGooglePubSubConsumer(name string, config GooglePubSubConsumerConfig, dis
 
 	sub := client.Subscription(config.SubscriptionID)
 	sub.ReceiveSettings.MaxOutstandingMessages = config.MaxOutstandingMessages
+	sub.ReceiveSettings.MaxOutstandingBytes = config.MaxOutstandingBytes
+	sub.ReceiveSettings.NumGoroutines = 10
 
 	consumer := &GooglePubSubConsumer{
 		name:       name,
@@ -73,14 +69,14 @@ func NewGooglePubSubConsumer(name string, config GooglePubSubConsumerConfig, dis
 		log:        log.With().Str("consumer", name).Logger(),
 		metrics:    metrics,
 	}
-	if config.EnableMessageOrdering {
-		consumer.orderQueues = make(map[string]chan *pubsub.Message)
-	}
 	return consumer, nil
 }
 
 // Run starts the consumer and blocks until the provided context is canceled or an error occurs.
 func (c *GooglePubSubConsumer) Run(ctx context.Context) error {
+	defer func() {
+		_ = c.client.Close()
+	}()
 	err := c.sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		c.dispatchMessage(ctx, msg)
 	})
@@ -90,74 +86,24 @@ func (c *GooglePubSubConsumer) Run(ctx context.Context) error {
 	return nil
 }
 
-// dispatchMessage decides whether to process the message immediately or route it to an ordering queue.
 func (c *GooglePubSubConsumer) dispatchMessage(ctx context.Context, msg *pubsub.Message) {
-	if c.config.EnableMessageOrdering {
-		if key := msg.OrderingKey; key != "" {
-			c.orderQueuesMu.Lock()
-			queue, exists := c.orderQueues[key]
-			if !exists {
-				queue = make(chan *pubsub.Message, 100)
-				c.orderQueues[key] = queue
-				go c.processOrderingQueue(ctx, key, queue)
-			}
-			c.orderQueuesMu.Unlock()
-			select {
-			case queue <- msg:
-			case <-ctx.Done():
-				return
-			}
-			return
-		}
-	}
-	// No ordering or no ordering key; process immediately.
 	c.processSingleMessage(ctx, msg)
 }
 
-// processOrderingQueue processes messages for a specific ordering key sequentially.
-func (c *GooglePubSubConsumer) processOrderingQueue(ctx context.Context, key string, queue chan *pubsub.Message) {
-	for {
-		select {
-		case msg := <-queue:
-			c.processSingleMessage(ctx, msg)
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-// processSingleMessage processes a single message with retry and backoff logic.
 func (c *GooglePubSubConsumer) processSingleMessage(ctx context.Context, msg *pubsub.Message) {
-	var retries int
-	var backoffDuration time.Duration
-	for {
-		var err error
-		if c.config.PublicationDataMode.Enabled {
-			err = c.processPublicationDataMessage(ctx, msg)
-		} else {
-			err = c.processCommandMessage(ctx, msg)
-		}
-		if err == nil {
-			msg.Ack()
-			c.metrics.processedTotal.WithLabelValues(c.name).Inc()
-			if retries > 0 {
-				c.log.Info().Msg("OK processing message after errors")
-			}
-			return
-		}
-		if ctx.Err() != nil {
-			return
-		}
-		c.metrics.errorsTotal.WithLabelValues(c.name).Inc()
-		retries++
-		backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-		c.log.Error().Err(err).Msgf("error processing message, retrying in %v", backoffDuration)
-		select {
-		case <-time.After(backoffDuration):
-		case <-ctx.Done():
-			return
-		}
+	var err error
+	if c.config.PublicationDataMode.Enabled {
+		err = c.processPublicationDataMessage(ctx, msg)
+	} else {
+		err = c.processCommandMessage(ctx, msg)
 	}
+	if err == nil {
+		msg.Ack()
+		c.metrics.processedTotal.WithLabelValues(c.name).Inc()
+		return
+	}
+	msg.Nack()
+	c.metrics.errorsTotal.WithLabelValues(c.name).Inc()
 }
 
 // processPublicationDataMessage handles messages in publication data mode.

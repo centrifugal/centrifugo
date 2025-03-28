@@ -86,7 +86,6 @@ func TestGooglePubSubConsumer(t *testing.T) {
 		ProjectID:              projectID,
 		SubscriptionID:         subscriptionID,
 		MaxOutstandingMessages: 10,
-		EnableMessageOrdering:  true,
 	}
 
 	done := make(chan struct{})

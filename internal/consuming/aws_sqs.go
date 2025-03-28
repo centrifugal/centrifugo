@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/logging"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -18,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	endpoints "github.com/aws/smithy-go/endpoints"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -32,12 +35,15 @@ type AwsSqsConsumer struct {
 	dispatcher Dispatcher
 	client     *sqs.Client
 	metrics    *commonMetrics
+	log        zerolog.Logger
+}
 
-	// orderQueues holds channels of messages keyed by MessageGroupId.
-	orderQueues   map[string]chan types.Message
-	orderQueuesMu sync.Mutex
+type overrideEndpointResolver struct {
+	Endpoint endpoints.Endpoint
+}
 
-	log zerolog.Logger
+func (o overrideEndpointResolver) ResolveEndpoint(_ context.Context, _ sqs.EndpointParameters) (endpoints.Endpoint, error) {
+	return o.Endpoint, nil
 }
 
 // NewAwsSqsConsumer creates and initializes a new AwsSqsConsumer.
@@ -62,26 +68,30 @@ func NewAwsSqsConsumer(
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
+	var sqsOpts []func(*sqs.Options)
 	var client *sqs.Client
 	if cfg.LocalStackEndpoint != "" {
-		client = sqs.NewFromConfig(awsCfg, func(o *sqs.Options) {
-			o.EndpointResolver = sqs.EndpointResolverFunc(func(region string, options sqs.EndpointResolverOptions) (aws.Endpoint, error) {
-				return aws.Endpoint{
-					URL:               cfg.LocalStackEndpoint,
-					HostnameImmutable: true,
-					SigningRegion:     "us-east-1",
-				}, nil
-			})
-		})
-	} else {
-		// If AssumeRoleARN is provided, assume that role.
-		if cfg.AssumeRoleARN != "" {
-			stsClient := sts.NewFromConfig(awsCfg)
-			assumeRoleProvider := stscreds.NewAssumeRoleProvider(stsClient, cfg.AssumeRoleARN)
-			awsCfg.Credentials = aws.NewCredentialsCache(assumeRoleProvider)
+		parsedURL, err := url.Parse(cfg.LocalStackEndpoint)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse LocalStack endpoint: %w", err)
 		}
-		client = sqs.NewFromConfig(awsCfg)
+		sqsOpts = append(sqsOpts,
+			sqs.WithEndpointResolverV2(overrideEndpointResolver{
+				Endpoint: endpoints.Endpoint{
+					URI: *parsedURL,
+				},
+			}),
+		)
 	}
+
+	// If AssumeRoleARN is provided, assume that role.
+	if cfg.AssumeRoleARN != "" {
+		stsClient := sts.NewFromConfig(awsCfg)
+		assumeRoleProvider := stscreds.NewAssumeRoleProvider(stsClient, cfg.AssumeRoleARN)
+		awsCfg.Credentials = aws.NewCredentialsCache(assumeRoleProvider)
+	}
+
+	client = sqs.NewFromConfig(awsCfg, sqsOpts...)
 
 	consumer := &AwsSqsConsumer{
 		name:       name,
@@ -91,13 +101,10 @@ func NewAwsSqsConsumer(
 		log:        log.With().Str("consumer", name).Logger(),
 		metrics:    metrics,
 	}
-	if cfg.EnableMessageOrdering {
-		consumer.orderQueues = make(map[string]chan types.Message)
-	}
 	return consumer, nil
 }
 
-// Run polls SQS messages in a loop until the context is canceled.
+// Run is the main loop that receives messages and processes them in batches.
 func (c *AwsSqsConsumer) Run(ctx context.Context) error {
 	for {
 		select {
@@ -128,64 +135,108 @@ func (c *AwsSqsConsumer) Run(ctx context.Context) error {
 			continue
 		}
 
-		for _, msg := range out.Messages {
-			c.dispatchMessage(ctx, msg)
-		}
+		c.processMessages(ctx, out.Messages)
 	}
 }
 
-// dispatchMessage routes the message to an ordering queue if enabled and if a MessageGroupId is present.
-func (c *AwsSqsConsumer) dispatchMessage(ctx context.Context, msg types.Message) {
-	orderKey := ""
-	if c.config.EnableMessageOrdering && msg.Attributes != nil {
-		if key, ok := msg.Attributes["MessageGroupId"]; ok && key != "" {
-			orderKey = key
+// processMessages partitions messages into unordered and ordered groups,
+// then processes them appropriately:
+//   - Unordered messages are processed concurrently.
+//   - For each ordered group (messages sharing the same MessageGroupId),
+//     messages are processed sequentially.
+func (c *AwsSqsConsumer) processMessages(ctx context.Context, messages []types.Message) {
+	// Partition messages into unordered and ordered groups.
+	var unorderedMessages []types.Message
+	orderedGroups := make(map[string][]types.Message, len(messages))
+	for _, msg := range messages {
+		groupID := ""
+		if msg.Attributes != nil {
+			if id, ok := msg.Attributes[string(types.MessageSystemAttributeNameMessageGroupId)]; ok && id != "" {
+				groupID = id
+			}
+		}
+		if groupID == "" {
+			unorderedMessages = append(unorderedMessages, msg)
+		} else {
+			orderedGroups[groupID] = append(orderedGroups[groupID], msg)
 		}
 	}
 
-	if orderKey != "" {
-		c.orderQueuesMu.Lock()
-		queue, exists := c.orderQueues[orderKey]
-		if !exists {
-			queue = make(chan types.Message, 100)
-			c.orderQueues[orderKey] = queue
-			go c.processOrderingQueue(ctx, orderKey, queue)
-		}
-		c.orderQueuesMu.Unlock()
-		select {
-		case queue <- msg:
-		case <-ctx.Done():
-			return
-		}
-		return
+	// Channels or maps to collect successfully processed messages.
+	var (
+		unorderedProcessed []types.Message
+		orderedProcessed   = make(map[string][]types.Message)
+	)
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+
+	sem := make(chan struct{}, c.config.MaxConcurrency)
+
+	// Process unordered messages concurrently.
+	for _, msg := range unorderedMessages {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(m types.Message) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			if c.processSingleMessage(ctx, m) {
+				mu.Lock()
+				unorderedProcessed = append(unorderedProcessed, m)
+				mu.Unlock()
+			}
+		}(msg)
 	}
 
-	c.processSingleMessage(ctx, msg)
+	// Process each ordered group sequentially in its own goroutine.
+	for groupID, groupMessages := range orderedGroups {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(groupID string, groupMessages []types.Message) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			processedGroup := make([]types.Message, 0, len(groupMessages))
+			// Process messages in the group sequentially.
+			for _, m := range groupMessages {
+				if c.processSingleMessage(ctx, m) {
+					processedGroup = append(processedGroup, m)
+				} else {
+					// Abort further processing in this group if one fails.
+					break
+				}
+			}
+			if len(processedGroup) > 0 {
+				mu.Lock()
+				orderedProcessed[groupID] = processedGroup
+				mu.Unlock()
+			}
+		}(groupID, groupMessages)
+	}
+
+	wg.Wait()
+
+	allProcessed := unorderedProcessed
+	for _, groupProcessed := range orderedProcessed {
+		allProcessed = append(allProcessed, groupProcessed...)
+	}
+	if len(allProcessed) > 0 {
+		c.batchDeleteMessages(ctx, allProcessed)
+	}
 }
 
-// processOrderingQueue processes messages sequentially for a given MessageGroupId.
-func (c *AwsSqsConsumer) processOrderingQueue(ctx context.Context, key string, queue chan types.Message) {
-	for {
-		select {
-		case msg := <-queue:
-			c.processSingleMessage(ctx, msg)
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-// processSingleMessage processes a single message with retry and backoff logic.
-func (c *AwsSqsConsumer) processSingleMessage(ctx context.Context, msg types.Message) {
+// processSingleMessage handles processing of a single message with a maximum number of retries.
+// It returns true if the message is processed successfully (so it can be deleted).
+func (c *AwsSqsConsumer) processSingleMessage(ctx context.Context, msg types.Message) bool {
 	data, err := c.extractMessageData(&msg)
 	if err != nil {
 		c.log.Error().Err(err).Msg("failed to extract message data")
-		c.deleteMessage(ctx, &msg)
-		return
+		// Even on extraction errors, delete the message to prevent reprocessing.
+		return true
 	}
 
 	var retries int
 	var backoffDuration time.Duration
+	maxRetries := 3
 
 	for {
 		var processErr error
@@ -201,20 +252,63 @@ func (c *AwsSqsConsumer) processSingleMessage(ctx context.Context, msg types.Mes
 			break
 		}
 		if ctx.Err() != nil {
-			return
+			return false
 		}
-		c.metrics.errorsTotal.WithLabelValues(c.name).Inc()
 		retries++
+		if retries > maxRetries {
+			if logging.Enabled(logging.DebugLevel) {
+				c.log.Debug().Msg("max retries reached for processing message")
+			}
+			return false
+		}
+		c.log.Error().Err(processErr).Msg("error processing message, retrying")
 		backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-		c.log.Error().Err(processErr).Msgf("error processing message, retrying in %v", backoffDuration)
 		select {
 		case <-time.After(backoffDuration):
 		case <-ctx.Done():
-			return
+			return false
 		}
 	}
-	c.metrics.processedTotal.WithLabelValues(c.name).Inc()
-	c.deleteMessage(ctx, &msg)
+	return true
+}
+
+// batchDeleteMessages issues DeleteMessageBatch requests in batches of up to 10 messages.
+// It logs failures from each batch deletion call.
+func (c *AwsSqsConsumer) batchDeleteMessages(ctx context.Context, messages []types.Message) {
+	const maxBatchSize = 10
+
+	for start := 0; start < len(messages); start += maxBatchSize {
+		end := start + maxBatchSize
+		if end > len(messages) {
+			end = len(messages)
+		}
+
+		batch := messages[start:end]
+		entries := make([]types.DeleteMessageBatchRequestEntry, len(batch))
+		for i, msg := range batch {
+			entries[i] = types.DeleteMessageBatchRequestEntry{
+				Id:            aws.String(aws.ToString(msg.MessageId)),
+				ReceiptHandle: msg.ReceiptHandle,
+			}
+		}
+
+		input := &sqs.DeleteMessageBatchInput{
+			QueueUrl: aws.String(c.config.QueueURL),
+			Entries:  entries,
+		}
+
+		output, err := c.client.DeleteMessageBatch(ctx, input)
+		if err != nil {
+			c.log.Error().Err(err).Msg("batch deletion failed")
+			continue
+		}
+
+		if len(output.Failed) > 0 {
+			for _, failed := range output.Failed {
+				c.log.Error().Msgf("failed to delete message ID %s: %s", aws.ToString(failed.Id), aws.ToString(failed.Message))
+			}
+		}
+	}
 }
 
 // processPublicationDataMessage handles messages in publication data mode.
@@ -246,7 +340,7 @@ func (c *AwsSqsConsumer) processCommandMessage(ctx context.Context, msg types.Me
 }
 
 // extractMessageData returns the payload to be dispatched.
-// If the provider is "sns", it unmarshals the SNS envelope.
+// If the provider is "sns", it decodes the SNS envelope.
 func (c *AwsSqsConsumer) extractMessageData(msg *types.Message) ([]byte, error) {
 	if c.config.SNSEnvelope {
 		var envelope struct {
@@ -292,15 +386,4 @@ func publicationTagsFromMessageAttributes(msg types.Message, prefix string) map[
 		}
 	}
 	return tags
-}
-
-// deleteMessage removes the message from the SQS queue.
-func (c *AwsSqsConsumer) deleteMessage(ctx context.Context, msg *types.Message) {
-	_, err := c.client.DeleteMessage(ctx, &sqs.DeleteMessageInput{
-		QueueUrl:      &c.config.QueueURL,
-		ReceiptHandle: msg.ReceiptHandle,
-	})
-	if err != nil {
-		c.log.Error().Err(err).Msg("failed to delete message")
-	}
 }

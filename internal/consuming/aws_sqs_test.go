@@ -4,6 +4,7 @@ package consuming
 
 import (
 	"context"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	endpoints "github.com/aws/smithy-go/endpoints"
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
@@ -36,15 +38,18 @@ func TestAWSConsumerWithLocalStack(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to load AWS config: %v", err)
 	}
-	sqsClient := sqs.NewFromConfig(awsCfg, func(o *sqs.Options) {
-		o.EndpointResolver = sqs.EndpointResolverFunc(func(region string, options sqs.EndpointResolverOptions) (aws.Endpoint, error) {
-			return aws.Endpoint{
-				URL:               "http://localhost:4566",
-				HostnameImmutable: true,
-				SigningRegion:     "us-east-1",
-			}, nil
-		})
-	})
+
+	parsedURL, _ := url.Parse("http://localhost:4566")
+
+	sqsOpts := []func(*sqs.Options){
+		sqs.WithEndpointResolverV2(overrideEndpointResolver{
+			Endpoint: endpoints.Endpoint{
+				URI: *parsedURL,
+			},
+		}),
+	}
+
+	sqsClient := sqs.NewFromConfig(awsCfg, sqsOpts...)
 	// Create a queue for testing.
 	queueName := "test-queue-" + uuid.NewString()
 	createQueueOutput, err := sqsClient.CreateQueue(ctx, &sqs.CreateQueueInput{
@@ -58,13 +63,12 @@ func TestAWSConsumerWithLocalStack(t *testing.T) {
 
 	// Configure the AWS consumer.
 	cfg := AwsSqsConsumerConfig{
-		Region:                "us-east-1",
-		QueueURL:              queueURL,
-		MaxNumberOfMessages:   10,
-		WaitTimeSeconds:       2,
-		EnableMessageOrdering: false,    // Set to true for FIFO queues
-		MethodAttribute:       "Method", // This attribute should be in the message attributes.
-		LocalStackEndpoint:    "http://localhost:4566",
+		Region:              "us-east-1",
+		QueueURL:            queueURL,
+		MaxNumberOfMessages: 10,
+		WaitTimeSeconds:     2,
+		MethodAttribute:     "Method", // This attribute should be in the message attributes.
+		LocalStackEndpoint:  "http://localhost:4566",
 	}
 
 	// Set up a dispatcher that signals when a message is processed.

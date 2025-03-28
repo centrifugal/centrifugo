@@ -72,10 +72,10 @@ func NewRedisStreamConsumer(
 			ConsumerFunc:      consumer.process,
 			Name:              nodeID,
 			GroupName:         cfg.ConsumerGroup,
-			VisibilityTimeout: 45 * time.Second,
+			VisibilityTimeout: 30 * time.Second,
 			BlockingTimeout:   5 * time.Second,
 			ReclaimInterval:   5 * time.Second,
-			Concurrency:       16,
+			Concurrency:       cfg.NumMessageWorkers,
 			UseLegacyReclaim:  false,
 		})
 		if err != nil {
@@ -121,12 +121,16 @@ func (c *RedisStreamConsumer) Run(ctx context.Context) error {
 	for _, consumer := range c.consumers {
 		go consumer.Run()
 	}
+	shutdownCh := make(chan struct{})
 	go func() {
+		defer close(shutdownCh)
 		<-ctx.Done()
 		for _, consumer := range c.consumers {
 			consumer.Shutdown()
 		}
 	}()
+	<-ctx.Done()
+	<-shutdownCh
 	return ctx.Err()
 }
 
