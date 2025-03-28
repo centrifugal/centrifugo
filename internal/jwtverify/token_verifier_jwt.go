@@ -229,7 +229,7 @@ func (j *jwksManager) verify(token *jwt.Token, tokenVars map[string]any) error {
 		keySetAlgorithm := spec.Algorithm
 		if keySetAlgorithm == "" { // "alg" is optional: https://datatracker.ietf.org/doc/html/rfc7517#section-4.4.
 			switch token.Header().Algorithm {
-			case jwt.RS256, jwt.RS384, jwt.RS512:
+			case jwt.RS256, jwt.RS384, jwt.RS512: // Only allow algorithms from RSA family.
 				keySetAlgorithm = string(token.Header().Algorithm)
 			default:
 				return fmt.Errorf("%w: no match in algorithms", errUnsupportedAlgorithm)
@@ -251,7 +251,7 @@ func (j *jwksManager) verify(token *jwt.Token, tokenVars map[string]any) error {
 		keySetAlgorithm := spec.Algorithm
 		if keySetAlgorithm == "" { // "alg" is optional: https://datatracker.ietf.org/doc/html/rfc7517#section-4.4.
 			switch token.Header().Algorithm {
-			case jwt.ES256, jwt.ES384, jwt.ES512:
+			case jwt.ES256, jwt.ES384, jwt.ES512: // Only allow algorithms from EC family.
 				keySetAlgorithm = string(token.Header().Algorithm)
 			default:
 				return fmt.Errorf("%w: no match in algorithms", errUnsupportedAlgorithm)
