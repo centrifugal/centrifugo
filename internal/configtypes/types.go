@@ -870,8 +870,8 @@ func (cfg NatsJetStreamConsumerConfig) Validate() error {
 type GooglePubSubConsumerConfig struct {
 	// Google Cloud project ID.
 	ProjectID string `mapstructure:"project_id" json:"project_id" envconfig:"project_id" yaml:"project_id" toml:"project_id"`
-	// SubscriptionID is the Pub/Sub subscription to consume from.
-	SubscriptionID string `mapstructure:"subscription_id" json:"subscription_id" envconfig:"subscription_id" yaml:"subscription_id" toml:"subscription_id"`
+	// Subscriptions is the list of Pub/Sub subscription ids to consume from.
+	Subscriptions []string `mapstructure:"subscriptions" json:"subscriptions" envconfig:"subscriptions" yaml:"subscriptions" toml:"subscriptions"`
 	// MaxOutstandingMessages controls the maximum number of unprocessed messages.
 	MaxOutstandingMessages int `mapstructure:"max_outstanding_messages" default:"100" json:"max_outstanding_messages" envconfig:"max_outstanding_messages" yaml:"max_outstanding_messages" toml:"max_outstanding_messages"`
 	// MaxOutstandingBytes controls the maximum number of unprocessed bytes.
@@ -945,8 +945,8 @@ type AzureServiceBusConsumerConfig struct {
 	ClientID string `mapstructure:"client_id" json:"client_id" yaml:"client_id" toml:"client_id"`
 	// ClientSecret is the secret associated with the Azure AD application.
 	ClientSecret string `mapstructure:"client_secret" json:"client_secret" yaml:"client_secret" toml:"client_secret"`
-	// Queue is the name of the Azure Service Bus queue to consume from.
-	Queue string `mapstructure:"queue" json:"queue" yaml:"queue" toml:"queue"`
+	// Queues is the list of the Azure Service Bus queues to consume from.
+	Queues []string `mapstructure:"queues" json:"queues" yaml:"queues" toml:"queues"`
 	// UseSessions enables session-aware message handling.
 	// All messages must include a SessionID; messages within the same session will be processed in order.
 	UseSessions bool `mapstructure:"use_sessions" json:"use_sessions" yaml:"use_sessions" toml:"use_sessions"`
@@ -985,8 +985,8 @@ func (c AzureServiceBusConsumerConfig) Validate() error {
 
 // AwsSqsConsumerConfig holds configuration for the AWS consumer.
 type AwsSqsConsumerConfig struct {
-	// QueueURL is the URL of the SQS queue to poll.
-	QueueURL string `mapstructure:"queue_url" json:"queue_url" envconfig:"queue_url" yaml:"queue_url" toml:"queue_url"`
+	// Queues is a list of SQS queue URLs to consume.
+	Queues []string `mapstructure:"queues" json:"queues" envconfig:"queues" yaml:"queues" toml:"queues"`
 	// SNSEnvelope, when true, expects messages to be wrapped in an SNS envelope – this is required when
 	// consuming from SNS topics with SQS subscriptions.
 	SNSEnvelope bool `mapstructure:"sns_envelope" json:"sns_envelope" envconfig:"sns_envelope" yaml:"sns_envelope" toml:"sns_envelope"`
@@ -994,13 +994,13 @@ type AwsSqsConsumerConfig struct {
 	Region string `mapstructure:"region" json:"region" envconfig:"region" yaml:"region" toml:"region"`
 	// MaxNumberOfMessages is the maximum number of messages to receive per poll.
 	MaxNumberOfMessages int32 `mapstructure:"max_number_of_messages" default:"10" json:"max_number_of_messages" envconfig:"max_number_of_messages" yaml:"max_number_of_messages" toml:"max_number_of_messages"`
-	// WaitTimeSeconds is the long-poll wait time.
-	WaitTimeSeconds int32 `mapstructure:"wait_time_seconds" json:"wait_time_seconds" envconfig:"wait_time_seconds" default:"20" yaml:"wait_time_seconds" toml:"wait_time_seconds"`
-	// VisibilityTimeoutSeconds is the time a message is hidden from other consumers.
-	VisibilityTimeoutSeconds int32 `mapstructure:"visibility_timeout_seconds" json:"visibility_timeout_seconds" envconfig:"visibility_timeout_seconds" default:"30" yaml:"visibility_timeout_seconds" toml:"visibility_timeout_seconds"`
+	// PollWaitTime is the long-poll wait time. Rounded to seconds internally.
+	PollWaitTime Duration `mapstructure:"wait_time_time" json:"wait_time_time" envconfig:"wait_time_time" default:"20s" yaml:"wait_time_time" toml:"wait_time_time"`
+	// VisibilityTimeout is the time a message is hidden from other consumers. Rounded to seconds internally.
+	VisibilityTimeout Duration `mapstructure:"visibility_timeout" json:"visibility_timeout" envconfig:"visibility_timeout" default:"30s" yaml:"visibility_timeout" toml:"visibility_timeout"`
 	// MaxConcurrency defines max concurrency during message batch processing.
 	MaxConcurrency int `mapstructure:"max_concurrency" json:"max_concurrency" envconfig:"max_concurrency" default:"1" yaml:"max_concurrency" toml:"max_concurrency"`
-	// CredentialsProfile is the name of a shared credentials profile to use.
+	// CredentialsProfile is a shared credentials profile to use.
 	CredentialsProfile string `mapstructure:"credentials_profile" json:"credentials_profile" envconfig:"credentials_profile" yaml:"credentials_profile" toml:"credentials_profile"`
 	// AssumeRoleARN, if provided, will cause the consumer to assume the given IAM role.
 	AssumeRoleARN string `mapstructure:"assume_role_arn" json:"assume_role_arn" envconfig:"assume_role_arn" yaml:"assume_role_arn" toml:"assume_role_arn"`

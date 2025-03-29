@@ -84,7 +84,7 @@ func TestGooglePubSubConsumer(t *testing.T) {
 
 	config := GooglePubSubConsumerConfig{
 		ProjectID:              projectID,
-		SubscriptionID:         subscriptionID,
+		Subscriptions:          []string{subscriptionID},
 		MaxOutstandingMessages: 10,
 	}
 

@@ -79,45 +79,48 @@ func (c *AzureServiceBusConsumer) Run(ctx context.Context) error {
 func (c *AzureServiceBusConsumer) runSessionMode(ctx context.Context) error {
 	var wg sync.WaitGroup
 
-	// Spawn a fixed number of workers. Each continuously accepts the next available session.
-	for i := 0; i < c.config.MaxConcurrentCalls; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for {
-				sr, err := c.client.AcceptNextSessionForQueue(ctx, c.config.Queue, nil)
-				if err != nil {
-					if ctx.Err() != nil {
-						return
-					}
-					c.log.Error().Err(err).Msg("error accepting next session; retrying")
-					select {
-					case <-ctx.Done():
-						return
-					case <-time.After(1 * time.Second):
-					}
-					continue
-				}
-
-				// Process messages for this session sequentially.
+	// For each queue, spawn workers.
+	for _, queue := range c.config.Queues {
+		for i := 0; i < c.config.MaxConcurrentCalls; i++ {
+			wg.Add(1)
+			go func(queueName string) {
+				defer wg.Done()
 				for {
-					messages, err := sr.ReceiveMessages(ctx, c.config.MaxReceiveMessages, nil)
+					sr, err := c.client.AcceptNextSessionForQueue(ctx, queueName, nil)
 					if err != nil {
-						c.log.Error().Err(err).Msg("error receiving messages for session; closing session")
-						_ = sr.Close(ctx)
-						break // Accept a new session.
+						if ctx.Err() != nil {
+							return
+						}
+						c.log.Error().Err(err).Msgf("error accepting next session for queue %s; retrying", queueName)
+						select {
+						case <-ctx.Done():
+							return
+						case <-time.After(1 * time.Second):
+						}
+						continue
 					}
-					if len(messages) == 0 {
-						_ = sr.Close(ctx)
-						break
-					}
-					for _, msg := range messages {
-						c.processMessage(ctx, msg, sr)
+
+					// Process messages for this session sequentially.
+					for {
+						messages, err := sr.ReceiveMessages(ctx, c.config.MaxReceiveMessages, nil)
+						if err != nil {
+							c.log.Error().Err(err).Msgf("error receiving messages for session on queue %s; closing session", queueName)
+							_ = sr.Close(ctx)
+							break // Accept a new session.
+						}
+						if len(messages) == 0 {
+							_ = sr.Close(ctx)
+							break
+						}
+						for _, msg := range messages {
+							c.processMessage(ctx, msg, sr)
+						}
 					}
 				}
-			}
-		}()
+			}(queue)
+		}
 	}
+
 	wg.Wait()
 	return ctx.Err()
 }
@@ -126,38 +129,41 @@ func (c *AzureServiceBusConsumer) runSessionMode(ctx context.Context) error {
 func (c *AzureServiceBusConsumer) runNonSessionMode(ctx context.Context) error {
 	var wg sync.WaitGroup
 
-	// Create a separate receiver for each worker for concurrent message receiving.
-	for i := 0; i < c.config.MaxConcurrentCalls; i++ {
-		receiver, err := c.client.NewReceiverForQueue(c.config.Queue, nil)
-		if err != nil {
-			return fmt.Errorf("failed to create receiver: %w", err)
-		}
-		wg.Add(1)
-		go func(r *azservicebus.Receiver) {
-			defer wg.Done()
-			defer func() {
-				_ = r.Close(ctx)
-			}()
-			for {
-				messages, err := r.ReceiveMessages(ctx, c.config.MaxReceiveMessages, nil)
-				if err != nil {
-					if ctx.Err() != nil {
-						return
-					}
-					c.log.Error().Err(err).Msg("error receiving messages; retrying")
-					select {
-					case <-time.After(1 * time.Second):
-					case <-ctx.Done():
-						return
-					}
-					continue
-				}
-				for _, msg := range messages {
-					c.processMessage(ctx, msg, r)
-				}
+	// For each queue, spawn workers.
+	for _, queue := range c.config.Queues {
+		for i := 0; i < c.config.MaxConcurrentCalls; i++ {
+			receiver, err := c.client.NewReceiverForQueue(queue, nil)
+			if err != nil {
+				return fmt.Errorf("failed to create receiver for queue %s: %w", queue, err)
 			}
-		}(receiver)
+			wg.Add(1)
+			go func(r *azservicebus.Receiver, queueName string) {
+				defer wg.Done()
+				defer func() {
+					_ = r.Close(ctx)
+				}()
+				for {
+					messages, err := r.ReceiveMessages(ctx, c.config.MaxReceiveMessages, nil)
+					if err != nil {
+						if ctx.Err() != nil {
+							return
+						}
+						c.log.Error().Err(err).Msgf("error receiving messages from queue %s; retrying", queueName)
+						select {
+						case <-time.After(1 * time.Second):
+						case <-ctx.Done():
+							return
+						}
+						continue
+					}
+					for _, msg := range messages {
+						c.processMessage(ctx, msg, r)
+					}
+				}
+			}(receiver, queue)
+		}
 	}
+
 	wg.Wait()
 	return ctx.Err()
 }

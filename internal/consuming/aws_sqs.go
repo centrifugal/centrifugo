@@ -104,47 +104,68 @@ func NewAwsSqsConsumer(
 	return consumer, nil
 }
 
-// Run is the main loop that receives messages and processes them in batches.
+// Run is the main loop that receives messages from each queue and processes them in batches.
 func (c *AwsSqsConsumer) Run(ctx context.Context) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
+	var wg sync.WaitGroup
 
-		out, err := c.client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
-			QueueUrl:                    &c.config.QueueURL,
-			MaxNumberOfMessages:         c.config.MaxNumberOfMessages,
-			WaitTimeSeconds:             c.config.WaitTimeSeconds,
-			VisibilityTimeout:           c.config.VisibilityTimeoutSeconds,
-			MessageAttributeNames:       []string{"All"},
-			MessageSystemAttributeNames: []types.MessageSystemAttributeName{"All"},
-		})
-		if err != nil {
-			c.log.Error().Err(err).Msg("failed to receive messages")
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(1 * time.Second):
+	// Spawn one goroutine per queue URL.
+	for _, queueURL := range c.config.Queues {
+		wg.Add(1)
+		go func(qURL string) {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
+				waitTimeSeconds := int32(c.config.PollWaitTime.ToDuration().Seconds())
+				if waitTimeSeconds < 1 {
+					waitTimeSeconds = 1
+				}
+
+				visibilityTimeoutSeconds := int32(c.config.VisibilityTimeout.ToDuration().Seconds())
+				if visibilityTimeoutSeconds < 1 {
+					visibilityTimeoutSeconds = 1
+				}
+
+				out, err := c.client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
+					QueueUrl:                    aws.String(qURL),
+					MaxNumberOfMessages:         c.config.MaxNumberOfMessages,
+					WaitTimeSeconds:             waitTimeSeconds,
+					VisibilityTimeout:           visibilityTimeoutSeconds,
+					MessageAttributeNames:       []string{"All"},
+					MessageSystemAttributeNames: []types.MessageSystemAttributeName{"All"},
+				})
+				if err != nil {
+					c.log.Error().Err(err).Msgf("failed to receive messages from queue %s", qURL)
+					select {
+					case <-ctx.Done():
+						return
+					case <-time.After(1 * time.Second):
+					}
+					continue
+				}
+
+				if len(out.Messages) == 0 {
+					continue
+				}
+
+				c.processMessages(ctx, out.Messages, qURL)
 			}
-			continue
-		}
-
-		if len(out.Messages) == 0 {
-			continue
-		}
-
-		c.processMessages(ctx, out.Messages)
+		}(queueURL)
 	}
+
+	// Wait for context cancellation.
+	<-ctx.Done()
+	wg.Wait()
+	return ctx.Err()
 }
 
 // processMessages partitions messages into unordered and ordered groups,
-// then processes them appropriately:
-//   - Unordered messages are processed concurrently.
-//   - For each ordered group (messages sharing the same MessageGroupId),
-//     messages are processed sequentially.
-func (c *AwsSqsConsumer) processMessages(ctx context.Context, messages []types.Message) {
+// then processes them appropriately. It passes the queue URL to batch deletion.
+func (c *AwsSqsConsumer) processMessages(ctx context.Context, messages []types.Message, queueURL string) {
 	// Partition messages into unordered and ordered groups.
 	var unorderedMessages []types.Message
 	orderedGroups := make(map[string][]types.Message, len(messages))
@@ -220,7 +241,7 @@ func (c *AwsSqsConsumer) processMessages(ctx context.Context, messages []types.M
 		allProcessed = append(allProcessed, groupProcessed...)
 	}
 	if len(allProcessed) > 0 {
-		c.batchDeleteMessages(ctx, allProcessed)
+		c.batchDeleteMessages(ctx, allProcessed, queueURL)
 	}
 }
 
@@ -274,7 +295,7 @@ func (c *AwsSqsConsumer) processSingleMessage(ctx context.Context, msg types.Mes
 
 // batchDeleteMessages issues DeleteMessageBatch requests in batches of up to 10 messages.
 // It logs failures from each batch deletion call.
-func (c *AwsSqsConsumer) batchDeleteMessages(ctx context.Context, messages []types.Message) {
+func (c *AwsSqsConsumer) batchDeleteMessages(ctx context.Context, messages []types.Message, queueURL string) {
 	const maxBatchSize = 10
 
 	for start := 0; start < len(messages); start += maxBatchSize {
@@ -293,7 +314,7 @@ func (c *AwsSqsConsumer) batchDeleteMessages(ctx context.Context, messages []typ
 		}
 
 		input := &sqs.DeleteMessageBatchInput{
-			QueueUrl: aws.String(c.config.QueueURL),
+			QueueUrl: aws.String(queueURL),
 			Entries:  entries,
 		}
 
@@ -315,7 +336,7 @@ func (c *AwsSqsConsumer) batchDeleteMessages(ctx context.Context, messages []typ
 func (c *AwsSqsConsumer) processPublicationDataMessage(ctx context.Context, msg types.Message, data []byte) error {
 	channelsAttr := getMessageAttributeValue(msg, c.config.PublicationDataMode.ChannelsAttribute)
 	if channelsAttr == "" {
-		log.Info().Msg("no channels found, skipping message")
+		c.log.Info().Msg("no channels found, skipping message")
 		return nil
 	}
 	idempotencyKey := getMessageAttributeValue(msg, c.config.PublicationDataMode.IdempotencyKeyAttribute)
@@ -324,7 +345,7 @@ func (c *AwsSqsConsumer) processPublicationDataMessage(ctx context.Context, msg 
 		var err error
 		delta, err = strconv.ParseBool(deltaVal)
 		if err != nil {
-			log.Error().Err(err).Msg("error parsing delta attribute, skipping message")
+			c.log.Error().Err(err).Msg("error parsing delta attribute, skipping message")
 			return nil // Skip message on parsing error.
 		}
 	}

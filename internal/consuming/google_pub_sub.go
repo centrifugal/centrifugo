@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
@@ -24,7 +25,6 @@ type GooglePubSubConsumer struct {
 	config     GooglePubSubConsumerConfig
 	dispatcher Dispatcher
 	client     *pubsub.Client
-	sub        *pubsub.Subscription
 	metrics    *commonMetrics
 	log        zerolog.Logger
 }
@@ -55,17 +55,11 @@ func NewGooglePubSubConsumer(name string, config GooglePubSubConsumerConfig, dis
 		return nil, fmt.Errorf("failed to create pubsub client: %w", err)
 	}
 
-	sub := client.Subscription(config.SubscriptionID)
-	sub.ReceiveSettings.MaxOutstandingMessages = config.MaxOutstandingMessages
-	sub.ReceiveSettings.MaxOutstandingBytes = config.MaxOutstandingBytes
-	sub.ReceiveSettings.NumGoroutines = 10
-
 	consumer := &GooglePubSubConsumer{
 		name:       name,
 		config:     config,
 		dispatcher: dispatcher,
 		client:     client,
-		sub:        sub,
 		log:        log.With().Str("consumer", name).Logger(),
 		metrics:    metrics,
 	}
@@ -77,13 +71,30 @@ func (c *GooglePubSubConsumer) Run(ctx context.Context) error {
 	defer func() {
 		_ = c.client.Close()
 	}()
-	err := c.sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
-		c.dispatchMessage(ctx, msg)
-	})
-	if err != nil {
-		return fmt.Errorf("error receiving messages: %w", err)
+
+	// For each subscription in the configuration, spawn a separate goroutine.
+	var wg sync.WaitGroup
+	for _, subID := range c.config.Subscriptions {
+		wg.Add(1)
+		go func(subscriptionID string) {
+			defer wg.Done()
+
+			sub := c.client.Subscription(subscriptionID)
+			sub.ReceiveSettings.MaxOutstandingMessages = c.config.MaxOutstandingMessages
+			sub.ReceiveSettings.MaxOutstandingBytes = c.config.MaxOutstandingBytes
+			sub.ReceiveSettings.NumGoroutines = 10
+
+			err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
+				c.dispatchMessage(ctx, msg)
+			})
+			if err != nil {
+				c.log.Error().Err(err).Msgf("error receiving messages for subscription %s", subscriptionID)
+			}
+		}(subID)
 	}
-	return nil
+
+	wg.Wait()
+	return ctx.Err()
 }
 
 func (c *GooglePubSubConsumer) dispatchMessage(ctx context.Context, msg *pubsub.Message) {

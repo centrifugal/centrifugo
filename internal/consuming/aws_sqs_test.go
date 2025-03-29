@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -64,9 +66,9 @@ func TestAWSConsumerWithLocalStack(t *testing.T) {
 	// Configure the AWS consumer.
 	cfg := AwsSqsConsumerConfig{
 		Region:              "us-east-1",
-		QueueURL:            queueURL,
+		Queues:              []string{queueURL},
 		MaxNumberOfMessages: 10,
-		WaitTimeSeconds:     2,
+		PollWaitTime:        configtypes.Duration(2 * time.Second),
 		MethodAttribute:     "Method", // This attribute should be in the message attributes.
 		LocalStackEndpoint:  "http://localhost:4566",
 	}
