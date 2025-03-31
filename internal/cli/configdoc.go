@@ -49,7 +49,7 @@ func configDoc(port int, mdOutput bool, section string, baseLevel int) {
 		os.Exit(1)
 	}
 
-	mdContent := convertDocsToMarkdown(docs, section, baseLevel)
+	mdContent := convertDocsToMarkdown(docs, section, baseLevel, mdOutput)
 
 	if mdOutput {
 		fmt.Println(mdContent)
@@ -85,7 +85,7 @@ type FieldDoc struct {
 }
 
 // ConvertDocsToMarkdown recursively converts a slice of FieldDoc entries into Markdown.
-func convertDocsToMarkdown(docs []FieldDoc, section string, baseLevel int) string {
+func convertDocsToMarkdown(docs []FieldDoc, section string, baseLevel int, mdOutput bool) string {
 	var sb strings.Builder
 	for _, doc := range docs {
 		if section != "" && !strings.HasPrefix(doc.Field, section) {
@@ -142,9 +142,19 @@ func convertDocsToMarkdown(docs []FieldDoc, section string, baseLevel int) strin
 		if strings.HasPrefix(comment, doc.GoName) {
 			comment = fmt.Sprintf("`%s`%s", doc.Name, comment[len(doc.GoName):])
 		}
-		sb.WriteString(fmt.Sprintf("%s `%s`\n\n%s\n\n%s\n\n", header, doc.Field, typeDesc, comment))
+
+		field := fmt.Sprintf("`%s`", doc.Field)
+		if !mdOutput && doc.IsComplexType {
+			if doc.Default == "[]" {
+				field += " `[...]`"
+			} else {
+				field += " `{...}`"
+			}
+		}
+
+		sb.WriteString(fmt.Sprintf("%s %s\n\n%s\n\n%s\n\n", header, field, typeDesc, comment))
 		if len(doc.Children) > 0 {
-			sb.WriteString(convertDocsToMarkdown(doc.Children, section, baseLevel))
+			sb.WriteString(convertDocsToMarkdown(doc.Children, section, baseLevel, mdOutput))
 		}
 	}
 	return sb.String()
@@ -158,7 +168,6 @@ func makeMarkdownHandler(mdContent string) http.HandlerFunc {
 			return
 		}
 
-		// Build the complete HTML page using a modern Bootswatch Minty theme.
 		htmlPage := fmt.Sprintf(`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -169,47 +178,129 @@ func makeMarkdownHandler(mdContent string) http.HandlerFunc {
   <style>
     body { padding: 2rem; }
     .markdown-body { max-width: 1024px; margin: auto; }
-	h1, h2, h3, h4, h5, h6 {
-		font-size: 1.2rem;
-		margin-top: 1.5rem;
-		margin-bottom: 0.6rem;
-	}
-	p { margin-bottom: 0.6rem; }
-	code { color: #139f87; }
-	h1 code, h2 code, h3 code, h4 code, h5 code, h6 code { color: #04416d; }
-    /* Set initial left margins for headers */
+    h1, h2, h3, h4, h5, h6 {
+        font-size: 1.2rem;
+        margin-top: 1rem;
+        margin-bottom: 0.6rem;
+    }
+    p { margin-bottom: 0.6rem; }
+    code { color: #139f87; }
+    h1 code, h2 code, h3 code, h4 code, h5 code, h6 code { color: #04416d; }
     h1 { margin-left: 0rem; }
     h2 { margin-left: 2rem; }
     h3 { margin-left: 4rem; }
     h4 { margin-left: 6rem; }
     h5 { margin-left: 8rem; }
     h6 { margin-left: 10rem; }
-    /* Reset paragraphs to no left margin by default */
     .markdown-body p { margin-left: 0; }
+    /* Visual indicator for clickable headers */
+    .markdown-body h1.clickable::before,
+    .markdown-body h2.clickable::before,
+    .markdown-body h3.clickable::before,
+    .markdown-body h4.clickable::before,
+    .markdown-body h5.clickable::before,
+    .markdown-body h6.clickable::before {
+      content: "\25BC"; /* down arrow */
+      display: inline-block;
+      margin-right: 0.5rem;
+      transition: transform 0.3s ease;
+      color: #139f87;
+      font-size: 1rem;
+    }
+    .markdown-body h1.clickable.expanded::before,
+    .markdown-body h2.clickable.expanded::before,
+    .markdown-body h3.clickable.expanded::before,
+    .markdown-body h4.clickable.expanded::before,
+    .markdown-body h5.clickable.expanded::before,
+    .markdown-body h6.clickable.expanded::before {
+      transform: rotate(180deg);
+    }
+    /* Transition for nested container: slide-down & fade-in */
+    .nested-container {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: max-height 0.5s ease, opacity 0.5s ease;
+      margin-left: 1rem;
+    }
+    .nested-container.open {
+      max-height: 20000px; /* large enough to fit content */
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
   <div class="container markdown-body">
+    <button id="toggle-all" class="btn btn-primary btn-sm mb-3">Expand All</button>
     %s
   </div>
   <!-- Optional Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function() {
-      // Select all paragraphs inside .markdown-body
+      // Adjust paragraph margins based on previous header margins.
       var paragraphs = document.querySelectorAll(".markdown-body p");
       paragraphs.forEach(function(p) {
         var prev = p.previousElementSibling;
-        // Traverse backward until a header is found
         while (prev && !/^H[1-6]$/.test(prev.tagName)) {
           prev = prev.previousElementSibling;
         }
         if (prev) {
-          // Get computed left margin of the header and assign it to the paragraph
           var headerMargin = window.getComputedStyle(prev).marginLeft;
           p.style.marginLeft = headerMargin;
         }
       });
+      // Hide nested sections by default and add toggle behavior.
+      var headers = document.querySelectorAll('.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6');
+      headers.forEach(function(header) {
+        var level = parseInt(header.tagName.substring(1));
+        var sibling = header.nextElementSibling;
+        if (!sibling) return;
+        var container = document.createElement('div');
+        container.classList.add("nested-container");
+        while (sibling && (!/^H[1-6]$/.test(sibling.tagName) || parseInt(sibling.tagName.substring(1)) > level)) {
+          var next = sibling.nextElementSibling;
+          container.appendChild(sibling);
+          sibling = next;
+        }
+        if (container.children.length > 0) {
+          header.parentNode.insertBefore(container, header.nextElementSibling);
+          header.classList.add("clickable");
+          header.style.cursor = "pointer";
+          header.addEventListener("click", function() {
+            if (container.classList.contains("open")) {
+              container.classList.remove("open");
+              header.classList.remove("expanded");
+            } else {
+              container.classList.add("open");
+              header.classList.add("expanded");
+            }
+          });
+        }
+      });
+      // Toggle All functionality.
+      var toggleAllButton = document.getElementById("toggle-all");
+      if (toggleAllButton) {
+        toggleAllButton.addEventListener("click", function() {
+          var headers = document.querySelectorAll(".markdown-body .clickable");
+          var expandAll = toggleAllButton.textContent.trim() === "Expand All";
+          headers.forEach(function(header) {
+            var container = header.nextElementSibling;
+            if (container && container.classList.contains("nested-container")) {
+              if (expandAll) {
+                container.classList.add("open");
+                header.classList.add("expanded");
+              } else {
+                container.classList.remove("open");
+                header.classList.remove("expanded");
+              }
+            }
+          });
+          toggleAllButton.textContent = expandAll ? "Collapse All" : "Expand All";
+        });
+      } else {
+        console.log("Toggle All button not found.");
+      }
     });
   </script>
 </body>
