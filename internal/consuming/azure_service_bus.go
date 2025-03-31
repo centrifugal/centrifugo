@@ -2,6 +2,7 @@ package consuming
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/logging"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
@@ -67,7 +69,7 @@ func NewAzureServiceBusConsumer(
 	}, nil
 }
 
-// Run starts the consumer and processes messages until the context is canceled.
+// Run starts the consumer until the context is canceled.
 func (c *AzureServiceBusConsumer) Run(ctx context.Context) error {
 	if c.config.UseSessions {
 		return c.runSessionMode(ctx)
@@ -75,7 +77,7 @@ func (c *AzureServiceBusConsumer) Run(ctx context.Context) error {
 	return c.runNonSessionMode(ctx)
 }
 
-// runSessionMode processes messages using session mode (native ordering).
+// runSessionMode consumes messages in session mode using a separate goroutine per queue worker.
 func (c *AzureServiceBusConsumer) runSessionMode(ctx context.Context) error {
 	var wg sync.WaitGroup
 
@@ -86,36 +88,27 @@ func (c *AzureServiceBusConsumer) runSessionMode(ctx context.Context) error {
 			go func(queueName string) {
 				defer wg.Done()
 				for {
+					// Respect context cancellation.
+					if ctx.Err() != nil {
+						return
+					}
+
 					sr, err := c.client.AcceptNextSessionForQueue(ctx, queueName, nil)
 					if err != nil {
-						if ctx.Err() != nil {
+						if errors.Is(err, context.Canceled) {
 							return
 						}
-						c.log.Error().Err(err).Msgf("error accepting next session for queue %s; retrying", queueName)
+						c.log.Error().Err(err).Msgf("failed to accept session for queue %s", queueName)
 						select {
 						case <-ctx.Done():
 							return
-						case <-time.After(1 * time.Second):
+						case <-time.After(time.Second):
 						}
 						continue
 					}
 
-					// Process messages for this session sequentially.
-					for {
-						messages, err := sr.ReceiveMessages(ctx, c.config.MaxReceiveMessages, nil)
-						if err != nil {
-							c.log.Error().Err(err).Msgf("error receiving messages for session on queue %s; closing session", queueName)
-							_ = sr.Close(ctx)
-							break // Accept a new session.
-						}
-						if len(messages) == 0 {
-							_ = sr.Close(ctx)
-							break
-						}
-						for _, msg := range messages {
-							c.processMessage(ctx, msg, sr)
-						}
-					}
+					// Process the accepted session.
+					c.processSession(ctx, sr, queueName)
 				}
 			}(queue)
 		}
@@ -125,11 +118,94 @@ func (c *AzureServiceBusConsumer) runSessionMode(ctx context.Context) error {
 	return ctx.Err()
 }
 
-// runNonSessionMode processes messages without sessions (unordered).
+// processSession processes messages for a given session and renews the session lock periodically.
+// The renewal interval is set to 2/3 of the remaining time until the session lock expires.
+// The context passed to message processing is bound to the session lifetime.
+func (c *AzureServiceBusConsumer) processSession(ctx context.Context, sr *azservicebus.SessionReceiver, queueName string) {
+	// Create a session-specific context that will be canceled when the session should end.
+	sessionCtx, cancelSession := context.WithCancel(ctx)
+	defer cancelSession()
+
+	// Derive a context for lock renewal from the session context.
+	renewCtx, cancelRenew := context.WithCancel(sessionCtx)
+	defer cancelRenew()
+
+	// Start a goroutine to renew the session lock at 2/3 of the remaining time until expiration.
+	go func() {
+		for {
+			select {
+			case <-renewCtx.Done():
+				return
+			default:
+			}
+			// Calculate remaining time until lock expiration.
+			lockUntil := sr.LockedUntil() // sr.LockedUntil() returns the time the session is locked until.
+			remaining := time.Until(lockUntil)
+			renewalInterval := time.Duration(float64(remaining) * (2.0 / 3.0))
+			if renewalInterval <= 0 {
+				c.log.Error().Msgf("session lock already expired for queue %s", queueName)
+				cancelSession()
+				return
+			}
+			// Wait for the computed renewal interval.
+			select {
+			case <-time.After(renewalInterval):
+				// Attempt to renew the session lock.
+				if err := sr.RenewSessionLock(renewCtx, nil); err != nil {
+					c.log.Error().Err(err).Msgf("failed to renew session lock for queue %s", queueName)
+					// On error, cancel the session to abort processing.
+					cancelSession()
+					return
+				} else {
+					c.log.Debug().Msgf("renewed session lock for queue %s", queueName)
+				}
+			case <-renewCtx.Done():
+				return
+			}
+		}
+	}()
+
+	// Ensure the session is closed when processing ends.
+	defer func() {
+		if err := sr.Close(sessionCtx); err != nil {
+			c.log.Error().Err(err).Msgf("failed to close session for queue %s", queueName)
+		}
+	}()
+
+	// Process messages using the session-bound context.
+	for {
+		if sessionCtx.Err() != nil {
+			return
+		}
+		messages, err := sr.ReceiveMessages(sessionCtx, c.config.MaxReceiveMessages, nil)
+		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return
+			}
+			c.log.Error().Err(err).Msgf("error receiving messages for session on queue %s", queueName)
+			return
+		}
+
+		if logging.Enabled(logging.DebugLevel) {
+			c.log.Debug().Str("queue", queueName).Int("num_messages", len(messages)).
+				Msg("received messages from queue")
+		}
+
+		if len(messages) == 0 {
+			// No messages – the session is ended.
+			return
+		}
+		for _, msg := range messages {
+			c.processMessage(sessionCtx, msg, sr)
+		}
+	}
+}
+
+// runNonSessionMode consumes messages without sessions.
 func (c *AzureServiceBusConsumer) runNonSessionMode(ctx context.Context) error {
 	var wg sync.WaitGroup
 
-	// For each queue, spawn workers.
+	// For each queue, spawn receivers.
 	for _, queue := range c.config.Queues {
 		for i := 0; i < c.config.MaxConcurrentCalls; i++ {
 			receiver, err := c.client.NewReceiverForQueue(queue, nil)
@@ -140,22 +216,33 @@ func (c *AzureServiceBusConsumer) runNonSessionMode(ctx context.Context) error {
 			go func(r *azservicebus.Receiver, queueName string) {
 				defer wg.Done()
 				defer func() {
-					_ = r.Close(ctx)
+					if err := r.Close(ctx); err != nil {
+						c.log.Error().Err(err).Msgf("failed to close receiver for queue %s", queueName)
+					}
 				}()
 				for {
+					if ctx.Err() != nil {
+						return
+					}
 					messages, err := r.ReceiveMessages(ctx, c.config.MaxReceiveMessages, nil)
 					if err != nil {
-						if ctx.Err() != nil {
+						if errors.Is(err, context.Canceled) {
 							return
 						}
-						c.log.Error().Err(err).Msgf("error receiving messages from queue %s; retrying", queueName)
+						c.log.Error().Err(err).Msgf("error receiving messages from queue %s", queueName)
 						select {
-						case <-time.After(1 * time.Second):
 						case <-ctx.Done():
 							return
+						case <-time.After(time.Second):
 						}
 						continue
 					}
+
+					if logging.Enabled(logging.DebugLevel) {
+						c.log.Debug().Str("queue", queueName).Int("num_messages", len(messages)).
+							Msg("received messages from queue")
+					}
+
 					for _, msg := range messages {
 						c.processMessage(ctx, msg, r)
 					}
@@ -168,16 +255,17 @@ func (c *AzureServiceBusConsumer) runNonSessionMode(ctx context.Context) error {
 	return ctx.Err()
 }
 
-// azureCompleter defines an interface for message completion.
+// azureCompleter defines an interface for completing messages.
 type azureCompleter interface {
 	CompleteMessage(context.Context, *azservicebus.ReceivedMessage, *azservicebus.CompleteMessageOptions) error
 }
 
-// processMessage handles a single message with retry and backoff logic.
+// processMessage processes a single message with a retry mechanism.
 func (c *AzureServiceBusConsumer) processMessage(ctx context.Context, msg *azservicebus.ReceivedMessage, completer azureCompleter) {
 	var retries int
 	var backoffDuration time.Duration
 	data := msg.Body
+	const maxRetries = 5
 
 	for {
 		var err error
@@ -192,8 +280,10 @@ func (c *AzureServiceBusConsumer) processMessage(ctx context.Context, msg *azser
 			}
 			break
 		}
-		if ctx.Err() != nil {
-			return
+		// Stop retrying if context is canceled or maximum attempts reached.
+		if ctx.Err() != nil || retries >= maxRetries {
+			c.log.Error().Err(err).Msg("max retries reached or context canceled; abandoning message")
+			break
 		}
 		retries++
 		backoffDuration = getNextBackoffDuration(backoffDuration, retries)
@@ -205,6 +295,7 @@ func (c *AzureServiceBusConsumer) processMessage(ctx context.Context, msg *azser
 		}
 	}
 
+	// Complete the message (or log an error on failure).
 	if err := completer.CompleteMessage(ctx, msg, nil); err != nil {
 		c.log.Error().Err(err).Msg("failed to complete message")
 		c.metrics.errorsTotal.WithLabelValues(c.name).Inc()

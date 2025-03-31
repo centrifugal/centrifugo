@@ -108,6 +108,11 @@ func NewAwsSqsConsumer(
 func (c *AwsSqsConsumer) Run(ctx context.Context) error {
 	var wg sync.WaitGroup
 
+	maxConcurrency := c.config.MaxConcurrency
+	if maxConcurrency < 1 {
+		maxConcurrency = 1
+	}
+
 	// Spawn one goroutine per queue URL.
 	for _, queueURL := range c.config.Queues {
 		wg.Add(1)
@@ -148,11 +153,16 @@ func (c *AwsSqsConsumer) Run(ctx context.Context) error {
 					continue
 				}
 
+				if logging.Enabled(logging.DebugLevel) {
+					c.log.Debug().Str("queue", qURL).Int("num_messages", len(out.Messages)).
+						Msg("received messages from queue")
+				}
+
 				if len(out.Messages) == 0 {
 					continue
 				}
 
-				c.processMessages(ctx, out.Messages, qURL)
+				c.processMessages(ctx, out.Messages, qURL, maxConcurrency)
 			}
 		}(queueURL)
 	}
@@ -165,7 +175,9 @@ func (c *AwsSqsConsumer) Run(ctx context.Context) error {
 
 // processMessages partitions messages into unordered and ordered groups,
 // then processes them appropriately. It passes the queue URL to batch deletion.
-func (c *AwsSqsConsumer) processMessages(ctx context.Context, messages []types.Message, queueURL string) {
+func (c *AwsSqsConsumer) processMessages(
+	ctx context.Context, messages []types.Message, queueURL string, maxConcurrency int,
+) {
 	// Partition messages into unordered and ordered groups.
 	var unorderedMessages []types.Message
 	orderedGroups := make(map[string][]types.Message, len(messages))
@@ -192,7 +204,7 @@ func (c *AwsSqsConsumer) processMessages(ctx context.Context, messages []types.M
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
-	sem := make(chan struct{}, c.config.MaxConcurrency)
+	sem := make(chan struct{}, maxConcurrency)
 
 	// Process unordered messages concurrently.
 	for _, msg := range unorderedMessages {
@@ -272,7 +284,7 @@ func (c *AwsSqsConsumer) processSingleMessage(ctx context.Context, msg types.Mes
 			}
 			break
 		}
-		if ctx.Err() != nil {
+		if errors.Is(processErr, context.Canceled) {
 			return false
 		}
 		retries++

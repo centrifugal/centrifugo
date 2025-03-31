@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/logging"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/rs/zerolog"
@@ -85,9 +86,13 @@ func (c *GooglePubSubConsumer) Run(ctx context.Context) error {
 			sub.ReceiveSettings.NumGoroutines = 10
 
 			err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
+				if logging.Enabled(logging.DebugLevel) {
+					c.log.Debug().Str("subscription", subID).
+						Msg("received message from subscription")
+				}
 				c.dispatchMessage(ctx, msg)
 			})
-			if err != nil {
+			if err != nil && !errors.Is(err, context.Canceled) {
 				c.log.Error().Err(err).Msgf("error receiving messages for subscription %s", subscriptionID)
 			}
 		}(subID)

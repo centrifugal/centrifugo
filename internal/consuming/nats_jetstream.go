@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/logging"
 
 	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog"
@@ -84,6 +85,11 @@ func NewNatsJetStreamConsumer(
 
 // msgHandler is the callback for incoming JetStream messages.
 func (c *NatsJetStreamConsumer) msgHandler(msg *nats.Msg) {
+	if logging.Enabled(logging.DebugLevel) {
+		c.log.Debug().Str("subject", msg.Subject).
+			Msg("received message from subject")
+	}
+
 	data := msg.Data
 	var processErr error
 

@@ -29,8 +29,8 @@ func New(nodeID string, dispatcher Dispatcher, configs []ConsumerConfig) ([]serv
 	for _, config := range configs {
 		if !config.Enabled { // Important to keep this check inside specific type for proper config validation.
 			log.Info().
-				Str("consumer_name", config.Name).
-				Str("consumer_type", config.Type).
+				Str("consumer", config.Name).
+				Str("type", config.Type).
 				Msg("consumer is not enabled, skip")
 			continue
 		}
@@ -81,8 +81,8 @@ func New(nodeID string, dispatcher Dispatcher, configs []ConsumerConfig) ([]serv
 			return nil, fmt.Errorf("unknown consumer type: %s", config.Type)
 		}
 		log.Info().
-			Str("consumer_name", config.Name).
-			Str("consumer_type", config.Type).
+			Str("consumer", config.Name).
+			Str("type", config.Type).
 			Msg("running consumer")
 	}
 

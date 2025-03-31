@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/logging"
 	"github.com/centrifugal/centrifugo/v6/internal/redisqueue"
 	"github.com/centrifugal/centrifugo/v6/internal/redisshard"
 
@@ -46,7 +47,7 @@ func NewRedisStreamConsumer(
 		return nil, fmt.Errorf("failed to build Redis shards: %w", err)
 	}
 	if len(shards) != 1 {
-		return nil, errors.New("expected a single Redis shard")
+		return nil, fmt.Errorf("expected a single Redis shard, got %d", len(shards))
 	}
 	shard := shards[0]
 
@@ -72,7 +73,7 @@ func NewRedisStreamConsumer(
 			ConsumerFunc:      consumer.process,
 			Name:              nodeID,
 			GroupName:         cfg.ConsumerGroup,
-			VisibilityTimeout: 30 * time.Second,
+			VisibilityTimeout: cfg.VisibilityTimeout.ToDuration(),
 			BlockingTimeout:   5 * time.Second,
 			ReclaimInterval:   5 * time.Second,
 			Concurrency:       cfg.NumMessageWorkers,
@@ -89,6 +90,10 @@ func NewRedisStreamConsumer(
 
 // process is the ConsumerFunc for redisqueue.Consumer.
 func (c *RedisStreamConsumer) process(msg *redisqueue.Message) error {
+	if logging.Enabled(logging.DebugLevel) {
+		c.log.Debug().Str("stream", msg.ID).
+			Msg("received message from stream")
+	}
 	dataStr, ok := msg.Values[c.config.PayloadValue]
 	if !ok {
 		c.log.Error().
@@ -97,7 +102,6 @@ func (c *RedisStreamConsumer) process(msg *redisqueue.Message) error {
 		return nil
 	}
 
-	// Using context.Background() here as no caller context is provided.
 	ctx := context.Background()
 	var err error
 	if c.config.PublicationDataMode.Enabled {
@@ -107,8 +111,7 @@ func (c *RedisStreamConsumer) process(msg *redisqueue.Message) error {
 	}
 	if err != nil {
 		c.metrics.errorsTotal.WithLabelValues(c.name).Inc()
-		c.log.Error().Err(err).
-			Msg("error processing redis stream message")
+		c.log.Error().Err(err).Msg("error processing redis stream message")
 	} else {
 		c.metrics.processedTotal.WithLabelValues(c.name).Inc()
 	}
@@ -143,9 +146,7 @@ func (c *RedisStreamConsumer) processPublicationDataMessage(ctx context.Context,
 		var err error
 		delta, err = strconv.ParseBool(deltaStr)
 		if err != nil {
-			c.log.Error().
-				Err(err).
-				Msg("error parsing delta property, skipping message")
+			c.log.Error().Err(err).Msg("error parsing delta property, skipping message")
 			return nil
 		}
 	}
