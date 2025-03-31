@@ -780,6 +780,8 @@ type RedisStreamConsumerConfig struct {
 	Streams []string `mapstructure:"streams" json:"streams" yaml:"streams" toml:"streams"`
 	// ConsumerGroup name to use.
 	ConsumerGroup string `mapstructure:"consumer_group" json:"consumer_group" yaml:"consumer_group" toml:"consumer_group"`
+	// VisibilityTimeout is the time to wait for a message to be processed before it is re-queued.
+	VisibilityTimeout Duration `mapstructure:"visibility_timeout" default:"30s" json:"visibility_timeout" yaml:"visibility_timeout" toml:"visibility_timeout"`
 	// NumMessageWorkers is the number of message workers to use for processing for each stream.
 	NumMessageWorkers int `mapstructure:"num_message_workers" default:"1" json:"num_message_workers" yaml:"num_message_workers" toml:"num_message_workers"`
 	// PayloadValue is used to extract data from Redis Stream message.
@@ -907,8 +909,8 @@ func (c GooglePubSubConsumerConfig) Validate() error {
 	if c.ProjectID == "" {
 		return errors.New("project_id is required")
 	}
-	if c.SubscriptionID == "" {
-		return errors.New("subscription_id is required")
+	if len(c.Subscriptions) == 0 {
+		return errors.New("at least one subscription ID is required")
 	}
 	if c.PublicationDataMode.Enabled && c.PublicationDataMode.ChannelsAttribute == "" {
 		return errors.New("channels_attribute is required for publication data mode")
@@ -971,8 +973,8 @@ func (c AzureServiceBusConsumerConfig) Validate() error {
 			return errors.New("connection_string is required when not using Azure Identity")
 		}
 	}
-	if c.Queue == "" {
-		return errors.New("entity_path is required")
+	if len(c.Queues) == 0 {
+		return errors.New("at least one queue path is required")
 	}
 	if c.PublicationDataMode.Enabled && c.PublicationDataMode.ChannelsProperty == "" {
 		return errors.New("channels_property is required for publication data mode")
@@ -1029,8 +1031,8 @@ type AWSPublicationDataModeConfig struct {
 
 // Validate ensures required fields are set.
 func (c AwsSqsConsumerConfig) Validate() error {
-	if c.QueueURL == "" {
-		return errors.New("queue_url is required")
+	if len(c.Queues) == 0 {
+		return errors.New("at least one queue url is required")
 	}
 	if c.PublicationDataMode.Enabled && c.PublicationDataMode.ChannelsAttribute == "" {
 		return errors.New("channels_attribute is required for publication data mode")
