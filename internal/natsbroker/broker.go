@@ -401,5 +401,7 @@ func pubFromProto(pub *protocol.Publication, specificChannel string) *centrifuge
 		Data:    pub.Data,
 		Info:    infoFromProto(pub.GetInfo()),
 		Channel: specificChannel,
+		Tags:    pub.GetTags(),
+		Time:    pub.Time,
 	}
 }
