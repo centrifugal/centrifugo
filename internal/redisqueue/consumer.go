@@ -413,12 +413,17 @@ func (c *Consumer) poll() {
 				}
 
 				c.Errors <- fmt.Errorf("error reading redis stream %s: %w", c.options.Stream, err)
+				select {
+				case <-c.stopPoll:
+					return
+				case <-time.After(200 * time.Millisecond):
+				}
 				continue
 			}
 
 			xRead, err := res.AsXRead()
 			if err != nil {
-				c.Errors <- fmt.Errorf("error reading redis stream %s: %w", c.options.Stream, err)
+				c.Errors <- fmt.Errorf("error parsing redis stream %s: %w", c.options.Stream, err)
 				continue
 			}
 

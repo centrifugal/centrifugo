@@ -121,10 +121,27 @@ func (c *RedisStreamConsumer) process(msg *redisqueue.Message) error {
 // Run starts the consumer loop by starting each underlying consumer in a separate goroutine.
 // It also listens for context cancellation to gracefully shutdown all consumers.
 func (c *RedisStreamConsumer) Run(ctx context.Context) error {
-	for _, consumer := range c.consumers {
+	shutdownCh := make(chan struct{})
+
+	for stream, consumer := range c.consumers {
+		errCh := make(chan error, 64)
+		consumer.Errors = errCh
+		go func() {
+			for {
+				select {
+				case err := <-errCh:
+					if err != nil {
+						c.log.Error().Str("stream", stream).Err(err).Msg("error from consumer")
+					}
+				case <-shutdownCh:
+					return
+				}
+			}
+		}()
+
 		go consumer.Run()
 	}
-	shutdownCh := make(chan struct{})
+
 	go func() {
 		defer close(shutdownCh)
 		<-ctx.Done()
