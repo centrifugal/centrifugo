@@ -4,6 +4,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
@@ -42,6 +43,12 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 			uniCodeTransforms[transform.Code] = centrifuge.Disconnect{Code: transform.To.Code, Reason: transform.To.Reason}
 		}
 		cfg.UnidirectionalCodeToDisconnect = uniCodeTransforms
+	}
+	cfg.GetChannelBatchConfig = func(channel string) centrifuge.ChannelBatchConfig {
+		return centrifuge.ChannelBatchConfig{
+			MaxSize:  0,
+			MaxDelay: time.Second,
+		}
 	}
 	return cfg
 }

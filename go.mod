@@ -2,6 +2,8 @@ module github.com/centrifugal/centrifugo/v6
 
 go 1.23.0
 
+replace github.com/centrifugal/centrifuge => ../centrifuge
+
 require (
 	cloud.google.com/go/pubsub v1.48.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.2
@@ -132,7 +134,7 @@ require (
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
-	github.com/redis/rueidis v1.0.53
+	github.com/redis/rueidis v1.0.56
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/segmentio/encoding v0.4.1
 	github.com/spf13/cast v1.7.0 // indirect
@@ -143,11 +145,11 @@ require (
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.5.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
-	golang.org/x/mod v0.22.0 // indirect
+	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.37.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
-	golang.org/x/tools v0.29.0 // indirect
+	golang.org/x/tools v0.31.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250324211829-b45e905df463 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
 	gopkg.in/yaml.v3 v3.0.1
