@@ -235,7 +235,7 @@ func (c *Consumer) reclaim(stream string) {
 				})
 				entries, newStart, err := NewXAutoClaimCmd(res).Result()
 				if err != nil && !rueidis.IsRedisNil(err) {
-					c.Errors <- fmt.Errorf("error listing pending messages: %w", err)
+					c.logError(fmt.Errorf("error listing pending messages: %w", err))
 					break
 				}
 
@@ -281,12 +281,12 @@ func (c *Consumer) reclaimLegacy(stream string) {
 			for {
 				res := xPendingExt(c.shard, stream, c.options.GroupName, start, end, int64(c.options.Concurrency-len(c.queue)))
 				if res.Error() != nil {
-					c.Errors <- fmt.Errorf("error getting pending messages: %w", res.Error())
+					c.logError(fmt.Errorf("error getting pending messages: %w", res.Error()))
 					break
 				}
 				xPendingRes := NewXPendingExtCmd(res)
 				if xPendingRes.Err != nil {
-					c.Errors <- fmt.Errorf("error parsing pending messages: %w", xPendingRes.Err)
+					c.logError(fmt.Errorf("error parsing pending messages: %w", xPendingRes.Err))
 					break
 				}
 				if len(xPendingRes.Val) == 0 {
@@ -302,13 +302,13 @@ func (c *Consumer) reclaimLegacy(stream string) {
 							return client.Do(context.Background(), cmd)
 						})
 						if res.Error() != nil {
-							c.Errors <- fmt.Errorf("error claiming message: %w", res.Error())
+							c.logError(fmt.Errorf("error claiming pending message: %w", res.Error()))
 							break
 						}
 
 						claimedEntries, err := res.AsXRange()
 						if err != nil {
-							c.Errors <- fmt.Errorf("error parsig claim result: %w", res.Error())
+							c.logError(fmt.Errorf("error parsing pending messages: %w", err))
 							break
 						}
 
@@ -327,7 +327,7 @@ func (c *Consumer) reclaimLegacy(stream string) {
 								return client.Do(context.Background(), cmd)
 							})
 							if res.Error() != nil {
-								c.Errors <- fmt.Errorf("error acknowledging after failed claim for %q stream and %q message: %w", stream, r.ID, res.Error())
+								c.logError(fmt.Errorf("error acknowledging after failed claim for %q stream and %q message: %w", stream, r.ID, res.Error()))
 								continue
 							}
 						}
@@ -337,7 +337,7 @@ func (c *Consumer) reclaimLegacy(stream string) {
 
 				newID, err := incrementMessageID(xPendingRes.Val[len(xPendingRes.Val)-1].ID)
 				if err != nil {
-					c.Errors <- err
+					c.logError(fmt.Errorf("error incrementing message ID: %w", err))
 					break
 				}
 
@@ -407,12 +407,12 @@ func (c *Consumer) poll() {
 				if strings.Contains(err.Error(), "NOGROUP") {
 					err := CreateConsumerGroup(c.shard, c.options.Stream, c.options.GroupName, "$")
 					if err != nil {
-						c.Errors <- fmt.Errorf("error creating consumer group: %w", err)
+						c.logError(fmt.Errorf("error creating consumer group: %w", err))
 					}
 					continue
 				}
 
-				c.Errors <- fmt.Errorf("error reading redis stream %s: %w", c.options.Stream, err)
+				c.logError(fmt.Errorf("error reading redis stream %s: %w", c.options.Stream, err))
 				select {
 				case <-c.stopPoll:
 					return
@@ -423,7 +423,7 @@ func (c *Consumer) poll() {
 
 			xRead, err := res.AsXRead()
 			if err != nil {
-				c.Errors <- fmt.Errorf("error parsing redis stream %s: %w", c.options.Stream, err)
+				c.logError(fmt.Errorf("error parsing redis stream %s: %w", c.options.Stream, err))
 				continue
 			}
 
@@ -431,6 +431,13 @@ func (c *Consumer) poll() {
 				c.enqueue(messages)
 			}
 		}
+	}
+}
+
+func (c *Consumer) logError(err error) {
+	select {
+	case c.Errors <- err:
+	default:
 	}
 }
 
@@ -462,7 +469,7 @@ func (c *Consumer) work() {
 		case msg := <-c.queue:
 			err := c.process(msg)
 			if err != nil {
-				c.Errors <- fmt.Errorf("error calling ConsumerFunc for %q stream and %q message: %w", c.options.Stream, msg.ID, err)
+				c.logError(fmt.Errorf("error calling processing func for %q stream and %q message: %w", c.options.Stream, msg.ID, err))
 				continue
 			}
 			err = c.shard.RunOp(func(client rueidis.Client) rueidis.RedisResult {
@@ -470,7 +477,7 @@ func (c *Consumer) work() {
 				return client.Do(context.Background(), cmd)
 			}).Error()
 			if err != nil {
-				c.Errors <- fmt.Errorf("error acknowledging after success for %q stream and %q message: %w", c.options.Stream, msg.ID, err)
+				c.logError(fmt.Errorf("error acknowledging message for %q stream and %q message: %w", c.options.Stream, msg.ID, err))
 				continue
 			}
 		case <-c.stopWorkers:
