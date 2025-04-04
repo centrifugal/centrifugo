@@ -76,7 +76,7 @@ func NewRedisStreamConsumer(
 			VisibilityTimeout: cfg.VisibilityTimeout.ToDuration(),
 			BlockingTimeout:   5 * time.Second,
 			ReclaimInterval:   5 * time.Second,
-			Concurrency:       cfg.NumMessageWorkers,
+			Concurrency:       cfg.NumWorkers,
 			UseLegacyReclaim:  false,
 		})
 		if err != nil {

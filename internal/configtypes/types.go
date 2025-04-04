@@ -782,8 +782,8 @@ type RedisStreamConsumerConfig struct {
 	ConsumerGroup string `mapstructure:"consumer_group" json:"consumer_group" yaml:"consumer_group" toml:"consumer_group"`
 	// VisibilityTimeout is the time to wait for a message to be processed before it is re-queued.
 	VisibilityTimeout Duration `mapstructure:"visibility_timeout" default:"30s" json:"visibility_timeout" yaml:"visibility_timeout" toml:"visibility_timeout"`
-	// NumMessageWorkers is the number of message workers to use for processing for each stream.
-	NumMessageWorkers int `mapstructure:"num_message_workers" default:"1" json:"num_message_workers" yaml:"num_message_workers" toml:"num_message_workers"`
+	// NumWorkers is the number of message workers to use for processing for each stream.
+	NumWorkers int `mapstructure:"num_workers" default:"1" json:"num_workers" yaml:"num_workers" toml:"num_workers"`
 	// PayloadValue is used to extract data from Redis Stream message.
 	PayloadValue string `mapstructure:"payload_value" default:"payload" json:"payload_value" yaml:"payload_value" toml:"payload_value"`
 	// MethodValue is used to extract a method for command messages.
