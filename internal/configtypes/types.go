@@ -953,7 +953,7 @@ type AzureServiceBusConsumerConfig struct {
 	// All messages must include a SessionID; messages within the same session will be processed in order.
 	UseSessions bool `mapstructure:"use_sessions" json:"use_sessions" yaml:"use_sessions" toml:"use_sessions"`
 	// MaxConcurrentCalls controls the maximum number of messages processed concurrently.
-	MaxConcurrentCalls int `mapstructure:"max_concurrent_calls" json:"max_concurrent_calls" yaml:"max_concurrent_calls" toml:"max_concurrent_calls"`
+	MaxConcurrentCalls int `mapstructure:"max_concurrent_calls" default:"1" json:"max_concurrent_calls" yaml:"max_concurrent_calls" toml:"max_concurrent_calls"`
 	// MaxReceiveMessages sets the batch size when receiving messages from the queue.
 	MaxReceiveMessages int `mapstructure:"max_receive_messages" default:"1" json:"max_receive_messages" yaml:"max_receive_messages" toml:"max_receive_messages"`
 	// MethodProperty is the name of the message property used to extract the method (for API command).
@@ -978,9 +978,6 @@ func (c AzureServiceBusConsumerConfig) Validate() error {
 	}
 	if c.PublicationDataMode.Enabled && c.PublicationDataMode.ChannelsProperty == "" {
 		return errors.New("channels_property is required for publication data mode")
-	}
-	if c.MaxConcurrentCalls <= 0 {
-		c.MaxConcurrentCalls = 1
 	}
 	return nil
 }
