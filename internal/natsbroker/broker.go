@@ -8,9 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v6/internal/tools"
-
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
@@ -132,7 +131,6 @@ func (b *NatsBroker) RegisterControlEventHandler(h centrifuge.ControlEventHandle
 	if err != nil {
 		return err
 	}
-	log.Info().Str("controller", "nats").Str("url", tools.StripPassword(b.config.URL)).Msg("controller running")
 	return nil
 }
 
