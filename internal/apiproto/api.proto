@@ -138,8 +138,8 @@ message PublishRequest {
     map<string, string> tags = 5;
     string idempotency_key = 6;
     bool delta = 7;
-    uint64 app_offset = 8;
-    string app_epoch = 9;
+    uint64 version = 8;
+    string version_epoch = 9;
 }
 
 message PublishResponse {

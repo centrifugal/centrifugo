@@ -217,7 +217,7 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 		centrifuge.WithTags(cmd.GetTags()),
 		centrifuge.WithIdempotencyKey(cmd.GetIdempotencyKey()),
 		centrifuge.WithDelta(delta),
-		//centrifuge.WithAppStreamPosition(centrifuge.StreamPosition{Offset: cmd.AppOffset, Epoch: cmd.AppEpoch}),
+		centrifuge.WithVersion(cmd.Version, cmd.VersionEpoch),
 	)
 	if err != nil {
 		log.Error().Err(err).Str("channel", cmd.Channel).Msg("error publishing data to channel")
