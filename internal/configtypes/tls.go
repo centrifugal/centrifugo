@@ -19,7 +19,7 @@ type TLSConfig struct {
 	CertPem PEMData `mapstructure:"cert_pem" json:"cert_pem" envconfig:"cert_pem" yaml:"cert_pem" toml:"cert_pem"`
 	// KeyPem is a path to a file with key in PEM format.
 	KeyPem PEMData `mapstructure:"key_pem" json:"key_pem" envconfig:"key_pem" yaml:"key_pem" toml:"key_pem"`
-	// ServerCAPemFile is a server root CA certificate in PEM format.
+	// ServerCAPem is a server root CA certificate in PEM format.
 	// The client uses this certificate to verify the server's certificate during the TLS handshake.
 	ServerCAPem PEMData `mapstructure:"server_ca_pem" json:"server_ca_pem" envconfig:"server_ca_pem" yaml:"server_ca_pem" toml:"server_ca_pem"`
 	// ClientCAPem is a client CA certificate in PEM format.

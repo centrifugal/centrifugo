@@ -26,7 +26,7 @@ func main() {
 	root.AddCommand(
 		cli.Version(), cli.CheckConfig(), cli.GenConfig(), cli.GenToken(),
 		cli.GenSubToken(), cli.CheckToken(), cli.CheckSubToken(), cli.DefaultConfig(),
-		cli.DefaultEnv(), cli.Serve(),
+		cli.DefaultEnv(), cli.ConfigDoc(), cli.Serve(),
 	)
 	_ = root.Execute()
 }
