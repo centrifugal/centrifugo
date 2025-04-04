@@ -3,7 +3,6 @@ package consuming
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -12,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v6/internal/apiproto"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 
 	"github.com/rs/zerolog/log"
@@ -46,39 +44,6 @@ type KafkaConsumer struct {
 	doneCh         chan struct{}
 	metrics        *commonMetrics
 	testOnlyConfig testOnlyConfig
-}
-
-// JSONRawOrString can decode payload from bytes and from JSON string. This gives
-// us better interoperability. For example, JSONB field is encoded as JSON string in
-// Debezium PostgreSQL connector.
-type JSONRawOrString json.RawMessage
-
-func (j *JSONRawOrString) UnmarshalJSON(data []byte) error {
-	if len(data) > 0 && data[0] == '"' {
-		// Unmarshal as a string, then convert the string to json.RawMessage.
-		var str string
-		if err := json.Unmarshal(data, &str); err != nil {
-			return err
-		}
-		*j = JSONRawOrString(str)
-	} else {
-		// Unmarshal directly as json.RawMessage
-		*j = data
-	}
-	return nil
-}
-
-// MarshalJSON returns m as the JSON encoding of m.
-func (j JSONRawOrString) MarshalJSON() ([]byte, error) {
-	if j == nil {
-		return []byte("null"), nil
-	}
-	return j, nil
-}
-
-type KafkaJSONEvent struct {
-	Method  string          `json:"method"`
-	Payload JSONRawOrString `json:"payload"`
 }
 
 func NewKafkaConsumer(
@@ -261,7 +226,7 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 			}
 			fetchErrors := fetches.Errors()
 			if len(fetchErrors) > 0 {
-				// Non-retriable errors returned. We will restart consumer client, but log errors first.
+				// Non-retryable errors returned. We will restart consumer client, but log errors first.
 				var errs []error
 				for _, fetchErr := range fetchErrors {
 					if errors.Is(fetchErr.Err, context.Canceled) {
@@ -469,13 +434,30 @@ func getHeaderValue(record *kgo.Record, headerKey string) string {
 	return ""
 }
 
+func publicationTagsFromKafkaRecord(record *kgo.Record, tagsHeaderPrefix string) map[string]string {
+	if tagsHeaderPrefix == "" {
+		return nil
+	}
+	var tags map[string]string
+	for _, header := range record.Headers {
+		if strings.HasPrefix(header.Key, tagsHeaderPrefix) {
+			if tags == nil {
+				tags = make(map[string]string)
+			}
+			tags[header.Key[len(tagsHeaderPrefix):]] = string(header.Value)
+		}
+	}
+	return tags
+}
+
 func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, record *kgo.Record) error {
 	data := record.Value
 	idempotencyKey := getHeaderValue(record, pc.config.PublicationDataMode.IdempotencyKeyHeader)
 	var delta bool
-	if pc.config.PublicationDataMode.DeltaHeader != "" {
+	deltaValue := getHeaderValue(record, pc.config.PublicationDataMode.DeltaHeader)
+	if deltaValue != "" {
 		var err error
-		delta, err = strconv.ParseBool(getHeaderValue(record, pc.config.PublicationDataMode.DeltaHeader))
+		delta, err = strconv.ParseBool(deltaValue)
 		if err != nil {
 			log.Error().Err(err).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error parsing delta header value, skip message")
 			return nil
@@ -486,48 +468,19 @@ func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, r
 		log.Info().Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("no channels found, skip message")
 		return nil
 	}
-	return publishData(ctx, pc.dispatcher, data, idempotencyKey, delta, channels...)
-}
-
-func publishData(
-	ctx context.Context, dispatcher Dispatcher, data []byte, idempotencyKey string, delta bool, channels ...string,
-) error {
-	if len(channels) == 0 {
-		return nil
-	}
-	if len(channels) == 1 {
-		req := &apiproto.PublishRequest{
-			Data:           data,
-			Channel:        channels[0],
-			IdempotencyKey: idempotencyKey,
-			Delta:          delta,
-		}
-		return dispatcher.Publish(ctx, req)
-	}
-	req := &apiproto.BroadcastRequest{
-		Data:           data,
-		Channels:       channels,
-		IdempotencyKey: idempotencyKey,
-		Delta:          delta,
-	}
-	return dispatcher.Broadcast(ctx, req)
-}
-
-func (pc *partitionConsumer) processAPICommandRecord(ctx context.Context, record *kgo.Record) error {
-	var e KafkaJSONEvent
-	err := json.Unmarshal(record.Value, &e)
-	if err != nil {
-		log.Error().Err(err).Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error unmarshalling event from Kafka, skip message")
-		return nil
-	}
-	return pc.dispatcher.Dispatch(ctx, e.Method, e.Payload)
+	return pc.dispatcher.DispatchPublication(
+		ctx, data, idempotencyKey, delta,
+		publicationTagsFromKafkaRecord(record, pc.config.PublicationDataMode.TagsHeaderPrefix),
+		channels...,
+	)
 }
 
 func (pc *partitionConsumer) processRecord(ctx context.Context, record *kgo.Record) error {
 	if pc.config.PublicationDataMode.Enabled {
 		return pc.processPublicationDataRecord(ctx, record)
 	}
-	return pc.processAPICommandRecord(ctx, record)
+	method := getHeaderValue(record, pc.config.MethodHeader)
+	return pc.dispatcher.DispatchCommand(ctx, method, record.Value)
 }
 
 func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
@@ -549,6 +502,9 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 				pc.metrics.processedTotal.WithLabelValues(pc.name).Inc()
 				pc.cl.MarkCommitRecords(record)
 				break
+			}
+			if errors.Is(err, context.Canceled) {
+				return
 			}
 			retries++
 			backoffDuration = getNextBackoffDuration(backoffDuration, retries)

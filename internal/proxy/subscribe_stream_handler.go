@@ -281,7 +281,7 @@ func (p *SubscribeStreamProxy) SubscribeStream(
 			cancel()
 			return nil, nil, nil, err
 		}
-		stream = bidiStream.(ChannelStreamReader)
+		stream = bidiStream
 		publishFunc = func(data []byte) error {
 			return bidiStream.Send(&proxyproto.StreamSubscribeRequest{
 				Publication: &proxyproto.Publication{

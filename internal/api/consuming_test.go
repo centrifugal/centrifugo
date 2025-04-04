@@ -23,6 +23,6 @@ func TestNewConsumingHandler(t *testing.T) {
 	}), ConsumingHandlerConfig{})
 
 	// Bad request must be just logged but no errors other than Internal Error should be returned from Dispatch.
-	err = handler.Dispatch(context.Background(), "publish", []byte(`{}`))
+	err = handler.DispatchCommand(context.Background(), "publish", []byte(`{}`))
 	require.NoError(t, err)
 }

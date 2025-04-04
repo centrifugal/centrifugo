@@ -177,7 +177,7 @@ func (c *PostgresConsumer) processOnce(ctx context.Context, partition int) (int,
 	var dispatchErr error
 
 	for _, event := range events {
-		dispatchErr = c.dispatcher.Dispatch(context.Background(), event.Method, event.Payload)
+		dispatchErr = c.dispatcher.DispatchCommand(ctx, event.Method, event.Payload)
 		if dispatchErr != nil {
 			// Stop here, all processed events will be removed, and we will start from this one.
 			log.Error().Err(dispatchErr).Str("consumer_name", c.name).Str("method", event.Method).Msg("error processing consumed event")
