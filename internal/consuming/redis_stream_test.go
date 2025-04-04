@@ -42,12 +42,13 @@ func TestRedisStreamConsumer(t *testing.T) {
 		Streams:       []string{streamName1, streamName2},
 		ConsumerGroup: uuid.NewString(),
 		PayloadValue:  "payload",
+		NumWorkers:    1,
 	}
 
 	consumer, err := NewRedisStreamConsumer(
 		"test", cfg, dispatcher, newCommonMetrics(prometheus.NewRegistry()), uuid.NewString())
 	if err != nil {
-		t.Fatalf("failed to create NATS JetStream consumer: %v", err)
+		t.Fatalf("failed to create Redis Stream consumer: %v", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -70,7 +71,7 @@ func TestRedisStreamConsumer(t *testing.T) {
 	}
 	err = producer.Enqueue(&redisqueue.Message{
 		Values: map[string]string{
-			"data": "stream1",
+			"payload": "stream1",
 		},
 	})
 
@@ -82,7 +83,7 @@ func TestRedisStreamConsumer(t *testing.T) {
 	}
 	err = producer.Enqueue(&redisqueue.Message{
 		Values: map[string]string{
-			"data": "stream2",
+			"payload": "stream2",
 		},
 	})
 
