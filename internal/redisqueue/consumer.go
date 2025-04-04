@@ -79,9 +79,6 @@ type Consumer struct {
 	stopPoll    chan struct{}
 	stopWorkers chan struct{}
 
-	lagMu sync.RWMutex
-	lag   int64
-
 	shard *redisshard.RedisShard
 }
 
