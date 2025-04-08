@@ -62,7 +62,7 @@ func TestNatsJetStreamConsumer(t *testing.T) {
 		// PublicationDataMode remains disabled for this test.
 	}
 
-	consumer, err := NewNatsJetStreamConsumer("test", cfg, dispatcher, newCommonMetrics(prometheus.NewRegistry()))
+	consumer, err := NewNatsJetStreamConsumer(cfg, dispatcher, testCommon(prometheus.NewRegistry()))
 	if err != nil {
 		t.Fatalf("failed to create NATS JetStream consumer: %v", err)
 	}

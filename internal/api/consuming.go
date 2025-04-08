@@ -77,28 +77,38 @@ func (h *ConsumingHandler) Broadcast(ctx context.Context, req *apiproto.Broadcas
 	return nil
 }
 
+type ConsumedPublication struct {
+	Data []byte
+	// IdempotencyKey is used to prevent duplicate messages.
+	IdempotencyKey string
+	// Delta is used to indicate that the message is a delta update.
+	Delta bool
+	// Tags are used to attach metadata to the message.
+	Tags map[string]string
+}
+
 func (h *ConsumingHandler) DispatchPublication(
-	ctx context.Context, data []byte, idempotencyKey string, delta bool, tags map[string]string, channels ...string,
+	ctx context.Context, channels []string, pub ConsumedPublication,
 ) error {
 	if len(channels) == 0 {
 		return nil
 	}
 	if len(channels) == 1 {
 		req := &apiproto.PublishRequest{
-			Data:           data,
+			Data:           pub.Data,
 			Channel:        channels[0],
-			IdempotencyKey: idempotencyKey,
-			Delta:          delta,
-			Tags:           tags,
+			IdempotencyKey: pub.IdempotencyKey,
+			Delta:          pub.Delta,
+			Tags:           pub.Tags,
 		}
 		return h.Publish(ctx, req)
 	}
 	req := &apiproto.BroadcastRequest{
-		Data:           data,
+		Data:           pub.Data,
 		Channels:       channels,
-		IdempotencyKey: idempotencyKey,
-		Delta:          delta,
-		Tags:           tags,
+		IdempotencyKey: pub.IdempotencyKey,
+		Delta:          pub.Delta,
+		Tags:           pub.Tags,
 	}
 	return h.Broadcast(ctx, req)
 }

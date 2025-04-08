@@ -9,33 +9,29 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 type AzureServiceBusConsumerConfig = configtypes.AzureServiceBusConsumerConfig
 
 // AzureServiceBusConsumer consumes messages from Azure Service Bus.
 type AzureServiceBusConsumer struct {
-	name       string
 	config     AzureServiceBusConsumerConfig
 	dispatcher Dispatcher
 	client     *azservicebus.Client
-	log        zerolog.Logger
-	metrics    *commonMetrics
+	common     *consumerCommon
 }
 
 // NewAzureServiceBusConsumer creates and initializes a new AzureServiceBusConsumer.
 func NewAzureServiceBusConsumer(
-	name string,
 	cfg AzureServiceBusConsumerConfig,
 	dispatcher Dispatcher,
-	metrics *commonMetrics,
+	common *consumerCommon,
 ) (*AzureServiceBusConsumer, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
@@ -60,12 +56,10 @@ func NewAzureServiceBusConsumer(
 	}
 
 	return &AzureServiceBusConsumer{
-		name:       name,
 		config:     cfg,
 		dispatcher: dispatcher,
 		client:     client,
-		log:        log.With().Str("consumer", name).Logger(),
-		metrics:    metrics,
+		common:     common,
 	}, nil
 }
 
@@ -98,7 +92,7 @@ func (c *AzureServiceBusConsumer) runSessionMode(ctx context.Context) error {
 						if errors.Is(err, context.Canceled) {
 							return
 						}
-						c.log.Error().Err(err).Msgf("failed to accept session for queue %s", queueName)
+						c.common.log.Error().Err(err).Msgf("failed to accept session for queue %s", queueName)
 						select {
 						case <-ctx.Done():
 							return
@@ -143,7 +137,7 @@ func (c *AzureServiceBusConsumer) processSession(ctx context.Context, sr *azserv
 			remaining := time.Until(lockUntil)
 			renewalInterval := time.Duration(float64(remaining) * (2.0 / 3.0))
 			if renewalInterval <= 0 {
-				c.log.Error().Msgf("session lock already expired for queue %s", queueName)
+				c.common.log.Error().Msgf("session lock already expired for queue %s", queueName)
 				cancelSession()
 				return
 			}
@@ -152,12 +146,12 @@ func (c *AzureServiceBusConsumer) processSession(ctx context.Context, sr *azserv
 			case <-time.After(renewalInterval):
 				// Attempt to renew the session lock.
 				if err := sr.RenewSessionLock(renewCtx, nil); err != nil {
-					c.log.Error().Err(err).Msgf("failed to renew session lock for queue %s", queueName)
+					c.common.log.Error().Err(err).Msgf("failed to renew session lock for queue %s", queueName)
 					// On error, cancel the session to abort processing.
 					cancelSession()
 					return
 				} else {
-					c.log.Debug().Msgf("renewed session lock for queue %s", queueName)
+					c.common.log.Debug().Msgf("renewed session lock for queue %s", queueName)
 				}
 			case <-renewCtx.Done():
 				return
@@ -168,7 +162,7 @@ func (c *AzureServiceBusConsumer) processSession(ctx context.Context, sr *azserv
 	// Ensure the session is closed when processing ends.
 	defer func() {
 		if err := sr.Close(sessionCtx); err != nil {
-			c.log.Error().Err(err).Msgf("failed to close session for queue %s", queueName)
+			c.common.log.Error().Err(err).Msgf("failed to close session for queue %s", queueName)
 		}
 	}()
 
@@ -182,12 +176,12 @@ func (c *AzureServiceBusConsumer) processSession(ctx context.Context, sr *azserv
 			if errors.Is(err, context.Canceled) {
 				return
 			}
-			c.log.Error().Err(err).Msgf("error receiving messages for session on queue %s", queueName)
+			c.common.log.Error().Err(err).Msgf("error receiving messages for session on queue %s", queueName)
 			return
 		}
 
 		if logging.Enabled(logging.DebugLevel) {
-			c.log.Debug().Str("queue", queueName).Int("num_messages", len(messages)).
+			c.common.log.Debug().Str("queue", queueName).Int("num_messages", len(messages)).
 				Msg("received messages from queue")
 		}
 
@@ -217,7 +211,7 @@ func (c *AzureServiceBusConsumer) runNonSessionMode(ctx context.Context) error {
 				defer wg.Done()
 				defer func() {
 					if err := r.Close(ctx); err != nil {
-						c.log.Error().Err(err).Msgf("failed to close receiver for queue %s", queueName)
+						c.common.log.Error().Err(err).Msgf("failed to close receiver for queue %s", queueName)
 					}
 				}()
 				for {
@@ -229,7 +223,7 @@ func (c *AzureServiceBusConsumer) runNonSessionMode(ctx context.Context) error {
 						if errors.Is(err, context.Canceled) {
 							return
 						}
-						c.log.Error().Err(err).Msgf("error receiving messages from queue %s", queueName)
+						c.common.log.Error().Err(err).Msgf("error receiving messages from queue %s", queueName)
 						select {
 						case <-ctx.Done():
 							return
@@ -239,7 +233,7 @@ func (c *AzureServiceBusConsumer) runNonSessionMode(ctx context.Context) error {
 					}
 
 					if logging.Enabled(logging.DebugLevel) {
-						c.log.Debug().Str("queue", queueName).Int("num_messages", len(messages)).
+						c.common.log.Debug().Str("queue", queueName).Int("num_messages", len(messages)).
 							Msg("received messages from queue")
 					}
 
@@ -276,18 +270,18 @@ func (c *AzureServiceBusConsumer) processMessage(ctx context.Context, msg *azser
 		}
 		if err == nil {
 			if retries > 0 {
-				c.log.Info().Msg("message processed successfully after retries")
+				c.common.log.Info().Msg("message processed successfully after retries")
 			}
 			break
 		}
 		// Stop retrying if context is canceled or maximum attempts reached.
 		if ctx.Err() != nil || retries >= maxRetries {
-			c.log.Error().Err(err).Msg("max retries reached or context canceled; abandoning message")
+			c.common.log.Error().Err(err).Msg("max retries reached or context canceled; abandoning message")
 			break
 		}
 		retries++
 		backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-		c.log.Error().Err(err).Msgf("error processing message, retrying in %v", backoffDuration)
+		c.common.log.Error().Err(err).Msgf("error processing message, retrying in %v", backoffDuration)
 		select {
 		case <-time.After(backoffDuration):
 		case <-ctx.Done():
@@ -297,10 +291,10 @@ func (c *AzureServiceBusConsumer) processMessage(ctx context.Context, msg *azser
 
 	// Complete the message (or log an error on failure).
 	if err := completer.CompleteMessage(ctx, msg, nil); err != nil {
-		c.log.Error().Err(err).Msg("failed to complete message")
-		c.metrics.errorsTotal.WithLabelValues(c.name).Inc()
+		c.common.log.Error().Err(err).Msg("failed to complete message")
+		c.common.metrics.errorsTotal.WithLabelValues(c.common.name).Inc()
 	} else {
-		c.metrics.processedTotal.WithLabelValues(c.name).Inc()
+		c.common.metrics.processedTotal.WithLabelValues(c.common.name).Inc()
 	}
 }
 
@@ -313,18 +307,23 @@ func (c *AzureServiceBusConsumer) processPublicationDataMessage(ctx context.Cont
 		var err error
 		delta, err = strconv.ParseBool(deltaStr)
 		if err != nil {
-			c.log.Error().Err(err).Msg("error parsing delta property, skipping message")
+			c.common.log.Error().Err(err).Msg("error parsing delta property, skipping message")
 			return nil
 		}
 	}
 	channelsStr, _ := getProperty(msg, c.config.PublicationDataMode.ChannelsProperty)
 	channels := strings.Split(channelsStr, ",")
 	if len(channels) == 0 || (len(channels) == 1 && channels[0] == "") {
-		c.log.Info().Msg("no channels found, skipping message")
+		c.common.log.Info().Msg("no channels found, skipping message")
 		return nil
 	}
 	tags := getTagsFromProperties(msg, c.config.PublicationDataMode.TagsPropertyPrefix)
-	return c.dispatcher.DispatchPublication(ctx, data, idempotencyKey, delta, tags, channels...)
+	return c.dispatcher.DispatchPublication(ctx, channels, api.ConsumedPublication{
+		Data:           data,
+		IdempotencyKey: idempotencyKey,
+		Delta:          delta,
+		Tags:           tags,
+	})
 }
 
 // processCommandMessage handles messages in command mode.

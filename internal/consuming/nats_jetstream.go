@@ -6,12 +6,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
 
 	"github.com/nats-io/nats.go"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 type NatsJetStreamConsumerConfig = configtypes.NatsJetStreamConsumerConfig
@@ -25,16 +24,14 @@ type NatsJetStreamConsumer struct {
 	js         nats.JetStreamContext
 	subs       []*nats.Subscription
 	ctx        context.Context
-	log        zerolog.Logger
-	metrics    *commonMetrics
+	common     *consumerCommon
 }
 
 // NewNatsJetStreamConsumer creates a new NatsJetStreamConsumer.
 func NewNatsJetStreamConsumer(
-	name string,
 	cfg NatsJetStreamConsumerConfig,
 	dispatcher Dispatcher,
-	metrics *commonMetrics,
+	common *consumerCommon,
 ) (*NatsJetStreamConsumer, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
@@ -72,13 +69,11 @@ func NewNatsJetStreamConsumer(
 	}
 
 	consumer := &NatsJetStreamConsumer{
-		name:       name,
 		config:     cfg,
 		dispatcher: dispatcher,
 		nc:         nc,
 		js:         js,
-		log:        log.With().Str("consumer", name).Logger(),
-		metrics:    metrics,
+		common:     common,
 	}
 	return consumer, nil
 }
@@ -86,7 +81,7 @@ func NewNatsJetStreamConsumer(
 // msgHandler is the callback for incoming JetStream messages.
 func (c *NatsJetStreamConsumer) msgHandler(msg *nats.Msg) {
 	if logging.Enabled(logging.DebugLevel) {
-		c.log.Debug().Str("subject", msg.Subject).
+		c.common.log.Debug().Str("subject", msg.Subject).
 			Msg("received message from subject")
 	}
 
@@ -101,15 +96,15 @@ func (c *NatsJetStreamConsumer) msgHandler(msg *nats.Msg) {
 
 	if processErr == nil {
 		if err := msg.Ack(); err != nil {
-			c.log.Error().Err(err).Msg("failed to ack message")
-			c.metrics.errorsTotal.WithLabelValues(c.name).Inc()
+			c.common.log.Error().Err(err).Msg("failed to ack message")
+			c.common.metrics.errorsTotal.WithLabelValues(c.name).Inc()
 		} else {
-			c.metrics.processedTotal.WithLabelValues(c.name).Inc()
+			c.common.metrics.processedTotal.WithLabelValues(c.name).Inc()
 		}
 	} else {
-		c.log.Error().Err(processErr).Msg("processing message failed")
+		c.common.log.Error().Err(processErr).Msg("processing message failed")
 		if err := msg.Nak(); err != nil {
-			c.log.Error().Err(err).Msg("failed to nak message")
+			c.common.log.Error().Err(err).Msg("failed to nak message")
 		}
 	}
 }
@@ -122,17 +117,22 @@ func (c *NatsJetStreamConsumer) processPublicationDataMessage(msg *nats.Msg, dat
 		var err error
 		delta, err = strconv.ParseBool(deltaVal)
 		if err != nil {
-			c.log.Error().Err(err).Msg("error parsing delta header, skipping message")
+			c.common.log.Error().Err(err).Msg("error parsing delta header, skipping message")
 			return nil
 		}
 	}
 	channels := strings.Split(getNatsHeaderValue(msg, c.config.PublicationDataMode.ChannelsHeader), ",")
 	if len(channels) == 0 || (len(channels) == 1 && channels[0] == "") {
-		c.log.Info().Msg("no channels found, skipping message")
+		c.common.log.Info().Msg("no channels found, skipping message")
 		return nil
 	}
 	tags := publicationTagsFromNatsHeaders(msg, c.config.PublicationDataMode.TagsHeaderPrefix)
-	return c.dispatcher.DispatchPublication(c.ctx, data, idempotencyKey, delta, tags, channels...)
+	return c.dispatcher.DispatchPublication(c.ctx, channels, api.ConsumedPublication{
+		Data:           data,
+		IdempotencyKey: idempotencyKey,
+		Delta:          delta,
+		Tags:           tags,
+	})
 }
 
 // processCommandMessage processes a message in command mode.

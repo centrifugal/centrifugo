@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
 
@@ -21,8 +22,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	endpoints "github.com/aws/smithy-go/endpoints"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 type AwsSqsConsumerConfig = configtypes.AwsSqsConsumerConfig
@@ -30,12 +29,10 @@ type AwsSqsConsumerConfig = configtypes.AwsSqsConsumerConfig
 // AwsSqsConsumer consumes messages from AWS SQS (or SNS delivered to SQS).
 // It uses per-group ordering when enabled and supports both command and publication data modes.
 type AwsSqsConsumer struct {
-	name       string
 	config     AwsSqsConsumerConfig
 	dispatcher Dispatcher
 	client     *sqs.Client
-	metrics    *commonMetrics
-	log        zerolog.Logger
+	common     *consumerCommon
 }
 
 type overrideEndpointResolver struct {
@@ -48,7 +45,7 @@ func (o overrideEndpointResolver) ResolveEndpoint(_ context.Context, _ sqs.Endpo
 
 // NewAwsSqsConsumer creates and initializes a new AwsSqsConsumer.
 func NewAwsSqsConsumer(
-	name string, cfg AwsSqsConsumerConfig, dispatcher Dispatcher, metrics *commonMetrics,
+	cfg AwsSqsConsumerConfig, dispatcher Dispatcher, common *consumerCommon,
 ) (*AwsSqsConsumer, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
@@ -94,12 +91,10 @@ func NewAwsSqsConsumer(
 	client = sqs.NewFromConfig(awsCfg, sqsOpts...)
 
 	consumer := &AwsSqsConsumer{
-		name:       name,
 		config:     cfg,
 		dispatcher: dispatcher,
 		client:     client,
-		log:        log.With().Str("consumer", name).Logger(),
-		metrics:    metrics,
+		common:     common,
 	}
 	return consumer, nil
 }
@@ -144,7 +139,7 @@ func (c *AwsSqsConsumer) Run(ctx context.Context) error {
 					MessageSystemAttributeNames: []types.MessageSystemAttributeName{"All"},
 				})
 				if err != nil {
-					c.log.Error().Err(err).Msgf("failed to receive messages from queue %s", qURL)
+					c.common.log.Error().Err(err).Msgf("failed to receive messages from queue %s", qURL)
 					select {
 					case <-ctx.Done():
 						return
@@ -154,7 +149,7 @@ func (c *AwsSqsConsumer) Run(ctx context.Context) error {
 				}
 
 				if logging.Enabled(logging.DebugLevel) {
-					c.log.Debug().Str("queue", qURL).Int("num_messages", len(out.Messages)).
+					c.common.log.Debug().Str("queue", qURL).Int("num_messages", len(out.Messages)).
 						Msg("received messages from queue")
 				}
 
@@ -262,7 +257,7 @@ func (c *AwsSqsConsumer) processMessages(
 func (c *AwsSqsConsumer) processSingleMessage(ctx context.Context, msg types.Message) bool {
 	data, err := c.extractMessageData(&msg)
 	if err != nil {
-		c.log.Error().Err(err).Msg("failed to extract message data")
+		c.common.log.Error().Err(err).Msg("failed to extract message data")
 		// Even on extraction errors, delete the message to prevent reprocessing.
 		return true
 	}
@@ -280,7 +275,7 @@ func (c *AwsSqsConsumer) processSingleMessage(ctx context.Context, msg types.Mes
 		}
 		if processErr == nil {
 			if retries > 0 {
-				c.log.Info().Msg("message processed successfully after retries")
+				c.common.log.Info().Msg("message processed successfully after retries")
 			}
 			break
 		}
@@ -290,11 +285,12 @@ func (c *AwsSqsConsumer) processSingleMessage(ctx context.Context, msg types.Mes
 		retries++
 		if retries > maxRetries {
 			if logging.Enabled(logging.DebugLevel) {
-				c.log.Debug().Msg("max retries reached for processing message")
+				c.common.log.Debug().Msg("max retries reached for processing message")
 			}
 			return false
 		}
-		c.log.Error().Err(processErr).Msg("error processing message, retrying")
+		c.common.metrics.errorsTotal.WithLabelValues(c.common.name).Inc()
+		c.common.log.Error().Err(processErr).Msg("error processing message, retrying")
 		backoffDuration = getNextBackoffDuration(backoffDuration, retries)
 		select {
 		case <-time.After(backoffDuration):
@@ -302,6 +298,7 @@ func (c *AwsSqsConsumer) processSingleMessage(ctx context.Context, msg types.Mes
 			return false
 		}
 	}
+	c.common.metrics.processedTotal.WithLabelValues(c.common.name).Inc()
 	return true
 }
 
@@ -332,13 +329,13 @@ func (c *AwsSqsConsumer) batchDeleteMessages(ctx context.Context, messages []typ
 
 		output, err := c.client.DeleteMessageBatch(ctx, input)
 		if err != nil {
-			c.log.Error().Err(err).Msg("batch deletion failed")
+			c.common.log.Error().Err(err).Msg("batch deletion failed")
 			continue
 		}
 
 		if len(output.Failed) > 0 {
 			for _, failed := range output.Failed {
-				c.log.Error().Msgf("failed to delete message ID %s: %s", aws.ToString(failed.Id), aws.ToString(failed.Message))
+				c.common.log.Error().Msgf("failed to delete message ID %s: %s", aws.ToString(failed.Id), aws.ToString(failed.Message))
 			}
 		}
 	}
@@ -348,7 +345,7 @@ func (c *AwsSqsConsumer) batchDeleteMessages(ctx context.Context, messages []typ
 func (c *AwsSqsConsumer) processPublicationDataMessage(ctx context.Context, msg types.Message, data []byte) error {
 	channelsAttr := getMessageAttributeValue(msg, c.config.PublicationDataMode.ChannelsAttribute)
 	if channelsAttr == "" {
-		c.log.Info().Msg("no channels found, skipping message")
+		c.common.log.Info().Msg("no channels found, skipping message")
 		return nil
 	}
 	idempotencyKey := getMessageAttributeValue(msg, c.config.PublicationDataMode.IdempotencyKeyAttribute)
@@ -357,13 +354,18 @@ func (c *AwsSqsConsumer) processPublicationDataMessage(ctx context.Context, msg 
 		var err error
 		delta, err = strconv.ParseBool(deltaVal)
 		if err != nil {
-			c.log.Error().Err(err).Msg("error parsing delta attribute, skipping message")
+			c.common.log.Error().Err(err).Msg("error parsing delta attribute, skipping message")
 			return nil // Skip message on parsing error.
 		}
 	}
 	channels := strings.Split(channelsAttr, ",")
 	tags := publicationTagsFromMessageAttributes(msg, c.config.PublicationDataMode.TagsAttributePrefix)
-	return c.dispatcher.DispatchPublication(ctx, data, idempotencyKey, delta, tags, channels...)
+	return c.dispatcher.DispatchPublication(ctx, channels, api.ConsumedPublication{
+		Data:           data,
+		IdempotencyKey: idempotencyKey,
+		Delta:          delta,
+		Tags:           tags,
+	})
 }
 
 // processCommandMessage handles non-publication messages.

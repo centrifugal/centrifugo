@@ -9,12 +9,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
 
 	"cloud.google.com/go/pubsub"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/api/option"
 )
 
@@ -22,16 +21,16 @@ type GooglePubSubConsumerConfig = configtypes.GooglePubSubConsumerConfig
 
 // GooglePubSubConsumer represents a Google Pub/Sub consumer.
 type GooglePubSubConsumer struct {
-	name       string
 	config     GooglePubSubConsumerConfig
 	dispatcher Dispatcher
 	client     *pubsub.Client
-	metrics    *commonMetrics
-	log        zerolog.Logger
+	common     *consumerCommon
 }
 
 // NewGooglePubSubConsumer creates a new Google Pub/Sub consumer with the provided auth mechanism.
-func NewGooglePubSubConsumer(name string, config GooglePubSubConsumerConfig, dispatcher Dispatcher, metrics *commonMetrics) (*GooglePubSubConsumer, error) {
+func NewGooglePubSubConsumer(
+	config GooglePubSubConsumerConfig, dispatcher Dispatcher, common *consumerCommon,
+) (*GooglePubSubConsumer, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
@@ -57,12 +56,10 @@ func NewGooglePubSubConsumer(name string, config GooglePubSubConsumerConfig, dis
 	}
 
 	consumer := &GooglePubSubConsumer{
-		name:       name,
 		config:     config,
 		dispatcher: dispatcher,
 		client:     client,
-		log:        log.With().Str("consumer", name).Logger(),
-		metrics:    metrics,
+		common:     common,
 	}
 	return consumer, nil
 }
@@ -87,13 +84,13 @@ func (c *GooglePubSubConsumer) Run(ctx context.Context) error {
 
 			err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 				if logging.Enabled(logging.DebugLevel) {
-					c.log.Debug().Str("subscription", subID).
+					c.common.log.Debug().Str("subscription", subID).
 						Msg("received message from subscription")
 				}
 				c.dispatchMessage(ctx, msg)
 			})
 			if err != nil && !errors.Is(err, context.Canceled) {
-				c.log.Error().Err(err).Msgf("error receiving messages for subscription %s", subscriptionID)
+				c.common.log.Error().Err(err).Msgf("error receiving messages for subscription %s", subscriptionID)
 			}
 		}(subID)
 	}
@@ -115,11 +112,11 @@ func (c *GooglePubSubConsumer) processSingleMessage(ctx context.Context, msg *pu
 	}
 	if err == nil {
 		msg.Ack()
-		c.metrics.processedTotal.WithLabelValues(c.name).Inc()
+		c.common.metrics.processedTotal.WithLabelValues(c.common.name).Inc()
 		return
 	}
 	msg.Nack()
-	c.metrics.errorsTotal.WithLabelValues(c.name).Inc()
+	c.common.metrics.errorsTotal.WithLabelValues(c.common.name).Inc()
 }
 
 // processPublicationDataMessage handles messages in publication data mode.
@@ -131,18 +128,23 @@ func (c *GooglePubSubConsumer) processPublicationDataMessage(ctx context.Context
 		var err error
 		delta, err = strconv.ParseBool(deltaVal)
 		if err != nil {
-			c.log.Error().Err(err).Msg("error parsing delta attribute, skipping message")
+			c.common.log.Error().Err(err).Msg("error parsing delta attribute, skipping message")
 			return nil // Skip message on parsing error.
 		}
 	}
 	channelsAttr := getAttributeValue(msg, c.config.PublicationDataMode.ChannelsAttribute)
 	channels := strings.Split(channelsAttr, ",")
 	if len(channels) == 0 || (len(channels) == 1 && channels[0] == "") {
-		c.log.Info().Msg("no channels found, skipping message")
+		c.common.log.Info().Msg("no channels found, skipping message")
 		return nil
 	}
 	tags := publicationTagsFromAttributes(msg, c.config.PublicationDataMode.TagsAttributePrefix)
-	return c.dispatcher.DispatchPublication(ctx, data, idempotencyKey, delta, tags, channels...)
+	return c.dispatcher.DispatchPublication(ctx, channels, api.ConsumedPublication{
+		Data:           data,
+		IdempotencyKey: idempotencyKey,
+		Delta:          delta,
+		Tags:           tags,
+	})
 }
 
 // processCommandMessage handles non-publication messages.
