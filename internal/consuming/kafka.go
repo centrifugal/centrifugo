@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 
-	"github.com/rs/zerolog/log"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/kmsg"
 	"github.com/twmb/franz-go/pkg/sasl/aws"
@@ -42,12 +42,12 @@ type KafkaConsumer struct {
 	config         KafkaConfig
 	consumers      map[topicPartition]*partitionConsumer
 	doneCh         chan struct{}
-	metrics        *commonMetrics
+	common         *consumerCommon
 	testOnlyConfig testOnlyConfig
 }
 
 func NewKafkaConsumer(
-	name string, nodeID string, dispatcher Dispatcher, config KafkaConfig, metrics *commonMetrics,
+	config KafkaConfig, dispatcher Dispatcher, common *consumerCommon,
 ) (*KafkaConsumer, error) {
 	if len(config.Brokers) == 0 {
 		return nil, errors.New("brokers required")
@@ -65,13 +65,12 @@ func NewKafkaConsumer(
 		return nil, errors.New("partition buffer size can't be negative")
 	}
 	consumer := &KafkaConsumer{
-		name:       name,
-		nodeID:     nodeID,
+		nodeID:     common.nodeID,
 		dispatcher: dispatcher,
 		config:     config,
 		consumers:  make(map[topicPartition]*partitionConsumer),
 		doneCh:     make(chan struct{}),
-		metrics:    metrics,
+		common:     common,
 	}
 	cl, err := consumer.initClient()
 	if err != nil {
@@ -182,11 +181,11 @@ func (c *KafkaConsumer) Run(ctx context.Context) error {
 			// consumers to skip calling CommitMarkedOffsets on revoke. Otherwise, we get
 			// "UNKNOWN_MEMBER_ID" error (since group already left).
 			if err := c.client.CommitMarkedOffsets(closeCtx); err != nil {
-				log.Error().Err(err).Str("consumer", c.name).Msg("error committing marked offsets on shutdown")
+				c.common.log.Error().Err(err).Msg("error committing marked offsets on shutdown")
 			}
 			err := c.leaveGroup(closeCtx, c.client)
 			if err != nil {
-				log.Error().Err(err).Str("consumer", c.name).Msg("error leaving consumer group")
+				c.common.log.Error().Err(err).Msg("error leaving consumer group")
 			}
 			c.client.CloseAllowingRebalance()
 		}
@@ -197,18 +196,18 @@ func (c *KafkaConsumer) Run(ctx context.Context) error {
 			if errors.Is(err, context.Canceled) {
 				return ctx.Err()
 			}
-			log.Error().Err(err).Str("consumer", c.name).Msg("error polling Kafka")
+			c.common.log.Error().Err(err).Msg("error polling Kafka")
 		}
 		// Upon returning from polling loop we are re-initializing consumer client.
 		c.client.CloseAllowingRebalance()
 		c.client = nil
-		log.Info().Str("consumer", c.name).Msg("re-initializing Kafka consumer client")
+		c.common.log.Info().Msg("re-initializing Kafka consumer client")
 		err = c.reInitClient(ctx)
 		if err != nil {
 			// Only context.Canceled may be returned.
 			return err
 		}
-		log.Info().Str("consumer", c.name).Msg("Kafka consumer client re-initialized")
+		c.common.log.Info().Msg("Kafka consumer client re-initialized")
 	}
 }
 
@@ -233,7 +232,7 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 						return ctx.Err()
 					}
 					errs = append(errs, fetchErr.Err)
-					log.Error().Err(fetchErr.Err).Str("topic", fetchErr.Topic).Int32("partition", fetchErr.Partition).Msg("error while polling Kafka")
+					c.common.log.Error().Err(fetchErr.Err).Str("topic", fetchErr.Topic).Int32("partition", fetchErr.Partition).Msg("error while polling Kafka")
 				}
 				return fmt.Errorf("poll error: %w", errors.Join(errs...))
 			}
@@ -321,7 +320,7 @@ func (c *KafkaConsumer) reInitClient(ctx context.Context) error {
 		if err != nil {
 			retries++
 			backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-			log.Error().Err(err).Str("consumer", c.name).Msg("error initializing Kafka client")
+			c.common.log.Error().Err(err).Msg("error initializing Kafka client")
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -362,7 +361,7 @@ func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned m
 				partition:    partition,
 				config:       c.config,
 				name:         c.name,
-				metrics:      c.metrics,
+				common:       c.common,
 
 				quit: quitCh,
 				done: make(chan struct{}),
@@ -381,7 +380,7 @@ func (c *KafkaConsumer) revoked(ctx context.Context, cl *kgo.Client, revoked map
 		// Do not try to CommitMarkedOffsets since on shutdown we call it manually.
 	default:
 		if err := cl.CommitMarkedOffsets(ctx); err != nil {
-			log.Error().Err(err).Str("consumer", c.name).Msg("error committing marked offsets on revoke")
+			c.common.log.Error().Err(err).Msg("error committing marked offsets on revoke")
 		}
 	}
 }
@@ -415,7 +414,7 @@ type partitionConsumer struct {
 	partition    int32
 	config       KafkaConfig
 	name         string
-	metrics      *commonMetrics
+	common       *consumerCommon
 
 	quit chan struct{}
 	done chan struct{}
@@ -459,19 +458,24 @@ func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, r
 		var err error
 		delta, err = strconv.ParseBool(deltaValue)
 		if err != nil {
-			log.Error().Err(err).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error parsing delta header value, skip message")
+			pc.common.log.Error().Err(err).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error parsing delta header value, skip message")
 			return nil
 		}
 	}
 	channels := strings.Split(getHeaderValue(record, pc.config.PublicationDataMode.ChannelsHeader), ",")
 	if len(channels) == 0 {
-		log.Info().Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("no channels found, skip message")
+		pc.common.log.Info().Str("topic", record.Topic).Int32("partition", record.Partition).Msg("no channels found, skip message")
 		return nil
 	}
 	return pc.dispatcher.DispatchPublication(
-		ctx, data, idempotencyKey, delta,
-		publicationTagsFromKafkaRecord(record, pc.config.PublicationDataMode.TagsHeaderPrefix),
-		channels...,
+		ctx,
+		channels,
+		api.ConsumedPublication{
+			Data:           data,
+			IdempotencyKey: idempotencyKey,
+			Delta:          delta,
+			Tags:           publicationTagsFromKafkaRecord(record, pc.config.PublicationDataMode.TagsHeaderPrefix),
+		},
 	)
 }
 
@@ -497,9 +501,9 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 			err := pc.processRecord(pc.partitionCtx, record)
 			if err == nil {
 				if retries > 0 {
-					log.Info().Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("OK processing message after errors")
+					pc.common.log.Info().Str("topic", record.Topic).Int32("partition", record.Partition).Msg("OK processing message after errors")
 				}
-				pc.metrics.processedTotal.WithLabelValues(pc.name).Inc()
+				pc.common.metrics.processedTotal.WithLabelValues(pc.name).Inc()
 				pc.cl.MarkCommitRecords(record)
 				break
 			}
@@ -508,8 +512,8 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 			}
 			retries++
 			backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-			pc.metrics.errorsTotal.WithLabelValues(pc.name).Inc()
-			log.Error().Err(err).Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Str("next_attempt_in", backoffDuration.String()).Msg("error processing consumed record")
+			pc.common.metrics.errorsTotal.WithLabelValues(pc.name).Inc()
+			pc.common.log.Error().Err(err).Str("topic", record.Topic).Int32("partition", record.Partition).Str("next_attempt_in", backoffDuration.String()).Msg("error processing consumed record")
 			select {
 			case <-time.After(backoffDuration):
 			case <-pc.partitionCtx.Done():
