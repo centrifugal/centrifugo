@@ -168,7 +168,8 @@ func TestNatsPubSubTwoNodes(t *testing.T) {
 					return nil
 				},
 			}
-			_ = b1.Run(brokerEventHandler)
+			_ = b1.RegisterControlEventHandler(brokerEventHandler)
+			_ = b1.RegisterBrokerEventHandler(brokerEventHandler)
 
 			if tt.WildcardChannel {
 				require.NoError(t, b1.Subscribe("test.*"))
