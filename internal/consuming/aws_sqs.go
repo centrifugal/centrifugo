@@ -341,6 +341,24 @@ func (c *AwsSqsConsumer) batchDeleteMessages(ctx context.Context, messages []typ
 	}
 }
 
+func getBoolAttributeValue(msg types.Message, key string) (bool, error) {
+	if attr, ok := msg.MessageAttributes[key]; ok && attr.StringValue != nil {
+		return strconv.ParseBool(*attr.StringValue)
+	}
+	return false, nil
+}
+
+func getUint64AttributeValue(msg types.Message, key string) (uint64, error) {
+	if attr, ok := msg.MessageAttributes[key]; ok && attr.StringValue != nil {
+		value, err := strconv.ParseUint(*attr.StringValue, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("failed to parse %s attribute: %w", key, err)
+		}
+		return value, nil
+	}
+	return 0, nil
+}
+
 // processPublicationDataMessage handles messages in publication data mode.
 func (c *AwsSqsConsumer) processPublicationDataMessage(ctx context.Context, msg types.Message, data []byte) error {
 	channelsAttr := getMessageAttributeValue(msg, c.config.PublicationDataMode.ChannelsAttribute)
@@ -349,22 +367,25 @@ func (c *AwsSqsConsumer) processPublicationDataMessage(ctx context.Context, msg 
 		return nil
 	}
 	idempotencyKey := getMessageAttributeValue(msg, c.config.PublicationDataMode.IdempotencyKeyAttribute)
-	var delta bool
-	if deltaVal := getMessageAttributeValue(msg, c.config.PublicationDataMode.DeltaAttribute); deltaVal != "" {
-		var err error
-		delta, err = strconv.ParseBool(deltaVal)
-		if err != nil {
-			c.common.log.Error().Err(err).Msg("error parsing delta attribute, skipping message")
-			return nil // Skip message on parsing error.
-		}
+	delta, err := getBoolAttributeValue(msg, c.config.PublicationDataMode.DeltaAttribute)
+	if err != nil {
+		c.common.log.Error().Err(err).Msg("error parsing delta attribute, skipping message")
+		return nil // Skip message on parsing error.
 	}
 	channels := strings.Split(channelsAttr, ",")
 	tags := publicationTagsFromMessageAttributes(msg, c.config.PublicationDataMode.TagsAttributePrefix)
+	version, err := getUint64AttributeValue(msg, c.config.PublicationDataMode.VersionAttribute)
+	if err != nil {
+		c.common.log.Error().Err(err).Msg("error parsing version attribute, skipping message")
+		return nil // Skip message on parsing error.
+	}
 	return c.dispatcher.DispatchPublication(ctx, channels, api.ConsumedPublication{
 		Data:           data,
 		IdempotencyKey: idempotencyKey,
 		Delta:          delta,
 		Tags:           tags,
+		Version:        version,
+		VersionEpoch:   getMessageAttributeValue(msg, c.config.PublicationDataMode.VersionEpochAttribute),
 	})
 }
 

@@ -149,45 +149,74 @@ func (c *RedisStreamConsumer) Run(ctx context.Context) error {
 
 // processPublicationDataMessage processes a message in publication data mode.
 func (c *RedisStreamConsumer) processPublicationDataMessage(ctx context.Context, msg *redisqueue.Message, data []byte) error {
-	idempotencyKey, _ := getStringProperty(msg, c.config.PublicationDataMode.IdempotencyKeyValue)
-	deltaStr, _ := getStringProperty(msg, c.config.PublicationDataMode.DeltaValue)
-	delta := false
-	if deltaStr != "" {
-		var err error
-		delta, err = strconv.ParseBool(deltaStr)
-		if err != nil {
-			c.common.log.Error().Err(err).Msg("error parsing delta property, skipping message")
-			return nil
-		}
+	idempotencyKey := getStringProperty(msg, c.config.PublicationDataMode.IdempotencyKeyValue)
+	delta, err := getBoolProperty(msg, c.config.PublicationDataMode.DeltaValue)
+	if err != nil {
+		return fmt.Errorf("error parsing delta property %q: %w", c.config.PublicationDataMode.DeltaValue, err)
 	}
-	channelsStr, _ := getStringProperty(msg, c.config.PublicationDataMode.ChannelsValue)
+	channelsStr := getStringProperty(msg, c.config.PublicationDataMode.ChannelsValue)
 	channels := strings.Split(channelsStr, ",")
 	if len(channels) == 0 || (len(channels) == 1 && channels[0] == "") {
 		c.common.log.Info().Msg("no channels found, skipping message")
 		return nil
 	}
 	tags := getTagsFromRedisValues(msg, c.config.PublicationDataMode.TagsValuePrefix)
+	version, err := getUint64Property(msg, c.config.PublicationDataMode.VersionValue)
+	if err != nil {
+		return fmt.Errorf("error parsing version property %q: %w", c.config.PublicationDataMode.VersionValue, err)
+	}
 	return c.dispatcher.DispatchPublication(ctx, channels, api.ConsumedPublication{
 		Data:           data,
 		IdempotencyKey: idempotencyKey,
 		Delta:          delta,
 		Tags:           tags,
+		Version:        version,
+		VersionEpoch:   getStringProperty(msg, c.config.PublicationDataMode.VersionEpochValue),
 	})
 }
 
 // processCommandMessage processes a message in command mode.
 func (c *RedisStreamConsumer) processCommandMessage(ctx context.Context, msg *redisqueue.Message, data []byte) error {
-	method, _ := getStringProperty(msg, c.config.MethodValue)
+	method := getStringProperty(msg, c.config.MethodValue)
 	return c.dispatcher.DispatchCommand(ctx, method, data)
 }
 
 // getStringProperty extracts a string property from the message values.
-func getStringProperty(msg *redisqueue.Message, key string) (string, bool) {
+func getStringProperty(msg *redisqueue.Message, key string) string {
 	if key == "" {
-		return "", false
+		return ""
+	}
+	return msg.Values[key]
+}
+
+func getUint64Property(msg *redisqueue.Message, key string) (uint64, error) {
+	if key == "" {
+		return 0, nil
 	}
 	val, ok := msg.Values[key]
-	return val, ok
+	if !ok {
+		return 0, nil
+	}
+	i, err := strconv.ParseUint(val, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing uint64 property %q: %w", key, err)
+	}
+	return i, nil
+}
+
+func getBoolProperty(msg *redisqueue.Message, key string) (bool, error) {
+	if key == "" {
+		return false, nil
+	}
+	val, ok := msg.Values[key]
+	if !ok {
+		return false, nil
+	}
+	b, err := strconv.ParseBool(val)
+	if err != nil {
+		return false, fmt.Errorf("error parsing bool property %q: %w", key, err)
+	}
+	return b, nil
 }
 
 // getTagsFromRedisValues extracts tag values from message values with the specified prefix.

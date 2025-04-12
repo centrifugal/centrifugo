@@ -2176,18 +2176,6 @@
         }
       }
     },
-    "Disconnect": {
-      "type": "object",
-      "properties": {
-        "code": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "reason": {
-          "type": "string"
-        }
-      }
-    },
     "DisconnectRequest": {
       "type": "object",
       "properties": {
@@ -2195,7 +2183,7 @@
           "type": "string"
         },
         "disconnect": {
-          "$ref": "#/definitions/Disconnect"
+          "$ref": "#/definitions/api.Disconnect"
         },
         "client": {
           "type": "string"
@@ -3332,6 +3320,18 @@
     },
     "UserTopicUpdateResult": {
       "type": "object"
+    },
+    "api.Disconnect": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
     }
   },
   "securityDefinitions": {

@@ -85,6 +85,10 @@ type ConsumedPublication struct {
 	Delta bool
 	// Tags are used to attach metadata to the message.
 	Tags map[string]string
+	// Version of publication.
+	Version uint64
+	// VersionEpoch of publication.
+	VersionEpoch string
 }
 
 func (h *ConsumingHandler) DispatchPublication(
@@ -100,6 +104,8 @@ func (h *ConsumingHandler) DispatchPublication(
 			IdempotencyKey: pub.IdempotencyKey,
 			Delta:          pub.Delta,
 			Tags:           pub.Tags,
+			Version:        pub.Version,
+			VersionEpoch:   pub.VersionEpoch,
 		}
 		return h.Publish(ctx, req)
 	}
@@ -109,6 +115,8 @@ func (h *ConsumingHandler) DispatchPublication(
 		IdempotencyKey: pub.IdempotencyKey,
 		Delta:          pub.Delta,
 		Tags:           pub.Tags,
+		Version:        pub.Version,
+		VersionEpoch:   pub.VersionEpoch,
 	}
 	return h.Broadcast(ctx, req)
 }

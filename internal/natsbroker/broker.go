@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
@@ -33,15 +34,18 @@ type NatsBroker struct {
 	node   *centrifuge.Node
 	config Config
 
+	initConnOnce        sync.Once
 	nc                  *nats.Conn
 	subsMu              sync.RWMutex
 	subs                map[channelID]subWrapper
 	eventHandler        centrifuge.BrokerEventHandler
+	controlEventHandler centrifuge.ControlEventHandler
 	clientChannelPrefix string
 	rawModeReplacer     *strings.Replacer
 }
 
 var _ centrifuge.Broker = (*NatsBroker)(nil)
+var _ centrifuge.Controller = (*NatsBroker)(nil)
 
 // New creates NatsBroker.
 func New(n *centrifuge.Node, conf Config) (*NatsBroker, error) {
@@ -82,40 +86,61 @@ func (b *NatsBroker) clientChannel(ch string) channelID {
 	return channelID(b.clientChannelPrefix + ch)
 }
 
-// Run runs engine after node initialized.
-func (b *NatsBroker) Run(h centrifuge.BrokerEventHandler) error {
-	b.eventHandler = h
-	url := b.config.URL
-	if url == "" {
-		url = nats.DefaultURL
-	}
-	options := []nats.Option{
-		nats.ReconnectBufSize(-1),
-		nats.MaxReconnects(-1),
-		nats.Timeout(b.config.DialTimeout.ToDuration()),
-		nats.FlusherTimeout(b.config.WriteTimeout.ToDuration()),
-	}
-	if b.config.TLS.Enabled {
-		tlsConfig, err := b.config.TLS.ToGoTLSConfig("nats")
-		if err != nil {
-			return fmt.Errorf("error creating TLS config: %w", err)
+func (b *NatsBroker) initConnection() error {
+	var initErr error
+	b.initConnOnce.Do(func() {
+		url := b.config.URL
+		if url == "" {
+			url = nats.DefaultURL
 		}
-		options = append(options, nats.Secure(tlsConfig))
-	}
-	nc, err := nats.Connect(url, options...)
+		options := []nats.Option{
+			nats.ReconnectBufSize(-1),
+			nats.MaxReconnects(-1),
+			nats.Timeout(b.config.DialTimeout.ToDuration()),
+			nats.FlusherTimeout(b.config.WriteTimeout.ToDuration()),
+		}
+		if b.config.TLS.Enabled {
+			tlsConfig, err := b.config.TLS.ToGoTLSConfig("nats")
+			if err != nil {
+				initErr = fmt.Errorf("error creating TLS config: %w", err)
+				return
+			}
+			options = append(options, nats.Secure(tlsConfig))
+		}
+		nc, err := nats.Connect(url, options...)
+		if err != nil {
+			initErr = fmt.Errorf("error connecting to %s: %w", url, err)
+			return
+		}
+		b.nc = nc
+	})
+	return initErr
+}
+
+func (b *NatsBroker) RegisterControlEventHandler(h centrifuge.ControlEventHandler) error {
+	b.controlEventHandler = h
+	err := b.initConnection()
 	if err != nil {
-		return fmt.Errorf("error connecting to %s: %w", url, err)
+		return fmt.Errorf("error initializing nats connection: %w", err)
 	}
-	_, err = nc.Subscribe(string(b.controlChannel()), b.handleControl)
+	_, err = b.nc.Subscribe(string(b.controlChannel()), b.handleControl)
 	if err != nil {
 		return err
 	}
-	_, err = nc.Subscribe(string(b.nodeChannel(b.node.ID())), b.handleControl)
+	_, err = b.nc.Subscribe(string(b.nodeChannel(b.node.ID())), b.handleControl)
 	if err != nil {
 		return err
 	}
-	b.nc = nc
-	log.Info().Str("broker", "nats").Str("url", url).Msg("broker running")
+	return nil
+}
+
+func (b *NatsBroker) RegisterBrokerEventHandler(h centrifuge.BrokerEventHandler) error {
+	b.eventHandler = h
+	err := b.initConnection()
+	if err != nil {
+		return fmt.Errorf("error initializing nats connection: %w", err)
+	}
+	log.Info().Str("broker", "nats").Str("url", tools.StripPassword(b.config.URL)).Msg("broker running")
 	return nil
 }
 
@@ -311,7 +336,7 @@ func (b *NatsBroker) handleClient(m *nats.Msg) {
 }
 
 func (b *NatsBroker) handleControl(m *nats.Msg) {
-	_ = b.eventHandler.HandleControl(m.Data)
+	_ = b.controlEventHandler.HandleControl(m.Data)
 }
 
 // Subscribe - see Broker interface description.

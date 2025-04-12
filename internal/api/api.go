@@ -217,6 +217,7 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 		centrifuge.WithTags(cmd.GetTags()),
 		centrifuge.WithIdempotencyKey(cmd.GetIdempotencyKey()),
 		centrifuge.WithDelta(delta),
+		centrifuge.WithVersion(cmd.Version, cmd.VersionEpoch),
 	)
 	if err != nil {
 		log.Error().Err(err).Str("channel", cmd.Channel).Msg("error publishing data to channel")
@@ -322,6 +323,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 				centrifuge.WithTags(cmd.GetTags()),
 				centrifuge.WithIdempotencyKey(cmd.GetIdempotencyKey()),
 				centrifuge.WithDelta(delta),
+				centrifuge.WithVersion(cmd.Version, cmd.VersionEpoch),
 			)
 			resp := &PublishResponse{}
 			if err == nil {
