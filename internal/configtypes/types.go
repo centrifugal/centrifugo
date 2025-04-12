@@ -838,6 +838,8 @@ type NatsJetStreamConsumerConfig struct {
 	DurableConsumerName string `mapstructure:"durable_consumer_name" json:"durable_consumer_name" toml:"durable_consumer_name" yaml:"durable_consumer_name"`
 	// Ordered enables JetStream's ordered consumer mode.
 	// In this mode, only one consumer instance receives messages at a time, preserving exact order.
+	// Ordered consumers are push consumers in Nats and they can't be durable, so DurableConsumerName must not be
+	// used with ordered consumers.
 	Ordered bool `mapstructure:"ordered" json:"ordered" toml:"ordered" yaml:"ordered"`
 	// MethodHeader is the NATS message header used to extract the method name for dispatching commands.
 	MethodHeader string `mapstructure:"method_header" json:"method_header" toml:"method_header" yaml:"method_header"`
