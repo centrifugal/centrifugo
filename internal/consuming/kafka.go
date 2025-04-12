@@ -44,7 +44,6 @@ type KafkaConsumer struct {
 	doneCh         chan struct{}
 	common         *consumerCommon
 	testOnlyConfig testOnlyConfig
-	log            zerolog.Logger
 }
 
 func NewKafkaConsumer(
