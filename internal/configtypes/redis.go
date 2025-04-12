@@ -42,4 +42,12 @@ type Redis struct {
 	SentinelClientName string `mapstructure:"sentinel_client_name" json:"sentinel_client_name" envconfig:"sentinel_client_name" yaml:"sentinel_client_name" toml:"sentinel_client_name"`
 	// SentinelTLS is a configuration for Redis Sentinel TLS support.
 	SentinelTLS TLSConfig `mapstructure:"sentinel_tls" json:"sentinel_tls" envconfig:"sentinel_tls" yaml:"sentinel_tls" toml:"sentinel_tls"`
+	// ReplicaClient is a configuration fot Redis replica client.
+	ReplicaClient RedisReplicaClient `mapstructure:"replica_client" json:"replica_client" envconfig:"replica_client" yaml:"replica_client" toml:"replica_client"`
+}
+
+// RedisReplicaClient allows configuring Redis replica options.
+type RedisReplicaClient struct {
+	// Enabled enables replica client.
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 }

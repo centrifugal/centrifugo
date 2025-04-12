@@ -3,7 +3,6 @@ package consuming
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -12,10 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v6/internal/apiproto"
+	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 
-	"github.com/rs/zerolog/log"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/kmsg"
 	"github.com/twmb/franz-go/pkg/sasl/aws"
@@ -44,45 +42,12 @@ type KafkaConsumer struct {
 	config         KafkaConfig
 	consumers      map[topicPartition]*partitionConsumer
 	doneCh         chan struct{}
-	metrics        *commonMetrics
+	common         *consumerCommon
 	testOnlyConfig testOnlyConfig
 }
 
-// JSONRawOrString can decode payload from bytes and from JSON string. This gives
-// us better interoperability. For example, JSONB field is encoded as JSON string in
-// Debezium PostgreSQL connector.
-type JSONRawOrString json.RawMessage
-
-func (j *JSONRawOrString) UnmarshalJSON(data []byte) error {
-	if len(data) > 0 && data[0] == '"' {
-		// Unmarshal as a string, then convert the string to json.RawMessage.
-		var str string
-		if err := json.Unmarshal(data, &str); err != nil {
-			return err
-		}
-		*j = JSONRawOrString(str)
-	} else {
-		// Unmarshal directly as json.RawMessage
-		*j = data
-	}
-	return nil
-}
-
-// MarshalJSON returns m as the JSON encoding of m.
-func (j JSONRawOrString) MarshalJSON() ([]byte, error) {
-	if j == nil {
-		return []byte("null"), nil
-	}
-	return j, nil
-}
-
-type KafkaJSONEvent struct {
-	Method  string          `json:"method"`
-	Payload JSONRawOrString `json:"payload"`
-}
-
 func NewKafkaConsumer(
-	name string, nodeID string, dispatcher Dispatcher, config KafkaConfig, metrics *commonMetrics,
+	config KafkaConfig, dispatcher Dispatcher, common *consumerCommon,
 ) (*KafkaConsumer, error) {
 	if len(config.Brokers) == 0 {
 		return nil, errors.New("brokers required")
@@ -100,13 +65,12 @@ func NewKafkaConsumer(
 		return nil, errors.New("partition buffer size can't be negative")
 	}
 	consumer := &KafkaConsumer{
-		name:       name,
-		nodeID:     nodeID,
+		nodeID:     common.nodeID,
 		dispatcher: dispatcher,
 		config:     config,
 		consumers:  make(map[topicPartition]*partitionConsumer),
 		doneCh:     make(chan struct{}),
-		metrics:    metrics,
+		common:     common,
 	}
 	cl, err := consumer.initClient()
 	if err != nil {
@@ -217,11 +181,11 @@ func (c *KafkaConsumer) Run(ctx context.Context) error {
 			// consumers to skip calling CommitMarkedOffsets on revoke. Otherwise, we get
 			// "UNKNOWN_MEMBER_ID" error (since group already left).
 			if err := c.client.CommitMarkedOffsets(closeCtx); err != nil {
-				log.Error().Err(err).Str("consumer", c.name).Msg("error committing marked offsets on shutdown")
+				c.common.log.Error().Err(err).Msg("error committing marked offsets on shutdown")
 			}
 			err := c.leaveGroup(closeCtx, c.client)
 			if err != nil {
-				log.Error().Err(err).Str("consumer", c.name).Msg("error leaving consumer group")
+				c.common.log.Error().Err(err).Msg("error leaving consumer group")
 			}
 			c.client.CloseAllowingRebalance()
 		}
@@ -232,18 +196,18 @@ func (c *KafkaConsumer) Run(ctx context.Context) error {
 			if errors.Is(err, context.Canceled) {
 				return ctx.Err()
 			}
-			log.Error().Err(err).Str("consumer", c.name).Msg("error polling Kafka")
+			c.common.log.Error().Err(err).Msg("error polling Kafka")
 		}
 		// Upon returning from polling loop we are re-initializing consumer client.
 		c.client.CloseAllowingRebalance()
 		c.client = nil
-		log.Info().Str("consumer", c.name).Msg("re-initializing Kafka consumer client")
+		c.common.log.Info().Msg("re-initializing Kafka consumer client")
 		err = c.reInitClient(ctx)
 		if err != nil {
 			// Only context.Canceled may be returned.
 			return err
 		}
-		log.Info().Str("consumer", c.name).Msg("Kafka consumer client re-initialized")
+		c.common.log.Info().Msg("Kafka consumer client re-initialized")
 	}
 }
 
@@ -261,14 +225,14 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 			}
 			fetchErrors := fetches.Errors()
 			if len(fetchErrors) > 0 {
-				// Non-retriable errors returned. We will restart consumer client, but log errors first.
+				// Non-retryable errors returned. We will restart consumer client, but log errors first.
 				var errs []error
 				for _, fetchErr := range fetchErrors {
 					if errors.Is(fetchErr.Err, context.Canceled) {
 						return ctx.Err()
 					}
 					errs = append(errs, fetchErr.Err)
-					log.Error().Err(fetchErr.Err).Str("topic", fetchErr.Topic).Int32("partition", fetchErr.Partition).Msg("error while polling Kafka")
+					c.common.log.Error().Err(fetchErr.Err).Str("topic", fetchErr.Topic).Int32("partition", fetchErr.Partition).Msg("error while polling Kafka")
 				}
 				return fmt.Errorf("poll error: %w", errors.Join(errs...))
 			}
@@ -356,7 +320,7 @@ func (c *KafkaConsumer) reInitClient(ctx context.Context) error {
 		if err != nil {
 			retries++
 			backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-			log.Error().Err(err).Str("consumer", c.name).Msg("error initializing Kafka client")
+			c.common.log.Error().Err(err).Msg("error initializing Kafka client")
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
@@ -397,7 +361,7 @@ func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned m
 				partition:    partition,
 				config:       c.config,
 				name:         c.name,
-				metrics:      c.metrics,
+				common:       c.common,
 
 				quit: quitCh,
 				done: make(chan struct{}),
@@ -416,7 +380,7 @@ func (c *KafkaConsumer) revoked(ctx context.Context, cl *kgo.Client, revoked map
 		// Do not try to CommitMarkedOffsets since on shutdown we call it manually.
 	default:
 		if err := cl.CommitMarkedOffsets(ctx); err != nil {
-			log.Error().Err(err).Str("consumer", c.name).Msg("error committing marked offsets on revoke")
+			c.common.log.Error().Err(err).Msg("error committing marked offsets on revoke")
 		}
 	}
 }
@@ -450,11 +414,41 @@ type partitionConsumer struct {
 	partition    int32
 	config       KafkaConfig
 	name         string
-	metrics      *commonMetrics
+	common       *consumerCommon
 
 	quit chan struct{}
 	done chan struct{}
 	recs chan kgo.FetchTopicPartition
+}
+
+func getUint64HeaderValue(record *kgo.Record, headerKey string) (uint64, error) {
+	if headerKey == "" {
+		return 0, nil
+	}
+	headerValue := getHeaderValue(record, headerKey)
+	if headerValue == "" {
+		return 0, nil
+	}
+	value, err := strconv.ParseUint(headerValue, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing header %s value %s: %w", headerKey, headerValue, err)
+	}
+	return value, nil
+}
+
+func getBoolHeaderValue(record *kgo.Record, headerKey string) (bool, error) {
+	if headerKey == "" {
+		return false, nil
+	}
+	headerValue := getHeaderValue(record, headerKey)
+	if headerValue == "" {
+		return false, nil
+	}
+	value, err := strconv.ParseBool(headerValue)
+	if err != nil {
+		return false, fmt.Errorf("error parsing header %s value %s: %w", headerKey, headerValue, err)
+	}
+	return value, nil
 }
 
 func getHeaderValue(record *kgo.Record, headerKey string) string {
@@ -469,65 +463,60 @@ func getHeaderValue(record *kgo.Record, headerKey string) string {
 	return ""
 }
 
+func publicationTagsFromKafkaRecord(record *kgo.Record, tagsHeaderPrefix string) map[string]string {
+	if tagsHeaderPrefix == "" {
+		return nil
+	}
+	var tags map[string]string
+	for _, header := range record.Headers {
+		if strings.HasPrefix(header.Key, tagsHeaderPrefix) {
+			if tags == nil {
+				tags = make(map[string]string)
+			}
+			tags[header.Key[len(tagsHeaderPrefix):]] = string(header.Value)
+		}
+	}
+	return tags
+}
+
 func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, record *kgo.Record) error {
 	data := record.Value
 	idempotencyKey := getHeaderValue(record, pc.config.PublicationDataMode.IdempotencyKeyHeader)
-	var delta bool
-	if pc.config.PublicationDataMode.DeltaHeader != "" {
-		var err error
-		delta, err = strconv.ParseBool(getHeaderValue(record, pc.config.PublicationDataMode.DeltaHeader))
-		if err != nil {
-			log.Error().Err(err).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error parsing delta header value, skip message")
-			return nil
-		}
+	delta, err := getBoolHeaderValue(record, pc.config.PublicationDataMode.DeltaHeader)
+	if err != nil {
+		pc.common.log.Error().Err(err).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error parsing delta header value, skip message")
+		return nil
 	}
 	channels := strings.Split(getHeaderValue(record, pc.config.PublicationDataMode.ChannelsHeader), ",")
 	if len(channels) == 0 {
-		log.Info().Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("no channels found, skip message")
+		pc.common.log.Info().Str("topic", record.Topic).Int32("partition", record.Partition).Msg("no channels found, skip message")
 		return nil
 	}
-	return publishData(ctx, pc.dispatcher, data, idempotencyKey, delta, channels...)
-}
-
-func publishData(
-	ctx context.Context, dispatcher Dispatcher, data []byte, idempotencyKey string, delta bool, channels ...string,
-) error {
-	if len(channels) == 0 {
+	version, err := getUint64HeaderValue(record, pc.config.PublicationDataMode.VersionHeader)
+	if err != nil {
+		pc.common.log.Error().Err(err).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error parsing version header value, skip message")
 		return nil
 	}
-	if len(channels) == 1 {
-		req := &apiproto.PublishRequest{
+	return pc.dispatcher.DispatchPublication(
+		ctx,
+		channels,
+		api.ConsumedPublication{
 			Data:           data,
-			Channel:        channels[0],
 			IdempotencyKey: idempotencyKey,
 			Delta:          delta,
-		}
-		return dispatcher.Publish(ctx, req)
-	}
-	req := &apiproto.BroadcastRequest{
-		Data:           data,
-		Channels:       channels,
-		IdempotencyKey: idempotencyKey,
-		Delta:          delta,
-	}
-	return dispatcher.Broadcast(ctx, req)
-}
-
-func (pc *partitionConsumer) processAPICommandRecord(ctx context.Context, record *kgo.Record) error {
-	var e KafkaJSONEvent
-	err := json.Unmarshal(record.Value, &e)
-	if err != nil {
-		log.Error().Err(err).Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error unmarshalling event from Kafka, skip message")
-		return nil
-	}
-	return pc.dispatcher.Dispatch(ctx, e.Method, e.Payload)
+			Tags:           publicationTagsFromKafkaRecord(record, pc.config.PublicationDataMode.TagsHeaderPrefix),
+			Version:        version,
+			VersionEpoch:   getHeaderValue(record, pc.config.PublicationDataMode.VersionEpochHeader),
+		},
+	)
 }
 
 func (pc *partitionConsumer) processRecord(ctx context.Context, record *kgo.Record) error {
 	if pc.config.PublicationDataMode.Enabled {
 		return pc.processPublicationDataRecord(ctx, record)
 	}
-	return pc.processAPICommandRecord(ctx, record)
+	method := getHeaderValue(record, pc.config.MethodHeader)
+	return pc.dispatcher.DispatchCommand(ctx, method, record.Value)
 }
 
 func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
@@ -544,16 +533,19 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 			err := pc.processRecord(pc.partitionCtx, record)
 			if err == nil {
 				if retries > 0 {
-					log.Info().Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("OK processing message after errors")
+					pc.common.log.Info().Str("topic", record.Topic).Int32("partition", record.Partition).Msg("OK processing message after errors")
 				}
-				pc.metrics.processedTotal.WithLabelValues(pc.name).Inc()
+				pc.common.metrics.processedTotal.WithLabelValues(pc.name).Inc()
 				pc.cl.MarkCommitRecords(record)
 				break
 			}
+			if errors.Is(err, context.Canceled) {
+				return
+			}
 			retries++
 			backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-			pc.metrics.errorsTotal.WithLabelValues(pc.name).Inc()
-			log.Error().Err(err).Str("consumer_name", pc.name).Str("topic", record.Topic).Int32("partition", record.Partition).Str("next_attempt_in", backoffDuration.String()).Msg("error processing consumed record")
+			pc.common.metrics.errorsTotal.WithLabelValues(pc.name).Inc()
+			pc.common.log.Error().Err(err).Str("topic", record.Topic).Int32("partition", record.Partition).Str("next_attempt_in", backoffDuration.String()).Msg("error processing consumed record")
 			select {
 			case <-time.After(backoffDuration):
 			case <-pc.partitionCtx.Done():

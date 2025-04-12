@@ -4,6 +4,7 @@ services:
   nats:
     image: nats:2.9-alpine
     container_name: nats_server
+    command: ["-js"]
     ports:
       - "4222:4222"
       - "8222:8222"
@@ -24,6 +25,22 @@ services:
       timeout: 5s
       retries: 10
     command: ["postgres", "-c", "wal_level=logical", "-c", "wal_writer_delay=10ms"]
+
+  google-pubsub-emulator:
+    image: google/cloud-sdk:latest
+    command: gcloud beta emulators pubsub start --host-port=0.0.0.0:8085
+    ports:
+      - "8085:8085"
+
+  aws-localstack:
+    image: localstack/localstack
+    container_name: localstack
+    ports:
+      - "4566:4566"   # Edge port for all services.
+    environment:
+      - SERVICES=sqs,sns
+      - DEFAULT_REGION=us-east-1
+      - DATA_DIR=/tmp/localstack/data
 
   redpanda:
     image: redpandadata/redpanda:latest
@@ -73,3 +90,8 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+  redis:
+    image: redis:${REDIS_VERSION:-7}-alpine
+    ports:
+      - "6379:6379"

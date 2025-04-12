@@ -1627,8 +1627,7 @@
           "type": "string"
         },
         "user": {
-          "type": "string",
-          "description": "5-7 dropped for backwards compatibility."
+          "type": "string"
         },
         "state": {
           "$ref": "#/definitions/ConnectionState"
@@ -2177,18 +2176,6 @@
         }
       }
     },
-    "Disconnect": {
-      "type": "object",
-      "properties": {
-        "code": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "reason": {
-          "type": "string"
-        }
-      }
-    },
     "DisconnectRequest": {
       "type": "object",
       "properties": {
@@ -2196,7 +2183,7 @@
           "type": "string"
         },
         "disconnect": {
-          "$ref": "#/definitions/Disconnect"
+          "$ref": "#/definitions/api.Disconnect"
         },
         "client": {
           "type": "string"
@@ -2802,15 +2789,8 @@
     "Reply": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "integer",
-          "format": "int64"
-        },
         "error": {
           "$ref": "#/definitions/Error"
-        },
-        "result": {
-          "type": "object"
         },
         "publish": {
           "$ref": "#/definitions/PublishResult"
@@ -3340,6 +3320,18 @@
     },
     "UserTopicUpdateResult": {
       "type": "object"
+    },
+    "api.Disconnect": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
     }
   },
   "securityDefinitions": {

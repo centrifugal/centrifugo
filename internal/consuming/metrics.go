@@ -32,3 +32,8 @@ func newCommonMetrics(registry prometheus.Registerer) *commonMetrics {
 	)
 	return m
 }
+
+func (m *commonMetrics) init(consumerName string) {
+	m.processedTotal.WithLabelValues(consumerName).Add(0)
+	m.errorsTotal.WithLabelValues(consumerName).Add(0)
+}

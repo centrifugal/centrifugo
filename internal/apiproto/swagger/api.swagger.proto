@@ -412,6 +412,8 @@ service CentrifugoApi {
 }
 
 message Command {
+  reserved 1,2,3;
+
   PublishRequest publish = 4;
   BroadcastRequest broadcast = 5;
   SubscribeRequest subscribe = 6;
@@ -452,9 +454,9 @@ message Error {
 }
 
 message Reply {
-  uint32 id = 1;
+  reserved 1, 3;
+
   Error error = 2;
-  bytes result = 3;
 
   PublishResult publish = 4;
   BroadcastResult broadcast = 5;
@@ -488,22 +490,6 @@ message Reply {
   SendPushNotificationResult send_push_notification = 33;
   UpdatePushStatusResult update_push_status = 34;
   CancelPushResult cancel_push = 35;
-}
-
-message BoolValue {
-  bool value = 1;
-}
-
-message Int32Value {
-  int32 value = 1;
-}
-
-message SubscribeOptionOverride {
-  BoolValue presence = 1;
-  BoolValue join_leave = 2;
-  BoolValue force_recovery = 3;
-  BoolValue force_positioning = 4;
-  BoolValue force_push_join_leave = 5;
 }
 
 message BatchRequest {
@@ -573,6 +559,22 @@ message SubscribeResponse {
   SubscribeResult result = 2;
 }
 
+message BoolValue {
+  bool value = 1;
+}
+
+message Int32Value {
+  int32 value = 1;
+}
+
+message SubscribeOptionOverride {
+  BoolValue presence = 1;
+  BoolValue join_leave = 2;
+  BoolValue force_recovery = 3;
+  BoolValue force_positioning = 4;
+  BoolValue force_push_join_leave = 5;
+}
+
 message SubscribeResult {}
 
 message UnsubscribeRequest {
@@ -591,6 +593,7 @@ message UnsubscribeResult {}
 
 message Disconnect {
   reserved 3;
+
   uint32 code = 1;
   string reason = 2;
 }
@@ -782,11 +785,12 @@ message ConnectionsResult {
 }
 
 message ConnectionInfo {
+  reserved 5, 7;
+
   string app_name = 1;
   string app_version = 2;
   string transport = 3;
   string protocol = 4;
-  // 5-7 dropped for backwards compatibility.
   string user = 8;
   ConnectionState state = 9;
 }
@@ -1189,6 +1193,11 @@ message PushRateLimitStrategy {
   bool drop_if_rate_limited = 3;
 }
 
+message RateLimitPolicy {
+  int64 rate = 1;
+  int32 interval_ms = 2;
+}
+
 message SendPushNotificationResponse {
   Error error = 1;
   SendPushNotificationResult result = 2;
@@ -1222,45 +1231,3 @@ message CancelPushResponse {
 }
 
 message CancelPushResult {}
-
-message RateLimitPolicy {
-  int64 rate = 1;
-  int32 interval_ms = 2;
-}
-
-message RateLimitRequest {
-  string key = 1;
-  int64 score = 2;
-  bool dry_run = 3;
-  repeated RateLimitPolicy policies = 4;
-  bool include_policy_evaluations = 5;
-}
-
-message RateLimitResponse {
-  Error error = 1;
-  RateLimitResult result = 2;
-}
-
-message RateLimitPolicyEvaluation {
-  bool allowed = 1;
-  int64 tokens_left = 2;
-  int32 allowed_in_ms = 3;
-}
-
-message RateLimitResult {
-  bool allowed = 1;
-  int32 allowed_in_ms = 2;
-  int64 server_time_ms = 3;
-  repeated RateLimitPolicyEvaluation policies = 4;
-}
-
-message ResetRateLimitRequest {
-  string key = 1;
-}
-
-message ResetRateLimitResponse {
-  Error error = 1;
-  ResetRateLimitResult result = 2;
-}
-
-message ResetRateLimitResult {}

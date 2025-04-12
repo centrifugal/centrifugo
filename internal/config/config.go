@@ -109,10 +109,11 @@ type Config struct {
 }
 
 type Meta struct {
-	FileNotFound bool
-	UnknownKeys  []string
-	UnknownEnvs  []string
-	KnownEnvVars map[string]envconfig.VarInfo
+	FileNotFound        bool
+	UnknownKeys         []string
+	UnknownEnvs         []string
+	KnownEnvVars        map[string]envconfig.VarInfo
+	DeprecationWarnings []string
 }
 
 func DefineFlags(rootCmd *cobra.Command) {
@@ -240,7 +241,11 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 	meta.UnknownEnvs = checkEnvironmentVars(knownEnvVars)
 	meta.KnownEnvVars = knownEnvVars
 
-	return *conf, meta, nil
+	cfg := *conf
+	cfg, deprecationWarnings := applyConfigMigrations(cfg)
+	meta.DeprecationWarnings = deprecationWarnings
+
+	return cfg, meta, nil
 }
 
 func extendKnownEnvVars(knownEnvVars map[string]envconfig.VarInfo, varInfo []envconfig.VarInfo) {

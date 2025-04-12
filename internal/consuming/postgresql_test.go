@@ -134,14 +134,14 @@ func TestPostgresConsumer_GreenScenario(t *testing.T) {
 		PartitionPollInterval:        configtypes.Duration(300 * time.Millisecond),
 		PartitionNotificationChannel: testNotificationChannel,
 	}
-	consumer, err := NewPostgresConsumer("test", &MockDispatcher{
-		onDispatch: func(ctx context.Context, method string, data []byte) error {
+	consumer, err := NewPostgresConsumer(config, &MockDispatcher{
+		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
 			require.Equal(t, testMethod, method)
 			require.Equal(t, testPayload, data)
 			close(eventReceived)
 			return nil
 		},
-	}, config, newCommonMetrics(prometheus.NewRegistry()))
+	}, testCommon(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	// Start the consumer
@@ -191,14 +191,14 @@ func TestPostgresConsumer_SeveralConsumers(t *testing.T) {
 	numConsumers := 10
 
 	for i := 0; i < numConsumers; i++ {
-		consumer, err := NewPostgresConsumer("test", &MockDispatcher{
-			onDispatch: func(ctx context.Context, method string, data []byte) error {
+		consumer, err := NewPostgresConsumer(config, &MockDispatcher{
+			onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
 				require.Equal(t, testMethod, method)
 				require.Equal(t, testPayload, data)
 				close(eventReceived)
 				return nil
 			},
-		}, config, newCommonMetrics(prometheus.NewRegistry()))
+		}, testCommon(prometheus.NewRegistry()))
 		require.NoError(t, err)
 
 		pool = consumer.pool
@@ -249,15 +249,15 @@ func TestPostgresConsumer_NotificationTrigger(t *testing.T) {
 
 	numEvents := 0
 
-	consumer, err := NewPostgresConsumer("test", &MockDispatcher{
-		onDispatch: func(ctx context.Context, method string, data []byte) error {
+	consumer, err := NewPostgresConsumer(config, &MockDispatcher{
+		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
 			require.Equal(t, testMethod, method)
 			require.Equal(t, testPayload, data)
 			numEvents++
 			eventsReceived <- struct{}{}
 			return nil
 		},
-	}, config, newCommonMetrics(prometheus.NewRegistry()))
+	}, testCommon(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	go func() {
@@ -317,8 +317,8 @@ func TestPostgresConsumer_DifferentPartitions(t *testing.T) {
 
 	var dispatchMu sync.Mutex
 
-	consumer, err := NewPostgresConsumer("test", &MockDispatcher{
-		onDispatch: func(ctx context.Context, method string, data []byte) error {
+	consumer, err := NewPostgresConsumer(config, &MockDispatcher{
+		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
 			dispatchMu.Lock()
 			defer dispatchMu.Unlock()
 			require.Equal(t, testMethod, method)
@@ -327,7 +327,7 @@ func TestPostgresConsumer_DifferentPartitions(t *testing.T) {
 			eventsReceived <- struct{}{}
 			return nil
 		},
-	}, config, newCommonMetrics(prometheus.NewRegistry()))
+	}, testCommon(prometheus.NewRegistry()))
 	require.NoError(t, err)
 
 	go func() {

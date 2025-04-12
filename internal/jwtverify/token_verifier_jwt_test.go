@@ -83,6 +83,34 @@ const (
 			]
 		}`
 
+	jwksSetNoAlg = `{
+		  "keys": [
+			  {
+				"e": "AQAB",
+				"kid": "testrsa",
+				"kty": "RSA",
+				"use": "sig",
+				"n": "4Wp1fHDDOGN7rH357ofNfK26LDOA36ZtQ0H2x0uo12VsAxbGOfl67gES28ClWon9dSwGLR-urfAmX7DcCgffLMTgwCwvsPYCKsVIWMPvlGEPyAG90d55GVqJGpAYirfIVyjKkzJKIjqdmPx12XnjnrhWdTLl09Ja4E6SF5m1Ff4mkfavigrnuh_SaB1QKkMKj--ie0rH3VV9MAiQTnYkVuNPEEkz9h2SCyOMUmYLJMLIHIpWBZ4fI-XlCmFx_kGUgiU85m9lSoKFSl7zmvYvy-uxCteO_28COu-wLnhcN4uumnQKN13ESPXLtR7_fkP-Z-xlXoKMdZQfuWY6zc6AsQ"
+			  },
+			  {
+				"crv": "P-384",
+				"kid": "testec",
+				"kty": "EC",
+				"use": "sig",
+				"x": "W0A0VvKCnxs0trdgchvdkrEVfdjDYOeTdu_f0l3GE94LXBvVF_2O1Ng7vKZPE3cu",
+				"y": "thDvOCDapgLR4krw5KKzp9HrkzTVgVwmwP37aTSc20EXw3R2fZ7tSh1ws3V7NV5n"
+			  },
+			  {
+				"crv": "Ed25519",
+				"d": "hgIMcVff-mdWy5xYFBqrkleEGVSiQu81GQwNxGxhj9k",
+				"kid": "tested",
+				"kty": "OKP",
+				"use": "sig",
+				"x": "KBbdGhSAMLXMh6zLMfGi4_4-npVhnEVnGVYdjSrOreI"
+			  }
+			]
+		}`
+
 	// JWT using `testrsa` key ID
 	// ```
 	// jwx jws sign --key rsa.jwk --alg RS256 payload.txt
@@ -881,6 +909,48 @@ func TestJWKS(t *testing.T) {
 	// Make sure a token with an unknown KID fails to verify
 	_, err = verifier.VerifyConnectToken(jwtECWithKIDWrongAlg, false)
 	require.ErrorContains(t, err, "invalid token: token is signed by another algorithm")
+}
+
+func TestJWKS_NoAlg(t *testing.T) {
+	// Create a test JWKS server.
+	ts := httptest.NewServer(jwksHandler(jwksSetNoAlg))
+	defer ts.Close()
+
+	// Setup our token verifier, using the test JWKS endpoint
+	cfg := config.DefaultConfig()
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, ts.URL, "", "", "", "", ""}, cfgContainer)
+	require.NoError(t, err)
+
+	// Validate an RSA token
+	ct, err := verifier.VerifyConnectToken(jwtRSAWithKID, false)
+	require.NoError(t, err)
+	require.Equal(t, "2694", ct.UserID)
+	require.NotNil(t, ct.Info)
+	require.Equal(t, `{"first_name":"Alexander","last_name":"Emelin"}`, string(ct.Info))
+
+	// Validate an EC token
+	ct, err = verifier.VerifyConnectToken(jwtECWithKID, false)
+	require.NoError(t, err)
+	require.Equal(t, "2694", ct.UserID)
+	require.NotNil(t, ct.Info)
+	require.Equal(t, `{"first_name":"Alexander","last_name":"Emelin"}`, string(ct.Info))
+
+	// Validate OKP (based on EdDSA) token.
+	ct, err = verifier.VerifyConnectToken(jwtOKPWithKID, false)
+	require.NoError(t, err)
+	require.Equal(t, "2694", ct.UserID)
+	require.NotNil(t, ct.Info)
+	require.Equal(t, `{"first_name":"Alexander","last_name":"Emelin"}`, string(ct.Info))
+
+	// Make sure a token with an unknown KID fails to verify
+	_, err = verifier.VerifyConnectToken(jwtECWithKIDMiss, false)
+	require.ErrorContains(t, err, "invalid token: jwks: public key not found")
+
+	// Make sure a token with an unknown KID fails to verify
+	_, err = verifier.VerifyConnectToken(jwtECWithKIDWrongAlg, false)
+	require.ErrorContains(t, err, "invalid token: unsupported JWT algorithm: ES256")
 }
 
 func BenchmarkConnectTokenVerify_Valid(b *testing.B) {
