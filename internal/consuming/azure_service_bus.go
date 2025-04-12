@@ -301,15 +301,10 @@ func (c *AzureServiceBusConsumer) processMessage(ctx context.Context, msg *azser
 // processPublicationDataMessage handles messages in publication data mode.
 func (c *AzureServiceBusConsumer) processPublicationDataMessage(ctx context.Context, msg *azservicebus.ReceivedMessage, data []byte) error {
 	idempotencyKey, _ := getProperty(msg, c.config.PublicationDataMode.IdempotencyKeyProperty)
-	deltaStr, _ := getProperty(msg, c.config.PublicationDataMode.DeltaProperty)
-	delta := false
-	if deltaStr != "" {
-		var err error
-		delta, err = strconv.ParseBool(deltaStr)
-		if err != nil {
-			c.common.log.Error().Err(err).Msg("error parsing delta property, skipping message")
-			return nil
-		}
+	delta, err := getAzureBoolProperty(msg, c.config.PublicationDataMode.DeltaProperty)
+	if err != nil {
+		c.common.log.Error().Err(err).Msg("error parsing delta property, skipping message")
+		return nil
 	}
 	channelsStr, _ := getProperty(msg, c.config.PublicationDataMode.ChannelsProperty)
 	channels := strings.Split(channelsStr, ",")
@@ -318,11 +313,19 @@ func (c *AzureServiceBusConsumer) processPublicationDataMessage(ctx context.Cont
 		return nil
 	}
 	tags := getTagsFromProperties(msg, c.config.PublicationDataMode.TagsPropertyPrefix)
+	version, err := getAzureUint64Property(msg, c.config.PublicationDataMode.VersionProperty)
+	if err != nil {
+		c.common.log.Error().Err(err).Msg("error parsing version property, skipping message")
+		return nil
+	}
+	versionEpoch, _ := getProperty(msg, c.config.PublicationDataMode.VersionEpochProperty)
 	return c.dispatcher.DispatchPublication(ctx, channels, api.ConsumedPublication{
 		Data:           data,
 		IdempotencyKey: idempotencyKey,
 		Delta:          delta,
 		Tags:           tags,
+		Version:        version,
+		VersionEpoch:   versionEpoch,
 	})
 }
 
@@ -330,6 +333,40 @@ func (c *AzureServiceBusConsumer) processPublicationDataMessage(ctx context.Cont
 func (c *AzureServiceBusConsumer) processCommandMessage(ctx context.Context, msg *azservicebus.ReceivedMessage, data []byte) error {
 	method, _ := getProperty(msg, c.config.MethodProperty)
 	return c.dispatcher.DispatchCommand(ctx, method, data)
+}
+
+func getAzureUint64Property(msg *azservicebus.ReceivedMessage, key string) (uint64, error) {
+	if key == "" {
+		return 0, nil
+	}
+	val, ok := msg.ApplicationProperties[key]
+	if !ok {
+		return 0, nil
+	}
+	strVal, ok := val.(string)
+	if !ok {
+		return 0, fmt.Errorf("property %q is not a string", key)
+	}
+	uintVal, err := strconv.ParseUint(strVal, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing uint64 property %q: %w", key, err)
+	}
+	return uintVal, nil
+}
+
+func getAzureBoolProperty(msg *azservicebus.ReceivedMessage, key string) (bool, error) {
+	if key == "" {
+		return false, nil
+	}
+	val, ok := msg.ApplicationProperties[key]
+	if !ok {
+		return false, nil
+	}
+	b, err := strconv.ParseBool(val.(string))
+	if err != nil {
+		return false, fmt.Errorf("error parsing bool property %q: %w", key, err)
+	}
+	return b, nil
 }
 
 // getProperty extracts a string property from the message's ApplicationProperties.

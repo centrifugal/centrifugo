@@ -112,14 +112,10 @@ func (c *NatsJetStreamConsumer) msgHandler(msg *nats.Msg) {
 // processPublicationDataMessage processes a message in publication data mode.
 func (c *NatsJetStreamConsumer) processPublicationDataMessage(msg *nats.Msg, data []byte) error {
 	idempotencyKey := getNatsHeaderValue(msg, c.config.PublicationDataMode.IdempotencyKeyHeader)
-	delta := false
-	if deltaVal := getNatsHeaderValue(msg, c.config.PublicationDataMode.DeltaHeader); deltaVal != "" {
-		var err error
-		delta, err = strconv.ParseBool(deltaVal)
-		if err != nil {
-			c.common.log.Error().Err(err).Msg("error parsing delta header, skipping message")
-			return nil
-		}
+	delta, err := getNatsBoolHeaderValue(msg, c.config.PublicationDataMode.DeltaHeader)
+	if err != nil {
+		c.common.log.Error().Err(err).Msg("error parsing delta header, skipping message")
+		return nil
 	}
 	channels := strings.Split(getNatsHeaderValue(msg, c.config.PublicationDataMode.ChannelsHeader), ",")
 	if len(channels) == 0 || (len(channels) == 1 && channels[0] == "") {
@@ -127,11 +123,18 @@ func (c *NatsJetStreamConsumer) processPublicationDataMessage(msg *nats.Msg, dat
 		return nil
 	}
 	tags := publicationTagsFromNatsHeaders(msg, c.config.PublicationDataMode.TagsHeaderPrefix)
+	version, err := getNatsUint64HeaderValue(msg, c.config.PublicationDataMode.VersionHeader)
+	if err != nil {
+		c.common.log.Error().Err(err).Msg("error parsing version header, skipping message")
+		return nil
+	}
 	return c.dispatcher.DispatchPublication(c.ctx, channels, api.ConsumedPublication{
 		Data:           data,
 		IdempotencyKey: idempotencyKey,
 		Delta:          delta,
 		Tags:           tags,
+		Version:        version,
+		VersionEpoch:   getNatsHeaderValue(msg, c.config.PublicationDataMode.VersionEpochHeader),
 	})
 }
 
@@ -139,6 +142,36 @@ func (c *NatsJetStreamConsumer) processPublicationDataMessage(msg *nats.Msg, dat
 func (c *NatsJetStreamConsumer) processCommandMessage(msg *nats.Msg, data []byte) error {
 	method := getNatsHeaderValue(msg, c.config.MethodHeader)
 	return c.dispatcher.DispatchCommand(c.ctx, method, data)
+}
+
+func getNatsUint64HeaderValue(msg *nats.Msg, key string) (uint64, error) {
+	if key == "" {
+		return 0, nil
+	}
+	val := msg.Header.Get(key)
+	if val == "" {
+		return 0, nil
+	}
+	i, err := strconv.ParseUint(val, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing header %q: %w", key, err)
+	}
+	return i, nil
+}
+
+func getNatsBoolHeaderValue(msg *nats.Msg, key string) (bool, error) {
+	if key == "" {
+		return false, nil
+	}
+	val := msg.Header.Get(key)
+	if val == "" {
+		return false, nil
+	}
+	b, err := strconv.ParseBool(val)
+	if err != nil {
+		return false, fmt.Errorf("error parsing header %q: %w", key, err)
+	}
+	return b, nil
 }
 
 // getNatsHeaderValue retrieves a header value from the NATS message.

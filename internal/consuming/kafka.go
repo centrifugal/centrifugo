@@ -421,6 +421,36 @@ type partitionConsumer struct {
 	recs chan kgo.FetchTopicPartition
 }
 
+func getUint64HeaderValue(record *kgo.Record, headerKey string) (uint64, error) {
+	if headerKey == "" {
+		return 0, nil
+	}
+	headerValue := getHeaderValue(record, headerKey)
+	if headerValue == "" {
+		return 0, nil
+	}
+	value, err := strconv.ParseUint(headerValue, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing header %s value %s: %w", headerKey, headerValue, err)
+	}
+	return value, nil
+}
+
+func getBoolHeaderValue(record *kgo.Record, headerKey string) (bool, error) {
+	if headerKey == "" {
+		return false, nil
+	}
+	headerValue := getHeaderValue(record, headerKey)
+	if headerValue == "" {
+		return false, nil
+	}
+	value, err := strconv.ParseBool(headerValue)
+	if err != nil {
+		return false, fmt.Errorf("error parsing header %s value %s: %w", headerKey, headerValue, err)
+	}
+	return value, nil
+}
+
 func getHeaderValue(record *kgo.Record, headerKey string) string {
 	if headerKey == "" {
 		return ""
@@ -452,19 +482,19 @@ func publicationTagsFromKafkaRecord(record *kgo.Record, tagsHeaderPrefix string)
 func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, record *kgo.Record) error {
 	data := record.Value
 	idempotencyKey := getHeaderValue(record, pc.config.PublicationDataMode.IdempotencyKeyHeader)
-	var delta bool
-	deltaValue := getHeaderValue(record, pc.config.PublicationDataMode.DeltaHeader)
-	if deltaValue != "" {
-		var err error
-		delta, err = strconv.ParseBool(deltaValue)
-		if err != nil {
-			pc.common.log.Error().Err(err).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error parsing delta header value, skip message")
-			return nil
-		}
+	delta, err := getBoolHeaderValue(record, pc.config.PublicationDataMode.DeltaHeader)
+	if err != nil {
+		pc.common.log.Error().Err(err).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error parsing delta header value, skip message")
+		return nil
 	}
 	channels := strings.Split(getHeaderValue(record, pc.config.PublicationDataMode.ChannelsHeader), ",")
 	if len(channels) == 0 {
 		pc.common.log.Info().Str("topic", record.Topic).Int32("partition", record.Partition).Msg("no channels found, skip message")
+		return nil
+	}
+	version, err := getUint64HeaderValue(record, pc.config.PublicationDataMode.VersionHeader)
+	if err != nil {
+		pc.common.log.Error().Err(err).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error parsing version header value, skip message")
 		return nil
 	}
 	return pc.dispatcher.DispatchPublication(
@@ -475,6 +505,8 @@ func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, r
 			IdempotencyKey: idempotencyKey,
 			Delta:          delta,
 			Tags:           publicationTagsFromKafkaRecord(record, pc.config.PublicationDataMode.TagsHeaderPrefix),
+			Version:        version,
+			VersionEpoch:   getHeaderValue(record, pc.config.PublicationDataMode.VersionEpochHeader),
 		},
 	)
 }

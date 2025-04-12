@@ -755,6 +755,10 @@ type KafkaPublicationDataModeConfig struct {
 	// See https://centrifugal.dev/docs/server/delta_compression and
 	// https://centrifugal.dev/docs/server/server_api#publishrequest.
 	DeltaHeader string `mapstructure:"delta_header" default:"centrifugo-delta" json:"delta_header" envconfig:"delta_header" yaml:"delta_header" toml:"delta_header"`
+	// VersionHeader is a header name to extract Publication version from Kafka message.
+	VersionHeader string `mapstructure:"version_header" default:"centrifugo-version" json:"version_header" envconfig:"version_header" yaml:"version_header" toml:"version_header"`
+	// VersionEpochHeader is a header name to extract Publication version epoch from Kafka message.
+	VersionEpochHeader string `mapstructure:"version_epoch_header" default:"centrifugo-version-epoch" json:"version_epoch_header" envconfig:"version_epoch_header" yaml:"version_epoch_header" toml:"version_epoch_header"`
 	// TagsHeaderPrefix is a prefix for headers that contain tags to attach to Publication.
 	TagsHeaderPrefix string `mapstructure:"tags_header_prefix" default:"centrifugo-tag-" json:"tags_header_prefix" envconfig:"tags_header_prefix" yaml:"tags_header_prefix" toml:"tags_header_prefix"`
 }
@@ -769,6 +773,10 @@ type RedisStreamPublicationDataModeConfig struct {
 	IdempotencyKeyValue string `mapstructure:"idempotency_key_value" default:"centrifugo-idempotency-key" json:"idempotency_key_value" yaml:"idempotency_key_value" toml:"idempotency_key_value"`
 	// DeltaValue is used to extract Publication delta flag from Redis Stream message.
 	DeltaValue string `mapstructure:"delta_value" json:"delta_value" default:"centrifugo-delta" yaml:"delta_value" toml:"delta_value"`
+	// VersionValue is used to extract Publication version from Redis Stream message.
+	VersionValue string `mapstructure:"version_value" default:"centrifugo-version" json:"version_value" yaml:"version_value" toml:"version_value"`
+	// VersionEpochValue is used to extract Publication version epoch from Redis Stream message.
+	VersionEpochValue string `mapstructure:"version_epoch_value" default:"centrifugo-version-epoch" json:"version_epoch_value" yaml:"version_epoch_value" toml:"version_epoch_value"`
 	// TagsValuePrefix is used to extract Publication tags from Redis Stream message.
 	TagsValuePrefix string `mapstructure:"tags_value_prefix" default:"centrifugo-tag-" json:"tags_value_prefix" yaml:"tags_value_prefix" toml:"tags_value_prefix"`
 }
@@ -847,6 +855,10 @@ type NatsJetStreamPublicationDataModeConfig struct {
 	IdempotencyKeyHeader string `mapstructure:"idempotency_key_header" default:"centrifugo-idempotency-key"  json:"idempotency_key_header" toml:"idempotency_key_header" yaml:"idempotency_key_header"`
 	// DeltaHeader is the name of the header indicating whether the message represents a delta (partial update).
 	DeltaHeader string `mapstructure:"delta_header" default:"centrifugo-delta" json:"delta_header" toml:"delta_header" yaml:"delta_header"`
+	// VersionHeader is the name of the header that contains the version of the message.
+	VersionHeader string `mapstructure:"version_header" default:"centrifugo-version" json:"version_header" toml:"version_header" yaml:"version_header"`
+	// VersionEpochHeader is the name of the header that contains the version epoch of the message.
+	VersionEpochHeader string `mapstructure:"version_epoch_header" default:"centrifugo-version-epoch" json:"version_epoch_header" toml:"version_epoch_header" yaml:"version_epoch_header"`
 	// TagsHeaderPrefix is the prefix used to extract dynamic tags from message headers.
 	TagsHeaderPrefix string `mapstructure:"tags_header_prefix" default:"centrifugo-tag-" json:"tags_header_prefix" toml:"tags_header_prefix" yaml:"tags_header_prefix"`
 }
@@ -900,6 +912,10 @@ type GooglePubSubPublicationDataModeConfig struct {
 	IdempotencyKeyAttribute string `mapstructure:"idempotency_key_attribute" default:"centrifugo-idempotency-key" json:"idempotency_key_attribute" envconfig:"idempotency_key_attribute" yaml:"idempotency_key_attribute" toml:"idempotency_key_attribute"`
 	// DeltaAttribute is the attribute name for a delta flag.
 	DeltaAttribute string `mapstructure:"delta_attribute" default:"centrifugo-delta" json:"delta_attribute" envconfig:"delta_attribute" yaml:"delta_attribute" toml:"delta_attribute"`
+	// VersionAttribute is the attribute name for a version.
+	VersionAttribute string `mapstructure:"version_attribute" default:"centrifugo-version" json:"version_attribute" envconfig:"version_attribute" yaml:"version_attribute" toml:"version_attribute"`
+	// VersionEpochAttribute is the attribute name for a version epoch.
+	VersionEpochAttribute string `mapstructure:"version_epoch_attribute" default:"centrifugo-version-epoch" json:"version_epoch_attribute" envconfig:"version_epoch_attribute" yaml:"version_epoch_attribute" toml:"version_epoch_attribute"`
 	// TagsAttributePrefix is the prefix for attributes containing tags.
 	TagsAttributePrefix string `mapstructure:"tags_attribute_prefix" default:"centrifugo-tag-" json:"tags_attribute_prefix" envconfig:"tags_attribute_prefix" yaml:"tags_attribute_prefix" toml:"tags_attribute_prefix"`
 }
@@ -929,6 +945,10 @@ type AzureServiceBusPublicationDataModeConfig struct {
 	IdempotencyKeyProperty string `mapstructure:"idempotency_key_property" default:"centrifugo-idempotency-key" json:"idempotency_key_property" yaml:"idempotency_key_property" toml:"idempotency_key_property"`
 	// DeltaProperty is the property that represents changes or deltas in the payload.
 	DeltaProperty string `mapstructure:"delta_property" default:"centrifugo-delta" json:"delta_property" yaml:"delta_property" toml:"delta_property"`
+	// VersionProperty is the property that holds the version of the message.
+	VersionProperty string `mapstructure:"version_property" default:"centrifugo-version" json:"version_property" yaml:"version_property" toml:"version_property"`
+	// VersionEpochProperty is the property that holds the version epoch of the message.
+	VersionEpochProperty string `mapstructure:"version_epoch_property" default:"centrifugo-version-epoch" json:"version_epoch_property" yaml:"version_epoch_property" toml:"version_epoch_property"`
 	// TagsPropertyPrefix defines the prefix used to extract dynamic tags from message properties.
 	TagsPropertyPrefix string `mapstructure:"tags_property_prefix" default:"centrifugo-tag-" json:"tags_property_prefix" yaml:"tags_property_prefix" toml:"tags_property_prefix"`
 }
@@ -1022,6 +1042,10 @@ type AWSPublicationDataModeConfig struct {
 	IdempotencyKeyAttribute string `mapstructure:"idempotency_key_attribute" default:"centrifugo-idempotency-key" json:"idempotency_key_attribute" envconfig:"idempotency_key_attribute" yaml:"idempotency_key_attribute" toml:"idempotency_key_attribute"`
 	// DeltaAttribute is the attribute name for a delta flag.
 	DeltaAttribute string `mapstructure:"delta_attribute" default:"centrifugo-delta" json:"delta_attribute" envconfig:"delta_attribute" yaml:"delta_attribute" toml:"delta_attribute"`
+	// VersionAttribute is the attribute name for a version of publication.
+	VersionAttribute string `mapstructure:"version_attribute" default:"centrifugo-version" json:"version_attribute" envconfig:"version_attribute" yaml:"version_attribute" toml:"version_attribute"`
+	// VersionEpochAttribute is the attribute name for a version epoch of publication.
+	VersionEpochAttribute string `mapstructure:"version_epoch_attribute" default:"centrifugo-version-epoch" json:"version_epoch_attribute" envconfig:"version_epoch_attribute" yaml:"version_epoch_attribute" toml:"version_epoch_attribute"`
 	// TagsAttributePrefix is the prefix for attributes containing tags.
 	TagsAttributePrefix string `mapstructure:"tags_attribute_prefix" default:"centrifugo-tag-" json:"tags_attribute_prefix" envconfig:"tags_attribute_prefix" yaml:"tags_attribute_prefix" toml:"tags_attribute_prefix"`
 }

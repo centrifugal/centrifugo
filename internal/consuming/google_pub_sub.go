@@ -123,14 +123,10 @@ func (c *GooglePubSubConsumer) processSingleMessage(ctx context.Context, msg *pu
 func (c *GooglePubSubConsumer) processPublicationDataMessage(ctx context.Context, msg *pubsub.Message) error {
 	data := msg.Data
 	idempotencyKey := getAttributeValue(msg, c.config.PublicationDataMode.IdempotencyKeyAttribute)
-	delta := false
-	if deltaVal := getAttributeValue(msg, c.config.PublicationDataMode.DeltaAttribute); deltaVal != "" {
-		var err error
-		delta, err = strconv.ParseBool(deltaVal)
-		if err != nil {
-			c.common.log.Error().Err(err).Msg("error parsing delta attribute, skipping message")
-			return nil // Skip message on parsing error.
-		}
+	delta, err := getGoogleBoolAttributeValue(msg, c.config.PublicationDataMode.DeltaAttribute)
+	if err != nil {
+		c.common.log.Error().Err(err).Msg("error parsing delta attribute, skipping message")
+		return nil // Skip message on parsing error.
 	}
 	channelsAttr := getAttributeValue(msg, c.config.PublicationDataMode.ChannelsAttribute)
 	channels := strings.Split(channelsAttr, ",")
@@ -139,11 +135,18 @@ func (c *GooglePubSubConsumer) processPublicationDataMessage(ctx context.Context
 		return nil
 	}
 	tags := publicationTagsFromAttributes(msg, c.config.PublicationDataMode.TagsAttributePrefix)
+	version, err := getGoogleUint64AttributeValue(msg, c.config.PublicationDataMode.VersionAttribute)
+	if err != nil {
+		c.common.log.Error().Err(err).Msg("error parsing version attribute, skipping message")
+		return nil // Skip message on parsing error.
+	}
 	return c.dispatcher.DispatchPublication(ctx, channels, api.ConsumedPublication{
 		Data:           data,
 		IdempotencyKey: idempotencyKey,
 		Delta:          delta,
 		Tags:           tags,
+		Version:        version,
+		VersionEpoch:   getAttributeValue(msg, c.config.PublicationDataMode.VersionEpochAttribute),
 	})
 }
 
@@ -151,6 +154,32 @@ func (c *GooglePubSubConsumer) processPublicationDataMessage(ctx context.Context
 func (c *GooglePubSubConsumer) processCommandMessage(ctx context.Context, msg *pubsub.Message) error {
 	method := getAttributeValue(msg, c.config.MethodAttribute)
 	return c.dispatcher.DispatchCommand(ctx, method, msg.Data)
+}
+
+func getGoogleUint64AttributeValue(msg *pubsub.Message, key string) (uint64, error) {
+	if key == "" {
+		return 0, nil
+	}
+	val := msg.Attributes[key]
+	if val == "" {
+		return 0, nil
+	}
+	uintVal, err := strconv.ParseUint(val, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing attribute %s: %w", key, err)
+	}
+	return uintVal, nil
+}
+
+func getGoogleBoolAttributeValue(msg *pubsub.Message, key string) (bool, error) {
+	if key == "" {
+		return false, nil
+	}
+	val := msg.Attributes[key]
+	if val == "" {
+		return false, nil
+	}
+	return strconv.ParseBool(val)
 }
 
 // getAttributeValue extracts the value of the given attribute key from the message.

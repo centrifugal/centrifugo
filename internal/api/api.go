@@ -323,6 +323,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 				centrifuge.WithTags(cmd.GetTags()),
 				centrifuge.WithIdempotencyKey(cmd.GetIdempotencyKey()),
 				centrifuge.WithDelta(delta),
+				centrifuge.WithVersion(cmd.Version, cmd.VersionEpoch),
 			)
 			resp := &PublishResponse{}
 			if err == nil {
