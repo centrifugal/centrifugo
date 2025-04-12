@@ -2,6 +2,7 @@ package consuming
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -232,9 +233,11 @@ func (c *NatsJetStreamConsumer) Run(ctx context.Context) error {
 	defer func() {
 		_ = c.nc.Drain()
 	}()
+
 	cc, err := c.consumer.Consume(
 		c.msgHandler,
 		jetstream.ConsumeErrHandler(c.eventHandler.errorHandler()),
+		jetstream.PullHeartbeat(5*time.Second),
 	)
 	if err != nil {
 		return err
@@ -269,6 +272,9 @@ func (c *natsEventHandler) disconnectHandler() nats.ConnErrHandler {
 
 func (c *natsEventHandler) errorHandler() jetstream.ConsumeErrHandlerFunc {
 	return func(consumeCtx jetstream.ConsumeContext, err error) {
+		if errors.Is(err, jetstream.ErrNoHeartbeat) {
+			c.log.Warn().Msg("no heartbeat!!!")
+		}
 		c.log.Error().Err(err).Msg("error during consuming")
 	}
 }
