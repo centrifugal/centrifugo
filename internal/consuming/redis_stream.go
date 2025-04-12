@@ -8,35 +8,30 @@ import (
 	"strings"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
 	"github.com/centrifugal/centrifugo/v6/internal/redisqueue"
 	"github.com/centrifugal/centrifugo/v6/internal/redisshard"
 
 	"github.com/redis/rueidis"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 type RedisStreamConsumerConfig = configtypes.RedisStreamConsumerConfig
 
 // RedisStreamConsumer consumes messages from a Redis Stream.
 type RedisStreamConsumer struct {
-	name       string
 	config     RedisStreamConsumerConfig
 	dispatcher Dispatcher
 	consumers  map[string]*redisqueue.Consumer
-	log        zerolog.Logger
-	metrics    *commonMetrics
+	common     *consumerCommon
 }
 
 // NewRedisStreamConsumer creates a new Redis Streams consumer.
 func NewRedisStreamConsumer(
-	name string,
 	cfg RedisStreamConsumerConfig,
 	dispatcher Dispatcher,
-	metrics *commonMetrics,
-	nodeID string,
+	common *consumerCommon,
 ) (*RedisStreamConsumer, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
@@ -60,18 +55,16 @@ func NewRedisStreamConsumer(
 	}
 
 	consumer := &RedisStreamConsumer{
-		name:       name,
 		config:     cfg,
 		dispatcher: dispatcher,
-		log:        log.With().Str("consumer", name).Logger(),
-		metrics:    metrics,
+		common:     common,
 	}
 	consumers := make(map[string]*redisqueue.Consumer)
 	for _, stream := range cfg.Streams {
 		streamConsumer, err := redisqueue.NewConsumer(shard, redisqueue.ConsumerOptions{
 			Stream:            stream,
 			ConsumerFunc:      consumer.process,
-			Name:              nodeID,
+			Name:              common.nodeID,
 			GroupName:         cfg.ConsumerGroup,
 			VisibilityTimeout: cfg.VisibilityTimeout.ToDuration(),
 			BlockingTimeout:   5 * time.Second,
@@ -91,12 +84,12 @@ func NewRedisStreamConsumer(
 // process is the ConsumerFunc for redisqueue.Consumer.
 func (c *RedisStreamConsumer) process(msg *redisqueue.Message) error {
 	if logging.Enabled(logging.DebugLevel) {
-		c.log.Debug().Str("stream", msg.ID).
+		c.common.log.Debug().Str("stream", msg.ID).
 			Msg("received message from stream")
 	}
 	dataStr, ok := msg.Values[c.config.PayloadValue]
 	if !ok {
-		c.log.Error().
+		c.common.log.Error().
 			Str("expected_value", c.config.PayloadValue).
 			Msg("payload value not found in redis stream message")
 		return nil
@@ -110,10 +103,10 @@ func (c *RedisStreamConsumer) process(msg *redisqueue.Message) error {
 		err = c.processCommandMessage(ctx, msg, []byte(dataStr))
 	}
 	if err != nil {
-		c.metrics.errorsTotal.WithLabelValues(c.name).Inc()
-		c.log.Error().Err(err).Msg("error processing redis stream message")
+		c.common.metrics.errorsTotal.WithLabelValues(c.common.name).Inc()
+		c.common.log.Error().Err(err).Msg("error processing redis stream message")
 	} else {
-		c.metrics.processedTotal.WithLabelValues(c.name).Inc()
+		c.common.metrics.processedTotal.WithLabelValues(c.common.name).Inc()
 	}
 	return err
 }
@@ -131,7 +124,7 @@ func (c *RedisStreamConsumer) Run(ctx context.Context) error {
 				select {
 				case err := <-errCh:
 					if err != nil {
-						c.log.Error().Str("stream", stream).Err(err).Msg("error from consumer")
+						c.common.log.Error().Str("stream", stream).Err(err).Msg("error from consumer")
 					}
 				case <-shutdownCh:
 					return
@@ -163,18 +156,23 @@ func (c *RedisStreamConsumer) processPublicationDataMessage(ctx context.Context,
 		var err error
 		delta, err = strconv.ParseBool(deltaStr)
 		if err != nil {
-			c.log.Error().Err(err).Msg("error parsing delta property, skipping message")
+			c.common.log.Error().Err(err).Msg("error parsing delta property, skipping message")
 			return nil
 		}
 	}
 	channelsStr, _ := getStringProperty(msg, c.config.PublicationDataMode.ChannelsValue)
 	channels := strings.Split(channelsStr, ",")
 	if len(channels) == 0 || (len(channels) == 1 && channels[0] == "") {
-		c.log.Info().Msg("no channels found, skipping message")
+		c.common.log.Info().Msg("no channels found, skipping message")
 		return nil
 	}
 	tags := getTagsFromRedisValues(msg, c.config.PublicationDataMode.TagsValuePrefix)
-	return c.dispatcher.DispatchPublication(ctx, data, idempotencyKey, delta, tags, channels...)
+	return c.dispatcher.DispatchPublication(ctx, channels, api.ConsumedPublication{
+		Data:           data,
+		IdempotencyKey: idempotencyKey,
+		Delta:          delta,
+		Tags:           tags,
+	})
 }
 
 // processCommandMessage processes a message in command mode.

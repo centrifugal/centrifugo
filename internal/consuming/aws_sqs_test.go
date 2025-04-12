@@ -83,7 +83,7 @@ func TestAWSConsumerWithLocalStack(t *testing.T) {
 		},
 	}
 
-	consumer, err := NewAwsSqsConsumer("test", cfg, dispatcher, newCommonMetrics(prometheus.NewRegistry()))
+	consumer, err := NewAwsSqsConsumer(cfg, dispatcher, testCommon(prometheus.NewRegistry()))
 	if err != nil {
 		t.Fatalf("failed to create AWS consumer: %v", err)
 	}

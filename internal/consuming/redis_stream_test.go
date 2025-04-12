@@ -46,7 +46,7 @@ func TestRedisStreamConsumer(t *testing.T) {
 	}
 
 	consumer, err := NewRedisStreamConsumer(
-		"test", cfg, dispatcher, newCommonMetrics(prometheus.NewRegistry()), uuid.NewString())
+		cfg, dispatcher, testCommon(prometheus.NewRegistry()))
 	if err != nil {
 		t.Fatalf("failed to create Redis Stream consumer: %v", err)
 	}

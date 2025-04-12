@@ -4,22 +4,27 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/service"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 type ConsumerConfig = configtypes.Consumer
 
 type Dispatcher interface {
-	DispatchCommand(
-		ctx context.Context, method string, data []byte,
-	) error
-	DispatchPublication(
-		ctx context.Context, data []byte, idempotencyKey string, delta bool, tags map[string]string, channels ...string,
-	) error
+	DispatchCommand(ctx context.Context, method string, data []byte) error
+	DispatchPublication(ctx context.Context, channels []string, pub api.ConsumedPublication) error
+}
+
+type consumerCommon struct {
+	name    string
+	log     zerolog.Logger
+	metrics *commonMetrics
+	nodeID  string
 }
 
 func New(nodeID string, dispatcher Dispatcher, configs []ConsumerConfig) ([]service.Service, error) {
@@ -34,62 +39,41 @@ func New(nodeID string, dispatcher Dispatcher, configs []ConsumerConfig) ([]serv
 				Msg("consumer is not enabled, skip")
 			continue
 		}
+		common := &consumerCommon{
+			name:    config.Name,
+			log:     log.With().Str("consumer", config.Name).Logger(),
+			metrics: metrics,
+			nodeID:  nodeID,
+		}
+		var consumer service.Service
+		var err error
 		switch config.Type {
 		case configtypes.ConsumerTypePostgres:
-			consumer, err := NewPostgresConsumer(config.Name, config.Postgres, dispatcher, metrics)
-			if err != nil {
-				return nil, fmt.Errorf("error initializing PostgreSQL consumer (%s): %w", config.Name, err)
-			}
-			services = append(services, consumer)
+			consumer, err = NewPostgresConsumer(config.Postgres, dispatcher, common)
 		case configtypes.ConsumerTypeKafka:
-			consumer, err := NewKafkaConsumer(config.Name, config.Kafka, dispatcher, metrics, nodeID)
-			if err != nil {
-				return nil, fmt.Errorf("error initializing Kafka consumer (%s): %w", config.Name, err)
-			}
-			services = append(services, consumer)
+			consumer, err = NewKafkaConsumer(config.Kafka, dispatcher, common)
 		case configtypes.ConsumerTypeNatsJetStream:
-			consumer, err := NewNatsJetStreamConsumer(config.Name, config.NatsJetStream, dispatcher, metrics)
-			if err != nil {
-				return nil, fmt.Errorf("error initializing Nats JetStream consumer (%s): %w", config.Name, err)
-			}
-			services = append(services, consumer)
+			consumer, err = NewNatsJetStreamConsumer(config.NatsJetStream, dispatcher, common)
 		case configtypes.ConsumerTypeRedisStream:
-			consumer, err := NewRedisStreamConsumer(config.Name, config.RedisStream, dispatcher, metrics, nodeID)
-			if err != nil {
-				return nil, fmt.Errorf("error initializing Redis Stream consumer (%s): %w", config.Name, err)
-			}
-			services = append(services, consumer)
+			consumer, err = NewRedisStreamConsumer(config.RedisStream, dispatcher, common)
 		case configtypes.ConsumerTypeGooglePubSub:
-			consumer, err := NewGooglePubSubConsumer(config.Name, config.GooglePubSub, dispatcher, metrics)
-			if err != nil {
-				return nil, fmt.Errorf("error initializing Google Pub/Sub consumer (%s): %w", config.Name, err)
-			}
-			services = append(services, consumer)
+			consumer, err = NewGooglePubSubConsumer(config.GooglePubSub, dispatcher, common)
 		case configtypes.ConsumerTypeAwsSqs:
-			consumer, err := NewAwsSqsConsumer(config.Name, config.AwsSqs, dispatcher, metrics)
-			if err != nil {
-				return nil, fmt.Errorf("error initializing AWS SNS/SQS consumer (%s): %w", config.Name, err)
-			}
-			services = append(services, consumer)
+			consumer, err = NewAwsSqsConsumer(config.AwsSqs, dispatcher, common)
 		case configtypes.ConsumerTypeAzureServiceBus:
-			consumer, err := NewAzureServiceBusConsumer(config.Name, config.AzureServiceBus, dispatcher, metrics)
-			if err != nil {
-				return nil, fmt.Errorf("error initializing Azure Service Bus consumer (%s): %w", config.Name, err)
-			}
-			services = append(services, consumer)
+			consumer, err = NewAzureServiceBusConsumer(config.AzureServiceBus, dispatcher, common)
 		default:
 			return nil, fmt.Errorf("unknown consumer type: %s", config.Type)
 		}
+		if err != nil {
+			return nil, fmt.Errorf("error initializing %s consumer (%s): %w", config.Type, config.Name, err)
+		}
+		services = append(services, consumer)
+		metrics.init(config.Name)
 		log.Info().
 			Str("consumer", config.Name).
 			Str("type", config.Type).
 			Msg("running consumer")
 	}
-
-	for _, config := range configs {
-		metrics.processedTotal.WithLabelValues(config.Name).Add(0)
-		metrics.errorsTotal.WithLabelValues(config.Name).Add(0)
-	}
-
 	return services, nil
 }

@@ -9,10 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-
 	"cloud.google.com/go/pubsub"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func TestGooglePubSubConsumer(t *testing.T) {
@@ -101,7 +100,7 @@ func TestGooglePubSubConsumer(t *testing.T) {
 			return nil
 		},
 	}
-	consumer, err := NewGooglePubSubConsumer("test", config, dispatcher, newCommonMetrics(prometheus.NewRegistry()))
+	consumer, err := NewGooglePubSubConsumer(config, dispatcher, testCommon(prometheus.NewRegistry()))
 	if err != nil {
 		t.Fatalf("failed to create consumer: %v", err)
 	}
