@@ -706,6 +706,28 @@
             ]
           },
           {
+            "field": "engine.redis.replica_client",
+            "name": "replica_client",
+            "go_name": "ReplicaClient",
+            "level": 3,
+            "type": "RedisReplicaClient",
+            "default": "",
+            "comment": "ReplicaClient is a configuration fot Redis replica client.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "engine.redis.replica_client.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled enables replica client.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
             "field": "engine.redis.history_use_lists",
             "name": "history_use_lists",
             "go_name": "UseLists",
@@ -1099,6 +1121,28 @@
                 "type": "string",
                 "default": "",
                 "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "broker.redis.replica_client",
+            "name": "replica_client",
+            "go_name": "ReplicaClient",
+            "level": 3,
+            "type": "RedisReplicaClient",
+            "default": "",
+            "comment": "ReplicaClient is a configuration fot Redis replica client.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "broker.redis.replica_client.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled enables replica client.",
                 "is_complex_type": false
               }
             ]
@@ -1653,6 +1697,28 @@
                 "type": "string",
                 "default": "",
                 "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "presence_manager.redis.replica_client",
+            "name": "replica_client",
+            "go_name": "ReplicaClient",
+            "level": 3,
+            "type": "RedisReplicaClient",
+            "default": "",
+            "comment": "ReplicaClient is a configuration fot Redis replica client.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "presence_manager.redis.replica_client.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled enables replica client.",
                 "is_complex_type": false
               }
             ]
@@ -2654,7 +2720,7 @@
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "",
+            "comment": "Enabled allows enabling separate configuration for subscription tokens.",
             "is_complex_type": false
           },
           {
@@ -6694,7 +6760,7 @@
         "level": 2,
         "type": "string",
         "default": "",
-        "comment": "Type describes the type of consumer.",
+        "comment": "Type describes the type of consumer. Supported types are: `postgresql`, `kafka`, `nats_jetstream`,\n`redis_stream`, `google_pub_sub`, `aws_sns_sqs`, `azure_service_bus`.",
         "is_complex_type": false
       },
       {
@@ -7034,6 +7100,16 @@
             "is_complex_type": false
           },
           {
+            "field": "consumers[].kafka.method_header",
+            "name": "method_header",
+            "go_name": "MethodHeader",
+            "level": 3,
+            "type": "string",
+            "default": "centrifugo-method",
+            "comment": "MethodHeader is a header name to extract method name from Kafka message.",
+            "is_complex_type": false
+          },
+          {
             "field": "consumers[].kafka.publication_data_mode",
             "name": "publication_data_mode",
             "go_name": "PublicationDataMode",
@@ -7059,7 +7135,7 @@
                 "go_name": "ChannelsHeader",
                 "level": 4,
                 "type": "string",
-                "default": "",
+                "default": "centrifugo-channels",
                 "comment": "ChannelsHeader is a header name to extract channels to publish data into\n(channels must be comma-separated). Ex. of value: \"channel1,channel2\".",
                 "is_complex_type": false
               },
@@ -7069,7 +7145,7 @@
                 "go_name": "IdempotencyKeyHeader",
                 "level": 4,
                 "type": "string",
-                "default": "",
+                "default": "centrifugo-idempotency-key",
                 "comment": "IdempotencyKeyHeader is a header name to extract Publication idempotency key from\nKafka message. See https://centrifugal.dev/docs/server/server_api#publishrequest.",
                 "is_complex_type": false
               },
@@ -7079,8 +7155,1366 @@
                 "go_name": "DeltaHeader",
                 "level": 4,
                 "type": "string",
-                "default": "",
+                "default": "centrifugo-delta",
                 "comment": "DeltaHeader is a header name to extract Publication delta flag from Kafka message\nwhich tells Centrifugo whether to use delta compression for message or not.\nSee https://centrifugal.dev/docs/server/delta_compression and\nhttps://centrifugal.dev/docs/server/server_api#publishrequest.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].kafka.publication_data_mode.version_header",
+                "name": "version_header",
+                "go_name": "VersionHeader",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-version",
+                "comment": "VersionHeader is a header name to extract Publication version from Kafka message.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].kafka.publication_data_mode.version_epoch_header",
+                "name": "version_epoch_header",
+                "go_name": "VersionEpochHeader",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-version-epoch",
+                "comment": "VersionEpochHeader is a header name to extract Publication version epoch from Kafka message.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].kafka.publication_data_mode.tags_header_prefix",
+                "name": "tags_header_prefix",
+                "go_name": "TagsHeaderPrefix",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-tag-",
+                "comment": "TagsHeaderPrefix is a prefix for headers that contain tags to attach to Publication.",
+                "is_complex_type": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "field": "consumers[].nats_jetstream",
+        "name": "nats_jetstream",
+        "go_name": "NatsJetStream",
+        "level": 2,
+        "type": "NatsJetStreamConsumerConfig",
+        "default": "",
+        "comment": "NatsJetStream allows defining options for consumer of nats_jetstream type.",
+        "is_complex_type": true,
+        "children": [
+          {
+            "field": "consumers[].nats_jetstream.url",
+            "name": "url",
+            "go_name": "URL",
+            "level": 3,
+            "type": "string",
+            "default": "nats://127.0.0.1:4222",
+            "comment": "URL is the address of the NATS server.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].nats_jetstream.credentials_file",
+            "name": "credentials_file",
+            "go_name": "CredentialsFile",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "CredentialsFile is the path to a NATS credentials file used for authentication (nats.UserCredentials).\nIf provided, it overrides username/password and token.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].nats_jetstream.username",
+            "name": "username",
+            "go_name": "Username",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "Username is used for basic authentication (along with Password) if CredentialsFile is not provided.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].nats_jetstream.password",
+            "name": "password",
+            "go_name": "Password",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "Password is used with Username for basic authentication.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].nats_jetstream.token",
+            "name": "token",
+            "go_name": "Token",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "Token is an alternative authentication mechanism if CredentialsFile and Username are not provided.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].nats_jetstream.subjects",
+            "name": "subjects",
+            "go_name": "Subjects",
+            "level": 3,
+            "type": "[]string",
+            "default": "",
+            "comment": "Subjects is the list of NATS subjects (topics) to subscribe to.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].nats_jetstream.durable_consumer_name",
+            "name": "durable_consumer_name",
+            "go_name": "DurableConsumerName",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "DurableConsumerName sets the name of the durable JetStream consumer to use.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].nats_jetstream.ordered",
+            "name": "ordered",
+            "go_name": "Ordered",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "Ordered enables JetStream's ordered consumer mode.\nIn this mode, only one consumer instance receives messages at a time, preserving exact order.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].nats_jetstream.method_header",
+            "name": "method_header",
+            "go_name": "MethodHeader",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MethodHeader is the NATS message header used to extract the method name for dispatching commands.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].nats_jetstream.publication_data_mode",
+            "name": "publication_data_mode",
+            "go_name": "PublicationDataMode",
+            "level": 3,
+            "type": "NatsJetStreamPublicationDataModeConfig",
+            "default": "",
+            "comment": "PublicationDataMode configures extraction of pre-formatted publication data from message headers.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "consumers[].nats_jetstream.publication_data_mode.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled toggles publication data mode.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].nats_jetstream.publication_data_mode.channels_header",
+                "name": "channels_header",
+                "go_name": "ChannelsHeader",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-channels",
+                "comment": "ChannelsHeader is the name of the header that contains comma-separated channel names.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].nats_jetstream.publication_data_mode.idempotency_key_header",
+                "name": "idempotency_key_header",
+                "go_name": "IdempotencyKeyHeader",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-idempotency-key",
+                "comment": "IdempotencyKeyHeader is the name of the header that contains an idempotency key for deduplication.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].nats_jetstream.publication_data_mode.delta_header",
+                "name": "delta_header",
+                "go_name": "DeltaHeader",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-delta",
+                "comment": "DeltaHeader is the name of the header indicating whether the message represents a delta (partial update).",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].nats_jetstream.publication_data_mode.version_header",
+                "name": "version_header",
+                "go_name": "VersionHeader",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-version",
+                "comment": "VersionHeader is the name of the header that contains the version of the message.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].nats_jetstream.publication_data_mode.version_epoch_header",
+                "name": "version_epoch_header",
+                "go_name": "VersionEpochHeader",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-version-epoch",
+                "comment": "VersionEpochHeader is the name of the header that contains the version epoch of the message.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].nats_jetstream.publication_data_mode.tags_header_prefix",
+                "name": "tags_header_prefix",
+                "go_name": "TagsHeaderPrefix",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-tag-",
+                "comment": "TagsHeaderPrefix is the prefix used to extract dynamic tags from message headers.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "consumers[].nats_jetstream.tls",
+            "name": "tls",
+            "go_name": "TLS",
+            "level": 3,
+            "type": "TLSConfig",
+            "default": "",
+            "comment": "TLS is the configuration for TLS.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "consumers[].nats_jetstream.tls.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled turns on using TLS.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].nats_jetstream.tls.cert_pem",
+                "name": "cert_pem",
+                "go_name": "CertPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "CertPem is a PEM certificate.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].nats_jetstream.tls.key_pem",
+                "name": "key_pem",
+                "go_name": "KeyPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "KeyPem is a path to a file with key in PEM format.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].nats_jetstream.tls.server_ca_pem",
+                "name": "server_ca_pem",
+                "go_name": "ServerCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].nats_jetstream.tls.client_ca_pem",
+                "name": "client_ca_pem",
+                "go_name": "ClientCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].nats_jetstream.tls.insecure_skip_verify",
+                "name": "insecure_skip_verify",
+                "go_name": "InsecureSkipVerify",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "InsecureSkipVerify turns off server certificate verification.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].nats_jetstream.tls.server_name",
+                "name": "server_name",
+                "go_name": "ServerName",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                "is_complex_type": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "field": "consumers[].redis_stream",
+        "name": "redis_stream",
+        "go_name": "RedisStream",
+        "level": 2,
+        "type": "RedisStreamConsumerConfig",
+        "default": "",
+        "comment": "RedisStream allows defining options for consumer of redis_stream type.",
+        "is_complex_type": true,
+        "children": [
+          {
+            "field": "consumers[].redis_stream.address",
+            "name": "address",
+            "go_name": "Address",
+            "level": 3,
+            "type": "[]string",
+            "default": "redis://127.0.0.1:6379",
+            "comment": "Address is a list of Redis shard addresses. In most cases a single shard is used. But when many\naddresses provided Centrifugo will distribute keys between shards using consistent hashing.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.prefix",
+            "name": "prefix",
+            "go_name": "Prefix",
+            "level": 3,
+            "type": "string",
+            "default": "centrifugo",
+            "comment": "Prefix for all Redis keys and channels.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.connect_timeout",
+            "name": "connect_timeout",
+            "go_name": "ConnectTimeout",
+            "level": 3,
+            "type": "Duration",
+            "default": "1s",
+            "comment": "ConnectTimeout is a timeout for establishing connection to Redis.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.io_timeout",
+            "name": "io_timeout",
+            "go_name": "IOTimeout",
+            "level": 3,
+            "type": "Duration",
+            "default": "4s",
+            "comment": "IOTimeout is a timeout for all read/write operations against Redis (can be considered as a request timeout).",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.db",
+            "name": "db",
+            "go_name": "DB",
+            "level": 3,
+            "type": "int",
+            "default": "0",
+            "comment": "DB is a Redis database to use. Generally it's not recommended to use non-zero DB. Note, that Redis\nPUB/SUB is global for all databases in a single Redis instance. So when using non-zero DB make sure\nthat different Centrifugo setups use different prefixes.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.user",
+            "name": "user",
+            "go_name": "User",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "User is a Redis user.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.password",
+            "name": "password",
+            "go_name": "Password",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "Password is a Redis password.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.client_name",
+            "name": "client_name",
+            "go_name": "ClientName",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "ClientName allows changing a Redis client name used when connecting.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.force_resp2",
+            "name": "force_resp2",
+            "go_name": "ForceResp2",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "ForceResp2 forces use of Redis Resp2 protocol for communication.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.cluster_address",
+            "name": "cluster_address",
+            "go_name": "ClusterAddress",
+            "level": 3,
+            "type": "[]string",
+            "default": "",
+            "comment": "ClusterAddress is a list of Redis cluster addresses. When several provided - data will be sharded\nbetween them using consistent hashing. Several Cluster addresses within one shard may be passed\ncomma-separated.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.tls",
+            "name": "tls",
+            "go_name": "TLS",
+            "level": 3,
+            "type": "TLSConfig",
+            "default": "",
+            "comment": "TLS is a configuration for Redis TLS support.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "consumers[].redis_stream.tls.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled turns on using TLS.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.tls.cert_pem",
+                "name": "cert_pem",
+                "go_name": "CertPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "CertPem is a PEM certificate.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.tls.key_pem",
+                "name": "key_pem",
+                "go_name": "KeyPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "KeyPem is a path to a file with key in PEM format.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.tls.server_ca_pem",
+                "name": "server_ca_pem",
+                "go_name": "ServerCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.tls.client_ca_pem",
+                "name": "client_ca_pem",
+                "go_name": "ClientCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.tls.insecure_skip_verify",
+                "name": "insecure_skip_verify",
+                "go_name": "InsecureSkipVerify",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "InsecureSkipVerify turns off server certificate verification.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.tls.server_name",
+                "name": "server_name",
+                "go_name": "ServerName",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "consumers[].redis_stream.sentinel_address",
+            "name": "sentinel_address",
+            "go_name": "SentinelAddress",
+            "level": 3,
+            "type": "[]string",
+            "default": "",
+            "comment": "SentinelAddress allows setting Redis Sentinel addresses. When provided - Sentinel will be used.\nWhen multiple addresses provided - data will be sharded between them using consistent hashing.\nSeveral Sentinel addresses within one shard may be passed comma-separated.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.sentinel_user",
+            "name": "sentinel_user",
+            "go_name": "SentinelUser",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "SentinelUser is a Redis Sentinel user.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.sentinel_password",
+            "name": "sentinel_password",
+            "go_name": "SentinelPassword",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "SentinelPassword is a Redis Sentinel password.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.sentinel_master_name",
+            "name": "sentinel_master_name",
+            "go_name": "SentinelMasterName",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "SentinelMasterName is a Redis master name in Sentinel setup.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.sentinel_client_name",
+            "name": "sentinel_client_name",
+            "go_name": "SentinelClientName",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "SentinelClientName is a Redis Sentinel client name used when connecting.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.sentinel_tls",
+            "name": "sentinel_tls",
+            "go_name": "SentinelTLS",
+            "level": 3,
+            "type": "TLSConfig",
+            "default": "",
+            "comment": "SentinelTLS is a configuration for Redis Sentinel TLS support.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "consumers[].redis_stream.sentinel_tls.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled turns on using TLS.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.sentinel_tls.cert_pem",
+                "name": "cert_pem",
+                "go_name": "CertPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "CertPem is a PEM certificate.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.sentinel_tls.key_pem",
+                "name": "key_pem",
+                "go_name": "KeyPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "KeyPem is a path to a file with key in PEM format.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.sentinel_tls.server_ca_pem",
+                "name": "server_ca_pem",
+                "go_name": "ServerCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.sentinel_tls.client_ca_pem",
+                "name": "client_ca_pem",
+                "go_name": "ClientCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.sentinel_tls.insecure_skip_verify",
+                "name": "insecure_skip_verify",
+                "go_name": "InsecureSkipVerify",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "InsecureSkipVerify turns off server certificate verification.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.sentinel_tls.server_name",
+                "name": "server_name",
+                "go_name": "ServerName",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "consumers[].redis_stream.replica_client",
+            "name": "replica_client",
+            "go_name": "ReplicaClient",
+            "level": 3,
+            "type": "RedisReplicaClient",
+            "default": "",
+            "comment": "ReplicaClient is a configuration fot Redis replica client.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "consumers[].redis_stream.replica_client.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled enables replica client.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "consumers[].redis_stream.streams",
+            "name": "streams",
+            "go_name": "Streams",
+            "level": 3,
+            "type": "[]string",
+            "default": "",
+            "comment": "Streams to consume.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.consumer_group",
+            "name": "consumer_group",
+            "go_name": "ConsumerGroup",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "ConsumerGroup name to use.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.visibility_timeout",
+            "name": "visibility_timeout",
+            "go_name": "VisibilityTimeout",
+            "level": 3,
+            "type": "Duration",
+            "default": "30s",
+            "comment": "VisibilityTimeout is the time to wait for a message to be processed before it is re-queued.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.num_workers",
+            "name": "num_workers",
+            "go_name": "NumWorkers",
+            "level": 3,
+            "type": "int",
+            "default": "1",
+            "comment": "NumWorkers is the number of message workers to use for processing for each stream.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.payload_value",
+            "name": "payload_value",
+            "go_name": "PayloadValue",
+            "level": 3,
+            "type": "string",
+            "default": "payload",
+            "comment": "PayloadValue is used to extract data from Redis Stream message.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.method_value",
+            "name": "method_value",
+            "go_name": "MethodValue",
+            "level": 3,
+            "type": "string",
+            "default": "method",
+            "comment": "MethodValue is used to extract a method for command messages.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].redis_stream.publication_data_mode",
+            "name": "publication_data_mode",
+            "go_name": "PublicationDataMode",
+            "level": 3,
+            "type": "RedisStreamPublicationDataModeConfig",
+            "default": "",
+            "comment": "PublicationDataMode configures publication data mode.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "consumers[].redis_stream.publication_data_mode.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled toggles publication data mode.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.publication_data_mode.channels_value",
+                "name": "channels_value",
+                "go_name": "ChannelsValue",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-channels",
+                "comment": "ChannelsValue is used to extract channels to publish data into (channels must be comma-separated).",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.publication_data_mode.idempotency_key_value",
+                "name": "idempotency_key_value",
+                "go_name": "IdempotencyKeyValue",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-idempotency-key",
+                "comment": "IdempotencyKeyValue is used to extract Publication idempotency key from Redis Stream message.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.publication_data_mode.delta_value",
+                "name": "delta_value",
+                "go_name": "DeltaValue",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-delta",
+                "comment": "DeltaValue is used to extract Publication delta flag from Redis Stream message.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.publication_data_mode.version_value",
+                "name": "version_value",
+                "go_name": "VersionValue",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-version",
+                "comment": "VersionValue is used to extract Publication version from Redis Stream message.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.publication_data_mode.version_epoch_value",
+                "name": "version_epoch_value",
+                "go_name": "VersionEpochValue",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-version-epoch",
+                "comment": "VersionEpochValue is used to extract Publication version epoch from Redis Stream message.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].redis_stream.publication_data_mode.tags_value_prefix",
+                "name": "tags_value_prefix",
+                "go_name": "TagsValuePrefix",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-tag-",
+                "comment": "TagsValuePrefix is used to extract Publication tags from Redis Stream message.",
+                "is_complex_type": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "field": "consumers[].google_pub_sub",
+        "name": "google_pub_sub",
+        "go_name": "GooglePubSub",
+        "level": 2,
+        "type": "GooglePubSubConsumerConfig",
+        "default": "",
+        "comment": "GooglePubSub allows defining options for consumer of google_pub_sub type.",
+        "is_complex_type": true,
+        "children": [
+          {
+            "field": "consumers[].google_pub_sub.project_id",
+            "name": "project_id",
+            "go_name": "ProjectID",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "Google Cloud project ID.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].google_pub_sub.subscriptions",
+            "name": "subscriptions",
+            "go_name": "Subscriptions",
+            "level": 3,
+            "type": "[]string",
+            "default": "",
+            "comment": "Subscriptions is the list of Pub/Sub subscription ids to consume from.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].google_pub_sub.max_outstanding_messages",
+            "name": "max_outstanding_messages",
+            "go_name": "MaxOutstandingMessages",
+            "level": 3,
+            "type": "int",
+            "default": "100",
+            "comment": "MaxOutstandingMessages controls the maximum number of unprocessed messages.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].google_pub_sub.max_outstanding_bytes",
+            "name": "max_outstanding_bytes",
+            "go_name": "MaxOutstandingBytes",
+            "level": 3,
+            "type": "int",
+            "default": "1000000",
+            "comment": "MaxOutstandingBytes controls the maximum number of unprocessed bytes.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].google_pub_sub.auth_mechanism",
+            "name": "auth_mechanism",
+            "go_name": "AuthMechanism",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "AuthMechanism specifies which authentication mechanism to use:\n\"default\", \"service_account\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].google_pub_sub.credentials_file",
+            "name": "credentials_file",
+            "go_name": "CredentialsFile",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "CredentialsFile is the path to the service account JSON file if required.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].google_pub_sub.method_attribute",
+            "name": "method_attribute",
+            "go_name": "MethodAttribute",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MethodAttribute is an attribute name to extract a method name from the message.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].google_pub_sub.publication_data_mode",
+            "name": "publication_data_mode",
+            "go_name": "PublicationDataMode",
+            "level": 3,
+            "type": "GooglePubSubPublicationDataModeConfig",
+            "default": "",
+            "comment": "PublicationDataMode holds settings for the mode where message payload already contains data\nready to publish into channels.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "consumers[].google_pub_sub.publication_data_mode.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled enables publication data mode.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].google_pub_sub.publication_data_mode.channels_attribute",
+                "name": "channels_attribute",
+                "go_name": "ChannelsAttribute",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-channels",
+                "comment": "ChannelsAttribute is the attribute name containing comma-separated channel names.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].google_pub_sub.publication_data_mode.idempotency_key_attribute",
+                "name": "idempotency_key_attribute",
+                "go_name": "IdempotencyKeyAttribute",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-idempotency-key",
+                "comment": "IdempotencyKeyAttribute is the attribute name for an idempotency key.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].google_pub_sub.publication_data_mode.delta_attribute",
+                "name": "delta_attribute",
+                "go_name": "DeltaAttribute",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-delta",
+                "comment": "DeltaAttribute is the attribute name for a delta flag.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].google_pub_sub.publication_data_mode.version_attribute",
+                "name": "version_attribute",
+                "go_name": "VersionAttribute",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-version",
+                "comment": "VersionAttribute is the attribute name for a version.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].google_pub_sub.publication_data_mode.version_epoch_attribute",
+                "name": "version_epoch_attribute",
+                "go_name": "VersionEpochAttribute",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-version-epoch",
+                "comment": "VersionEpochAttribute is the attribute name for a version epoch.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].google_pub_sub.publication_data_mode.tags_attribute_prefix",
+                "name": "tags_attribute_prefix",
+                "go_name": "TagsAttributePrefix",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-tag-",
+                "comment": "TagsAttributePrefix is the prefix for attributes containing tags.",
+                "is_complex_type": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "field": "consumers[].aws_sqs",
+        "name": "aws_sqs",
+        "go_name": "AwsSqs",
+        "level": 2,
+        "type": "AwsSqsConsumerConfig",
+        "default": "",
+        "comment": "AwsSqs allows defining options for consumer of aws_sqs type.",
+        "is_complex_type": true,
+        "children": [
+          {
+            "field": "consumers[].aws_sqs.queues",
+            "name": "queues",
+            "go_name": "Queues",
+            "level": 3,
+            "type": "[]string",
+            "default": "",
+            "comment": "Queues is a list of SQS queue URLs to consume.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].aws_sqs.sns_envelope",
+            "name": "sns_envelope",
+            "go_name": "SNSEnvelope",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "SNSEnvelope, when true, expects messages to be wrapped in an SNS envelope – this is required when\nconsuming from SNS topics with SQS subscriptions.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].aws_sqs.region",
+            "name": "region",
+            "go_name": "Region",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "Region is the AWS region.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].aws_sqs.max_number_of_messages",
+            "name": "max_number_of_messages",
+            "go_name": "MaxNumberOfMessages",
+            "level": 3,
+            "type": "int32",
+            "default": "10",
+            "comment": "MaxNumberOfMessages is the maximum number of messages to receive per poll.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].aws_sqs.wait_time_time",
+            "name": "wait_time_time",
+            "go_name": "PollWaitTime",
+            "level": 3,
+            "type": "Duration",
+            "default": "20s",
+            "comment": "PollWaitTime is the long-poll wait time. Rounded to seconds internally.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].aws_sqs.visibility_timeout",
+            "name": "visibility_timeout",
+            "go_name": "VisibilityTimeout",
+            "level": 3,
+            "type": "Duration",
+            "default": "30s",
+            "comment": "VisibilityTimeout is the time a message is hidden from other consumers. Rounded to seconds internally.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].aws_sqs.max_concurrency",
+            "name": "max_concurrency",
+            "go_name": "MaxConcurrency",
+            "level": 3,
+            "type": "int",
+            "default": "1",
+            "comment": "MaxConcurrency defines max concurrency during message batch processing.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].aws_sqs.credentials_profile",
+            "name": "credentials_profile",
+            "go_name": "CredentialsProfile",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "CredentialsProfile is a shared credentials profile to use.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].aws_sqs.assume_role_arn",
+            "name": "assume_role_arn",
+            "go_name": "AssumeRoleARN",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "AssumeRoleARN, if provided, will cause the consumer to assume the given IAM role.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].aws_sqs.method_attribute",
+            "name": "method_attribute",
+            "go_name": "MethodAttribute",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MethodAttribute is the attribute name to extract a method for command messages.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].aws_sqs.localstack_endpoint",
+            "name": "localstack_endpoint",
+            "go_name": "LocalStackEndpoint",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "LocalStackEndpoint if set enables using localstack with provided URL.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].aws_sqs.publication_data_mode",
+            "name": "publication_data_mode",
+            "go_name": "PublicationDataMode",
+            "level": 3,
+            "type": "AWSPublicationDataModeConfig",
+            "default": "",
+            "comment": "PublicationDataMode holds settings for the mode where message payload already contains data\nready to publish into channels.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "consumers[].aws_sqs.publication_data_mode.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled enables publication data mode.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].aws_sqs.publication_data_mode.channels_attribute",
+                "name": "channels_attribute",
+                "go_name": "ChannelsAttribute",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-channels",
+                "comment": "ChannelsAttribute is the attribute name containing comma-separated channel names.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].aws_sqs.publication_data_mode.idempotency_key_attribute",
+                "name": "idempotency_key_attribute",
+                "go_name": "IdempotencyKeyAttribute",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-idempotency-key",
+                "comment": "IdempotencyKeyAttribute is the attribute name for an idempotency key.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].aws_sqs.publication_data_mode.delta_attribute",
+                "name": "delta_attribute",
+                "go_name": "DeltaAttribute",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-delta",
+                "comment": "DeltaAttribute is the attribute name for a delta flag.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].aws_sqs.publication_data_mode.version_attribute",
+                "name": "version_attribute",
+                "go_name": "VersionAttribute",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-version",
+                "comment": "VersionAttribute is the attribute name for a version of publication.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].aws_sqs.publication_data_mode.version_epoch_attribute",
+                "name": "version_epoch_attribute",
+                "go_name": "VersionEpochAttribute",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-version-epoch",
+                "comment": "VersionEpochAttribute is the attribute name for a version epoch of publication.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].aws_sqs.publication_data_mode.tags_attribute_prefix",
+                "name": "tags_attribute_prefix",
+                "go_name": "TagsAttributePrefix",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-tag-",
+                "comment": "TagsAttributePrefix is the prefix for attributes containing tags.",
+                "is_complex_type": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "field": "consumers[].azure_service_bus",
+        "name": "azure_service_bus",
+        "go_name": "AzureServiceBus",
+        "level": 2,
+        "type": "AzureServiceBusConsumerConfig",
+        "default": "",
+        "comment": "AzureServiceBus allows defining options for consumer of azure_service_bus type.",
+        "is_complex_type": true,
+        "children": [
+          {
+            "field": "consumers[].azure_service_bus.connection_string",
+            "name": "connection_string",
+            "go_name": "ConnectionString",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "ConnectionString is the full connection string used for connection-string–based authentication.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].azure_service_bus.use_azure_identity",
+            "name": "use_azure_identity",
+            "go_name": "UseAzureIdentity",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "UseAzureIdentity toggles Azure Identity (AAD) authentication instead of connection strings.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].azure_service_bus.fully_qualified_namespace",
+            "name": "fully_qualified_namespace",
+            "go_name": "FullyQualifiedNamespace",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "FullyQualifiedNamespace is the Service Bus namespace, e.g. \"your-namespace.servicebus.windows.net\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].azure_service_bus.tenant_id",
+            "name": "tenant_id",
+            "go_name": "TenantID",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "TenantID is the Azure Active Directory tenant ID used with Azure Identity.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].azure_service_bus.client_id",
+            "name": "client_id",
+            "go_name": "ClientID",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "ClientID is the Azure AD application (client) ID used for authentication.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].azure_service_bus.client_secret",
+            "name": "client_secret",
+            "go_name": "ClientSecret",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "ClientSecret is the secret associated with the Azure AD application.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].azure_service_bus.queues",
+            "name": "queues",
+            "go_name": "Queues",
+            "level": 3,
+            "type": "[]string",
+            "default": "",
+            "comment": "Queues is the list of the Azure Service Bus queues to consume from.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].azure_service_bus.use_sessions",
+            "name": "use_sessions",
+            "go_name": "UseSessions",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "UseSessions enables session-aware message handling.\nAll messages must include a SessionID; messages within the same session will be processed in order.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].azure_service_bus.max_concurrent_calls",
+            "name": "max_concurrent_calls",
+            "go_name": "MaxConcurrentCalls",
+            "level": 3,
+            "type": "int",
+            "default": "1",
+            "comment": "MaxConcurrentCalls controls the maximum number of messages processed concurrently.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].azure_service_bus.max_receive_messages",
+            "name": "max_receive_messages",
+            "go_name": "MaxReceiveMessages",
+            "level": 3,
+            "type": "int",
+            "default": "1",
+            "comment": "MaxReceiveMessages sets the batch size when receiving messages from the queue.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].azure_service_bus.method_property",
+            "name": "method_property",
+            "go_name": "MethodProperty",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MethodProperty is the name of the message property used to extract the method (for API command).",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].azure_service_bus.publication_data_mode",
+            "name": "publication_data_mode",
+            "go_name": "PublicationDataMode",
+            "level": 3,
+            "type": "AzureServiceBusPublicationDataModeConfig",
+            "default": "",
+            "comment": "PublicationDataMode configures how structured publication-ready data is extracted from the message.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "consumers[].azure_service_bus.publication_data_mode.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled toggles the publication data mode.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].azure_service_bus.publication_data_mode.channels_property",
+                "name": "channels_property",
+                "go_name": "ChannelsProperty",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-channels",
+                "comment": "ChannelsProperty is the name of the message property that contains the list of target channels.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].azure_service_bus.publication_data_mode.idempotency_key_property",
+                "name": "idempotency_key_property",
+                "go_name": "IdempotencyKeyProperty",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-idempotency-key",
+                "comment": "IdempotencyKeyProperty is the property that holds an idempotency key for deduplication.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].azure_service_bus.publication_data_mode.delta_property",
+                "name": "delta_property",
+                "go_name": "DeltaProperty",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-delta",
+                "comment": "DeltaProperty is the property that represents changes or deltas in the payload.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].azure_service_bus.publication_data_mode.version_property",
+                "name": "version_property",
+                "go_name": "VersionProperty",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-version",
+                "comment": "VersionProperty is the property that holds the version of the message.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].azure_service_bus.publication_data_mode.version_epoch_property",
+                "name": "version_epoch_property",
+                "go_name": "VersionEpochProperty",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-version-epoch",
+                "comment": "VersionEpochProperty is the property that holds the version epoch of the message.",
+                "is_complex_type": false
+              },
+              {
+                "field": "consumers[].azure_service_bus.publication_data_mode.tags_property_prefix",
+                "name": "tags_property_prefix",
+                "go_name": "TagsPropertyPrefix",
+                "level": 4,
+                "type": "string",
+                "default": "centrifugo-tag-",
+                "comment": "TagsPropertyPrefix defines the prefix used to extract dynamic tags from message properties.",
                 "is_complex_type": false
               }
             ]
