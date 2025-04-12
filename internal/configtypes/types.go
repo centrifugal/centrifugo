@@ -830,7 +830,9 @@ type NatsJetStreamConsumerConfig struct {
 	Password string `mapstructure:"password" json:"password" toml:"password" yaml:"password"`
 	// Token is an alternative authentication mechanism if CredentialsFile and Username are not provided.
 	Token string `mapstructure:"token" json:"token" toml:"token" yaml:"token"`
-	// Subjects is the list of NATS subjects (topics) to subscribe to.
+	// StreamName is the name of the NATS JetStream stream to use.
+	StreamName string `mapstructure:"stream_name" json:"stream_name" toml:"stream_name" yaml:"stream_name"`
+	// Subjects is the list of NATS subjects (topics) to filter.
 	Subjects []string `mapstructure:"subjects" json:"subjects" toml:"subjects" yaml:"subjects"`
 	// DurableConsumerName sets the name of the durable JetStream consumer to use.
 	DurableConsumerName string `mapstructure:"durable_consumer_name" json:"durable_consumer_name" toml:"durable_consumer_name" yaml:"durable_consumer_name"`
@@ -868,11 +870,14 @@ func (cfg NatsJetStreamConsumerConfig) Validate() error {
 	if cfg.URL == "" {
 		return errors.New("url is required")
 	}
-	if len(cfg.Subjects) == 0 {
-		return errors.New("subjects can't be empty")
+	if cfg.StreamName == "" {
+		return errors.New("stream_name is required")
 	}
-	if cfg.DurableConsumerName == "" {
-		return errors.New("durable is required")
+	if cfg.Ordered && cfg.DurableConsumerName != "" {
+		return errors.New("durable_consumer_name can't be used for ordered consumer")
+	}
+	if !cfg.Ordered && cfg.DurableConsumerName == "" {
+		return errors.New("durable_consumer_name is required for unordered consumer")
 	}
 	if cfg.PublicationDataMode.Enabled && cfg.PublicationDataMode.ChannelsHeader == "" {
 		return errors.New("channels_header is required for publication data mode")

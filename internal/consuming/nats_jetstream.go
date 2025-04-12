@@ -5,26 +5,29 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
 
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
+	"github.com/rs/zerolog"
 )
 
 type NatsJetStreamConsumerConfig = configtypes.NatsJetStreamConsumerConfig
 
 // NatsJetStreamConsumer consumes messages from NATS JetStream.
 type NatsJetStreamConsumer struct {
-	name       string
-	config     NatsJetStreamConsumerConfig
-	dispatcher Dispatcher
-	nc         *nats.Conn
-	js         nats.JetStreamContext
-	subs       []*nats.Subscription
-	ctx        context.Context
-	common     *consumerCommon
+	name         string
+	config       NatsJetStreamConsumerConfig
+	dispatcher   Dispatcher
+	nc           *nats.Conn
+	consumer     jetstream.Consumer
+	ctx          context.Context
+	common       *consumerCommon
+	eventHandler *natsEventHandler
 }
 
 // NewNatsJetStreamConsumer creates a new NatsJetStreamConsumer.
@@ -36,9 +39,15 @@ func NewNatsJetStreamConsumer(
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
-
-	// Prepare NATS connection options for authentication.
-	var opts []nats.Option
+	eventHandler := &natsEventHandler{
+		log: common.log,
+	}
+	opts := []nats.Option{
+		nats.MaxReconnects(-1),
+		nats.ConnectHandler(eventHandler.connectHandler()),
+		nats.ReconnectHandler(eventHandler.reconnectHandler()),
+		nats.DisconnectErrHandler(eventHandler.disconnectHandler()),
+	}
 	switch {
 	case cfg.CredentialsFile != "":
 		opts = append(opts, nats.UserCredentials(cfg.CredentialsFile))
@@ -55,43 +64,61 @@ func NewNatsJetStreamConsumer(
 		opts = append(opts, nats.Secure(tlsConfig))
 	}
 
-	// Connect to NATS.
 	nc, err := nats.Connect(cfg.URL, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to NATS: %w", err)
 	}
 
-	// Create a JetStream context.
-	js, err := nc.JetStream()
+	js, err := jetstream.New(nc)
 	if err != nil {
 		nc.Close()
 		return nil, fmt.Errorf("failed to create JetStream context: %w", err)
 	}
 
-	consumer := &NatsJetStreamConsumer{
-		config:     cfg,
-		dispatcher: dispatcher,
-		nc:         nc,
-		js:         js,
-		common:     common,
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	var consumer jetstream.Consumer
+	if cfg.Ordered {
+		consumer, err = js.OrderedConsumer(ctx, cfg.StreamName, jetstream.OrderedConsumerConfig{
+			FilterSubjects: cfg.Subjects,
+			DeliverPolicy:  jetstream.DeliverNewPolicy,
+		})
+	} else {
+		consumer, err = js.CreateOrUpdateConsumer(ctx, cfg.StreamName, jetstream.ConsumerConfig{
+			FilterSubjects: cfg.Subjects,
+			Durable:        cfg.DurableConsumerName,
+			DeliverPolicy:  jetstream.DeliverNewPolicy,
+			AckWait:        30 * time.Second,
+		})
 	}
-	return consumer, nil
+	if err != nil {
+		nc.Close()
+		return nil, fmt.Errorf("failed to create JetStream consumer: %w", err)
+	}
+
+	return &NatsJetStreamConsumer{
+		config:       cfg,
+		dispatcher:   dispatcher,
+		nc:           nc,
+		consumer:     consumer,
+		common:       common,
+		eventHandler: eventHandler,
+	}, nil
 }
 
 // msgHandler is the callback for incoming JetStream messages.
-func (c *NatsJetStreamConsumer) msgHandler(msg *nats.Msg) {
+func (c *NatsJetStreamConsumer) msgHandler(msg jetstream.Msg) {
 	if logging.Enabled(logging.DebugLevel) {
-		c.common.log.Debug().Str("subject", msg.Subject).
-			Msg("received message from subject")
+		c.common.log.Debug().Str("subject", msg.Subject()).Msg("received message from subject")
 	}
+	fmt.Println(string(msg.Data()))
 
-	data := msg.Data
 	var processErr error
 
 	if c.config.PublicationDataMode.Enabled {
-		processErr = c.processPublicationDataMessage(msg, data)
+		processErr = c.processPublicationDataMessage(msg)
 	} else {
-		processErr = c.processCommandMessage(msg, data)
+		processErr = c.processCommandMessage(msg)
 	}
 
 	if processErr == nil {
@@ -110,7 +137,7 @@ func (c *NatsJetStreamConsumer) msgHandler(msg *nats.Msg) {
 }
 
 // processPublicationDataMessage processes a message in publication data mode.
-func (c *NatsJetStreamConsumer) processPublicationDataMessage(msg *nats.Msg, data []byte) error {
+func (c *NatsJetStreamConsumer) processPublicationDataMessage(msg jetstream.Msg) error {
 	idempotencyKey := getNatsHeaderValue(msg, c.config.PublicationDataMode.IdempotencyKeyHeader)
 	delta, err := getNatsBoolHeaderValue(msg, c.config.PublicationDataMode.DeltaHeader)
 	if err != nil {
@@ -129,7 +156,7 @@ func (c *NatsJetStreamConsumer) processPublicationDataMessage(msg *nats.Msg, dat
 		return nil
 	}
 	return c.dispatcher.DispatchPublication(c.ctx, channels, api.ConsumedPublication{
-		Data:           data,
+		Data:           msg.Data(),
 		IdempotencyKey: idempotencyKey,
 		Delta:          delta,
 		Tags:           tags,
@@ -138,17 +165,16 @@ func (c *NatsJetStreamConsumer) processPublicationDataMessage(msg *nats.Msg, dat
 	})
 }
 
-// processCommandMessage processes a message in command mode.
-func (c *NatsJetStreamConsumer) processCommandMessage(msg *nats.Msg, data []byte) error {
+func (c *NatsJetStreamConsumer) processCommandMessage(msg jetstream.Msg) error {
 	method := getNatsHeaderValue(msg, c.config.MethodHeader)
-	return c.dispatcher.DispatchCommand(c.ctx, method, data)
+	return c.dispatcher.DispatchCommand(c.ctx, method, msg.Data())
 }
 
-func getNatsUint64HeaderValue(msg *nats.Msg, key string) (uint64, error) {
+func getNatsUint64HeaderValue(msg jetstream.Msg, key string) (uint64, error) {
 	if key == "" {
 		return 0, nil
 	}
-	val := msg.Header.Get(key)
+	val := msg.Headers().Get(key)
 	if val == "" {
 		return 0, nil
 	}
@@ -159,11 +185,11 @@ func getNatsUint64HeaderValue(msg *nats.Msg, key string) (uint64, error) {
 	return i, nil
 }
 
-func getNatsBoolHeaderValue(msg *nats.Msg, key string) (bool, error) {
+func getNatsBoolHeaderValue(msg jetstream.Msg, key string) (bool, error) {
 	if key == "" {
 		return false, nil
 	}
-	val := msg.Header.Get(key)
+	val := msg.Headers().Get(key)
 	if val == "" {
 		return false, nil
 	}
@@ -175,20 +201,20 @@ func getNatsBoolHeaderValue(msg *nats.Msg, key string) (bool, error) {
 }
 
 // getNatsHeaderValue retrieves a header value from the NATS message.
-func getNatsHeaderValue(msg *nats.Msg, key string) string {
+func getNatsHeaderValue(msg jetstream.Msg, key string) string {
 	if key == "" {
 		return ""
 	}
-	return msg.Header.Get(key)
+	return msg.Headers().Get(key)
 }
 
 // publicationTagsFromNatsHeaders extracts tags from message headers using the given prefix.
-func publicationTagsFromNatsHeaders(msg *nats.Msg, prefix string) map[string]string {
+func publicationTagsFromNatsHeaders(msg jetstream.Msg, prefix string) map[string]string {
 	var tags map[string]string
 	if prefix == "" {
 		return tags
 	}
-	for key, vals := range msg.Header {
+	for key, vals := range msg.Headers() {
 		if strings.HasPrefix(key, prefix) && len(vals) > 0 {
 			if tags == nil {
 				tags = make(map[string]string)
@@ -203,31 +229,46 @@ func publicationTagsFromNatsHeaders(msg *nats.Msg, prefix string) map[string]str
 // When canceled, it unsubscribes and drains the connection.
 func (c *NatsJetStreamConsumer) Run(ctx context.Context) error {
 	c.ctx = ctx
-
-	subOpts := []nats.SubOpt{
-		nats.Durable(c.config.DurableConsumerName),
-		nats.ManualAck(),
-		nats.DeliverLastPerSubject(),
+	defer func() {
+		_ = c.nc.Drain()
+	}()
+	cc, err := c.consumer.Consume(
+		c.msgHandler,
+		jetstream.ConsumeErrHandler(c.eventHandler.errorHandler()),
+	)
+	if err != nil {
+		return err
 	}
-	if c.config.Ordered {
-		subOpts = append(subOpts, nats.OrderedConsumer())
-	}
-
-	for _, subject := range c.config.Subjects {
-		sub, err := c.js.Subscribe(subject, c.msgHandler, subOpts...)
-		if err != nil {
-			c.nc.Close()
-			return fmt.Errorf("failed to subscribe to subject %q: %w", subject, err)
-		}
-		c.subs = append(c.subs, sub)
-	}
-
+	defer cc.Stop()
 	// Block until context cancellation.
 	<-ctx.Done()
-
-	for _, sub := range c.subs {
-		_ = sub.Unsubscribe()
-	}
-	_ = c.nc.Drain()
 	return ctx.Err()
+}
+
+type natsEventHandler struct {
+	log zerolog.Logger
+}
+
+func (c *natsEventHandler) connectHandler() nats.ConnHandler {
+	return func(conn *nats.Conn) {
+		c.log.Info().Msg("connected")
+	}
+}
+
+func (c *natsEventHandler) reconnectHandler() nats.ConnHandler {
+	return func(conn *nats.Conn) {
+		c.log.Info().Msg("reconnected")
+	}
+}
+
+func (c *natsEventHandler) disconnectHandler() nats.ConnErrHandler {
+	return func(conn *nats.Conn, err error) {
+		c.log.Warn().Err(err).Msg("disconnected")
+	}
+}
+
+func (c *natsEventHandler) errorHandler() jetstream.ConsumeErrHandlerFunc {
+	return func(consumeCtx jetstream.ConsumeContext, err error) {
+		c.log.Error().Err(err).Msg("error during consuming")
+	}
 }
