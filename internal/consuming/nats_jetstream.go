@@ -14,41 +14,61 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
-	"github.com/rs/zerolog"
 )
 
+// NatsJetStreamConsumerConfig is an alias for our configuration type.
 type NatsJetStreamConsumerConfig = configtypes.NatsJetStreamConsumerConfig
 
 // NatsJetStreamConsumer consumes messages from NATS JetStream.
 type NatsJetStreamConsumer struct {
-	name         string
-	config       NatsJetStreamConsumerConfig
-	dispatcher   Dispatcher
-	nc           *nats.Conn
-	consumer     jetstream.Consumer
-	ctx          context.Context
-	common       *consumerCommon
-	eventHandler *natsEventHandler
+	name           string
+	config         NatsJetStreamConsumerConfig
+	dispatcher     Dispatcher
+	nc             *nats.Conn
+	consumer       jetstream.Consumer
+	ctx            context.Context
+	common         *consumerCommon
+	consumeContext jetstream.ConsumeContext
+	// recreateCh signals that the consumer should be re-created (e.g. on heartbeat loss).
+	recreateCh chan struct{}
 }
 
-// NewNatsJetStreamConsumer creates a new NatsJetStreamConsumer.
+// NewNatsJetStreamConsumer creates a new NatsJetStreamConsumer instance.
+// On startup if creating a consumer fails then an error is returned.
+// Later at runtime, if a heartbeat error occurs the consumer is re-created endlessly.
 func NewNatsJetStreamConsumer(
 	cfg NatsJetStreamConsumerConfig,
 	dispatcher Dispatcher,
 	common *consumerCommon,
 ) (*NatsJetStreamConsumer, error) {
+	// Validate configuration.
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
-	eventHandler := &natsEventHandler{
-		log: common.log,
+
+	// Allocate consumer instance early so that event callbacks can capture its pointer.
+	c := &NatsJetStreamConsumer{
+		config:     cfg,
+		dispatcher: dispatcher,
+		common:     common,
+		recreateCh: make(chan struct{}, 1), // buffered so duplicate signals are dropped
 	}
+
+	// Build connection options using callbacks defined as closures.
 	opts := []nats.Option{
 		nats.MaxReconnects(-1),
-		nats.ConnectHandler(eventHandler.connectHandler()),
-		nats.ReconnectHandler(eventHandler.reconnectHandler()),
-		nats.DisconnectErrHandler(eventHandler.disconnectHandler()),
+		nats.ConnectHandler(func(conn *nats.Conn) {
+			c.common.log.Info().Msg("connected")
+		}),
+		nats.ReconnectHandler(func(conn *nats.Conn) {
+			c.common.log.Info().Msg("reconnected")
+		}),
+		nats.DisconnectErrHandler(func(conn *nats.Conn, err error) {
+			c.common.log.Warn().Err(err).Msg("disconnected")
+		}),
 	}
+
+	// Set authentication options.
 	switch {
 	case cfg.CredentialsFile != "":
 		opts = append(opts, nats.UserCredentials(cfg.CredentialsFile))
@@ -57,6 +77,8 @@ func NewNatsJetStreamConsumer(
 	case cfg.Token != "":
 		opts = append(opts, nats.Token(cfg.Token))
 	}
+
+	// Setup TLS if enabled.
 	if cfg.TLS.Enabled {
 		tlsConfig, err := cfg.TLS.ToGoTLSConfig("nats_jetstream")
 		if err != nil {
@@ -65,46 +87,74 @@ func NewNatsJetStreamConsumer(
 		opts = append(opts, nats.Secure(tlsConfig))
 	}
 
+	// Create connection.
 	nc, err := nats.Connect(cfg.URL, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to NATS: %w", err)
 	}
+	c.nc = nc
 
-	js, err := jetstream.New(nc)
-	if err != nil {
-		nc.Close()
-		return nil, fmt.Errorf("failed to create JetStream context: %w", err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Create the initial JetStream consumer.
+	subCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	var consumer jetstream.Consumer
-	if cfg.Ordered {
-		consumer, err = js.OrderedConsumer(ctx, cfg.StreamName, jetstream.OrderedConsumerConfig{
-			FilterSubjects: cfg.Subjects,
-			DeliverPolicy:  jetstream.DeliverNewPolicy,
-		})
-	} else {
-		consumer, err = js.CreateOrUpdateConsumer(ctx, cfg.StreamName, jetstream.ConsumerConfig{
-			FilterSubjects: cfg.Subjects,
-			Durable:        cfg.DurableConsumerName,
-			DeliverPolicy:  jetstream.DeliverNewPolicy,
-			AckWait:        30 * time.Second,
-		})
-	}
+	jsConsumer, err := createJetStreamConsumer(nc, cfg, subCtx)
 	if err != nil {
 		nc.Close()
 		return nil, fmt.Errorf("failed to create JetStream consumer: %w", err)
 	}
+	c.consumer = jsConsumer
 
-	return &NatsJetStreamConsumer{
-		config:       cfg,
-		dispatcher:   dispatcher,
-		nc:           nc,
-		consumer:     consumer,
-		common:       common,
-		eventHandler: eventHandler,
-	}, nil
+	return c, nil
+}
+
+// createJetStreamConsumer is a helper (used both at startup and runtime)
+// to create a new JetStream consumer based on the configuration.
+func createJetStreamConsumer(nc *nats.Conn, cfg NatsJetStreamConsumerConfig, ctx context.Context) (jetstream.Consumer, error) {
+	js, err := jetstream.New(nc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create JetStream context: %w", err)
+	}
+	if cfg.Ordered {
+		return js.OrderedConsumer(ctx, cfg.StreamName, jetstream.OrderedConsumerConfig{
+			FilterSubjects: cfg.Subjects,
+			DeliverPolicy:  jetstream.DeliverNewPolicy,
+		})
+	}
+	return js.CreateOrUpdateConsumer(ctx, cfg.StreamName, jetstream.ConsumerConfig{
+		FilterSubjects: cfg.Subjects,
+		Durable:        cfg.DurableConsumerName,
+		DeliverPolicy:  jetstream.DeliverNewPolicy,
+		AckWait:        30 * time.Second,
+	})
+}
+
+// createJetStreamConsumer creates a new consumer using the instance's connection and config.
+// This method is used for runtime re-creation.
+func (c *NatsJetStreamConsumer) createJetStreamConsumer(ctx context.Context) (jetstream.Consumer, error) {
+	return createJetStreamConsumer(c.nc, c.config, ctx)
+}
+
+// startConsume calls Consume on the current consumer.
+func (c *NatsJetStreamConsumer) startConsume(ctx context.Context) error {
+	consumeContext, err := c.consumer.Consume(
+		c.msgHandler,
+		jetstream.ConsumeErrHandler(c.errorHandler()),
+		jetstream.PullHeartbeat(5*time.Second),
+	)
+	if err != nil {
+		return err
+	}
+	c.consumeContext = consumeContext
+	return nil
+}
+
+// triggerRecreation signals that the consumer should be re-created.
+func (c *NatsJetStreamConsumer) triggerRecreation() {
+	select {
+	case c.recreateCh <- struct{}{}:
+	default:
+		// already signaled, do nothing
+	}
 }
 
 // msgHandler is the callback for incoming JetStream messages.
@@ -112,10 +162,8 @@ func (c *NatsJetStreamConsumer) msgHandler(msg jetstream.Msg) {
 	if logging.Enabled(logging.DebugLevel) {
 		c.common.log.Debug().Str("subject", msg.Subject()).Msg("received message from subject")
 	}
-	fmt.Println(string(msg.Data()))
 
 	var processErr error
-
 	if c.config.PublicationDataMode.Enabled {
 		processErr = c.processPublicationDataMessage(msg)
 	} else {
@@ -166,6 +214,7 @@ func (c *NatsJetStreamConsumer) processPublicationDataMessage(msg jetstream.Msg)
 	})
 }
 
+// processCommandMessage processes a command message.
 func (c *NatsJetStreamConsumer) processCommandMessage(msg jetstream.Msg) error {
 	method := getNatsHeaderValue(msg, c.config.MethodHeader)
 	return c.dispatcher.DispatchCommand(c.ctx, method, msg.Data())
@@ -226,55 +275,78 @@ func publicationTagsFromNatsHeaders(msg jetstream.Msg, prefix string) map[string
 	return tags
 }
 
+// errorHandler returns a jetstream error handler that triggers recreation on heartbeat loss.
+func (c *NatsJetStreamConsumer) errorHandler() jetstream.ConsumeErrHandlerFunc {
+	return func(consumeCtx jetstream.ConsumeContext, err error) {
+		if errors.Is(err, jetstream.ErrNoHeartbeat) {
+			c.common.log.Warn().Msg("no heartbeat detected, triggering consumer recreation")
+			c.triggerRecreation()
+		}
+		c.common.log.Error().Err(err).Msg("error during consuming")
+	}
+}
+
 // Run starts the consumer and blocks until the context is canceled.
-// When canceled, it unsubscribes and drains the connection.
+// If a heartbeat error occurs then the consumer is re-created
+// and the consumeContext re-established with endless retries.
 func (c *NatsJetStreamConsumer) Run(ctx context.Context) error {
 	c.ctx = ctx
 	defer func() {
 		_ = c.nc.Drain()
 	}()
 
-	cc, err := c.consumer.Consume(
-		c.msgHandler,
-		jetstream.ConsumeErrHandler(c.eventHandler.errorHandler()),
-		jetstream.PullHeartbeat(5*time.Second),
-	)
-	if err != nil {
-		return err
-	}
-	defer cc.Stop()
-	// Block until context cancellation.
-	<-ctx.Done()
-	return ctx.Err()
-}
-
-type natsEventHandler struct {
-	log zerolog.Logger
-}
-
-func (c *natsEventHandler) connectHandler() nats.ConnHandler {
-	return func(conn *nats.Conn) {
-		c.log.Info().Msg("connected")
-	}
-}
-
-func (c *natsEventHandler) reconnectHandler() nats.ConnHandler {
-	return func(conn *nats.Conn) {
-		c.log.Info().Msg("reconnected")
-	}
-}
-
-func (c *natsEventHandler) disconnectHandler() nats.ConnErrHandler {
-	return func(conn *nats.Conn, err error) {
-		c.log.Warn().Err(err).Msg("disconnected")
-	}
-}
-
-func (c *natsEventHandler) errorHandler() jetstream.ConsumeErrHandlerFunc {
-	return func(consumeCtx jetstream.ConsumeContext, err error) {
-		if errors.Is(err, jetstream.ErrNoHeartbeat) {
-			c.log.Warn().Msg("no heartbeat!!!")
+	firstRun := true
+	for {
+		// For subsequent runs, attempt to recreate the consumer.
+		if !firstRun {
+			retries := 0
+			var backoffDuration time.Duration
+			for {
+				recreateCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+				newConsumer, err := c.createJetStreamConsumer(recreateCtx)
+				cancel()
+				if err == nil {
+					c.consumer = newConsumer
+					c.common.log.Info().Msg("consumer recreation succeeded")
+					break
+				}
+				backoffDuration = getNextBackoffDuration(backoffDuration, retries)
+				retries++
+				c.common.log.Error().Err(err).Str("delay", backoffDuration.String()).
+					Msg("failed to recreate consumer, retrying")
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(backoffDuration):
+				}
+			}
 		}
-		c.log.Error().Err(err).Msg("error during consuming")
+
+		// Start the consumeContext.
+		if err := c.startConsume(ctx); err != nil {
+			if firstRun {
+				return err // on initial startup, return error immediately
+			}
+			c.common.log.Error().Err(err).Msg("failed to start consumer consumeContext, retrying in 5 seconds")
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(5 * time.Second):
+			}
+			continue
+		}
+		firstRun = false
+
+		c.common.log.Info().Msg("consumer started, waiting for messages")
+		// Block until context cancellation or a recreation signal is received.
+		select {
+		case <-ctx.Done():
+			c.consumeContext.Stop()
+			return ctx.Err()
+		case <-c.recreateCh:
+			c.common.log.Info().Msg("recreating consumer due to heartbeat error")
+			c.consumeContext.Stop()
+			// Loop around to recreate the consumer and re-subscribe.
+		}
 	}
 }
