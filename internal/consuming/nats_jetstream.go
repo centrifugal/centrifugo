@@ -107,11 +107,17 @@ func createJetStreamConsumer(ctx context.Context, nc *nats.Conn, cfg NatsJetStre
 	if err != nil {
 		return nil, fmt.Errorf("failed to create JetStream context: %w", err)
 	}
+	deliverPolicy := jetstream.DeliverNewPolicy
+	if cfg.DeliverPolicy == "all" {
+		deliverPolicy = jetstream.DeliverAllPolicy
+	}
 	return js.CreateOrUpdateConsumer(ctx, cfg.StreamName, jetstream.ConsumerConfig{
-		FilterSubjects: cfg.Subjects,
+		Name:           cfg.DurableConsumerName,
 		Durable:        cfg.DurableConsumerName,
-		DeliverPolicy:  jetstream.DeliverNewPolicy,
+		FilterSubjects: cfg.Subjects,
+		DeliverPolicy:  deliverPolicy,
 		AckWait:        30 * time.Second,
+		MaxAckPending:  cfg.MaxAckPending,
 	})
 }
 
