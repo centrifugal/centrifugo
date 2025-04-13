@@ -88,15 +88,14 @@ func NewNatsJetStreamConsumer(
 	}
 	c.nc = nc
 
-	consumeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	createCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	jsConsumer, err := createJetStreamConsumer(consumeCtx, nc, cfg)
+	jsConsumer, err := createJetStreamConsumer(createCtx, nc, cfg)
 	if err != nil {
 		nc.Close()
 		return nil, fmt.Errorf("failed to create JetStream consumer: %w", err)
 	}
 	c.consumer = jsConsumer
-
 	return c, nil
 }
 
