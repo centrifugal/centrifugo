@@ -5,7 +5,6 @@ package consuming
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
@@ -15,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func testNatsJetStreamConsumer(t *testing.T, ordered bool) {
+func testNatsJetStreamConsumer(t *testing.T) {
 	url := "nats://localhost:4222"
 	subject := "test.subject" + uuid.NewString()
 	durableConsumerName := "test-durable-" + uuid.NewString()
@@ -56,17 +55,13 @@ func testNatsJetStreamConsumer(t *testing.T, ordered bool) {
 	}
 
 	cfg := NatsJetStreamConsumerConfig{
-		URL:          url,
-		StreamName:   streamName,
-		Subjects:     []string{subject},
-		Ordered:      ordered,
-		MethodHeader: "test-method", // This header key will be used to extract the command method.
+		URL:                 url,
+		StreamName:          streamName,
+		Subjects:            []string{subject},
+		DurableConsumerName: durableConsumerName,
+		MethodHeader:        "test-method", // This header key will be used to extract the command method.
 		// PublicationDataMode remains disabled for this test.
 	}
-	if !ordered {
-		cfg.DurableConsumerName = durableConsumerName
-	}
-	fmt.Println(ordered, cfg.DurableConsumerName)
 
 	consumer, err := NewNatsJetStreamConsumer(cfg, dispatcher, testCommon(prometheus.NewRegistry()))
 	if err != nil {
@@ -91,16 +86,14 @@ func testNatsJetStreamConsumer(t *testing.T, ordered bool) {
 
 func TestNatsJetStreamConsumer(t *testing.T) {
 	testCases := []struct {
-		name    string
-		ordered bool
+		name string
 	}{
-		{name: "unordered", ordered: false},
-		{name: "ordered", ordered: true},
+		{name: "green"},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			testNatsJetStreamConsumer(t, tc.ordered)
+			testNatsJetStreamConsumer(t)
 		})
 	}
 }

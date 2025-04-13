@@ -836,11 +836,6 @@ type NatsJetStreamConsumerConfig struct {
 	Subjects []string `mapstructure:"subjects" json:"subjects" toml:"subjects" yaml:"subjects"`
 	// DurableConsumerName sets the name of the durable JetStream consumer to use.
 	DurableConsumerName string `mapstructure:"durable_consumer_name" json:"durable_consumer_name" toml:"durable_consumer_name" yaml:"durable_consumer_name"`
-	// Ordered enables JetStream's ordered consumer mode.
-	// In this mode, only one consumer instance receives messages at a time, preserving exact order.
-	// Ordered consumers are push consumers in Nats and they can't be durable, so DurableConsumerName must not be
-	// used with ordered consumers.
-	Ordered bool `mapstructure:"ordered" json:"ordered" toml:"ordered" yaml:"ordered"`
 	// MethodHeader is the NATS message header used to extract the method name for dispatching commands.
 	MethodHeader string `mapstructure:"method_header" json:"method_header" toml:"method_header" yaml:"method_header"`
 	// PublicationDataMode configures extraction of pre-formatted publication data from message headers.
@@ -875,11 +870,8 @@ func (cfg NatsJetStreamConsumerConfig) Validate() error {
 	if cfg.StreamName == "" {
 		return errors.New("stream_name is required")
 	}
-	if cfg.Ordered && cfg.DurableConsumerName != "" {
-		return errors.New("durable_consumer_name can't be used for ordered consumer")
-	}
-	if !cfg.Ordered && cfg.DurableConsumerName == "" {
-		return errors.New("durable_consumer_name is required for unordered consumer")
+	if cfg.DurableConsumerName == "" {
+		return errors.New("durable_consumer_name is required for consumer")
 	}
 	if cfg.PublicationDataMode.Enabled && cfg.PublicationDataMode.ChannelsHeader == "" {
 		return errors.New("channels_header is required for publication data mode")
