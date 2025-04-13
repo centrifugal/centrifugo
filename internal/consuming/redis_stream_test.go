@@ -19,6 +19,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestRedisStreamConsumer tests the Redis Stream consumer which is used to consume
+// two different streams.
 func TestRedisStreamConsumer(t *testing.T) {
 	t.Parallel()
 	done1 := make(chan struct{})
@@ -94,7 +96,9 @@ func TestRedisStreamConsumer(t *testing.T) {
 	waitCh(t, done2, 5*time.Second, "timeout waiting for message processing")
 }
 
-func TestRedisStreamConsumer_OnlyOneGetsMessage(t *testing.T) {
+// TestRedisStreamConsumer_ConcurrentConsumers tests that only one consumer processes
+// the message when multiple consumers are running with the same consumer group.
+func TestRedisStreamConsumer_ConcurrentConsumers(t *testing.T) {
 	t.Parallel()
 	done := make(chan string, 1)
 

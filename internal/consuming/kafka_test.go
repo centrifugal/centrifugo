@@ -133,6 +133,33 @@ func waitCh(t *testing.T, ch chan struct{}, timeout time.Duration, failureMessag
 	}
 }
 
+func waitAnyCh(t *testing.T, channels []chan struct{}, timeout time.Duration, failureMessage string) {
+	t.Helper()
+
+	anyCh := make(chan struct{}, 1)
+
+	for _, ch := range channels {
+		go func(c chan struct{}) {
+			select {
+			case <-c:
+				select {
+				case anyCh <- struct{}{}:
+				default:
+				}
+			case <-time.After(timeout):
+				// let main handle timeout
+			}
+		}(ch)
+	}
+
+	select {
+	case <-anyCh:
+		// One of the channels received a signal
+	case <-time.After(timeout):
+		require.Fail(t, failureMessage)
+	}
+}
+
 func TestKafkaConsumer_GreenScenario(t *testing.T) {
 	t.Parallel()
 	testKafkaTopic := "centrifugo_consumer_test_" + uuid.New().String()
