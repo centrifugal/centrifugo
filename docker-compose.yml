@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   nats:
-    image: nats:2.9-alpine
+    image: nats:2.10-alpine
     container_name: nats_server
     command: ["-js"]
     ports:
