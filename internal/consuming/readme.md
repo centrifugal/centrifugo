@@ -21,6 +21,7 @@ Config:
       "type": "nats_jetstream",
       "nats_jetstream": {
         "url": "nats://localhost:4222",
+        "stream_name": "TEST",
         "subjects": ["test"],
         "durable_consumer_name": "centrifugo"
       }

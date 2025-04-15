@@ -5,84 +5,107 @@ package consuming
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNatsJetStreamConsumer(t *testing.T) {
+	t.Parallel()
+	testCases := []struct {
+		name string
+	}{
+		{name: "basic"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			testNatsJetStreamConsumer(t)
+		})
+	}
+}
+
+func testNatsJetStreamConsumer(t *testing.T) {
 	url := "nats://localhost:4222"
-	subject := "test.subject" + uuid.NewString()
-	durable := "test-durable" + uuid.NewString()
+	subject := "test.subject." + uuid.NewString()
+	durableConsumerName := "test-durable-" + uuid.NewString()
 
 	nc, err := nats.Connect(url)
-	if err != nil {
-		t.Fatalf("failed to connect to NATS: %v", err)
-	}
+	require.NoError(t, err)
 	defer nc.Close()
 
 	js, err := nc.JetStream()
-	if err != nil {
-		t.Fatalf("failed to create JetStream context: %v", err)
-	}
+	require.NoError(t, err)
 
-	// Ensure a stream exists for our subject.
-	streamName := "TEST_STREAM" + uuid.NewString()
-	_, err = js.StreamInfo(streamName)
-	if err != nil {
-		// Assume the stream doesn't exist; create it using in-memory storage.
-		_, err = js.AddStream(&nats.StreamConfig{
-			Name:     streamName,
-			Subjects: []string{subject},
-			Storage:  nats.MemoryStorage,
-		})
-		if err != nil {
-			t.Fatalf("failed to add stream: %v", err)
+	streamName := "TEST_STREAM_" + uuid.NewString()
+	_, err = js.AddStream(&nats.StreamConfig{
+		Name:     streamName,
+		Subjects: []string{subject},
+		Storage:  nats.MemoryStorage,
+	})
+	require.NoError(t, err)
+
+	var receivedNum atomic.Int64
+
+	createConsumer := func(name string, done chan struct{}) *NatsJetStreamConsumer {
+		dispatcher := &MockDispatcher{
+			onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
+				receivedNum.Add(int64(1))
+				close(done)
+				return nil
+			},
 		}
+
+		cfg := NatsJetStreamConsumerConfig{
+			URL:                 url,
+			StreamName:          streamName,
+			Subjects:            []string{subject},
+			DurableConsumerName: durableConsumerName, // shared durable name
+			DeliverPolicy:       "new",
+			MethodHeader:        "test-method",
+		}
+
+		consumer, err := NewNatsJetStreamConsumer(cfg, dispatcher, testCommon(prometheus.NewRegistry()))
+		require.NoError(t, err)
+		return consumer
 	}
 
-	done := make(chan struct{})
+	// Create done channels
+	done1 := make(chan struct{})
+	done2 := make(chan struct{})
 
-	dispatcher := &MockDispatcher{
-		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
-			close(done)
-			return nil
-		},
-	}
-
-	cfg := NatsJetStreamConsumerConfig{
-		URL:                 url,
-		Subjects:            []string{subject},
-		DurableConsumerName: durable,
-		Ordered:             false,         // Change to true to test ordered mode.
-		MethodHeader:        "test-method", // This header key will be used to extract the command method.
-		// PublicationDataMode remains disabled for this test.
-	}
-
-	consumer, err := NewNatsJetStreamConsumer(cfg, dispatcher, testCommon(prometheus.NewRegistry()))
-	if err != nil {
-		t.Fatalf("failed to create NATS JetStream consumer: %v", err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// Start both consumers
+	ctx1, cancel1 := context.WithCancel(context.Background())
+	defer cancel1()
+	consumer1 := createConsumer("consumer1", done1)
 	go func() {
-		if err := consumer.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
-			t.Errorf("consumer error: %v", err)
+		if err := consumer1.Run(ctx1); err != nil && !errors.Is(err, context.Canceled) {
+			t.Errorf("consumer1 error: %v", err)
 		}
 	}()
 
-	// Publish a message. Using a header (test-method) to specify that payload is PublishRequest.
+	ctx2, cancel2 := context.WithCancel(context.Background())
+	defer cancel2()
+	consumer2 := createConsumer("consumer2", done2)
+	go func() {
+		if err := consumer2.Run(ctx2); err != nil && !errors.Is(err, context.Canceled) {
+			t.Errorf("consumer2 error: %v", err)
+		}
+	}()
+
+	// Publish a message
 	msg := nats.NewMsg(subject)
-	msg.Data = []byte("Hello, NATS JetStream!")
+	msg.Data = []byte("Hello from dual consumers!")
 	msg.Header.Set("test-method", "publish")
 	_, err = js.PublishMsg(msg)
-	if err != nil {
-		t.Fatalf("failed to publish message: %v", err)
-	}
+	require.NoError(t, err)
 
-	waitCh(t, done, 5*time.Second, "timeout waiting for message processing")
+	waitAnyCh(t, []chan struct{}{done1, done2}, 5*time.Second, "timeout waiting for message processing")
+	time.Sleep(500 * time.Millisecond) // Give a short delay in case both try to ack
+	require.Equal(t, int64(1), receivedNum.Load(), "only one consumer should have received the message")
 }

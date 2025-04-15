@@ -4,8 +4,10 @@ package consuming
 
 import (
 	"context"
+	"errors"
 	"net/url"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -23,7 +25,10 @@ import (
 )
 
 func TestAWSConsumerWithLocalStack(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
+
 	// Set dummy credentials for LocalStack.
 	_ = os.Setenv("AWS_ACCESS_KEY_ID", "test")
 	_ = os.Setenv("AWS_SECRET_ACCESS_KEY", "test")
@@ -33,13 +38,12 @@ func TestAWSConsumerWithLocalStack(t *testing.T) {
 		_ = os.Unsetenv("AWS_SECRET_ACCESS_KEY")
 		_ = os.Unsetenv("AWS_DEFAULT_REGION")
 	}()
+
 	awsCfg, err := config.LoadDefaultConfig(ctx,
 		config.WithRegion("us-east-1"),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("test", "test", "")),
 	)
-	if err != nil {
-		t.Fatalf("failed to load AWS config: %v", err)
-	}
+	require.NoError(t, err)
 
 	parsedURL, _ := url.Parse("http://localhost:4566")
 
@@ -52,50 +56,58 @@ func TestAWSConsumerWithLocalStack(t *testing.T) {
 	}
 
 	sqsClient := sqs.NewFromConfig(awsCfg, sqsOpts...)
-	// Create a queue for testing.
+
 	queueName := "test-queue-" + uuid.NewString()
 	createQueueOutput, err := sqsClient.CreateQueue(ctx, &sqs.CreateQueueInput{
 		QueueName:  &queueName,
 		Attributes: map[string]string{},
 	})
-	if err != nil {
-		t.Fatalf("failed to create queue: %v", err)
-	}
+	require.NoError(t, err)
 	queueURL := *createQueueOutput.QueueUrl
 
-	// Configure the AWS consumer.
 	cfg := AwsSqsConsumerConfig{
 		Region:              "us-east-1",
 		Queues:              []string{queueURL},
 		MaxNumberOfMessages: 10,
 		PollWaitTime:        configtypes.Duration(2 * time.Second),
-		MethodAttribute:     "Method", // This attribute should be in the message attributes.
+		MethodAttribute:     "Method",
 		LocalStackEndpoint:  "http://localhost:4566",
 	}
 
-	// Set up a dispatcher that signals when a message is processed.
-	done := make(chan struct{})
-	dispatcher := &MockDispatcher{
-		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
-			require.Equal(t, "testMethod", method)
-			close(done)
-			return nil
-		},
+	var processedCount atomic.Int64
+
+	done1 := make(chan struct{})
+	done2 := make(chan struct{})
+
+	createConsumer := func(doneCh chan struct{}) *AwsSqsConsumer {
+		dispatcher := &MockDispatcher{
+			onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
+				close(doneCh)
+				processedCount.Add(1)
+				return nil
+			},
+		}
+		consumer, err := NewAwsSqsConsumer(cfg, dispatcher, testCommon(prometheus.NewRegistry()))
+		require.NoError(t, err)
+		return consumer
 	}
 
-	consumer, err := NewAwsSqsConsumer(cfg, dispatcher, testCommon(prometheus.NewRegistry()))
-	if err != nil {
-		t.Fatalf("failed to create AWS consumer: %v", err)
-	}
+	ctx1, cancel1 := context.WithCancel(context.Background())
+	defer cancel1()
 	go func() {
-		if err := consumer.Run(ctx); err != nil {
-			t.Errorf("consumer error: %v", err)
+		if err := createConsumer(done1).Run(ctx1); err != nil && !errors.Is(err, context.Canceled) {
+			t.Errorf("consumer1 error: %v", err)
 		}
 	}()
 
-	// Publish a test message to SQS.
-	// For SQS, messages are sent using SendMessage.
-	// The MessageAttributes must include the method attribute.
+	ctx2, cancel2 := context.WithCancel(context.Background())
+	defer cancel2()
+	go func() {
+		if err := createConsumer(done2).Run(ctx2); err != nil && !errors.Is(err, context.Canceled) {
+			t.Errorf("consumer2 error: %v", err)
+		}
+	}()
+
 	_, err = sqsClient.SendMessage(ctx, &sqs.SendMessageInput{
 		QueueUrl:    &queueURL,
 		MessageBody: aws.String("Test message body"),
@@ -106,8 +118,9 @@ func TestAWSConsumerWithLocalStack(t *testing.T) {
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("failed to send message: %v", err)
-	}
-	waitCh(t, done, 5*time.Second, "timeout waiting for message processing")
+	require.NoError(t, err)
+
+	waitAnyCh(t, []chan struct{}{done1, done2}, 5*time.Second, "timeout waiting for message processing")
+	time.Sleep(500 * time.Millisecond)
+	require.Equal(t, int64(1), processedCount.Load(), "only one consumer must receive the message")
 }
