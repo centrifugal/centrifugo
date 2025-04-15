@@ -607,8 +607,7 @@ type Consumer struct {
 	// Enabled must be true to tell Centrifugo to run configured consumer.
 	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 
-	// Type describes the type of consumer. Supported types are: `postgresql`, `kafka`, `nats_jetstream`,
-	// `redis_stream`, `google_pub_sub`, `aws_sns_sqs`, `azure_service_bus`.
+	// Type describes the type of consumer. Supported types are: `postgresql`, `kafka`.
 	Type string `mapstructure:"type" json:"type" envconfig:"type" yaml:"type" toml:"type"`
 
 	// Postgres allows defining options for consumer of postgresql type.
@@ -616,15 +615,15 @@ type Consumer struct {
 	// Kafka allows defining options for consumer of kafka type.
 	Kafka KafkaConsumerConfig `mapstructure:"kafka" json:"kafka" envconfig:"kafka" yaml:"kafka" toml:"kafka"`
 	// NatsJetStream allows defining options for consumer of nats_jetstream type.
-	NatsJetStream NatsJetStreamConsumerConfig `mapstructure:"nats_jetstream" json:"nats_jetstream" envconfig:"nats_jetstream" yaml:"nats_jetstream" toml:"nats_jetstream"`
+	//NatsJetStream NatsJetStreamConsumerConfig `mapstructure:"nats_jetstream" json:"nats_jetstream" envconfig:"nats_jetstream" yaml:"nats_jetstream" toml:"nats_jetstream"`
 	// RedisStream allows defining options for consumer of redis_stream type.
-	RedisStream RedisStreamConsumerConfig `mapstructure:"redis_stream" json:"redis_stream" envconfig:"redis_stream" yaml:"redis_stream" toml:"redis_stream"`
+	//RedisStream RedisStreamConsumerConfig `mapstructure:"redis_stream" json:"redis_stream" envconfig:"redis_stream" yaml:"redis_stream" toml:"redis_stream"`
 	// GooglePubSub allows defining options for consumer of google_pub_sub type.
-	GooglePubSub GooglePubSubConsumerConfig `mapstructure:"google_pub_sub" json:"google_pub_sub" envconfig:"google_pub_sub" yaml:"google_pub_sub" toml:"google_pub_sub"`
+	//GooglePubSub GooglePubSubConsumerConfig `mapstructure:"google_pub_sub" json:"google_pub_sub" envconfig:"google_pub_sub" yaml:"google_pub_sub" toml:"google_pub_sub"`
 	// AwsSqs allows defining options for consumer of aws_sqs type.
-	AwsSqs AwsSqsConsumerConfig `mapstructure:"aws_sqs" json:"aws_sqs" envconfig:"aws_sqs" yaml:"aws_sqs" toml:"aws_sqs"`
+	//AwsSqs AwsSqsConsumerConfig `mapstructure:"aws_sqs" json:"aws_sqs" envconfig:"aws_sqs" yaml:"aws_sqs" toml:"aws_sqs"`
 	// AzureServiceBus allows defining options for consumer of azure_service_bus type.
-	AzureServiceBus AzureServiceBusConsumerConfig `mapstructure:"azure_service_bus" json:"azure_service_bus" envconfig:"azure_service_bus" yaml:"azure_service_bus" toml:"azure_service_bus"`
+	//AzureServiceBus AzureServiceBusConsumerConfig `mapstructure:"azure_service_bus" json:"azure_service_bus" envconfig:"azure_service_bus" yaml:"azure_service_bus" toml:"azure_service_bus"`
 }
 
 func decodeToNamedSlice(value string, target interface{}) error {

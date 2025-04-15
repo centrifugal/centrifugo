@@ -52,16 +52,16 @@ func New(nodeID string, dispatcher Dispatcher, configs []ConsumerConfig) ([]serv
 			consumer, err = NewPostgresConsumer(config.Postgres, dispatcher, common)
 		case configtypes.ConsumerTypeKafka:
 			consumer, err = NewKafkaConsumer(config.Kafka, dispatcher, common)
-		case configtypes.ConsumerTypeNatsJetStream:
-			consumer, err = NewNatsJetStreamConsumer(config.NatsJetStream, dispatcher, common)
-		case configtypes.ConsumerTypeRedisStream:
-			consumer, err = NewRedisStreamConsumer(config.RedisStream, dispatcher, common)
-		case configtypes.ConsumerTypeGooglePubSub:
-			consumer, err = NewGooglePubSubConsumer(config.GooglePubSub, dispatcher, common)
-		case configtypes.ConsumerTypeAwsSqs:
-			consumer, err = NewAwsSqsConsumer(config.AwsSqs, dispatcher, common)
-		case configtypes.ConsumerTypeAzureServiceBus:
-			consumer, err = NewAzureServiceBusConsumer(config.AzureServiceBus, dispatcher, common)
+		//case configtypes.ConsumerTypeNatsJetStream:
+		//	consumer, err = NewNatsJetStreamConsumer(config.NatsJetStream, dispatcher, common)
+		//case configtypes.ConsumerTypeRedisStream:
+		//	consumer, err = NewRedisStreamConsumer(config.RedisStream, dispatcher, common)
+		//case configtypes.ConsumerTypeGooglePubSub:
+		//	consumer, err = NewGooglePubSubConsumer(config.GooglePubSub, dispatcher, common)
+		//case configtypes.ConsumerTypeAwsSqs:
+		//	consumer, err = NewAwsSqsConsumer(config.AwsSqs, dispatcher, common)
+		//case configtypes.ConsumerTypeAzureServiceBus:
+		//	consumer, err = NewAzureServiceBusConsumer(config.AzureServiceBus, dispatcher, common)
 		default:
 			return nil, fmt.Errorf("unknown consumer type: %s", config.Type)
 		}
