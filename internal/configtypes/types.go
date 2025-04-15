@@ -655,7 +655,7 @@ type Consumer struct {
 	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 
 	// Type describes the type of consumer. Supported types are: `postgresql`, `kafka`, `nats_jetstream`,
-	// `redis_stream`, `google_pub_sub`, `aws_sns_sqs`, `azure_service_bus`.
+	// `redis_stream`, `google_pub_sub`, `aws_sqs`, `azure_service_bus`.
 	Type string `mapstructure:"type" json:"type" envconfig:"type" yaml:"type" toml:"type"`
 
 	// Postgres allows defining options for consumer of postgresql type.

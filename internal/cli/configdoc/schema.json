@@ -6760,7 +6760,7 @@
         "level": 2,
         "type": "string",
         "default": "",
-        "comment": "Type describes the type of consumer. Supported types are: `postgresql`, `kafka`, `nats_jetstream`,\n`redis_stream`, `google_pub_sub`, `aws_sns_sqs`, `azure_service_bus`.",
+        "comment": "Type describes the type of consumer. Supported types are: `postgresql`, `kafka`, `nats_jetstream`,\n`redis_stream`, `google_pub_sub`, `aws_sqs`, `azure_service_bus`.",
         "is_complex_type": false
       },
       {
@@ -7254,13 +7254,23 @@
             "is_complex_type": false
           },
           {
+            "field": "consumers[].nats_jetstream.stream_name",
+            "name": "stream_name",
+            "go_name": "StreamName",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "StreamName is the name of the NATS JetStream stream to use.",
+            "is_complex_type": false
+          },
+          {
             "field": "consumers[].nats_jetstream.subjects",
             "name": "subjects",
             "go_name": "Subjects",
             "level": 3,
             "type": "[]string",
             "default": "",
-            "comment": "Subjects is the list of NATS subjects (topics) to subscribe to.",
+            "comment": "Subjects is the list of NATS subjects (topics) to filter.",
             "is_complex_type": false
           },
           {
@@ -7274,13 +7284,23 @@
             "is_complex_type": false
           },
           {
-            "field": "consumers[].nats_jetstream.ordered",
-            "name": "ordered",
-            "go_name": "Ordered",
+            "field": "consumers[].nats_jetstream.deliver_policy",
+            "name": "deliver_policy",
+            "go_name": "DeliverPolicy",
             "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "Ordered enables JetStream's ordered consumer mode.\nIn this mode, only one consumer instance receives messages at a time, preserving exact order.",
+            "type": "string",
+            "default": "new",
+            "comment": "DeliverPolicy is the NATS JetStream delivery policy for the consumer. By default, it is set to \"new\". Possible values: `new`, `all`.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].nats_jetstream.max_ack_pending",
+            "name": "max_ack_pending",
+            "go_name": "MaxAckPending",
+            "level": 3,
+            "type": "int",
+            "default": "100",
+            "comment": "MaxAckPending is the maximum number of unacknowledged messages that can be pending for the consumer.",
             "is_complex_type": false
           },
           {
