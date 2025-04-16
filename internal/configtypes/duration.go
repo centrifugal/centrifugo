@@ -19,6 +19,31 @@ func (d Duration) ToDuration() time.Duration {
 	return time.Duration(d)
 }
 
+// UnmarshalJSON interprets numeric values as nanoseconds (default behavior),
+// and strings using time.ParseDuration.
+func (d *Duration) UnmarshalJSON(b []byte) error {
+	// Check if it's a string (starts with a quote).
+	if len(b) > 0 && b[0] == '"' {
+		var str string
+		if err := json.Unmarshal(b, &str); err != nil {
+			return err
+		}
+		parsed, err := time.ParseDuration(str)
+		if err != nil {
+			return err
+		}
+		*d = Duration(parsed)
+		return nil
+	}
+	// Otherwise assume it's a numeric value in nanoseconds.
+	var ns int64
+	if err := json.Unmarshal(b, &ns); err != nil {
+		return err
+	}
+	*d = Duration(ns)
+	return nil
+}
+
 // MarshalJSON for JSON encoding.
 func (d Duration) MarshalJSON() ([]byte, error) {
 	durationStr := time.Duration(d).String()
