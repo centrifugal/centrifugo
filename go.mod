@@ -14,7 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.38.5
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.19
 	github.com/aws/smithy-go v1.22.3
-	github.com/centrifugal/centrifuge v0.35.1-0.20250411034136-235c9be6b2ba
+	github.com/centrifugal/centrifuge v0.35.1-0.20250419073955-45b492d3d133
 	github.com/centrifugal/protocol v0.16.0
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.2.1
@@ -27,15 +27,15 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/justinas/alice v1.2.0
 	github.com/mattn/go-isatty v0.0.20
-	github.com/nats-io/nats.go v1.41.1
+	github.com/nats-io/nats.go v1.41.2
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/prometheus/client_golang v1.22.0
-	github.com/quic-go/quic-go v0.50.1
+	github.com/quic-go/quic-go v0.51.0
 	github.com/quic-go/webtransport-go v0.8.1-0.20241018022711-4ac2c9250e66
 	github.com/rakutentech/jwk-go v1.2.0
 	github.com/rs/zerolog v1.34.0
-	github.com/spf13/cobra v1.8.1
+	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
 	github.com/tidwall/gjson v1.18.0
@@ -44,7 +44,7 @@ require (
 	github.com/twmb/franz-go/pkg/kadm v1.15.0
 	github.com/twmb/franz-go/pkg/kmsg v1.11.1
 	github.com/valyala/fasttemplate v1.2.2
-	github.com/yuin/goldmark v1.7.8
+	github.com/yuin/goldmark v1.7.10
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.60.0
 	go.opentelemetry.io/otel v1.35.0
@@ -55,14 +55,14 @@ require (
 	golang.org/x/crypto v0.37.0
 	golang.org/x/sync v0.13.0
 	golang.org/x/time v0.11.0
-	google.golang.org/api v0.228.0
-	google.golang.org/grpc v1.71.1
+	google.golang.org/api v0.229.0
+	google.golang.org/grpc v1.72.0
 	google.golang.org/protobuf v1.36.6
 )
 
 require (
 	cloud.google.com/go v0.120.0 // indirect
-	cloud.google.com/go/auth v0.15.0 // indirect
+	cloud.google.com/go/auth v0.16.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.6.0 // indirect
 	cloud.google.com/go/iam v1.4.2 // indirect
@@ -105,7 +105,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/mock v0.5.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
-	golang.org/x/oauth2 v0.28.0 // indirect
+	golang.org/x/oauth2 v0.29.0 // indirect
 	google.golang.org/genproto v0.0.0-20250324211829-b45e905df463 // indirect
 )
 
@@ -125,7 +125,7 @@ require (
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/nats-io/nkeys v0.4.10 // indirect
+	github.com/nats-io/nkeys v0.4.11 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.22.2 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
@@ -145,11 +145,11 @@ require (
 	go.opentelemetry.io/proto/otlp v1.5.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/mod v0.24.0 // indirect
-	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/net v0.39.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
 	golang.org/x/tools v0.31.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250324211829-b45e905df463 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250414145226-207652e42e2e // indirect
 	gopkg.in/yaml.v3 v3.0.1
 )
