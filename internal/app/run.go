@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"crypto/fips140"
 	"errors"
 	"net/http"
 	"os"
@@ -87,6 +88,10 @@ func Run(cmd *cobra.Command, configFile string) {
 		Str("runtime", runtime.Version()).
 		Int("pid", os.Getpid()).
 		Int("gomaxprocs", runtime.GOMAXPROCS(0))
+
+	if fips140.Enabled() { // See https://go.dev/doc/security/fips140.
+		entry = entry.Bool("fips", true)
+	}
 
 	if cfg.Broker.Enabled {
 		entry = entry.Str("broker", cfg.Broker.Type)
