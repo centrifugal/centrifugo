@@ -10,18 +10,28 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Centrifugo now automatically detects Redis Cluster and no longer requires explicit Cluster configuration. See [#951](https://github.com/centrifugal/centrifugo/pull/951) for more background on this decision. TLDR: Modern cloud providers usually provide `redis://host:port` or `rediss://host:port` URLs to users, which may correspond to either standalone Redis or Redis Cluster under the hood. Things should now work out of the box for Centrifugo users when using this string as the Redis `address`, making Centrifugo more cloud-friendly.
-* Added support for the `rediss` scheme (enabling TLS). Previously, this was possible via settings like `engine.redis.tls.enabled=true` or `tls_enabled=true` in the Redis URL. However, `rediss://` is part of Redis specification and very common. See [#951](https://github.com/centrifugal/centrifugo/pull/951).
-* Centrifugo now uses Go 1.24.x (specifically 1.24.1 for this release), inheriting [performance optimizations](https://go.dev/blog/go1.24#performance-improvements) introduced in the latest Go version. If you follow our community channels, you may have seen that we tried Centrifugo's PUB/SUB throughput benchmark with Go 1.24 and observed nice improvements. The previous maximum throughput on an Apple M1 Pro (2021) was 1.62 million msgs/sec, which increased to 1.74 million msgs/sec with Go 1.24—without any code changes on our side.
-* Centrifugo now adds the `Access-Control-Max-Age: 300` header for HTTP-based transport preflight responses and emulation endpoint preflight responses. This prevents browsers from sending preflight OPTIONS request before every POST request in cross-origin setups. As a result, bidirectional emulation in cross-origin environments is now more efficient, reducing latency for client-to-server emulation requests (since it requires 1 RTT instead of 2 RTTs) and reducing the number of HTTP requests. Note that you need to use the latest `centrifuge-js` (>=5.3.4) to benefit from this change.
-* Added a DEB package for Ubuntu 24.04 Noble Numbat. Removed support for Ubuntu Bionic Beaver due to its EOL. Addresses [#946](https://github.com/centrifugal/centrifugo/issues/946).
+* Add five new [async consumers](https://centrifugal.dev/docs/server/consumers) [#968](https://github.com/centrifugal/centrifugo/pull/968):
+  * [Google Cloud PUB/SUB](https://cloud.google.com/pubsub/docs/pubsub-basics)
+  * [AWS SQS](https://aws.amazon.com/sqs/)
+  * [Azure Service Bus](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-messaging-overview)
+  * [Redis Stream](https://redis.io/docs/latest/develop/data-types/streams/)
+  * [Nats Jetstream](https://docs.nats.io/nats-concepts/jetstream)
+* Skip unordered publications on Broker level based on `version` and `version_epoch` fields [#971](https://github.com/centrifugal/centrifugo/pull/971)
+* Kafka consumer: request type in the payload if method header provided, publication data mode improvements [#956](https://github.com/centrifugal/centrifugo/pull/956)
+* New `configdoc` cli helper to display the entire configuration as HTML or Markdown [#959](https://github.com/centrifugal/centrifugo/pull/959) – run `./centrifugo configdoc` to see it in action.
+* Support tags and time fields in publication from Nats broker [#964](https://github.com/centrifugal/centrifugo/pull/964)
+* Handle jwks optional alg [#962](https://github.com/centrifugal/centrifugo/pull/962), solves [#961](https://github.com/centrifugal/centrifugo/issues/961)
+* Performance: remove allocation during subprotocol selection [centrifugal/centrifuge#476](https://github.com/centrifugal/centrifuge/pull/476)
+* Performance: getting messages from Client's queue in batch instead of one by one separate calls.
+* Log whether FIPS mode enabled on Centrifugo start [#975](https://github.com/centrifugal/centrifugo/pull/975)
 
 ### Fixes
 
-* Downgraded the `rueidis` dependency to v1.0.53 to avoid AUTH errors when RESP2 is forced. See [redis/rueidis#788](https://github.com/redis/rueidis/issues/788).
+* Fix concurrent map iteration and write panic happening during issues with Redis [centrifugal/centrifuge#473](https://github.com/centrifugal/centrifuge/pull/473)
+* Fix unmarshalling of duration type in environment variable json [#973](https://github.com/centrifugal/centrifugo/pull/973)
 
 ### Miscellaneous
 
-* Centrifugo v6 has been recently released. See details in the [Centrifugo v6 release blog post](https://centrifugal.dev/blog/2025/01/16/centrifugo-v6-released).
-* This release is built with Go 1.24.1.
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.1.0).
+* Cleanups in `api.proto` – messages related to legacy HTTP API were removed.
+* This release is built with Go 1.24.2.
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.2.0).
