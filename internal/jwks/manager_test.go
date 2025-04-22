@@ -19,7 +19,7 @@ type testKey struct {
 }
 
 func randomKeys() (*rsa.PrivateKey, *rsa.PublicKey, error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 512)
+	privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {
 		return nil, nil, err
 	}
