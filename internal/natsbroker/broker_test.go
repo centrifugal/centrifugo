@@ -219,6 +219,71 @@ func TestNatsPubSubTwoNodes(t *testing.T) {
 	}
 }
 
+func TestNatsPubSubTwoNodes_ChannelReplacement(t *testing.T) {
+	brokerConfig := Config{RawMode: configtypes.RawModeConfig{
+		Enabled: true,
+	}}
+	prefix := getUniquePrefix()
+	brokerConfig.Prefix = prefix
+	brokerConfig.RawMode.Prefix = prefix
+	brokerConfig.RawMode.ChannelReplacements = map[string]string{
+		":": ".",
+	}
+	node1, err := centrifuge.New(centrifuge.Config{})
+	require.NoError(t, err)
+	b1, _ := New(node1, brokerConfig)
+	node1.SetBroker(b1)
+	defer func() { _ = node1.Shutdown(context.Background()) }()
+	defer stopNatsBroker(b1)
+
+	msgNum := 10
+	var numPublications int64
+	pubCh := make(chan struct{})
+	brokerEventHandler := &testBrokerEventHandler{
+		HandleControlFunc: func(bytes []byte) error {
+			return nil
+		},
+		HandlePublicationFunc: func(ch string, pub *centrifuge.Publication, sp centrifuge.StreamPosition, delta bool, prevPub *centrifuge.Publication) error {
+			c := atomic.AddInt64(&numPublications, 1)
+			if c == int64(msgNum) {
+				close(pubCh)
+			}
+			return nil
+		},
+		HandleJoinFunc: func(ch string, info *centrifuge.ClientInfo) error {
+			return nil
+		},
+		HandleLeaveFunc: func(ch string, info *centrifuge.ClientInfo) error {
+			return nil
+		},
+	}
+	_ = b1.RegisterControlEventHandler(brokerEventHandler)
+	_ = b1.RegisterBrokerEventHandler(brokerEventHandler)
+
+	for i := 0; i < msgNum; i++ {
+		require.NoError(t, b1.Subscribe("test:"+strconv.Itoa(i)))
+	}
+
+	node2, _ := centrifuge.New(centrifuge.Config{})
+
+	b2, _ := New(node2, brokerConfig)
+	node2.SetBroker(b2)
+	_ = node2.Run()
+	defer func() { _ = node2.Shutdown(context.Background()) }()
+	defer stopNatsBroker(b2)
+
+	for i := 0; i < msgNum; i++ {
+		_, err := node2.Publish("test:"+strconv.Itoa(i), []byte("123"))
+		require.NoError(t, err)
+	}
+
+	select {
+	case <-pubCh:
+	case <-time.After(3 * time.Second):
+		require.Fail(t, "timeout waiting for PUB/SUB message")
+	}
+}
+
 type testBrokerEventHandler struct {
 	// Publication must register callback func to handle Publications received.
 	HandlePublicationFunc func(ch string, pub *centrifuge.Publication, sp centrifuge.StreamPosition, delta bool, prevPub *centrifuge.Publication) error
