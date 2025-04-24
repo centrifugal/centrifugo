@@ -64,7 +64,7 @@ func TestRedisStreamConsumer(t *testing.T) {
 		}
 	}()
 
-	shards, _, err := redisshard.BuildRedisShards(cfg.Redis)
+	shards, err := redisshard.BuildRedisShards(cfg.Redis)
 	require.NoError(t, err)
 	require.Len(t, shards, 1)
 
@@ -128,7 +128,7 @@ func TestRedisStreamConsumer_ConcurrentConsumers(t *testing.T) {
 	}
 
 	// Build shards once to share producer
-	shards, _, err := redisshard.BuildRedisShards(configtypes.Redis{
+	shards, err := redisshard.BuildRedisShards(configtypes.Redis{
 		Address: []string{"localhost:6379"},
 	})
 	require.NoError(t, err)

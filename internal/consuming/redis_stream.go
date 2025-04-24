@@ -37,7 +37,7 @@ func NewRedisStreamConsumer(
 		return nil, err
 	}
 
-	shards, _, err := redisshard.BuildRedisShards(cfg.Redis)
+	shards, err := redisshard.BuildRedisShards(cfg.Redis)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Redis shards: %w", err)
 	}
