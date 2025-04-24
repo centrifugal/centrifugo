@@ -120,9 +120,6 @@ func (c Config) Validate() error {
 		if !slices.Contains(configtypes.KnownConsumerTypes, config.Type) {
 			return fmt.Errorf("unknown consumer type: %s", config.Type)
 		}
-		if config.APICommandFormat != "json_method_payload" && config.APICommandFormat != "json_command" {
-			return fmt.Errorf("unknown api_command_format: %s", config.APICommandFormat)
-		}
 		if config.Enabled {
 			var err error
 			switch config.Type {
