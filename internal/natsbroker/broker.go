@@ -174,7 +174,7 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 		return centrifuge.StreamPosition{}, false, centrifuge.ErrorBadRequest
 	}
 	if b.config.RawMode.Enabled {
-		return centrifuge.StreamPosition{}, false, b.nc.Publish(b.config.RawMode.Prefix+ch, data)
+		return centrifuge.StreamPosition{}, false, b.nc.Publish(string(b.clientChannel(ch)), data)
 	}
 	push := &protocol.Push{
 		Channel: ch,
