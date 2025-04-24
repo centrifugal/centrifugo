@@ -35,13 +35,23 @@ func NewConsumingHandler(n *centrifuge.Node, apiExecutor *Executor, c ConsumingH
 	return h
 }
 
-func (h *ConsumingHandler) logNonRetryableConsumingError(err error, method string) {
+func logNonRetryableConsumingError(err error, method string) {
 	log.Error().Err(err).Str("method", method).Msg("non retryable error during consuming, skip message")
 }
 
-func (h *ConsumingHandler) Publish(ctx context.Context, req *apiproto.PublishRequest) error {
-	resp := h.api.Publish(ctx, req)
-	if h.config.UseOpenTelemetry && resp.Error != nil {
+type Dispatcher struct {
+	handler *ConsumingHandler
+}
+
+func NewDispatcher(handler *ConsumingHandler) *Dispatcher {
+	return &Dispatcher{
+		handler: handler,
+	}
+}
+
+func (d *Dispatcher) Publish(ctx context.Context, req *apiproto.PublishRequest) error {
+	resp := d.handler.api.Publish(ctx, req)
+	if d.handler.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
@@ -49,14 +59,14 @@ func (h *ConsumingHandler) Publish(ctx context.Context, req *apiproto.PublishReq
 		return resp.Error
 	}
 	if resp.Error != nil {
-		h.logNonRetryableConsumingError(resp.Error, "publish")
+		logNonRetryableConsumingError(resp.Error, "publish")
 	}
 	return nil
 }
 
-func (h *ConsumingHandler) Broadcast(ctx context.Context, req *apiproto.BroadcastRequest) error {
-	resp := h.api.Broadcast(ctx, req)
-	if h.config.UseOpenTelemetry && resp.Error != nil {
+func (d *Dispatcher) Broadcast(ctx context.Context, req *apiproto.BroadcastRequest) error {
+	resp := d.handler.api.Broadcast(ctx, req)
+	if d.handler.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
@@ -64,7 +74,7 @@ func (h *ConsumingHandler) Broadcast(ctx context.Context, req *apiproto.Broadcas
 		return resp.Error
 	}
 	if resp.Error != nil {
-		h.logNonRetryableConsumingError(resp.Error, "broadcast")
+		logNonRetryableConsumingError(resp.Error, "broadcast")
 		return nil
 	}
 	for _, response := range resp.Result.Responses {
@@ -91,7 +101,7 @@ type ConsumedPublication struct {
 	VersionEpoch string
 }
 
-func (h *ConsumingHandler) DispatchPublication(
+func (d *Dispatcher) DispatchPublication(
 	ctx context.Context, channels []string, pub ConsumedPublication,
 ) error {
 	if len(channels) == 0 {
@@ -107,7 +117,7 @@ func (h *ConsumingHandler) DispatchPublication(
 			Version:        pub.Version,
 			VersionEpoch:   pub.VersionEpoch,
 		}
-		return h.Publish(ctx, req)
+		return d.Publish(ctx, req)
 	}
 	req := &apiproto.BroadcastRequest{
 		Data:           pub.Data,
@@ -118,33 +128,33 @@ func (h *ConsumingHandler) DispatchPublication(
 		Version:        pub.Version,
 		VersionEpoch:   pub.VersionEpoch,
 	}
-	return h.Broadcast(ctx, req)
+	return d.Broadcast(ctx, req)
 }
 
 // Dispatch processes commands received from asynchronous consumers.
-func (h *ConsumingHandler) dispatchMethodPayload(ctx context.Context, method string, payload []byte) error {
+func (d *Dispatcher) dispatchMethodPayload(ctx context.Context, method string, payload []byte) error {
 	switch method {
 	case "publish":
-		_, err := h.handlePublish(ctx, payload)
+		_, err := d.handler.handlePublish(ctx, payload)
 		if err != nil {
 			var apiError *apiproto.Error
 			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
 				return err
 			}
-			h.logNonRetryableConsumingError(err, method)
+			logNonRetryableConsumingError(err, method)
 			return nil
 		}
 		return nil
 	case "broadcast":
 		// This one is special as we need to iterate over responses. Ideally we want to use
 		// code gen for Dispatch but need to make sure that broadcast logic is preserved.
-		res, err := h.handleBroadcast(ctx, payload)
+		res, err := d.handler.handleBroadcast(ctx, payload)
 		if err != nil {
 			var apiError *apiproto.Error
 			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
 				return err
 			}
-			h.logNonRetryableConsumingError(err, method)
+			logNonRetryableConsumingError(err, method)
 			return nil
 		}
 		for _, resp := range res.Responses {
@@ -156,57 +166,57 @@ func (h *ConsumingHandler) dispatchMethodPayload(ctx context.Context, method str
 		}
 		return nil
 	case "subscribe":
-		_, err := h.handleSubscribe(ctx, payload)
+		_, err := d.handler.handleSubscribe(ctx, payload)
 		if err != nil {
 			var apiError *apiproto.Error
 			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
 				return err
 			}
-			h.logNonRetryableConsumingError(err, method)
+			logNonRetryableConsumingError(err, method)
 			return nil
 		}
 		return nil
 	case "unsubscribe":
-		_, err := h.handleUnsubscribe(ctx, payload)
+		_, err := d.handler.handleUnsubscribe(ctx, payload)
 		if err != nil {
 			var apiError *apiproto.Error
 			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
 				return err
 			}
-			h.logNonRetryableConsumingError(err, method)
+			logNonRetryableConsumingError(err, method)
 			return nil
 		}
 		return nil
 	case "disconnect":
-		_, err := h.handleDisconnect(ctx, payload)
+		_, err := d.handler.handleDisconnect(ctx, payload)
 		if err != nil {
 			var apiError *apiproto.Error
 			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
 				return err
 			}
-			h.logNonRetryableConsumingError(err, method)
+			logNonRetryableConsumingError(err, method)
 			return nil
 		}
 		return nil
 	case "history_remove":
-		_, err := h.handleHistoryRemove(ctx, payload)
+		_, err := d.handler.handleHistoryRemove(ctx, payload)
 		if err != nil {
 			var apiError *apiproto.Error
 			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
 				return err
 			}
-			h.logNonRetryableConsumingError(err, method)
+			logNonRetryableConsumingError(err, method)
 			return nil
 		}
 		return nil
 	case "refresh":
-		_, err := h.handleRefresh(ctx, payload)
+		_, err := d.handler.handleRefresh(ctx, payload)
 		if err != nil {
 			var apiError *apiproto.Error
 			if errors.As(err, &apiError) && apiError.Code == apiproto.ErrorInternal.Code {
 				return err
 			}
-			h.logNonRetryableConsumingError(err, method)
+			logNonRetryableConsumingError(err, method)
 			return nil
 		}
 		return nil
@@ -252,10 +262,11 @@ type MethodWithRequestPayload struct {
 	Payload JSONRawOrString `json:"payload"`
 }
 
-func (h *ConsumingHandler) DispatchCommand(ctx context.Context, method string, payload []byte) error {
+// DispatchCommand processes commands received from asynchronous consumers.
+func (d *Dispatcher) DispatchCommand(ctx context.Context, method string, payload []byte) error {
 	if method != "" {
-		// If method is set then we expect payload to be encoded request from Protobuf schema.
-		return h.dispatchMethodPayload(ctx, method, payload)
+		// If method already known – we can skip decoding into MethodWithRequestPayload.
+		return d.dispatchMethodPayload(ctx, method, payload)
 	}
 	// Otherwise we expect payload to be MethodWithRequestPayload.
 	var e MethodWithRequestPayload
@@ -264,5 +275,5 @@ func (h *ConsumingHandler) DispatchCommand(ctx context.Context, method string, p
 		log.Error().Err(err).Msg("skip malformed consumed message")
 		return nil
 	}
-	return h.dispatchMethodPayload(ctx, e.Method, e.Payload)
+	return d.dispatchMethodPayload(ctx, e.Method, e.Payload)
 }
