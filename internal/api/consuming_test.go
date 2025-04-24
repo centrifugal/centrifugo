@@ -22,7 +22,9 @@ func TestNewConsumingHandler(t *testing.T) {
 		UseOpenTelemetry: false,
 	}), ConsumingHandlerConfig{})
 
+	dispatcher := NewDispatcher(handler)
+
 	// Bad request must be just logged but no errors other than Internal Error should be returned from Dispatch.
-	err = handler.DispatchCommand(context.Background(), "publish", []byte(`{}`))
+	err = dispatcher.DispatchCommand(context.Background(), "publish", []byte(`{}`))
 	require.NoError(t, err)
 }

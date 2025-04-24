@@ -121,16 +121,26 @@ func (c Config) Validate() error {
 			return fmt.Errorf("unknown consumer type: %s", config.Type)
 		}
 		if config.Enabled {
+			var err error
 			switch config.Type {
 			case configtypes.ConsumerTypeKafka:
-				if err := config.Kafka.Validate(); err != nil {
-					return fmt.Errorf("in consumer %s (kafka): %w", config.Name, err)
-				}
+				err = config.Kafka.Validate()
 			case configtypes.ConsumerTypePostgres:
-				if err := config.Postgres.Validate(); err != nil {
-					return fmt.Errorf("in consumer %s (postgres): %w", config.Name, err)
-				}
+				err = config.Postgres.Validate()
+			case configtypes.ConsumerTypeGooglePubSub:
+				err = config.GooglePubSub.Validate()
+			case configtypes.ConsumerTypeRedisStream:
+				err = config.RedisStream.Validate()
+			case configtypes.ConsumerTypeNatsJetStream:
+				err = config.NatsJetStream.Validate()
+			case configtypes.ConsumerTypeAwsSqs:
+				err = config.AwsSqs.Validate()
+			case configtypes.ConsumerTypeAzureServiceBus:
+				err = config.AzureServiceBus.Validate()
 			default:
+			}
+			if err != nil {
+				return fmt.Errorf("in consumer %s (%s): %w", config.Name, config.Type, err)
 			}
 		}
 		consumerNames = append(consumerNames, config.Name)

@@ -760,6 +760,7 @@ type KafkaConsumerConfig struct {
 	FetchMaxBytes int32 `mapstructure:"fetch_max_bytes" json:"fetch_max_bytes" envconfig:"fetch_max_bytes" yaml:"fetch_max_bytes" toml:"fetch_max_bytes"`
 
 	// MethodHeader is a header name to extract method name from Kafka message.
+	// If provided in message, then payload must be just a serialized API request object.
 	MethodHeader string `mapstructure:"method_header" default:"centrifugo-method" json:"method_header" envconfig:"method_header" yaml:"method_header" toml:"method_header"`
 
 	// PublicationDataMode is a configuration for the mode where message payload already
@@ -842,6 +843,7 @@ type RedisStreamConsumerConfig struct {
 	// PayloadValue is used to extract data from Redis Stream message.
 	PayloadValue string `mapstructure:"payload_value" default:"payload" json:"payload_value" yaml:"payload_value" toml:"payload_value"`
 	// MethodValue is used to extract a method for command messages.
+	// If provided in message, then payload must be just a serialized API request object.
 	MethodValue string `mapstructure:"method_value" default:"method" json:"method_value" yaml:"method_value" toml:"method_value"`
 	// PublicationDataMode configures publication data mode.
 	PublicationDataMode RedisStreamPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
@@ -888,7 +890,8 @@ type NatsJetStreamConsumerConfig struct {
 	// MaxAckPending is the maximum number of unacknowledged messages that can be pending for the consumer.
 	MaxAckPending int `mapstructure:"max_ack_pending" default:"100" json:"max_ack_pending" toml:"max_ack_pending" yaml:"max_ack_pending"`
 	// MethodHeader is the NATS message header used to extract the method name for dispatching commands.
-	MethodHeader string `mapstructure:"method_header" json:"method_header" toml:"method_header" yaml:"method_header"`
+	// If provided in message, then payload must be just a serialized API request object.
+	MethodHeader string `mapstructure:"method_header" default:"centrifugo-method" json:"method_header" toml:"method_header" yaml:"method_header"`
 	// PublicationDataMode configures extraction of pre-formatted publication data from message headers.
 	PublicationDataMode NatsJetStreamPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" toml:"publication_data_mode" yaml:"publication_data_mode"`
 	// TLS is the configuration for TLS.
@@ -949,7 +952,8 @@ type GooglePubSubConsumerConfig struct {
 	// CredentialsFile is the path to the service account JSON file if required.
 	CredentialsFile string `mapstructure:"credentials_file" json:"credentials_file" envconfig:"credentials_file" yaml:"credentials_file" toml:"credentials_file"`
 	// MethodAttribute is an attribute name to extract a method name from the message.
-	MethodAttribute string `mapstructure:"method_attribute" json:"method_attribute" envconfig:"method_attribute" yaml:"method_attribute" toml:"method_attribute"`
+	// If provided in message, then payload must be just a serialized API request object.
+	MethodAttribute string `mapstructure:"method_attribute" default:"centrifugo-method" json:"method_attribute" envconfig:"method_attribute" yaml:"method_attribute" toml:"method_attribute"`
 	// PublicationDataMode holds settings for the mode where message payload already contains data
 	// ready to publish into channels.
 	PublicationDataMode GooglePubSubPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" envconfig:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
@@ -1030,7 +1034,8 @@ type AzureServiceBusConsumerConfig struct {
 	// MaxReceiveMessages sets the batch size when receiving messages from the queue.
 	MaxReceiveMessages int `mapstructure:"max_receive_messages" default:"1" json:"max_receive_messages" yaml:"max_receive_messages" toml:"max_receive_messages"`
 	// MethodProperty is the name of the message property used to extract the method (for API command).
-	MethodProperty string `mapstructure:"method_property" json:"method_property" yaml:"method_property" toml:"method_property"`
+	// If provided in message, then payload must be just a serialized API request object.
+	MethodProperty string `mapstructure:"method_property" default:"centrifugo-method" json:"method_property" yaml:"method_property" toml:"method_property"`
 	// PublicationDataMode configures how structured publication-ready data is extracted from the message.
 	PublicationDataMode AzureServiceBusPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
 }
@@ -1077,7 +1082,8 @@ type AwsSqsConsumerConfig struct {
 	// AssumeRoleARN, if provided, will cause the consumer to assume the given IAM role.
 	AssumeRoleARN string `mapstructure:"assume_role_arn" json:"assume_role_arn" envconfig:"assume_role_arn" yaml:"assume_role_arn" toml:"assume_role_arn"`
 	// MethodAttribute is the attribute name to extract a method for command messages.
-	MethodAttribute string `mapstructure:"method_attribute" json:"method_attribute" envconfig:"method_attribute" yaml:"method_attribute" toml:"method_attribute"`
+	// If provided in message, then payload must be just a serialized API request object.
+	MethodAttribute string `mapstructure:"method_attribute" default:"centrifugo-method" json:"method_attribute" envconfig:"method_attribute" yaml:"method_attribute" toml:"method_attribute"`
 	// LocalStackEndpoint if set enables using localstack with provided URL.
 	LocalStackEndpoint string `mapstructure:"localstack_endpoint" json:"localstack_endpoint" envconfig:"localstack_endpoint" yaml:"localstack_endpoint" toml:"localstack_endpoint"`
 	// PublicationDataMode holds settings for the mode where message payload already contains data

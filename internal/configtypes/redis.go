@@ -4,8 +4,6 @@ type Redis struct {
 	// Address is a list of Redis shard addresses. In most cases a single shard is used. But when many
 	// addresses provided Centrifugo will distribute keys between shards using consistent hashing.
 	Address []string `mapstructure:"address" json:"address" envconfig:"address" default:"redis://127.0.0.1:6379" yaml:"address" toml:"address"`
-	// Prefix for all Redis keys and channels.
-	Prefix string `mapstructure:"prefix" json:"prefix" envconfig:"prefix" default:"centrifugo" yaml:"prefix" toml:"prefix"`
 	// ConnectTimeout is a timeout for establishing connection to Redis.
 	ConnectTimeout Duration `mapstructure:"connect_timeout" json:"connect_timeout" envconfig:"connect_timeout" default:"1s" yaml:"connect_timeout" toml:"connect_timeout"`
 	// IOTimeout is a timeout for all read/write operations against Redis (can be considered as a request timeout).
@@ -44,6 +42,12 @@ type Redis struct {
 	SentinelTLS TLSConfig `mapstructure:"sentinel_tls" json:"sentinel_tls" envconfig:"sentinel_tls" yaml:"sentinel_tls" toml:"sentinel_tls"`
 	// ReplicaClient is a configuration fot Redis replica client.
 	ReplicaClient RedisReplicaClient `mapstructure:"replica_client" json:"replica_client" envconfig:"replica_client" yaml:"replica_client" toml:"replica_client"`
+}
+
+type RedisPrefixed struct {
+	// Prefix for all Redis keys and channels.
+	Prefix string `mapstructure:"prefix" json:"prefix" envconfig:"prefix" default:"centrifugo" yaml:"prefix" toml:"prefix"`
+	Redis  `mapstructure:",squash" yaml:",inline"`
 }
 
 // RedisReplicaClient allows configuring Redis replica options.
