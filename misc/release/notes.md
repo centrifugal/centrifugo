@@ -34,7 +34,7 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Miscellaneous
 
-* New animation on https://centrifugal.dev/ – with burstable bubbles.
+* New animation on https://centrifugal.dev/ – with burstable bubbles upon click, your kids will love it 🙃
 * Cleanup in `api.proto` — removed messages related to the legacy HTTP API.
 * This release is built with Go 1.24.2.
 * See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.2.0).
