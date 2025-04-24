@@ -10,21 +10,21 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func BuildRedisShards(redisConf configtypes.Redis) ([]*RedisShard, string, error) {
+func BuildRedisShards(redisConf configtypes.Redis) ([]*RedisShard, error) {
 	redisShardConfigs, err := getRedisShardConfigs(redisConf)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	redisShards := make([]*RedisShard, 0, len(redisShardConfigs))
 
 	for _, redisCfg := range redisShardConfigs {
 		redisShard, err := NewRedisShard(redisCfg)
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 		redisShards = append(redisShards, redisShard)
 	}
-	return redisShards, redisConf.Prefix, nil
+	return redisShards, nil
 }
 
 func addRedisShardCommonSettings(shardConf *RedisShardConfig, redisConf configtypes.Redis) {

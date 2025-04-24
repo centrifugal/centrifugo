@@ -14,7 +14,7 @@ type RedisBrokerCommon struct {
 }
 
 type RedisBroker struct {
-	Redis             `mapstructure:",squash" yaml:",inline"`
+	RedisPrefixed     `mapstructure:",squash" yaml:",inline"`
 	RedisBrokerCommon `mapstructure:",squash" yaml:",inline"`
 }
 
@@ -36,7 +36,7 @@ type EngineRedisPresenceManager struct {
 }
 
 type RedisPresenceManager struct {
-	Redis                      `mapstructure:",squash" yaml:",inline"`
+	RedisPrefixed              `mapstructure:",squash" yaml:",inline"`
 	RedisPresenceManagerCommon `mapstructure:",squash" yaml:",inline"`
 }
 
@@ -48,7 +48,7 @@ type RedisNatsBroker struct {
 
 // RedisEngine configuration.
 type RedisEngine struct {
-	Redis                      `mapstructure:",squash" yaml:",inline"`
+	RedisPrefixed              `mapstructure:",squash" yaml:",inline"`
 	EngineRedisBroker          `mapstructure:",squash" yaml:",inline"`
 	EngineRedisPresenceManager `mapstructure:",squash" yaml:",inline"`
 }

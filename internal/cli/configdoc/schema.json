@@ -392,16 +392,6 @@
         "is_complex_type": true,
         "children": [
           {
-            "field": "engine.redis.address",
-            "name": "address",
-            "go_name": "Address",
-            "level": 3,
-            "type": "[]string",
-            "default": "redis://127.0.0.1:6379",
-            "comment": "Address is a list of Redis shard addresses. In most cases a single shard is used. But when many\naddresses provided Centrifugo will distribute keys between shards using consistent hashing.",
-            "is_complex_type": false
-          },
-          {
             "field": "engine.redis.prefix",
             "name": "prefix",
             "go_name": "Prefix",
@@ -409,6 +399,16 @@
             "type": "string",
             "default": "centrifugo",
             "comment": "Prefix for all Redis keys and channels.",
+            "is_complex_type": false
+          },
+          {
+            "field": "engine.redis.address",
+            "name": "address",
+            "go_name": "Address",
+            "level": 3,
+            "type": "[]string",
+            "default": "redis://127.0.0.1:6379",
+            "comment": "Address is a list of Redis shard addresses. In most cases a single shard is used. But when many\naddresses provided Centrifugo will distribute keys between shards using consistent hashing.",
             "is_complex_type": false
           },
           {
@@ -812,16 +812,6 @@
         "is_complex_type": true,
         "children": [
           {
-            "field": "broker.redis.address",
-            "name": "address",
-            "go_name": "Address",
-            "level": 3,
-            "type": "[]string",
-            "default": "redis://127.0.0.1:6379",
-            "comment": "Address is a list of Redis shard addresses. In most cases a single shard is used. But when many\naddresses provided Centrifugo will distribute keys between shards using consistent hashing.",
-            "is_complex_type": false
-          },
-          {
             "field": "broker.redis.prefix",
             "name": "prefix",
             "go_name": "Prefix",
@@ -829,6 +819,16 @@
             "type": "string",
             "default": "centrifugo",
             "comment": "Prefix for all Redis keys and channels.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.redis.address",
+            "name": "address",
+            "go_name": "Address",
+            "level": 3,
+            "type": "[]string",
+            "default": "redis://127.0.0.1:6379",
+            "comment": "Address is a list of Redis shard addresses. In most cases a single shard is used. But when many\naddresses provided Centrifugo will distribute keys between shards using consistent hashing.",
             "is_complex_type": false
           },
           {
@@ -1388,16 +1388,6 @@
         "is_complex_type": true,
         "children": [
           {
-            "field": "presence_manager.redis.address",
-            "name": "address",
-            "go_name": "Address",
-            "level": 3,
-            "type": "[]string",
-            "default": "redis://127.0.0.1:6379",
-            "comment": "Address is a list of Redis shard addresses. In most cases a single shard is used. But when many\naddresses provided Centrifugo will distribute keys between shards using consistent hashing.",
-            "is_complex_type": false
-          },
-          {
             "field": "presence_manager.redis.prefix",
             "name": "prefix",
             "go_name": "Prefix",
@@ -1405,6 +1395,16 @@
             "type": "string",
             "default": "centrifugo",
             "comment": "Prefix for all Redis keys and channels.",
+            "is_complex_type": false
+          },
+          {
+            "field": "presence_manager.redis.address",
+            "name": "address",
+            "go_name": "Address",
+            "level": 3,
+            "type": "[]string",
+            "default": "redis://127.0.0.1:6379",
+            "comment": "Address is a list of Redis shard addresses. In most cases a single shard is used. But when many\naddresses provided Centrifugo will distribute keys between shards using consistent hashing.",
             "is_complex_type": false
           },
           {
@@ -7497,16 +7497,6 @@
             "type": "[]string",
             "default": "redis://127.0.0.1:6379",
             "comment": "Address is a list of Redis shard addresses. In most cases a single shard is used. But when many\naddresses provided Centrifugo will distribute keys between shards using consistent hashing.",
-            "is_complex_type": false
-          },
-          {
-            "field": "consumers[].redis_stream.prefix",
-            "name": "prefix",
-            "go_name": "Prefix",
-            "level": 3,
-            "type": "string",
-            "default": "centrifugo",
-            "comment": "Prefix for all Redis keys and channels.",
             "is_complex_type": false
           },
           {
