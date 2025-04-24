@@ -7106,7 +7106,7 @@
             "level": 3,
             "type": "string",
             "default": "centrifugo-method",
-            "comment": "MethodHeader is a header name to extract method name from Kafka message.",
+            "comment": "MethodHeader is a header name to extract method name from Kafka message.\nIf provided in message, then payload must be just a serialized API request object.",
             "is_complex_type": false
           },
           {
@@ -7309,8 +7309,8 @@
             "go_name": "MethodHeader",
             "level": 3,
             "type": "string",
-            "default": "",
-            "comment": "MethodHeader is the NATS message header used to extract the method name for dispatching commands.",
+            "default": "centrifugo-method",
+            "comment": "MethodHeader is the NATS message header used to extract the method name for dispatching commands.\nIf provided in message, then payload must be just a serialized API request object.",
             "is_complex_type": false
           },
           {
@@ -7882,7 +7882,7 @@
             "level": 3,
             "type": "string",
             "default": "method",
-            "comment": "MethodValue is used to extract a method for command messages.",
+            "comment": "MethodValue is used to extract a method for command messages.\nIf provided in message, then payload must be just a serialized API request object.",
             "is_complex_type": false
           },
           {
@@ -8045,8 +8045,8 @@
             "go_name": "MethodAttribute",
             "level": 3,
             "type": "string",
-            "default": "",
-            "comment": "MethodAttribute is an attribute name to extract a method name from the message.",
+            "default": "centrifugo-method",
+            "comment": "MethodAttribute is an attribute name to extract a method name from the message.\nIf provided in message, then payload must be just a serialized API request object.",
             "is_complex_type": false
           },
           {
@@ -8239,8 +8239,8 @@
             "go_name": "MethodAttribute",
             "level": 3,
             "type": "string",
-            "default": "",
-            "comment": "MethodAttribute is the attribute name to extract a method for command messages.",
+            "default": "centrifugo-method",
+            "comment": "MethodAttribute is the attribute name to extract a method for command messages.\nIf provided in message, then payload must be just a serialized API request object.",
             "is_complex_type": false
           },
           {
@@ -8453,8 +8453,8 @@
             "go_name": "MethodProperty",
             "level": 3,
             "type": "string",
-            "default": "",
-            "comment": "MethodProperty is the name of the message property used to extract the method (for API command).",
+            "default": "centrifugo-method",
+            "comment": "MethodProperty is the name of the message property used to extract the method (for API command).\nIf provided in message, then payload must be just a serialized API request object.",
             "is_complex_type": false
           },
           {

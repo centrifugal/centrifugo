@@ -27,8 +27,9 @@ type consumerCommon struct {
 	nodeID  string
 }
 
-func New(nodeID string, dispatcher Dispatcher, configs []ConsumerConfig) ([]service.Service, error) {
+func New(nodeID string, consumingHandler *api.ConsumingHandler, configs []ConsumerConfig) ([]service.Service, error) {
 	metrics := newCommonMetrics(prometheus.DefaultRegisterer)
+	dispatcher := api.NewDispatcher(consumingHandler)
 
 	var services []service.Service
 	for _, config := range configs {
