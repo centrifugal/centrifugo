@@ -34,11 +34,9 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### New tutorial in blog
 
-To support the changes in this release, we published a new blog post:
+To support the changes in this release, we published a new blog post: [Building a real-time WebSocket leaderboard with Centrifugo and Redis](https://centrifugal.dev/blog/2025/04/28/websocket-real-time-leaderboard).
 
-[Building a real-time WebSocket leaderboard with Centrifugo and Redis](/blog/2025/04/28/websocket-real-time-leaderboard).
-
-In it, we create a real-time leaderboard using Centrifugo, Redis, React and Python. Showing the usage of Centrifugo built-in asynchronous consumer from Redis Stream and using `version`/`version_epoch` fields. The post additionally showcases Fossil delta compression and cache recovery mode.
+In the tutorial, we create a real-time WebSocket leaderboard using Centrifugo, Redis, React and some Python. Showing the usage of Centrifugo built-in asynchronous consumer from Redis Stream and using `version`/`version_epoch` fields for dropping non-actual data on Centrifugo side. The post additionally showcases Centrifugo Fossil delta compression support and cache recovery mode.
 
 ### Miscellaneous
 
