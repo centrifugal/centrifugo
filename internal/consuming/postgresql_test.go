@@ -111,54 +111,67 @@ func ensureEventsRemoved(ctx context.Context, t *testing.T, tableName string, pa
 
 func TestPostgresConsumer_GreenScenario(t *testing.T) {
 	t.Parallel()
-	testTableName := "centrifugo_consumer_test_" + strings.Replace(uuid.New().String(), "-", "_", -1)
-	testNotificationChannel := "centrifugo_test_channel_" + strings.Replace(uuid.New().String(), "-", "_", -1)
-	testMethod := "method"
-	testPayload := []byte(`{"key":"value"}`)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	err := setupTestTable(ctx, testTableName, testNotificationChannel)
-	require.NoError(t, err)
-
-	eventReceived := make(chan struct{})
-	consumerClosed := make(chan struct{})
-
-	// Setup consumer
-	config := PostgresConfig{
-		DSN:                          testPGDSN,
-		OutboxTableName:              testTableName,
-		PartitionSelectLimit:         10,
-		NumPartitions:                1,
-		PartitionPollInterval:        configtypes.Duration(300 * time.Millisecond),
-		PartitionNotificationChannel: testNotificationChannel,
+	testCases := []struct {
+		useTryLock bool
+	}{
+		{useTryLock: false},
+		{useTryLock: true},
 	}
-	consumer, err := NewPostgresConsumer(config, &MockDispatcher{
-		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
-			require.Equal(t, testMethod, method)
-			require.Equal(t, testPayload, data)
-			close(eventReceived)
-			return nil
-		},
-	}, testCommon(prometheus.NewRegistry()))
-	require.NoError(t, err)
 
-	// Start the consumer
-	go func() {
-		err := consumer.Run(ctx)
-		require.ErrorIs(t, err, context.Canceled)
-		close(consumerClosed)
-	}()
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("useTryLock=%v", tc.useTryLock), func(t *testing.T) {
+			testTableName := "centrifugo_consumer_test_" + strings.Replace(uuid.New().String(), "-", "_", -1)
+			testNotificationChannel := "centrifugo_test_channel_" + strings.Replace(uuid.New().String(), "-", "_", -1)
+			testMethod := "method"
+			testPayload := []byte(`{"key":"value"}`)
 
-	partition := 0
-	err = insertEvent(ctx, consumer.pool, testTableName, testMethod, testPayload, partition)
-	require.NoError(t, err)
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
 
-	waitCh(t, eventReceived, 30*time.Second, "timeout waiting for event")
-	ensureEventsRemoved(ctx, t, testTableName, 0)
-	cancel()
-	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
+			err := setupTestTable(ctx, testTableName, testNotificationChannel)
+			require.NoError(t, err)
+
+			eventReceived := make(chan struct{})
+			consumerClosed := make(chan struct{})
+
+			// Setup consumer
+			config := PostgresConfig{
+				DSN:                          testPGDSN,
+				OutboxTableName:              testTableName,
+				PartitionSelectLimit:         10,
+				NumPartitions:                1,
+				PartitionPollInterval:        configtypes.Duration(300 * time.Millisecond),
+				PartitionNotificationChannel: testNotificationChannel,
+				UseTryLock:                   tc.useTryLock,
+			}
+			consumer, err := NewPostgresConsumer(config, &MockDispatcher{
+				onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
+					require.Equal(t, testMethod, method)
+					require.Equal(t, testPayload, data)
+					close(eventReceived)
+					return nil
+				},
+			}, testCommon(prometheus.NewRegistry()))
+			require.NoError(t, err)
+
+			// Start the consumer
+			go func() {
+				err := consumer.Run(ctx)
+				require.ErrorIs(t, err, context.Canceled)
+				close(consumerClosed)
+			}()
+
+			partition := 0
+			err = insertEvent(ctx, consumer.pool, testTableName, testMethod, testPayload, partition)
+			require.NoError(t, err)
+
+			waitCh(t, eventReceived, 30*time.Second, "timeout waiting for event")
+			ensureEventsRemoved(ctx, t, testTableName, 0)
+			cancel()
+			waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
+		})
+	}
 }
 
 func TestPostgresConsumer_SeveralConsumers(t *testing.T) {
