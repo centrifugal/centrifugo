@@ -12,12 +12,6 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 * Minor tweaks in web UI: method select with quick search in Actions tab.
 
-### Fixes
-
-* Fixed concurrent map iteration and write panic occurring during Redis issues [centrifugal/centrifuge#473](https://github.com/centrifugal/centrifuge/pull/473).
-* Fixed unmarshalling of `duration` type from environment variable JSON [#973](https://github.com/centrifugal/centrifugo/pull/973).
-* Fixed an issue where `channel_replacements` were not applied when publishing to a channel via the Centrifugo API in NATS Raw Mode. See [#977](https://github.com/centrifugal/centrifugo/issues/977).
-
 ### Miscellaneous
 
 * This release is built with Go 1.24.3.
