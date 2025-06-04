@@ -123,6 +123,8 @@ func (c *PostgresConsumer) listenForNotifications(ctx context.Context, triggerCh
 	}
 }
 
+var ErrLockNotAcquired = errors.New("advisory lock not acquired")
+
 func (c *PostgresConsumer) processOnce(ctx context.Context, partition int) (int, error) {
 	tx, err := c.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
 	if err != nil {
@@ -133,9 +135,21 @@ func (c *PostgresConsumer) processOnce(ctx context.Context, partition int) (int,
 	// Acquire an advisory lock for partition. This allows us to process all the rows
 	// from partition in order.
 	lockName := c.lockPrefix + strconv.Itoa(partition)
-	_, err = tx.Exec(ctx, "SELECT pg_advisory_xact_lock(hashtext($1))", lockName)
-	if err != nil {
-		return 0, fmt.Errorf("unable to acquire advisory lock: %w", err)
+
+	if c.config.UseTryLock {
+		var acquired bool
+		err = tx.QueryRow(ctx, "SELECT pg_try_advisory_xact_lock(hashtext($1))", lockName).Scan(&acquired)
+		if err != nil {
+			return 0, fmt.Errorf("error acquiring advisory lock: %w", err)
+		}
+		if !acquired {
+			return 0, ErrLockNotAcquired
+		}
+	} else {
+		_, err = tx.Exec(ctx, "SELECT pg_advisory_xact_lock(hashtext($1))", lockName)
+		if err != nil {
+			return 0, fmt.Errorf("error acquiring advisory lock: %w", err)
+		}
 	}
 
 	sql := `
@@ -253,6 +267,17 @@ func (c *PostgresConsumer) Run(ctx context.Context) error {
 				if err != nil {
 					if errors.Is(err, context.Canceled) {
 						return err
+					}
+					if c.config.UseTryLock && errors.Is(err, ErrLockNotAcquired) {
+						// If we are using try advisory lock, and it was not acquired
+						// then wait for notification or poll interval.
+						select {
+						case <-time.After(pollInterval.ToDuration()):
+						case <-partitionTriggerChannels[i]:
+						case <-ctx.Done():
+							return ctx.Err()
+						}
+						continue
 					}
 					retries++
 					backoffDuration = getNextBackoffDuration(backoffDuration, retries)

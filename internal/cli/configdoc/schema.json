@@ -6914,6 +6914,16 @@
                 "is_complex_type": false
               }
             ]
+          },
+          {
+            "field": "consumers[].postgresql.use_try_lock",
+            "name": "use_try_lock",
+            "go_name": "UseTryLock",
+            "level": 3,
+            "type": "bool",
+            "default": "false",
+            "comment": "UseTryLock when enabled tells Centrifugo to use pg_try_advisory_xact_lock instead of pg_advisory_xact_lock.",
+            "is_complex_type": false
           }
         ]
       },
