@@ -16,12 +16,12 @@ type webtransportTransport struct {
 	closeCh        chan struct{}
 	protoType      centrifuge.ProtocolType
 	session        *webtransport.Session
-	stream         webtransport.Stream
+	stream         *webtransport.Stream
 	pingPongConfig centrifuge.PingPongConfig
 	closed         bool
 }
 
-func newWebtransportTransport(protoType centrifuge.ProtocolType, session *webtransport.Session, stream webtransport.Stream, pingPongConfig centrifuge.PingPongConfig) *webtransportTransport {
+func newWebtransportTransport(protoType centrifuge.ProtocolType, session *webtransport.Session, stream *webtransport.Stream, pingPongConfig centrifuge.PingPongConfig) *webtransportTransport {
 	return &webtransportTransport{
 		protoType:      protoType,
 		closeCh:        make(chan struct{}),

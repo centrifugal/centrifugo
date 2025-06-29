@@ -10,10 +10,14 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Minor tweaks in web UI: method select with quick search in Actions tab.
+* Option to use try lock for postgresql consumer, [#988](https://github.com/centrifugal/centrifugo/pull/988). New option for PG consumer `use_try_lock` (boolean, default `false`) to use `pg_try_advisory_xact_lock` instead of `pg_advisory_xact_lock` for locking outbox table. This may help to reduce the number of long-running transactions on PG side.
+
+### Fixes
+
+* Fix log entries about engine on start [#992](https://github.com/centrifugal/centrifugo/pull/992).
 
 ### Miscellaneous
 
-* This release is built with Go 1.24.3.
+* This release is built with Go 1.24.4.
 * Updated dependencies.
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.2.1).
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.2.2).
