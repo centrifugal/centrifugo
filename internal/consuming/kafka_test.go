@@ -744,3 +744,138 @@ func TestKafkaConsumer_GreenScenario_PublicationDataMode(t *testing.T) {
 	cancel()
 	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
 }
+
+func prePopulateTopic(b *testing.B, topic string, numPartitions int32, numMessages int) {
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	defer cancel()
+
+	// Create topic
+	err := createTestTopic(ctx, topic, numPartitions, 1)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.Logf("created topic %s with %d partitions", topic, numPartitions)
+
+	// Pre-populate topic with messages in batches.
+	const batchSize = 10000
+	var records []*kgo.Record
+	startTime := time.Now()
+
+	for i := 0; i < numMessages; i++ {
+		records = append(records, &kgo.Record{Topic: topic, Value: []byte(`{"hello": "` + strconv.Itoa(i) + `"}`)})
+
+		if (i+1)%batchSize == 0 || i == numMessages-1 {
+			err = produceManyRecords(records...)
+			if err != nil {
+				b.Fatal(err)
+			}
+			records = nil
+
+			if (i+1)%10000 == 0 || i == numMessages-1 {
+				elapsed := time.Since(startTime)
+				rate := float64(i+1) / elapsed.Seconds()
+				b.Logf("produced %d/%d messages (%.0f msg/sec)", i+1, numMessages, rate)
+			}
+		}
+	}
+
+	totalTime := time.Since(startTime)
+	overallRate := float64(numMessages) / totalTime.Seconds()
+	b.Logf("finished producing %d messages in %v (%.0f msg/sec)", numMessages, totalTime, overallRate)
+}
+
+func runConsumptionIteration(b *testing.B, topic string, numMessages int, iteration int) time.Duration {
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	defer cancel()
+
+	messageCh := make(chan struct{}, numMessages)
+	consumerClosed := make(chan struct{})
+
+	mockDispatcher := &MockDispatcher{
+		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
+			messageCh <- struct{}{}
+			return nil
+		},
+	}
+
+	config := KafkaConfig{
+		Brokers:        []string{testKafkaBrokerURL},
+		Topics:         []string{topic},
+		ConsumerGroup:  uuid.New().String(),
+		MaxPollRecords: 100,
+		FetchMaxBytes:  1 * 1024 * 1024, // 1 MB.
+	}
+
+	consumer, err := NewKafkaConsumer(
+		config, mockDispatcher, testCommon(prometheus.NewRegistry()))
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.Logf("iteration %d: starting consumer with group %s", iteration, config.ConsumerGroup)
+	startTime := time.Now()
+
+	go func() {
+		err := consumer.Run(ctx)
+		if err != nil && !errors.Is(err, context.Canceled) {
+			b.Logf("consumer error: %v", err)
+		}
+		close(consumerClosed)
+	}()
+
+	// Wait for all messages to be consumed
+	processedCount := 0
+
+	for j := 0; j < numMessages; j++ {
+		select {
+		case <-messageCh:
+			processedCount++
+			// Log progress every 100 messages.
+			if processedCount%100 == 0 {
+				elapsed := time.Since(startTime)
+				rate := float64(processedCount) / elapsed.Seconds()
+				b.Logf("iteration %d: processed %d/%d messages (%.0f msg/sec)", iteration, processedCount, numMessages, rate)
+			}
+		case <-time.After(60 * time.Second):
+			b.Fatal("timeout waiting for messages")
+		}
+	}
+
+	consumptionTime := time.Since(startTime)
+	rate := float64(numMessages) / consumptionTime.Seconds()
+	b.Logf("iteration %d: consumed %d messages in %v (%.0f msg/sec)", iteration, numMessages, consumptionTime, rate)
+
+	cancel()
+	select {
+	case <-consumerClosed:
+	case <-time.After(30 * time.Second):
+		b.Fatal("timeout waiting for consumer to close")
+	}
+
+	return consumptionTime
+}
+
+func BenchmarkKafkaConsumer_ConsumePreLoadedTopic(b *testing.B) {
+	const (
+		numPartitions = 10
+		numMessages   = 100000
+	)
+
+	testKafkaTopic := "consumer_bench_" + uuid.New().String()
+	prePopulateTopic(b, testKafkaTopic, numPartitions, numMessages)
+
+	b.ResetTimer()
+
+	var totalTime time.Duration
+	for i := 0; i < b.N; i++ {
+		iterationTime := runConsumptionIteration(b, testKafkaTopic, numMessages, i+1)
+		totalTime += iterationTime
+	}
+
+	if b.N > 0 {
+		avgTime := totalTime / time.Duration(b.N)
+		avgRate := float64(numMessages) / avgTime.Seconds()
+		b.Logf("benchmark complete: %d iterations, avg time %v, avg rate %.0f msg/sec", b.N, avgTime, avgRate)
+	}
+}
