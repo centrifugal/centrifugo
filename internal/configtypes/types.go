@@ -752,11 +752,6 @@ type KafkaConsumerConfig struct {
 	SASLUser      string `mapstructure:"sasl_user" json:"sasl_user" envconfig:"sasl_user" yaml:"sasl_user" toml:"sasl_user"`
 	SASLPassword  string `mapstructure:"sasl_password" json:"sasl_password" envconfig:"sasl_password" yaml:"sasl_password" toml:"sasl_password"`
 
-	// PartitionBufferSize is the size of the buffer for each partition consumer.
-	// This is the number of records that can be buffered before the consumer
-	// will pause fetching records from Kafka. By default, this is 16.
-	PartitionBufferSize int `mapstructure:"partition_buffer_size" json:"partition_buffer_size" envconfig:"partition_buffer_size" default:"16" yaml:"partition_buffer_size" toml:"partition_buffer_size"`
-
 	// FetchMaxBytes is the maximum number of bytes to fetch from Kafka in a single request.
 	// If not set the default 50MB is used.
 	FetchMaxBytes int32 `mapstructure:"fetch_max_bytes" json:"fetch_max_bytes" envconfig:"fetch_max_bytes" yaml:"fetch_max_bytes" toml:"fetch_max_bytes"`
