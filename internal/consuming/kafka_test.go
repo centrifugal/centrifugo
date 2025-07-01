@@ -804,7 +804,7 @@ func runConsumptionIteration(b *testing.B, topic string, numMessages int, iterat
 		Topics:                []string{topic},
 		ConsumerGroup:         uuid.New().String(),
 		MaxPollRecords:        100,
-		FetchMaxBytes:         10 * 1024 * 1024, // 1 MB.
+		FetchMaxBytes:         10 * 1024 * 1024, // 10 MB.
 		FetchMaxWait:          configtypes.Duration(200 * time.Millisecond),
 		PartitionQueueMaxSize: 1000,
 	}
