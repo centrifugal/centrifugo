@@ -62,6 +62,9 @@ func NewKafkaConsumer(
 	if config.MaxPollRecords == 0 {
 		config.MaxPollRecords = 100
 	}
+	if config.FetchMaxWait == 0 {
+		config.FetchMaxWait = configtypes.Duration(200 * time.Millisecond)
+	}
 	consumer := &KafkaConsumer{
 		nodeID:     common.nodeID,
 		dispatcher: dispatcher,
@@ -96,7 +99,7 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 		kgo.BlockRebalanceOnPoll(),
 		kgo.ClientID(kafkaClientID),
 		kgo.InstanceID(c.getInstanceID()),
-		kgo.FetchMaxWait(200 * time.Millisecond),
+		kgo.FetchMaxWait(time.Duration(c.config.FetchMaxWait)),
 	}
 	if c.config.FetchMaxBytes > 0 {
 		opts = append(opts, kgo.FetchMaxBytes(c.config.FetchMaxBytes))
@@ -259,23 +262,29 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 
 				partitionsToPause := map[string][]int32{p.Topic: {p.Partition}}
 				if _, paused := pausedTopicPartitions[tp]; !paused {
-					// Pause partition BEFORE submitting to queue to avoid race condition
-					// between pause and resume operations.
-					if c.testOnlyConfig.topicPartitionBeforePauseCh != nil {
-						c.testOnlyConfig.topicPartitionBeforePauseCh <- tp
+					// Only pause if queue threshold would be exceeded after adding records, or if threshold is 0 (always pause).
+					shouldPause := c.config.PartitionQueueMaxSize == 0 || consumer.queue.Len()+len(p.Records) >= c.config.PartitionQueueMaxSize
+					if shouldPause {
+						// Pause partition BEFORE submitting to queue to avoid race condition
+						// between pause and resume operations.
+						if c.testOnlyConfig.topicPartitionBeforePauseCh != nil {
+							c.testOnlyConfig.topicPartitionBeforePauseCh <- tp
+						}
+						if c.testOnlyConfig.topicPartitionPauseProceedCh != nil {
+							<-c.testOnlyConfig.topicPartitionPauseProceedCh
+						}
+						c.client.PauseFetchPartitions(partitionsToPause)
+						pausedTopicPartitions[tp] = struct{}{}
 					}
-					if c.testOnlyConfig.topicPartitionPauseProceedCh != nil {
-						<-c.testOnlyConfig.topicPartitionPauseProceedCh
-					}
-					c.client.PauseFetchPartitions(partitionsToPause)
-					pausedTopicPartitions[tp] = struct{}{}
 				}
 
-				// Now submit to unbounded queue after pausing.
+				// Now submit to unbounded queue.
 				if !consumer.queue.Push(p) {
 					// Queue is closed, partition consumer is shutting down
-					// Resume the partition since we paused it but won't process
-					c.client.ResumeFetchPartitions(partitionsToPause)
+					// Resume the partition if we paused it but won't process
+					if _, wasPaused := pausedTopicPartitions[tp]; wasPaused {
+						c.client.ResumeFetchPartitions(partitionsToPause)
+					}
 					return
 				}
 

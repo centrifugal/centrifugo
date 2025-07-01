@@ -746,6 +746,12 @@ type KafkaConsumerConfig struct {
 	// FetchMaxBytes is the maximum number of bytes to fetch from Kafka in a single request.
 	// If not set the default 50MB is used.
 	FetchMaxBytes int32 `mapstructure:"fetch_max_bytes" json:"fetch_max_bytes" envconfig:"fetch_max_bytes" yaml:"fetch_max_bytes" toml:"fetch_max_bytes"`
+	// FetchMaxWait is the maximum time to wait for records when polling.
+	// If not set, defaults to 500ms.
+	FetchMaxWait Duration `mapstructure:"fetch_max_wait" json:"fetch_max_wait" envconfig:"fetch_max_wait" default:"500ms" yaml:"fetch_max_wait" toml:"fetch_max_wait"`
+	// PartitionQueueMaxSize is the maximum number of items in partition queue before pausing.
+	// If zero, pausing is done on every poll. If set, pausing only happens when queue size exceeds this threshold.
+	PartitionQueueMaxSize int `mapstructure:"partition_queue_max_size" json:"partition_queue_max_size" envconfig:"partition_queue_max_size" default:"1000" yaml:"partition_queue_max_size" toml:"partition_queue_max_size"`
 
 	// TLS for the connection to Kafka.
 	TLS TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
