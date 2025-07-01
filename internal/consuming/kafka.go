@@ -63,7 +63,7 @@ func NewKafkaConsumer(
 		config.MaxPollRecords = 100
 	}
 	if config.FetchMaxWait == 0 {
-		config.FetchMaxWait = configtypes.Duration(200 * time.Millisecond)
+		config.FetchMaxWait = configtypes.Duration(500 * time.Millisecond)
 	}
 	consumer := &KafkaConsumer{
 		nodeID:     common.nodeID,
