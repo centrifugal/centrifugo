@@ -749,7 +749,8 @@ type KafkaConsumerConfig struct {
 	// FetchMaxWait is the maximum time to wait for records when polling.
 	// If not set, defaults to 500ms.
 	FetchMaxWait Duration `mapstructure:"fetch_max_wait" json:"fetch_max_wait" envconfig:"fetch_max_wait" default:"500ms" yaml:"fetch_max_wait" toml:"fetch_max_wait"`
-	// PartitionQueueMaxSize is the maximum number of items in partition queue before pausing.
+	// PartitionQueueMaxSize is the maximum number of items in partition queue before pausing consuming from a partition.
+	// The actual queue size may exceed this value on `max_poll_records`, so this acts more like a threshold.
 	// If zero, pausing is done on every poll. If set, pausing only happens when queue size exceeds this threshold.
 	PartitionQueueMaxSize int `mapstructure:"partition_queue_max_size" json:"partition_queue_max_size" envconfig:"partition_queue_max_size" default:"1000" yaml:"partition_queue_max_size" toml:"partition_queue_max_size"`
 
