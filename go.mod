@@ -130,7 +130,7 @@ require (
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
-	github.com/redis/rueidis v1.0.61
+	github.com/redis/rueidis v1.0.62
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/segmentio/encoding v0.5.1
 	github.com/spf13/cast v1.7.1 // indirect
