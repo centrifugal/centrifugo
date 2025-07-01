@@ -803,8 +803,8 @@ func runConsumptionIteration(b *testing.B, topic string, numMessages int, iterat
 		Brokers:        []string{testKafkaBrokerURL},
 		Topics:         []string{topic},
 		ConsumerGroup:  uuid.New().String(),
-		MaxPollRecords: 100,
-		FetchMaxBytes:  1 * 1024 * 1024, // 1 MB.
+		MaxPollRecords: 1000,
+		FetchMaxBytes:  10 * 1024 * 1024, // 1 MB.
 	}
 
 	consumer, err := NewKafkaConsumer(

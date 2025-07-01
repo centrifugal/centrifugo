@@ -216,8 +216,6 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			// PollRecords is recommended when using BlockRebalanceOnPoll.
-			// Need to ensure that processor loop complete fast enough to not block a rebalance for too long.
 			fetches := c.client.PollRecords(ctx, c.config.MaxPollRecords)
 			if fetches.IsClientClosed() {
 				return nil
@@ -246,8 +244,6 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 
 				tp := topicPartition{p.Topic, p.Partition}
 
-				// Since we are using BlockRebalanceOnPoll, we can be
-				// sure this partition consumer exists
 				consumer := c.consumers[tp]
 				if consumer == nil {
 					return
