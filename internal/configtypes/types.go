@@ -187,19 +187,28 @@ type PingPong struct {
 	PongTimeout Duration `mapstructure:"pong_timeout" json:"pong_timeout" envconfig:"pong_timeout" default:"8s" yaml:"pong_timeout" toml:"pong_timeout"`
 }
 
-// NatsBroker configuration.
-type NatsBroker struct {
-	// URL is a Nats server URL.
-	URL string `mapstructure:"url" json:"url" envconfig:"url" yaml:"url" toml:"url" default:"nats://localhost:4222"`
+type NatsPrefixed struct {
 	// Prefix allows customizing channel prefix in Nats to work with a single Nats from different
 	// unrelated Centrifugo setups.
 	Prefix string `mapstructure:"prefix" default:"centrifugo" json:"prefix" envconfig:"prefix" yaml:"prefix" toml:"prefix"`
+	// NatsCommon contains common Nats configuration.
+	NatsCommon `mapstructure:",squash" yaml:",inline"`
+}
+
+type NatsCommon struct {
+	// URL is a Nats server URL.
+	URL string `mapstructure:"url" json:"url" envconfig:"url" yaml:"url" toml:"url" default:"nats://localhost:4222"`
 	// DialTimeout is a timeout for establishing connection to Nats.
 	DialTimeout Duration `mapstructure:"dial_timeout" default:"1s" json:"dial_timeout" envconfig:"dial_timeout" yaml:"dial_timeout" toml:"dial_timeout"`
 	// WriteTimeout is a timeout for write operation to Nats.
 	WriteTimeout Duration `mapstructure:"write_timeout" default:"1s" json:"write_timeout" envconfig:"write_timeout" yaml:"write_timeout" toml:"write_timeout"`
 	// TLS for the Nats connection. TLS is not used if nil.
 	TLS TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
+}
+
+// NatsBroker configuration.
+type NatsBroker struct {
+	NatsPrefixed `mapstructure:",squash" yaml:",inline"`
 
 	// AllowWildcards allows to enable wildcard subscriptions. By default, wildcard subscriptions
 	// are not allowed. Using wildcard subscriptions can't be combined with join/leave events and presence
