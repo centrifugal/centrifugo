@@ -22,7 +22,9 @@ func newTestNatsBroker() *NatsBroker {
 
 func NewTestNatsBrokerWithPrefix(prefix string) *NatsBroker {
 	n, _ := centrifuge.New(centrifuge.Config{})
-	b, _ := New(n, Config{Prefix: prefix})
+	b, _ := New(n, Config{NatsPrefixed: configtypes.NatsPrefixed{
+		Prefix: prefix,
+	}})
 	n.SetBroker(b)
 	err := n.Run()
 	if err != nil {

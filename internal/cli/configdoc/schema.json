@@ -1170,16 +1170,6 @@
         "is_complex_type": true,
         "children": [
           {
-            "field": "broker.nats.url",
-            "name": "url",
-            "go_name": "URL",
-            "level": 3,
-            "type": "string",
-            "default": "nats://localhost:4222",
-            "comment": "URL is a Nats server URL.",
-            "is_complex_type": false
-          },
-          {
             "field": "broker.nats.prefix",
             "name": "prefix",
             "go_name": "Prefix",
@@ -1187,6 +1177,16 @@
             "type": "string",
             "default": "centrifugo",
             "comment": "Prefix allows customizing channel prefix in Nats to work with a single Nats from different\nunrelated Centrifugo setups.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.nats.url",
+            "name": "url",
+            "go_name": "URL",
+            "level": 3,
+            "type": "string",
+            "default": "nats://localhost:4222",
+            "comment": "URL is a Nats server URL.",
             "is_complex_type": false
           },
           {
