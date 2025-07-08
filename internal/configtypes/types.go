@@ -770,8 +770,8 @@ type KafkaConsumerConfig struct {
 	// If not set the default 50MB is used.
 	FetchMaxBytes int32 `mapstructure:"fetch_max_bytes" json:"fetch_max_bytes" envconfig:"fetch_max_bytes" yaml:"fetch_max_bytes" toml:"fetch_max_bytes"`
 
-	// FetchReadCommitted is a flag to enable reading only committed messages from Kafka. By default, this is false and Centrifugo uses ReadUncommitted mode.
-	FetchReadCommitted bool `mapstructure:"fetch_read_committed" json:"fetch_read_committed" envconfig:"fetch_read_committed" default:"false" yaml:"fetch_read_committed" toml:"fetch_read_committed"`
+	// FetchReadUncommitted is a flag to enable reading uncommitted messages from Kafka. By default, this is false and Centrifugo uses ReadCommitted mode.
+	FetchReadUncommitted bool `mapstructure:"fetch_read_uncommitted" json:"fetch_read_uncommitted" envconfig:"fetch_read_uncommitted" default:"false" yaml:"fetch_read_uncommitted" toml:"fetch_read_uncommitted"`
 
 	// MethodHeader is a header name to extract method name from Kafka message.
 	// If provided in message, then payload must be just a serialized API request object.
