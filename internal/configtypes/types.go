@@ -752,6 +752,18 @@ type KafkaConsumerConfig struct {
 	Topics         []string `mapstructure:"topics" json:"topics" envconfig:"topics" yaml:"topics" toml:"topics"`
 	ConsumerGroup  string   `mapstructure:"consumer_group" json:"consumer_group" envconfig:"consumer_group" yaml:"consumer_group" toml:"consumer_group"`
 	MaxPollRecords int      `mapstructure:"max_poll_records" json:"max_poll_records" envconfig:"max_poll_records" default:"100" yaml:"max_poll_records" toml:"max_poll_records"`
+	// FetchMaxBytes is the maximum number of bytes to fetch from Kafka in a single request.
+	// If not set the default 50MB is used.
+	FetchMaxBytes int32 `mapstructure:"fetch_max_bytes" json:"fetch_max_bytes" envconfig:"fetch_max_bytes" yaml:"fetch_max_bytes" toml:"fetch_max_bytes"`
+	// FetchMaxWait is the maximum time to wait for records when polling.
+	// If not set, defaults to 500ms.
+	FetchMaxWait Duration `mapstructure:"fetch_max_wait" json:"fetch_max_wait" envconfig:"fetch_max_wait" default:"500ms" yaml:"fetch_max_wait" toml:"fetch_max_wait"`
+	// FetchReadUncommitted is a flag to enable reading uncommitted messages from Kafka. By default, this is false and Centrifugo uses ReadCommitted mode.
+	FetchReadUncommitted bool `mapstructure:"fetch_read_uncommitted" json:"fetch_read_uncommitted" envconfig:"fetch_read_uncommitted" default:"false" yaml:"fetch_read_uncommitted" toml:"fetch_read_uncommitted"`
+	// PartitionQueueMaxSize is the maximum number of items in partition queue before pausing consuming from a partition.
+	// The actual queue size may exceed this value on `max_poll_records`, so this acts more like a threshold.
+	// If zero, pausing is done on every poll. If set, pausing only happens when queue size exceeds this threshold.
+	PartitionQueueMaxSize int `mapstructure:"partition_queue_max_size" json:"partition_queue_max_size" envconfig:"partition_queue_max_size" default:"1000" yaml:"partition_queue_max_size" toml:"partition_queue_max_size"`
 
 	// TLS for the connection to Kafka.
 	TLS TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
@@ -760,18 +772,6 @@ type KafkaConsumerConfig struct {
 	SASLMechanism string `mapstructure:"sasl_mechanism" json:"sasl_mechanism" envconfig:"sasl_mechanism" yaml:"sasl_mechanism" toml:"sasl_mechanism"`
 	SASLUser      string `mapstructure:"sasl_user" json:"sasl_user" envconfig:"sasl_user" yaml:"sasl_user" toml:"sasl_user"`
 	SASLPassword  string `mapstructure:"sasl_password" json:"sasl_password" envconfig:"sasl_password" yaml:"sasl_password" toml:"sasl_password"`
-
-	// PartitionBufferSize is the size of the buffer for each partition consumer.
-	// This is the number of records that can be buffered before the consumer
-	// will pause fetching records from Kafka. By default, this is 16.
-	PartitionBufferSize int `mapstructure:"partition_buffer_size" json:"partition_buffer_size" envconfig:"partition_buffer_size" default:"16" yaml:"partition_buffer_size" toml:"partition_buffer_size"`
-
-	// FetchMaxBytes is the maximum number of bytes to fetch from Kafka in a single request.
-	// If not set the default 50MB is used.
-	FetchMaxBytes int32 `mapstructure:"fetch_max_bytes" json:"fetch_max_bytes" envconfig:"fetch_max_bytes" yaml:"fetch_max_bytes" toml:"fetch_max_bytes"`
-
-	// FetchReadUncommitted is a flag to enable reading uncommitted messages from Kafka. By default, this is false and Centrifugo uses ReadCommitted mode.
-	FetchReadUncommitted bool `mapstructure:"fetch_read_uncommitted" json:"fetch_read_uncommitted" envconfig:"fetch_read_uncommitted" default:"false" yaml:"fetch_read_uncommitted" toml:"fetch_read_uncommitted"`
 
 	// MethodHeader is a header name to extract method name from Kafka message.
 	// If provided in message, then payload must be just a serialized API request object.
