@@ -56,13 +56,13 @@ func TestParseURLError(t *testing.T) {
 		t.Errorf("expected %s, got %v", "UrlPointer", v.FieldName)
 	}
 
-	expectedUnerlyingError := url.Error{
+	expectedUnderlyingError := url.Error{
 		Op:  "parse",
 		URL: "http_://foo",
 		Err: errors.New("first path segment in URL cannot contain colon"),
 	}
 
-	if v.Err.Error() != expectedUnerlyingError.Error() {
-		t.Errorf("expected %q, got %q", expectedUnerlyingError, v.Err)
+	if v.Err.Error() != expectedUnderlyingError.Error() {
+		t.Errorf("expected %q, got %q", expectedUnderlyingError, v.Err)
 	}
 }

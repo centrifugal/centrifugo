@@ -740,22 +740,22 @@ func (h *Executor) Info(_ context.Context, _ *InfoRequest) *InfoResponse {
 	}
 
 	nodes := make([]*NodeResult, len(info.Nodes))
-	for i, nd := range info.Nodes {
+	for i, node := range info.Nodes {
 		res := &NodeResult{
-			Uid:         nd.UID,
-			Version:     nd.Version,
-			Name:        nd.Name,
-			NumClients:  nd.NumClients,
-			NumUsers:    nd.NumUsers,
-			NumSubs:     nd.NumSubs,
-			NumChannels: nd.NumChannels,
-			Uptime:      nd.Uptime,
+			Uid:         node.UID,
+			Version:     node.Version,
+			Name:        node.Name,
+			NumClients:  node.NumClients,
+			NumUsers:    node.NumUsers,
+			NumSubs:     node.NumSubs,
+			NumChannels: node.NumChannels,
+			Uptime:      node.Uptime,
 			Process:     nil,
 		}
-		if nd.Metrics != nil {
+		if node.Metrics != nil {
 			res.Metrics = &Metrics{
-				Interval: nd.Metrics.Interval,
-				Items:    nd.Metrics.Items,
+				Interval: node.Metrics.Interval,
+				Items:    node.Metrics.Items,
 			}
 		}
 		nodes[i] = res

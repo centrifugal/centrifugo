@@ -209,7 +209,7 @@ func (c *PostgresConsumer) processOnce(ctx context.Context, partition int) (int,
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("error commiting transaction: %w", err)
+		return 0, fmt.Errorf("error committing transaction: %w", err)
 	}
 
 	return numProcessedRows, dispatchErr

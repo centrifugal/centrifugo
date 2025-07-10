@@ -61,7 +61,7 @@ func surveyChannels(ctx context.Context, node *centrifuge.Node, cmd *apiproto.Ch
 		var nodeChannels apiproto.ChannelsResult
 		err := proto.Unmarshal(result.Data, &nodeChannels)
 		if err != nil {
-			return nil, fmt.Errorf("error unmarshaling data from node %s: %v", nodeID, err)
+			return nil, fmt.Errorf("error unmarshalling data from node %s: %w", nodeID, err)
 		}
 		for ch, chInfo := range nodeChannels.Channels {
 			info, ok := channels[ch]

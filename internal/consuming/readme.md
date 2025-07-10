@@ -1,7 +1,7 @@
 ### Nats JetsStream
 
 ```
-docker compose up nats_jestream
+docker compose up nats_jetstream
 ```
 
 Then:
