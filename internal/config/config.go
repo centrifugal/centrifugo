@@ -371,7 +371,11 @@ func checkEnvironmentVars(knownEnvVars map[string]envconfig.VarInfo) []string {
 	return unknownEnvs
 }
 
-var k8sEnvRegex = regexp.MustCompile(`^CENTRIFUGO(?:_[A-Z]+)?_(PORT|SERVICE_)`)
+// k8sEnvRegex is used to filter out Kubernetes-injected environment variables.
+// Centrifugo automatically scans environment variables starting with CENTRIFUGO_ and converts them to configuration options.
+// However, Kubernetes automatically injects environment variables, so this regular expression filters out Kubernetes-injected environment variables.
+// See isKubernetesEnvVar function for usage.
+var k8sEnvRegex = regexp.MustCompile(`^CENTRIFUGO(?:_[A-Z0-9_]+)?_(PORT|SERVICE_)`)
 
 func isKubernetesEnvVar(envKey string) bool {
 	return k8sEnvRegex.MatchString(envKey)
