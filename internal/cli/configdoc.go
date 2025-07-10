@@ -45,7 +45,7 @@ func ConfigDoc() *cobra.Command {
 func configDoc(port int, mdOutput bool, section string, baseLevel int) {
 	var docs []FieldDoc
 	if err := json.Unmarshal([]byte(configSchema), &docs); err != nil {
-		fmt.Printf("error unmarshaling config schema: %v\n", err)
+		fmt.Printf("error unmarshalling config schema: %v\n", err)
 		os.Exit(1)
 	}
 
