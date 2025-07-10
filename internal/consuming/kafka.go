@@ -104,6 +104,11 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 	if c.config.FetchMaxBytes > 0 {
 		opts = append(opts, kgo.FetchMaxBytes(c.config.FetchMaxBytes))
 	}
+	if !c.config.FetchReadUncommitted {
+		opts = append(opts, kgo.FetchIsolationLevel(kgo.ReadCommitted()))
+	} else {
+		opts = append(opts, kgo.FetchIsolationLevel(kgo.ReadUncommitted()))
+	}
 	if c.config.TLS.Enabled {
 		tlsConfig, err := c.config.TLS.ToGoTLSConfig("kafka:" + c.name)
 		if err != nil {

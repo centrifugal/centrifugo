@@ -758,6 +758,8 @@ type KafkaConsumerConfig struct {
 	// FetchMaxWait is the maximum time to wait for records when polling.
 	// If not set, defaults to 500ms.
 	FetchMaxWait Duration `mapstructure:"fetch_max_wait" json:"fetch_max_wait" envconfig:"fetch_max_wait" default:"500ms" yaml:"fetch_max_wait" toml:"fetch_max_wait"`
+	// FetchReadUncommitted is a flag to enable reading uncommitted messages from Kafka. By default, this is false and Centrifugo uses ReadCommitted mode.
+	FetchReadUncommitted bool `mapstructure:"fetch_read_uncommitted" json:"fetch_read_uncommitted" envconfig:"fetch_read_uncommitted" default:"false" yaml:"fetch_read_uncommitted" toml:"fetch_read_uncommitted"`
 	// PartitionQueueMaxSize is the maximum number of items in partition queue before pausing consuming from a partition.
 	// The actual queue size may exceed this value on `max_poll_records`, so this acts more like a threshold.
 	// If zero, pausing is done on every poll. If set, pausing only happens when queue size exceeds this threshold.
