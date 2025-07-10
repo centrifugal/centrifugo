@@ -13,6 +13,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/logging"
 
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/kmsg"
@@ -61,8 +62,8 @@ func NewKafkaConsumer(
 	if config.MaxPollRecords == 0 {
 		config.MaxPollRecords = 100
 	}
-	if config.PartitionBufferSize < 0 {
-		return nil, errors.New("partition buffer size can't be negative")
+	if config.FetchMaxWait == 0 {
+		config.FetchMaxWait = configtypes.Duration(500 * time.Millisecond)
 	}
 	consumer := &KafkaConsumer{
 		nodeID:     common.nodeID,
@@ -98,6 +99,7 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 		kgo.BlockRebalanceOnPoll(),
 		kgo.ClientID(kafkaClientID),
 		kgo.InstanceID(c.getInstanceID()),
+		kgo.FetchMaxWait(time.Duration(c.config.FetchMaxWait)),
 	}
 	if c.config.FetchMaxBytes > 0 {
 		opts = append(opts, kgo.FetchMaxBytes(c.config.FetchMaxBytes))
@@ -217,8 +219,6 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			// PollRecords is recommended when using BlockRebalanceOnPoll.
-			// Need to ensure that processor loop complete fast enough to not block a rebalance for too long.
 			fetches := c.client.PollRecords(ctx, c.config.MaxPollRecords)
 			if fetches.IsClientClosed() {
 				return nil
@@ -237,71 +237,62 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 				return fmt.Errorf("poll error: %w", errors.Join(errs...))
 			}
 
+			// Track which partitions we've paused in this poll cycle.
 			pausedTopicPartitions := map[topicPartition]struct{}{}
+
 			fetches.EachPartition(func(p kgo.FetchTopicPartition) {
 				if len(p.Records) == 0 {
 					return
 				}
 
 				tp := topicPartition{p.Topic, p.Partition}
-				if _, paused := pausedTopicPartitions[tp]; paused {
-					// We have already paused this partition during this poll, so we should not
-					// process records from it anymore. We will resume partition processing with the
-					// correct offset soon, after we have space in recs buffer.
+
+				consumer := c.consumers[tp]
+				if consumer == nil {
 					return
 				}
 
-				// Since we are using BlockRebalanceOnPoll, we can be
-				// sure this partition consumer exists:
-				// * onAssigned is guaranteed to be called before we
-				// fetch offsets for newly added partitions
-				// * onRevoked waits for partition consumers to quit
-				// and be deleted before re-allowing polling.
 				select {
 				case <-ctx.Done():
 					return
-				case <-c.consumers[tp].quit:
+				case <-consumer.quit:
 					return
-				case c.consumers[tp].recs <- p:
-					if c.testOnlyConfig.fetchTopicPartitionSubmittedCh != nil { // Only set in tests.
-						c.testOnlyConfig.fetchTopicPartitionSubmittedCh <- p
-					}
 				default:
-					if c.testOnlyConfig.topicPartitionBeforePauseCh != nil { // Only set in tests.
-						c.testOnlyConfig.topicPartitionBeforePauseCh <- tp
-					}
-					if c.testOnlyConfig.topicPartitionPauseProceedCh != nil { // Only set in tests.
-						<-c.testOnlyConfig.topicPartitionPauseProceedCh
-					}
+				}
 
-					partitionsToPause := map[string][]int32{p.Topic: {p.Partition}}
-					// PauseFetchPartitions here to not poll partition until records are processed.
-					// This allows parallel processing of records from different partitions, without
-					// keeping records in memory and blocking rebalance. Resume will be called after
-					// records are processed by c.consumers[tp].
-					c.client.PauseFetchPartitions(partitionsToPause)
-					defer func() {
-						// There is a chance that message processor resumed partition processing before
-						// we called PauseFetchPartitions above. Such a race was observed in a service
-						// under CPU throttling conditions. In that case Pause is called after Resume,
-						// and topic is never resumed after that. To avoid we check if the channel current
-						// len is less than cap, if len < cap => we can be sure that buffer has space now,
-						// so we can resume partition processing. If it is not, this means that the records
-						// are still not processed and resume will be called eventually after processing by
-						// partition consumer. See also TestKafkaConsumer_TestPauseAfterResumeRace test case.
-						if len(c.consumers[tp].recs) < cap(c.consumers[tp].recs) {
-							c.client.ResumeFetchPartitions(partitionsToPause)
+				partitionsToPause := map[string][]int32{p.Topic: {p.Partition}}
+				if _, paused := pausedTopicPartitions[tp]; !paused {
+					// Only pause if queue threshold would be exceeded after adding records, or if threshold is 0 (always pause).
+					shouldPause := c.config.PartitionQueueMaxSize == 0 || consumer.queue.Len()+len(p.Records) >= c.config.PartitionQueueMaxSize
+					if shouldPause {
+						// Pause partition BEFORE submitting to queue to avoid race condition
+						// between pause and resume operations.
+						if c.testOnlyConfig.topicPartitionBeforePauseCh != nil {
+							c.testOnlyConfig.topicPartitionBeforePauseCh <- tp
 						}
-					}()
+						if c.testOnlyConfig.topicPartitionPauseProceedCh != nil {
+							<-c.testOnlyConfig.topicPartitionPauseProceedCh
+						}
+						c.client.PauseFetchPartitions(partitionsToPause)
+						pausedTopicPartitions[tp] = struct{}{}
+					}
+				}
 
-					pausedTopicPartitions[tp] = struct{}{}
-					// To poll next time since correct offset we need to set it manually to the offset of
-					// the first record in the batch. Otherwise, next poll will return the next record batch,
-					// and we will lose the current one.
-					epochOffset := kgo.EpochOffset{Epoch: -1, Offset: p.Records[0].Offset}
-					c.client.SetOffsets(map[string]map[int32]kgo.EpochOffset{p.Topic: {p.Partition: epochOffset}})
+				// Now submit to unbounded queue.
+				if !consumer.queue.Push(p) {
+					// Queue is closed, partition consumer is shutting down
+					// Resume the partition if we paused it but won't process
+					if _, wasPaused := pausedTopicPartitions[tp]; wasPaused {
+						c.client.ResumeFetchPartitions(partitionsToPause)
+					}
+					return
+				}
+
+				if c.testOnlyConfig.fetchTopicPartitionSubmittedCh != nil {
+					c.testOnlyConfig.fetchTopicPartitionSubmittedCh <- p
 				}
 			})
+
 			c.client.AllowRebalance()
 		}
 	}
@@ -334,13 +325,7 @@ func (c *KafkaConsumer) reInitClient(ctx context.Context) error {
 	return nil
 }
 
-const defaultPartitionBufferSize = 8
-
 func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned map[string][]int32) {
-	bufferSize := c.config.PartitionBufferSize
-	if bufferSize == 0 {
-		bufferSize = defaultPartitionBufferSize
-	}
 	for topic, partitions := range assigned {
 		for _, partition := range partitions {
 			quitCh := make(chan struct{})
@@ -363,9 +348,9 @@ func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned m
 				name:         c.name,
 				common:       c.common,
 
-				quit: quitCh,
-				done: make(chan struct{}),
-				recs: make(chan kgo.FetchTopicPartition, bufferSize),
+				quit:  quitCh,
+				done:  make(chan struct{}),
+				queue: newUnboundedQueue(),
 			}
 			c.consumers[topicPartition{topic, partition}] = pc
 			go pc.consume()
@@ -399,6 +384,7 @@ func (c *KafkaConsumer) killConsumers(lost map[string][]int32) {
 			tp := topicPartition{topic, partition}
 			pc := c.consumers[tp]
 			delete(c.consumers, tp)
+			pc.queue.Close()
 			close(pc.quit)
 			wg.Add(1)
 			go func() { <-pc.done; wg.Done() }()
@@ -416,9 +402,9 @@ type partitionConsumer struct {
 	name         string
 	common       *consumerCommon
 
-	quit chan struct{}
-	done chan struct{}
-	recs chan kgo.FetchTopicPartition
+	quit  chan struct{}
+	done  chan struct{}
+	queue *unboundedQueue
 }
 
 func getUint64HeaderValue(record *kgo.Record, headerKey string) (uint64, error) {
@@ -487,8 +473,13 @@ func (pc *partitionConsumer) processPublicationDataRecord(ctx context.Context, r
 		pc.common.log.Error().Err(err).Str("topic", record.Topic).Int32("partition", record.Partition).Msg("error parsing delta header value, skip message")
 		return nil
 	}
-	channels := strings.Split(getHeaderValue(record, pc.config.PublicationDataMode.ChannelsHeader), ",")
-	if len(channels) == 0 {
+	channelsHeader := getHeaderValue(record, pc.config.PublicationDataMode.ChannelsHeader)
+	if channelsHeader == "" {
+		pc.common.log.Info().Str("topic", record.Topic).Int32("partition", record.Partition).Msg("no channels found, skip message")
+		return nil
+	}
+	channels := strings.Split(channelsHeader, ",")
+	if len(channels) == 0 || (len(channels) == 1 && channels[0] == "") {
 		pc.common.log.Info().Str("topic", record.Topic).Int32("partition", record.Partition).Msg("no channels found, skip message")
 		return nil
 	}
@@ -556,20 +547,124 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 }
 
 func (pc *partitionConsumer) consume() {
+	if logging.Enabled(logging.DebugLevel) {
+		pc.common.log.Debug().Str("topic", pc.topic).Int32("partition", pc.partition).Msg("starting partition consumer")
+	}
 	defer close(pc.done)
+	defer pc.queue.Close()
+	defer func() {
+		if logging.Enabled(logging.DebugLevel) {
+			// Queue is closed, partition consumer is shutting down.
+			pc.common.log.Debug().Str("topic", pc.topic).Int32("partition", pc.partition).Msg("partition consumer shutting down")
+		}
+	}()
+
 	partitionsToResume := map[string][]int32{pc.topic: {pc.partition}}
 	resumeConsuming := func() {
 		pc.cl.ResumeFetchPartitions(partitionsToResume)
 	}
 	defer resumeConsuming()
+
 	for {
 		select {
 		case <-pc.partitionCtx.Done():
 			return
-		case p := <-pc.recs:
-			pc.processRecords(p.Records)
-			// After processing records, we can resume partition processing (if it was paused, no-op otherwise).
-			resumeConsuming()
+		case <-pc.queue.NotEmpty():
+			if pc.queue.IsClosed() {
+				return
+			}
+			// Process all available items in the queue.
+			for {
+				select {
+				case <-pc.partitionCtx.Done():
+					return
+				default:
+				}
+				p, ok := pc.queue.Pop()
+				if !ok {
+					break
+				}
+				pc.processRecords(p.Records)
+				// Resume partition after processing this batch. Only one additional batch will
+				// be added to the queue before we pause again.
+				resumeConsuming()
+			}
 		}
 	}
+}
+
+// unboundedQueue implements an unbounded queue for FetchTopicPartition
+type unboundedQueue struct {
+	mu       sync.RWMutex
+	items    []kgo.FetchTopicPartition
+	notEmpty chan struct{}
+	closed   bool
+}
+
+func newUnboundedQueue() *unboundedQueue {
+	return &unboundedQueue{
+		items:    make([]kgo.FetchTopicPartition, 0),
+		notEmpty: make(chan struct{}, 1),
+	}
+}
+
+func (q *unboundedQueue) Push(item kgo.FetchTopicPartition) bool {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	if q.closed {
+		return false
+	}
+
+	q.items = append(q.items, item)
+
+	// Signal that queue is not empty.
+	select {
+	case q.notEmpty <- struct{}{}:
+	default:
+	}
+
+	return true
+}
+
+func (q *unboundedQueue) Pop() (kgo.FetchTopicPartition, bool) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	if q.closed || len(q.items) == 0 {
+		return kgo.FetchTopicPartition{}, false
+	}
+
+	// We do not expect many items in the queue, so we can use a simple slice pop operation and
+	// not worry about memory being reserved for the underlying slice.
+	item := q.items[0]
+	q.items = q.items[1:]
+
+	return item, true
+}
+
+func (q *unboundedQueue) Len() int {
+	q.mu.RLock()
+	defer q.mu.RUnlock()
+	return len(q.items)
+}
+
+func (q *unboundedQueue) Close() {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	if !q.closed {
+		q.closed = true
+		close(q.notEmpty)
+	}
+}
+
+func (q *unboundedQueue) IsClosed() bool {
+	q.mu.RLock()
+	defer q.mu.RUnlock()
+	return q.closed
+}
+
+func (q *unboundedQueue) NotEmpty() <-chan struct{} {
+	return q.notEmpty
 }
