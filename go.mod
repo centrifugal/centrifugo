@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	cloud.google.com/go/pubsub v1.49.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.10.1
-	github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus v1.9.0
+	github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus v1.9.1
 	github.com/FZambia/eagle v0.2.0
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/aws/aws-sdk-go-v2 v1.36.5
@@ -51,7 +51,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.37.0
 	go.opentelemetry.io/otel/trace v1.37.0
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/crypto v0.39.0
+	golang.org/x/crypto v0.40.0
 	golang.org/x/sync v0.16.0
 	golang.org/x/time v0.12.0
 	google.golang.org/api v0.241.0
@@ -65,7 +65,7 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.7.0 // indirect
 	cloud.google.com/go/iam v1.5.2 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.1 // indirect
 	github.com/Azure/go-amqp v1.4.0 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.4.2 // indirect
@@ -141,9 +141,9 @@ require (
 	go.opentelemetry.io/proto/otlp v1.7.0 // indirect
 	golang.org/x/mod v0.25.0 // indirect
 	golang.org/x/net v0.41.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.26.0 // indirect
-	golang.org/x/tools v0.33.0 // indirect
+	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/text v0.27.0 // indirect
+	golang.org/x/tools v0.34.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250603155806-513f23925822 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
 	gopkg.in/yaml.v3 v3.0.1
