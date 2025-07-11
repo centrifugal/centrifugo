@@ -5,8 +5,7 @@ updates:
     schedule:
       interval: monthly
     ignore:
-      - dependency-name: github.com/gorilla/websocket      # v1.5.1 breaks
-      - dependency-name: github.com/centrifugal/centrifuge # updates manually
+      - dependency-name: github.com/centrifugal/centrifuge # updating manually.
     groups:
       go-packages:
         patterns:

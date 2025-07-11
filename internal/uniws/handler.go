@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
+	"github.com/centrifugal/centrifugo/v6/internal/websocket"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
-	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
 )
 
@@ -72,7 +72,7 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	compressionLevel := s.config.CompressionLevel
 	compressionMinSize := s.config.CompressionMinSize
 
-	conn, err := s.upgrade.Upgrade(rw, r, nil)
+	conn, _, err := s.upgrade.Upgrade(rw, r, nil)
 	if err != nil {
 		log.Error().Err(err).Str("transport", transportName).Msg("websocket upgrade error")
 		return
@@ -104,7 +104,7 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if pingInterval > 0 {
 		pongWait := pingInterval * 10 / 9
 		_ = conn.SetReadDeadline(time.Now().Add(pongWait))
-		conn.SetPongHandler(func(string) error {
+		conn.SetPongHandler(func([]byte) error {
 			_ = conn.SetReadDeadline(time.Now().Add(pongWait))
 			return nil
 		})
@@ -189,7 +189,6 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		// https://github.com/gorilla/websocket/issues/448
 		conn.SetPingHandler(nil)
 		conn.SetPongHandler(nil)
-		conn.SetCloseHandler(nil)
 		_ = conn.SetReadDeadline(time.Now().Add(closeFrameWait))
 		for {
 			if _, _, err := conn.NextReader(); err != nil {
