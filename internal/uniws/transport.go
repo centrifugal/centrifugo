@@ -4,9 +4,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/websocket"
+
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
-	"github.com/gorilla/websocket"
 )
 
 // websocketTransport is a wrapper struct over websocket connection to fit session
