@@ -6978,6 +6978,46 @@
             "is_complex_type": false
           },
           {
+            "field": "consumers[].kafka.fetch_max_bytes",
+            "name": "fetch_max_bytes",
+            "go_name": "FetchMaxBytes",
+            "level": 3,
+            "type": "int32",
+            "default": "",
+            "comment": "FetchMaxBytes is the maximum number of bytes to fetch from Kafka in a single request.\nIf not set the default 50MB is used.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].kafka.fetch_max_wait",
+            "name": "fetch_max_wait",
+            "go_name": "FetchMaxWait",
+            "level": 3,
+            "type": "Duration",
+            "default": "500ms",
+            "comment": "FetchMaxWait is the maximum time to wait for records when polling.\nIf not set, defaults to 500ms.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].kafka.fetch_read_uncommitted",
+            "name": "fetch_read_uncommitted",
+            "go_name": "FetchReadUncommitted",
+            "level": 3,
+            "type": "bool",
+            "default": "false",
+            "comment": "FetchReadUncommitted is a flag to enable reading uncommitted messages from Kafka. By default, this is false and Centrifugo uses ReadCommitted mode.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].kafka.partition_queue_max_size",
+            "name": "partition_queue_max_size",
+            "go_name": "PartitionQueueMaxSize",
+            "level": 3,
+            "type": "int",
+            "default": "1000",
+            "comment": "PartitionQueueMaxSize is the maximum number of items in partition queue before pausing consuming from a partition.\nThe actual queue size may exceed this value on `max_poll_records`, so this acts more like a threshold.\nIf zero, pausing is done on every poll. If set, pausing only happens when queue size exceeds this threshold.",
+            "is_complex_type": false
+          },
+          {
             "field": "consumers[].kafka.tls",
             "name": "tls",
             "go_name": "TLS",
@@ -7087,26 +7127,6 @@
             "type": "string",
             "default": "",
             "comment": "",
-            "is_complex_type": false
-          },
-          {
-            "field": "consumers[].kafka.partition_buffer_size",
-            "name": "partition_buffer_size",
-            "go_name": "PartitionBufferSize",
-            "level": 3,
-            "type": "int",
-            "default": "16",
-            "comment": "PartitionBufferSize is the size of the buffer for each partition consumer.\nThis is the number of records that can be buffered before the consumer\nwill pause fetching records from Kafka. By default, this is 16.",
-            "is_complex_type": false
-          },
-          {
-            "field": "consumers[].kafka.fetch_max_bytes",
-            "name": "fetch_max_bytes",
-            "go_name": "FetchMaxBytes",
-            "level": 3,
-            "type": "int32",
-            "default": "",
-            "comment": "FetchMaxBytes is the maximum number of bytes to fetch from Kafka in a single request.\nIf not set the default 50MB is used.",
             "is_complex_type": false
           },
           {
