@@ -763,7 +763,7 @@ Improvements:
 
 * It's now possible to proxy some client connection events over HTTP to application backend and react to them in a way you need. For example you can authenticate connection via request from Centrifugo to your app backend, refresh client sessions and answer to RPC calls sent by client over WebSocket or SockJS connections. More information in [new documentation chapter](https://centrifugal.github.io/centrifugo/server/proxy/)
 * Centrifugo now supports RSA-based JWT. You can enable this by setting `token_rsa_public_key` option. See [updated authentication chapter](https://centrifugal.github.io/centrifugo/server/authentication/) in docs for more details. Due to this addition we also renamed `secret` option to `token_hmac_secret_key` so it's much more meaningful in modern context. But don't worry - old `secret` option will work and continue to set token HMAC secret key until Centrifugo v3 release (which is not even planned yet). But we adjusted docs and `genconfig` command to use new naming
-* New option `redis_sequence_ttl` for Redis engine. It allows to expire internal keys related to history sequnce meta data in Redis – current sequence number in channel and epoch value. See more motivation behind this option in [its description in Redis Engine docs](https://centrifugal.github.io/centrifugo/server/engines/#redis-engine). While adding this feature we changed how sequence and epoch values are stored in Redis - both are now fields of single Redis HASH key. This means that after updating to this version your clients won't recover missed messages - but your frontend application will receive `recovered: false` in subscription context so it should tolerate this loss gracefully recovering state from your main database (if everything done right on your client side of course)
+* New option `redis_sequence_ttl` for Redis engine. It allows to expire internal keys related to history sequence meta data in Redis – current sequence number in channel and epoch value. See more motivation behind this option in [its description in Redis Engine docs](https://centrifugal.github.io/centrifugo/server/engines/#redis-engine). While adding this feature we changed how sequence and epoch values are stored in Redis - both are now fields of single Redis HASH key. This means that after updating to this version your clients won't recover missed messages - but your frontend application will receive `recovered: false` in subscription context so it should tolerate this loss gracefully recovering state from your main database (if everything done right on your client side of course)
 * More validation of configuration file is now performed. Specifically we now check history recovery configuration - see [this issue](https://github.com/centrifugal/centrifuge-js/issues/99) to see how absence of such misconfiguration check resulted in confused Centrifugo behaviour - no messages were received by subscribers
 * Go internal logs from HTTP server are now wrapped in our structured logging mechanism - those errors will look as warns in Centrifugo logs now
 * Alpine 3.10 instead of Alpine 3.8 as Centrifugo docker image base
@@ -795,7 +795,7 @@ Improvements:
 Fixes:
 
 * Fix setting `presence_disable_for_client` and `history_disable_for_client` on config top level
-* Fix Let's Encrypt integration by updating to ACMEv2 / RFC 8555 compilant acme library, see [#311](https://github.com/centrifugal/centrifugo/issues/311)
+* Fix Let's Encrypt integration by updating to ACMEv2 / RFC 8555 compliant acme library, see [#311](https://github.com/centrifugal/centrifugo/issues/311)
 
 
 v2.2.4
@@ -866,7 +866,7 @@ This release based on latest refactoring of Centrifuge library. The refactoring 
 Improvements:
 
 * Track client position in channels with `history_recover` option enabled and disconnect in case of insufficient state. This resolves an edge case when messages could be lost in channels with `history_recover` option enabled after node reconnect to Redis (imagine situation when Redis was unavailable for some time but before Centrifugo node reconnects publisher was able to successfully send a message to channel on another node which reconnected to Redis faster). With new mechanism client won't miss messages though can receive them with some delay. As such situations should be pretty rare on practice it should be a reasonable compromise for applications. New mechanism adds more load on Redis as Centrifugo node periodically polls channel history state. The load is linearly proportional to amount of active channels with `history_recover` option on. By default Centrifugo will check client position in channel stream not often than once in 40 seconds so an additional load on Redis should not be too high
-* New options for more flexible conrol over exposed endpoint interfaces and ports: `internal_address`, `tls_external`, `admin_external`. See description calling `centrifugo -h`. [#262](https://github.com/centrifugal/centrifugo/pull/262), [#264](https://github.com/centrifugal/centrifugo/pull/264)
+* New options for more flexible control over exposed endpoint interfaces and ports: `internal_address`, `tls_external`, `admin_external`. See description calling `centrifugo -h`. [#262](https://github.com/centrifugal/centrifugo/pull/262), [#264](https://github.com/centrifugal/centrifugo/pull/264)
 * Small optimizations in Websocket and SockjS transports writes
 * Server initiated disconnect number metrics labeled with disconnect code 
 
@@ -1045,7 +1045,7 @@ v1.7.5
 
 No backwards incompatible changes here.
 
-The only change is using new version of Go for builds (Go 1.9.2). This will allow to analize performance profiles more easily without having to use binaries. See [this new wiki page](https://github.com/centrifugal/centrifugo/wiki/Investigating-performance-issues) about investigating performance issues.
+The only change is using new version of Go for builds (Go 1.9.2). This will allow to analyze performance profiles more easily without having to use binaries. See [this new wiki page](https://github.com/centrifugal/centrifugo/wiki/Investigating-performance-issues) about investigating performance issues.
 
 v1.7.4
 ======
@@ -1165,7 +1165,7 @@ v1.6.2
 
 * Use Redis pipelining and single connection for presence/history/channels operations. This increases performance of those operations especially on systems with many CPU cores.
 * Homebrew formula to install Centrifugo on MacOS, see README for instructions.
-* Update gorilla websocket library - there is one more update for websocket compression: pool flate readers which should increase compression performance.
+* Update gorilla websocket library - there is one more update for websocket compression: pool flat readers which should increase compression performance.
 
 ### Fixes
 
@@ -1290,7 +1290,7 @@ v1.4.2
 ======
 
 * Redis Sentinel support for Redis high availability setup. [Docs](https://fzambia.gitbooks.io/centrifugal/content/deploy/sentinel.html)
-* Redis Engine now uses Redis pipeline for batching publish operations - this results in latency and throughput improvments when publish rate is high.
+* Redis Engine now uses Redis pipeline for batching publish operations - this results in latency and throughput improvements when publish rate is high.
 * Refactored admin websocket. New option `admin` to enable admin websocket. New option `insecure_admin` to make this endpoint insecure (useful when admin websocket endpoint/port protected by firewall rules). `web_password` option renamed to `admin_password`, `web_secret` option renamed to `admin_secret`, `insecure_web` renamed to `insecure_admin`. **But all old option names still supported to not break things in existing setups**. Also note, that when you run Centrifugo with `web` interface enabled - you also make admin websocket available, because web interface uses it. A little more info [in pull request](https://github.com/centrifugal/centrifugo/pull/83).
 * Presence Redis Engine methods rewritten to lua to be atomic.
 * Some Redis connection params now can be set over environment variables. See [#81](https://github.com/centrifugal/centrifugo/issues/81)
@@ -1360,7 +1360,7 @@ Possible backwards incompatibility here (in client side code) - see first point.
 * send special disconnect message to client when we don't want it to reconnect to Centrifugo (at moment to client sending malformed message). 
 * pong wait handler for raw websocket to detect non responding clients.
 
-Also it's recommended to update javascipt client to latest version as it has some useful changes (see its changelog).
+Also it's recommended to update javascript client to latest version as it has some useful changes (see its changelog).
 
 How to migrate
 --------------
@@ -1502,7 +1502,7 @@ centrifugo --config=config.json --web --web_path=/path/to/web/app
 v0.3.0
 ======
 
-* new `channels` API command – allows to get list of active channnels in project at moment (with one or more subscribers).
+* new `channels` API command – allows to get list of active channels in project at moment (with one or more subscribers).
 * `message_send_timeout` option default value is now 0 (last default value was 60 seconds) i.e. send timeout is not used by default. This means that Centrifugo won't start lots of goroutines and timers for every message sent to client. This helps to drastically reduce memory allocations. But in this case it's recommended to keep Centrifugo behind properly configured reverse proxy like Nginx to deal with connection edge cases - slow reads, slow writes etc.
 * Centrifugo now sends pings into pure Websocket connections. Default value is 25 seconds and can be adjusted using `ping_interval` configuration option. Note that this option also sets SockJS heartbeat messages interval. This opens a road to set reasonable value for Nginx `proxy_read_timeout` for `/connection` location to mimic behaviour of `message_send_timeout` which is now not used by default
 * improvements in Redis Engine locking.
