@@ -71,13 +71,10 @@ type Features struct {
 	// Engine or broker/presence manager usage.
 	EngineEnabled          bool
 	EngineType             string
-	EngineMode             string
 	BrokerEnabled          bool
 	BrokerType             string
-	BrokerMode             string
 	PresenceManagerEnabled bool
 	PresenceManagerType    string
-	PresenceManagerMode    string
 
 	// Transports.
 	Websocket     bool
@@ -334,34 +331,11 @@ func (s *Sender) prepareMetrics() ([]*metric, error) {
 	version := strings.Replace(s.features.Version, ".", "_", -1)
 	edition := strings.ToLower(s.features.Edition)
 
-	engineMode := s.features.EngineMode
-	if engineMode == "" {
-		engineMode = "default"
-	}
-	brokerMode := s.features.BrokerMode
-	if brokerMode == "" {
-		brokerMode = "default"
-	}
-	presenceManagerMode := s.features.PresenceManagerMode
-	if presenceManagerMode == "" {
-		presenceManagerMode = "default"
-	}
-
 	var metrics []*metric
 
 	metrics = append(metrics, createPoint("total"))
 	metrics = append(metrics, createPoint("version."+version+".edition."+edition))
 	metrics = append(metrics, createPoint("arch."+runtime.GOARCH+".os."+runtime.GOOS))
-
-	if s.features.EngineEnabled {
-		metrics = append(metrics, createPoint("engine."+s.features.EngineType+".mode."+engineMode))
-	}
-	if s.features.BrokerEnabled {
-		metrics = append(metrics, createPoint("broker."+s.features.BrokerType+".mode."+brokerMode))
-	}
-	if s.features.PresenceManagerEnabled {
-		metrics = append(metrics, createPoint("presence_manager."+s.features.PresenceManagerType+".mode."+presenceManagerMode))
-	}
 
 	if s.features.Websocket {
 		metrics = append(metrics, createPoint("transports_enabled.websocket"))

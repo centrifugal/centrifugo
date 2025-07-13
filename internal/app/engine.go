@@ -12,37 +12,30 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type engineModes struct {
-	engineMode          string
-	brokerMode          string
-	presenceManagerMode string
-}
-
-func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) (engineModes, error) {
+func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) error {
 	cfg := cfgContainer.Config()
-
-	var modes engineModes
 
 	var broker centrifuge.Broker
 	var presenceManager centrifuge.PresenceManager
 
 	if !cfg.Broker.Enabled || !cfg.PresenceManager.Enabled {
 		var err error
+		var engineMode string
 		switch cfg.Engine.Type {
 		case "memory":
 			broker, presenceManager, err = createMemoryEngine(node)
 		case "redis":
-			broker, presenceManager, modes.engineMode, err = createRedisEngine(node, cfgContainer)
+			broker, presenceManager, engineMode, err = createRedisEngine(node, cfgContainer)
 		default:
-			return modes, fmt.Errorf("unknown engine type: %s", cfg.Engine.Type)
+			return fmt.Errorf("unknown engine type: %s", cfg.Engine.Type)
 		}
 		event := log.Info().Str("engine_type", cfg.Engine.Type)
-		if modes.engineMode != "" {
-			event.Str("engine_mode", modes.engineMode)
+		if engineMode != "" {
+			event.Str("engine_mode", engineMode)
 		}
 		event.Msg("initializing engine")
 		if err != nil {
-			return modes, fmt.Errorf("error creating engine: %v", err)
+			return fmt.Errorf("error creating engine: %v", err)
 		}
 	} else {
 		log.Info().Msgf("both broker and presence manager enabled, skip engine initialization")
@@ -50,41 +43,42 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) (en
 
 	if cfg.Broker.Enabled {
 		var err error
+		var brokerMode string
 		switch cfg.Broker.Type {
 		case "memory":
 			broker, err = createMemoryBroker(node)
 		case "redis":
-			broker, modes.brokerMode, err = createRedisBroker(node, cfgContainer)
+			broker, brokerMode, err = createRedisBroker(node, cfgContainer)
 		case "nats":
 			broker, err = NatsBroker(node, cfg)
-			modes.brokerMode = "nats"
+			brokerMode = "nats"
 		case "redisnats":
 			if !cfg.EnableUnreleasedFeatures {
-				return modes, fmt.Errorf("redisnats broker requires enable_unreleased_features on")
+				return fmt.Errorf("redisnats broker requires enable_unreleased_features on")
 			}
 			log.Warn().Msg("redisnats broker is not released, it may be changed or removed at any point")
 			redisBroker, redisBrokerMode, err := createRedisBroker(node, cfgContainer)
 			if err != nil {
-				return modes, fmt.Errorf("error creating redis broker: %v", err)
+				return fmt.Errorf("error creating redis broker: %v", err)
 			}
-			modes.brokerMode = redisBrokerMode + "_nats"
+			brokerMode = redisBrokerMode + "+nats"
 			natsBroker, err := NatsBroker(node, cfg)
 			if err != nil {
-				return modes, fmt.Errorf("error creating nats broker: %v", err)
+				return fmt.Errorf("error creating nats broker: %v", err)
 			}
 			broker, err = redisnatsbroker.New(natsBroker, redisBroker)
 			if err != nil {
-				return modes, fmt.Errorf("error creating redisnats broker: %v", err)
+				return fmt.Errorf("error creating redisnats broker: %v", err)
 			}
 		default:
-			return modes, fmt.Errorf("unknown broker type: %s", cfg.Broker.Type)
+			return fmt.Errorf("unknown broker type: %s", cfg.Broker.Type)
 		}
 		if err != nil {
-			return modes, fmt.Errorf("error creating broker: %v", err)
+			return fmt.Errorf("error creating broker: %v", err)
 		}
 		event := log.Info().Str("broker_type", cfg.Broker.Type)
-		if modes.brokerMode != "" {
-			event.Str("broker_mode", modes.brokerMode)
+		if brokerMode != "" {
+			event.Str("broker_mode", brokerMode)
 		}
 		event.Msg("broker is enabled, using it instead of broker from engine")
 	} else {
@@ -93,20 +87,21 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) (en
 
 	if cfg.PresenceManager.Enabled {
 		var err error
+		var presenceManagerMode string
 		switch cfg.PresenceManager.Type {
 		case "memory":
 			presenceManager, err = createMemoryPresenceManager(node)
 		case "redis":
-			presenceManager, modes.presenceManagerMode, err = createRedisPresenceManager(node, cfgContainer)
+			presenceManager, presenceManagerMode, err = createRedisPresenceManager(node, cfgContainer)
 		default:
-			return modes, fmt.Errorf("unknown presence manager type: %s", cfg.PresenceManager.Type)
+			return fmt.Errorf("unknown presence manager type: %s", cfg.PresenceManager.Type)
 		}
 		if err != nil {
-			return modes, fmt.Errorf("error creating presence manager: %v", err)
+			return fmt.Errorf("error creating presence manager: %v", err)
 		}
 		event := log.Info().Str("presence_manager_type", cfg.PresenceManager.Type)
-		if modes.presenceManagerMode != "" {
-			event.Str("presence_manager_mode", modes.presenceManagerMode)
+		if presenceManagerMode != "" {
+			event.Str("presence_manager_mode", presenceManagerMode)
 		}
 		event.Msg("presence manager is enabled, using it instead of presence manager from engine")
 	} else {
@@ -115,7 +110,7 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) (en
 
 	node.SetBroker(broker)
 	node.SetPresenceManager(presenceManager)
-	return modes, nil
+	return nil
 }
 
 func createMemoryBroker(n *centrifuge.Node) (centrifuge.Broker, error) {

@@ -53,7 +53,7 @@ func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig, redisCo
 	return nil
 }
 
-func getRedisShardConfigs(redisConf configtypes.Redis) ([]centrifuge.RedisShardConfig, string, error) {
+func getRedisShardConfigs(redisConf configtypes.Redis) ([]centrifuge.RedisShardConfig, error) {
 	var shardConfigs []centrifuge.RedisShardConfig
 
 	clusterShards := redisConf.ClusterAddress
@@ -67,18 +67,18 @@ func getRedisShardConfigs(redisConf configtypes.Redis) ([]centrifuge.RedisShardC
 			clusterAddresses := strings.Split(clusterAddress, ",")
 			for _, address := range clusterAddresses {
 				if _, _, err := net.SplitHostPort(address); err != nil {
-					return nil, "", fmt.Errorf("malformed Redis Cluster address: %s", address)
+					return nil, fmt.Errorf("malformed Redis Cluster address: %s", address)
 				}
 			}
 			conf := &centrifuge.RedisShardConfig{
 				ClusterAddresses: clusterAddresses,
 			}
 			if err := addRedisShardCommonSettings(conf, redisConf); err != nil {
-				return nil, "", err
+				return nil, err
 			}
 			shardConfigs = append(shardConfigs, *conf)
 		}
-		return shardConfigs, "cluster", nil
+		return shardConfigs, nil
 	}
 
 	sentinelShards := redisConf.SentinelAddress
@@ -92,32 +92,32 @@ func getRedisShardConfigs(redisConf configtypes.Redis) ([]centrifuge.RedisShardC
 			sentinelAddresses := strings.Split(sentinelAddress, ",")
 			for _, address := range sentinelAddresses {
 				if _, _, err := net.SplitHostPort(address); err != nil {
-					return nil, "", fmt.Errorf("malformed Redis Sentinel address: %s", address)
+					return nil, fmt.Errorf("malformed Redis Sentinel address: %s", address)
 				}
 			}
 			conf := &centrifuge.RedisShardConfig{
 				SentinelAddresses: sentinelAddresses,
 			}
 			if err := addRedisShardCommonSettings(conf, redisConf); err != nil {
-				return nil, "", err
+				return nil, err
 			}
 			conf.SentinelUser = redisConf.SentinelUser
 			conf.SentinelPassword = redisConf.SentinelPassword
 			conf.SentinelMasterName = redisConf.SentinelMasterName
 			if conf.SentinelMasterName == "" {
-				return nil, "", fmt.Errorf("master name must be set when using Redis Sentinel")
+				return nil, fmt.Errorf("master name must be set when using Redis Sentinel")
 			}
 			conf.SentinelClientName = redisConf.SentinelClientName
 			if redisConf.SentinelTLS.Enabled {
 				tlsConfig, err := redisConf.TLS.ToGoTLSConfig("redis_sentinel")
 				if err != nil {
-					return nil, "", fmt.Errorf("error creating Redis Sentinel TLS config: %v", err)
+					return nil, fmt.Errorf("error creating Redis Sentinel TLS config: %v", err)
 				}
 				conf.SentinelTLSConfig = tlsConfig
 			}
 			shardConfigs = append(shardConfigs, *conf)
 		}
-		return shardConfigs, "sentinel", nil
+		return shardConfigs, nil
 	}
 
 	redisAddresses := redisConf.Address
@@ -129,32 +129,67 @@ func getRedisShardConfigs(redisConf configtypes.Redis) ([]centrifuge.RedisShardC
 			Address: redisAddress,
 		}
 		if err := addRedisShardCommonSettings(conf, redisConf); err != nil {
-			return nil, "", err
+			return nil, err
 		}
 		shardConfigs = append(shardConfigs, *conf)
 	}
 
-	return shardConfigs, "standalone", nil
+	return shardConfigs, nil
 }
 
 func CentrifugeRedisShards(n *centrifuge.Node, redisConf configtypes.Redis) ([]*centrifuge.RedisShard, string, error) {
-	redisShardConfigs, mode, err := getRedisShardConfigs(redisConf)
+	redisShardConfigs, err := getRedisShardConfigs(redisConf)
 	if err != nil {
-		return nil, mode, err
+		return nil, "", err
 	}
 	redisShards := make([]*centrifuge.RedisShard, 0, len(redisShardConfigs))
+
+	modes := make([]string, 0, len(redisShardConfigs))
 
 	for _, shardConf := range redisShardConfigs {
 		redisShard, err := centrifuge.NewRedisShard(n, shardConf)
 		if err != nil {
-			return nil, mode, err
+			return nil, "", err
 		}
+		modes = append(modes, string(redisShard.Mode()))
 		redisShards = append(redisShards, redisShard)
 	}
 
+	mode := mergeModes(modes)
 	if len(redisShards) > 1 {
-		mode += "_sharded"
+		mode = fmt.Sprintf("sharded(%d):%s", len(modes), mode)
 	}
 
 	return redisShards, mode, nil
+}
+
+// [cluster,cluster,standalone,sentinel,sentinel] => "cluster-x2,standalone,sentinel-x2".
+func mergeModes(modes []string) string {
+	if len(modes) == 0 {
+		return ""
+	}
+
+	var result []string
+	count := 1
+
+	for i := 1; i < len(modes); i++ {
+		if modes[i] == modes[i-1] {
+			count++
+		} else {
+			if count > 1 {
+				result = append(result, fmt.Sprintf("%s-x%d", modes[i-1], count))
+			} else {
+				result = append(result, modes[i-1])
+			}
+			count = 1
+		}
+	}
+
+	if count > 1 {
+		result = append(result, fmt.Sprintf("%s-x%d", modes[len(modes)-1], count))
+	} else {
+		result = append(result, modes[len(modes)-1])
+	}
+
+	return strings.Join(result, ",")
 }
