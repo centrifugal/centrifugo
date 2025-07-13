@@ -344,7 +344,7 @@ func (s *Sender) prepareMetrics() ([]*metric, error) {
 		metrics = append(metrics, createPoint("broker_type."+s.features.BrokerType))
 	}
 	if s.features.PresenceManagerEnabled {
-		metrics = append(metrics, createPoint("presence_manager."+s.features.PresenceManagerType))
+		metrics = append(metrics, createPoint("presence_manager_type."+s.features.PresenceManagerType))
 	}
 
 	if s.features.Websocket {
