@@ -136,7 +136,7 @@ func Run(cmd *cobra.Command, configFile string) {
 		}
 	}
 
-	modes, err := configureEngines(node, cfgContainer)
+	err = configureEngines(node, cfgContainer)
 	if err != nil {
 		log.Fatal().Err(err).Msg("configure engines error")
 	}
@@ -216,13 +216,10 @@ func Run(cmd *cobra.Command, configFile string) {
 			Version:                build.Version,
 			EngineEnabled:          !cfg.Broker.Enabled || !cfg.PresenceManager.Enabled,
 			EngineType:             cfg.Engine.Type,
-			EngineMode:             modes.engineMode,
 			BrokerEnabled:          cfg.Broker.Enabled,
 			BrokerType:             cfg.Broker.Type,
-			BrokerMode:             modes.brokerMode,
 			PresenceManagerEnabled: cfg.PresenceManager.Enabled,
 			PresenceManagerType:    cfg.PresenceManager.Type,
-			PresenceManagerMode:    modes.presenceManagerMode,
 
 			Websocket:     !cfg.WebSocket.Disabled,
 			HTTPStream:    cfg.HTTPStream.Enabled,
