@@ -9454,7 +9454,17 @@
         "level": 2,
         "type": "bool",
         "default": "",
-        "comment": "",
+        "comment": "InstrumentHTTPHandlers enables additional instrumentation of HTTP handlers\n(extra middleware to track status codes). Optional since adds some overhead.",
+        "is_complex_type": false
+      },
+      {
+        "field": "prometheus.recovered_publications_histogram",
+        "name": "recovered_publications_histogram",
+        "go_name": "RecoveredPublicationsHistogram",
+        "level": 2,
+        "type": "bool",
+        "default": "",
+        "comment": "RecoveredPublicationsHistogram enables a histogram to track the distribution of recovered publications number.",
         "is_complex_type": false
       }
     ]

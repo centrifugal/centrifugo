@@ -291,10 +291,13 @@ type UsageStats struct {
 }
 
 type Prometheus struct {
-	Enabled                        bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
-	HandlerPrefix                  string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/metrics" yaml:"handler_prefix" toml:"handler_prefix"`
-	InstrumentHTTPHandlers         bool   `mapstructure:"instrument_http_handlers" json:"instrument_http_handlers" envconfig:"instrument_http_handlers" yaml:"instrument_http_handlers" toml:"instrument_http_handlers"`
-	RecoveredPublicationsHistogram bool   `mapstructure:"recovered_publications_histogram" json:"recovered_publications_histogram" envconfig:"recovered_publications_histogram" yaml:"recovered_publications_histogram" toml:"recovered_publications_histogram"`
+	Enabled       bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	HandlerPrefix string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/metrics" yaml:"handler_prefix" toml:"handler_prefix"`
+	// InstrumentHTTPHandlers enables additional instrumentation of HTTP handlers
+	// (extra middleware to track status codes). Optional since adds some overhead.
+	InstrumentHTTPHandlers bool `mapstructure:"instrument_http_handlers" json:"instrument_http_handlers" envconfig:"instrument_http_handlers" yaml:"instrument_http_handlers" toml:"instrument_http_handlers"`
+	// RecoveredPublicationsHistogram enables a histogram to track the distribution of recovered publications number.
+	RecoveredPublicationsHistogram bool `mapstructure:"recovered_publications_histogram" json:"recovered_publications_histogram" envconfig:"recovered_publications_histogram" yaml:"recovered_publications_histogram" toml:"recovered_publications_histogram"`
 }
 
 type Health struct {
