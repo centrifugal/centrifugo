@@ -13,7 +13,7 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
 
-	"cloud.google.com/go/pubsub"
+	"cloud.google.com/go/pubsub/v2"
 	"google.golang.org/api/option"
 )
 
@@ -77,7 +77,7 @@ func (c *GooglePubSubConsumer) Run(ctx context.Context) error {
 		go func(subscriptionID string) {
 			defer wg.Done()
 
-			sub := c.client.Subscription(subscriptionID)
+			sub := c.client.Subscriber(subscriptionID)
 			sub.ReceiveSettings.MaxOutstandingMessages = c.config.MaxOutstandingMessages
 			sub.ReceiveSettings.MaxOutstandingBytes = c.config.MaxOutstandingBytes
 			sub.ReceiveSettings.NumGoroutines = 10
