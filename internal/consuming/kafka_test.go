@@ -858,6 +858,171 @@ func runConsumptionIteration(b *testing.B, topic string, numMessages int, iterat
 	return consumptionTime
 }
 
+func makeFTP(topic string, partition int32, numRecords int) kgo.FetchTopicPartition {
+	records := make([]*kgo.Record, 0, numRecords)
+	for i := 0; i < numRecords; i++ {
+		records = append(records, &kgo.Record{Value: []byte("record")})
+	}
+	return kgo.FetchTopicPartition{Topic: topic, FetchPartition: kgo.FetchPartition{Partition: partition, Records: records}}
+}
+
+func TestUnboundedQueue_BasicPushPopNumRecords(t *testing.T) {
+	q := newUnboundedQueue()
+	require.False(t, q.IsClosed(), "new queue should not be closed")
+	require.Equal(t, 0, q.NumRecords(), "new queue should have length 0")
+
+	// Push items.
+	for i := 0; i < 5; i++ {
+		ok := q.Push(makeFTP("topic", int32(i), 1))
+		require.True(t, ok, "push should succeed")
+		require.Equal(t, i+1, q.NumRecords(), "num records should increase after push")
+	}
+
+	// Pop items in FIFO order.
+	for i := 0; i < 5; i++ {
+		item, ok := q.Pop()
+		require.True(t, ok, "pop should succeed when items are available")
+		require.Equal(t, "topic", item.Topic)
+		require.Equal(t, int32(i), item.Partition)
+		require.Equal(t, 5-(i+1), q.NumRecords(), "num records should decrease after pop")
+	}
+
+	// Now empty.
+	item, ok := q.Pop()
+	require.False(t, ok, "pop on empty queue should return ok=false")
+	require.Equal(t, kgo.FetchTopicPartition{}, item, "item should be zero value when pop fails")
+	require.Equal(t, 0, q.NumRecords())
+}
+
+func TestUnboundedQueue_MaintainsProperNumRecords(t *testing.T) {
+	q := newUnboundedQueue()
+	ok := q.Push(makeFTP("topic", int32(0), 5))
+	require.True(t, ok, "push should succeed")
+	ok = q.Push(makeFTP("topic", int32(0), 10))
+	require.True(t, ok, "push should succeed")
+	require.Equal(t, 15, q.NumRecords(), "length should be sum of records in all items")
+	item, ok := q.Pop()
+	require.True(t, ok, "pop on empty queue should return ok=false")
+	require.Equal(t, 5, len(item.Records))
+	require.Equal(t, 10, q.NumRecords())
+	item, ok = q.Pop()
+	require.True(t, ok, "pop on empty queue should return ok=false")
+	require.Equal(t, 10, len(item.Records))
+	require.Equal(t, 0, q.NumRecords())
+}
+
+func TestUnboundedQueue_NotEmptySignal(t *testing.T) {
+	q := newUnboundedQueue()
+
+	// 1) Initially no signal.
+	select {
+	case <-q.NotEmpty():
+		require.Fail(t, "NotEmpty channel should not signal before any push")
+	default:
+	}
+
+	// 2) First push should signal.
+	require.True(t, q.Push(makeFTP("t", 0, 1)))
+
+	// 3) Immediately push two more times (buffer is size 1, so they shouldn't signal).
+	require.True(t, q.Push(makeFTP("t", 1, 1)))
+	require.True(t, q.Push(makeFTP("t", 2, 1)))
+
+	// 4) Now there should be exactly one signal in the channel.
+	//    Drain it.
+	select {
+	case <-q.NotEmpty():
+		// good: we got the one and only signal
+	case <-time.After(50 * time.Millisecond):
+		require.Fail(t, "expected one signal after three pushes")
+	}
+
+	// 5) After draining, channel must now be empty again.
+	select {
+	case <-q.NotEmpty():
+		require.Fail(t, "no extra signals until another push after drain")
+	default:
+	}
+
+	// 6) One more push now signals again.
+	require.True(t, q.Push(makeFTP("t", 3, 1)))
+	select {
+	case <-q.NotEmpty():
+		// expected
+	case <-time.After(50 * time.Millisecond):
+		require.Fail(t, "push after drain should signal NotEmpty again")
+	}
+}
+
+func TestUnboundedQueue_CloseAndIsClosed(t *testing.T) {
+	q := newUnboundedQueue()
+	require.False(t, q.IsClosed())
+
+	// Close first time.
+	q.Close()
+	require.True(t, q.IsClosed(), "queue should report closed after Close()")
+
+	// Close second time is a no-op (no panic).
+	require.NotPanics(t, q.Close, "calling Close() twice should not panic")
+	require.True(t, q.IsClosed(), "still closed after second Close()")
+
+	// NotEmpty channel should be closed.
+	_, ok := <-q.NotEmpty()
+	require.False(t, ok, "NotEmpty channel should be closed after Close()")
+
+	// Push fails once closed.
+	ok = q.Push(makeFTP("x", 1, 1))
+	require.False(t, ok, "push after close should return false")
+
+	// Pop always fails when closed, even if items were enqueued before
+	// Let's test with a fresh queue.
+	q2 := newUnboundedQueue()
+	q2.Push(makeFTP("y", 2, 1))
+	q2.Close()
+
+	item, popped := q2.Pop()
+	require.False(t, popped, "pop after close should return false")
+	require.Equal(t, kgo.FetchTopicPartition{}, item, "item should be zero on pop after close")
+}
+
+func TestUnboundedQueue_ConcurrentSafety(t *testing.T) {
+	q := newUnboundedQueue()
+	const n = 1000
+
+	// Start n producers.
+	for i := 0; i < n; i++ {
+		go func(i int) {
+			ok := q.Push(makeFTP("c", int32(i), 1))
+			require.True(t, ok)
+		}(i)
+	}
+
+	// Give them a moment.
+	time.Sleep(10 * time.Millisecond)
+
+	// NumRecords should be n (order unspecified for concurrency).
+	require.Equal(t, n, q.NumRecords())
+
+	// Start n consumers.
+	results := make(chan kgo.FetchTopicPartition, n)
+	for i := 0; i < n; i++ {
+		go func() {
+			item, ok := q.Pop()
+			require.True(t, ok)
+			results <- item
+		}()
+	}
+
+	// Collect.
+	seen := make(map[int32]bool)
+	for i := 0; i < n; i++ {
+		ftp := <-results
+		require.False(t, seen[ftp.Partition], "each partition should be unique")
+		seen[ftp.Partition] = true
+	}
+	require.Equal(t, 0, q.NumRecords(), "queue should be empty after all pops")
+}
+
 func BenchmarkKafkaConsumer_ConsumePreLoadedTopic(b *testing.B) {
 	const (
 		numPartitions = 10
