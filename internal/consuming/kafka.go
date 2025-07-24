@@ -65,6 +65,11 @@ func NewKafkaConsumer(
 	if config.FetchMaxWait == 0 {
 		config.FetchMaxWait = configtypes.Duration(500 * time.Millisecond)
 	}
+	if config.PartitionQueueMaxSize == -1 {
+		config.PartitionQueueMaxSize = 0
+	} else if config.PartitionQueueMaxSize == 0 {
+		config.PartitionQueueMaxSize = 1000
+	}
 	consumer := &KafkaConsumer{
 		nodeID:     common.nodeID,
 		dispatcher: dispatcher,
@@ -268,7 +273,7 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 				partitionsToPause := map[string][]int32{p.Topic: {p.Partition}}
 				if _, paused := pausedTopicPartitions[tp]; !paused {
 					// Only pause if queue threshold would be exceeded after adding records, or if threshold is 0 (always pause).
-					shouldPause := c.config.PartitionQueueMaxSize == 0 || consumer.queue.Len()+len(p.Records) >= c.config.PartitionQueueMaxSize
+					shouldPause := consumer.queue.NumRecords()+len(p.Records) >= c.config.PartitionQueueMaxSize
 					if shouldPause {
 						// Pause partition BEFORE submitting to queue to avoid race condition
 						// between pause and resume operations.
@@ -600,10 +605,11 @@ func (pc *partitionConsumer) consume() {
 
 // unboundedQueue implements an unbounded queue for FetchTopicPartition
 type unboundedQueue struct {
-	mu       sync.RWMutex
-	items    []kgo.FetchTopicPartition
-	notEmpty chan struct{}
-	closed   bool
+	mu         sync.RWMutex
+	items      []kgo.FetchTopicPartition
+	numRecords int
+	notEmpty   chan struct{}
+	closed     bool
 }
 
 func newUnboundedQueue() *unboundedQueue {
@@ -622,6 +628,7 @@ func (q *unboundedQueue) Push(item kgo.FetchTopicPartition) bool {
 	}
 
 	q.items = append(q.items, item)
+	q.numRecords += len(item.Records)
 
 	// Signal that queue is not empty.
 	select {
@@ -643,15 +650,17 @@ func (q *unboundedQueue) Pop() (kgo.FetchTopicPartition, bool) {
 	// We do not expect many items in the queue, so we can use a simple slice pop operation and
 	// not worry about memory being reserved for the underlying slice.
 	item := q.items[0]
+	q.items[0] = kgo.FetchTopicPartition{} // Clear the first item for faster GC.
 	q.items = q.items[1:]
+	q.numRecords -= len(item.Records)
 
 	return item, true
 }
 
-func (q *unboundedQueue) Len() int {
+func (q *unboundedQueue) NumRecords() int {
 	q.mu.RLock()
 	defer q.mu.RUnlock()
-	return len(q.items)
+	return q.numRecords
 }
 
 func (q *unboundedQueue) Close() {

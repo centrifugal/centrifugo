@@ -766,7 +766,7 @@ type KafkaConsumerConfig struct {
 	FetchReadUncommitted bool `mapstructure:"fetch_read_uncommitted" json:"fetch_read_uncommitted" envconfig:"fetch_read_uncommitted" default:"false" yaml:"fetch_read_uncommitted" toml:"fetch_read_uncommitted"`
 	// PartitionQueueMaxSize is the maximum number of items in partition queue before pausing consuming from a partition.
 	// The actual queue size may exceed this value on `max_poll_records`, so this acts more like a threshold.
-	// If zero, pausing is done on every poll. If set, pausing only happens when queue size exceeds this threshold.
+	// If -1, pausing is done on every poll. If set, pausing only happens when queue size exceeds this threshold.
 	PartitionQueueMaxSize int `mapstructure:"partition_queue_max_size" json:"partition_queue_max_size" envconfig:"partition_queue_max_size" default:"1000" yaml:"partition_queue_max_size" toml:"partition_queue_max_size"`
 
 	// TLS for the connection to Kafka.

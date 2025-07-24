@@ -7014,7 +7014,7 @@
             "level": 3,
             "type": "int",
             "default": "1000",
-            "comment": "PartitionQueueMaxSize is the maximum number of items in partition queue before pausing consuming from a partition.\nThe actual queue size may exceed this value on `max_poll_records`, so this acts more like a threshold.\nIf zero, pausing is done on every poll. If set, pausing only happens when queue size exceeds this threshold.",
+            "comment": "PartitionQueueMaxSize is the maximum number of items in partition queue before pausing consuming from a partition.\nThe actual queue size may exceed this value on `max_poll_records`, so this acts more like a threshold.\nIf -1, pausing is done on every poll. If set, pausing only happens when queue size exceeds this threshold.",
             "is_complex_type": false
           },
           {
