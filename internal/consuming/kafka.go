@@ -652,6 +652,7 @@ func (q *unboundedQueue) Pop() (kgo.FetchTopicPartition, bool) {
 	item := q.items[0]
 	q.items[0] = kgo.FetchTopicPartition{} // Clear the first item for faster GC.
 	q.items = q.items[1:]
+	q.numRecords -= len(item.Records)
 
 	return item, true
 }

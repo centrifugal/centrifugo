@@ -487,9 +487,10 @@ func TestKafkaConsumer_PausePartitions(t *testing.T) {
 	beforePauseCh := make(chan topicPartition)
 
 	config := KafkaConfig{
-		Brokers:       []string{testKafkaBrokerURL},
-		Topics:        []string{testKafkaTopic},
-		ConsumerGroup: uuid.New().String(),
+		Brokers:               []string{testKafkaBrokerURL},
+		Topics:                []string{testKafkaTopic},
+		ConsumerGroup:         uuid.New().String(),
+		PartitionQueueMaxSize: -1,
 	}
 
 	numCalls := 0
