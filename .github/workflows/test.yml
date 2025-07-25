@@ -1,6 +1,14 @@
 name: test
 on: [push, pull_request]
 jobs:
+  typos:
+    name: Typos Check
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for typos
+        uses: crate-ci/typos@v1.34.0
   golangci:
     name: Lint
     runs-on: ubuntu-latest

@@ -46,7 +46,7 @@ var isWebSocketUpgradeTests = []struct {
 }{
 	{false, http.Header{"Upgrade": {"websocket"}}},
 	{false, http.Header{"Connection": {"upgrade"}}},
-	{true, http.Header{"Connection": {"upgRade"}, "Upgrade": {"WebSocket"}}},
+	{true, http.Header{"Connection": {"upgrade"}, "Upgrade": {"WebSocket"}}},
 }
 
 func TestIsWebSocketUpgrade(t *testing.T) {

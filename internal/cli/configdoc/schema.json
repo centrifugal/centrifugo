@@ -712,7 +712,7 @@
             "level": 3,
             "type": "RedisReplicaClient",
             "default": "",
-            "comment": "ReplicaClient is a configuration fot Redis replica client.",
+            "comment": "ReplicaClient is a configuration for Redis replica client.",
             "is_complex_type": true,
             "children": [
               {
@@ -1132,7 +1132,7 @@
             "level": 3,
             "type": "RedisReplicaClient",
             "default": "",
-            "comment": "ReplicaClient is a configuration fot Redis replica client.",
+            "comment": "ReplicaClient is a configuration for Redis replica client.",
             "is_complex_type": true,
             "children": [
               {
@@ -1708,7 +1708,7 @@
             "level": 3,
             "type": "RedisReplicaClient",
             "default": "",
-            "comment": "ReplicaClient is a configuration fot Redis replica client.",
+            "comment": "ReplicaClient is a configuration for Redis replica client.",
             "is_complex_type": true,
             "children": [
               {
@@ -7830,7 +7830,7 @@
             "level": 3,
             "type": "RedisReplicaClient",
             "default": "",
-            "comment": "ReplicaClient is a configuration fot Redis replica client.",
+            "comment": "ReplicaClient is a configuration for Redis replica client.",
             "is_complex_type": true,
             "children": [
               {
