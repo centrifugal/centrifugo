@@ -191,7 +191,7 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 
 	err := v.Unmarshal(conf)
 	if err != nil {
-		return Config{}, Meta{}, fmt.Errorf("error unmarshaling config: %w", err)
+		return Config{}, Meta{}, fmt.Errorf("error unmarshalling config: %w", err)
 	}
 
 	knownEnvVars := map[string]envconfig.VarInfo{}

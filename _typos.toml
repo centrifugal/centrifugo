@@ -1,0 +1,43 @@
+[default]
+# Extend the default configuration
+extend-glob = ["*.{go,md,yml,yaml,toml,json,js,ts,html,css,sh}"]
+extend-ignore-re = [
+    # Ignore certificate content in config files
+    "-----BEGIN CERTIFICATE-----[\\s\\S]*?-----END CERTIFICATE-----",
+    "-----BEGIN PRIVATE KEY-----[\\s\\S]*?-----END PRIVATE KEY-----",
+    "-----BEGIN PUBLIC KEY-----[\\s\\S]*?-----END PUBLIC KEY-----",
+    "-----BEGIN RSA PRIVATE KEY-----[\\s\\S]*?-----END RSA PRIVATE KEY-----"
+]
+
+[default.extend-words]
+# Add project-specific words that should not be flagged as typos
+centrifugo = "centrifugo"
+websocket = "websocket"
+websockets = "websockets"
+redis = "redis"
+nats = "nats"
+protobuf = "protobuf"
+grpc = "grpc"
+goreleaser = "goreleaser"
+golangci = "golangci"
+wrk = "wrk"
+eto = "eto"
+typ = "typ"
+Wath = "Wath" # @SinimaWath
+flate = "flate"
+
+[files]
+# Ignore certain files/directories
+extend-exclude = [
+    "internal/*/statik.go",
+    "*.sum",
+    "*.mod",
+    ".git/",
+    "*.pb.go",
+    "*.proto"
+]
+
+[type.pem]
+# Ignore PEM certificate content
+extend-glob = ["*.{pem,crt,key}"]
+check-file = false 

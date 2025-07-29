@@ -757,13 +757,13 @@ func TestBinaryUnmarshalerError(t *testing.T) {
 	// To be compatible with go 1.5 and lower we should do a very basic check,
 	// because underlying error message varies in go 1.5 and go 1.6+.
 
-	ue, ok := v.Err.(*url.Error)
+	e, ok := v.Err.(*url.Error)
 	if !ok {
 		t.Errorf("expected error type to be \"*url.Error\", got %T", v.Err)
 	}
 
-	if ue.Op != "parse" {
-		t.Errorf("expected error op to be \"parse\", got %q", ue.Op)
+	if e.Op != "parse" {
+		t.Errorf("expected error op to be \"parse\", got %q", e.Op)
 	}
 }
 
@@ -778,7 +778,7 @@ func TestCheckDisallowedOnlyAllowed(t *testing.T) {
 	}
 }
 
-func TestCheckDisallowedMispelled(t *testing.T) {
+func TestCheckDisallowedMisspelled(t *testing.T) {
 	var s Specification
 	os.Clearenv()
 	os.Setenv("ENV_CONFIG_DEBUG", "true")
