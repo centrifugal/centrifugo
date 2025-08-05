@@ -95,6 +95,33 @@ func (t *webtransportTransport) Write(message []byte) error {
 	}
 }
 
+// WriteUnreliable ...
+func (t *webtransportTransport) WriteUnreliable(message []byte) error {
+	select {
+	case <-t.closeCh:
+		return nil
+	default:
+		protoType := protocol.TypeJSON
+		if t.protoType == centrifuge.ProtocolTypeProtobuf {
+			protoType = protocol.TypeProtobuf
+		}
+		encoder := protocol.GetDataEncoder(protoType)
+		defer protocol.PutDataEncoder(protoType, encoder)
+		_ = encoder.Encode(message)
+		data := encoder.Finish()
+		var err error
+		if protoType == protocol.TypeJSON {
+			err = t.session.SendDatagram(append(data, '\n'))
+		} else {
+			err = t.session.SendDatagram(data)
+		}
+		if err != nil {
+			return err
+		}
+		return err
+	}
+}
+
 // WriteMany ...
 func (t *webtransportTransport) WriteMany(messages ...[]byte) error {
 	select {

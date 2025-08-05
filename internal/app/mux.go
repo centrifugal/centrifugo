@@ -483,9 +483,10 @@ func runHTTPServers(
 
 		if useHTTP3 {
 			wtServer.H3 = http3.Server{
-				Addr:      addr,
-				TLSConfig: addrTLSConfig,
-				Handler:   mux,
+				Addr:            addr,
+				TLSConfig:       addrTLSConfig,
+				Handler:         mux,
+				EnableDatagrams: true,
 			}
 		}
 
