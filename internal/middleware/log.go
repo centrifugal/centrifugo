@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/quic-go/quic-go/http3"
+
 	"github.com/rs/zerolog/log"
 )
 
@@ -54,6 +56,14 @@ func (lrw *statusResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 		return nil, nil, fmt.Errorf("ResponseWriter doesn't support Hijacker interface")
 	}
 	return hijacker.Hijack()
+}
+
+func (lrw *statusResponseWriter) Connection() *http3.Conn {
+	return lrw.ResponseWriter.(http3.Hijacker).Connection()
+}
+
+func (lrw *statusResponseWriter) HTTPStream() *http3.Stream {
+	return lrw.ResponseWriter.(http3.HTTPStreamer).HTTPStream()
 }
 
 // Flush implements http.Flusher.
