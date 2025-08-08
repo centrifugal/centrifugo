@@ -18,8 +18,10 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/kmsg"
 	"github.com/twmb/franz-go/pkg/sasl/aws"
+	"github.com/twmb/franz-go/pkg/sasl/oauth"
 	"github.com/twmb/franz-go/pkg/sasl/plain"
 	"github.com/twmb/franz-go/pkg/sasl/scram"
+	"golang.org/x/oauth2/google"
 )
 
 type KafkaConfig = configtypes.KafkaConsumerConfig
@@ -148,6 +150,8 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 				AccessKey: c.config.SASLUser,
 				SecretKey: c.config.SASLPassword,
 			}.AsManagedStreamingIAMMechanism()))
+		case "google-oauth-bearer-adc":
+			opts = append(opts, kgo.SASL(oauth.Oauth(fetchGoogleOAuthTokenFromADC)))
 		default:
 			return nil, fmt.Errorf("unsupported SASL mechanism: %s", c.config.SASLMechanism)
 		}
@@ -164,6 +168,29 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 		return nil, fmt.Errorf("error ping Kafka: %w", err)
 	}
 	return client, nil
+}
+
+func fetchGoogleOAuthTokenFromADC(ctx context.Context) (oauth.Auth, error) {
+	const scope = "https://www.googleapis.com/auth/cloud-platform"
+
+	cred, err := google.FindDefaultCredentials(ctx, scope)
+	if err != nil {
+		return oauth.Auth{}, fmt.Errorf("failed to get ADC credentials: %w", err)
+	}
+
+	tok, err := cred.TokenSource.Token()
+	if err != nil {
+		return oauth.Auth{}, fmt.Errorf("failed to retrieve token: %w", err)
+	}
+
+	if !tok.Valid() {
+		return oauth.Auth{}, fmt.Errorf("received invalid token")
+	}
+
+	return oauth.Auth{
+		Token:      tok.AccessToken,
+		Extensions: map[string]string{},
+	}, nil
 }
 
 func (c *KafkaConsumer) leaveGroup(ctx context.Context, client *kgo.Client) error {
