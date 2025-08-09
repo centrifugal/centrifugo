@@ -140,6 +140,7 @@ message PublishRequest {
     bool delta = 7;
     uint64 version = 8;
     string version_epoch = 9;
+    bytes meta = 10;  // Add meta field for message filtering
 }
 
 message PublishResponse {
@@ -162,6 +163,7 @@ message BroadcastRequest {
     bool delta = 7;
     uint64 version = 8;
     string version_epoch = 9;
+    bytes meta = 10;  // Add meta field for message filtering
 }
 
 message BroadcastResponse {
@@ -303,6 +305,7 @@ message Publication {
     ClientInfo info = 3;
     uint64 offset = 4;
     map<string, string> tags = 5;
+    bytes meta = 6;  // Add meta field for message filtering in history
 }
 
 message HistoryResult {

@@ -3,6 +3,7 @@ package natsbroker
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -421,9 +422,20 @@ func pubFromProto(pub *protocol.Publication, specificChannel string) *centrifuge
 	if pub == nil {
 		return nil
 	}
+
+	// Convert meta from bytes to map[string]interface{} if present
+	var meta map[string]interface{}
+	if len(pub.Meta) > 0 {
+		if err := json.Unmarshal(pub.Meta, &meta); err != nil {
+			// If meta parsing fails, we'll use nil meta
+			meta = nil
+		}
+	}
+
 	return &centrifuge.Publication{
 		Offset:  pub.GetOffset(),
 		Data:    pub.Data,
+		Meta:    meta,
 		Info:    infoFromProto(pub.GetInfo()),
 		Channel: specificChannel,
 		Tags:    pub.GetTags(),

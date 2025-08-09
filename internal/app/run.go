@@ -169,6 +169,10 @@ func Run(cmd *cobra.Command, configFile string) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("error setting up client handler")
 	}
+
+	// Set the message filter on the node
+	// This global filter will handle all subscription-level filters through MessageInterceptor
+	node.SetMessageFilter(clientHandler.MessageInterceptor)
 	if cfg.RPC.Ping.Enabled {
 		log.Info().Str("method", cfg.RPC.Ping.Method).Msg("RPC ping extension enabled")
 		clientHandler.SetRPCExtension(cfg.RPC.Ping.Method, func(c client.Client, e centrifuge.RPCEvent) (centrifuge.RPCReply, error) {
@@ -181,14 +185,25 @@ func Run(cmd *cobra.Command, configFile string) {
 	useAPIOpentelemetry := cfg.OpenTelemetry.Enabled && cfg.OpenTelemetry.API
 	useConsumingOpentelemetry := cfg.OpenTelemetry.Enabled && cfg.OpenTelemetry.Consuming
 
+	// Create message filter API
+	messageFilterAPI := api.NewMessageFilterAPI(clientHandler.MessageInterceptor)
+
 	httpAPIExecutor := api.NewExecutor(node, cfgContainer, surveyCaller, api.ExecutorConfig{
 		Protocol:         "http",
 		UseOpenTelemetry: useAPIOpentelemetry,
 	})
+	// Register message filter RPC extensions
+	httpAPIExecutor.SetRPCExtension("message_filter_stats", messageFilterAPI.HandleFilterStats)
+	httpAPIExecutor.SetRPCExtension("test_message_filter", messageFilterAPI.HandleTestFilter)
+
 	grpcAPIExecutor := api.NewExecutor(node, cfgContainer, surveyCaller, api.ExecutorConfig{
 		Protocol:         "grpc",
 		UseOpenTelemetry: useAPIOpentelemetry,
 	})
+	// Register message filter RPC extensions
+	grpcAPIExecutor.SetRPCExtension("message_filter_stats", messageFilterAPI.HandleFilterStats)
+	grpcAPIExecutor.SetRPCExtension("test_message_filter", messageFilterAPI.HandleTestFilter)
+
 	consumingAPIExecutor := api.NewExecutor(node, cfgContainer, surveyCaller, api.ExecutorConfig{
 		Protocol:         "consuming",
 		UseOpenTelemetry: useConsumingOpentelemetry,
@@ -276,7 +291,7 @@ func Run(cmd *cobra.Command, configFile string) {
 	var grpcUniServer *grpc.Server
 	if cfg.UniGRPC.Enabled {
 		var err error
-		grpcAPIServer, err = runGRPCUniServer(cfg, node)
+		grpcUniServer, err = runGRPCUniServer(cfg, node)
 		if err != nil {
 			log.Fatal().Err(err).Msg("error creating GRPC API server")
 		}
