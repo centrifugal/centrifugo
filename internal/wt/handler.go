@@ -2,6 +2,8 @@ package wt
 
 import (
 	"context"
+	"errors"
+	"io"
 	"net/http"
 	"time"
 
@@ -9,6 +11,7 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
+	"github.com/quic-go/quic-go"
 	"github.com/quic-go/webtransport-go"
 	"github.com/rs/zerolog/log"
 )
@@ -80,7 +83,10 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	for {
 		cmd, cmdSize, err := decoder.Decode()
 		if err != nil {
-			log.Error().Err(err).Str("transport", transportName).Str("client", c.ID()).Msg("error decoding command")
+			var appErr *quic.ApplicationError
+			if !errors.Is(err, io.EOF) && !errors.As(err, &appErr) {
+				log.Error().Err(err).Str("transport", transportName).Str("client", c.ID()).Msg("error decoding command")
+			}
 			return
 		}
 		ok := c.HandleCommand(cmd, cmdSize)
