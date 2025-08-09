@@ -19,6 +19,7 @@ require (
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.4.0
 	github.com/gobwas/glob v0.2.3
+	github.com/google/cel-go v0.26.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/securecookie v1.1.2
 	github.com/hashicorp/go-envparse v0.1.0
@@ -60,6 +61,7 @@ require (
 )
 
 require (
+	cel.dev/expr v0.24.0 // indirect
 	cloud.google.com/go v0.121.1 // indirect
 	cloud.google.com/go/auth v0.16.3 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
@@ -69,6 +71,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.1 // indirect
 	github.com/Azure/go-amqp v1.4.0 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.4.2 // indirect
+	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.1 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.1 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.1 // indirect
@@ -96,6 +99,7 @@ require (
 	github.com/shadowspore/fossil-delta v0.0.0-20241213113458-1d797d70cbe3 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
+	github.com/stoewer/go-strcase v1.2.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
@@ -104,6 +108,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/mock v0.5.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
+	golang.org/x/exp v0.0.0-20230515195305-f3d0a9c9a5cc // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	google.golang.org/genproto v0.0.0-20250603155806-513f23925822 // indirect
 )
@@ -148,3 +153,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250728155136-f173205681a0 // indirect
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+replace github.com/centrifugal/centrifuge v0.37.0 => github.com/chainstream-io/centrifuge v0.0.0-20250809185106-69a28e75c3b1
+
+replace github.com/centrifugal/protocol => github.com/chainstream-io/protocol v0.0.0-20250809142339-f22827f207fe

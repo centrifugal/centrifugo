@@ -153,9 +153,13 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Debug: Log the received message
+		log.Info().Str("client", c.ID()).Str("data", string(data)).Msg("received message")
+
 		var req protocol.ConnectRequest
 		err = json.Unmarshal(data, &req)
 		if err != nil {
+			log.Error().Err(err).Str("client", c.ID()).Str("data", string(data)).Msg("failed to unmarshal connect request")
 			return
 		}
 

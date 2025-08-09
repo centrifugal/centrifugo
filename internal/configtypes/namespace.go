@@ -165,6 +165,11 @@ type ChannelOptions struct {
 	// SubscribeStreamBidirectional enables using bidirectional stream proxy for the namespace.
 	SubscribeStreamBidirectional bool `mapstructure:"subscribe_stream_proxy_bidirectional" json:"subscribe_stream_proxy_bidirectional" envconfig:"subscribe_stream_proxy_bidirectional" yaml:"subscribe_stream_proxy_bidirectional" toml:"subscribe_stream_proxy_bidirectional"`
 
+	// Filter is a CEL expression for filtering messages at the subscription level.
+	// The expression can access message data through the 'msg' variable.
+	// Example: "msg.a == 'xxx' && msg.b > 100"
+	Filter string `mapstructure:"filter" json:"filter" envconfig:"filter" yaml:"filter" toml:"filter"`
+
 	Compiled `json:"-" yaml:"-" toml:"-"`
 }
 

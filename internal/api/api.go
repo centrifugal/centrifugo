@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"sync"
 	"time"
@@ -211,6 +212,22 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 		delta = true
 	}
 
+	// Convert meta from bytes to map[string]interface{} if present
+	var meta map[string]interface{}
+	if len(cmd.Meta) > 0 {
+		// Validate meta data size (limit to 64KB to prevent abuse)
+		const maxMetaSize = 64 * 1024
+		if len(cmd.Meta) > maxMetaSize {
+			log.Warn().Str("channel", cmd.Channel).Int("meta_length", len(cmd.Meta)).Int("max_size", maxMetaSize).
+				Msg("meta data too large, message will be processed without meta")
+			meta = nil
+		} else if err := json.Unmarshal(cmd.Meta, &meta); err != nil {
+			log.Warn().Err(err).Str("channel", cmd.Channel).Int("meta_length", len(cmd.Meta)).
+				Msg("failed to parse meta data, message will be processed without meta")
+			meta = nil
+		}
+	}
+
 	result, err := h.node.Publish(
 		cmd.Channel, data,
 		centrifuge.WithHistory(historySize, historyTTL.ToDuration(), historyMetaTTL.ToDuration()),
@@ -218,6 +235,7 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 		centrifuge.WithIdempotencyKey(cmd.GetIdempotencyKey()),
 		centrifuge.WithDelta(delta),
 		centrifuge.WithVersion(cmd.Version, cmd.VersionEpoch),
+		centrifuge.WithMeta(meta),
 	)
 	if err != nil {
 		log.Error().Err(err).Str("channel", cmd.Channel).Msg("error publishing data to channel")
@@ -317,6 +335,22 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 				delta = true
 			}
 
+			// Convert meta from bytes to map[string]interface{} if present
+			var meta map[string]interface{}
+			if len(cmd.Meta) > 0 {
+				// Validate meta data size (limit to 64KB to prevent abuse)
+				const maxMetaSize = 64 * 1024
+				if len(cmd.Meta) > maxMetaSize {
+					log.Warn().Str("channel", ch).Int("meta_length", len(cmd.Meta)).Int("max_size", maxMetaSize).
+						Msg("meta data too large, message will be processed without meta")
+					meta = nil
+				} else if err := json.Unmarshal(cmd.Meta, &meta); err != nil {
+					log.Warn().Err(err).Str("channel", ch).Int("meta_length", len(cmd.Meta)).
+						Msg("failed to parse meta data, message will be processed without meta")
+					meta = nil
+				}
+			}
+
 			result, err := h.node.Publish(
 				ch, data,
 				centrifuge.WithHistory(historySize, historyTTL.ToDuration(), historyMetaTTL.ToDuration()),
@@ -324,6 +358,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 				centrifuge.WithIdempotencyKey(cmd.GetIdempotencyKey()),
 				centrifuge.WithDelta(delta),
 				centrifuge.WithVersion(cmd.Version, cmd.VersionEpoch),
+				centrifuge.WithMeta(meta),
 			)
 			resp := &PublishResponse{}
 			if err == nil {
@@ -675,6 +710,12 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 				Client:   pub.Info.ClientID,
 				ConnInfo: pub.Info.ConnInfo,
 				ChanInfo: pub.Info.ChanInfo,
+			}
+		}
+		// Add meta data to history publications for filtering support
+		if pub.Meta != nil {
+			if metaBytes, err := json.Marshal(pub.Meta); err == nil {
+				apiPub.Meta = Raw(metaBytes)
 			}
 		}
 		apiPubs[i] = apiPub

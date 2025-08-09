@@ -12,6 +12,7 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/jwtverify"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
+	"github.com/centrifugal/centrifugo/v6/internal/messagefilter"
 	"github.com/centrifugal/centrifugo/v6/internal/proxy"
 	"github.com/centrifugal/centrifugo/v6/internal/subsource"
 
@@ -36,12 +37,14 @@ type ProxyMap struct {
 
 // Handler for client connections.
 type Handler struct {
-	node             *centrifuge.Node
-	cfgContainer     *config.Container
-	tokenVerifier    *jwtverify.VerifierJWT
-	subTokenVerifier *jwtverify.VerifierJWT
-	proxyMap         *ProxyMap
-	rpcExtension     map[string]RPCExtensionFunc
+	node               *centrifuge.Node
+	cfgContainer       *config.Container
+	tokenVerifier      *jwtverify.VerifierJWT
+	subTokenVerifier   *jwtverify.VerifierJWT
+	proxyMap           *ProxyMap
+	rpcExtension       map[string]RPCExtensionFunc
+	filterManager      *messagefilter.FilterManager
+	MessageInterceptor *messagefilter.MessageInterceptor
 }
 
 // NewHandler creates new Handler.
@@ -52,13 +55,16 @@ func NewHandler(
 	subTokenVerifier *jwtverify.VerifierJWT,
 	proxyMap *ProxyMap,
 ) *Handler {
+	filterManager := messagefilter.NewFilterManager()
 	return &Handler{
-		node:             node,
-		cfgContainer:     cfgContainer,
-		tokenVerifier:    tokenVerifier,
-		subTokenVerifier: subTokenVerifier,
-		proxyMap:         proxyMap,
-		rpcExtension:     make(map[string]RPCExtensionFunc),
+		node:               node,
+		cfgContainer:       cfgContainer,
+		tokenVerifier:      tokenVerifier,
+		subTokenVerifier:   subTokenVerifier,
+		proxyMap:           proxyMap,
+		rpcExtension:       make(map[string]RPCExtensionFunc),
+		filterManager:      filterManager,
+		MessageInterceptor: messagefilter.NewMessageInterceptor(filterManager),
 	}
 }
 
@@ -243,6 +249,19 @@ func (h *Handler) Setup() error {
 				}
 				release(storage)
 			}
+			// Clean up message filter
+			storage, release := client.AcquireStorage()
+			if storage["message_filter_"+e.Channel] != nil {
+				// Remove filter for this channel
+				h.MessageInterceptor.RemoveClientFilter(client.ID(), e.Channel)
+				delete(storage, "message_filter_"+e.Channel)
+			}
+			release(storage)
+		})
+
+		client.OnDisconnect(func(e centrifuge.DisconnectEvent) {
+			// Clean up all filters for this client
+			h.MessageInterceptor.RemoveClient(client.ID())
 		})
 	})
 	return nil
@@ -392,6 +411,7 @@ func (h *Handler) OnClientConnecting(
 		// Try to satisfy client request regarding desired server-side subscriptions.
 		// Subscribe only to channels client has permission to, so that it could theoretically
 		// just use client-side subscriptions to achieve the same.
+
 		for _, ch := range e.Channels {
 			_, rest, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 			if err != nil {
@@ -629,6 +649,19 @@ func (h *Handler) validateChannelName(c Client, rest string, chOpts configtypes.
 type SubscribeExtra struct {
 }
 
+// messageFilterWrapper wraps MessageInterceptor to implement centrifuge.MessageFilter interface
+type messageFilterWrapper struct {
+	interceptor *messagefilter.MessageInterceptor
+	clientID    string
+	channel     string
+}
+
+func (w *messageFilterWrapper) ShouldDeliverMessage(ctx context.Context, clientID, channel string, pub *centrifuge.Publication) (bool, error) {
+	// Use the passed clientID and channel parameters instead of stored ones
+	// This ensures the filter works correctly during recovery
+	return w.interceptor.ShouldDeliverMessage(ctx, clientID, channel, pub)
+}
+
 // OnSubscribe ...
 func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribeProxyHandler proxy.SubscribeHandlerFunc, subscribeStreamHandlerFunc proxy.SubscribeStreamHandlerFunc) (centrifuge.SubscribeReply, SubscribeExtra, error) {
 	cfg := h.cfgContainer.Config()
@@ -758,9 +791,64 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		options.PushJoinLeave = true
 	}
 
+	// Apply message filter if configured
+	var celExpression string
+
+	// Check if client provided CEL expression at top level
+	if e.Filter != "" {
+		// Check filter expression length limit (4KB)
+		const maxFilterLength = 4 * 1024 // 4KB
+		if len(e.Filter) > maxFilterLength {
+			log.Warn().Str("channel", e.Channel).Int("length", len(e.Filter)).Int("max_length", maxFilterLength).
+				Str("client", c.ID()).Msg("filter expression too long, rejecting subscription")
+			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorBadRequest
+		}
+		celExpression = e.Filter
+	}
+
+	// Fallback to config-based expression if no client expression
+	if celExpression == "" && chOpts.Filter != "" {
+		celExpression = chOpts.Filter
+	}
+
+	var messageFilter centrifuge.MessageFilter = nil
+	if celExpression != "" {
+		// Check if we already have a subscription for this channel
+		storage, release := c.AcquireStorage()
+		hasExistingFilter := storage["message_filter_"+e.Channel] != nil
+		release(storage)
+
+		if hasExistingFilter {
+			h.MessageInterceptor.RemoveClientFilter(c.ID(), e.Channel)
+		}
+
+		filter, err := h.filterManager.GetOrCreateFilter(celExpression)
+		if err != nil {
+			log.Error().Err(err).Str("channel", e.Channel).Str("expression", celExpression).
+				Str("client", c.ID()).Msg("failed to create message filter, rejecting subscription")
+			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorBadRequest
+		}
+
+		// Register filter with message interceptor using channel as key
+		h.MessageInterceptor.AddClientFilter(c.ID(), e.Channel, filter)
+
+		// Store filter in client storage for later use
+		storage, release = c.AcquireStorage()
+		storage["message_filter_"+e.Channel] = filter
+		release(storage)
+
+		// Create a wrapper that implements centrifuge.MessageFilter interface
+		messageFilter = &messageFilterWrapper{
+			interceptor: h.MessageInterceptor,
+			clientID:    c.ID(),
+			channel:     e.Channel,
+		}
+	}
+
 	return centrifuge.SubscribeReply{
 		Options:           options,
 		ClientSideRefresh: !chOpts.SubRefreshProxyEnabled,
+		MessageFilter:     messageFilter,
 	}, SubscribeExtra{}, nil
 }
 
@@ -819,11 +907,29 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 		return centrifuge.PublishReply{}, centrifuge.ErrorPermissionDenied
 	}
 
+	// Convert e.Meta from []byte to map[string]interface{} if present
+	var meta map[string]interface{}
+
+	if len(e.Meta) > 0 {
+		// Validate meta data size (limit to 64KB to prevent abuse)
+		const maxMetaSize = 64 * 1024
+		if len(e.Meta) > maxMetaSize {
+			log.Warn().Str("channel", e.Channel).Str("client", c.ID()).Int("meta_length", len(e.Meta)).Int("max_size", maxMetaSize).
+				Msg("meta data too large, message will be processed without meta")
+			meta = nil
+		} else if err := json.Unmarshal(e.Meta, &meta); err != nil {
+			log.Warn().Err(err).Str("channel", e.Channel).Str("client", c.ID()).Int("meta_length", len(e.Meta)).
+				Msg("failed to parse meta data, message will be processed without meta")
+			meta = nil
+		}
+	}
+
 	result, err := h.node.Publish(
 		e.Channel, e.Data,
 		centrifuge.WithClientInfo(e.ClientInfo),
 		centrifuge.WithHistory(chOpts.HistorySize, chOpts.HistoryTTL.ToDuration(), chOpts.HistoryMetaTTL.ToDuration()),
 		centrifuge.WithDelta(chOpts.DeltaPublish),
+		centrifuge.WithMeta(meta),
 	)
 	if err != nil {
 		log.Error().Err(err).Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("error publishing message")

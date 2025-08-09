@@ -222,6 +222,14 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 		return fmt.Errorf("unknown recovery mode: \"%s\"", c.ForceRecoveryMode)
 	}
 
+	// Validate filter expression length
+	if c.Filter != "" {
+		const maxFilterLength = 4 * 1024 // 4KB
+		if len(c.Filter) > maxFilterLength {
+			return fmt.Errorf("filter expression too long: %d characters (max: %d)", len(c.Filter), maxFilterLength)
+		}
+	}
+
 	if c.SubscribeProxyName != "" && !slices.Contains(proxyNames, c.SubscribeProxyName) {
 		return fmt.Errorf("subscribe proxy with name \"%s\" not found", c.SubscribeProxyName)
 	}
