@@ -797,7 +797,7 @@ message SendPushNotificationRequest {
     PushNotification notification = 2;
     string uid = 3; // unique identifier for each push notification request, can be used to cancel push.
     int64 send_at = 4; // Unix seconds, if set - push will be sent at this time, if not set - immediately.
-    bool optimize_for_reliability = 5; // makes processing heavier, but tolerates edge cases, like not loosing inflight pushes due to temporary queue unavailability.
+    bool optimize_for_reliability = 5; // makes processing heavier, but tolerates edge cases, like not losing inflight pushes due to temporary queue unavailability.
     PushLimitStrategy limit_strategy = 6; // strategy for sending push notifications. Applicable only for pushes with filter recipient. When using this field Centrifugo processes devices one by one.
     string analytics_uid = 7; // uid for push notification analytics, if not set - Centrifugo will use uid field.
     map<string, PushLocalization> localizations = 8; // optional per language/locale localizations for push notification.
