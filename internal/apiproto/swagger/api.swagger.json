@@ -2934,7 +2934,7 @@
         },
         "optimize_for_reliability": {
           "type": "boolean",
-          "description": "makes processing heavier, but tolerates edge cases, like not loosing inflight pushes due to temporary queue unavailability."
+          "description": "makes processing heavier, but tolerates edge cases, like not losing inflight pushes due to temporary queue unavailability."
         },
         "limit_strategy": {
           "$ref": "#/definitions/PushLimitStrategy",
