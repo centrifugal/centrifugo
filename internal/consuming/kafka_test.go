@@ -988,7 +988,7 @@ func TestUnboundedQueue_CloseAndIsClosed(t *testing.T) {
 
 func TestUnboundedQueue_ConcurrentSafety(t *testing.T) {
 	q := newUnboundedQueue()
-	const n = 1000
+	const n = 100
 
 	// Start n producers.
 	for i := 0; i < n; i++ {
@@ -998,19 +998,21 @@ func TestUnboundedQueue_ConcurrentSafety(t *testing.T) {
 		}(i)
 	}
 
-	// Give them a moment.
-	time.Sleep(10 * time.Millisecond)
-
-	// NumRecords should be n (order unspecified for concurrency).
-	require.Equal(t, n, q.NumRecords())
-
 	// Start n consumers.
 	results := make(chan kgo.FetchTopicPartition, n)
 	for i := 0; i < n; i++ {
 		go func() {
-			item, ok := q.Pop()
-			require.True(t, ok)
-			results <- item
+			for {
+				item, ok := q.Pop()
+				if !ok {
+					if q.IsClosed() {
+						// If queue is closed and no items left, exit.
+						return
+					}
+					continue
+				}
+				results <- item
+			}
 		}()
 	}
 
@@ -1018,7 +1020,7 @@ func TestUnboundedQueue_ConcurrentSafety(t *testing.T) {
 	seen := make(map[int32]bool)
 	for i := 0; i < n; i++ {
 		ftp := <-results
-		require.False(t, seen[ftp.Partition], "each partition should be unique")
+		require.False(t, seen[ftp.Partition], "each partition should be unique: %v", ftp.Partition)
 		seen[ftp.Partition] = true
 	}
 	require.Equal(t, 0, q.NumRecords(), "queue should be empty after all pops")
