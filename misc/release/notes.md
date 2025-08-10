@@ -10,17 +10,22 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Adding `has_recovered_publications` label (`yes|no`) to `centrifugo_client_recover` counter metric to distinguish between recoveries that included recovered publications and those which did not (but still succeeded).
-* Boolean option `prometheus.recovered_publications_histogram` to enable recovered publications histogram [#1017](https://github.com/centrifugal/centrifugo/pull/1017). The flag enables a histogram to track the distribution of recovered publications number in successful recoveries. This allows to visualize and evaluate the number of publications successfully recovered. The insight can help to fine-tune history settings.
+* Improved admin web UI:
+    * Refreshed login screen with bubbles instead of lines 🫧
+    * Sleek cards with totals on Status screen
+    * Total subscriptions counter added in addition to Total nodes running and Total clients
+    * Better response visualizations on Actions page to improve UX when the same response is returned
+    * Monaco JSON editor instead of Ace — lighter size and slightly more visually appealing
+    * Updated to React v19 and Material UI v7
+* WebTransport: make it work with debug middleware, suppress errors [#1021](https://github.com/centrifugal/centrifugo/pull/1021)
+* Introduce source code typo check in CI [#1004](https://github.com/centrifugal/centrifugo/pull/1004)
 
 ### Fixes
 
-* Fix memory leak in Kafka backpressure mechanism [#1018](https://github.com/centrifugal/centrifugo/pull/1018). Fixes regression introduced in Centrifugo v6.2.3. Due to the fact Centrifugo looked at number of items in the queue instead of the number of records, memory usage could grow significantly since consuming from partitions was not paused when required.
-* Fix and improve redis mode logging [#1010](https://github.com/centrifugal/centrifugo/pull/1010) - previously Centrifugo was setting up Redis mode correctly, but logged it wrong. Now it was fixed, and Centrifugo includes more details about Redis mode logging to see the configured setup properties.
-* Fix duration overflow due to large `exp` in JWT tokens, max ttl 1 year for connection and subscription token refreshed [centrifugal/centrifuge#495](https://github.com/centrifugal/centrifuge/pull/495). The bug in setting `exp` in JWT could result into Centrifugo timer logic failure (because Centrifuge had `Duration` type overflow, which is approximately 290 years). As a consequence - pings were never sent by Centrifugo. Added a reasonable protection from such cases.
+* Fix existing typos in source code by @yinheli [#1004](https://github.com/centrifugal/centrifugo/pull/1004)
 
 ### Miscellaneous
 
-* This release is built with Go 1.24.5.
+* This release is built with Go 1.24.6.
 * Updated dependencies.
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.2.4).
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.2.5).
