@@ -154,6 +154,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-replace github.com/centrifugal/centrifuge v0.37.0 => github.com/chainstream-io/centrifuge v0.0.0-20250809185106-69a28e75c3b1
+replace github.com/centrifugal/centrifuge => github.com/chainstream-io/centrifuge v0.0.0-20250809201959-831f7029b32f
 
 replace github.com/centrifugal/protocol => github.com/chainstream-io/protocol v0.0.0-20250809142339-f22827f207fe
