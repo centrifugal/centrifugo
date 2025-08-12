@@ -228,6 +228,7 @@ func Run(cmd *cobra.Command, configFile string) {
 			UniHTTPStream: cfg.UniHTTPStream.Enabled,
 			UniSSE:        cfg.UniSSE.Enabled,
 			UniGRPC:       cfg.UniGRPC.Enabled,
+			WebTransport:  cfg.WebTransport.Enabled,
 
 			EnabledConsumers: usage.GetEnabledConsumers(cfg.Consumers),
 

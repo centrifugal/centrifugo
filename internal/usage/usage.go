@@ -84,6 +84,7 @@ type Features struct {
 	UniGRPC       bool
 	UniSSE        bool
 	UniHTTPStream bool
+	WebTransport  bool
 
 	// Proxies.
 	ConnectProxy         bool
@@ -367,6 +368,9 @@ func (s *Sender) prepareMetrics() ([]*metric, error) {
 	}
 	if s.features.UniGRPC {
 		metrics = append(metrics, createPoint("transports_enabled.uni_grpc"))
+	}
+	if s.features.WebTransport {
+		metrics = append(metrics, createPoint("transports_enabled.webtransport"))
 	}
 	if s.features.ConnectProxy {
 		metrics = append(metrics, createPoint("proxies_enabled.connect"))
