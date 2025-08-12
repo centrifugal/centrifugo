@@ -26,7 +26,7 @@ const (
 )
 
 var logLevelMatches = map[string]zerolog.Level{
-	"NONE":  zerolog.NoLevel,
+	"NONE":  zerolog.Disabled,
 	"TRACE": zerolog.TraceLevel,
 	"DEBUG": zerolog.DebugLevel,
 	"INFO":  zerolog.InfoLevel,
