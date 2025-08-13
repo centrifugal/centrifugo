@@ -846,6 +846,234 @@ func (ss *setterStruct) Set(value string) error {
 	return nil
 }
 
+func TestProcessWithoutNestedKeys(t *testing.T) {
+	var s Specification
+	os.Clearenv()
+	os.Setenv("ENV_CONFIG_DEBUG", "true")
+	os.Setenv("ENV_CONFIG_PORT", "8080")
+	os.Setenv("ENV_CONFIG_RATE", "0.5")
+	os.Setenv("ENV_CONFIG_USER", "Kelsey")
+	os.Setenv("ENV_CONFIG_TIMEOUT", "2m")
+	os.Setenv("ENV_CONFIG_ADMINUSERS", "John Adam Will")
+	os.Setenv("ENV_CONFIG_MAGICNUMBERS", "5 10 20")
+	os.Setenv("ENV_CONFIG_EMPTYNUMBERS", "")
+	os.Setenv("ENV_CONFIG_BYTESLICE", "this is a test value")
+	os.Setenv("ENV_CONFIG_COLORCODES", "red:1,green:2,blue:3")
+	os.Setenv("SERVICE_HOST", "127.0.0.1")
+	os.Setenv("ENV_CONFIG_TTL", "30")
+	os.Setenv("ENV_CONFIG_REQUIREDVAR", "foo")
+	os.Setenv("ENV_CONFIG_IGNORED", "was-not-ignored")
+	os.Setenv("ENV_CONFIG_OUTER_INNER", "iamnested")
+	os.Setenv("ENV_CONFIG_AFTERNESTED", "after")
+	os.Setenv("ENV_CONFIG_HONOR", "honor")
+	os.Setenv("ENV_CONFIG_DATETIME", "2016-08-16T18:57:05Z")
+	os.Setenv("ENV_CONFIG_MULTI_WORD_VAR_WITH_AUTO_SPLIT", "24")
+	os.Setenv("ENV_CONFIG_MULTI_WORD_ACR_WITH_AUTO_SPLIT", "25")
+	os.Setenv("ENV_CONFIG_URLVALUE", "https://github.com/kelseyhightower/envconfig")
+	os.Setenv("ENV_CONFIG_URLPOINTER", "https://github.com/kelseyhightower/envconfig")
+
+	// Exclude debug and port fields using their nested keys
+	excludeKeys := []string{"debug", "port"}
+	_, err := ProcessWithoutNestedKeys("env_config", &s, excludeKeys)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Debug should remain false (default) because it was excluded
+	if s.Debug {
+		t.Errorf("expected %v, got %v (debug should be excluded)", false, s.Debug)
+	}
+	// Port should remain 0 (default) because it was excluded
+	if s.Port != 0 {
+		t.Errorf("expected %d, got %v (port should be excluded)", 0, s.Port)
+	}
+	// Other fields should be processed normally
+	if s.Rate != 0.5 {
+		t.Errorf("expected %f, got %v", 0.5, s.Rate)
+	}
+	if s.TTL != 30 {
+		t.Errorf("expected %d, got %v", 30, s.TTL)
+	}
+	if s.User != "Kelsey" {
+		t.Errorf("expected %s, got %s", "Kelsey", s.User)
+	}
+	if s.RequiredVar != "foo" {
+		t.Errorf("expected %s, got %s", "foo", s.RequiredVar)
+	}
+}
+
+func TestProcessWithoutNestedKeysNestedStruct(t *testing.T) {
+	var s Specification
+	os.Clearenv()
+	os.Setenv("ENV_CONFIG_DEBUG", "true")
+	os.Setenv("ENV_CONFIG_PORT", "8080")
+	os.Setenv("ENV_CONFIG_REQUIREDVAR", "foo")
+	os.Setenv("ENV_CONFIG_OUTER_INNER", "iamnested")
+	os.Setenv("ENV_CONFIG_AFTERNESTED", "after")
+
+	// Exclude the nested struct property using its nested key
+	excludeKeys := []string{"outer.inner"}
+	_, err := ProcessWithoutNestedKeys("env_config", &s, excludeKeys)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Regular fields should be processed
+	if !s.Debug {
+		t.Errorf("expected %v, got %v", true, s.Debug)
+	}
+	if s.Port != 8080 {
+		t.Errorf("expected %d, got %v", 8080, s.Port)
+	}
+	if s.AfterNested != "after" {
+		t.Errorf("expected %s, got %s", "after", s.AfterNested)
+	}
+
+	// Nested field should remain empty because it was excluded
+	if s.NestedSpecification.Property != "" {
+		t.Errorf("expected empty string, got %s (nested property should be excluded)", s.NestedSpecification.Property)
+	}
+	// But the default value should still be applied to non-excluded nested fields
+	if s.NestedSpecification.PropertyWithDefault != "fuzzybydefault" {
+		t.Errorf("expected %s, got %s", "fuzzybydefault", s.NestedSpecification.PropertyWithDefault)
+	}
+}
+
+func TestProcessWithoutNestedKeysEmbeddedStruct(t *testing.T) {
+	var s Specification
+	os.Clearenv()
+	os.Setenv("ENV_CONFIG_REQUIREDVAR", "required")
+	os.Setenv("ENV_CONFIG_ENABLED", "true")
+	os.Setenv("ENV_CONFIG_EMBEDDEDPORT", "1234")
+	os.Setenv("ENV_CONFIG_MULTIWORDVAR", "foo")
+
+	// Exclude embedded fields using their nested keys
+	excludeKeys := []string{"enabled", "embeddedport"}
+	_, err := ProcessWithoutNestedKeys("env_config", &s, excludeKeys)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Excluded embedded fields should remain at default values
+	if s.Enabled {
+		t.Errorf("expected %v, got %v (enabled should be excluded)", false, s.Enabled)
+	}
+	if s.EmbeddedPort != 0 {
+		t.Errorf("expected %d, got %v (embeddedport should be excluded)", 0, s.EmbeddedPort)
+	}
+	// Non-excluded embedded fields should be processed
+	if s.MultiWordVar != "foo" {
+		t.Errorf("expected %s, got %s", "foo", s.MultiWordVar)
+	}
+}
+
+func TestProcessWithoutNestedKeysEmptyExcludeList(t *testing.T) {
+	var s Specification
+	os.Clearenv()
+	os.Setenv("ENV_CONFIG_DEBUG", "true")
+	os.Setenv("ENV_CONFIG_PORT", "8080")
+	os.Setenv("ENV_CONFIG_REQUIREDVAR", "foo")
+
+	// Empty exclude list should behave like normal Process
+	_, err := ProcessWithoutNestedKeys("env_config", &s, []string{})
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	if !s.Debug {
+		t.Errorf("expected %v, got %v", true, s.Debug)
+	}
+	if s.Port != 8080 {
+		t.Errorf("expected %d, got %v", 8080, s.Port)
+	}
+}
+
+func TestProcessWithoutNestedKeysNilExcludeList(t *testing.T) {
+	var s Specification
+	os.Clearenv()
+	os.Setenv("ENV_CONFIG_DEBUG", "true")
+	os.Setenv("ENV_CONFIG_PORT", "8080")
+	os.Setenv("ENV_CONFIG_REQUIREDVAR", "foo")
+
+	// Nil exclude list should behave like normal Process
+	_, err := ProcessWithoutNestedKeys("env_config", &s, nil)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	if !s.Debug {
+		t.Errorf("expected %v, got %v", true, s.Debug)
+	}
+	if s.Port != 8080 {
+		t.Errorf("expected %d, got %v", 8080, s.Port)
+	}
+}
+
+func TestProcessWithoutNestedKeysRequired(t *testing.T) {
+	var s Specification
+	os.Clearenv()
+	os.Setenv("ENV_CONFIG_REQUIREDVAR", "foo")
+
+	// Excluding a required field should not cause an error if it's set
+	excludeKeys := []string{"requiredvar"}
+	_, err := ProcessWithoutNestedKeys("env_config", &s, excludeKeys)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// RequiredVar should remain empty because it was excluded
+	if s.RequiredVar != "" {
+		t.Errorf("expected empty string, got %s (requiredvar should be excluded)", s.RequiredVar)
+	}
+}
+
+func TestProcessWithoutNestedKeysWithDefaults(t *testing.T) {
+	var s Specification
+	os.Clearenv()
+	os.Setenv("ENV_CONFIG_REQUIREDVAR", "foo")
+
+	// Exclude a field with a default value
+	excludeKeys := []string{"defaultvar"}
+	_, err := ProcessWithoutNestedKeys("env_config", &s, excludeKeys)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// DefaultVar should remain empty because it was excluded (no default applied)
+	if s.DefaultVar != "" {
+		t.Errorf("expected empty string, got %s (defaultvar should be excluded)", s.DefaultVar)
+	}
+}
+
+func TestProcessBackwardCompatibility(t *testing.T) {
+	var s1, s2 Specification
+	os.Clearenv()
+	os.Setenv("ENV_CONFIG_DEBUG", "true")
+	os.Setenv("ENV_CONFIG_PORT", "8080")
+	os.Setenv("ENV_CONFIG_REQUIREDVAR", "foo")
+
+	// Test that Process and ProcessWithoutNestedKeys with nil excludeKeys produce same results
+	_, err1 := Process("env_config", &s1)
+	_, err2 := ProcessWithoutNestedKeys("env_config", &s2, nil)
+
+	if err1 != nil {
+		t.Error("Process failed:", err1.Error())
+	}
+	if err2 != nil {
+		t.Error("ProcessWithoutNestedKeys failed:", err2.Error())
+	}
+
+	if s1.Debug != s2.Debug {
+		t.Errorf("Debug mismatch: Process=%v, ProcessWithoutNestedKeys=%v", s1.Debug, s2.Debug)
+	}
+	if s1.Port != s2.Port {
+		t.Errorf("Port mismatch: Process=%v, ProcessWithoutNestedKeys=%v", s1.Port, s2.Port)
+	}
+	if s1.RequiredVar != s2.RequiredVar {
+		t.Errorf("RequiredVar mismatch: Process=%s, ProcessWithoutNestedKeys=%s", s1.RequiredVar, s2.RequiredVar)
+	}
+}
+
 func BenchmarkGatherInfo(b *testing.B) {
 	os.Clearenv()
 	os.Setenv("ENV_CONFIG_DEBUG", "true")

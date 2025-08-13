@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/centrifugal/centrifugo/v6/internal/config/envconfig"
@@ -15,6 +16,7 @@ import (
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-envparse"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -122,12 +124,12 @@ func DefineFlags(rootCmd *cobra.Command) {
 	rootCmd.Flags().StringP("http_server.port", "p", "8000", "port to bind HTTP server to")
 	rootCmd.Flags().StringP("http_server.internal_address", "", "", "custom interface address to listen on for internal endpoints")
 	rootCmd.Flags().StringP("http_server.internal_port", "", "", "custom port for internal endpoints")
-	rootCmd.Flags().StringP("engine.type", "", "memory", "broker to use: ex. redis")
+	rootCmd.Flags().StringP("engine.type", "", "memory", "engine to use: memory or redis")
 	rootCmd.Flags().BoolP("broker.enabled", "", false, "enable broker")
-	rootCmd.Flags().StringP("broker.type", "", "memory", "broker to use: ex. redis")
+	rootCmd.Flags().StringP("broker.type", "", "memory", "broker to use: memory, redis or nats")
 	rootCmd.Flags().BoolP("presence_manager.enabled", "", false, "enable presence manager")
-	rootCmd.Flags().StringP("presence_manager.type", "", "memory", "presence manager to use: ex. redis")
-	rootCmd.Flags().StringP("log.level", "", "info", "set the log level: trace, debug, info, error, fatal or none")
+	rootCmd.Flags().StringP("presence_manager.type", "", "memory", "presence manager to use: memory or redis")
+	rootCmd.Flags().StringP("log.level", "", "info", "set the log level: trace, debug, info, warn, error, fatal or none")
 	rootCmd.Flags().StringP("log.file", "", "", "optional log file - if not specified logs go to STDOUT")
 	rootCmd.Flags().BoolP("debug.enabled", "", false, "enable debug endpoints")
 	rootCmd.Flags().BoolP("admin.enabled", "", false, "enable admin web interface")
@@ -194,8 +196,17 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 		return Config{}, Meta{}, fmt.Errorf("error unmarshalling config: %w", err)
 	}
 
+	var flagsSet []string
+	if cmd != nil {
+		cmd.Flags().Visit(func(f *pflag.Flag) {
+			if !slices.Contains(flagsSet, f.Name) {
+				flagsSet = append(flagsSet, f.Name) // pid_file, http_server.port, etc.
+			}
+		})
+	}
+
 	knownEnvVars := map[string]envconfig.VarInfo{}
-	varInfo, err := envconfig.Process("CENTRIFUGO", conf)
+	varInfo, err := envconfig.ProcessWithoutNestedKeys("CENTRIFUGO", conf, flagsSet)
 	if err != nil {
 		return Config{}, Meta{}, fmt.Errorf("error processing env: %w", err)
 	}

@@ -11,6 +11,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -50,11 +51,12 @@ func (e *ParseError) Error() string {
 
 // VarInfo maintains information about the configuration variable
 type VarInfo struct {
-	Name  string
-	Alt   string
-	Key   string
-	Field reflect.Value
-	Tags  reflect.StructTag
+	Name      string
+	Alt       string
+	Key       string
+	NestedKey string
+	Field     reflect.Value
+	Tags      reflect.StructTag
 
 	NonZeroInFile bool
 }
@@ -133,6 +135,10 @@ func gatherInfo(prefix string, spec interface{}) ([]VarInfo, error) {
 			info.Key = fmt.Sprintf("%s_%s", prefix, info.Key)
 		}
 		info.Key = strings.ToUpper(info.Key)
+
+		// Construct NestedKey: lowercase, without prefix.
+		info.NestedKey = strings.ToLower(info.Name)
+
 		infos = append(infos, info)
 
 		if f.Kind() == reflect.Struct {
@@ -147,6 +153,13 @@ func gatherInfo(prefix string, spec interface{}) ([]VarInfo, error) {
 				embeddedInfos, err := gatherInfo(innerPrefix, embeddedPtr)
 				if err != nil {
 					return nil, err
+				}
+				// Update NestedKey for embedded fields.
+				for i := range embeddedInfos {
+					if !ftype.Anonymous {
+						nestedPrefix := strings.ToLower(info.Name)
+						embeddedInfos[i].NestedKey = nestedPrefix + "." + embeddedInfos[i].NestedKey
+					}
 				}
 				infos = append(infos[:len(infos)-1], embeddedInfos...)
 
@@ -190,8 +203,20 @@ func CheckDisallowed(prefix string, spec interface{}) error {
 
 // Process populates the specified struct based on environment variables
 func Process(prefix string, spec interface{}) ([]VarInfo, error) {
+	return ProcessWithoutNestedKeys(prefix, spec, nil)
+}
+
+// ProcessWithoutNestedKeys populates the specified struct based on environment variables
+// but excludes fields whose NestedKey is in the excludeKeys list
+func ProcessWithoutNestedKeys(prefix string, spec interface{}, excludeKeys []string) ([]VarInfo, error) {
 	infos, err := gatherInfo(prefix, spec)
+
 	for _, info := range infos {
+		// Skip processing if this key is excluded.
+		if slices.Contains(excludeKeys, info.NestedKey) {
+			continue
+		}
+
 		// `os.Getenv` cannot differentiate between an explicitly set empty value
 		// and an unset value. `os.LookupEnv` is preferred to `syscall.Getenv`,
 		// but it is only available in go1.5 or newer. We're using Go build tags
