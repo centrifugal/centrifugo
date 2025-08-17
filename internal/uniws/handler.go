@@ -30,7 +30,9 @@ type Handler struct {
 // The value should be a properly encoded JSON object representing protocol.ConnectRequest.
 const connectUrlParam = "cf_connect"
 
-const defaultConnectWait = 5 * time.Second
+// defaultConnectWait is the default time to wait for a connect request from the client.
+// It matches centrifuge.Config.ClientStaleCloseDelay.
+const defaultConnectWait = 15 * time.Second
 
 var writeBufferPool = &sync.Pool{}
 
