@@ -29,7 +29,9 @@ func ensureMessageHasClient(t *testing.T, data []byte) {
 
 func TestUnidirectionalWebSocket(t *testing.T) {
 	t.Parallel()
-	node, err := centrifuge.New(centrifuge.Config{})
+	node, err := centrifuge.New(centrifuge.Config{
+		ClientStaleCloseDelay: time.Second,
+	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = node.Shutdown(context.Background()) })
 
@@ -147,10 +149,14 @@ func TestUnidirectionalWebSocket(t *testing.T) {
 		require.NoError(t, err)
 		defer func() { _ = conn.Close() }()
 
-		err = conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+		started := time.Now()
+		err = conn.SetReadDeadline(time.Now().Add(30 * time.Second))
 		require.NoError(t, err)
 		_, _, err = conn.ReadMessage()
+		require.NoError(t, err) // Disconnect stale message.
+		_, _, err = conn.ReadMessage()
 		require.Error(t, err)
+		require.WithinDuration(t, started, time.Now(), 3*time.Second)
 	})
 
 	t.Run("ping pong cycle", func(t *testing.T) {

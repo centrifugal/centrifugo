@@ -30,10 +30,6 @@ type Handler struct {
 // The value should be a properly encoded JSON object representing protocol.ConnectRequest.
 const connectUrlParam = "cf_connect"
 
-// defaultConnectWait is the default time to wait for a connect request from the client.
-// It matches centrifuge.Config.ClientStaleCloseDelay.
-const defaultConnectWait = 15 * time.Second
-
 var writeBufferPool = &sync.Pool{}
 
 // NewHandler creates new Handler.
@@ -147,7 +143,6 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 
 		if req == nil {
-			_ = conn.SetReadDeadline(time.Now().Add(defaultConnectWait))
 			_, data, err := conn.ReadMessage()
 			if err != nil {
 				return
@@ -157,7 +152,6 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 				log.Info().Err(err).Str("transport", transportName).Msg("error unmarshalling connect request")
 				return
 			}
-			_ = conn.SetReadDeadline(time.Time{})
 		}
 
 		if pingInterval > 0 {
