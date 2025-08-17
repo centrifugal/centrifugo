@@ -1,17 +1,18 @@
 package uniws
 
 import (
-	"encoding/json"
 	"net/http"
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/convert"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
 	"github.com/centrifugal/centrifugo/v6/internal/websocket"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
 	"github.com/rs/zerolog/log"
+	"github.com/segmentio/encoding/json"
 )
 
 // Handler handles WebSocket client connections. Usually WebSocket protocol
@@ -24,6 +25,12 @@ type Handler struct {
 	config   Config
 	pingPong centrifuge.PingPongConfig
 }
+
+// Support passing connect request in URL params.
+// The value should be a properly encoded JSON object representing protocol.ConnectRequest.
+const connectUrlParam = "cf_connect"
+
+const defaultConnectWait = 5 * time.Second
 
 var writeBufferPool = &sync.Pool{}
 
@@ -53,24 +60,21 @@ func NewHandler(
 	}
 }
 
-type ConnectRequest struct {
-	Token   string                       `json:"token,omitempty"`
-	Data    json.RawMessage              `json:"data,omitempty"`
-	Subs    map[string]*SubscribeRequest `json:"subs,omitempty"`
-	Name    string                       `json:"name,omitempty"`
-	Version string                       `json:"version,omitempty"`
-}
-
-type SubscribeRequest struct {
-	Recover bool   `json:"recover,omitempty"`
-	Epoch   string `json:"epoch,omitempty"`
-	Offset  uint64 `json:"offset,omitempty"`
-}
-
 func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	compression := s.config.Compression
 	compressionLevel := s.config.CompressionLevel
 	compressionMinSize := s.config.CompressionMinSize
+
+	var req *protocol.ConnectRequest
+	connectRequestString := r.URL.Query().Get(connectUrlParam)
+	if connectRequestString != "" {
+		_, err := json.Parse(convert.StringToBytes(connectRequestString), &req, json.ZeroCopy)
+		if err != nil {
+			log.Info().Err(err).Str("transport", transportName).Msg("error unmarshalling connect request")
+			http.Error(rw, "invalid connect request", http.StatusBadRequest)
+			return
+		}
+	}
 
 	conn, _, err := s.upgrade.Upgrade(rw, r, nil)
 	if err != nil {
@@ -100,14 +104,6 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	if messageSizeLimit > 0 {
 		conn.SetReadLimit(int64(messageSizeLimit))
-	}
-	if pingInterval > 0 {
-		pongWait := pingInterval * 10 / 9
-		_ = conn.SetReadDeadline(time.Now().Add(pongWait))
-		conn.SetPongHandler(func([]byte) error {
-			_ = conn.SetReadDeadline(time.Now().Add(pongWait))
-			return nil
-		})
 	}
 
 	// Separate goroutine for better GC of caller's data.
@@ -148,36 +144,30 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			}(time.Now())
 		}
 
-		_, data, err := conn.ReadMessage()
-		if err != nil {
-			return
-		}
-
-		var req protocol.ConnectRequest
-		err = json.Unmarshal(data, &req)
-		if err != nil {
-			return
-		}
-
-		connectRequest := centrifuge.ConnectRequest{
-			Token:   req.Token,
-			Data:    req.Data,
-			Name:    req.Name,
-			Version: req.Version,
-		}
-		if req.Subs != nil {
-			subs := make(map[string]centrifuge.SubscribeRequest, len(req.Subs))
-			for k, v := range req.Subs {
-				subs[k] = centrifuge.SubscribeRequest{
-					Recover: v.Recover,
-					Offset:  v.Offset,
-					Epoch:   v.Epoch,
-				}
+		if req == nil {
+			_ = conn.SetReadDeadline(time.Now().Add(defaultConnectWait))
+			_, data, err := conn.ReadMessage()
+			if err != nil {
+				return
 			}
-			connectRequest.Subs = subs
+			_, err = json.Parse(data, &req, json.ZeroCopy)
+			if err != nil {
+				log.Info().Err(err).Str("transport", transportName).Msg("error unmarshalling connect request")
+				return
+			}
+			_ = conn.SetReadDeadline(time.Time{})
 		}
 
-		c.Connect(connectRequest)
+		if pingInterval > 0 {
+			pongWait := pingInterval * 10 / 9
+			_ = conn.SetReadDeadline(time.Now().Add(pongWait))
+			conn.SetPongHandler(func([]byte) error {
+				_ = conn.SetReadDeadline(time.Now().Add(pongWait))
+				return nil
+			})
+		}
+
+		c.ProtocolConnect(req)
 
 		for {
 			_, _, err := conn.ReadMessage()
