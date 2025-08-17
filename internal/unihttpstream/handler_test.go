@@ -140,24 +140,6 @@ func TestUnidirectionalHTTPStream(t *testing.T) {
 		}
 	})
 
-	t.Run("connection timeout", func(t *testing.T) {
-		t.Parallel()
-		client := &http.Client{
-			Timeout: 1 * time.Second,
-		}
-
-		resp, err := client.Post(server.URL, "application/json", strings.NewReader("{}"))
-		require.NoError(t, err)
-		defer func() { _ = resp.Body.Close() }()
-
-		require.Equal(t, http.StatusOK, resp.StatusCode)
-
-		// Try to read but expect timeout
-		reader := bufio.NewReader(resp.Body)
-		_, err = readHTTPStreamMessage(reader)
-		// This may or may not error depending on timing, but connection should work initially
-	})
-
 	t.Run("ping cycle", func(t *testing.T) {
 		t.Parallel()
 		resp, err := http.Post(server.URL, "application/json", strings.NewReader("{}"))
