@@ -24,7 +24,8 @@ type websocketTransport struct {
 }
 
 type websocketTransportOptions struct {
-	pingInterval       time.Duration
+	framePingInterval  time.Duration
+	framePongTimeout   time.Duration
 	writeTimeout       time.Duration
 	compressionMinSize int
 	pingPongConfig     centrifuge.PingPongConfig
@@ -38,7 +39,7 @@ func newWebsocketTransport(conn *websocket.Conn, opts websocketTransportOptions,
 		graceCh: graceCh,
 		opts:    opts,
 	}
-	if opts.pingInterval > 0 {
+	if opts.framePingInterval > 0 {
 		transport.addPing()
 	}
 	return transport
@@ -49,8 +50,13 @@ func (t *websocketTransport) ping() {
 	case <-t.closeCh:
 		return
 	default:
-		deadline := time.Now().Add(t.opts.pingInterval / 2)
-		err := t.conn.WriteControl(websocket.PingMessage, nil, deadline)
+		if t.opts.framePongTimeout > 0 {
+			// It's safe to call SetReadDeadline concurrently with reader in separate goroutine.
+			// According to Go docs:
+			// SetReadDeadline sets the deadline for future Read calls and any currently-blocked Read call.
+			_ = t.conn.SetReadDeadline(time.Now().Add(t.opts.framePongTimeout))
+		}
+		err := t.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(t.opts.writeTimeout))
 		if err != nil {
 			_ = t.Close(centrifuge.DisconnectWriteError)
 			return
@@ -65,7 +71,7 @@ func (t *websocketTransport) addPing() {
 		t.mu.Unlock()
 		return
 	}
-	t.pingTimer = time.AfterFunc(t.opts.pingInterval, t.ping)
+	t.pingTimer = time.AfterFunc(t.opts.framePingInterval, t.ping)
 	t.mu.Unlock()
 }
 

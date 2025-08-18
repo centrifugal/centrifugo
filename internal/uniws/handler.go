@@ -87,9 +87,14 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	pingInterval := s.pingPong.PingInterval
-	if pingInterval == 0 {
-		pingInterval = DefaultWebsocketPingInterval
+	framePingInterval := s.pingPong.PingInterval
+	if framePingInterval <= 0 {
+		// Always use frame ping/pong in unidirectional WebSocket transport.
+		framePingInterval = DefaultWebsocketPingInterval
+	}
+	framePongTimeout := s.pingPong.PongTimeout
+	if framePongTimeout <= 0 {
+		framePongTimeout = DefaultWebsocketPongTimeout
 	}
 	writeTimeout := s.config.WriteTimeout.ToDuration()
 	if writeTimeout == 0 {
@@ -107,7 +112,8 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	// Separate goroutine for better GC of caller's data.
 	go func() {
 		opts := websocketTransportOptions{
-			pingInterval:       pingInterval,
+			framePingInterval:  framePingInterval,
+			framePongTimeout:   framePongTimeout,
 			writeTimeout:       writeTimeout,
 			compressionMinSize: compressionMinSize,
 			pingPongConfig:     s.pingPong,
@@ -142,6 +148,13 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			}(time.Now())
 		}
 
+		pongWait := framePingInterval + framePongTimeout
+		_ = conn.SetReadDeadline(time.Now().Add(pongWait))
+		conn.SetPongHandler(func([]byte) error {
+			_ = conn.SetReadDeadline(time.Now().Add(pongWait))
+			return nil
+		})
+
 		if req == nil {
 			_, data, err := conn.ReadMessage()
 			if err != nil {
@@ -152,15 +165,6 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 				log.Info().Err(err).Str("transport", transportName).Msg("error unmarshalling connect request")
 				return
 			}
-		}
-
-		if pingInterval > 0 {
-			pongWait := pingInterval * 10 / 9
-			_ = conn.SetReadDeadline(time.Now().Add(pongWait))
-			conn.SetPongHandler(func([]byte) error {
-				_ = conn.SetReadDeadline(time.Now().Add(pongWait))
-				return nil
-			})
 		}
 
 		c.ProtocolConnect(req)
