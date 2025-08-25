@@ -13,6 +13,7 @@ import (
 // Defaults.
 const (
 	DefaultWebsocketPingInterval     = 25 * time.Second
+	DefaultWebsocketPongTimeout      = 10 * time.Second
 	DefaultWebsocketWriteTimeout     = 1 * time.Second
 	DefaultWebsocketMessageSizeLimit = 65536 // 64KB
 )
