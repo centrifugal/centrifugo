@@ -141,8 +141,10 @@ func Setup(cfg config.Config) (centrifuge.LogHandler, func()) {
 		}
 	}
 
+	levelFound := true
 	logLevel, ok := logLevelMatches[strings.ToUpper(cfg.Log.Level)]
 	if !ok {
+		levelFound = false
 		logLevel = zerolog.InfoLevel
 	}
 	zerolog.SetGlobalLevel(logLevel)
@@ -150,6 +152,10 @@ func Setup(cfg config.Config) (centrifuge.LogHandler, func()) {
 	if len(writers) > 0 {
 		mw := io.MultiWriter(writers...)
 		log.Logger = log.Output(mw)
+	}
+
+	if !levelFound {
+		log.Warn().Msgf("unknown log level %s, defaulting to INFO", cfg.Log.Level)
 	}
 
 	return newCentrifugeLogHandler().Handle, func() {
