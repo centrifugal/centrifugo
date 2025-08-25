@@ -157,6 +157,7 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 		mapstructure.StringToTimeDurationHookFunc(),
 		configtypes.StringToDurationHookFunc(),
 		configtypes.StringToPEMDataHookFunc(),
+		configtypes.StringToMapStringStringHookFunc(),
 	)))
 
 	if cmd != nil {
@@ -374,6 +375,10 @@ func checkEnvironmentVars(knownEnvVars map[string]envconfig.VarInfo) []string {
 			if isKubernetesEnvVar(envKey) {
 				continue
 			}
+			// Centrifugo can extrapolate ${CENTRIFUGO_VAR_XXX} from env inside MapStringString type.
+			if isCustomEnvVar(envKey) {
+				continue
+			}
 			if _, ok := knownEnvVars[envKey]; !ok {
 				unknownEnvs = append(unknownEnvs, envKey)
 			}
@@ -390,6 +395,12 @@ var k8sEnvRegex = regexp.MustCompile(`^CENTRIFUGO(?:_[A-Z0-9_]+)?_(PORT|SERVICE_
 
 func isKubernetesEnvVar(envKey string) bool {
 	return k8sEnvRegex.MatchString(envKey)
+}
+
+func isCustomEnvVar(envKey string) bool {
+	// Custom environment variables should start with "CENTRIFUGO_VAR_" prefix.
+	// This function checks if the environment variable is a custom one.
+	return strings.HasPrefix(envKey, "CENTRIFUGO_VAR_")
 }
 
 // DefaultConfig is a helper to be used in tests.
