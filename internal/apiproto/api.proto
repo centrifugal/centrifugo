@@ -426,6 +426,8 @@ message ConnectionInfo {
     string protocol = 4;
     string user = 8;
     ConnectionState state = 9;
+    int64 connected_at_ms = 10;
+    int64 ping_pong_latency_ms = 11; // can be -1 if not available.
 }
 
 message ConnectionState {
