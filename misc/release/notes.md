@@ -16,6 +16,7 @@ See the `Fixes` section for a possible breaking change in this release.
 * Support for `cf_connect` for unidirectional WebSocket, similar to what Centrifugo has for unidirectional SSE, [#1033](https://github.com/centrifugal/centrifugo/pull/1033). This helps to connect to the unidirectional WebSocket endpoint without the requirement to send first connect message from client to server. See [updated docs](https://centrifugal.dev/docs/transports/uni_websocket#send-connect-request).
 * Slightly faster unidirectional WebSocket connection establishment due to reduced allocations [#1033](https://github.com/centrifugal/centrifugo/pull/1033)
 * Extrapolate custom env variables in `MapStringString` config fields [#1034](https://github.com/centrifugal/centrifugo/pull/1034). This may help to define secret map values in config via separate env variables. See [updated docs for env vars](https://centrifugal.dev/docs/server/configuration#os-environment-variables).
+* Centrifugo helm chart is now published to GitHub Container Registry. See https://github.com/orgs/centrifugal/packages?repo_name=helm-charts. Contributed by @1995parham
 
 ### Fixes
 
