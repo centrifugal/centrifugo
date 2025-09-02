@@ -15,7 +15,7 @@ See the `Fixes` section for a possible breaking change in this release.
 * WebSocket frame ping pong now inherits values from `client.ping_interval` and `client.pong_timeout` [#1033](https://github.com/centrifugal/centrifugo/pull/1033). This is true for bot bidirectional and unidirectional WebSocket transports.
 * Support for `cf_connect` for unidirectional WebSocket, similar to what Centrifugo has for unidirectional SSE, [#1033](https://github.com/centrifugal/centrifugo/pull/1033). This helps to connect to the unidirectional WebSocket endpoint without the requirement to send first connect message from client to server. See [updated docs](https://centrifugal.dev/docs/transports/uni_websocket#send-connect-request).
 * Slightly faster unidirectional WebSocket connection establishment due to reduced allocations [#1033](https://github.com/centrifugal/centrifugo/pull/1033)
-* Extrapolate custom env variables in `MapStringString` config fields [#1034](https://github.com/centrifugal/centrifugo/pull/1034). This may help to define secret map values in config via separate env variables.
+* Extrapolate custom env variables in `MapStringString` config fields [#1034](https://github.com/centrifugal/centrifugo/pull/1034). This may help to define secret map values in config via separate env variables. See [updated docs for env vars](https://centrifugal.dev/docs/server/configuration#os-environment-variables).
 
 ### Fixes
 
