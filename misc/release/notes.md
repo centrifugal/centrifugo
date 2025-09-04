@@ -8,7 +8,7 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## What's changed
 
-See the `Fixes` section for a possible breaking change in this release.
+See the `Fixes` section for a breaking change in this release (flags vs env priority).
 
 ### Improvements
 
