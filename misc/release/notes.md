@@ -12,17 +12,18 @@ See the `Fixes` section for a possible breaking change in this release.
 
 ### Improvements
 
-* WebSocket frame ping pong now inherits values from `client.ping_interval` and `client.pong_timeout` [#1033](https://github.com/centrifugal/centrifugo/pull/1033). This is true for bot bidirectional and unidirectional WebSocket transports.
-* Support for `cf_connect` for unidirectional WebSocket, similar to what Centrifugo has for unidirectional SSE, [#1033](https://github.com/centrifugal/centrifugo/pull/1033). This helps to connect to the unidirectional WebSocket endpoint without the requirement to send first connect message from client to server. See [updated docs](https://centrifugal.dev/docs/transports/uni_websocket#send-connect-request).
-* Slightly faster unidirectional WebSocket connection establishment due to reduced allocations [#1033](https://github.com/centrifugal/centrifugo/pull/1033)
-* Extrapolate custom env variables in `MapStringString` config fields [#1034](https://github.com/centrifugal/centrifugo/pull/1034). This may help to define secret map values in config via separate env variables. See [updated docs for env vars](https://centrifugal.dev/docs/server/configuration#os-environment-variables).
-* Centrifugo helm chart is now published to GitHub Container Registry. See https://github.com/orgs/centrifugal/packages?repo_name=helm-charts. Contributed by @1995parham
+* WebSocket frame ping-pong now inherits values from `client.ping_interval` and `client.pong_timeout` [#1033](https://github.com/centrifugal/centrifugo/pull/1033). This applies to both bidirectional and unidirectional WebSocket transports.
+* Support for `cf_connect` in unidirectional WebSocket, similar to what Centrifugo provides for unidirectional SSE [#1033](https://github.com/centrifugal/centrifugo/pull/1033). This allows connecting to the unidirectional WebSocket endpoint without requiring the client to send the first connect message to the server. See the [updated docs](https://centrifugal.dev/docs/transports/uni_websocket#send-connect-request).
+* Slightly faster unidirectional WebSocket connection establishment due to reduced allocations [#1033](https://github.com/centrifugal/centrifugo/pull/1033).
+* Extrapolate custom environment variables in `MapStringString` config fields [#1034](https://github.com/centrifugal/centrifugo/pull/1034). This helps define secret map values in config via separate environment variables. See the [updated docs for environment variables](https://centrifugal.dev/docs/server/configuration#os-environment-variables).
+* Centrifugo Helm chart is now published to GitHub Container Registry. See https://github.com/orgs/centrifugal/packages?repo_name=helm-charts. Contributed by @1995parham.
+* Small improvement in the web UI to show milliseconds in request times sent from the Actions page.
 
 ### Fixes
 
-* Fix flags priority: flags must override envs [#1029](https://github.com/centrifugal/centrifugo/pull/1029) - this is a regression in Centrifugo v6. This changes Centrifugo behavior, but fixing this seems a right step – we follow [the documented behavior](https://centrifugal.dev/docs/server/configuration#configuration-sources), it worked like this in the previous Centrifugo versions, more natural for software. And generally this should not affect production setups which rarely use command line flags.
-* Fix none log level using proper `zerolog` level [#1027](https://github.com/centrifugal/centrifugo/pull/1027)
-* Fix missing webtransport in usage stats [#1028](https://github.com/centrifugal/centrifugo/pull/1028)
+* Fix flags priority: flags must override environment variables [#1029](https://github.com/centrifugal/centrifugo/pull/1029). This regression in Centrifugo v6 changes behavior, but it restores the [documented behavior](https://centrifugal.dev/docs/server/configuration#configuration-sources), matches previous versions, and is more natural for software. In general, this should not affect production setups, which rarely use command-line flags.
+* Fix `none` log level by using the proper `zerolog` level [#1027](https://github.com/centrifugal/centrifugo/pull/1027). Also warns if the configured log level is incorrect.
+* Fix missing WebTransport in usage stats [#1028](https://github.com/centrifugal/centrifugo/pull/1028).
 
 ### Miscellaneous
 
