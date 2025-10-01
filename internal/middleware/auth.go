@@ -14,16 +14,17 @@ import (
 // (Authorization: apikey <KEY>), then checks for api_key URL query parameter.
 // If key not found or invalid then 401 response code is returned.
 type APIKeyAuth struct {
-	key string
+	keys []string
 }
 
 func NewAPIKeyAuth(key string) *APIKeyAuth {
-	return &APIKeyAuth{key: key}
+	keys := strings.Split(key, ",")
+	return &APIKeyAuth{keys: keys}
 }
 
 func (a *APIKeyAuth) Middleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if a.key == "" {
+		if len(a.keys) == 0 {
 			log.Error().Msg("API key is empty")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -31,22 +32,33 @@ func (a *APIKeyAuth) Middleware(h http.Handler) http.Handler {
 		authValid := false
 		authHeaderValue := r.Header.Get("X-API-Key")
 		if authHeaderValue != "" {
-			if tools.SecureCompareString(a.key, authHeaderValue) {
-				authValid = true
+			for _, key := range a.keys {
+				if tools.SecureCompareString(key, authHeaderValue) {
+					authValid = true
+					break
+				}
 			}
 		} else {
 			authHeaderAuthorization := r.Header.Get("Authorization")
 			if authHeaderAuthorization != "" {
 				parts := strings.Fields(authHeaderAuthorization)
-				if len(parts) == 2 && strings.ToLower(parts[0]) == "apikey" && tools.SecureCompareString(a.key, parts[1]) {
-					authValid = true
+				if len(parts) == 2 && strings.ToLower(parts[0]) == "apikey" {
+					for _, key := range a.keys {
+						if tools.SecureCompareString(key, parts[1]) {
+							authValid = true
+							break
+						}
+					}
 				}
 			}
 		}
 		if !authValid && r.URL.RawQuery != "" {
 			// Check URL param.
-			if tools.SecureCompareString(a.key, r.URL.Query().Get("api_key")) {
-				authValid = true
+			for _, key := range a.keys {
+				if tools.SecureCompareString(key, r.URL.Query().Get("api_key")) {
+					authValid = true
+					break
+				}
 			}
 		}
 		if !authValid {
