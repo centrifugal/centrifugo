@@ -1195,3 +1195,127 @@ func TestClientOnSubscribe_SubRefreshProxy(t *testing.T) {
 	require.Equal(t, 2, numProxyCalls)
 	require.False(t, reply.ClientSideRefresh)
 }
+
+func TestSingleConnection(t *testing.T) {
+	node := tools.NodeWithMemoryEngineNoHandlers()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	node.OnConnect(func(client *centrifuge.Client) {
+		t.Logf("client connected: %s, user ID %s", client.ID(), client.UserID())
+		client.OnDisconnect(func(event centrifuge.DisconnectEvent) {
+			t.Logf("disconnected from %s, user ID %s", client.ID(), client.UserID())
+		})
+	})
+
+	makeConnectCommandData := func(userID string) []byte {
+		connectCommand := &protocol.Command{
+			Id: 1,
+			Connect: &protocol.ConnectRequest{
+				Token: getConnTokenHS(userID, 0),
+			},
+		}
+		encoder := protocol.NewJSONCommandEncoder()
+		data, err := encoder.Encode(connectCommand)
+		require.NoError(t, err)
+		return data
+	}
+
+	cfg := config.DefaultConfig()
+	cfg.Client.SubscribeToUserPersonalChannel.Enabled = true
+	cfg.Client.SubscribeToUserPersonalChannel.SingleConnection = true
+	cfg.Channel.WithoutNamespace.Presence = true
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{}
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+	verifier := hmacJWTVerifier(t, cfgContainer)
+	h := NewHandler(node, cfgContainer, verifier, nil, &ProxyMap{})
+	err = h.Setup()
+	require.NoError(t, err)
+
+	// First connection should work.
+	transport1 := tools.NewTestTransport()
+	client1, closeFn1, err := centrifuge.NewClient(context.Background(), node, transport1)
+	require.NoError(t, err)
+	defer func() { _ = closeFn1() }()
+
+	ok := centrifuge.HandleReadFrame(client1, bytes.NewReader(makeConnectCommandData("user42")))
+	require.True(t, ok)
+
+	personalChannel := cfgContainer.PersonalChannel("user42")
+	t.Logf("personal_channel: %s", personalChannel)
+	require.Eventuallyf(t, func() bool {
+		res, err := node.PresenceStats(personalChannel)
+		if err != nil {
+			t.Logf("error getting presence stats: %v", err)
+			return false
+		}
+		return res.NumClients == 1 && res.NumUsers == 1
+	}, 5*time.Second, 100*time.Millisecond, "expected presence stats to show 1 client and 1 user")
+
+	// Single connection disabled should allow connections.
+	// Temporarily disable single connection
+	cfg = cfgContainer.Config()
+	cfg.Client.SubscribeToUserPersonalChannel.SingleConnection = false
+	err = cfgContainer.Reload(cfg)
+	require.NoError(t, err)
+
+	transport2 := tools.NewTestTransport()
+	client2, closeFn2, err := centrifuge.NewClient(context.Background(), node, transport2)
+	require.NoError(t, err)
+	defer func() { _ = closeFn2() }()
+	ok = centrifuge.HandleReadFrame(client2, bytes.NewReader(makeConnectCommandData("user42")))
+	require.True(t, ok)
+	require.Eventuallyf(t, func() bool {
+		res, err := node.PresenceStats(personalChannel)
+		if err != nil {
+			t.Logf("error getting presence stats: %v", err)
+			return false
+		}
+		return res.NumClients == 2 && res.NumUsers == 1
+	}, 5*time.Second, 100*time.Millisecond, "expected presence stats to show 1 client and 1 user")
+
+	cfg.Client.SubscribeToUserPersonalChannel.SingleConnection = true
+	err = cfgContainer.Reload(cfg)
+	require.NoError(t, err)
+
+	// Another user should be able to connect.
+	transport3 := tools.NewTestTransport()
+	client3, closeFn3, err := centrifuge.NewClient(context.Background(), node, transport3)
+	require.NoError(t, err)
+	defer func() { _ = closeFn3() }()
+	ok = centrifuge.HandleReadFrame(client3, bytes.NewReader(makeConnectCommandData("user43")))
+	require.True(t, ok)
+	require.Eventuallyf(t, func() bool {
+		res, err := node.PresenceStats(cfgContainer.PersonalChannel("user43")) // Note - another personal channel.
+		if err != nil {
+			t.Logf("error getting presence stats: %v", err)
+			return false
+		}
+		if res.NumClients != 1 || res.NumUsers != 1 {
+			return false
+		}
+		res, err = node.PresenceStats(personalChannel)
+		if err != nil {
+			t.Logf("error getting presence stats: %v", err)
+			return false
+		}
+		return res.NumClients == 2 && res.NumUsers == 1 // Same stats as in previous check.
+	}, 5*time.Second, 100*time.Millisecond, "expected presence stats to show 1 clients and 1 users in both personal channels")
+
+	// Now let's check single connection enforcement really works.
+	transport4 := tools.NewTestTransport()
+	client4, closeFn4, err := centrifuge.NewClient(context.Background(), node, transport4)
+	require.NoError(t, err)
+	defer func() { _ = closeFn4() }()
+	ok = centrifuge.HandleReadFrame(client4, bytes.NewReader(makeConnectCommandData("user42")))
+	require.True(t, ok)
+
+	require.Eventuallyf(t, func() bool {
+		res, err := node.PresenceStats(personalChannel)
+		if err != nil {
+			t.Logf("error getting presence stats: %v", err)
+			return false
+		}
+		return res.NumClients == 1 && res.NumUsers == 1
+	}, 5*time.Second, 100*time.Millisecond, "expected presence stats to show 1 client and 1 user")
+}

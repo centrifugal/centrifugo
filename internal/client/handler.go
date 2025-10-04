@@ -127,33 +127,9 @@ func (h *Handler) Setup() error {
 	}
 
 	cfg := h.cfgContainer.Config()
-	usePersonalChannel := cfg.Client.SubscribeToUserPersonalChannel.Enabled
-	singleConnection := cfg.Client.SubscribeToUserPersonalChannel.SingleConnection
 	concurrency := cfg.Client.Concurrency
 
 	h.node.OnConnect(func(client *centrifuge.Client) {
-		userID := client.UserID()
-		if usePersonalChannel && singleConnection && userID != "" {
-			personalChannel := h.cfgContainer.PersonalChannel(userID)
-			presenceStats, err := h.node.PresenceStats(personalChannel)
-			if err != nil {
-				log.Error().Err(err).Str("channel", personalChannel).Str("user", userID).Str("client", client.ID()).Msg("error calling presence stats")
-				client.Disconnect(centrifuge.DisconnectServerError)
-				return
-			}
-			if presenceStats.NumClients >= 2 {
-				err = h.node.Disconnect(
-					client.UserID(),
-					centrifuge.WithCustomDisconnect(centrifuge.DisconnectConnectionLimit),
-					centrifuge.WithDisconnectClientWhitelist([]string{client.ID()}),
-				)
-				if err != nil {
-					log.Error().Err(err).Str("user", userID).Str("client", client.ID()).Msg("error disconnecting user")
-					client.Disconnect(centrifuge.DisconnectServerError)
-					return
-				}
-			}
-		}
 
 		var semaphore chan struct{}
 		if concurrency > 1 {
@@ -361,6 +337,27 @@ func (h *Handler) OnClientConnecting(
 			UserID: "",
 		}
 		processClientChannels = true
+	}
+
+	// Handle single connection enforcement before establishing connection.
+	if credentials != nil && cfg.Client.SubscribeToUserPersonalChannel.Enabled && cfg.Client.SubscribeToUserPersonalChannel.SingleConnection && credentials.UserID != "" {
+		personalChannel := h.cfgContainer.PersonalChannel(credentials.UserID)
+		presenceStats, err := h.node.PresenceStats(personalChannel)
+		if err != nil {
+			log.Error().Err(err).Str("channel", personalChannel).Str("user", credentials.UserID).Str("client", e.ClientID).Msg("error calling presence stats in connecting")
+			return centrifuge.ConnectReply{}, centrifuge.DisconnectServerError
+		}
+		if presenceStats.NumClients >= 1 {
+			err = h.node.Disconnect(
+				credentials.UserID,
+				centrifuge.WithCustomDisconnect(centrifuge.DisconnectConnectionLimit),
+				centrifuge.WithDisconnectClientWhitelist([]string{e.ClientID}),
+			)
+			if err != nil {
+				log.Error().Err(err).Str("user", credentials.UserID).Str("client", e.ClientID).Msg("error disconnecting user in connecting")
+				return centrifuge.ConnectReply{}, centrifuge.DisconnectServerError
+			}
+		}
 	}
 
 	// Automatically subscribe on personal server-side channel.
