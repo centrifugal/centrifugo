@@ -382,6 +382,7 @@ func (h *Handler) OnClientConnecting(
 			Source:            subsource.UserPersonal,
 			HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
 			AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
+			AllowTagsFilter:   chOpts.AllowTagsFilter,
 		}
 	}
 
@@ -435,6 +436,7 @@ func (h *Handler) OnClientConnecting(
 						Source:            subsource.UniConnect,
 						HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
 						AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
+						AllowTagsFilter:   chOpts.AllowTagsFilter,
 					}
 				}
 			} else {
@@ -660,6 +662,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	options.RecoveryMode = chOpts.GetRecoveryMode()
 	options.HistoryMetaTTL = chOpts.HistoryMetaTTL.ToDuration()
 	options.AllowedDeltaTypes = chOpts.AllowedDeltaTypes
+	options.AllowTagsFilter = chOpts.AllowTagsFilter
 
 	isPrivateChannel := h.cfgContainer.IsPrivateChannel(e.Channel)
 	isUserLimitedChannel := chOpts.UserLimitedChannels && h.cfgContainer.IsUserLimited(e.Channel)

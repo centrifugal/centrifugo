@@ -155,6 +155,7 @@ func (h *ConnectHandler) Handle() ConnectingHandlerFunc {
 					Source:            subsource.ConnectProxy,
 					HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
 					AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
+					AllowTagsFilter:   chOpts.AllowTagsFilter,
 				}
 			}
 		}
@@ -224,6 +225,7 @@ func (h *ConnectHandler) Handle() ConnectingHandlerFunc {
 					Source:            subsource.ConnectProxy,
 					HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
 					AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
+					AllowTagsFilter:   chOpts.AllowTagsFilter,
 				}
 			}
 		}

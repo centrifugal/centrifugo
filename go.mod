@@ -14,8 +14,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.8
 	github.com/aws/aws-sdk-go-v2/service/sts v1.38.6
 	github.com/aws/smithy-go v1.23.0
-	github.com/centrifugal/centrifuge v0.37.3-0.20251004102034-ecba7e112dd9
-	github.com/centrifugal/protocol v0.16.2
+	github.com/centrifugal/centrifuge v0.37.3-0.20251012180559-267dce3f315a
+	github.com/centrifugal/protocol v0.17.0
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.4.0
 	github.com/gobwas/glob v0.2.3
@@ -92,6 +92,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
+	github.com/quagmt/udecimal v1.9.0 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/shadowspore/fossil-delta v0.0.0-20241213113458-1d797d70cbe3 // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
