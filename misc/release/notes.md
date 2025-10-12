@@ -10,7 +10,7 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Support for server-side publication filtering by tags. Client SDK (at this point only `centrifuge-js`) can supply a filter when subscribing to a channel, and server will deliver only publications with tags matching the filter. See [Channel publication filtering](https://centrifugal.dev/docs/server/publication_filtering) documentation chapter. Also read the new post on [Centrifugo blog](https://centrifugal.dev/blog/2025/10/14/server-side-publication-filtering-by-tags) which uncovers some design decisions behind this feature and demonstrates it in action.
+* Support for server-side publication filtering by tags. Client SDK (at this point only `centrifuge-js` >= v5.5.0) can supply a filter when subscribing to a channel, and server will deliver only publications with tags matching the filter. See [Channel publication filtering](https://centrifugal.dev/docs/server/publication_filtering) documentation chapter. Also read the new post on [Centrifugo blog](https://centrifugal.dev/blog/2025/10/14/server-side-publication-filtering-by-tags) which uncovers some design decisions behind this feature and demonstrates it in action.
 * Various visual improvements on [https://centrifugal.dev](https://centrifugal.dev/) site. Check it out!
 
 ### Fixes
