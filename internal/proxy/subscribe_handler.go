@@ -187,6 +187,7 @@ func (h *SubscribeHandler) Handle() SubscribeHandlerFunc {
 				EnablePositioning: positioning,
 				RecoveryMode:      recoveryMode,
 				AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
+				AllowTagsFilter:   chOpts.AllowTagsFilter,
 				Data:              data,
 				Source:            subsource.SubscribeProxy,
 				HistoryMetaTTL:    time.Duration(chOpts.HistoryMetaTTL),

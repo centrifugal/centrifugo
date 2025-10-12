@@ -98,6 +98,10 @@ type ChannelOptions struct {
 	// AllowedDeltaTypes is non-empty contains slice of allowed delta types for subscribers to use.
 	AllowedDeltaTypes []centrifuge.DeltaType `mapstructure:"allowed_delta_types" json:"allowed_delta_types" envconfig:"allowed_delta_types" yaml:"allowed_delta_types" toml:"allowed_delta_types"`
 
+	// AllowTagsFilter enables tags filtering for channels in namespace. Clients can pass tags filter in subscribe request.
+	// When tags filter is set only messages with matching tags will be delivered to the client.
+	AllowTagsFilter bool `mapstructure:"allow_tags_filter" json:"allow_tags_filter" envconfig:"allow_tags_filter" yaml:"allow_tags_filter" toml:"allow_tags_filter"`
+
 	// DeltaPublish enables delta publish mechanism for all messages published in namespace channels
 	// without explicit flag usage in publish API request. Setting this option does not guarantee that
 	// publication will be compressed when going towards subscribers – it still depends on subscriber

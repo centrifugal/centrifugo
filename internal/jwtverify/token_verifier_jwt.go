@@ -563,6 +563,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 				Source:            subsource.ConnectionToken,
 				HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
 				AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
+				AllowTagsFilter:   chOpts.AllowTagsFilter,
 			}
 		}
 	} else if len(claims.Channels) > 0 {
@@ -584,6 +585,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 				Source:            subsource.ConnectionToken,
 				HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
 				AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
+				AllowTagsFilter:   chOpts.AllowTagsFilter,
 			}
 		}
 	}
@@ -772,6 +774,7 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 			EnablePositioning: positioning,
 			RecoveryMode:      recoveryMode,
 			AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
+			AllowTagsFilter:   chOpts.AllowTagsFilter,
 			Data:              data,
 		},
 	}
