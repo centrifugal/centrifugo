@@ -14,7 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.8
 	github.com/aws/aws-sdk-go-v2/service/sts v1.38.6
 	github.com/aws/smithy-go v1.23.0
-	github.com/centrifugal/centrifuge v0.37.3-0.20251012180559-267dce3f315a
+	github.com/centrifugal/centrifuge v0.37.3-0.20251013190827-c2caf7f4ef0d
 	github.com/centrifugal/protocol v0.17.0
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.4.0
@@ -129,7 +129,7 @@ require (
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
-	github.com/redis/rueidis v1.0.66
+	github.com/redis/rueidis v1.0.67
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/segmentio/encoding v0.5.3
 	github.com/spf13/cast v1.10.0 // indirect

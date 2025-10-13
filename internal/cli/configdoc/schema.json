@@ -4892,6 +4892,16 @@
             "is_complex_type": false
           },
           {
+            "field": "channel.without_namespace.allow_tags_filter",
+            "name": "allow_tags_filter",
+            "go_name": "AllowTagsFilter",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "AllowTagsFilter enables tags filtering for channels in namespace. Clients can pass tags filter in subscribe request.\nWhen tags filter is set only messages with matching tags will be delivered to the client.",
+            "is_complex_type": false
+          },
+          {
             "field": "channel.without_namespace.delta_publish",
             "name": "delta_publish",
             "go_name": "DeltaPublish",
@@ -5261,6 +5271,16 @@
             "type": "[]centrifuge.DeltaType",
             "default": "",
             "comment": "AllowedDeltaTypes is non-empty contains slice of allowed delta types for subscribers to use.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].allow_tags_filter",
+            "name": "allow_tags_filter",
+            "go_name": "AllowTagsFilter",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "AllowTagsFilter enables tags filtering for channels in namespace. Clients can pass tags filter in subscribe request.\nWhen tags filter is set only messages with matching tags will be delivered to the client.",
             "is_complex_type": false
           },
           {

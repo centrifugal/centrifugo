@@ -69,8 +69,8 @@ github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6r
 github.com/cenkalti/backoff/v5 v5.0.3 h1:ZN+IMa753KfX5hd8vVaMixjnqRZ3y8CuJKRKj1xcsSM=
 github.com/cenkalti/backoff/v5 v5.0.3/go.mod h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F97BxZthm/crw=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
-github.com/centrifugal/centrifuge v0.37.3-0.20251012180559-267dce3f315a h1:wc/bRz06nUmsSsM8QHymxpZAdaAGxAZdT9OI5UV1G/I=
-github.com/centrifugal/centrifuge v0.37.3-0.20251012180559-267dce3f315a/go.mod h1:cEXMLaRZcmlzDA5WIUV9ACP7HqyR9jyPgnrO1ynZ5Uo=
+github.com/centrifugal/centrifuge v0.37.3-0.20251013190827-c2caf7f4ef0d h1:TCxKEKaEIqJ3E89NN+hKX5ayHlPdhSFT3N1Z7rm+lHs=
+github.com/centrifugal/centrifuge v0.37.3-0.20251013190827-c2caf7f4ef0d/go.mod h1:+tBQW5CBjRo8JsCQmTg3Ep+IJiYPgwpj/mc/BUO+FDg=
 github.com/centrifugal/protocol v0.17.0 h1:hD0WczyiG7zrVJcgkQsd5/nhfFXt0Y04SJHV2Z7B1rg=
 github.com/centrifugal/protocol v0.17.0/go.mod h1:9MdiYyjw5Bw1+d5Sp4Y0NK+qiuTNyd88nrHJsUUh8k4=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
@@ -254,8 +254,8 @@ github.com/quic-go/webtransport-go v0.9.0 h1:jgys+7/wm6JarGDrW+lD/r9BGqBAmqY/ssk
 github.com/quic-go/webtransport-go v0.9.0/go.mod h1:4FUYIiUc75XSsF6HShcLeXXYZJ9AGwo/xh3L8M/P1ao=
 github.com/rakutentech/jwk-go v1.2.0 h1:vNJwedPkRR+32V5WGNj0JP4COes93BGERvzQLBjLy4c=
 github.com/rakutentech/jwk-go v1.2.0/go.mod h1:pI0bYVntqaJ27RCpaC75MTUacheW0Rk4+8XzWWe1OWM=
-github.com/redis/rueidis v1.0.66 h1:7rvyrl0vL/cAEkE97+L5v3MJ3Vg8IKz+KIxUTfT+yJk=
-github.com/redis/rueidis v1.0.66/go.mod h1:Lkhr2QTgcoYBhxARU7kJRO8SyVlgUuEkcJO1Y8MCluA=
+github.com/redis/rueidis v1.0.67 h1:v2BIArP50KkRsEkhPWyVg4pcwI3rPVehl6EYyWlPHrM=
+github.com/redis/rueidis v1.0.67/go.mod h1:Lkhr2QTgcoYBhxARU7kJRO8SyVlgUuEkcJO1Y8MCluA=
 github.com/rogpeppe/go-internal v1.13.1 h1:KvO1DLK/DRN07sQ1LQKScxyZJuNnedQ5/wKSR38lUII=
 github.com/rogpeppe/go-internal v1.13.1/go.mod h1:uMEvuHeurkdAXX61udpOXGD/AzZDWNMNyH2VO9fmH0o=
 github.com/rs/xid v1.6.0/go.mod h1:7XoLgs4eV+QndskICGsho+ADou8ySMSjJKDIan90Nz0=
