@@ -19,6 +19,6 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Miscellaneous
 
-* This release is built with Go 1.25.2.
+* This release is built with Go 1.25.3.
 * Updated dependencies.
 * See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.4.0).
