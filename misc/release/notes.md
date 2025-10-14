@@ -8,12 +8,17 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## What's changed
 
+### Improvements
+
+* Support for server-side publication filtering by tags. Client SDK (at this point only `centrifuge-js` >= v5.5.0) can supply a filter when subscribing to a channel, and server will deliver only publications with tags matching the filter. See [Channel publication filtering](https://centrifugal.dev/docs/server/publication_filtering) documentation chapter. Also read the new post on [Centrifugo blog](https://centrifugal.dev/blog/2025/10/14/server-side-publication-filtering-by-tags) which uncovers some design decisions behind this feature and demonstrates it in action.
+* Various visual improvements on [https://centrifugal.dev](https://centrifugal.dev/) site. Check it out!
+
 ### Fixes
 
-* Fix v6.3.0 regression in bidirectional WebSocket frame ping/pong, see [#1041](https://github.com/centrifugal/centrifugo/issues/1041)
+* Fix deadlock when using single connection feature [#1050](https://github.com/centrifugal/centrifugo/pull/1050). See more details in [#1044](https://github.com/centrifugal/centrifugo/issues/1044).
 
 ### Miscellaneous
 
-* This release is built with Go 1.24.7.
+* This release is built with Go 1.25.3.
 * Updated dependencies.
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.3.1).
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.4.0).
