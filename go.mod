@@ -3,7 +3,7 @@ module github.com/centrifugal/centrifugo/v6
 go 1.24.0
 
 require (
-	cloud.google.com/go/pubsub/v2 v2.2.0
+	cloud.google.com/go/pubsub/v2 v2.2.1
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.0
 	github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus v1.10.0
 	github.com/FZambia/eagle v0.2.0
@@ -13,7 +13,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.16
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.8
 	github.com/aws/aws-sdk-go-v2/service/sts v1.38.6
-	github.com/aws/smithy-go v1.23.0
+	github.com/aws/smithy-go v1.23.1
 	github.com/centrifugal/centrifuge v0.37.3-0.20251013190827-c2caf7f4ef0d
 	github.com/centrifugal/protocol v0.17.0
 	github.com/cristalhq/jwt/v5 v5.4.0
@@ -26,7 +26,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/justinas/alice v1.2.0
 	github.com/mattn/go-isatty v0.0.20
-	github.com/nats-io/nats.go v1.46.1
+	github.com/nats-io/nats.go v1.47.0
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/prometheus/client_golang v1.23.2
