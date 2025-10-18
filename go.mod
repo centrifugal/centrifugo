@@ -2,6 +2,8 @@ module github.com/centrifugal/centrifugo/v6
 
 go 1.24.0
 
+replace github.com/centrifugal/centrifuge => ../centrifuge
+
 require (
 	cloud.google.com/go/pubsub/v2 v2.2.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.0
