@@ -140,6 +140,11 @@ type UniSSE struct {
 	ConnectCodeToHTTPResponse ConnectCodeToHTTPResponse `mapstructure:"connect_code_to_http_response" json:"connect_code_to_http_response" envconfig:"connect_code_to_http_response" yaml:"connect_code_to_http_response" toml:"connect_code_to_http_response"`
 }
 
+type ConnInit struct {
+	Enabled       bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	HandlerPrefix string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/init" yaml:"handler_prefix" toml:"handler_prefix"`
+}
+
 type ConnectCodeToHTTPResponseTransforms []ConnectCodeToHTTPResponseTransform
 
 // Decode to implement the envconfig.Decoder interface
@@ -315,6 +320,11 @@ type Swagger struct {
 type Debug struct {
 	Enabled       bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	HandlerPrefix string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/debug/pprof" yaml:"handler_prefix" toml:"handler_prefix"`
+}
+
+type Dev struct {
+	Enabled       bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	HandlerPrefix string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/dev" yaml:"handler_prefix" toml:"handler_prefix"`
 }
 
 type Shutdown struct {
