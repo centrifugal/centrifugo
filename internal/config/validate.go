@@ -3,10 +3,8 @@ package config
 import (
 	"errors"
 	"fmt"
-	"os"
 	"regexp"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
@@ -21,13 +19,6 @@ var knownBrokers = []string{"memory", "nats", "redis", "redisnats"}
 func (c Config) Validate() error {
 	if !slices.Contains(knownBrokers, c.Broker.Type) {
 		return fmt.Errorf("unknown broker: %s", c.Broker.Type)
-	}
-
-	if c.WebSocket.HTTP2ExtendedConnect && !strings.Contains(os.Getenv("GODEBUG"), "http2xconnect=1") {
-		return errors.New("http2_extended_connect option requires env var GODEBUG=http2xconnect=1 to be set")
-	}
-	if strings.Contains(os.Getenv("GODEBUG"), "http2xconnect=1") && !c.WebSocket.HTTP2ExtendedConnect {
-		return errors.New("env var GODEBUG=http2xconnect=1 is set but http2_extended_connect option is disabled")
 	}
 
 	if err := validateTokens(c); err != nil {

@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/tools"
 	"github.com/centrifugal/centrifugo/v6/internal/websocket"
 
 	"github.com/centrifugal/centrifuge"
@@ -30,6 +31,7 @@ type websocketTransportOptions struct {
 	compressionMinSize int
 	pingPongConfig     centrifuge.PingPongConfig
 	joinMessages       bool
+	protoMajor         int
 }
 
 func newWebsocketTransport(conn *websocket.Conn, opts websocketTransportOptions, graceCh chan struct{}) *websocketTransport {
@@ -110,6 +112,11 @@ func (t *websocketTransport) PingPongConfig() centrifuge.PingPongConfig {
 // Emulation ...
 func (t *websocketTransport) Emulation() bool {
 	return false
+}
+
+// AcceptProtocol ...
+func (t *websocketTransport) AcceptProtocol() string {
+	return tools.GetAcceptProtocolLabel(t.opts.protoMajor)
 }
 
 func (t *websocketTransport) writeData(data []byte) error {

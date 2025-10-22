@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/centrifugal/centrifugo/v6/internal/tools"
+
 	"github.com/centrifugal/centrifuge"
 )
 
@@ -15,6 +17,7 @@ type streamTransport struct {
 	closedCh       chan struct{}
 	closed         bool
 	pingPongConfig centrifuge.PingPongConfig
+	protoMajor     int
 }
 
 func newStreamTransport(req *http.Request, pingPongConfig centrifuge.PingPongConfig) *streamTransport {
@@ -24,6 +27,7 @@ func newStreamTransport(req *http.Request, pingPongConfig centrifuge.PingPongCon
 		closedCh:       make(chan struct{}),
 		req:            req,
 		pingPongConfig: pingPongConfig,
+		protoMajor:     req.ProtoMajor,
 	}
 }
 
@@ -60,6 +64,11 @@ func (t *streamTransport) PingPongConfig() centrifuge.PingPongConfig {
 // Emulation ...
 func (t *streamTransport) Emulation() bool {
 	return false
+}
+
+// AcceptProtocol ...
+func (t *streamTransport) AcceptProtocol() string {
+	return tools.GetAcceptProtocolLabel(t.protoMajor)
 }
 
 func (t *streamTransport) Write(message []byte) error {

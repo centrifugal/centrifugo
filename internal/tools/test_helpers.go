@@ -61,6 +61,10 @@ func (t *TestTransport) Name() string {
 	return "test_transport"
 }
 
+func (t *TestTransport) AcceptProtocol() string {
+	return "h1"
+}
+
 // Protocol - ...
 func (t *TestTransport) Protocol() centrifuge.ProtocolType {
 	return t.protoType

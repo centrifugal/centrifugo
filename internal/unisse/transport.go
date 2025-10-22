@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/centrifugal/centrifugo/v6/internal/tools"
+
 	"github.com/centrifugal/centrifuge"
 )
 
@@ -15,6 +17,7 @@ type eventsourceTransport struct {
 	closedCh       chan struct{}
 	closed         bool
 	pingPongConfig centrifuge.PingPongConfig
+	protoMajor     int
 }
 
 func newEventsourceTransport(req *http.Request, pingPongConfig centrifuge.PingPongConfig) *eventsourceTransport {
@@ -24,6 +27,7 @@ func newEventsourceTransport(req *http.Request, pingPongConfig centrifuge.PingPo
 		closedCh:       make(chan struct{}),
 		req:            req,
 		pingPongConfig: pingPongConfig,
+		protoMajor:     req.ProtoMajor,
 	}
 }
 
@@ -60,6 +64,11 @@ func (t *eventsourceTransport) PingPongConfig() centrifuge.PingPongConfig {
 // Emulation ...
 func (t *eventsourceTransport) Emulation() bool {
 	return false
+}
+
+// AcceptProtocol ...
+func (t *eventsourceTransport) AcceptProtocol() string {
+	return tools.GetAcceptProtocolLabel(t.protoMajor)
 }
 
 func (t *eventsourceTransport) Write(message []byte) error {
