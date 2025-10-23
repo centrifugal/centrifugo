@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
@@ -17,6 +18,13 @@ var knownBrokers = []string{"memory", "nats", "redis", "redisnats"}
 
 // Validate validates config and returns error if problems found.
 func (c Config) Validate() error {
+	if c.HTTP.ExternalH2C && strconv.Itoa(c.HTTP.Port) == c.HTTP.InternalPort {
+		return fmt.Errorf("external_h2c requires custom separate internal_port to be configured")
+	}
+	if c.HTTP.TLS.Enabled && c.HTTP.ExternalH2C {
+		return fmt.Errorf("external_h2c cannot be used together with enabled TLS for external HTTP server")
+	}
+
 	if !slices.Contains(knownBrokers, c.Broker.Type) {
 		return fmt.Errorf("unknown broker: %s", c.Broker.Type)
 	}

@@ -31,6 +31,8 @@ import (
 	"github.com/quic-go/webtransport-go"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
 // HandlerFlag is a bit mask of handlers that must be enabled in mux.
@@ -527,20 +529,30 @@ func runHTTPServers(
 		if useHTTP3 {
 			protoSuffix = " with HTTP/3 (experimental)"
 		}
-		log.Info().Msgf("serving %s endpoints on %s%s", handlerFlags, addr, protoSuffix)
 
-		server := &http.Server{
-			Addr:      addr,
-			Handler:   mux,
-			TLSConfig: addrTLSConfig,
-			ErrorLog:  stdlog.New(&httpErrorLogWriter{Logger: log.Logger}, "", 0),
+		useH2C := cfg.HTTP.ExternalH2C && addr == externalAddr && addrTLSConfig == nil
+		if useH2C {
+			protoSuffix = " with HTTP/2 cleartext"
 		}
 
+		log.Info().Msgf("serving %s endpoints on %s%s", handlerFlags, addr, protoSuffix)
+
+		var handler http.Handler = mux
 		if useHTTP3 {
-			server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				_ = wtServer.H3.SetQUICHeaders(w.Header())
 				mux.ServeHTTP(w, r)
 			})
+		} else if useH2C {
+			h2s := &http2.Server{}
+			handler = h2c.NewHandler(mux, h2s)
+		}
+
+		server := &http.Server{
+			Addr:      addr,
+			Handler:   handler,
+			TLSConfig: addrTLSConfig,
+			ErrorLog:  stdlog.New(&httpErrorLogWriter{Logger: log.Logger}, "", 0),
 		}
 
 		servers = append(servers, server)

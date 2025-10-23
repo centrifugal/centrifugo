@@ -31,6 +31,9 @@ type HTTPServer struct {
 	InternalTLS TLSConfig `mapstructure:"internal_tls" json:"internal_tls" envconfig:"internal_tls" toml:"internal_tls" yaml:"internal_tls"`
 	// HTTP3 allows enabling HTTP/3 support. EXPERIMENTAL.
 	HTTP3 HTTP3 `mapstructure:"http3" json:"http3" envconfig:"http3" toml:"http3" yaml:"http3"`
+	// ExternalH2C allows enabling HTTP/2 CLEARTEXT for external HTTP endpoints. Note, that to enable this option
+	// custom separate InternalPort must be used.
+	ExternalH2C bool `mapstructure:"external_h2c" json:"external_h2c" envconfig:"external_h2c" toml:"external_h2c" yaml:"external_h2c"`
 	// ExternalHTTP2ExtendedConnect enables HTTP/2 Extended CONNECT support for HTTP server.
 	// Commented for now because Go only has global toggle using GODEBUG=http2xconnect=1.
 	// But ideally we would like per-server setting in the future. See https://github.com/golang/go/issues/53208.
