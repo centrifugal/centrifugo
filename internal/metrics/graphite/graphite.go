@@ -19,7 +19,7 @@ var re = regexp.MustCompile("[[:^ascii:]]")
 // PreparePathComponent cleans string to be used as Graphite metric path.
 func PreparePathComponent(s string) string {
 	s = re.ReplaceAllLiteralString(s, "_")
-	return strings.Replace(s, ".", "_", -1)
+	return strings.ReplaceAll(s, ".", "_")
 }
 
 // Exporter to Graphite.

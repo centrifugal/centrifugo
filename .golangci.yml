@@ -1,0 +1,17 @@
+version: "2"
+
+linters:
+  settings:
+    staticcheck:
+      checks:
+        - "all"
+        - "-ST1001"  # Excludes dot imports check
+        - "-ST1003"  # Excludes bad variable names check, sth to refactor.
+        - "-QF1008"  # Prefer explicit access to fields.
+        - "-ST1000"  # No need in package comment check.
+        - "-QF1003"  # Tagged switch cases.
+        - "-QF1012"  # Use fmt.Fprintf(...) instead of Write([]byte.
+        - "-S1000"   # should use for range instead of for { select {} }.
+        - "-S1037"   # should use time.Sleep instead of elaborate way of sleeping.
+        - "-ST1020"  # comment on exported method - sth to fix.
+        - "-ST1016"  # stable receivers names - sth to fix.

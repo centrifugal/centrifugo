@@ -329,7 +329,7 @@ func (s *Sender) prepareMetrics() ([]*metric, error) {
 		return &md
 	}
 
-	version := strings.Replace(s.features.Version, ".", "_", -1)
+	version := strings.ReplaceAll(s.features.Version, ".", "_")
 	edition := strings.ToLower(s.features.Edition)
 
 	var metrics []*metric
