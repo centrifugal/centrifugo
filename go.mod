@@ -1,8 +1,6 @@
 module github.com/centrifugal/centrifugo/v6
 
-go 1.24.0
-
-replace github.com/centrifugal/centrifuge => ../centrifuge
+go 1.25.0
 
 require (
 	cloud.google.com/go/pubsub/v2 v2.2.0
