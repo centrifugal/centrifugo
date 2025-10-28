@@ -48,7 +48,7 @@ func generateToFile(header, funcTmpl, outFile string, excludeRequests []string, 
 		}
 	}
 
-	file, err := os.Create(outFile)
+	file, err := os.Create(outFile) //nolint:gosec // Used only for code generation.
 	if err != nil {
 		panic(err)
 	}

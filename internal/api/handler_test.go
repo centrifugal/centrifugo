@@ -38,12 +38,14 @@ func TestAPIHandler(t *testing.T) {
 	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	require.Equal(t, resp.StatusCode, http.StatusBadRequest)
+	_ = resp.Body.Close()
 
 	// empty body.
 	req, _ = http.NewRequest("POST", server.URL+"/api", strings.NewReader(""))
 	resp, err = http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	require.Equal(t, resp.StatusCode, http.StatusBadRequest)
+	_ = resp.Body.Close()
 
 	// valid JSON request.
 	data := `{"method":"publish","params":{"channel": "test", "data":{}}}`
@@ -52,6 +54,7 @@ func TestAPIHandler(t *testing.T) {
 	resp, err = http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	require.Equal(t, resp.StatusCode, http.StatusOK)
+	_ = resp.Body.Close()
 
 	// valid JSON request to special method route
 	data = `{"channel": "test", "data":{}}`
@@ -60,6 +63,7 @@ func TestAPIHandler(t *testing.T) {
 	resp, err = http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	require.Equal(t, resp.StatusCode, http.StatusOK)
+	_ = resp.Body.Close()
 
 	// request with unknown method.
 	data = `{"method":"unknown","params":{"channel": "test", "data":{}}}`
@@ -68,6 +72,7 @@ func TestAPIHandler(t *testing.T) {
 	resp, err = http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	require.Equal(t, resp.StatusCode, http.StatusBadRequest)
+	_ = resp.Body.Close()
 }
 
 func BenchmarkAPIHandler(b *testing.B) {

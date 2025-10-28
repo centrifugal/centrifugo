@@ -127,7 +127,7 @@ func Setup(cfg config.Config) (centrifuge.LogHandler, func()) {
 	var file *os.File
 	if cfg.Log.File != "" {
 		var err error
-		file, err = os.OpenFile(cfg.Log.File, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+		file, err = os.OpenFile(cfg.Log.File, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644) //nolint:gosec // Common for logging.
 		if err != nil {
 			log.Fatal().Err(err).Msg("error opening log file")
 		}

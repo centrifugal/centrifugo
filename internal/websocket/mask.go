@@ -8,7 +8,7 @@ package websocket
 
 import "unsafe"
 
-const wordSize = int(unsafe.Sizeof(uintptr(0)))
+const wordSize = int(unsafe.Sizeof(uintptr(0))) //nolint:gosec // Audited.
 
 func maskBytes(key [4]byte, pos int, b []byte) int {
 	// Mask one byte at a time for small buffers.
@@ -21,7 +21,7 @@ func maskBytes(key [4]byte, pos int, b []byte) int {
 	}
 
 	// Mask one byte at a time to word boundary.
-	if n := int(uintptr(unsafe.Pointer(&b[0]))) % wordSize; n != 0 {
+	if n := int(uintptr(unsafe.Pointer(&b[0]))) % wordSize; n != 0 { //nolint:gosec // Audited.
 		n = wordSize - n
 		for i := range b[:n] {
 			b[i] ^= key[pos&3]
@@ -35,12 +35,12 @@ func maskBytes(key [4]byte, pos int, b []byte) int {
 	for i := range k {
 		k[i] = key[(pos+i)&3]
 	}
-	kw := *(*uintptr)(unsafe.Pointer(&k))
+	kw := *(*uintptr)(unsafe.Pointer(&k)) //nolint:gosec // Audited.
 
 	// Mask one word at a time.
 	n := (len(b) / wordSize) * wordSize
 	for i := 0; i < n; i += wordSize {
-		*(*uintptr)(unsafe.Pointer(uintptr(unsafe.Pointer(&b[0])) + uintptr(i))) ^= kw
+		*(*uintptr)(unsafe.Pointer(uintptr(unsafe.Pointer(&b[0])) + uintptr(i))) ^= kw //nolint:gosec // Audited.
 	}
 
 	// Mask one byte at a time for remaining bytes.

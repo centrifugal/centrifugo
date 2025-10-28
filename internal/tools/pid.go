@@ -10,5 +10,5 @@ func WritePidFile(pidFile string) error {
 		return nil
 	}
 	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
-	return os.WriteFile(pidFile, pid, 0644)
+	return os.WriteFile(pidFile, pid, 0600)
 }

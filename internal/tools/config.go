@@ -118,7 +118,7 @@ func GenerateConfig(f string) error {
 		mustGenerateSecretKey(64),
 	})
 
-	return os.WriteFile(f, output.Bytes(), 0644)
+	return os.WriteFile(f, output.Bytes(), 0600)
 }
 
 func OptionalStringChoice(value string, choices []string) (string, error) {

@@ -25,6 +25,9 @@ swagger-web:
 package:
 	./misc/scripts/package.sh $(VERSION) $(ITERATION)
 
+sync-websocket:
+	rsync -av --exclude '*/' ../centrifuge/internal/websocket/ internal/websocket/
+
 packagecloud:
 	make packagecloud-deb
 	make packagecloud-rpm

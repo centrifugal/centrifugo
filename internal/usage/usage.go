@@ -33,7 +33,7 @@ var sendInterval time.Duration
 var metricsPrefix string
 
 func init() {
-	statsRand = rand.New(rand.NewSource(time.Now().Unix()))
+	statsRand = rand.New(rand.NewSource(time.Now().Unix())) //nolint:gosec // Not used for security-sensitive purposes.
 
 	// Initial delay in between 24-48h. Using minute resolution here
 	// is intentional to get a better time spread.

@@ -8,6 +8,8 @@ linters:
     - ineffassign
     - staticcheck
     - unused
+    - bodyclose
+    - gosec
   settings:
     staticcheck:
       checks:
@@ -22,3 +24,12 @@ linters:
         - "-S1037"   # should use time.Sleep instead of elaborate way of sleeping.
         - "-ST1020"  # comment on exported method - sth to fix.
         - "-ST1016"  # stable receivers names - sth to fix.
+    gosec:
+      excludes:
+        - "G115"  # Integer overflow check - sth to fix.
+  exclusions:
+    rules:
+      - path: "_test\\.go"
+        linters:
+          - bodyclose # Disable in tests, sth to fix.
+          - gosec # Disable in tests, sth to fix.

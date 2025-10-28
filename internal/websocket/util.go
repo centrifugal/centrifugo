@@ -6,7 +6,7 @@ package websocket
 
 import (
 	"crypto/rand"
-	"crypto/sha1"
+	"crypto/sha1" //nolint:gosec // Used for WebSocket accept key hashing as per RFC 6455. Not security-sensitive.
 	"encoding/base64"
 	"io"
 	"net/http"
@@ -18,7 +18,7 @@ import (
 var keyGUID = []byte("258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
 func computeAcceptKey(challengeKey string) string {
-	h := sha1.New()
+	h := sha1.New() //nolint:gosec // Used for WebSocket accept key hashing as per RFC 6455. Not security-sensitive.
 	h.Write([]byte(challengeKey))
 	h.Write(keyGUID)
 	return base64.StdEncoding.EncodeToString(h.Sum(nil))
@@ -32,7 +32,7 @@ var acceptKeyBufferPool = sync.Pool{
 }
 
 func encodeAcceptKey(challengeKey string, p []byte) []byte {
-	h := sha1.New()
+	h := sha1.New() //nolint:gosec // Used for WebSocket accept key hashing as per RFC 6455. Not security-sensitive.
 	h.Write(stringToBytes(challengeKey))
 	h.Write(keyGUID)
 

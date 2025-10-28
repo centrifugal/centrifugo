@@ -9,6 +9,7 @@ import (
 	"net/http/pprof"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/admin"
 	"github.com/centrifugal/centrifugo/v6/internal/api"
@@ -549,10 +550,13 @@ func runHTTPServers(
 		}
 
 		server := &http.Server{
-			Addr:      addr,
-			Handler:   handler,
-			TLSConfig: addrTLSConfig,
-			ErrorLog:  stdlog.New(&httpErrorLogWriter{Logger: log.Logger}, "", 0),
+			Addr:              addr,
+			Handler:           handler,
+			TLSConfig:         addrTLSConfig,
+			ErrorLog:          stdlog.New(&httpErrorLogWriter{Logger: log.Logger}, "", 0),
+			ReadHeaderTimeout: 10 * time.Second,
+			ReadTimeout:       30 * time.Second,
+			WriteTimeout:      10 * time.Second,
 		}
 
 		servers = append(servers, server)
