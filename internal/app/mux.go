@@ -531,7 +531,7 @@ func runHTTPServers(
 			protoSuffix = " with HTTP/3 (experimental)"
 		}
 
-		useH2C := cfg.HTTP.ExternalH2C && addr == externalAddr && addrTLSConfig == nil
+		useH2C := cfg.HTTP.H2CExternal && addr == externalAddr && addrTLSConfig == nil
 		if useH2C {
 			protoSuffix = " with HTTP/2 cleartext"
 		}
