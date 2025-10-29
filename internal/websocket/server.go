@@ -370,6 +370,10 @@ func (u *Upgrader) upgradeH2(w http.ResponseWriter, r *http.Request, responseHea
 	if err := rc.Flush(); err != nil {
 		return nil, "", err
 	}
+	err := rc.SetReadDeadline(time.Time{})
+	if err != nil {
+		return nil, "", err
+	}
 
 	stream := &http2Stream{
 		ReadCloser: r.Body,
