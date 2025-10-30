@@ -16,6 +16,7 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 	"github.com/centrifugal/centrifugo/v6/internal/jwks"
 	"github.com/centrifugal/centrifugo/v6/internal/subsource"
+	"github.com/centrifugal/centrifugo/v6/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/cristalhq/jwt/v5"
@@ -102,18 +103,20 @@ func NewTokenVerifierJWT(config VerifierConfig, cfgContainer *config.Container) 
 		userIDClaim:  config.UserIDClaim,
 	}
 
-	algorithms, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey, config.ECDSAPublicKey)
-	if err != nil {
-		return nil, fmt.Errorf("error initializing token algorithms: %w", err)
-	}
-	verifier.algorithms = algorithms
-
 	if config.JWKSPublicEndpoint != "" {
 		mng, err := jwks.NewManager(config.JWKSPublicEndpoint)
 		if err != nil {
 			return nil, fmt.Errorf("error creating JWK manager: %w", err)
 		}
 		verifier.jwksManager = &jwksManager{mng}
+		log.Info().Str("endpoint", strings.Join(tools.RedactedLogURLs(config.JWKSPublicEndpoint), ",")).
+			Msg("JWKS manager created")
+	} else {
+		alg, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey, config.ECDSAPublicKey)
+		if err != nil {
+			return nil, fmt.Errorf("error initializing token algorithms: %w", err)
+		}
+		verifier.algorithms = alg
 	}
 
 	return verifier, nil
@@ -767,20 +770,17 @@ func (verifier *VerifierJWT) Reload(config VerifierConfig) error {
 	verifier.mu.Lock()
 	defer verifier.mu.Unlock()
 
-	alg, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey, config.ECDSAPublicKey)
-	if err != nil {
-		return err
-	}
-
 	var audienceRe *regexp.Regexp
 	var issuerRe *regexp.Regexp
 	if config.AudienceRegex != "" {
+		var err error
 		audienceRe, err = regexp.Compile(config.AudienceRegex)
 		if err != nil {
 			return fmt.Errorf("error compiling audience regex: %w", err)
 		}
 	}
 	if config.IssuerRegex != "" {
+		var err error
 		issuerRe, err = regexp.Compile(config.IssuerRegex)
 		if err != nil {
 			return fmt.Errorf("error compiling issuer regex: %w", err)
@@ -793,12 +793,16 @@ func (verifier *VerifierJWT) Reload(config VerifierConfig) error {
 			return fmt.Errorf("error creating JWK manager: %w", err)
 		}
 		verifier.jwksManager = &jwksManager{mng}
+		verifier.algorithms = nil
 	} else {
-		// Clear JWKS configuration if not provided.
+		alg, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey, config.ECDSAPublicKey)
+		if err != nil {
+			return err
+		}
+		verifier.algorithms = alg
 		verifier.jwksManager = nil
 	}
 
-	verifier.algorithms = alg
 	verifier.audience = config.Audience
 	verifier.audienceRe = audienceRe
 	verifier.issuer = config.Issuer
