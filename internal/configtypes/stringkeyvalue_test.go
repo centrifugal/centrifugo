@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMapStringString_Decode(t *testing.T) {
+func TestStringKeyValue_Decode(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -17,99 +17,113 @@ func TestMapStringString_Decode(t *testing.T) {
 		wantErr  bool
 	}{
 		{
-			name:     "basic JSON decoding",
-			input:    `{"key1": "value1", "key2": "value2"}`,
+			name:     "basic key/value slice decoding",
+			input:    `[{"key": "key1", "value": "value1"}, {"key": "key2", "value": "value2"}]`,
 			envVars:  map[string]string{},
 			expected: map[string]string{"key1": "value1", "key2": "value2"},
 			wantErr:  false,
 		},
 		{
 			name:     "environment variable expansion",
-			input:    `{"header1": "${CENTRIFUGO_VAR_TEST_VAR}", "header2": "${CENTRIFUGO_VAR_ANOTHER_VAR}"}`,
+			input:    `[{"key": "header1", "value": "${CENTRIFUGO_VAR_TEST_VAR}"}, {"key": "header2", "value": "${CENTRIFUGO_VAR_ANOTHER_VAR}"}]`,
 			envVars:  map[string]string{"CENTRIFUGO_VAR_TEST_VAR": "test_value", "CENTRIFUGO_VAR_ANOTHER_VAR": "another_value"},
 			expected: map[string]string{"header1": "test_value", "header2": "another_value"},
 			wantErr:  false,
 		},
 		{
 			name:     "mixed static and environment variables",
-			input:    `{"header1": "prefix-${CENTRIFUGO_VAR_TEST_VAR}-suffix", "header2": "static_value"}`,
+			input:    `[{"key": "header1", "value": "prefix-${CENTRIFUGO_VAR_TEST_VAR}-suffix"}, {"key": "header2", "value": "static_value"}]`,
 			envVars:  map[string]string{"CENTRIFUGO_VAR_TEST_VAR": "dynamic"},
 			expected: map[string]string{"header1": "prefix-dynamic-suffix", "header2": "static_value"},
 			wantErr:  false,
 		},
 		{
 			name:     "missing environment variable",
-			input:    `{"header1": "${CENTRIFUGO_VAR_MISSING_VAR}", "header2": "static"}`,
+			input:    `[{"key": "header1", "value": "${CENTRIFUGO_VAR_MISSING_VAR}"}, {"key": "header2", "value": "static"}]`,
 			envVars:  map[string]string{},
 			expected: nil,
 			wantErr:  true,
 		},
 		{
 			name:     "multiple environment variables in one value",
-			input:    `{"header1": "${CENTRIFUGO_VAR_VAR1}-${CENTRIFUGO_VAR_VAR2}"}`,
+			input:    `[{"key": "header1", "value": "${CENTRIFUGO_VAR_VAR1}-${CENTRIFUGO_VAR_VAR2}"}]`,
 			envVars:  map[string]string{"CENTRIFUGO_VAR_VAR1": "first", "CENTRIFUGO_VAR_VAR2": "second"},
 			expected: map[string]string{"header1": "first-second"},
 			wantErr:  false,
 		},
 		{
 			name:     "missing one of multiple environment variables",
-			input:    `{"header1": "${CENTRIFUGO_VAR_VAR1}-${CENTRIFUGO_VAR_MISSING_VAR}"}`,
+			input:    `[{"key": "header1", "value": "${CENTRIFUGO_VAR_VAR1}-${CENTRIFUGO_VAR_MISSING_VAR}"}]`,
 			envVars:  map[string]string{"CENTRIFUGO_VAR_VAR1": "first"},
 			expected: nil,
 			wantErr:  true,
 		},
 		{
-			name:     "empty JSON object",
-			input:    `{}`,
+			name:     "empty key/value slice",
+			input:    `[]`,
 			envVars:  map[string]string{},
 			expected: map[string]string{},
 			wantErr:  false,
 		},
 		{
 			name:     "invalid JSON",
-			input:    `{"key1": "value1"`,
+			input:    `[{"key": "key1", "value": "value1"`,
 			envVars:  map[string]string{},
 			expected: nil,
 			wantErr:  true,
 		},
 		{
 			name:     "environment variable with special characters",
-			input:    `{"header1": "${CENTRIFUGO_VAR_WITH_UNDERSCORES}", "header2": "${CENTRIFUGO_VAR_123}"}`,
+			input:    `[{"key": "header1", "value": "${CENTRIFUGO_VAR_WITH_UNDERSCORES}"}, {"key": "header2", "value": "${CENTRIFUGO_VAR_123}"}]`,
 			envVars:  map[string]string{"CENTRIFUGO_VAR_WITH_UNDERSCORES": "underscore_value", "CENTRIFUGO_VAR_123": "numeric_suffix"},
 			expected: map[string]string{"header1": "underscore_value", "header2": "numeric_suffix"},
 			wantErr:  false,
 		},
 		{
 			name:     "no environment variables in values",
-			input:    `{"header1": "plain_value", "header2": "another_plain"}`,
+			input:    `[{"key": "header1", "value": "plain_value"}, {"key": "header2", "value": "another_plain"}]`,
 			envVars:  map[string]string{"CENTRIFUGO_VAR_UNUSED": "unused"},
 			expected: map[string]string{"header1": "plain_value", "header2": "another_plain"},
 			wantErr:  false,
 		},
 		{
 			name:     "non-CENTRIFUGO_VAR pattern ignored",
-			input:    `{"header1": "${INVALID_VAR}", "header2": "static"}`,
+			input:    `[{"key": "header1", "value": "${INVALID_VAR}"}, {"key": "header2", "value": "static"}]`,
 			envVars:  map[string]string{"INVALID_VAR": "value"},
 			expected: map[string]string{"header1": "${INVALID_VAR}", "header2": "static"},
 			wantErr:  false,
 		},
 		{
 			name:     "mixed CENTRIFUGO_VAR and other patterns",
-			input:    `{"header1": "${CENTRIFUGO_VAR_VALID}-${INVALID_VAR}"}`,
+			input:    `[{"key": "header1", "value": "${CENTRIFUGO_VAR_VALID}-${INVALID_VAR}"}]`,
 			envVars:  map[string]string{"CENTRIFUGO_VAR_VALID": "valid", "INVALID_VAR": "invalid"},
 			expected: map[string]string{"header1": "valid-${INVALID_VAR}"},
 			wantErr:  false,
 		},
 		{
 			name:     "other prefix patterns left unchanged",
-			input:    `{"header1": "${OTHER_PREFIX_VAR}"}`,
+			input:    `[{"key": "header1", "value": "${OTHER_PREFIX_VAR}"}]`,
 			envVars:  map[string]string{"OTHER_PREFIX_VAR": "value"},
 			expected: map[string]string{"header1": "${OTHER_PREFIX_VAR}"},
 			wantErr:  false,
 		},
 		{
 			name:     "missing CENTRIFUGO_VAR environment variable",
-			input:    `{"header1": "${CENTRIFUGO_VAR_MISSING}"}`,
+			input:    `[{"key": "header1", "value": "${CENTRIFUGO_VAR_MISSING}"}]`,
+			envVars:  map[string]string{},
+			expected: nil,
+			wantErr:  true,
+		},
+		{
+			name:     "duplicate key",
+			input:    `[{"key": "key1", "value": "value1"}, {"key": "key1", "value": "value2"}]`,
+			envVars:  map[string]string{},
+			expected: nil,
+			wantErr:  true,
+		},
+		{
+			name:     "empty key",
+			input:    `[{"key": "", "value": "value1"}]`,
 			envVars:  map[string]string{},
 			expected: nil,
 			wantErr:  true,
@@ -139,25 +153,25 @@ func TestMapStringString_Decode(t *testing.T) {
 				}
 			}()
 
-			var m MapStringString
+			var m StringKeyValue
 			err := m.Decode(tt.input)
 
 			if (err != nil) != tt.wantErr {
-				t.Errorf("MapStringString.Decode() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("StringKeyValue.Decode() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
 			if !tt.wantErr {
 				if len(m) != len(tt.expected) {
-					t.Errorf("MapStringString.Decode() result length = %v, expected length %v", len(m), len(tt.expected))
+					t.Errorf("StringKeyValue.Decode() result length = %v, expected length %v", len(m), len(tt.expected))
 					return
 				}
 
 				for key, expectedValue := range tt.expected {
 					if actualValue, exists := m[key]; !exists {
-						t.Errorf("MapStringString.Decode() missing key %v", key)
+						t.Errorf("StringKeyValue.Decode() missing key %v", key)
 					} else if actualValue != expectedValue {
-						t.Errorf("MapStringString.Decode() key %v = %v, expected %v", key, actualValue, expectedValue)
+						t.Errorf("StringKeyValue.Decode() key %v = %v, expected %v", key, actualValue, expectedValue)
 					}
 				}
 			}
@@ -165,8 +179,8 @@ func TestMapStringString_Decode(t *testing.T) {
 	}
 }
 
-func TestStringToMapStringStringHookFunc_WrongTypes(t *testing.T) {
-	hook := StringToMapStringStringHookFunc().(func(
+func TestStringToStringKeyValueHookFunc_WrongTypes(t *testing.T) {
+	hook := StringToStringKeyValueHookFunc().(func(
 		f reflect.Type,
 		t reflect.Type,
 		data interface{},
@@ -174,72 +188,88 @@ func TestStringToMapStringStringHookFunc_WrongTypes(t *testing.T) {
 
 	// Test with wrong target type
 	result, err := hook(
-		reflect.TypeOf(map[string]interface{}{}), // from map[string]interface{}
-		reflect.TypeOf(map[string]string{}),      // to map[string]string (not MapStringString)
-		map[string]interface{}{"key": "value"},
+		reflect.TypeOf([]interface{}{}),        // from []interface{}
+		reflect.TypeOf(map[string]string{}),    // to map[string]string (not StringKeyValue)
+		[]interface{}{map[string]interface{}{"key": "key1", "value": "value1"}},
 	)
 	require.NoError(t, err)
-	require.Equal(t, map[string]interface{}{"key": "value"}, result) // Should return data unchanged
+	require.Equal(t, []interface{}{map[string]interface{}{"key": "key1", "value": "value1"}}, result) // Should return data unchanged
 }
 
-func TestStringToMapStringStringHookFunc(t *testing.T) {
+func TestStringToStringKeyValueHookFunc(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    any
 		envVars  map[string]string
-		expected MapStringString
+		expected StringKeyValue
 		wantErr  bool
 	}{
 		{
-			name:     "basic map conversion",
-			input:    map[string]interface{}{"key1": "value1", "key2": "value2"},
-			envVars:  map[string]string{},
-			expected: MapStringString{"key1": "value1", "key2": "value2"},
-			wantErr:  false,
-		},
-		{
-			name:     "basic key/value slice map conversion",
+			name:     "basic key/value slice conversion",
 			input:    []any{map[string]any{"key": "Key1", "value": "value1"}, map[string]any{"key": "Key2", "value": "value2"}},
 			envVars:  map[string]string{},
-			expected: MapStringString{"Key1": "value1", "Key2": "value2"},
+			expected: StringKeyValue{"Key1": "value1", "Key2": "value2"},
 			wantErr:  false,
 		},
 		{
 			name:     "environment variable expansion",
-			input:    map[string]interface{}{"header1": "${CENTRIFUGO_VAR_TEST_VAR}", "header2": "${CENTRIFUGO_VAR_ANOTHER_VAR}"},
+			input:    []any{map[string]any{"key": "header1", "value": "${CENTRIFUGO_VAR_TEST_VAR}"}, map[string]any{"key": "header2", "value": "${CENTRIFUGO_VAR_ANOTHER_VAR}"}},
 			envVars:  map[string]string{"CENTRIFUGO_VAR_TEST_VAR": "test_value", "CENTRIFUGO_VAR_ANOTHER_VAR": "another_value"},
-			expected: MapStringString{"header1": "test_value", "header2": "another_value"},
+			expected: StringKeyValue{"header1": "test_value", "header2": "another_value"},
 			wantErr:  false,
 		},
 		{
 			name:     "non-CENTRIFUGO_VAR pattern ignored",
-			input:    map[string]interface{}{"header1": "${INVALID_VAR}", "header2": "static"},
+			input:    []any{map[string]any{"key": "header1", "value": "${INVALID_VAR}"}, map[string]any{"key": "header2", "value": "static"}},
 			envVars:  map[string]string{"INVALID_VAR": "value"},
-			expected: MapStringString{"header1": "${INVALID_VAR}", "header2": "static"},
+			expected: StringKeyValue{"header1": "${INVALID_VAR}", "header2": "static"},
 			wantErr:  false,
 		},
 		{
 			name:     "missing environment variable",
-			input:    map[string]interface{}{"header1": "${CENTRIFUGO_VAR_MISSING}"},
+			input:    []any{map[string]any{"key": "header1", "value": "${CENTRIFUGO_VAR_MISSING}"}},
 			envVars:  map[string]string{},
-			expected: MapStringString{},
+			expected: StringKeyValue{},
 			wantErr:  true,
 		},
 		{
-			name:    "non-string value in map",
-			input:   map[string]interface{}{"key1": "value1", "key2": 123},
-			envVars: map[string]string{},
-			wantErr: true,
+			name:     "duplicate key",
+			input:    []any{map[string]any{"key": "key1", "value": "value1"}, map[string]any{"key": "key1", "value": "value2"}},
+			envVars:  map[string]string{},
+			expected: StringKeyValue{},
+			wantErr:  true,
 		},
 		{
-			name:    "non-unique value in map",
-			input:   []any{map[string]any{"key": "key1", "value": "value1"}, map[string]any{"key": "key1", "value": "value2"}},
-			envVars: map[string]string{},
-			wantErr: true,
+			name:     "unsupported type (map instead of slice)",
+			input:    map[string]interface{}{"key1": "value1", "key2": "value2"},
+			envVars:  map[string]string{},
+			expected: StringKeyValue{},
+			wantErr:  true,
+		},
+		{
+			name:     "non-map element in slice",
+			input:    []any{"not a map"},
+			envVars:  map[string]string{},
+			expected: StringKeyValue{},
+			wantErr:  true,
+		},
+		{
+			name:     "missing key field",
+			input:    []any{map[string]any{"value": "value1"}},
+			envVars:  map[string]string{},
+			expected: StringKeyValue{},
+			wantErr:  true,
+		},
+		{
+			name:     "missing value field",
+			input:    []any{map[string]any{"key": "key1"}},
+			envVars:  map[string]string{},
+			expected: StringKeyValue{},
+			wantErr:  true,
 		},
 	}
 
-	hook := StringToMapStringStringHookFunc().(func(
+	hook := StringToStringKeyValueHookFunc().(func(
 		f reflect.Type,
 		t reflect.Type,
 		data interface{},
@@ -268,40 +298,35 @@ func TestStringToMapStringStringHookFunc(t *testing.T) {
 				}
 			}()
 
-			// Test the decode hook function with map input
+			// Test the decode hook function
 			result, err := hook(
-				reflect.TypeOf(map[string]interface{}{}), // from map[string]interface{}
-				reflect.TypeOf(MapStringString{}),        // to MapStringString
+				reflect.TypeOf([]interface{}{}), // from []interface{}
+				reflect.TypeOf(StringKeyValue{}), // to StringKeyValue
 				tt.input,
 			)
 
 			if (err != nil) != tt.wantErr {
-				t.Errorf("StringToMapStringStringHookFunc() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("StringToStringKeyValueHookFunc() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
 			if !tt.wantErr {
-				if tt.name == "non-string value in map" {
-					// Should return original data unchanged
-					require.Equal(t, tt.input, result)
-				} else {
-					resultMap, ok := result.(MapStringString)
-					if !ok {
-						t.Errorf("StringToMapStringStringHookFunc() result is not MapStringString, got %T", result)
-						return
-					}
+				resultMap, ok := result.(StringKeyValue)
+				if !ok {
+					t.Errorf("StringToStringKeyValueHookFunc() result is not StringKeyValue, got %T", result)
+					return
+				}
 
-					if len(resultMap) != len(tt.expected) {
-						t.Errorf("StringToMapStringStringHookFunc() result length = %v, expected length %v", len(resultMap), len(tt.expected))
-						return
-					}
+				if len(resultMap) != len(tt.expected) {
+					t.Errorf("StringToStringKeyValueHookFunc() result length = %v, expected length %v", len(resultMap), len(tt.expected))
+					return
+				}
 
-					for key, expectedValue := range tt.expected {
-						if actualValue, exists := resultMap[key]; !exists {
-							t.Errorf("StringToMapStringStringHookFunc() missing key %v", key)
-						} else if actualValue != expectedValue {
-							t.Errorf("StringToMapStringStringHookFunc() key %v = %v, expected %v", key, actualValue, expectedValue)
-						}
+				for key, expectedValue := range tt.expected {
+					if actualValue, exists := resultMap[key]; !exists {
+						t.Errorf("StringToStringKeyValueHookFunc() missing key %v", key)
+					} else if actualValue != expectedValue {
+						t.Errorf("StringToStringKeyValueHookFunc() key %v = %v, expected %v", key, actualValue, expectedValue)
 					}
 				}
 			}

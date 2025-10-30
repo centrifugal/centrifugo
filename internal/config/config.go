@@ -164,6 +164,7 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 		configtypes.StringToDurationHookFunc(),
 		configtypes.StringToPEMDataHookFunc(),
 		configtypes.StringToMapStringStringHookFunc(),
+		configtypes.StringToStringKeyValueHookFunc(),
 	)))
 
 	if cmd != nil {
