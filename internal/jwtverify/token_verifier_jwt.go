@@ -425,9 +425,6 @@ func (verifier *VerifierJWT) verifySignatureByJWK(token *jwt.Token, tokenVars ma
 	return verifier.jwksManager.verify(token, tokenVars)
 }
 
-// validateAudienceAndIssuer performs verifier-level audience and issuer validation.
-// This is only used when JWKS providers are not configured. When JWKS providers are used,
-// each provider has its own audience validation.
 func (verifier *VerifierJWT) validateAudienceAndIssuer(audience []string, issuer string, tokenVars map[string]any) error {
 	if verifier.audience != "" {
 		matched := false
