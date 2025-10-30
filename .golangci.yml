@@ -1,0 +1,35 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - bodyclose
+    - gosec
+  settings:
+    staticcheck:
+      checks:
+        - "all"
+        - "-ST1001"  # Excludes dot imports check
+        - "-ST1003"  # Excludes bad variable names check, sth to refactor.
+        - "-QF1008"  # Prefer explicit access to fields.
+        - "-ST1000"  # No need in package comment check.
+        - "-QF1003"  # Tagged switch cases.
+        - "-QF1012"  # Use fmt.Fprintf(...) instead of Write([]byte.
+        - "-S1000"   # should use for range instead of for { select {} }.
+        - "-S1037"   # should use time.Sleep instead of elaborate way of sleeping.
+        - "-ST1020"  # comment on exported method - sth to fix.
+        - "-ST1016"  # stable receivers names - sth to fix.
+    gosec:
+      excludes:
+        - "G115"  # Integer overflow check - sth to fix.
+  exclusions:
+    rules:
+      - path: "_test\\.go"
+        linters:
+          - bodyclose # Disable in tests, sth to fix.
+          - gosec # Disable in tests, sth to fix.

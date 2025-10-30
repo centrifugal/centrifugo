@@ -9,10 +9,13 @@ import (
 	"net/http/pprof"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/admin"
 	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/config"
+	"github.com/centrifugal/centrifugo/v6/internal/conninit"
+	"github.com/centrifugal/centrifugo/v6/internal/devpage"
 	"github.com/centrifugal/centrifugo/v6/internal/health"
 	"github.com/centrifugal/centrifugo/v6/internal/middleware"
 	"github.com/centrifugal/centrifugo/v6/internal/swaggerui"
@@ -29,6 +32,8 @@ import (
 	"github.com/quic-go/webtransport-go"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
 // HandlerFlag is a bit mask of handlers that must be enabled in mux.
@@ -61,8 +66,12 @@ const (
 	HandlerHTTPStream
 	// HandlerEmulation handles client-to-server requests in an emulation layer.
 	HandlerEmulation
+	// HandlerInit handles connection initialization.
+	HandlerInit
 	// HandlerSwagger handles swagger UI.
 	HandlerSwagger
+	// HandlerDev handles development page.
+	HandlerDev
 )
 
 var handlerText = map[HandlerFlag]string{
@@ -79,11 +88,13 @@ var handlerText = map[HandlerFlag]string{
 	HandlerSSE:           "sse",
 	HandlerHTTPStream:    "http_stream",
 	HandlerEmulation:     "emulation",
+	HandlerInit:          "init",
 	HandlerSwagger:       "swagger",
+	HandlerDev:           "dev",
 }
 
 func (flags HandlerFlag) String() string {
-	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerWebtransport, HandlerHTTPStream, HandlerSSE, HandlerEmulation, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniHTTPStream, HandlerSwagger}
+	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerWebtransport, HandlerHTTPStream, HandlerSSE, HandlerEmulation, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniHTTPStream, HandlerSwagger, HandlerDev, HandlerInit}
 	var endpoints []string
 	for _, flag := range flagsOrdered {
 		text, ok := handlerText[flag]
@@ -170,6 +181,15 @@ func Mux(
 			wtPrefix = "/"
 		}
 		mux.Handle(wtPrefix, connChain.Then(wt.NewHandler(n, wtServer, cfg.WebTransport, getPingPongConfig(cfg))))
+	}
+
+	if flags&HandlerInit != 0 {
+		// register connection initialization endpoint.
+		connInitPrefix := strings.TrimRight(cfg.Init.HandlerPrefix, "/")
+		if connInitPrefix == "" {
+			connInitPrefix = "/"
+		}
+		mux.Handle(connInitPrefix, middleware.Method(http.MethodGet, connChain.Then(conninit.NewHandler())))
 	}
 
 	if flags&HandlerHTTPStream != 0 {
@@ -291,6 +311,14 @@ func Mux(
 		mux.Handle(healthPrefix, basicChain.Then(health.NewHandler(n, health.Config{})))
 	}
 
+	if flags&HandlerDev != 0 {
+		devPrefix := strings.TrimRight(cfg.Dev.HandlerPrefix, "/")
+		if devPrefix == "" {
+			devPrefix = "/"
+		}
+		mux.Handle(devPrefix+"/", basicChain.Then(devpage.NewHandler(cfg)))
+	}
+
 	return mux
 }
 
@@ -319,6 +347,7 @@ func websocketHandlerConfig(appCfg config.Config) centrifuge.WebsocketConfig {
 	cfg.MessageSizeLimit = appCfg.WebSocket.MessageSizeLimit
 	cfg.CheckOrigin = getCheckOrigin(appCfg)
 	cfg.PingPongConfig = getPingPongConfig(appCfg)
+	cfg.DisableHTTP1Upgrade = appCfg.WebSocket.DisableHTTP1Upgrade
 	return cfg
 }
 
@@ -352,6 +381,8 @@ func runHTTPServers(
 	usePrometheus := cfg.Prometheus.Enabled
 	useHealth := cfg.Health.Enabled
 	useSwagger := cfg.Swagger.Enabled
+	useDev := cfg.Dev.Enabled
+	useConnInit := cfg.Init.Enabled
 
 	adminExternal := cfg.Admin.External
 	apiExternal := cfg.HttpAPI.External
@@ -415,6 +446,12 @@ func runHTTPServers(
 	}
 	if cfg.UniHTTPStream.Enabled {
 		portFlags |= HandlerUniHTTPStream
+	}
+	if useDev {
+		portFlags |= HandlerDev
+	}
+	if useConnInit {
+		portFlags |= HandlerInit
 	}
 	addrToHandlerFlags[externalAddr] = portFlags
 
@@ -493,20 +530,33 @@ func runHTTPServers(
 		if useHTTP3 {
 			protoSuffix = " with HTTP/3 (experimental)"
 		}
-		log.Info().Msgf("serving %s endpoints on %s%s", handlerFlags, addr, protoSuffix)
 
-		server := &http.Server{
-			Addr:      addr,
-			Handler:   mux,
-			TLSConfig: addrTLSConfig,
-			ErrorLog:  stdlog.New(&httpErrorLogWriter{Logger: log.Logger}, "", 0),
+		useH2C := cfg.HTTP.H2CExternal && addr == externalAddr && addrTLSConfig == nil
+		if useH2C {
+			protoSuffix = " with HTTP/2 cleartext"
 		}
 
+		log.Info().Msgf("serving %s endpoints on %s%s", handlerFlags, addr, protoSuffix)
+
+		var handler http.Handler = mux
 		if useHTTP3 {
-			server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				_ = wtServer.H3.SetQUICHeaders(w.Header())
 				mux.ServeHTTP(w, r)
 			})
+		} else if useH2C {
+			h2s := &http2.Server{}
+			handler = h2c.NewHandler(mux, h2s)
+		}
+
+		server := &http.Server{
+			Addr:              addr,
+			Handler:           handler,
+			TLSConfig:         addrTLSConfig,
+			ErrorLog:          stdlog.New(&httpErrorLogWriter{Logger: log.Logger}, "", 0),
+			ReadHeaderTimeout: 10 * time.Second,
+			ReadTimeout:       30 * time.Second,
+			WriteTimeout:      10 * time.Second,
 		}
 
 		servers = append(servers, server)

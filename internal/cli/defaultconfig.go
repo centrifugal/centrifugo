@@ -95,7 +95,7 @@ func defaultConfig(configFile string, baseFile string, dryRun bool) {
 		return
 	}
 
-	err = os.WriteFile(configFile, b, 0644)
+	err = os.WriteFile(configFile, b, 0600)
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		os.Exit(1)

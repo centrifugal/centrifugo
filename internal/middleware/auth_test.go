@@ -41,6 +41,7 @@ func TestAPIKeyAuthXAPIKey(t *testing.T) {
 	res, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	require.Equal(t, res.StatusCode, http.StatusOK)
+	_ = res.Body.Close()
 
 	req, err = http.NewRequest("POST", ts.URL, nil)
 	require.NoError(t, err)
@@ -48,6 +49,7 @@ func TestAPIKeyAuthXAPIKey(t *testing.T) {
 	res, err = http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	require.Equal(t, res.StatusCode, http.StatusOK)
+	_ = res.Body.Close()
 }
 
 func TestAPIKeyAuthAuthorizationHeader(t *testing.T) {
@@ -60,6 +62,7 @@ func TestAPIKeyAuthAuthorizationHeader(t *testing.T) {
 	res, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	require.Equal(t, res.StatusCode, http.StatusUnauthorized)
+	_ = res.Body.Close()
 
 	req, err = http.NewRequest("POST", ts.URL, nil)
 	require.NoError(t, err)
@@ -67,6 +70,7 @@ func TestAPIKeyAuthAuthorizationHeader(t *testing.T) {
 	res, err = http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	require.Equal(t, res.StatusCode, http.StatusUnauthorized)
+	_ = res.Body.Close()
 
 	req, err = http.NewRequest("POST", ts.URL, nil)
 	require.NoError(t, err)
@@ -74,6 +78,7 @@ func TestAPIKeyAuthAuthorizationHeader(t *testing.T) {
 	res, err = http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	require.Equal(t, res.StatusCode, http.StatusUnauthorized)
+	_ = res.Body.Close()
 
 	req, err = http.NewRequest("POST", ts.URL, nil)
 	require.NoError(t, err)
@@ -81,6 +86,7 @@ func TestAPIKeyAuthAuthorizationHeader(t *testing.T) {
 	res, err = http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	require.Equal(t, res.StatusCode, http.StatusOK)
+	_ = res.Body.Close()
 }
 
 func TestAPIKeyAuthQueryParam(t *testing.T) {
@@ -90,8 +96,10 @@ func TestAPIKeyAuthQueryParam(t *testing.T) {
 	res, err := http.Post(ts.URL+"?api_key=t", "application/json", nil)
 	require.NoError(t, err)
 	require.Equal(t, res.StatusCode, http.StatusUnauthorized)
+	_ = res.Body.Close()
 
 	res, err = http.Post(ts.URL+"?api_key=test", "application/json", nil)
 	require.NoError(t, err)
 	require.Equal(t, res.StatusCode, http.StatusOK)
+	_ = res.Body.Close()
 }

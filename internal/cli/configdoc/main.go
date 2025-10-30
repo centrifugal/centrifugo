@@ -325,5 +325,5 @@ func CreateJSONDocumentationWithComments(cfg interface{}, packageDirs []string, 
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 
-	return os.WriteFile(outputPath, jsonBytes, 0644)
+	return os.WriteFile(outputPath, jsonBytes, 0600)
 }

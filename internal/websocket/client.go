@@ -377,7 +377,9 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 
 func cloneTLSConfig(cfg *tls.Config) *tls.Config {
 	if cfg == nil {
-		return &tls.Config{}
+		return &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		}
 	}
 	return cfg.Clone()
 }

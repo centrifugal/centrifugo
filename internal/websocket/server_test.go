@@ -46,7 +46,7 @@ var isWebSocketUpgradeTests = []struct {
 }{
 	{false, http.Header{"Upgrade": {"websocket"}}},
 	{false, http.Header{"Connection": {"upgrade"}}},
-	{true, http.Header{"Connection": {"upgrade"}, "Upgrade": {"WebSocket"}}},
+	{true, http.Header{"Connection": {"upgRade"}, "Upgrade": {"WebSocket"}}},
 }
 
 func TestIsWebSocketUpgrade(t *testing.T) {
@@ -139,15 +139,18 @@ func TestBufioReuse(t *testing.T) {
 		resp := &reuseTestResponseWriter{
 			brw: bufio.NewReadWriter(br, bw),
 		}
+
+		request, err := http.NewRequest(http.MethodGet, "http://example.com", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		request.Header.Set("Upgrade", "websocket")
+		request.Header.Set("Connection", "upgrade")
+		request.Header.Set("Sec-Websocket-Key", "dGhlIHNhbXBsZSBub25jZQ==")
+		request.Header.Set("Sec-Websocket-Version", "13")
+
 		upgrader := Upgrader{}
-		c, _, err := upgrader.Upgrade(resp, &http.Request{
-			Method: http.MethodGet,
-			Header: http.Header{
-				"Upgrade":               []string{"websocket"},
-				"Connection":            []string{"upgrade"},
-				"Sec-Websocket-Key":     []string{"dGhlIHNhbXBsZSBub25jZQ=="},
-				"Sec-Websocket-Version": []string{"13"},
-			}}, nil)
+		c, _, err := upgrader.Upgrade(resp, request, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -217,7 +220,7 @@ func BenchmarkUpgradeSubprotocol(b *testing.B) {
 	req.Header.Add("Sec-Websocket-Version", "13")
 	req.Header.Add("Sec-WebSocket-Protocol", "centrifuge-protobuf")
 
-	// Mock connection and buffer to fulfill the Hijack requirement
+	// Mock connection and buffer to fulfill the Hijack requirement.
 	conn := newMockConn()
 	buf := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 
@@ -228,9 +231,6 @@ func BenchmarkUpgradeSubprotocol(b *testing.B) {
 			return conn, buf, nil
 		},
 	}
-
-	//// Create a response recorder
-	//w := httptest.NewRecorder()
 
 	// Initialize the Upgrader
 	upgrader := &Upgrader{

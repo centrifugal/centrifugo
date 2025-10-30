@@ -4,6 +4,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/tools"
+
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
 	"github.com/quic-go/webtransport-go"
@@ -19,15 +21,17 @@ type webtransportTransport struct {
 	stream         *webtransport.Stream
 	pingPongConfig centrifuge.PingPongConfig
 	closed         bool
+	protoMajor     int
 }
 
-func newWebtransportTransport(protoType centrifuge.ProtocolType, session *webtransport.Session, stream *webtransport.Stream, pingPongConfig centrifuge.PingPongConfig) *webtransportTransport {
+func newWebtransportTransport(protoType centrifuge.ProtocolType, session *webtransport.Session, stream *webtransport.Stream, pingPongConfig centrifuge.PingPongConfig, protoMajor int) *webtransportTransport {
 	return &webtransportTransport{
 		protoType:      protoType,
 		closeCh:        make(chan struct{}),
 		session:        session,
 		stream:         stream,
 		pingPongConfig: pingPongConfig,
+		protoMajor:     protoMajor,
 	}
 }
 
@@ -64,6 +68,11 @@ func (t *webtransportTransport) Emulation() bool {
 // PingPongConfig ...
 func (t *webtransportTransport) PingPongConfig() centrifuge.PingPongConfig {
 	return t.pingPongConfig
+}
+
+// AcceptProtocol ...
+func (t *webtransportTransport) AcceptProtocol() string {
+	return tools.GetAcceptProtocolLabel(t.protoMajor)
 }
 
 const writeTimeout = 1 * time.Second

@@ -31,7 +31,7 @@ func Serve() *cobra.Command {
 func serve(serveAddr string, servePort int, serveDir string) {
 	address := net.JoinHostPort(serveAddr, strconv.Itoa(servePort))
 	fmt.Printf("start serving %s on %s\n", serveDir, address)
-	if err := http.ListenAndServe(address, http.FileServer(http.Dir(serveDir))); err != nil {
+	if err := http.ListenAndServe(address, http.FileServer(http.Dir(serveDir))); err != nil { //nolint:gosec // Only for development use.
 		fmt.Println(err)
 		os.Exit(1)
 	}

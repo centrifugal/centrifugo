@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/tools"
 	"github.com/centrifugal/centrifugo/v6/internal/websocket"
 
 	"github.com/centrifugal/centrifuge"
@@ -30,6 +31,7 @@ type websocketTransportOptions struct {
 	compressionMinSize int
 	pingPongConfig     centrifuge.PingPongConfig
 	joinMessages       bool
+	protoMajor         int
 }
 
 func newWebsocketTransport(conn *websocket.Conn, opts websocketTransportOptions, graceCh chan struct{}) *websocketTransport {
@@ -112,6 +114,11 @@ func (t *websocketTransport) Emulation() bool {
 	return false
 }
 
+// AcceptProtocol ...
+func (t *websocketTransport) AcceptProtocol() string {
+	return tools.GetAcceptProtocolLabel(t.opts.protoMajor)
+}
+
 func (t *websocketTransport) writeData(data []byte) error {
 	if t.opts.compressionMinSize > 0 {
 		t.conn.EnableWriteCompression(len(data) > t.opts.compressionMinSize)
@@ -132,6 +139,18 @@ func (t *websocketTransport) writeData(data []byte) error {
 	}
 	if t.opts.writeTimeout > 0 {
 		_ = t.conn.SetWriteDeadline(time.Time{})
+		if t.opts.protoMajor > 1 {
+			// For HTTP/2 connections, we need to actually clear the deadline on the underlying
+			// connection. The websocket Conn.SetWriteDeadline only sets a field, but doesn't
+			// clear the deadline that was already set on the underlying net.Conn during write.
+			// This is critical for HTTP/2 ResponseController where expired deadlines cannot be
+			// extended and will cause the stream to fail permanently.
+			err = t.conn.NetConn().SetWriteDeadline(time.Time{})
+			if err != nil {
+				t.writeMu.Unlock()
+				return err
+			}
+		}
 	}
 	t.writeMu.Unlock()
 

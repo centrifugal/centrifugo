@@ -31,6 +31,14 @@ type HTTPServer struct {
 	InternalTLS TLSConfig `mapstructure:"internal_tls" json:"internal_tls" envconfig:"internal_tls" toml:"internal_tls" yaml:"internal_tls"`
 	// HTTP3 allows enabling HTTP/3 support. EXPERIMENTAL.
 	HTTP3 HTTP3 `mapstructure:"http3" json:"http3" envconfig:"http3" toml:"http3" yaml:"http3"`
+	// H2CExternal allows enabling HTTP/2 CLEARTEXT for external HTTP endpoints. Note, that to enable this option
+	// custom separate InternalPort must be used.
+	H2CExternal bool `mapstructure:"h2c_external" json:"h2c_external" envconfig:"h2c_external" toml:"h2c_external" yaml:"h2c_external"`
+	// ExternalHTTP2ExtendedConnect enables HTTP/2 Extended CONNECT support for HTTP server.
+	// Commented for now because Go only has global toggle using GODEBUG=http2xconnect=1.
+	// But ideally we would like per-server setting in the future. See https://github.com/golang/go/issues/53208.
+	// Per endpoint is not possible because ALPN happens before routing.
+	// ExternalHTTP2ExtendedConnect bool `mapstructure:"external_http2_extended_connect" json:"external_http2_extended_connect" envconfig:"external_http2_extended_connect" yaml:"external_http2_extended_connect" toml:"external_http2_extended_connect"`
 }
 
 // Log configuration.
@@ -68,16 +76,17 @@ type HTTP3 struct {
 
 // WebSocket client real-time transport configuration.
 type WebSocket struct {
-	Disabled           bool     `mapstructure:"disabled" json:"disabled" envconfig:"disabled" yaml:"disabled" toml:"disabled"`
-	HandlerPrefix      string   `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/websocket" yaml:"handler_prefix" toml:"handler_prefix"`
-	Compression        bool     `mapstructure:"compression" json:"compression" envconfig:"compression" yaml:"compression" toml:"compression"`
-	CompressionMinSize int      `mapstructure:"compression_min_size" json:"compression_min_size" envconfig:"compression_min_size" yaml:"compression_min_size" toml:"compression_min_size"`
-	CompressionLevel   int      `mapstructure:"compression_level" json:"compression_level" envconfig:"compression_level" default:"1" yaml:"compression_level" toml:"compression_level"`
-	ReadBufferSize     int      `mapstructure:"read_buffer_size" json:"read_buffer_size" envconfig:"read_buffer_size" yaml:"read_buffer_size" toml:"read_buffer_size"`
-	UseWriteBufferPool bool     `mapstructure:"use_write_buffer_pool" json:"use_write_buffer_pool" envconfig:"use_write_buffer_pool" yaml:"use_write_buffer_pool" toml:"use_write_buffer_pool"`
-	WriteBufferSize    int      `mapstructure:"write_buffer_size" json:"write_buffer_size" envconfig:"write_buffer_size" yaml:"write_buffer_size" toml:"write_buffer_size"`
-	WriteTimeout       Duration `mapstructure:"write_timeout" json:"write_timeout" envconfig:"write_timeout" default:"1000ms" yaml:"write_timeout" toml:"write_timeout"`
-	MessageSizeLimit   int      `mapstructure:"message_size_limit" json:"message_size_limit" envconfig:"message_size_limit" default:"65536" yaml:"message_size_limit" toml:"message_size_limit"`
+	Disabled            bool     `mapstructure:"disabled" json:"disabled" envconfig:"disabled" yaml:"disabled" toml:"disabled"`
+	HandlerPrefix       string   `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/websocket" yaml:"handler_prefix" toml:"handler_prefix"`
+	Compression         bool     `mapstructure:"compression" json:"compression" envconfig:"compression" yaml:"compression" toml:"compression"`
+	CompressionMinSize  int      `mapstructure:"compression_min_size" json:"compression_min_size" envconfig:"compression_min_size" yaml:"compression_min_size" toml:"compression_min_size"`
+	CompressionLevel    int      `mapstructure:"compression_level" json:"compression_level" envconfig:"compression_level" default:"1" yaml:"compression_level" toml:"compression_level"`
+	ReadBufferSize      int      `mapstructure:"read_buffer_size" json:"read_buffer_size" envconfig:"read_buffer_size" yaml:"read_buffer_size" toml:"read_buffer_size"`
+	UseWriteBufferPool  bool     `mapstructure:"use_write_buffer_pool" json:"use_write_buffer_pool" envconfig:"use_write_buffer_pool" yaml:"use_write_buffer_pool" toml:"use_write_buffer_pool"`
+	WriteBufferSize     int      `mapstructure:"write_buffer_size" json:"write_buffer_size" envconfig:"write_buffer_size" yaml:"write_buffer_size" toml:"write_buffer_size"`
+	WriteTimeout        Duration `mapstructure:"write_timeout" json:"write_timeout" envconfig:"write_timeout" default:"1000ms" yaml:"write_timeout" toml:"write_timeout"`
+	MessageSizeLimit    int      `mapstructure:"message_size_limit" json:"message_size_limit" envconfig:"message_size_limit" default:"65536" yaml:"message_size_limit" toml:"message_size_limit"`
+	DisableHTTP1Upgrade bool     `mapstructure:"disable_http1_upgrade" json:"disable_http1_upgrade" envconfig:"disable_http1_upgrade" yaml:"disable_http1_upgrade" toml:"disable_http1_upgrade"`
 }
 
 // SSE client real-time transport configuration.
@@ -136,6 +145,11 @@ type UniSSE struct {
 	HandlerPrefix             string                    `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/uni_sse" yaml:"handler_prefix" toml:"handler_prefix"`
 	MaxRequestBodySize        int                       `mapstructure:"max_request_body_size" json:"max_request_body_size" envconfig:"max_request_body_size" default:"65536" yaml:"max_request_body_size" toml:"max_request_body_size"`
 	ConnectCodeToHTTPResponse ConnectCodeToHTTPResponse `mapstructure:"connect_code_to_http_response" json:"connect_code_to_http_response" envconfig:"connect_code_to_http_response" yaml:"connect_code_to_http_response" toml:"connect_code_to_http_response"`
+}
+
+type ConnInit struct {
+	Enabled       bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	HandlerPrefix string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/connection/init" yaml:"handler_prefix" toml:"handler_prefix"`
 }
 
 type ConnectCodeToHTTPResponseTransforms []ConnectCodeToHTTPResponseTransform
@@ -313,6 +327,11 @@ type Swagger struct {
 type Debug struct {
 	Enabled       bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	HandlerPrefix string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/debug/pprof" yaml:"handler_prefix" toml:"handler_prefix"`
+}
+
+type Dev struct {
+	Enabled       bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	HandlerPrefix string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/dev" yaml:"handler_prefix" toml:"handler_prefix"`
 }
 
 type Shutdown struct {

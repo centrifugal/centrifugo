@@ -5,6 +5,7 @@ import (
 	stdlog "log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 
@@ -41,9 +42,12 @@ func GetTLSConfig(cfg config.Config) (*tls.Config, error) {
 			startHTTPChallengeServerOnce.Do(func() {
 				// getTLSConfig can be called several times.
 				acmeHTTPServer := &http.Server{
-					Handler:  certManager.HTTPHandler(nil),
-					Addr:     tlsAutocertHTTPAddr,
-					ErrorLog: stdlog.New(&httpErrorLogWriter{log.Logger}, "", 0),
+					Handler:           certManager.HTTPHandler(nil),
+					Addr:              tlsAutocertHTTPAddr,
+					ErrorLog:          stdlog.New(&httpErrorLogWriter{log.Logger}, "", 0),
+					ReadHeaderTimeout: 10 * time.Second,
+					ReadTimeout:       30 * time.Second,
+					WriteTimeout:      10 * time.Second,
 				}
 				go func() {
 					log.Info().Msgf("serving ACME http_01 challenge on %s", tlsAutocertHTTPAddr)
@@ -55,6 +59,7 @@ func GetTLSConfig(cfg config.Config) (*tls.Config, error) {
 		}
 
 		return &tls.Config{
+			MinVersion: tls.VersionTLS12,
 			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 				// See https://github.com/centrifugal/centrifugo/issues/144#issuecomment-279393819
 				if tlsAutocertServerName != "" && hello.ServerName == "" {

@@ -118,6 +118,7 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			compressionMinSize: compressionMinSize,
 			pingPongConfig:     s.pingPong,
 			joinMessages:       s.config.JoinPushMessages,
+			protoMajor:         r.ProtoMajor,
 		}
 
 		graceCh := make(chan struct{})

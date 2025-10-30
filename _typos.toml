@@ -34,7 +34,8 @@ extend-exclude = [
     "*.mod",
     ".git/",
     "*.pb.go",
-    "*.proto"
+    "*.proto",
+    "*_test.go",
 ]
 
 [type.pem]

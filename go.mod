@@ -1,6 +1,6 @@
 module github.com/centrifugal/centrifugo/v6
 
-go 1.24.0
+go 1.25.0
 
 require (
 	cloud.google.com/go/pubsub/v2 v2.2.1
@@ -14,7 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.9
 	github.com/aws/aws-sdk-go-v2/service/sts v1.38.7
 	github.com/aws/smithy-go v1.23.1
-	github.com/centrifugal/centrifuge v0.37.3-0.20251013190827-c2caf7f4ef0d
+	github.com/centrifugal/centrifuge v0.37.3-0.20251029054516-d9764210a9a8
 	github.com/centrifugal/protocol v0.17.0
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.4.0
@@ -140,7 +140,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.7.1 // indirect
 	golang.org/x/mod v0.28.0 // indirect
-	golang.org/x/net v0.45.0 // indirect
+	golang.org/x/net v0.45.0
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
 	golang.org/x/tools v0.37.0 // indirect

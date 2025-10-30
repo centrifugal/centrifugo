@@ -52,7 +52,9 @@ type StatFileFunc func(name string) (os.FileInfo, error)
 
 // makeTLSConfig constructs a tls.Config instance using the given configuration.
 func makeTLSConfig(cfg TLSConfig, logger zerolog.Logger, readFile ReadFileFunc, statFile StatFileFunc) (*tls.Config, error) {
-	tlsConfig := &tls.Config{}
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
 	if err := loadCertificate(cfg, logger, tlsConfig, readFile, statFile); err != nil {
 		return nil, fmt.Errorf("error load certificate: %w", err)
 	}

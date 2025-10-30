@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Centrifugo Development Page</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      max-width: 1024px;
+      margin: 30px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background: white;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      margin-top: 0;
+      color: #333;
+    }
+    .status {
+      padding: 15px;
+      border-radius: 4px 4px 0 0;
+      margin: 0 0;
+      font-weight: 500;
+    }
+    .status.connected {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status.connecting {
+      background-color: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    .status.disconnected {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .log {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 0 0 4px 4px;
+      padding: 15px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-size: 12px;
+    }
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px;
+      border-left: 3px solid #007bff;
+      padding-left: 10px;
+    }
+    .log-entry.error {
+      border-left-color: #dc3545;
+      color: #dc3545;
+    }
+    .muted {
+      color: #6c757d;
+      font-size: 11px;
+    }
+  </style>
+  <script type="text/javascript" src="https://unpkg.com/centrifuge@5/dist/centrifuge.js"></script>
+  <script type="text/javascript">
+    window.addEventListener('load', function () {
+      const statusEl = document.getElementById('status');
+      const logEl = document.getElementById('log');
+
+      function updateStatus(text, state) {
+        statusEl.textContent = text;
+        statusEl.className = `status ${state}`;
+      }
+
+      function log(message, isError) {
+        const entry = document.createElement('div');
+        entry.className = `log-entry${isError ? ' error' : ''}`;
+        const timestamp = new Date().toLocaleTimeString();
+        entry.innerHTML = `<span class="muted">[${timestamp}]</span> ${message}`;
+        logEl.insertBefore(entry, logEl.firstChild);
+      }
+
+      // Detect protocol and construct transport endpoints
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const httpProtocol = window.location.protocol;
+      const host = window.location.host;
+
+      const transports = [
+        {
+          'transport': 'websocket',
+          'endpoint': `${wsProtocol}//${host}/connection/websocket`
+        },
+        {
+          'transport': 'http_stream',
+          'endpoint': `${httpProtocol}//${host}/connection/http_stream`
+        },
+        {
+          'transport': 'sse',
+          'endpoint': `${httpProtocol}//${host}/connection/sse`
+        }
+      ];
+
+      log('Initializing connection with transports: websocket, http_stream, sse');
+
+      const CHANNEL = 'dev';
+
+      function getConnectionToken(ctx) {
+        return fetch('/dev/connection_token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+          .then(res => {
+            if (!res.ok) {
+              throw new Error('Failed to get connection token');
+            }
+            return res.json();
+          })
+          .then(data => {
+            log('Received connection token');
+            return data.token;
+          })
+          .catch(err => {
+            log(`Error getting connection token: ${err.message}`, true);
+            throw err;
+          });
+      }
+
+      function getSubscriptionToken(ctx) {
+        return fetch('/dev/subscription_token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel: ctx.channel })
+        })
+          .then(res => {
+            if (!res.ok) {
+              throw new Error('Failed to get subscription token');
+            }
+            return res.json();
+          })
+          .then(data => {
+            log(`Received subscription token for channel: ${ctx.channel}`);
+            return data.token;
+          })
+          .catch(err => {
+            log(`Error getting subscription token: ${err.message}`, true);
+            throw err;
+          });
+      }
+
+      const centrifuge = new Centrifuge(transports, {
+        debug: true,
+        getToken: getConnectionToken,
+        // Workaround to reliably use HTTP/2 Extended CONNECT in Chrome upon reconnections
+        // (when no HTTP/2 connection in pool exists Chrome selects HTTP/1.1 for WebSocket).
+        getData: function () {
+          return fetch(`${httpProtocol}//${host}/connection/init`, {method: 'GET'}).then(function() {
+            return null;
+          });
+        }
+      });
+
+      centrifuge.on('connecting', function (ctx) {
+        updateStatus('Connecting to server...', 'connecting');
+        log(`Connecting: ${ctx.reason}`);
+      });
+
+      centrifuge.on('connected', function (ctx) {
+        updateStatus(`Connected (Client ID: ${ctx.client}, Transport: ${ctx.transport})`, 'connected');
+        log(`Connected: ${JSON.stringify(ctx)}`);
+      });
+
+      centrifuge.on('disconnected', function (ctx) {
+        updateStatus('Disconnected', 'disconnected');
+        log(`Disconnected: ${ctx.reason}${ctx.reconnect ? ', will try to reconnect' : ', will not reconnect'}`);
+      });
+
+      centrifuge.on('error', function (ctx) {
+        log(`Error: ${JSON.stringify(ctx)}`, true);
+      });
+
+      // Subscribe to channel
+      const sub = centrifuge.newSubscription(CHANNEL, {
+        getToken: getSubscriptionToken
+      });
+
+      sub.on('publication', function (ctx) {
+        log(`Publication received: ${JSON.stringify(ctx)}`);
+      });
+
+      sub.on('subscribed', function (ctx) {
+        log(`Subscribed to channel: ${JSON.stringify(ctx)}`);
+      });
+
+      sub.on('subscribing', function (ctx) {
+        log(`Subscribing to channel "${CHANNEL}": ${ctx.reason}`);
+      });
+
+      sub.on('unsubscribed', function (ctx) {
+        log(`Unsubscribed from channel "${CHANNEL}": ${ctx.reason}`);
+      });
+
+      sub.on('error', function (ctx) {
+        log(`Subscription error in channel "${CHANNEL}": ${JSON.stringify(ctx)}`, true);
+      });
+
+      sub.subscribe();
+
+      log('Starting connection...');
+      centrifuge.connect();
+    });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div id="status" class="status connecting">Initializing...</div>
+    <div id="log" class="log"></div>
+  </div>
+</body>
+</html>

@@ -65,7 +65,7 @@ func configDoc(port int, mdOutput bool, section string, baseLevel int) {
 	}()
 
 	http.HandleFunc("/", makeMarkdownHandler(mdContent))
-	if err := http.ListenAndServe(":"+strconv.Itoa(port), nil); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	if err := http.ListenAndServe(":"+strconv.Itoa(port), nil); err != nil && !errors.Is(err, http.ErrServerClosed) { //nolint:gosec // Only for development use.
 		fmt.Println("Failed to start server:", err)
 		os.Exit(1)
 	}
