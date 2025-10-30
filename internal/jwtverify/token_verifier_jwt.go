@@ -425,26 +425,17 @@ func (verifier *VerifierJWT) verifySignatureByJWK(token *jwt.Token, tokenVars ma
 	return verifier.jwksManager.verify(token, tokenVars)
 }
 
-func (verifier *VerifierJWT) validateAudienceAndIssuer(audience []string, issuer string, tokenVars map[string]any) error {
-	if verifier.audience != "" {
-		matched := false
-		for _, aud := range audience {
-			if aud == verifier.audience {
-				matched = true
-				break
-			}
-		}
-		if !matched {
-			return fmt.Errorf("%w: invalid audience", ErrInvalidToken)
-		}
+func (verifier *VerifierJWT) validateClaims(claims jwt.RegisteredClaims, tokenVars map[string]any) error {
+	if verifier.audience != "" && !claims.IsForAudience(verifier.audience) {
+		return fmt.Errorf("%w: invalid audience", ErrInvalidToken)
 	}
 
-	if verifier.issuer != "" && issuer != verifier.issuer {
+	if verifier.issuer != "" && !claims.IsIssuer(verifier.issuer) {
 		return fmt.Errorf("%w: invalid issuer", ErrInvalidToken)
 	}
 
 	if verifier.issuerRe != nil {
-		match := verifier.issuerRe.FindStringSubmatch(issuer)
+		match := verifier.issuerRe.FindStringSubmatch(claims.Issuer)
 		if len(match) == 0 {
 			return fmt.Errorf("%w: issuer not matched", ErrInvalidToken)
 		}
@@ -457,7 +448,7 @@ func (verifier *VerifierJWT) validateAudienceAndIssuer(audience []string, issuer
 
 	if verifier.audienceRe != nil {
 		matched := false
-		for _, aud := range audience {
+		for _, aud := range claims.Audience {
 			match := verifier.audienceRe.FindStringSubmatch(aud)
 			if len(match) == 0 {
 				continue
@@ -491,7 +482,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 
 	tokenVars := map[string]any{}
 
-	if err := verifier.validateAudienceAndIssuer(claims.Audience, claims.Issuer, tokenVars); err != nil {
+	if err := verifier.validateClaims(claims.RegisteredClaims, tokenVars); err != nil {
 		return ConnectToken{}, err
 	}
 
@@ -657,7 +648,7 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 
 	tokenVars := map[string]any{}
 
-	if err := verifier.validateAudienceAndIssuer(claims.Audience, claims.Issuer, tokenVars); err != nil {
+	if err := verifier.validateClaims(claims.RegisteredClaims, tokenVars); err != nil {
 		return SubscribeToken{}, err
 	}
 
