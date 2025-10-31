@@ -42,41 +42,18 @@ func expandEnvVars(m map[string]string) error {
 }
 
 func (s *MapStringString) Decode(value string) error {
-	// Try decoding as map[string]string (old behavior).
 	var m map[string]string
-	if err := json.Unmarshal([]byte(value), &m); err == nil {
-		if err := expandEnvVars(m); err != nil {
-			return err
-		}
-		*s = m
-		return nil
-	}
-
-	// If that fails, try decoding as slice of key/value objects.
-	var kvList []struct {
-		Key   string `json:"key"`
-		Value string `json:"value"`
-	}
-	if err := json.Unmarshal([]byte(value), &kvList); err != nil {
-		return fmt.Errorf("cannot decode MapStringString: %w", err)
-	}
-
-	m2 := make(map[string]string)
-	for i, kv := range kvList {
-		if kv.Key == "" {
-			return fmt.Errorf("empty key at element %d", i)
-		}
-		if _, exists := m2[kv.Key]; exists {
-			return fmt.Errorf("duplicate key %q at element %d", kv.Key, i)
-		}
-		m2[kv.Key] = kv.Value
-	}
-
-	if err := expandEnvVars(m2); err != nil {
+	err := json.Unmarshal([]byte(value), &m)
+	if err != nil {
 		return err
 	}
 
-	*s = m2
+	err = expandEnvVars(m)
+	if err != nil {
+		return err
+	}
+
+	*s = m
 	return nil
 }
 
