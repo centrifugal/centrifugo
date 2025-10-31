@@ -48,6 +48,10 @@ ping_interval = "12s"
 [client.proxy.connect.http.static_headers]
 x = "y"
 
+[[client.proxy.refresh.http.static_headers]]
+key = "X"
+value = "y"
+
 [channel.without_namespace]
 presence = true
 

@@ -37,6 +37,8 @@ func checkConfig(t *testing.T, conf Config) {
 	require.Equal(t, "redis", conf.Engine.Type)
 	require.Equal(t, 30*time.Second, time.Duration(conf.Engine.Redis.PresenceTTL))
 	require.Equal(t, []string{"redis:6379"}, conf.Engine.Redis.Address)
+	require.Equal(t, configtypes.MapStringString(map[string]string{"x": "y"}), conf.Client.Proxy.Connect.HTTP.StaticHeaders)
+	require.Equal(t, configtypes.MapStringString(map[string]string{"X": "y"}), conf.Client.Proxy.Refresh.HTTP.StaticHeaders)
 }
 
 func TestConfigJSON(t *testing.T) {

@@ -22,8 +22,18 @@
       "connect": {
         "http": {
           "static_headers": {
-            "x": "y"
+            "X": "y"
           }
+        }
+      },
+      "refresh": {
+        "http": {
+          "static_headers": [
+            {
+              "key": "X",
+              "value": "y"
+            }
+          ]
         }
       }
     }

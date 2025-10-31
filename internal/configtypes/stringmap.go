@@ -14,10 +14,7 @@ type MapStringString map[string]string
 
 var customEnvVarRegex = regexp.MustCompile(`\$\{(CENTRIFUGO_VAR_[^}]+)}`)
 
-// expandEnvVars expands CENTRIFUGO_VAR_ environment variables in a map[string]string.
 func expandEnvVars(m map[string]string) error {
-	// Expand only CENTRIFUGO_VAR_ environment variables in values.
-	// This regex specifically matches ${CENTRIFUGO_VAR_*} patterns only.
 	for key, val := range m {
 		// First check if all CENTRIFUGO_VAR_ environment variables exist.
 		matches := customEnvVarRegex.FindAllStringSubmatch(val, -1)
@@ -34,8 +31,11 @@ func expandEnvVars(m map[string]string) error {
 
 		// If all variables exist, do the replacement.
 		m[key] = customEnvVarRegex.ReplaceAllStringFunc(val, func(match string) string {
-			envVar := match[2 : len(match)-1] // Remove ${ and }.
-			return os.Getenv(envVar)
+			submatches := customEnvVarRegex.FindStringSubmatch(match)
+			if len(submatches) > 1 {
+				return os.Getenv(submatches[1])
+			}
+			return match // Fallback, shouldn't happen.
 		})
 	}
 	return nil
@@ -57,42 +57,61 @@ func (s *MapStringString) Decode(value string) error {
 	return nil
 }
 
-// StringToMapStringStringHookFunc for mapstructure to decode MapStringString from map[string]any.
 func StringToMapStringStringHookFunc() mapstructure.DecodeHookFunc {
-	return func(
-		f reflect.Type,
-		t reflect.Type,
-		data any,
-	) (any, error) {
-		// Only handle map[string]any -> MapStringString conversion.
-		if f.Kind() != reflect.Map {
-			return data, nil
-		}
+	return func(f reflect.Type, t reflect.Type, data any) (any, error) {
 		if t != reflect.TypeOf(MapStringString{}) {
 			return data, nil
 		}
 
-		// Convert map[string]any to map[string]string.
-		sourceMap, ok := data.(map[string]any)
-		if !ok {
-			return data, nil
-		}
+		switch v := data.(type) {
 
-		m := make(map[string]string)
-		for key, value := range sourceMap {
-			strValue, ok := value.(string)
-			if !ok {
-				return data, fmt.Errorf("expected value for key %q to be a string, got %T", key, value)
+		// Old behavior: map[string]any – it's case-insensitive, and does not support dot (key delimiter in Viper) in the key.
+		case map[string]any:
+			m := make(map[string]string)
+			for key, value := range v {
+				strValue, ok := value.(string)
+				if !ok {
+					return nil, fmt.Errorf("expected string value for key %q, got %T", key, value)
+				}
+				m[key] = strValue
 			}
-			m[key] = strValue
-		}
+			if err := expandEnvVars(m); err != nil {
+				return nil, err
+			}
+			return MapStringString(m), nil
 
-		// Expand environment variables.
-		err := expandEnvVars(m)
-		if err != nil {
-			return nil, err
-		}
+		// Slice of key/value objects is the recommended way to define maps now.
+		case []any:
+			m := make(map[string]string)
+			for i, item := range v {
+				kvMap, ok := item.(map[string]any)
+				if !ok {
+					return nil, fmt.Errorf("expected map for element %d, got %T", i, item)
+				}
 
-		return MapStringString(m), nil
+				keyI, ok := kvMap["key"].(string)
+				if !ok {
+					return nil, fmt.Errorf("missing or invalid key in element %d", i)
+				}
+
+				if _, exists := m[keyI]; exists {
+					return nil, fmt.Errorf("duplicate key %q at element %d", keyI, i)
+				}
+
+				valI, ok := kvMap["value"].(string)
+				if !ok {
+					return nil, fmt.Errorf("missing or invalid value in element %d", i)
+				}
+
+				m[keyI] = valI
+			}
+			if err := expandEnvVars(m); err != nil {
+				return nil, err
+			}
+			return MapStringString(m), nil
+
+		default:
+			return nil, fmt.Errorf("unsupported type %T for MapStringString", data)
+		}
 	}
 }

@@ -172,17 +172,8 @@ func TestStringToMapStringStringHookFunc_WrongTypes(t *testing.T) {
 		data interface{},
 	) (interface{}, error))
 
-	// Test with non-map source type
-	result, err := hook(
-		reflect.TypeOf(123),               // from int
-		reflect.TypeOf(MapStringString{}), // to MapStringString
-		123,
-	)
-	require.NoError(t, err)
-	require.Equal(t, 123, result) // Should return data unchanged
-
 	// Test with wrong target type
-	result, err = hook(
+	result, err := hook(
 		reflect.TypeOf(map[string]interface{}{}), // from map[string]interface{}
 		reflect.TypeOf(map[string]string{}),      // to map[string]string (not MapStringString)
 		map[string]interface{}{"key": "value"},
@@ -194,7 +185,7 @@ func TestStringToMapStringStringHookFunc_WrongTypes(t *testing.T) {
 func TestStringToMapStringStringHookFunc(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    map[string]interface{}
+		input    any
 		envVars  map[string]string
 		expected MapStringString
 		wantErr  bool
@@ -204,6 +195,13 @@ func TestStringToMapStringStringHookFunc(t *testing.T) {
 			input:    map[string]interface{}{"key1": "value1", "key2": "value2"},
 			envVars:  map[string]string{},
 			expected: MapStringString{"key1": "value1", "key2": "value2"},
+			wantErr:  false,
+		},
+		{
+			name:     "basic key/value slice map conversion",
+			input:    []any{map[string]any{"key": "Key1", "value": "value1"}, map[string]any{"key": "Key2", "value": "value2"}},
+			envVars:  map[string]string{},
+			expected: MapStringString{"Key1": "value1", "Key2": "value2"},
 			wantErr:  false,
 		},
 		{
@@ -230,6 +228,12 @@ func TestStringToMapStringStringHookFunc(t *testing.T) {
 		{
 			name:    "non-string value in map",
 			input:   map[string]interface{}{"key1": "value1", "key2": 123},
+			envVars: map[string]string{},
+			wantErr: true,
+		},
+		{
+			name:    "non-unique value in map",
+			input:   []any{map[string]any{"key": "key1", "value": "value1"}, map[string]any{"key": "key1", "value": "value2"}},
 			envVars: map[string]string{},
 			wantErr: true,
 		},
