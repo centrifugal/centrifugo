@@ -45,6 +45,11 @@ client:
       http:
         static_headers:
           x: "y"
+    refresh:
+      http:
+        static_headers:
+          - key: X
+            value: y
 channel:
   without_namespace:
     presence: true
