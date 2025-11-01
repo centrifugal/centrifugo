@@ -9,7 +9,7 @@ import (
 )
 
 type StringKeyValue struct {
-	// Key is the key of the key/value pair. Can not be empty. Must be unique within a StringKeyValues list.
+	// Key is the key of the key/value pair. Must be unique within a StringKeyValues list.
 	Key string `mapstructure:"key" json:"key" envconfig:"key" yaml:"key" toml:"key"`
 	// Value is the value of the key/value pair.
 	Value string `mapstructure:"value" json:"value" envconfig:"value" yaml:"value" toml:"value"`
@@ -54,9 +54,6 @@ func (s *StringKeyValues) Decode(value string) error {
 	// Validate and apply env var expansion
 	m2 := make(map[string]string)
 	for i, kv := range kvList {
-		if kv.Key == "" {
-			return fmt.Errorf("empty key at element %d", i)
-		}
 		if _, exists := m2[kv.Key]; exists {
 			return fmt.Errorf("duplicate key %q at element %d", kv.Key, i)
 		}
