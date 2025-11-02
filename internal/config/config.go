@@ -91,7 +91,7 @@ type Config struct {
 	Swagger configtypes.Swagger `mapstructure:"swagger" json:"swagger" envconfig:"swagger" toml:"swagger" yaml:"swagger"`
 	// Debug helps to enable Go profiling endpoints.
 	Debug configtypes.Debug `mapstructure:"debug" json:"debug" envconfig:"debug" toml:"debug" yaml:"debug"`
-	// Dev is a configuration for development page with simple Centrifugo client connection test.
+	// Dev is a configuration for development page with simple Centrifugo client connection test. NODOC.
 	Dev configtypes.Dev `mapstructure:"dev" json:"dev" envconfig:"dev" toml:"dev" yaml:"dev"`
 	// Init is a configuration for connection initialization endpoint.
 	Init configtypes.ConnInit `mapstructure:"init" json:"init" envconfig:"init" toml:"init" yaml:"init"`

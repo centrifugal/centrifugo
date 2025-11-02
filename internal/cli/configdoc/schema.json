@@ -326,6 +326,16 @@
             "is_complex_type": false
           }
         ]
+      },
+      {
+        "field": "http_server.h2c_external",
+        "name": "h2c_external",
+        "go_name": "H2CExternal",
+        "level": 2,
+        "type": "bool",
+        "default": "",
+        "comment": "H2CExternal allows enabling HTTP/2 CLEARTEXT for external HTTP endpoints. Note, that to enable this option\ncustom separate InternalPort must be used.",
+        "is_complex_type": false
       }
     ]
   },
@@ -9580,6 +9590,38 @@
         "level": 2,
         "type": "string",
         "default": "/debug/pprof",
+        "comment": "",
+        "is_complex_type": false
+      }
+    ]
+  },
+  {
+    "field": "init",
+    "name": "init",
+    "go_name": "Init",
+    "level": 1,
+    "type": "ConnInit",
+    "default": "",
+    "comment": "Init is a configuration for connection initialization endpoint.",
+    "is_complex_type": true,
+    "children": [
+      {
+        "field": "init.enabled",
+        "name": "enabled",
+        "go_name": "Enabled",
+        "level": 2,
+        "type": "bool",
+        "default": "",
+        "comment": "",
+        "is_complex_type": false
+      },
+      {
+        "field": "init.handler_prefix",
+        "name": "handler_prefix",
+        "go_name": "HandlerPrefix",
+        "level": 2,
+        "type": "string",
+        "default": "/connection/init",
         "comment": "",
         "is_complex_type": false
       }
