@@ -347,7 +347,6 @@ func websocketHandlerConfig(appCfg config.Config) centrifuge.WebsocketConfig {
 	cfg.MessageSizeLimit = appCfg.WebSocket.MessageSizeLimit
 	cfg.CheckOrigin = getCheckOrigin(appCfg)
 	cfg.PingPongConfig = getPingPongConfig(appCfg)
-	cfg.DisableHTTP1Upgrade = appCfg.WebSocket.DisableHTTP1Upgrade
 	return cfg
 }
 

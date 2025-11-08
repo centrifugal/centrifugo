@@ -2,7 +2,7 @@ package usage
 
 import (
 	"bytes"
-	"crypto/md5" //nolint:gosec // Not used for security-sensitive purposes.
+	"crypto/sha256"
 	"fmt"
 	"sort"
 )
@@ -36,5 +36,6 @@ func (m *metric) SetId() {
 		buffer.WriteByte(0)
 		buffer.WriteString(k)
 	}
-	m.Id = fmt.Sprintf("%d.%x", m.OrgId, md5.Sum(buffer.Bytes())) //nolint:gosec // Not used for security-sensitive purposes.
+	hash := sha256.Sum256(buffer.Bytes())
+	m.Id = fmt.Sprintf("%d.%x", m.OrgId, hash[:16])
 }

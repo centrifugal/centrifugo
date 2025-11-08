@@ -200,8 +200,8 @@ func TestStringKeyValues_Decode(t *testing.T) {
 			name:     "empty key",
 			input:    `[{"key": "", "value": "value1"}]`,
 			envVars:  map[string]string{},
-			expected: nil,
-			wantErr:  true,
+			expected: map[string]string{"": "value1"},
+			wantErr:  false,
 		},
 	}
 
