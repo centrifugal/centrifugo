@@ -403,8 +403,8 @@ func (h *Handler) OnClientConnecting(
 
 			var channelOk bool
 
-			isUserLimited := h.cfgContainer.IsUserLimited(ch)
-			isPrivate := h.cfgContainer.IsPrivateChannel(ch)
+			isPrivateChannel := h.cfgContainer.IsPrivateChannel(ch)
+			isUserLimitedChannel := h.cfgContainer.IsUserLimited(ch) && chOpts.UserLimitedChannels
 
 			var userID string
 			if credentials != nil {
@@ -416,10 +416,12 @@ func (h *Handler) OnClientConnecting(
 				return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
 			}
 
-			if !isPrivate && !chOpts.SubscribeProxyEnabled && validChannelName {
-				if isUserLimited && chOpts.UserLimitedChannels && (userID != "" && h.cfgContainer.UserAllowed(ch, userID)) {
+			if !isPrivateChannel && !chOpts.SubscribeProxyEnabled && validChannelName {
+				if isUserLimitedChannel && (userID != "" && h.cfgContainer.UserAllowed(ch, userID)) {
 					channelOk = true
-				} else if chOpts.SubscribeForClient && (userID != "" || chOpts.SubscribeForAnonymous) {
+				} else if chOpts.SubscribeForClient && (userID != "" || chOpts.SubscribeForAnonymous) && !isUserLimitedChannel {
+					channelOk = true
+				} else if cfg.Client.Insecure {
 					channelOk = true
 				}
 			}
