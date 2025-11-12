@@ -3,6 +3,7 @@ package uniws
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -191,4 +192,80 @@ func TestUnidirectionalWebSocket(t *testing.T) {
 
 		require.True(t, pingReceived, "Expected to receive ping message")
 	})
+}
+
+func TestUnidirectionalWebSocket_CloseFrameSent(t *testing.T) {
+	t.Parallel()
+
+	// Create a custom node to trigger server-side disconnect.
+	testNode, err := centrifuge.New(centrifuge.Config{})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = testNode.Shutdown(context.Background()) })
+
+	testNode.OnConnecting(func(ctx context.Context, event centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+		return centrifuge.ConnectReply{
+			Credentials: &centrifuge.Credentials{},
+		}, nil
+	})
+
+	testNode.OnConnect(func(client *centrifuge.Client) {
+		client.Disconnect(centrifuge.DisconnectConnectionLimit)
+	})
+
+	testHandler := NewHandler(testNode, Config{}, func(r *http.Request) bool {
+		return true
+	}, centrifuge.PingPongConfig{})
+
+	testServer := httptest.NewServer(middleware.LogRequest(testHandler))
+	t.Cleanup(func() { testServer.Close() })
+
+	testWsURL := "ws" + strings.TrimPrefix(testServer.URL, "http")
+
+	// Wait for test server to start.
+	for {
+		resp, err := http.Get(testServer.URL)
+		if err != nil {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		_ = resp.Body.Close()
+		break
+	}
+
+	dialer := websocket.Dialer{}
+	conn, _, _, err := dialer.Dial(testWsURL, nil)
+	require.NoError(t, err)
+	defer func() { _ = conn.Close() }()
+
+	// Send connect request.
+	err = conn.WriteMessage(websocket.TextMessage, []byte(`{}`))
+	require.NoError(t, err)
+
+	// Read connect reply.
+	_, data, err := conn.ReadMessage()
+	require.NoError(t, err)
+	ensureMessageHasClient(t, data)
+
+	require.NoError(t, conn.SetReadDeadline(time.Now().Add(10*time.Second)))
+
+	// Read until connection is closed - server should send close frame.
+	var closeErr *websocket.CloseError
+	for {
+		_, _, err := conn.ReadMessage()
+		if err != nil {
+			t.Logf("ReadMessage error: %v", err)
+			closeErr = &websocket.CloseError{}
+			if ok := errors.As(err, &closeErr); ok {
+				t.Logf("Close frame received: code=%d, text=%s", closeErr.Code, closeErr.Text)
+				break
+			}
+			// Some other error occurred.
+			break
+		}
+	}
+
+	// Verify close frame was received with correct code and reason.
+	require.NotNil(t, closeErr, "Expected to receive close frame")
+	require.Equal(t, centrifuge.DisconnectConnectionLimit.Code, uint32(closeErr.Code))
+	require.Equal(t, centrifuge.DisconnectConnectionLimit.Reason, closeErr.Text)
 }

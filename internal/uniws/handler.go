@@ -112,13 +112,15 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	// Separate goroutine for better GC of caller's data.
 	go func() {
 		opts := websocketTransportOptions{
-			framePingInterval:  framePingInterval,
-			framePongTimeout:   framePongTimeout,
-			writeTimeout:       writeTimeout,
-			compressionMinSize: compressionMinSize,
-			pingPongConfig:     s.pingPong,
-			joinMessages:       s.config.JoinPushMessages,
-			protoMajor:         r.ProtoMajor,
+			framePingInterval:       framePingInterval,
+			framePongTimeout:        framePongTimeout,
+			writeTimeout:            writeTimeout,
+			compressionMinSize:      compressionMinSize,
+			pingPongConfig:          s.pingPong,
+			joinMessages:            s.config.JoinPushMessages,
+			protoMajor:              r.ProtoMajor,
+			disableClosingHandshake: s.config.DisableClosingHandshake,
+			disableDisconnectPush:   s.config.DisableDisconnectPush,
 		}
 
 		graceCh := make(chan struct{})
@@ -156,14 +158,45 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			return nil
 		})
 
+		waitClose := func() {
+			// https://github.com/gorilla/websocket/issues/448
+			conn.SetPingHandler(nil)
+			conn.SetPongHandler(nil)
+			if s.config.DisableClosingHandshake {
+				close(graceCh)
+				return
+			}
+			_ = conn.SetReadDeadline(time.Now().Add(closeFrameWait))
+			for {
+				if _, _, err := conn.NextReader(); err != nil {
+					close(graceCh)
+					return
+				}
+			}
+		}
+
 		if req == nil {
 			_, data, err := conn.ReadMessage()
 			if err != nil {
+				waitClose()
 				return
 			}
 			_, err = json.Parse(data, &req, json.ZeroCopy)
 			if err != nil {
 				log.Info().Err(err).Str("transport", transportName).Msg("error unmarshalling connect request")
+				if !s.config.DisableClosingHandshake {
+					err = conn.WriteControl(
+						websocket.CloseMessage,
+						websocket.FormatCloseMessage(
+							int(centrifuge.DisconnectBadRequest.Code),
+							centrifuge.DisconnectBadRequest.Reason,
+						),
+						time.Now().Add(writeTimeout))
+					if err != nil {
+						return
+					}
+				}
+				waitClose()
 				return
 			}
 		}
@@ -176,16 +209,6 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 				break
 			}
 		}
-
-		// https://github.com/gorilla/websocket/issues/448
-		conn.SetPingHandler(nil)
-		conn.SetPongHandler(nil)
-		_ = conn.SetReadDeadline(time.Now().Add(closeFrameWait))
-		for {
-			if _, _, err := conn.NextReader(); err != nil {
-				close(graceCh)
-				break
-			}
-		}
+		waitClose()
 	}()
 }
