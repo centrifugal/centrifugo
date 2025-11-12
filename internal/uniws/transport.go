@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/timers"
 	"github.com/centrifugal/centrifugo/v6/internal/tools"
 	"github.com/centrifugal/centrifugo/v6/internal/websocket"
 
@@ -25,13 +26,15 @@ type websocketTransport struct {
 }
 
 type websocketTransportOptions struct {
-	framePingInterval  time.Duration
-	framePongTimeout   time.Duration
-	writeTimeout       time.Duration
-	compressionMinSize int
-	pingPongConfig     centrifuge.PingPongConfig
-	joinMessages       bool
-	protoMajor         int
+	framePingInterval       time.Duration
+	framePongTimeout        time.Duration
+	writeTimeout            time.Duration
+	compressionMinSize      int
+	pingPongConfig          centrifuge.PingPongConfig
+	protoMajor              int
+	joinMessages            bool
+	disableClosingHandshake bool // TODO: consider keeping/removing for Centrifugo v7.
+	disableDisconnectPush   bool
 }
 
 func newWebsocketTransport(conn *websocket.Conn, opts websocketTransportOptions, graceCh chan struct{}) *websocketTransport {
@@ -101,6 +104,9 @@ func (t *websocketTransport) Unidirectional() bool {
 
 // DisabledPushFlags ...
 func (t *websocketTransport) DisabledPushFlags() uint64 {
+	if t.opts.disableDisconnectPush {
+		return centrifuge.PushFlagDisconnect
+	}
 	return 0
 }
 
@@ -206,7 +212,7 @@ func (t *websocketTransport) WriteMany(messages ...[]byte) error {
 const closeFrameWait = 5 * time.Second
 
 // Close closes transport.
-func (t *websocketTransport) Close(_ centrifuge.Disconnect) error {
+func (t *websocketTransport) Close(disconnect centrifuge.Disconnect) error {
 	t.mu.Lock()
 	if t.closed {
 		t.mu.Unlock()
@@ -218,5 +224,29 @@ func (t *websocketTransport) Close(_ centrifuge.Disconnect) error {
 	}
 	close(t.closeCh)
 	t.mu.Unlock()
+
+	if t.opts.disableClosingHandshake {
+		return t.conn.Close()
+	}
+
+	if disconnect.Code != centrifuge.DisconnectConnectionClosed.Code {
+		msg := websocket.FormatCloseMessage(int(disconnect.Code), disconnect.Reason)
+		err := t.conn.WriteControl(websocket.CloseMessage, msg, time.Now().Add(t.opts.writeTimeout))
+		if err != nil {
+			return t.conn.Close()
+		}
+		select {
+		case <-t.graceCh:
+		default:
+			// Wait for closing handshake completion.
+			tm := timers.AcquireTimer(closeFrameWait)
+			select {
+			case <-t.graceCh:
+			case <-tm.C:
+			}
+			timers.ReleaseTimer(tm)
+		}
+		return t.conn.Close()
+	}
 	return t.conn.Close()
 }

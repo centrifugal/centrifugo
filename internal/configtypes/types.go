@@ -121,7 +121,15 @@ type UniWebSocket struct {
 	WriteBufferSize    int      `mapstructure:"write_buffer_size" json:"write_buffer_size" envconfig:"write_buffer_size" yaml:"write_buffer_size" toml:"write_buffer_size"`
 	WriteTimeout       Duration `mapstructure:"write_timeout" json:"write_timeout" envconfig:"write_timeout" default:"1000ms" yaml:"write_timeout" toml:"write_timeout"`
 	MessageSizeLimit   int      `mapstructure:"message_size_limit" json:"message_size_limit" envconfig:"message_size_limit" default:"65536" yaml:"message_size_limit" toml:"message_size_limit"`
-
+	// DisableClosingHandshake disables WebSocket closing handshake. This restores the behavior prior to
+	// Centrifugo v6.5.1 where server never sent a close frame on connection close initiated by server.
+	// Normally closing handshake is recommended to be performed according to WebSocket protocol RFC,
+	// so this option is useful only in some specific cases when you need to restore the previous behavior.
+	DisableClosingHandshake bool `mapstructure:"disable_closing_handshake" json:"disable_closing_handshake" envconfig:"disable_closing_handshake" yaml:"disable_closing_handshake" toml:"disable_closing_handshake"`
+	// DisableDisconnectPush disables sending disconnect push messages to clients. It's sent by default to make
+	// unidirectional transports similar, but since uni_websocket transport also sends close frame to the client
+	// with the same code/reason – some users may want to disable disconnect push to avoid ambiguity.
+	DisableDisconnectPush bool `mapstructure:"disable_disconnect_push" json:"disable_disconnect_push" envconfig:"disable_disconnect_push" yaml:"disable_disconnect_push" toml:"disable_disconnect_push"`
 	// JoinPushMessages when enabled allow uni_websocket transport to join messages together into
 	// one frame using Centrifugal client protocol delimiters: new line for JSON protocol and
 	// length-prefixed format for Protobuf protocol. This can be useful to reduce system call
