@@ -10,13 +10,9 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Experimental support for WebSocket over HTTP/2 ([RFC 8441](https://www.rfc-editor.org/rfc/rfc8441.html)), [#1061](https://github.com/centrifugal/centrifugo/pull/1061). This makes it possible to open WebSocket "connections" inside a single HTTP/2 connection – using separate HTTP/2 streams for each WS connection. See [WebSocket over HTTP/2 (RFC 8441)](https://centrifugal.dev/docs/transports/websocket#websocket-over-http2-rfc-8441) documentation page for details.
-* Support for `tags` and `idempotency_key` in admin Web UI `publish` and `broadcast` API request forms.
-* Introduce [StringKeyValues](https://centrifugal.dev/docs/server/configuration#stringkeyvalues-type) configuration type [#1063](https://github.com/centrifugal/centrifugo/pull/1063). A new configuration type allows flexible key-value handling via strings without some drawbacks of maps with Viper. See PR for details. This type is for now used only in Centrifugo PRO, but may be later used for some OSS configuration options as well.
-* The `MapStringString` configuration type now may be set over the format similar to `StringKeyValues` type to provide a workaround for Viper map handling limitations. See the documentation for this type for details: [MapStringString](https://centrifugal.dev/docs/server/configuration#mapstringstring-type).
-* Documentation was improved and is now more clear about [non-primitive configuration types](https://centrifugal.dev/docs/server/configuration#configuration-types) and how to set them in different sources.
-* Refactor JWT verifier [#1062](https://github.com/centrifugal/centrifugo/pull/1062). The JWT verification logic has been refactored for better maintainability and to avoid repetitive code.
-* Adding `/connection/init` endpoint which is running on external port when enabled. See [docs](https://centrifugal.dev/docs/server/configuration#init) for details. Generally may be used as a health endpoint for AWS ELB. Also, it may be useful to force browser to have an HTTP/2 connection established before opening WebSocket over HTTP/2 connections (Chrome prefers opening WebSocket over HTTP 1.1 if there is no HTTP/2 connection yet).
+* Unidirectional WebSocket transport now makes closing handshake to better comply with WebSocket RFC by default. Added `uni_websocket.disable_closing_handshake` option to restore the behavior prior to Centrifugo v6.5.1 if needed. [#1071](https://github.com/centrifugal/centrifugo/pull/1071)
+* Unidirectional WebSocket transport sends disconnect push messages by default. Added `uni_websocket.disable_disconnect_push` option to disable this behavior if needed (for example, if you want to extract code/reason from WebSocket close frame and want to avoid ambiguity). [#1071](https://github.com/centrifugal/centrifugo/pull/1071)
+* Support client `insecure` mode for server side subs and take `allow_user_limited_channels` option into account when processing server subs. [#1070](https://github.com/centrifugal/centrifugo/pull/1070)
 
 ### Miscellaneous
 

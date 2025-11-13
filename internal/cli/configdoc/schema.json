@@ -9178,6 +9178,26 @@
         "is_complex_type": false
       },
       {
+        "field": "uni_websocket.disable_closing_handshake",
+        "name": "disable_closing_handshake",
+        "go_name": "DisableClosingHandshake",
+        "level": 2,
+        "type": "bool",
+        "default": "",
+        "comment": "DisableClosingHandshake disables WebSocket closing handshake. This restores the behavior prior to\nCentrifugo v6.5.1 where server never sent a close frame on connection close initiated by server.\nNormally closing handshake is recommended to be performed according to WebSocket protocol RFC,\nso this option is useful only in some specific cases when you need to restore the previous behavior.",
+        "is_complex_type": false
+      },
+      {
+        "field": "uni_websocket.disable_disconnect_push",
+        "name": "disable_disconnect_push",
+        "go_name": "DisableDisconnectPush",
+        "level": 2,
+        "type": "bool",
+        "default": "",
+        "comment": "DisableDisconnectPush disables sending disconnect push messages to clients. It's sent by default to make\nunidirectional transports similar, but since uni_websocket transport also sends close frame to the client\nwith the same code/reason – some users may want to disable disconnect push to avoid ambiguity.",
+        "is_complex_type": false
+      },
+      {
         "field": "uni_websocket.join_push_messages",
         "name": "join_push_messages",
         "go_name": "JoinPushMessages",
