@@ -106,6 +106,17 @@ func createJetStreamConsumer(ctx context.Context, nc *nats.Conn, cfg NatsJetStre
 	if err != nil {
 		return nil, fmt.Errorf("failed to create JetStream context: %w", err)
 	}
+
+	if cfg.UseExistingConsumer {
+		// If UseExistingConsumer is enabled, just look up the existing consumer by DurableConsumerName
+		consumer, err := js.Consumer(ctx, cfg.StreamName, cfg.DurableConsumerName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to lookup existing consumer %q: %w", cfg.DurableConsumerName, err)
+		}
+		return consumer, nil
+	}
+
+	// By default, create or update the consumer
 	deliverPolicy := jetstream.DeliverNewPolicy
 	if cfg.DeliverPolicy == "all" {
 		deliverPolicy = jetstream.DeliverAllPolicy

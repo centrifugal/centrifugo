@@ -672,7 +672,7 @@ const (
 	ConsumerTypeAwsSqs          = "aws_sqs"
 	ConsumerTypeAzureServiceBus = "azure_service_bus"
 	ConsumerTypeRedisStream     = "redis_stream"
-	//ConsumerTypeRabbitMQ        = "rabbitmq"
+	// ConsumerTypeRabbitMQ        = "rabbitmq"
 )
 
 var KnownConsumerTypes = []string{
@@ -683,7 +683,7 @@ var KnownConsumerTypes = []string{
 	ConsumerTypeAwsSqs,
 	ConsumerTypeAzureServiceBus,
 	ConsumerTypeRedisStream,
-	//ConsumerTypeRabbitMQ,
+	// ConsumerTypeRabbitMQ,
 }
 
 type Consumer struct {
@@ -925,6 +925,8 @@ type NatsJetStreamConsumerConfig struct {
 	Token string `mapstructure:"token" json:"token" toml:"token" yaml:"token"`
 	// StreamName is the name of the NATS JetStream stream to use.
 	StreamName string `mapstructure:"stream_name" json:"stream_name" toml:"stream_name" yaml:"stream_name"`
+	// UseExistingConsumer when enabled tells Centrifugo to use an existing consumer with DurableConsumerName instead of creating a new one. By default false.
+	UseExistingConsumer bool `mapstructure:"use_existing_consumer" default:"false" json:"use_existing_consumer" toml:"use_existing_consumer" yaml:"use_existing_consumer"`
 	// Subjects is the list of NATS subjects (topics) to filter.
 	Subjects []string `mapstructure:"subjects" json:"subjects" toml:"subjects" yaml:"subjects"`
 	// DurableConsumerName sets the name of the durable JetStream consumer to use.
@@ -971,8 +973,10 @@ func (cfg NatsJetStreamConsumerConfig) Validate() error {
 	if cfg.DurableConsumerName == "" {
 		return errors.New("durable_consumer_name is required for consumer")
 	}
-	if cfg.DeliverPolicy != "new" && cfg.DeliverPolicy != "all" {
-		return errors.New("deliver_policy must be either 'new' or 'all'")
+	if !cfg.UseExistingConsumer {
+		if cfg.DeliverPolicy != "new" && cfg.DeliverPolicy != "all" {
+			return errors.New("deliver_policy must be either 'new' or 'all'")
+		}
 	}
 	if cfg.PublicationDataMode.Enabled && cfg.PublicationDataMode.ChannelsHeader == "" {
 		return errors.New("channels_header is required for publication data mode")
