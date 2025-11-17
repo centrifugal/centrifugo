@@ -56,7 +56,7 @@ func testNatsJetStreamConsumer(t *testing.T, useExistingConsumer bool) {
 	if useExistingConsumer {
 		_, err = js.AddConsumer(streamName, &nats.ConsumerConfig{
 			Durable: durableConsumerName,
-			Name: durableConsumerName,
+			Name:    durableConsumerName,
 		})
 		require.NoError(t, err)
 	}
@@ -73,12 +73,12 @@ func testNatsJetStreamConsumer(t *testing.T, useExistingConsumer bool) {
 		}
 
 		cfg := NatsJetStreamConsumerConfig{
-			URL: url,
-			StreamName: streamName,
-			Subjects: []string{subject},
+			URL:                 url,
+			StreamName:          streamName,
+			Subjects:            []string{subject},
 			DurableConsumerName: durableConsumerName, // shared durable name
-			DeliverPolicy: "new",
-			MethodHeader: "test-method",
+			DeliverPolicy:       "new",
+			MethodHeader:        "test-method",
 			UseExistingConsumer: useExistingConsumer,
 		}
 
