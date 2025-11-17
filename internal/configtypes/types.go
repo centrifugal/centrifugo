@@ -672,7 +672,7 @@ const (
 	ConsumerTypeAwsSqs          = "aws_sqs"
 	ConsumerTypeAzureServiceBus = "azure_service_bus"
 	ConsumerTypeRedisStream     = "redis_stream"
-	// ConsumerTypeRabbitMQ        = "rabbitmq"
+	//ConsumerTypeRabbitMQ        = "rabbitmq"
 )
 
 var KnownConsumerTypes = []string{
@@ -683,7 +683,7 @@ var KnownConsumerTypes = []string{
 	ConsumerTypeAwsSqs,
 	ConsumerTypeAzureServiceBus,
 	ConsumerTypeRedisStream,
-	// ConsumerTypeRabbitMQ,
+	//ConsumerTypeRabbitMQ,
 }
 
 type Consumer struct {
