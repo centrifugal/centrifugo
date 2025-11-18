@@ -131,6 +131,11 @@ func httpRequestHeaders(ctx context.Context, proxy Config) http.Header {
 func requestHeaders(ctx context.Context, allowedHeaders, allowedMetaKeys []string, staticHeaders map[string]string) http.Header {
 	headers := http.Header{}
 
+	// Set static headers first, so that dynamic headers can override them.
+	for k, v := range staticHeaders {
+		headers.Set(k, v)
+	}
+
 	emulatedHeaders, _ := clientcontext.GetEmulatedHeadersFromContext(ctx)
 	for k, v := range emulatedHeaders {
 		if slices.Contains(allowedHeaders, strings.ToLower(k)) {
@@ -152,10 +157,6 @@ func requestHeaders(ctx context.Context, allowedHeaders, allowedMetaKeys []strin
 				headers[k] = vv
 			}
 		}
-	}
-
-	for k, v := range staticHeaders {
-		headers.Set(k, v)
 	}
 
 	headers.Set("Content-Type", "application/json")

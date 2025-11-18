@@ -75,12 +75,17 @@ func getDialOpts(name string, p Config) ([]grpc.DialOption, error) {
 }
 
 func grpcRequestContext(ctx context.Context, proxy Config) context.Context {
-	md := requestMetadata(ctx, proxy.HttpHeaders, proxy.GrpcMetadata)
+	md := requestMetadata(ctx, proxy.HttpHeaders, proxy.GrpcMetadata, proxy.GRPC.StaticMetadata)
 	return metadata.NewOutgoingContext(ctx, md)
 }
 
-func requestMetadata(ctx context.Context, allowedHeaders []string, allowedMetaKeys []string) metadata.MD {
+func requestMetadata(ctx context.Context, allowedHeaders []string, allowedMetaKeys []string, staticMetadata map[string]string) metadata.MD {
 	requestMD := metadata.MD{}
+
+	// Set static metadata first, so that dynamic metadata can override it.
+	for k, v := range staticMetadata {
+		requestMD.Set(k, v)
+	}
 
 	emulatedHeaders, _ := clientcontext.GetEmulatedHeadersFromContext(ctx)
 	for k, v := range emulatedHeaders {
