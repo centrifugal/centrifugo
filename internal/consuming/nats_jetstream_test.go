@@ -18,19 +18,21 @@ import (
 func TestNatsJetStreamConsumer(t *testing.T) {
 	t.Parallel()
 	testCases := []struct {
-		name string
+		name                string
+		useExistingConsumer bool
 	}{
-		{name: "basic"},
+		{name: "basic", useExistingConsumer: false},
+		{name: "use_existing_consumer", useExistingConsumer: true},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			testNatsJetStreamConsumer(t)
+			testNatsJetStreamConsumer(t, tc.useExistingConsumer)
 		})
 	}
 }
 
-func testNatsJetStreamConsumer(t *testing.T) {
+func testNatsJetStreamConsumer(t *testing.T, useExistingConsumer bool) {
 	url := "nats://localhost:4222"
 	subject := "test.subject." + uuid.NewString()
 	durableConsumerName := "test-durable-" + uuid.NewString()
@@ -50,6 +52,15 @@ func testNatsJetStreamConsumer(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	// If useExistingConsumer is true, create the consumer manually first
+	if useExistingConsumer {
+		_, err = js.AddConsumer(streamName, &nats.ConsumerConfig{
+			Durable: durableConsumerName,
+			Name:    durableConsumerName,
+		})
+		require.NoError(t, err)
+	}
+
 	var receivedNum atomic.Int64
 
 	createConsumer := func(name string, done chan struct{}) *NatsJetStreamConsumer {
@@ -68,6 +79,7 @@ func testNatsJetStreamConsumer(t *testing.T) {
 			DurableConsumerName: durableConsumerName, // shared durable name
 			DeliverPolicy:       "new",
 			MethodHeader:        "test-method",
+			UseExistingConsumer: useExistingConsumer,
 		}
 
 		consumer, err := NewNatsJetStreamConsumer(cfg, dispatcher, testCommon(prometheus.NewRegistry()))

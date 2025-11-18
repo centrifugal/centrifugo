@@ -925,6 +925,12 @@ type NatsJetStreamConsumerConfig struct {
 	Token string `mapstructure:"token" json:"token" toml:"token" yaml:"token"`
 	// StreamName is the name of the NATS JetStream stream to use.
 	StreamName string `mapstructure:"stream_name" json:"stream_name" toml:"stream_name" yaml:"stream_name"`
+	// UseExistingConsumer when enabled tells Centrifugo to use an existing consumer with
+	// durable_consumer_name instead of creating a new one. When on, these fields are ignored:
+	// deliver_policy, subjects, max_ack_pending, and all other consumer-creation-related options
+	// which may be added later (like ack wait, etc.). The existing consumer's configuration defines
+	// all behavior, and Centrifugo will fail to start if the consumer does not already exist.
+	UseExistingConsumer bool `mapstructure:"use_existing_consumer" default:"false" json:"use_existing_consumer" toml:"use_existing_consumer" yaml:"use_existing_consumer"`
 	// Subjects is the list of NATS subjects (topics) to filter.
 	Subjects []string `mapstructure:"subjects" json:"subjects" toml:"subjects" yaml:"subjects"`
 	// DurableConsumerName sets the name of the durable JetStream consumer to use.
@@ -971,8 +977,10 @@ func (cfg NatsJetStreamConsumerConfig) Validate() error {
 	if cfg.DurableConsumerName == "" {
 		return errors.New("durable_consumer_name is required for consumer")
 	}
-	if cfg.DeliverPolicy != "new" && cfg.DeliverPolicy != "all" {
-		return errors.New("deliver_policy must be either 'new' or 'all'")
+	if !cfg.UseExistingConsumer {
+		if cfg.DeliverPolicy != "new" && cfg.DeliverPolicy != "all" {
+			return errors.New("deliver_policy must be either 'new' or 'all'")
+		}
 	}
 	if cfg.PublicationDataMode.Enabled && cfg.PublicationDataMode.ChannelsHeader == "" {
 		return errors.New("channels_header is required for publication data mode")
