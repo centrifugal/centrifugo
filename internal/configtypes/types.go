@@ -635,7 +635,7 @@ type ProxyCommonGRPC struct {
 	Compression bool `mapstructure:"compression" json:"compression" envconfig:"compression" yaml:"compression" toml:"compression"`
 	// StaticMetadata is a static set of key/value pairs to attach to GRPC proxy request as
 	// metadata. Headers received from HTTP client request or metadata from GRPC client request
-	// both have priority over values set in StaticMetadata map.
+	// both have priority over values set in StaticMetadata map (but only if explicitly allowed).
 	StaticMetadata MapStringString `mapstructure:"static_metadata" default:"{}" json:"static_metadata" envconfig:"static_metadata" yaml:"static_metadata" toml:"static_metadata"`
 }
 
