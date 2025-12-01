@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Check for typos
         uses: crate-ci/typos@v1.37.0
   golangci:
@@ -15,7 +15,7 @@ jobs:
     # Prevent duplicate builds on internal PRs.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version: stable
@@ -39,7 +39,7 @@ jobs:
           go-version: ${{ matrix.go-version }}
 
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Start services
         run: docker compose up -d --wait
