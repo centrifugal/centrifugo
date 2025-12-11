@@ -247,6 +247,77 @@ func BenchmarkContainer_ChannelOptions(b *testing.B) {
 	})
 }
 
+func TestPublicationDataFormatInheritance(t *testing.T) {
+	t.Run("namespace inherits global format", func(t *testing.T) {
+		c := defaultConfig(t)
+		c.Channel.PublicationDataFormat = "json"
+		c.Channel.Namespaces = []configtypes.ChannelNamespace{
+			{
+				Name: "test",
+				ChannelOptions: configtypes.ChannelOptions{
+					// No PublicationDataFormat set
+				},
+			},
+		}
+		container, err := NewContainer(c)
+		require.NoError(t, err)
+
+		// Channel without namespace should use global format
+		_, _, chOpts, ok, err := container.ChannelOptions("mychannel")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "json", chOpts.PublicationDataFormat)
+
+		// Namespace without explicit format should inherit global
+		_, _, chOpts, ok, err = container.ChannelOptions("test:mychannel")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "json", chOpts.PublicationDataFormat)
+	})
+
+	t.Run("namespace overrides global format", func(t *testing.T) {
+		c := defaultConfig(t)
+		c.Channel.PublicationDataFormat = "json"
+		c.Channel.Namespaces = []configtypes.ChannelNamespace{
+			{
+				Name: "test",
+				ChannelOptions: configtypes.ChannelOptions{
+					PublicationDataFormat: "binary",
+				},
+			},
+		}
+		container, err := NewContainer(c)
+		require.NoError(t, err)
+
+		// Namespace with explicit format should use its own
+		_, _, chOpts, ok, err := container.ChannelOptions("test:mychannel")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "binary", chOpts.PublicationDataFormat)
+	})
+
+	t.Run("no global format set", func(t *testing.T) {
+		c := defaultConfig(t)
+		// No global format set
+		c.Channel.Namespaces = []configtypes.ChannelNamespace{
+			{
+				Name: "test",
+				ChannelOptions: configtypes.ChannelOptions{
+					// No PublicationDataFormat set
+				},
+			},
+		}
+		container, err := NewContainer(c)
+		require.NoError(t, err)
+
+		// Should use empty string (default behavior)
+		_, _, chOpts, ok, err := container.ChannelOptions("test:mychannel")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "", chOpts.PublicationDataFormat)
+	})
+}
+
 var testConfig Config
 
 func BenchmarkContainer_Config(b *testing.B) {

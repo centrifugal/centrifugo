@@ -105,3 +105,46 @@ func TestValidatePublicationDataFormatInNamespace(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateGlobalPublicationDataFormat(t *testing.T) {
+	tests := []struct {
+		name    string
+		format  string
+		wantErr bool
+	}{
+		{
+			name:    "empty global format is valid",
+			format:  "",
+			wantErr: false,
+		},
+		{
+			name:    "json global format is valid",
+			format:  "json",
+			wantErr: false,
+		},
+		{
+			name:    "binary global format is valid",
+			format:  "binary",
+			wantErr: false,
+		},
+		{
+			name:    "invalid global format",
+			format:  "xml",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := DefaultConfig()
+			cfg.Channel.PublicationDataFormat = tt.format
+			err := cfg.Validate()
+			if tt.wantErr {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unknown channel.publication_data_format")
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
