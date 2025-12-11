@@ -110,6 +110,11 @@ func (n *Container) ChannelOptions(ch string) (string, string, configtypes.Chann
 	nsName, rest := n.namespaceName(cfg, ch)
 	chOpts, ok, err := channelOpts(&cfg, nsName)
 
+	// Apply global publication_data_format default if not set at namespace level
+	if chOpts.PublicationDataFormat == "" && cfg.Channel.PublicationDataFormat != "" {
+		chOpts.PublicationDataFormat = cfg.Channel.PublicationDataFormat
+	}
+
 	res := channelOptionsResult{
 		nsName: nsName,
 		rest:   rest,

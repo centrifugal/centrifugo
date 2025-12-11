@@ -66,8 +66,10 @@ func TestBroadcastAPI(t *testing.T) {
 	resp := api.Broadcast(context.Background(), &BroadcastRequest{})
 	require.Equal(t, ErrorBadRequest, resp.Error)
 
+	// Empty data validation now happens per-channel
 	resp = api.Broadcast(context.Background(), &BroadcastRequest{Channels: []string{"test"}})
-	require.Equal(t, ErrorBadRequest, resp.Error)
+	require.Nil(t, resp.Error)
+	require.Equal(t, ErrorBadRequest.Code, resp.Result.Responses[0].Error.Code)
 
 	resp = api.Broadcast(context.Background(), &BroadcastRequest{Channels: []string{"test"}, Data: []byte("test")})
 	require.Nil(t, resp.Error)
@@ -79,6 +81,184 @@ func TestBroadcastAPI(t *testing.T) {
 	resp = api.Broadcast(context.Background(), &BroadcastRequest{Channels: []string{"test", "test:test"}, Data: []byte("test")})
 	require.Nil(t, resp.Error)
 	require.Equal(t, ErrorUnknownChannel, resp.Result.Responses[1].Error)
+}
+
+func TestPublishAPI_DataFormat_JSON(t *testing.T) {
+	node := nodeWithMemoryEngine()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	cfg.Channel.WithoutNamespace.PublicationDataFormat = configtypes.PublicationDataFormatJSON
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	api := NewExecutor(node, cfgContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test", UseOpenTelemetry: false})
+
+	// Valid JSON should succeed
+	resp := api.Publish(context.Background(), &PublishRequest{
+		Channel: "test",
+		Data:    []byte(`{"key": "value"}`),
+	})
+	require.Nil(t, resp.Error)
+
+	// Valid JSON array should succeed
+	resp = api.Publish(context.Background(), &PublishRequest{
+		Channel: "test",
+		Data:    []byte(`[1, 2, 3]`),
+	})
+	require.Nil(t, resp.Error)
+
+	// Valid JSON primitives should succeed
+	resp = api.Publish(context.Background(), &PublishRequest{
+		Channel: "test",
+		Data:    []byte(`"string"`),
+	})
+	require.Nil(t, resp.Error)
+
+	resp = api.Publish(context.Background(), &PublishRequest{
+		Channel: "test",
+		Data:    []byte(`123`),
+	})
+	require.Nil(t, resp.Error)
+
+	resp = api.Publish(context.Background(), &PublishRequest{
+		Channel: "test",
+		Data:    []byte(`true`),
+	})
+	require.Nil(t, resp.Error)
+
+	resp = api.Publish(context.Background(), &PublishRequest{
+		Channel: "test",
+		Data:    []byte(`null`),
+	})
+	require.Nil(t, resp.Error)
+
+	// Invalid JSON should fail
+	resp = api.Publish(context.Background(), &PublishRequest{
+		Channel: "test",
+		Data:    []byte(`not valid json`),
+	})
+	require.NotNil(t, resp.Error)
+	require.Equal(t, ErrorBadRequest.Code, resp.Error.Code)
+
+	// Empty data with JSON format should fail
+	resp = api.Publish(context.Background(), &PublishRequest{
+		Channel: "test",
+		Data:    []byte{},
+	})
+	require.NotNil(t, resp.Error)
+	require.Equal(t, ErrorBadRequest.Code, resp.Error.Code)
+}
+
+func TestPublishAPI_DataFormat_Binary(t *testing.T) {
+	node := nodeWithMemoryEngine()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	cfg.Channel.WithoutNamespace.PublicationDataFormat = configtypes.PublicationDataFormatBinary
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	api := NewExecutor(node, cfgContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test", UseOpenTelemetry: false})
+
+	// Binary data should succeed
+	resp := api.Publish(context.Background(), &PublishRequest{
+		Channel: "test",
+		Data:    []byte{0x01, 0x02, 0x03},
+	})
+	require.Nil(t, resp.Error)
+
+	// Empty data with binary format should succeed
+	resp = api.Publish(context.Background(), &PublishRequest{
+		Channel: "test",
+		Data:    []byte{},
+	})
+	require.Nil(t, resp.Error)
+
+	// Any data should succeed with binary format
+	resp = api.Publish(context.Background(), &PublishRequest{
+		Channel: "test",
+		Data:    []byte("any text data"),
+	})
+	require.Nil(t, resp.Error)
+}
+
+func TestPublishAPI_DataFormat_Default(t *testing.T) {
+	node := nodeWithMemoryEngine()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	// Default format (empty string) - should reject empty data
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	api := NewExecutor(node, cfgContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test", UseOpenTelemetry: false})
+
+	// Non-empty data should succeed
+	resp := api.Publish(context.Background(), &PublishRequest{
+		Channel: "test",
+		Data:    []byte("any data"),
+	})
+	require.Nil(t, resp.Error)
+
+	// Empty data should fail (current behavior preserved)
+	resp = api.Publish(context.Background(), &PublishRequest{
+		Channel: "test",
+		Data:    []byte{},
+	})
+	require.NotNil(t, resp.Error)
+	require.Equal(t, ErrorBadRequest.Code, resp.Error.Code)
+}
+
+func TestBroadcastAPI_DataFormat_JSON(t *testing.T) {
+	node := nodeWithMemoryEngine()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	cfg.Channel.WithoutNamespace.PublicationDataFormat = configtypes.PublicationDataFormatJSON
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	api := NewExecutor(node, cfgContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test", UseOpenTelemetry: false})
+
+	// Valid JSON should succeed
+	resp := api.Broadcast(context.Background(), &BroadcastRequest{
+		Channels: []string{"test", "test2"},
+		Data:     []byte(`{"key": "value"}`),
+	})
+	require.Nil(t, resp.Error)
+	require.Nil(t, resp.Result.Responses[0].Error)
+	require.Nil(t, resp.Result.Responses[1].Error)
+
+	// Invalid JSON should fail for all channels
+	resp = api.Broadcast(context.Background(), &BroadcastRequest{
+		Channels: []string{"test", "test2"},
+		Data:     []byte(`not valid json`),
+	})
+	require.Nil(t, resp.Error)
+	require.Equal(t, ErrorBadRequest.Code, resp.Result.Responses[0].Error.Code)
+	require.Equal(t, ErrorBadRequest.Code, resp.Result.Responses[1].Error.Code)
+}
+
+func TestBroadcastAPI_DataFormat_Binary(t *testing.T) {
+	node := nodeWithMemoryEngine()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	cfg.Channel.WithoutNamespace.PublicationDataFormat = configtypes.PublicationDataFormatBinary
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	api := NewExecutor(node, cfgContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test", UseOpenTelemetry: false})
+
+	// Empty data should succeed with binary format
+	resp := api.Broadcast(context.Background(), &BroadcastRequest{
+		Channels: []string{"test", "test2"},
+		Data:     []byte{},
+	})
+	require.Nil(t, resp.Error)
+	require.Nil(t, resp.Result.Responses[0].Error)
+	require.Nil(t, resp.Result.Responses[1].Error)
 }
 
 func TestHistoryAPI(t *testing.T) {

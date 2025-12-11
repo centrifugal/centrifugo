@@ -47,6 +47,11 @@ func (c Config) Validate() error {
 	if err := validateSecondPrecisionDuration(c.Channel.HistoryMetaTTL); err != nil {
 		return fmt.Errorf("in channel.history_meta_ttl: %v", err)
 	}
+
+	if !slices.Contains([]string{"", configtypes.PublicationDataFormatJSON, configtypes.PublicationDataFormatBinary}, c.Channel.PublicationDataFormat) {
+		return fmt.Errorf("unknown channel.publication_data_format: \"%s\"", c.Channel.PublicationDataFormat)
+	}
+
 	if err := validateCodeToUniDisconnectTransforms(c.Client.ConnectCodeToUnidirectionalDisconnect.Transforms); err != nil {
 		return fmt.Errorf("in client.connect_code_to_unidirectional_disconnect: %v", err)
 	}
@@ -228,6 +233,10 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 	}
 	if !slices.Contains([]string{"", "stream", "cache"}, c.ForceRecoveryMode) {
 		return fmt.Errorf("unknown recovery mode: \"%s\"", c.ForceRecoveryMode)
+	}
+
+	if !slices.Contains([]string{"", configtypes.PublicationDataFormatJSON, configtypes.PublicationDataFormatBinary}, c.PublicationDataFormat) {
+		return fmt.Errorf("unknown publication_data_format: \"%s\"", c.PublicationDataFormat)
 	}
 
 	if c.SubscribeProxyName != "" && !slices.Contains(proxyNames, c.SubscribeProxyName) {
