@@ -182,12 +182,6 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 		data = cmd.Data
 	}
 
-	if len(data) == 0 {
-		log.Error().Err(errors.New("data required for publish")).Msg("bad publish request")
-		resp.Error = ErrorBadRequest
-		return resp
-	}
-
 	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
@@ -195,6 +189,13 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 	}
 	if !found {
 		resp.Error = ErrorUnknownChannel
+		return resp
+	}
+
+	// Data format validation
+	if err := config.ValidatePublicationData(data, chOpts.PublicationDataFormat); err != nil {
+		log.Error().Err(err).Str("channel", ch).Msg("bad publish request")
+		resp.Error = ErrorBadRequest
 		return resp
 	}
 
@@ -264,12 +265,6 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 		data = cmd.Data
 	}
 
-	if len(data) == 0 {
-		log.Error().Err(errors.New("data required for broadcast")).Msg("bad broadcast request")
-		resp.Error = ErrorBadRequest
-		return resp
-	}
-
 	sem := make(chan struct{}, broadcastRequestMaxConcurrency)
 
 	responses := make([]*PublishResponse, len(channels))
@@ -300,6 +295,15 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 				respError := ErrorUnknownChannel
 				incError(h.config.Protocol, "broadcast_publish", respError.Code)
 				log.Error().Err(errors.New("channel not found")).Str("channel", ch).Msg("error getting options for channel")
+				responses[i] = &PublishResponse{Error: respError}
+				return
+			}
+
+			// Data format validation
+			if err := config.ValidatePublicationData(data, chOpts.PublicationDataFormat); err != nil {
+				respError := ErrorBadRequest
+				incError(h.config.Protocol, "broadcast_publish", respError.Code)
+				log.Error().Err(err).Str("channel", ch).Msg("bad broadcast request")
 				responses[i] = &PublishResponse{Error: respError}
 				return
 			}

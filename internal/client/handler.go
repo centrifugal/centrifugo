@@ -783,6 +783,12 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 		return centrifuge.PublishReply{}, err
 	}
 
+	// Data format validation
+	if err := config.ValidatePublicationData(e.Data, chOpts.PublicationDataFormat); err != nil {
+		log.Info().Err(err).Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("publish data validation failed")
+		return centrifuge.PublishReply{}, centrifuge.ErrorBadRequest
+	}
+
 	var allowed bool
 
 	if chOpts.PublishProxyEnabled {

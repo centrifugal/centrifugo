@@ -230,6 +230,10 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 		return fmt.Errorf("unknown recovery mode: \"%s\"", c.ForceRecoveryMode)
 	}
 
+	if !slices.Contains([]string{"", configtypes.PublicationDataFormatJSON, configtypes.PublicationDataFormatBinary}, c.PublicationDataFormat) {
+		return fmt.Errorf("unknown publication_data_format: \"%s\"", c.PublicationDataFormat)
+	}
+
 	if c.SubscribeProxyName != "" && !slices.Contains(proxyNames, c.SubscribeProxyName) {
 		return fmt.Errorf("subscribe proxy with name \"%s\" not found", c.SubscribeProxyName)
 	}

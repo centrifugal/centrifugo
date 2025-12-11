@@ -7,6 +7,13 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
+const (
+	// PublicationDataFormatJSON indicates that publication data must be valid JSON.
+	PublicationDataFormatJSON = "json"
+	// PublicationDataFormatBinary indicates that publication data is binary and empty data is allowed.
+	PublicationDataFormatBinary = "binary"
+)
+
 type ChannelNamespaces []ChannelNamespace
 
 // Decode to implement the envconfig.Decoder interface
@@ -146,6 +153,12 @@ type ChannelOptions struct {
 
 	// ChannelRegex sets a regular expression to check channel name against.
 	ChannelRegex string `mapstructure:"channel_regex" json:"channel_regex" envconfig:"channel_regex" yaml:"channel_regex" toml:"channel_regex"`
+
+	// PublicationDataFormat defines the format validation for publication data.
+	// If empty (default) - current behavior is used, reject empty data.
+	// If "json" - validate that data is valid JSON, return bad request if not.
+	// If "binary" - allow empty data to be published.
+	PublicationDataFormat string `mapstructure:"publication_data_format" json:"publication_data_format" envconfig:"publication_data_format" yaml:"publication_data_format" toml:"publication_data_format"`
 
 	// SubscribeProxyEnabled turns on using proxy for subscribe operations in namespace.
 	SubscribeProxyEnabled bool `mapstructure:"subscribe_proxy_enabled" json:"subscribe_proxy_enabled" envconfig:"subscribe_proxy_enabled" yaml:"subscribe_proxy_enabled" toml:"subscribe_proxy_enabled"`
