@@ -2,8 +2,6 @@ module github.com/centrifugal/centrifugo/v6
 
 go 1.25.0
 
-replace github.com/centrifugal/centrifuge => ../centrifuge
-
 require (
 	cloud.google.com/go/pubsub/v2 v2.3.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1
@@ -16,7 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.18
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.3
 	github.com/aws/smithy-go v1.24.0
-	github.com/centrifugal/centrifuge v0.38.1-0.20251130063513-75a37919d689
+	github.com/centrifugal/centrifuge v0.38.1-0.20251211130949-debe51078e64
 	github.com/centrifugal/protocol v0.17.2
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.4.0
@@ -54,7 +52,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.38.0
 	go.uber.org/automaxprocs v1.6.0
 	golang.org/x/crypto v0.45.0
-	golang.org/x/sync v0.18.0
+	golang.org/x/sync v0.19.0
 	golang.org/x/time v0.14.0
 	google.golang.org/api v0.257.0
 	google.golang.org/grpc v1.77.0
@@ -132,7 +130,7 @@ require (
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
-	github.com/redis/rueidis v1.0.68
+	github.com/redis/rueidis v1.0.69
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/segmentio/encoding v0.5.3
 	github.com/spf13/cast v1.10.0 // indirect
