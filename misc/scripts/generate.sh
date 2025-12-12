@@ -1,11 +1,5 @@
 set -e
 
-if ! command -v ent &> /dev/null
-then
-    echo "ent could not be found"
-    exit
-fi
-
 cd internal/apiproto
 bash generate.sh
 cd -
