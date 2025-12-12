@@ -10,12 +10,18 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Unidirectional WebSocket transport now makes closing handshake to better comply with WebSocket RFC by default. Added `uni_websocket.disable_closing_handshake` option to restore the behavior prior to Centrifugo v6.5.1 if needed. [#1071](https://github.com/centrifugal/centrifugo/pull/1071)
-* Unidirectional WebSocket transport sends disconnect push messages by default. Added `uni_websocket.disable_disconnect_push` option to disable this behavior if needed (for example, if you want to extract code/reason from WebSocket close frame and want to avoid ambiguity). [#1071](https://github.com/centrifugal/centrifugo/pull/1071)
-* Support client `insecure` mode for server side subs and take `allow_user_limited_channels` option into account when processing server subs. [#1070](https://github.com/centrifugal/centrifugo/pull/1070)
+* Add `use_existing_consumer` option for NATS async consumer by @b43 [#1074](https://github.com/centrifugal/centrifugo/pull/1074)
+* Support for grpc `static_metadata`, tweak http `static_headers` behaviour to match the doc [#1076](https://github.com/centrifugal/centrifugo/pull/1076)
+* New `publication_data_format` channel global and namespace option [#1085](https://github.com/centrifugal/centrifugo/pull/1085)
+* Better performance: Eliminate allocations under active batching scenario coming from Prometheus metrics. See [centrifugal/centrifuge#530](https://github.com/centrifugal/centrifuge/pull/530)
+* Better performance: Redis key build optimizations [centrifugal/centrifuge#534](https://github.com/centrifugal/centrifuge/pull/534)
+
+### Fixes
+
+* This release addresses [#1083](https://github.com/centrifugal/centrifugo/issues/1083) by introducing `publication_data_format` mentioned above.
 
 ### Miscellaneous
 
-* This release is built with Go 1.25.4.
+* This release is built with Go 1.25.5.
 * Updated dependencies.
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.5.0).
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.5.2).
