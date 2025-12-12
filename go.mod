@@ -14,8 +14,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.20
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.5
 	github.com/aws/smithy-go v1.24.0
-	github.com/centrifugal/centrifuge v0.38.1-0.20251211130949-debe51078e64
-	github.com/centrifugal/protocol v0.17.2
+	github.com/centrifugal/centrifuge v0.38.1-0.20251212093130-25f2c81b5dda
+	github.com/centrifugal/protocol v0.18.1
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.4.0
 	github.com/gobwas/glob v0.2.3
@@ -56,7 +56,7 @@ require (
 	golang.org/x/time v0.14.0
 	google.golang.org/api v0.257.0
 	google.golang.org/grpc v1.77.0
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.11
 )
 
 require (

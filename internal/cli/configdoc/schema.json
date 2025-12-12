@@ -2188,6 +2188,16 @@
                     "default": "",
                     "comment": "Compression enables compression for outgoing calls (gzip).",
                     "is_complex_type": false
+                  },
+                  {
+                    "field": "client.proxy.connect.grpc.static_metadata",
+                    "name": "static_metadata",
+                    "go_name": "StaticMetadata",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticMetadata is a static set of key/value pairs to attach to GRPC proxy request as\nmetadata. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticMetadata map (but only if explicitly allowed).",
+                    "is_complex_type": false
                   }
                 ]
               }
@@ -2593,6 +2603,16 @@
                     "type": "bool",
                     "default": "",
                     "comment": "Compression enables compression for outgoing calls (gzip).",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "client.proxy.refresh.grpc.static_metadata",
+                    "name": "static_metadata",
+                    "go_name": "StaticMetadata",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticMetadata is a static set of key/value pairs to attach to GRPC proxy request as\nmetadata. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticMetadata map (but only if explicitly allowed).",
                     "is_complex_type": false
                   }
                 ]
@@ -3576,6 +3596,16 @@
                     "default": "",
                     "comment": "Compression enables compression for outgoing calls (gzip).",
                     "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.subscribe.grpc.static_metadata",
+                    "name": "static_metadata",
+                    "go_name": "StaticMetadata",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticMetadata is a static set of key/value pairs to attach to GRPC proxy request as\nmetadata. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticMetadata map (but only if explicitly allowed).",
+                    "is_complex_type": false
                   }
                 ]
               }
@@ -3971,6 +4001,16 @@
                     "type": "bool",
                     "default": "",
                     "comment": "Compression enables compression for outgoing calls (gzip).",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.publish.grpc.static_metadata",
+                    "name": "static_metadata",
+                    "go_name": "StaticMetadata",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticMetadata is a static set of key/value pairs to attach to GRPC proxy request as\nmetadata. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticMetadata map (but only if explicitly allowed).",
                     "is_complex_type": false
                   }
                 ]
@@ -4368,6 +4408,16 @@
                     "default": "",
                     "comment": "Compression enables compression for outgoing calls (gzip).",
                     "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.sub_refresh.grpc.static_metadata",
+                    "name": "static_metadata",
+                    "go_name": "StaticMetadata",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticMetadata is a static set of key/value pairs to attach to GRPC proxy request as\nmetadata. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticMetadata map (but only if explicitly allowed).",
+                    "is_complex_type": false
                   }
                 ]
               }
@@ -4764,6 +4814,16 @@
                     "default": "",
                     "comment": "Compression enables compression for outgoing calls (gzip).",
                     "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.subscribe_stream.grpc.static_metadata",
+                    "name": "static_metadata",
+                    "go_name": "StaticMetadata",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticMetadata is a static set of key/value pairs to attach to GRPC proxy request as\nmetadata. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticMetadata map (but only if explicitly allowed).",
+                    "is_complex_type": false
                   }
                 ]
               }
@@ -5049,6 +5109,16 @@
             "type": "string",
             "default": "",
             "comment": "ChannelRegex sets a regular expression to check channel name against.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.publication_data_format",
+            "name": "publication_data_format",
+            "go_name": "PublicationDataFormat",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "PublicationDataFormat defines the format validation for publication data.\nIf empty (default) - current behavior is used, reject empty data.\nIf \"json\" - validate that data is valid JSON, return bad request if not.\nIf \"binary\" - allow empty data to be published.",
             "is_complex_type": false
           },
           {
@@ -5434,6 +5504,16 @@
             "is_complex_type": false
           },
           {
+            "field": "channel.namespaces[].publication_data_format",
+            "name": "publication_data_format",
+            "go_name": "PublicationDataFormat",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "PublicationDataFormat defines the format validation for publication data.\nIf empty (default) - current behavior is used, reject empty data.\nIf \"json\" - validate that data is valid JSON, return bad request if not.\nIf \"binary\" - allow empty data to be published.",
+            "is_complex_type": false
+          },
+          {
             "field": "channel.namespaces[].subscribe_proxy_enabled",
             "name": "subscribe_proxy_enabled",
             "go_name": "SubscribeProxyEnabled",
@@ -5533,6 +5613,16 @@
         "type": "Duration",
         "default": "720h",
         "comment": "HistoryMetaTTL is a time how long to keep history meta information. This is a global option for all channels,\nbut it can be overridden in channel namespace.",
+        "is_complex_type": false
+      },
+      {
+        "field": "channel.publication_data_format",
+        "name": "publication_data_format",
+        "go_name": "PublicationDataFormat",
+        "level": 2,
+        "type": "string",
+        "default": "",
+        "comment": "PublicationDataFormat is a global publication data format for all channels. Can be overridden in channel namespace.\nEmpty string means default behavior (reject empty data). Possible values: \"\", \"json\", \"binary\".",
         "is_complex_type": false
       },
       {
@@ -5987,6 +6077,16 @@
                 "type": "bool",
                 "default": "",
                 "comment": "Compression enables compression for outgoing calls (gzip).",
+                "is_complex_type": false
+              },
+              {
+                "field": "rpc.proxy.grpc.static_metadata",
+                "name": "static_metadata",
+                "go_name": "StaticMetadata",
+                "level": 4,
+                "type": "MapStringString",
+                "default": "{}",
+                "comment": "StaticMetadata is a static set of key/value pairs to attach to GRPC proxy request as\nmetadata. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticMetadata map (but only if explicitly allowed).",
                 "is_complex_type": false
               }
             ]
@@ -6511,6 +6611,16 @@
             "type": "bool",
             "default": "",
             "comment": "Compression enables compression for outgoing calls (gzip).",
+            "is_complex_type": false
+          },
+          {
+            "field": "proxies[].grpc.static_metadata",
+            "name": "static_metadata",
+            "go_name": "StaticMetadata",
+            "level": 3,
+            "type": "MapStringString",
+            "default": "{}",
+            "comment": "StaticMetadata is a static set of key/value pairs to attach to GRPC proxy request as\nmetadata. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticMetadata map (but only if explicitly allowed).",
             "is_complex_type": false
           }
         ]
@@ -7321,6 +7431,16 @@
             "type": "string",
             "default": "",
             "comment": "StreamName is the name of the NATS JetStream stream to use.",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].nats_jetstream.use_existing_consumer",
+            "name": "use_existing_consumer",
+            "go_name": "UseExistingConsumer",
+            "level": 3,
+            "type": "bool",
+            "default": "false",
+            "comment": "UseExistingConsumer when enabled tells Centrifugo to use an existing consumer with\ndurable_consumer_name instead of creating a new one. When on, these fields are ignored:\ndeliver_policy, subjects, max_ack_pending, and all other consumer-creation-related options\nwhich may be added later (like ack wait, etc.). The existing consumer's configuration defines\nall behavior, and Centrifugo will fail to start if the consumer does not already exist.",
             "is_complex_type": false
           },
           {
