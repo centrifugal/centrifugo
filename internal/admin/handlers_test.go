@@ -27,11 +27,11 @@ func TestNewHandler(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.Code)
 }
 
-// TestSettingsHandler checks the initHandler returns correct settings.
-func TestSettingsHandler(t *testing.T) {
-	config := Config{Insecure: true}
+// TestInitHandler checks the initHandler returns correct settings.
+func TestInitHandler(t *testing.T) {
+	config := Config{}
 	handler := &Handler{config: config}
-	req := httptest.NewRequest("GET", "/admin/settings", nil)
+	req := httptest.NewRequest("GET", "/admin/init", nil)
 	resp := httptest.NewRecorder()
 
 	handler.initHandler(resp, req)
@@ -41,7 +41,25 @@ func TestSettingsHandler(t *testing.T) {
 	err := json.NewDecoder(resp.Body).Decode(&response)
 	require.NoError(t, err)
 	require.Equal(t, "oss", response["edition"])
-	require.Equal(t, config.Insecure, response["insecure"])
+	require.Equal(t, false, response["insecure"])
+	require.Equal(t, false, response["authenticated"])
+}
+
+func TestInitHandler_Insecure(t *testing.T) {
+	config := Config{Insecure: true}
+	handler := &Handler{config: config}
+	req := httptest.NewRequest("GET", "/admin/init", nil)
+	resp := httptest.NewRecorder()
+
+	handler.initHandler(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
+
+	var response map[string]any
+	err := json.NewDecoder(resp.Body).Decode(&response)
+	require.NoError(t, err)
+	require.Equal(t, "oss", response["edition"])
+	require.Equal(t, true, response["insecure"])
+	require.Equal(t, true, response["authenticated"]) // Since insecure on.
 }
 
 // TestAuthHandler_NoPasswordOrSecret tests authHandler error when password or secret is missing.
