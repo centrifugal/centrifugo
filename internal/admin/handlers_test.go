@@ -27,14 +27,14 @@ func TestNewHandler(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.Code)
 }
 
-// TestSettingsHandler checks the settingsHandler returns correct settings.
+// TestSettingsHandler checks the initHandler returns correct settings.
 func TestSettingsHandler(t *testing.T) {
 	config := Config{Insecure: true}
 	handler := &Handler{config: config}
 	req := httptest.NewRequest("GET", "/admin/settings", nil)
 	resp := httptest.NewRecorder()
 
-	handler.settingsHandler(resp, req)
+	handler.initHandler(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
 
 	var response map[string]any

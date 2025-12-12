@@ -34,7 +34,7 @@ func NewHandler(n *centrifuge.Node, apiExecutor *api.Executor, c Config) *Handle
 	}
 	mux := http.NewServeMux()
 	prefix := strings.TrimRight(h.config.HandlerPrefix, "/")
-	mux.Handle(prefix+"/admin/settings", http.HandlerFunc(h.settingsHandler))
+	mux.Handle(prefix+"/admin/init", http.HandlerFunc(h.initHandler))
 	mux.Handle(prefix+"/admin/auth", middleware.Post(http.HandlerFunc(h.authHandler)))
 	mux.Handle(prefix+"/admin/api", middleware.Post(h.adminSecureTokenAuth(api.NewHandler(n, apiExecutor, api.Config{}).OldRoute())))
 
@@ -102,13 +102,36 @@ func (s *Handler) adminSecureTokenAuth(h http.Handler) http.Handler {
 	})
 }
 
-// settingsHandler allows to get admin web interface settings.
-func (s *Handler) settingsHandler(w http.ResponseWriter, _ *http.Request) {
+// initHandler allows to get admin web interface settings.
+func (s *Handler) initHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	resp := map[string]any{
 		"insecure": s.config.Insecure,
 		"edition":  "oss",
 	}
+
+	secret := s.config.Secret
+	authenticated := false
+
+	if s.config.Insecure {
+		authenticated = true
+	} else if secret != "" {
+		var token string
+		authorization := r.Header.Get("Authorization")
+		if authorization != "" {
+			parts := strings.Fields(authorization)
+			if len(parts) == 2 && strings.ToLower(parts[0]) == "token" {
+				token = parts[1]
+			}
+		}
+		if token == "" {
+			token = r.URL.Query().Get("token")
+		}
+		if token != "" && checkSecureAdminToken(secret, token) {
+			authenticated = true
+		}
+	}
+	resp["authenticated"] = authenticated
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
