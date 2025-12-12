@@ -20,8 +20,8 @@ func TestNewHandler(t *testing.T) {
 	require.NotNil(t, handler)
 	require.NotNil(t, handler.mux)
 
-	// Validate settings route is registered.
-	req := httptest.NewRequest("GET", "/prefix/admin/settings", nil)
+	// Validate init route is registered.
+	req := httptest.NewRequest("GET", "/prefix/admin/init", nil)
 	resp := httptest.NewRecorder()
 	handler.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
