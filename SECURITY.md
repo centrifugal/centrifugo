@@ -2,19 +2,9 @@
 
 ## Reporting Security Vulnerabilities
 
-If you discover a security vulnerability in Centrifugo, please report it responsibly using one of the following methods:
-
-### Preferred Reporting Method
-
-Email the security team at:
-
-**[security@centrifugal.dev](mailto:security@centrifugal.dev)**
+If you discover a security vulnerability in Centrifugo, please report it directly through GitHub using the **“Report a vulnerability”** button in the repository’s [Security](https://github.com/centrifugal/centrifugo/security) tab. Reports submitted this way are visible only to repository maintainers.
 
 Please do **not** open a public GitHub issue for security-related problems.
-
-### GitHub Private Vulnerability Reporting
-
-If GitHub Private Vulnerability Reporting is enabled for the repository, you may also report vulnerabilities directly through GitHub using the **“Report a vulnerability”** button in the repository’s **Security** tab. Reports submitted this way are visible only to repository maintainers.
 
 When reporting a vulnerability, include as much detail as possible, such as:
 
