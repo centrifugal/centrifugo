@@ -17,7 +17,7 @@ declare -a redis_pids
 start_redis_cluster() {
   local masters=$1
   local replicas=$2
-  local base_port=7000
+  local base_port=7001
   local cluster_dir="./cluster_data"
   local total_nodes=$((masters * (replicas + 1)))
   local redis_nodes=()
