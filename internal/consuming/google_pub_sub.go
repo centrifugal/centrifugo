@@ -43,7 +43,7 @@ func NewGooglePubSubConsumer(
 		if config.CredentialsFile == "" {
 			return nil, errors.New("credentials_file must be provided for service_account auth")
 		}
-		clientOpts = append(clientOpts, option.WithCredentialsFile(config.CredentialsFile))
+		clientOpts = append(clientOpts, option.WithAuthCredentialsFile(option.ServiceAccount, config.CredentialsFile))
 	default:
 		return nil, fmt.Errorf("unsupported auth mechanism: %s", config.AuthMechanism)
 	}
