@@ -1,0 +1,34 @@
+# ---- build stage ----
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build -ldflags="-s -w" -o centrifugo
+
+# ---- runtime stage ----
+FROM alpine:3.21
+
+ARG USER=centrifugo
+ARG UID=1000
+ARG GID=1000
+
+RUN addgroup -S -g $GID $USER && \
+    adduser -S -G $USER -u $UID $USER
+
+RUN apk --no-cache upgrade && \
+    apk --no-cache add ca-certificates && \
+    update-ca-certificates
+
+USER $USER
+
+WORKDIR /centrifugo
+
+COPY --from=builder /app/centrifugo /usr/local/bin/centrifugo
+
+CMD ["centrifugo"]

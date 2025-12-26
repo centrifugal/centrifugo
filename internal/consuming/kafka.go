@@ -516,6 +516,13 @@ func (pc *partitionConsumer) processRecord(ctx context.Context, record *kgo.Reco
 	if pc.config.PublicationDataMode.Enabled {
 		return pc.processPublicationDataRecord(ctx, record)
 	}
+
+	// Check if this is a market data topic that needs special handling
+	if pc.isMarketDataTopic(record.Topic) {
+		return pc.processMarketDataRecord(ctx, record)
+	}
+
+	// Default logic for other topics
 	method := getHeaderValue(record, pc.config.MethodHeader)
 	return pc.dispatcher.DispatchCommand(ctx, method, record.Value)
 }

@@ -1,0 +1,1 @@
+docker build -f Dockerfile.kafi -t thuykaka/centrifugo .
