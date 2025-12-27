@@ -8,7 +8,7 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## What's changed
 
-This release **has a potential breaking change in the Redis Cluster case where users try forming a Centrifugo cluster consisting of nodes with different Centrifugo versions (older than 6.6.0 and 6.6.0+). See details in the **Fixes** section below. We believe this scenario is very rare, and the risk of causing issues for anyone is minimal. The benefit is supporting ElastiCache Serverless Redis out of the box without extra options.
+This release **has a potential breaking change** in the Redis Cluster case where users try forming a Centrifugo cluster consisting of nodes with different Centrifugo versions (older than 6.6.0 and 6.6.0+). See details in the **Fixes** section below. We believe this scenario is very rare, and the risk of causing issues for anyone is minimal. The benefit is supporting ElastiCache Serverless Redis out of the box without extra options.
 
 ### Improvements
 
