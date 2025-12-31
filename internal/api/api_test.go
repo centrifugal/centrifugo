@@ -2,16 +2,28 @@ package api
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
 	. "github.com/centrifugal/centrifugo/v6/internal/apiproto"
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 )
+
+func TestMain(m *testing.M) {
+	// Initialize metrics with a custom registry for tests to avoid conflicts
+	registry := prometheus.NewRegistry()
+	_ = metrics.Init(metrics.Config{
+		Registerer: registry,
+	})
+	os.Exit(m.Run())
+}
 
 func nodeWithMemoryEngine() *centrifuge.Node {
 	n, err := centrifuge.New(centrifuge.Config{})
