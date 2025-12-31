@@ -48,7 +48,7 @@ func (c Config) Validate() error {
 		return fmt.Errorf("in channel.history_meta_ttl: %v", err)
 	}
 
-	if !slices.Contains([]string{"", configtypes.PublicationDataFormatJSON, configtypes.PublicationDataFormatBinary}, c.Channel.PublicationDataFormat) {
+	if !slices.Contains([]string{"", configtypes.PublicationDataFormatJSON, configtypes.PublicationDataFormatJSONObject, configtypes.PublicationDataFormatBinary}, c.Channel.PublicationDataFormat) {
 		return fmt.Errorf("unknown channel.publication_data_format: \"%s\"", c.Channel.PublicationDataFormat)
 	}
 
@@ -235,7 +235,7 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 		return fmt.Errorf("unknown recovery mode: \"%s\"", c.ForceRecoveryMode)
 	}
 
-	if !slices.Contains([]string{"", configtypes.PublicationDataFormatJSON, configtypes.PublicationDataFormatBinary}, c.PublicationDataFormat) {
+	if !slices.Contains([]string{"", configtypes.PublicationDataFormatJSON, configtypes.PublicationDataFormatJSONObject, configtypes.PublicationDataFormatBinary}, c.PublicationDataFormat) {
 		return fmt.Errorf("unknown publication_data_format: \"%s\"", c.PublicationDataFormat)
 	}
 

@@ -486,7 +486,7 @@ type Channel struct {
 	HistoryMetaTTL Duration `mapstructure:"history_meta_ttl" json:"history_meta_ttl" envconfig:"history_meta_ttl" default:"720h" yaml:"history_meta_ttl" toml:"history_meta_ttl"`
 
 	// PublicationDataFormat is a global publication data format for all channels. Can be overridden in channel namespace.
-	// Empty string means default behavior (reject empty data). Possible values: "", "json", "binary".
+	// Empty string means default behavior (reject empty data). Possible values: "", "json", "json_object", "binary".
 	PublicationDataFormat string `mapstructure:"publication_data_format" json:"publication_data_format" envconfig:"publication_data_format" default:"" yaml:"publication_data_format" toml:"publication_data_format"`
 
 	// MaxLength is a maximum length of a channel name. This is a global option for all channels.
