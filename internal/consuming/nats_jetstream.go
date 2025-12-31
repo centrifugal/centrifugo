@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
@@ -178,9 +179,9 @@ func (c *NatsJetStreamConsumer) msgHandler(msg jetstream.Msg) {
 	if processErr == nil {
 		if err := msg.Ack(); err != nil {
 			c.common.log.Error().Err(err).Msg("failed to ack message")
-			c.common.metrics.errorsTotal.WithLabelValues(c.name).Inc()
+			metrics.ConsumerErrorsTotal.WithLabelValues(c.name).Inc()
 		} else {
-			c.common.metrics.processedTotal.WithLabelValues(c.name).Inc()
+			metrics.ConsumerProcessedTotal.WithLabelValues(c.name).Inc()
 		}
 	} else {
 		c.common.log.Error().Err(processErr).Msg("processing message failed")

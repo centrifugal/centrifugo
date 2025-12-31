@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/proxyproto"
 
 	"github.com/centrifugal/centrifuge"
@@ -36,10 +37,10 @@ func NewSubRefreshHandler(c SubRefreshHandlerConfig) *SubRefreshHandler {
 	errors := map[string]prometheus.Counter{}
 	inflight := map[string]prometheus.Gauge{}
 	for name, p := range c.Proxies {
-		summary[name] = proxyCallDurationSummary.WithLabelValues(p.Protocol(), "sub_refresh", name)
-		histogram[name] = proxyCallDurationHistogram.WithLabelValues(p.Protocol(), "sub_refresh", name)
-		errors[name] = proxyCallErrorCount.WithLabelValues(p.Protocol(), "sub_refresh", name)
-		inflight[name] = proxyCallInflightRequests.WithLabelValues(p.Protocol(), "sub_refresh", name)
+		summary[name] = metrics.ProxyCallDurationSummary.WithLabelValues(p.Protocol(), "sub_refresh", name)
+		histogram[name] = metrics.ProxyCallDurationHistogram.WithLabelValues(p.Protocol(), "sub_refresh", name)
+		errors[name] = metrics.ProxyCallErrorCount.WithLabelValues(p.Protocol(), "sub_refresh", name)
+		inflight[name] = metrics.ProxyCallInflightRequests.WithLabelValues(p.Protocol(), "sub_refresh", name)
 	}
 	h.summary = summary
 	h.histogram = histogram

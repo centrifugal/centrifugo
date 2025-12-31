@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/proxyproto"
 
 	"github.com/centrifugal/centrifuge"
@@ -36,10 +37,10 @@ func NewPublishHandler(c PublishHandlerConfig) *PublishHandler {
 	errors := map[string]prometheus.Counter{}
 	inflight := map[string]prometheus.Gauge{}
 	for name, p := range c.Proxies {
-		summary[name] = proxyCallDurationSummary.WithLabelValues(p.Protocol(), "publish", name)
-		histogram[name] = proxyCallDurationHistogram.WithLabelValues(p.Protocol(), "publish", name)
-		errors[name] = proxyCallErrorCount.WithLabelValues(p.Protocol(), "publish", name)
-		inflight[name] = proxyCallInflightRequests.WithLabelValues(p.Protocol(), "publish", name)
+		summary[name] = metrics.ProxyCallDurationSummary.WithLabelValues(p.Protocol(), "publish", name)
+		histogram[name] = metrics.ProxyCallDurationHistogram.WithLabelValues(p.Protocol(), "publish", name)
+		errors[name] = metrics.ProxyCallErrorCount.WithLabelValues(p.Protocol(), "publish", name)
+		inflight[name] = metrics.ProxyCallInflightRequests.WithLabelValues(p.Protocol(), "publish", name)
 	}
 	h.summary = summary
 	h.histogram = histogram

@@ -10,9 +10,8 @@ import (
 
 func testCommon(registry prometheus.Registerer) *consumerCommon {
 	return &consumerCommon{
-		name:    "test",
-		nodeID:  uuid.New().String(),
-		log:     log.With().Str("consumer", "test").Logger(),
-		metrics: newCommonMetrics(registry),
+		name:   "test",
+		nodeID: uuid.New().String(),
+		log:    log.With().Str("consumer", "test").Logger(),
 	}
 }

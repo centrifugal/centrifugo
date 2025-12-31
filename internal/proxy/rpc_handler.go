@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/config"
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/proxyproto"
 
 	"github.com/centrifugal/centrifuge"
@@ -36,10 +37,10 @@ func NewRPCHandler(c RPCHandlerConfig) *RPCHandler {
 	errors := map[string]prometheus.Counter{}
 	inflight := map[string]prometheus.Gauge{}
 	for name, p := range c.Proxies {
-		summary[name] = proxyCallDurationSummary.WithLabelValues(p.Protocol(), "rpc", name)
-		histogram[name] = proxyCallDurationHistogram.WithLabelValues(p.Protocol(), "rpc", name)
-		errors[name] = proxyCallErrorCount.WithLabelValues(p.Protocol(), "rpc", name)
-		inflight[name] = proxyCallInflightRequests.WithLabelValues(p.Protocol(), "rpc", name)
+		summary[name] = metrics.ProxyCallDurationSummary.WithLabelValues(p.Protocol(), "rpc", name)
+		histogram[name] = metrics.ProxyCallDurationHistogram.WithLabelValues(p.Protocol(), "rpc", name)
+		errors[name] = metrics.ProxyCallErrorCount.WithLabelValues(p.Protocol(), "rpc", name)
+		inflight[name] = metrics.ProxyCallInflightRequests.WithLabelValues(p.Protocol(), "rpc", name)
 	}
 	h.summary = summary
 	h.histogram = histogram

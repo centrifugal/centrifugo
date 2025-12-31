@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
@@ -289,7 +290,7 @@ func (c *AwsSqsConsumer) processSingleMessage(ctx context.Context, msg types.Mes
 			}
 			return false
 		}
-		c.common.metrics.errorsTotal.WithLabelValues(c.common.name).Inc()
+		metrics.ConsumerErrorsTotal.WithLabelValues(c.common.name).Inc()
 		c.common.log.Error().Err(processErr).Msg("error processing message, retrying")
 		backoffDuration = getNextBackoffDuration(backoffDuration, retries)
 		select {
@@ -298,7 +299,7 @@ func (c *AwsSqsConsumer) processSingleMessage(ctx context.Context, msg types.Mes
 			return false
 		}
 	}
-	c.common.metrics.processedTotal.WithLabelValues(c.common.name).Inc()
+	metrics.ConsumerProcessedTotal.WithLabelValues(c.common.name).Inc()
 	return true
 }
 

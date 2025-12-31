@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/proxyproto"
 
 	"github.com/centrifugal/centrifuge"
@@ -30,10 +31,10 @@ type RefreshHandler struct {
 func NewRefreshHandler(c RefreshHandlerConfig) *RefreshHandler {
 	return &RefreshHandler{
 		config:    c,
-		summary:   proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "refresh", "default"),
-		histogram: proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "refresh", "default"),
-		errors:    proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "refresh", "default"),
-		inflight:  proxyCallInflightRequests.WithLabelValues(c.Proxy.Protocol(), "refresh", "default"),
+		summary:   metrics.ProxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "refresh", "default"),
+		histogram: metrics.ProxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "refresh", "default"),
+		errors:    metrics.ProxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "refresh", "default"),
+		inflight:  metrics.ProxyCallInflightRequests.WithLabelValues(c.Proxy.Protocol(), "refresh", "default"),
 	}
 }
 

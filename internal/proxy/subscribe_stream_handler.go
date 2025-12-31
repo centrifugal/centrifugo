@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v6/internal/subsource"
 
@@ -43,10 +44,10 @@ func NewSubscribeStreamHandler(c SubscribeStreamHandlerConfig) *SubscribeStreamH
 	errCounters := map[string]prometheus.Counter{}
 	inflight := map[string]prometheus.Gauge{}
 	for name := range c.Proxies {
-		summary[name] = proxyCallDurationSummary.WithLabelValues("grpc", "subscribe_stream", name)
-		histogram[name] = proxyCallDurationHistogram.WithLabelValues("grpc", "subscribe_stream", name)
-		errCounters[name] = proxyCallErrorCount.WithLabelValues("grpc", "subscribe_stream", name)
-		inflight[name] = proxyCallInflightRequests.WithLabelValues("grpc", "subscribe_stream", name)
+		summary[name] = metrics.ProxyCallDurationSummary.WithLabelValues("grpc", "subscribe_stream", name)
+		histogram[name] = metrics.ProxyCallDurationHistogram.WithLabelValues("grpc", "subscribe_stream", name)
+		errCounters[name] = metrics.ProxyCallErrorCount.WithLabelValues("grpc", "subscribe_stream", name)
+		inflight[name] = metrics.ProxyCallInflightRequests.WithLabelValues("grpc", "subscribe_stream", name)
 	}
 	h.summary = summary
 	h.histogram = histogram
