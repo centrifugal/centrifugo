@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Centrifugo {{.Version}} Configuration Options</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.0/dist/materia/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-card: #ffffff;
+      --text-primary: #212529;
+      --text-secondary: #6c757d;
+      --border-color: #dee2e6;
+      --code-bg: #f8f9fa;
+      --code-color: #139f87;
+      --header-code-color: #04416d;
+      --badge-bg: #e7f5ff;
+      --badge-color: #1971c2;
+      --search-bg: #ffffff;
+      --toc-bg: #f8f9fa;
+      --card-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+      --hover-bg: #f8f9fa;
+      --arrow-color: #139f87;
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #1a1a1a;
+      --bg-secondary: #2d2d2d;
+      --bg-card: #252525;
+      --text-primary: #e9ecef;
+      --text-secondary: #adb5bd;
+      --border-color: #404040;
+      --code-bg: #2d2d2d;
+      --code-color: #4dabf7;
+      --header-code-color: #74c0fc;
+      --badge-bg: #1e3a5f;
+      --badge-color: #74c0fc;
+      --search-bg: #2d2d2d;
+      --toc-bg: #2d2d2d;
+      --card-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+      --hover-bg: #3a3a3a;
+      --arrow-color: #4dabf7;
+    }
+
+    * {
+      scroll-behavior: auto !important;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background-color: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .search-container {
+      flex: 1;
+      min-width: 300px;
+      position: relative;
+    }
+
+    .search-input {
+      background-color: var(--search-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+    }
+
+    .search-input::placeholder {
+      color: #6c757d;
+      opacity: 1;
+    }
+
+    [data-theme="dark"] .search-input::placeholder {
+      color: #adb5bd;
+      opacity: 1;
+    }
+
+    .search-input:focus {
+      background-color: var(--search-bg);
+      color: var(--text-primary);
+      border-color: #139f87;
+      box-shadow: 0 0 0 0.2rem rgba(19, 159, 135, 0.25);
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 0.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: var(--text-secondary);
+      display: none;
+    }
+
+    .search-clear.visible {
+      display: block;
+    }
+
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: nowrap;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .main-container {
+      display: flex;
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+
+    .toc-container {
+      position: sticky;
+      top: 90px;
+      width: 280px;
+      max-height: calc(100vh - 110px);
+      overflow-y: auto;
+      padding: 1rem;
+      background-color: var(--toc-bg);
+      margin-right: 2rem;
+      flex-shrink: 0;
+    }
+
+    .toc-container h5 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: var(--text-primary);
+    }
+
+    .toc-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .toc-list li {
+      margin-bottom: 0.25rem;
+    }
+
+    .toc-list a {
+      display: block;
+      padding: 0.35rem 0.5rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.85rem;
+      border-radius: 0.25rem;
+      transition: all 0.2s;
+    }
+
+    .toc-list a:hover {
+      background-color: var(--hover-bg);
+      color: var(--text-primary);
+    }
+
+    .toc-list a.active {
+      background-color: #139f87;
+      color: white;
+      font-weight: 500;
+    }
+
+    .content-area {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .config-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-left: 2px solid var(--border-color);
+      padding: 1.5rem 0.3rem 1.5rem 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--card-shadow);
+      transition: box-shadow 0.3s, border-left-color 0.2s;
+      scroll-margin-top: 100px;
+      position: relative;
+    }
+
+    /* Depth-based left border colors */
+    .config-card[data-level="1"] {
+      border-left-color: #2c7a7b;
+      background-color: var(--bg-card);
+    }
+
+    .config-card[data-level="2"] {
+      border-left-color: #3182ce;
+      background: linear-gradient(to right, rgba(49, 130, 206, 0.02) 0%, var(--bg-card) 5px);
+    }
+
+    .config-card[data-level="3"] {
+      border-left-color: #805ad5;
+      background: linear-gradient(to right, rgba(128, 90, 213, 0.03) 0%, var(--bg-card) 5px);
+    }
+
+    .config-card[data-level="4"] {
+      border-left-color: #d69e2e;
+      background: linear-gradient(to right, rgba(214, 158, 46, 0.04) 0%, var(--bg-card) 5px);
+    }
+
+    .config-card[data-level="5"] {
+      border-left-color: #e53e3e;
+      background: linear-gradient(to right, rgba(229, 62, 62, 0.05) 0%, var(--bg-card) 5px);
+    }
+
+    .config-card[data-level="6"] {
+      border-left-color: #d53f8c;
+      background: linear-gradient(to right, rgba(213, 63, 140, 0.06) 0%, var(--bg-card) 5px);
+    }
+
+    .config-card[data-level="7"] {
+      border-left-color: #38a169;
+      background: linear-gradient(to right, rgba(56, 161, 105, 0.06) 0%, var(--bg-card) 5px);
+    }
+
+    .config-card[data-level="8"] {
+      border-left-color: #dd6b20;
+      background: linear-gradient(to right, rgba(221, 107, 32, 0.07) 0%, var(--bg-card) 5px);
+    }
+
+    .config-card[data-level="9"] {
+      border-left-color: #319795;
+      background: linear-gradient(to right, rgba(49, 151, 149, 0.07) 0%, var(--bg-card) 5px);
+    }
+
+    .config-card[data-level="10"] {
+      border-left-color: #4c51bf;
+      background: linear-gradient(to right, rgba(76, 81, 191, 0.08) 0%, var(--bg-card) 5px);
+    }
+
+    [data-theme="dark"] .config-card[data-level="1"] {
+      border-left-color: #4db8ba;
+    }
+
+    [data-theme="dark"] .config-card[data-level="2"] {
+      border-left-color: #63b3ed;
+      background: linear-gradient(to right, rgba(99, 179, 237, 0.04) 0%, var(--bg-card) 5px);
+    }
+
+    [data-theme="dark"] .config-card[data-level="3"] {
+      border-left-color: #b794f4;
+      background: linear-gradient(to right, rgba(183, 148, 244, 0.06) 0%, var(--bg-card) 5px);
+    }
+
+    [data-theme="dark"] .config-card[data-level="4"] {
+      border-left-color: #f6ad55;
+      background: linear-gradient(to right, rgba(246, 173, 85, 0.08) 0%, var(--bg-card) 5px);
+    }
+
+    [data-theme="dark"] .config-card[data-level="5"] {
+      border-left-color: #fc8181;
+      background: linear-gradient(to right, rgba(252, 129, 129, 0.08) 0%, var(--bg-card) 5px);
+    }
+
+    [data-theme="dark"] .config-card[data-level="6"] {
+      border-left-color: #f687b3;
+      background: linear-gradient(to right, rgba(246, 135, 179, 0.08) 0%, var(--bg-card) 5px);
+    }
+
+    [data-theme="dark"] .config-card[data-level="7"] {
+      border-left-color: #68d391;
+      background: linear-gradient(to right, rgba(104, 211, 145, 0.08) 0%, var(--bg-card) 5px);
+    }
+
+    [data-theme="dark"] .config-card[data-level="8"] {
+      border-left-color: #ed8936;
+      background: linear-gradient(to right, rgba(237, 137, 54, 0.09) 0%, var(--bg-card) 5px);
+    }
+
+    [data-theme="dark"] .config-card[data-level="9"] {
+      border-left-color: #4fd1c5;
+      background: linear-gradient(to right, rgba(79, 209, 197, 0.09) 0%, var(--bg-card) 5px);
+    }
+
+    [data-theme="dark"] .config-card[data-level="10"] {
+      border-left-color: #7f9cf5;
+      background: linear-gradient(to right, rgba(127, 156, 245, 0.1) 0%, var(--bg-card) 5px);
+    }
+
+    .config-card:hover {
+      box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    }
+
+    .config-card.hidden {
+      display: none;
+    }
+
+    .config-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .config-title {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .config-title h1, .config-title h2, .config-title h3,
+    .config-title h4, .config-title h5, .config-title h6 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      word-break: break-word;
+    }
+
+    .field-name {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--header-code-color);
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 1.1rem;
+    }
+
+    .type-indicator {
+      display: inline-block;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.4rem;
+      background-color: var(--badge-bg);
+      color: var(--badge-color);
+      border-radius: 0.25rem;
+      font-weight: 500;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+
+    .config-actions {
+      display: flex;
+      gap: 0.25rem;
+      flex-shrink: 0;
+      margin-right: 0.5rem;
+    }
+
+    .btn-icon {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .meta-info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-secondary);
+    }
+
+    .meta-item code {
+      background-color: var(--code-bg);
+      color: var(--code-color);
+      padding: 0.15rem 0.4rem;
+      border-radius: 0.25rem;
+      font-size: 0.85rem;
+    }
+
+    .copy-btn {
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: color 0.2s;
+    }
+
+    .copy-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .description {
+      color: var(--text-primary);
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    .example-btn-container {
+      margin-top: 1rem;
+    }
+
+    .example-config {
+      background-color: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 0.375rem;
+      padding: 1rem;
+      margin-top: 1rem;
+      position: relative;
+    }
+
+    .example-config.hidden {
+      display: none;
+    }
+
+    .example-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .format-switcher {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .format-btn {
+      min-width: 60px;
+    }
+
+    .example-content {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--text-primary);
+      line-height: 1.5;
+      max-height: 450px;
+      overflow-y: auto;
+    }
+
+    .example-config .highlight-line {
+      background-color: rgba(255, 193, 7, 0.3);
+      display: inline-block;
+      width: 100%;
+      font-weight: 600;
+    }
+
+    [data-theme="dark"] .example-config .highlight-line {
+      background-color: rgba(255, 193, 7, 0.2);
+    }
+
+    .expand-indicator {
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--arrow-color);
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-top: 0.5rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      transition: background-color 0.2s;
+    }
+
+    .expand-indicator:hover {
+      background-color: var(--hover-bg);
+    }
+
+    .expand-indicator i {
+      transition: none;
+    }
+
+    .expand-indicator.expanded i {
+      transform: rotate(180deg);
+    }
+
+    .nested-content {
+      display: none;
+      margin-left: 0.25rem;
+      padding-right: 0;
+      position: relative;
+    }
+
+    .nested-content.open {
+      display: block;
+      margin-top: 1rem;
+    }
+
+    /* Visual connection line from parent to nested content */
+    .nested-content::before {
+      content: '';
+      position: absolute;
+      left: -2px;
+      top: -0.5rem;
+      bottom: 0;
+      width: 2px;
+      opacity: 0.3;
+    }
+
+    [data-level="1"] > .nested-content {
+      border-left-color: rgba(44, 122, 123, 0.3);
+    }
+
+    [data-level="2"] > .nested-content {
+      border-left-color: rgba(49, 130, 206, 0.3);
+    }
+
+    [data-level="3"] > .nested-content {
+      border-left-color: rgba(128, 90, 213, 0.3);
+    }
+
+    [data-level="4"] > .nested-content {
+      border-left-color: rgba(214, 158, 46, 0.3);
+    }
+
+    [data-level="5"] > .nested-content {
+      border-left-color: rgba(229, 62, 62, 0.3);
+    }
+
+    [data-level="6"] > .nested-content {
+      border-left-color: rgba(213, 63, 140, 0.3);
+    }
+
+    [data-level="7"] > .nested-content {
+      border-left-color: rgba(56, 161, 105, 0.3);
+    }
+
+    [data-level="8"] > .nested-content {
+      border-left-color: rgba(221, 107, 32, 0.3);
+    }
+
+    [data-level="9"] > .nested-content {
+      border-left-color: rgba(49, 151, 149, 0.3);
+    }
+
+    [data-level="10"] > .nested-content {
+      border-left-color: rgba(76, 81, 191, 0.3);
+    }
+
+    .theme-toggle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      transition: all 0.3s;
+    }
+
+    .theme-toggle:hover {
+      background-color: var(--hover-bg);
+    }
+
+    .no-results {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-secondary);
+      display: none;
+    }
+
+    .no-results.visible {
+      display: block;
+    }
+
+    .match-count {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-left: 0.5rem;
+    }
+
+    mark {
+      background-color: #fff3cd;
+      color: #856404;
+      padding: 0.1rem 0.2rem;
+      border-radius: 0.2rem;
+    }
+
+    [data-theme="dark"] mark {
+      background-color: #ffc107;
+      color: #000;
+    }
+
+    @media (max-width: 992px) {
+      .toc-container {
+        display: none;
+      }
+
+      .main-container {
+        padding: 1rem;
+      }
+
+      .controls {
+        flex-wrap: wrap;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .top-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .search-container {
+        min-width: 100%;
+      }
+
+      .controls {
+        justify-content: center;
+      }
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
+
+    .tooltip-inner {
+      background-color: var(--text-primary);
+      color: var(--bg-primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="search-container">
+      <input type="text" id="search-input" class="form-control search-input"
+             placeholder="Search configuration options..."
+             autocomplete="off">
+      <i class="bi bi-x-circle-fill search-clear" id="search-clear"></i>
+    </div>
+    <div class="controls">
+      <button id="expand-all" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-arrows-expand"></i> Expand All
+      </button>
+      <button id="collapse-all" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-arrows-collapse"></i> Collapse All
+      </button>
+      <button class="theme-toggle" id="theme-toggle" title="Toggle dark mode">
+        <i class="bi bi-moon-fill"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <aside class="toc-container">
+      <h5><i class="bi bi-list-ul"></i> Configuration top level</h5>
+      <ul class="toc-list" id="toc-list">
+        <!-- Generated by JavaScript -->
+      </ul>
+    </aside>
+
+    <main class="content-area">
+      <div id="config-content">
+        {{.Content}}
+      </div>
+      <div class="no-results" id="no-results">
+        <i class="bi bi-search" style="font-size: 3rem; opacity: 0.3;"></i>
+        <p class="mt-3">No configuration options match your search.</p>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Configuration data from Go
+    const configData = {{.ConfigJSON}};
+
+    // State management
+    const state = {
+      searchTerm: '',
+      expandedSections: new Set(),
+      darkMode: localStorage.getItem('darkMode') === 'true'
+    };
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      initTheme();
+      renderConfigDocs();
+      initSearch();
+      initControls();
+      initTableOfContents();
+      loadExpandedState();
+      setupIntersectionObserver();
+    });
+
+    function initTheme() {
+      if (state.darkMode) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.getElementById('theme-toggle').innerHTML = '<i class="bi bi-sun-fill"></i>';
+      }
+
+      document.getElementById('theme-toggle').addEventListener('click', function() {
+        state.darkMode = !state.darkMode;
+        localStorage.setItem('darkMode', state.darkMode);
+        document.documentElement.setAttribute('data-theme', state.darkMode ? 'dark' : 'light');
+        this.innerHTML = state.darkMode ? '<i class="bi bi-sun-fill"></i>' : '<i class="bi bi-moon-fill"></i>';
+      });
+    }
+
+    function generateFieldId(field) {
+      return 'field-' + field.replace(/\./g, '-').replace(/\[]/g, '-array');
+    }
+
+    function generateExample(doc, format = 'json') {
+      const parts = doc.field.split('.');
+      let example = '';
+
+      if (format === 'json') {
+        const indent = '  '.repeat(Math.max(0, doc.level - 1));
+        const fieldName = doc.name;
+
+        if (doc.is_complex_type) {
+          if (doc.default === '[]') {
+            example = `${indent}"${fieldName}": []`;
+          } else {
+            example = `${indent}"${fieldName}": {}`;
+          }
+        } else {
+          let exampleValue = doc.default;
+          if (doc.type.startsWith('[]')) {
+            // Array type
+            exampleValue = exampleValue || '[]';
+          } else if (doc.type === 'string' || doc.type === 'PEMData') {
+            if (exampleValue === undefined || exampleValue === null) {
+              exampleValue = '""';
+            } else if (exampleValue === '') {
+              exampleValue = '""';
+            } else if (!exampleValue.startsWith('"')) {
+              exampleValue = `"${exampleValue}"`;
+            }
+          } else if (doc.type === 'bool') {
+            exampleValue = exampleValue || 'false';
+          } else if (doc.type === 'int' || doc.type.includes('int')) {
+            exampleValue = exampleValue || '0';
+          } else {
+            exampleValue = exampleValue || '""';
+          }
+          example = `${indent}"${fieldName}": ${exampleValue}`;
+        }
+      } else if (format === 'yaml') {
+        const indent = '  '.repeat(Math.max(0, doc.level - 1));
+        const fieldName = doc.name;
+
+        if (doc.is_complex_type) {
+          example = `${indent}${fieldName}:`;
+        } else {
+          let exampleValue = doc.default || '';
+          if (doc.type.startsWith('[]')) {
+            // Array type
+            exampleValue = exampleValue || '[]';
+          } else if (doc.type === 'string') {
+            exampleValue = exampleValue || '""';
+          } else if (doc.type === 'bool') {
+            exampleValue = exampleValue || 'false';
+          } else if (doc.type === 'int' || doc.type.includes('int')) {
+            exampleValue = exampleValue || '0';
+          }
+          example = `${indent}${fieldName}: ${exampleValue}`;
+        }
+      }
+
+      return example;
+    }
+
+    function getEnvVar(doc) {
+      if (doc.field.includes('[]')) {
+        // Check if field contains namespaced arrays (e.g., "consumers[]", "channel.namespaces[]", etc.)
+        const hasNamespacedArray = doc.field.match(/\bnamespaces\[\]/) ||
+                                    doc.field.match(/\bproxies\[\]/) ||
+                                    doc.field.match(/\bconsumers\[\]/);
+
+        if (!doc.field.endsWith('.name') &&
+            hasNamespacedArray &&
+            (!doc.is_complex_type || doc.default === '[]')) {
+          // For array fields in named sections, replace [] with <NAME>
+          let field = doc.field.replace(/\[\]/g, '_<NAME>');
+          let envVar = 'CENTRIFUGO_' + field.toUpperCase().replace(/\./g, '_');
+          return envVar;
+        }
+        // For other arrays or complex types that aren't arrays, return empty
+        return '';
+      } else if (!doc.is_complex_type) {
+        return 'CENTRIFUGO_' + doc.field.toUpperCase().replace(/\./g, '_');
+      } else if (doc.field.includes('namespaces') || doc.field.includes('proxies') ||
+                 doc.field.includes('consumers') || doc.default === '[]') {
+        return 'CENTRIFUGO_' + doc.field.toUpperCase().replace(/\./g, '_');
+      }
+      return '';
+    }
+
+    function renderConfigCard(doc, parent) {
+      const fieldId = generateFieldId(doc.field);
+      const card = document.createElement('div');
+      card.className = 'config-card';
+      card.id = fieldId;
+      card.dataset.field = doc.field;
+      card.dataset.level = doc.level;
+
+      // Header
+      const header = document.createElement('div');
+      header.className = 'config-header';
+
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'config-title';
+
+      // Field name and type
+      const heading = document.createElement(`h${Math.min(doc.level, 6)}`);
+      const typeIndicator = doc.is_complex_type
+        ? (doc.default === '[]' ? '[array]' : '{object}')
+        : doc.type;
+      heading.innerHTML = `
+        <span class="field-name">${doc.field}</span>
+        <span class="type-indicator">${typeIndicator}</span>
+      `;
+      titleDiv.appendChild(heading);
+
+      // Actions
+      const actions = document.createElement('div');
+      actions.className = 'config-actions';
+      actions.innerHTML = `
+        <a href="#${fieldId}" class="btn btn-sm btn-outline-secondary btn-icon" title="Copy link">
+          <i class="bi bi-link-45deg"></i>
+        </a>
+      `;
+
+      header.appendChild(titleDiv);
+      header.appendChild(actions);
+      card.appendChild(header);
+
+      // Meta information
+      let metaHTML = '';
+
+      // Only show defaults for non-complex types
+      if (!doc.is_complex_type) {
+        const isStringType = doc.type === 'string' || doc.type === 'PEMData' || doc.type === 'Duration';
+        const isBoolType = doc.type === 'bool';
+        let shouldShow = false;
+        let displayDefault = doc.default;
+
+        if (isStringType) {
+          // Always show string defaults (including empty strings) with quotes
+          shouldShow = true;
+          displayDefault = `"${doc.default || ''}"`;
+        } else if (isBoolType) {
+          // Show boolean defaults, use 'false' if not set
+          shouldShow = true;
+          displayDefault = doc.default || 'false';
+        } else if (doc.default && doc.default !== '') {
+          // For other types (int, etc.), only show if there's a non-empty default
+          shouldShow = true;
+          displayDefault = doc.default;
+        }
+
+        if (shouldShow) {
+          metaHTML += `
+            <div class="meta-item">
+              <i class="bi bi-gear"></i>
+              <span>Default: <code>${displayDefault}</code></span>
+            </div>
+          `;
+        }
+      }
+
+      const envVar = getEnvVar(doc);
+      if (envVar) {
+        const escapedEnvVar = envVar.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        metaHTML += `
+          <div class="meta-item">
+            <i class="bi bi-terminal"></i>
+            <span>Env: <code>${escapedEnvVar}</code></span>
+            <i class="bi bi-clipboard copy-btn" data-copy="${envVar}" title="Copy env var"></i>
+          </div>
+        `;
+      }
+
+      // Only add meta div if there's content
+      if (metaHTML) {
+        const meta = document.createElement('div');
+        meta.className = 'meta-info';
+        meta.innerHTML = metaHTML;
+        card.appendChild(meta);
+      }
+
+      // Description
+      const desc = document.createElement('div');
+      desc.className = 'description';
+      desc.textContent = doc.comment || 'No documentation available.';
+      card.appendChild(desc);
+
+      // Config example button
+      const exampleBtnContainer = document.createElement('div');
+      exampleBtnContainer.className = 'example-btn-container';
+      exampleBtnContainer.innerHTML = `
+        <button class="btn btn-sm btn-outline-primary show-config-example" data-field="${doc.field}">
+          <i class="bi bi-code-square"></i> Show Config Snippet
+        </button>
+      `;
+      card.appendChild(exampleBtnContainer);
+
+      // Example configuration (hidden by default)
+      const exampleDiv = document.createElement('div');
+      exampleDiv.className = 'example-config hidden';
+      exampleDiv.id = fieldId + '-example';
+      card.appendChild(exampleDiv);
+
+      parent.appendChild(card);
+
+      // Handle children
+      if (doc.children && doc.children.length > 0) {
+        const expandIndicator = document.createElement('div');
+        expandIndicator.className = 'expand-indicator';
+        expandIndicator.innerHTML = `
+          <i class="bi bi-chevron-down"></i>
+          <span>${doc.children.length} nested element${doc.children.length > 1 ? 's' : ''}</span>
+        `;
+        card.appendChild(expandIndicator);
+
+        const nestedContent = document.createElement('div');
+        nestedContent.className = 'nested-content';
+        nestedContent.id = fieldId + '-nested';
+
+        doc.children.forEach(child => renderConfigCard(child, nestedContent));
+
+        card.appendChild(nestedContent);
+
+        expandIndicator.addEventListener('click', function() {
+          const isExpanded = nestedContent.classList.contains('open');
+          if (isExpanded) {
+            nestedContent.classList.remove('open');
+            expandIndicator.classList.remove('expanded');
+            state.expandedSections.delete(fieldId);
+          } else {
+            nestedContent.classList.add('open');
+            expandIndicator.classList.add('expanded');
+            state.expandedSections.add(fieldId);
+          }
+          saveExpandedState();
+        });
+      }
+    }
+
+    function renderConfigDocs() {
+      const container = document.getElementById('config-content');
+      container.innerHTML = '';
+      configData.forEach(doc => renderConfigCard(doc, container));
+
+      // Setup copy buttons
+      document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          copyToClipboard(this.dataset.copy, this);
+        });
+      });
+
+      document.querySelectorAll('.copy-example').forEach(btn => {
+        btn.addEventListener('click', function() {
+          copyToClipboard(this.dataset.example, this);
+        });
+      });
+
+      // Setup show config example buttons
+      document.querySelectorAll('.show-config-example').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const field = this.dataset.field;
+          const fieldId = generateFieldId(field);
+          const exampleDiv = document.getElementById(fieldId + '-example');
+
+          if (exampleDiv.classList.contains('hidden')) {
+            const jsonConfig = generateFullContextConfig(field, 'json');
+            const yamlConfig = generateFullContextConfig(field, 'yaml');
+
+            exampleDiv.innerHTML = `
+              <div class="example-controls">
+                <div class="format-switcher">
+                  <button class="btn btn-sm btn-primary format-btn active" data-format="json">JSON</button>
+                  <button class="btn btn-sm btn-outline-secondary format-btn" data-format="yaml">YAML</button>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary btn-icon copy-example" title="Copy example">
+                  <i class="bi bi-clipboard"></i>
+                </button>
+              </div>
+              <pre class="example-content" data-json="${jsonConfig.plain.replace(/"/g, '&quot;').replace(/\n/g, '\\n')}" data-yaml="${yamlConfig.plain.replace(/"/g, '&quot;').replace(/\n/g, '\\n')}">${jsonConfig.html}</pre>
+            `;
+            exampleDiv.classList.remove('hidden');
+            this.innerHTML = '<i class="bi bi-code-square"></i> Hide Config Snippet';
+
+            // Attach event listeners
+            const copyBtn = exampleDiv.querySelector('.copy-example');
+            const exampleContent = exampleDiv.querySelector('.example-content');
+            const formatBtns = exampleDiv.querySelectorAll('.format-btn');
+
+            let currentFormat = 'json';
+
+            if (copyBtn) {
+              copyBtn.addEventListener('click', function() {
+                const textToCopy = exampleContent.dataset[currentFormat].replace(/\\n/g, '\n').replace(/&quot;/g, '"');
+                copyToClipboard(textToCopy, this);
+              });
+            }
+
+            formatBtns.forEach(btn => {
+              btn.addEventListener('click', function() {
+                const format = this.dataset.format;
+                currentFormat = format;
+
+                formatBtns.forEach(b => {
+                  b.classList.remove('btn-primary', 'active');
+                  b.classList.add('btn-outline-secondary');
+                });
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-primary', 'active');
+
+                if (format === 'json') {
+                  exampleContent.innerHTML = jsonConfig.html;
+                } else {
+                  exampleContent.innerHTML = yamlConfig.html;
+                }
+              });
+            });
+          } else {
+            exampleDiv.classList.add('hidden');
+            this.innerHTML = '<i class="bi bi-code-square"></i> Show Config Snippet';
+          }
+        });
+      });
+    }
+
+    function jsonToYAML(jsonStr) {
+      try {
+        const obj = JSON.parse(jsonStr);
+        return objectToYAML(obj, 0);
+      } catch (e) {
+        return 'Error converting to YAML';
+      }
+    }
+
+    function objectToYAML(obj, indent = 0) {
+      const spaces = '  '.repeat(indent);
+      let yaml = '';
+
+      if (Array.isArray(obj)) {
+        obj.forEach((item, idx) => {
+          if (typeof item === 'object' && item !== null) {
+            yaml += `${spaces}- ${objectToYAML(item, indent + 1).trim()}\n`;
+          } else {
+            yaml += `${spaces}- ${formatValue(item)}\n`;
+          }
+        });
+      } else if (typeof obj === 'object' && obj !== null) {
+        Object.keys(obj).forEach((key, idx) => {
+          const value = obj[key];
+          if (typeof value === 'object' && value !== null) {
+            if (Array.isArray(value) && value.length > 0) {
+              yaml += `${spaces}${key}:\n`;
+              yaml += objectToYAML(value, indent + 1);
+            } else if (Array.isArray(value)) {
+              yaml += `${spaces}${key}: []\n`;
+            } else if (Object.keys(value).length === 0) {
+              // Empty object
+              yaml += `${spaces}${key}: {}\n`;
+            } else {
+              yaml += `${spaces}${key}:\n`;
+              yaml += objectToYAML(value, indent + 1);
+            }
+          } else {
+            yaml += `${spaces}${key}: ${formatValue(value)}\n`;
+          }
+        });
+      }
+
+      return yaml;
+    }
+
+    function formatValue(val) {
+      if (val === null || val === undefined) return 'null';
+      if (typeof val === 'string') {
+        // Check if string needs quotes
+        if (val === '' || val.match(/^(true|false|null|[0-9]+)$/i) || val.match(/[:#@&*!|>%\[\]{}]/)) {
+          return `"${val}"`;
+        }
+        return val;
+      }
+      return String(val);
+    }
+
+    function generateFullContextConfig(targetField, format = 'json') {
+      const jsonResult = generateFullContextJSON(targetField);
+
+      if (format === 'yaml') {
+        const yamlPlain = jsonToYAML(jsonResult.plain);
+        // Apply highlighting to YAML
+        let yamlHtml = yamlPlain;
+
+        if (jsonResult.html.includes('highlight-line')) {
+          // Extract the highlighted field name from the last part of the path
+          const highlightMatch = jsonResult.html.match(/<span class="highlight-line">\s*"(\w+)":/);
+          if (highlightMatch) {
+            const fieldName = highlightMatch[1];
+            const lines = yamlPlain.split('\n');
+
+            // Find the last occurrence of this field (most nested one)
+            let lastMatchIndex = -1;
+            lines.forEach((line, idx) => {
+              if (line.match(new RegExp(`^\\s*${fieldName}:\\s`))) {
+                lastMatchIndex = idx;
+              }
+            });
+
+            if (lastMatchIndex >= 0) {
+              yamlHtml = lines.map((line, idx) =>
+                idx === lastMatchIndex ? `<span class="highlight-line">${line}</span>` : line
+              ).join('\n');
+            }
+          }
+        }
+
+        return {
+          html: yamlHtml,
+          plain: yamlPlain
+        };
+      }
+
+      return jsonResult;
+    }
+
+    function generateFullContextJSON(targetField) {
+      // Build a map of all docs by field path for quick lookup
+      const docsMap = new Map();
+      function buildMap(docs) {
+        docs.forEach(doc => {
+          docsMap.set(doc.field, doc);
+          if (doc.children && doc.children.length > 0) {
+            buildMap(doc.children);
+          }
+        });
+      }
+      buildMap(configData);
+
+      const targetDoc = docsMap.get(targetField);
+      if (!targetDoc) return { html: 'Field not found', plain: '' };
+
+      // Parse the field path - handle array notation
+      const cleanField = targetField.replace(/\[\]/g, '');
+      const pathParts = cleanField.split('.');
+      const rootSection = pathParts[0];
+
+      // Find the root section doc
+      const rootDoc = configData.find(d => d.name === rootSection);
+      if (!rootDoc) return { html: 'Root section not found', plain: '' };
+
+      let jsonLines = [];
+      let plainLines = [];
+
+      function addLine(text, highlight = false) {
+        if (highlight) {
+          jsonLines.push(`<span class="highlight-line">${text}</span>`);
+        } else {
+          jsonLines.push(text);
+        }
+        plainLines.push(text);
+      }
+
+      function getFieldValue(doc, showArrayStructure = false) {
+        if (doc.is_complex_type) {
+          if (doc.default === '[]') {
+            return showArrayStructure ? '[{}]' : '[]';
+          }
+          return '{}';
+        }
+
+        let val = doc.default;
+        if (doc.type.startsWith('[]')) {
+          // Array type - check if default is actually an array string or a plain value
+          if (!val || val === '[]') {
+            return '[]';
+          }
+          // If default doesn't start with '[', it's a plain value that should be wrapped in array
+          if (!val.startsWith('[')) {
+            // Quote string values
+            const quotedVal = val.startsWith('"') ? val : `"${val}"`;
+            return `[${quotedVal}]`;
+          }
+          return val;
+        } else if (doc.type === 'string' || doc.type === 'PEMData' || doc.type === 'Duration') {
+          if (val === undefined || val === null || val === '') {
+            return '""';
+          }
+          return val.startsWith('"') ? val : `"${val}"`;
+        } else if (doc.type === 'bool') {
+          return val || 'false';
+        } else if (doc.type === 'int' || doc.type.includes('int')) {
+          return val || '0';
+        }
+        return '""';
+      }
+
+      function renderLevel(docs, level, pathToTarget, inArray = false) {
+        const indent = '  '.repeat(level);
+        const nextPathPart = pathToTarget[0];
+
+        docs.forEach((doc, idx) => {
+          const isLast = idx === docs.length - 1;
+          const isOnPath = doc.name === nextPathPart;
+          const isTarget = pathToTarget.length === 1 && isOnPath;
+
+          if (isOnPath && pathToTarget.length > 1) {
+            // This field is on the path - expand it
+            if (doc.is_complex_type && doc.default === '[]') {
+              // Array of objects - show array with sample object
+              addLine(`${indent}"${doc.name}": [`);
+              addLine(`${indent}  {`);
+              if (doc.children && doc.children.length > 0) {
+                renderLevel(doc.children, level + 2, pathToTarget.slice(1), true);
+              }
+              addLine(`${indent}  }`);
+              addLine(`${indent}]${isLast ? '' : ','}`);
+            } else if (doc.is_complex_type) {
+              // Regular object
+              addLine(`${indent}"${doc.name}": {`);
+              if (doc.children && doc.children.length > 0) {
+                renderLevel(doc.children, level + 1, pathToTarget.slice(1), false);
+              }
+              addLine(`${indent}}${isLast ? '' : ','}`);
+            } else {
+              // Primitive field on path (shouldn't happen, but handle it)
+              const value = getFieldValue(doc, false);
+              const line = `${indent}"${doc.name}": ${value}${isLast ? '' : ','}`;
+              addLine(line, isTarget);
+            }
+          } else {
+            // Regular field - show with value (not on path, or is target)
+            // For arrays not on the path, show empty array, not [{}]
+            const value = getFieldValue(doc, false);
+            const line = `${indent}"${doc.name}": ${value}${isLast ? '' : ','}`;
+            addLine(line, isTarget);
+          }
+        });
+      }
+
+      addLine('{');
+
+      // Check if root field is a simple type (not a complex object or array)
+      if (!rootDoc.is_complex_type) {
+        // Simple type - render the value directly
+        const value = getFieldValue(rootDoc, false);
+        const isTarget = pathParts.length === 1; // Top-level field is the target
+        addLine(`  "${rootSection}": ${value}`, isTarget);
+      } else if (rootDoc.default === '[]') {
+        // Array of objects
+        addLine(`  "${rootSection}": [`);
+        addLine('    {');
+        if (rootDoc.children && rootDoc.children.length > 0) {
+          renderLevel(rootDoc.children, 3, pathParts.slice(1), false);
+        }
+        addLine('    }');
+        addLine('  ]');
+      } else {
+        // Regular object
+        addLine(`  "${rootSection}": {`);
+        if (rootDoc.children && rootDoc.children.length > 0) {
+          renderLevel(rootDoc.children, 2, pathParts.slice(1), false);
+        }
+        addLine('  }');
+      }
+
+      addLine('}');
+
+      return {
+        html: jsonLines.join('\n'),
+        plain: plainLines.join('\n')
+      };
+    }
+
+    function copyToClipboard(text, button) {
+      navigator.clipboard.writeText(text).then(() => {
+        const icon = button.querySelector('i') || button;
+        const originalClass = icon.className;
+        icon.className = 'bi bi-check-lg';
+        setTimeout(() => {
+          icon.className = originalClass;
+        }, 1500);
+      });
+    }
+
+    function initSearch() {
+      const searchInput = document.getElementById('search-input');
+      const searchClear = document.getElementById('search-clear');
+
+      searchInput.addEventListener('input', function() {
+        state.searchTerm = this.value.toLowerCase();
+        searchClear.classList.toggle('visible', this.value.length > 0);
+        performSearch();
+      });
+
+      searchClear.addEventListener('click', function() {
+        searchInput.value = '';
+        state.searchTerm = '';
+        this.classList.remove('visible');
+        performSearch();
+      });
+    }
+
+    function performSearch() {
+      const cards = document.querySelectorAll('.config-card');
+      let visibleCount = 0;
+
+      cards.forEach(card => {
+        if (!state.searchTerm) {
+          card.classList.remove('hidden');
+          removeHighlights(card);
+          visibleCount++;
+          return;
+        }
+
+        const field = card.dataset.field.toLowerCase();
+        const text = card.textContent.toLowerCase();
+
+        if (field.includes(state.searchTerm) || text.includes(state.searchTerm)) {
+          card.classList.remove('hidden');
+          highlightMatches(card, state.searchTerm);
+          visibleCount++;
+
+          // Auto-expand parent sections
+          const nestedContent = card.querySelector('.nested-content');
+          if (nestedContent) {
+            nestedContent.classList.add('open');
+            const expandIndicator = card.querySelector('.expand-indicator');
+            if (expandIndicator) {
+              expandIndicator.classList.add('expanded');
+            }
+          }
+        } else {
+          card.classList.add('hidden');
+          removeHighlights(card);
+        }
+      });
+
+      document.getElementById('no-results').classList.toggle('visible', visibleCount === 0);
+    }
+
+    function highlightMatches(element, term) {
+      // Simple highlighting - can be enhanced
+      const textNodes = getTextNodes(element.querySelector('.description'));
+      textNodes.forEach(node => {
+        if (node.textContent.toLowerCase().includes(term)) {
+          const span = document.createElement('span');
+          span.innerHTML = node.textContent.replace(
+            new RegExp(term, 'gi'),
+            match => `<mark>${match}</mark>`
+          );
+          node.parentNode.replaceChild(span, node);
+        }
+      });
+    }
+
+    function removeHighlights(element) {
+      element.querySelectorAll('mark').forEach(mark => {
+        mark.replaceWith(mark.textContent);
+      });
+    }
+
+    function getTextNodes(element) {
+      const textNodes = [];
+      const walk = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+      let node;
+      while (node = walk.nextNode()) {
+        if (node.textContent.trim()) {
+          textNodes.push(node);
+        }
+      }
+      return textNodes;
+    }
+
+    function initControls() {
+      document.getElementById('expand-all').addEventListener('click', function() {
+        document.querySelectorAll('.nested-content').forEach(content => {
+          content.classList.add('open');
+          const card = content.closest('.config-card');
+          const indicator = card.querySelector('.expand-indicator');
+          if (indicator) {
+            indicator.classList.add('expanded');
+            state.expandedSections.add(card.id);
+          }
+        });
+        saveExpandedState();
+      });
+
+      document.getElementById('collapse-all').addEventListener('click', function() {
+        document.querySelectorAll('.nested-content').forEach(content => {
+          content.classList.remove('open');
+          const card = content.closest('.config-card');
+          const indicator = card.querySelector('.expand-indicator');
+          if (indicator) {
+            indicator.classList.remove('expanded');
+            state.expandedSections.delete(card.id);
+          }
+        });
+        saveExpandedState();
+      });
+    }
+
+    function initTableOfContents() {
+      const tocList = document.getElementById('toc-list');
+      const level1Cards = document.querySelectorAll('.config-card[data-level="1"]');
+
+      level1Cards.forEach(card => {
+        const field = card.dataset.field;
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = '#' + card.id;
+        a.textContent = field;
+        a.addEventListener('click', function(e) {
+          e.preventDefault();
+          card.scrollIntoView({ behavior: 'auto', block: 'start' });
+          history.pushState(null, '', '#' + card.id);
+        });
+        li.appendChild(a);
+        tocList.appendChild(li);
+      });
+    }
+
+    function setupIntersectionObserver() {
+      const options = {
+        root: null,
+        rootMargin: '-100px 0px -80% 0px',
+        threshold: 0
+      };
+
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const id = entry.target.id;
+            document.querySelectorAll('.toc-list a').forEach(a => {
+              a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+            });
+          }
+        });
+      }, options);
+
+      document.querySelectorAll('.config-card[data-level="1"]').forEach(card => {
+        observer.observe(card);
+      });
+    }
+
+    function saveExpandedState() {
+      localStorage.setItem('expandedSections', JSON.stringify([...state.expandedSections]));
+    }
+
+    function loadExpandedState() {
+      const saved = localStorage.getItem('expandedSections');
+      if (saved) {
+        const sections = JSON.parse(saved);
+        sections.forEach(fieldId => {
+          const card = document.getElementById(fieldId);
+          if (card) {
+            const nestedContent = card.querySelector('.nested-content');
+            const indicator = card.querySelector('.expand-indicator');
+            if (nestedContent && indicator) {
+              nestedContent.classList.add('open');
+              indicator.classList.add('expanded');
+              state.expandedSections.add(fieldId);
+            }
+          }
+        });
+      }
+    }
+
+    // Handle deep linking
+    if (window.location.hash) {
+      setTimeout(() => {
+        const element = document.querySelector(window.location.hash);
+        if (element) {
+          element.scrollIntoView({ behavior: 'auto' });
+        }
+      }, 100);
+    }
+  </script>
+</body>
+</html>
