@@ -15,6 +15,10 @@ func ValidatePublicationData(data []byte, format string) error {
 		if !tools.IsValidJSON(data) {
 			return errors.New("data is not valid JSON")
 		}
+	case configtypes.PublicationDataFormatJSONObject:
+		if !tools.IsValidJSONObject(data) {
+			return errors.New("data is not valid JSON object")
+		}
 	case configtypes.PublicationDataFormatBinary:
 		// Binary format allows empty data, no validation needed
 	default:

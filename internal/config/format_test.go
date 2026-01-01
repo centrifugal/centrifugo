@@ -69,6 +69,61 @@ func TestValidatePublicationData(t *testing.T) {
 			wantErr: true,
 			errMsg:  "data is not valid JSON",
 		},
+		// JSON object format tests
+		{
+			name:    "json_object format - valid json object",
+			data:    []byte(`{"key": "value"}`),
+			format:  configtypes.PublicationDataFormatJSONObject,
+			wantErr: false,
+		},
+		{
+			name:    "json_object format - valid json object with whitespace",
+			data:    []byte(`  {"key": "value"}  `),
+			format:  configtypes.PublicationDataFormatJSONObject,
+			wantErr: false,
+		},
+		{
+			name:    "json_object format - json array rejected",
+			data:    []byte(`[1, 2, 3]`),
+			format:  configtypes.PublicationDataFormatJSONObject,
+			wantErr: true,
+			errMsg:  "data is not valid JSON object",
+		},
+		{
+			name:    "json_object format - json string rejected",
+			data:    []byte(`"string"`),
+			format:  configtypes.PublicationDataFormatJSONObject,
+			wantErr: true,
+			errMsg:  "data is not valid JSON object",
+		},
+		{
+			name:    "json_object format - json null rejected",
+			data:    []byte(`null`),
+			format:  configtypes.PublicationDataFormatJSONObject,
+			wantErr: true,
+			errMsg:  "data is not valid JSON object",
+		},
+		{
+			name:    "json_object format - json number rejected",
+			data:    []byte(`42`),
+			format:  configtypes.PublicationDataFormatJSONObject,
+			wantErr: true,
+			errMsg:  "data is not valid JSON object",
+		},
+		{
+			name:    "json_object format - invalid json",
+			data:    []byte(`not valid json`),
+			format:  configtypes.PublicationDataFormatJSONObject,
+			wantErr: true,
+			errMsg:  "data is not valid JSON object",
+		},
+		{
+			name:    "json_object format - empty data",
+			data:    []byte{},
+			format:  configtypes.PublicationDataFormatJSONObject,
+			wantErr: true,
+			errMsg:  "data is not valid JSON object",
+		},
 		// Binary format tests
 		{
 			name:    "binary format - binary data allowed",

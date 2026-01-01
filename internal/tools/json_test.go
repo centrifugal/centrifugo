@@ -96,3 +96,86 @@ func TestIsValidJSON(t *testing.T) {
 		})
 	}
 }
+
+func TestIsValidJSONObject(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []byte
+		expected bool
+	}{
+		{
+			name:     "empty data",
+			input:    []byte{},
+			expected: false,
+		},
+		{
+			name:     "valid json object",
+			input:    []byte(`{"key": "value"}`),
+			expected: true,
+		},
+		{
+			name:     "valid empty json object",
+			input:    []byte(`{}`),
+			expected: true,
+		},
+		{
+			name:     "valid json object with whitespace",
+			input:    []byte(`  {"key": "value"}  `),
+			expected: true,
+		},
+		{
+			name:     "valid json object with newlines",
+			input:    []byte("{\n  \"key\": \"value\"\n}"),
+			expected: true,
+		},
+		{
+			name:     "valid json array - should be false",
+			input:    []byte(`[1, 2, 3]`),
+			expected: false,
+		},
+		{
+			name:     "valid json string - should be false",
+			input:    []byte(`"hello"`),
+			expected: false,
+		},
+		{
+			name:     "valid json number - should be false",
+			input:    []byte(`123`),
+			expected: false,
+		},
+		{
+			name:     "valid json boolean - should be false",
+			input:    []byte(`true`),
+			expected: false,
+		},
+		{
+			name:     "valid json null - should be false",
+			input:    []byte(`null`),
+			expected: false,
+		},
+		{
+			name:     "invalid json - missing closing brace",
+			input:    []byte(`{"key": "value"`),
+			expected: false,
+		},
+		{
+			name:     "invalid json - plain text",
+			input:    []byte(`hello world`),
+			expected: false,
+		},
+		{
+			name:     "invalid json - trailing comma",
+			input:    []byte(`{"key": "value",}`),
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := IsValidJSONObject(tt.input)
+			if got != tt.expected {
+				t.Errorf("IsValidJSONObject() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}

@@ -10,6 +10,8 @@ import (
 const (
 	// PublicationDataFormatJSON indicates that publication data must be valid JSON.
 	PublicationDataFormatJSON = "json"
+	// PublicationDataFormatJSONObject indicates that publication data must be valid JSON and specifically a JSON object.
+	PublicationDataFormatJSONObject = "json_object"
 	// PublicationDataFormatBinary indicates that publication data is binary and empty data is allowed.
 	PublicationDataFormatBinary = "binary"
 )
@@ -157,6 +159,7 @@ type ChannelOptions struct {
 	// PublicationDataFormat defines the format validation for publication data.
 	// If empty (default) - current behavior is used, reject empty data.
 	// If "json" - validate that data is valid JSON, return bad request if not.
+	// If "json_object" - validate that data is valid JSON and specifically a JSON object, return bad request if not.
 	// If "binary" - allow empty data to be published.
 	PublicationDataFormat string `mapstructure:"publication_data_format" json:"publication_data_format" envconfig:"publication_data_format" yaml:"publication_data_format" toml:"publication_data_format"`
 
