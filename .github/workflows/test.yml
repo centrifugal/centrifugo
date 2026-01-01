@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Check for typos
-        uses: crate-ci/typos@v1.37.0
+        uses: crate-ci/typos@v1.41.0
   golangci:
     name: Lint
     runs-on: ubuntu-latest
