@@ -4,25 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 )
-
-var (
-	httpRequestsTotal *prometheus.CounterVec
-)
-
-func init() {
-	httpRequestsTotal = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "centrifugo",
-			Subsystem: "node",
-			Name:      "incoming_http_requests_total",
-			Help:      "Number of incoming HTTP requests",
-		},
-		[]string{"path", "method", "status"},
-	)
-	_ = prometheus.DefaultRegisterer.Register(httpRequestsTotal)
-}
 
 // HTTPServerInstrumentation is a middleware to instrument HTTP handlers.
 // Since it adds and extra layer of response wrapping Centrifugo doesn't use it by default.
@@ -33,6 +16,6 @@ func HTTPServerInstrumentation(next http.Handler) http.Handler {
 		rw := &statusResponseWriter{w, http.StatusOK}
 		next.ServeHTTP(rw, r)
 		status := strconv.Itoa(rw.status)
-		httpRequestsTotal.WithLabelValues(r.URL.Path, r.Method, status).Inc()
+		metrics.HTTPRequestsTotal.WithLabelValues(r.URL.Path, r.Method, status).Inc()
 	})
 }

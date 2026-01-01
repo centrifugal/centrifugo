@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
@@ -112,11 +113,11 @@ func (c *GooglePubSubConsumer) processSingleMessage(ctx context.Context, msg *pu
 	}
 	if err == nil {
 		msg.Ack()
-		c.common.metrics.processedTotal.WithLabelValues(c.common.name).Inc()
+		metrics.ConsumerProcessedTotal.WithLabelValues(c.common.name).Inc()
 		return
 	}
 	msg.Nack()
-	c.common.metrics.errorsTotal.WithLabelValues(c.common.name).Inc()
+	metrics.ConsumerErrorsTotal.WithLabelValues(c.common.name).Inc()
 }
 
 // processPublicationDataMessage handles messages in publication data mode.

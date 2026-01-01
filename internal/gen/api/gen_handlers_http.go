@@ -13,6 +13,7 @@ import (
 	"net/http"
 
 	. "github.com/centrifugal/centrifugo/v6/internal/apiproto"
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -23,14 +24,14 @@ var templateFuncHandlersHTTP = `
 func (s *Handler) handle{{ .RequestCapitalized }}(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
-		incErrorStringCode(s.api.config.Protocol, "{{ .RequestSnake }}", "read_body")
+		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "{{ .RequestSnake }}", "read_body")
 		s.handleReadDataError(r, w, err)
 		return
 	}
 
 	req, err := requestDecoder.Decode{{ .RequestCapitalized }}(data)
 	if err != nil {
-		incErrorStringCode(s.api.config.Protocol, "{{ .RequestSnake }}", "unmarshal")
+		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "{{ .RequestSnake }}", "unmarshal")
 		s.handleUnmarshalError(r, w, err)
 		return
 	}
@@ -44,7 +45,7 @@ func (s *Handler) handle{{ .RequestCapitalized }}(w http.ResponseWriter, r *http
 	}
 
 	if resp.Error != nil && s.useTransportErrorMode(r) {
-		incError(s.api.config.Protocol, "{{ .RequestSnake }}", resp.Error.Code)
+		metrics.IncAPIError(s.api.config.Protocol, "{{ .RequestSnake }}", resp.Error.Code)
 		statusCode := MapErrorToHTTPCode(resp.Error)
 		data, _ = EncodeError(resp.Error)
 		s.writeJsonCustomStatus(w, statusCode, data)
@@ -54,14 +55,14 @@ func (s *Handler) handle{{ .RequestCapitalized }}(w http.ResponseWriter, r *http
 
 	data, err = responseEncoder.Encode{{ .RequestCapitalized }}(resp)
 	if err != nil {
-		incErrorStringCode(s.api.config.Protocol, "{{ .RequestSnake }}", "marshal")
+		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "{{ .RequestSnake }}", "marshal")
 		s.handleMarshalError(r, w, err)
 		return
 	}
 
 {{- if ne .RequestCapitalized "Batch" }}
 	if resp.Error != nil {
-		incError(s.api.config.Protocol, "{{ .RequestSnake }}", resp.Error.Code)
+		metrics.IncAPIError(s.api.config.Protocol, "{{ .RequestSnake }}", resp.Error.Code)
 	}
 {{- end}}
 

@@ -22,6 +22,7 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/consuming"
 	"github.com/centrifugal/centrifugo/v6/internal/jwtverify"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/notify"
 	"github.com/centrifugal/centrifugo/v6/internal/service"
 	"github.com/centrifugal/centrifugo/v6/internal/survey"
@@ -117,6 +118,16 @@ func Run(cmd *cobra.Command, configFile string) {
 		log.Fatal().Err(err).Msg("error creating config")
 	}
 	cfgContainer.ChannelOptionsCacheTTL = 200 * time.Millisecond
+
+	// Initialize centralized metrics registry.
+	err = metrics.Init(metrics.Config{
+		Namespace:   "", // Use default "centrifugo" namespace.
+		ConstLabels: nil, // Can be populated from config in the future.
+		Registerer:  nil, // Use prometheus.DefaultRegisterer.
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("error initializing metrics")
+	}
 
 	proxyMap, keepHeadersInContext, err := buildProxyMap(cfg)
 	if err != nil {

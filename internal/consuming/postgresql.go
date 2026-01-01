@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 
 	"github.com/jackc/pgx/v5"
@@ -281,7 +282,7 @@ func (c *PostgresConsumer) Run(ctx context.Context) error {
 					}
 					retries++
 					backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-					c.common.metrics.errorsTotal.WithLabelValues(c.common.name).Inc()
+					metrics.ConsumerErrorsTotal.WithLabelValues(c.common.name).Inc()
 					c.common.log.Error().Err(err).Int("partition", i).Msg("error processing postgresql outbox")
 					select {
 					case <-ctx.Done():
@@ -290,7 +291,7 @@ func (c *PostgresConsumer) Run(ctx context.Context) error {
 						continue
 					}
 				}
-				c.common.metrics.processedTotal.WithLabelValues(c.common.name).Add(float64(numRows))
+				metrics.ConsumerProcessedTotal.WithLabelValues(c.common.name).Add(float64(numRows))
 				retries = 0
 				backoffDuration = 0
 				if numRows < c.config.PartitionSelectLimit {

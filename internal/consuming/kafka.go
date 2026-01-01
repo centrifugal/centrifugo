@@ -14,6 +14,7 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/kmsg"
@@ -536,7 +537,7 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 				if retries > 0 {
 					pc.common.log.Info().Str("topic", record.Topic).Int32("partition", record.Partition).Msg("OK processing message after errors")
 				}
-				pc.common.metrics.processedTotal.WithLabelValues(pc.name).Inc()
+				metrics.ConsumerProcessedTotal.WithLabelValues(pc.name).Inc()
 				pc.cl.MarkCommitRecords(record)
 				break
 			}
@@ -545,7 +546,7 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 			}
 			retries++
 			backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-			pc.common.metrics.errorsTotal.WithLabelValues(pc.name).Inc()
+			metrics.ConsumerErrorsTotal.WithLabelValues(pc.name).Inc()
 			pc.common.log.Error().Err(err).Str("topic", record.Topic).Int32("partition", record.Partition).Str("next_attempt_in", backoffDuration.String()).Msg("error processing consumed record")
 			select {
 			case <-time.After(backoffDuration):

@@ -18,6 +18,7 @@ import (
 	"context"
 
 	. "github.com/centrifugal/centrifugo/v6/internal/apiproto"
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -36,7 +37,7 @@ func (h *ConsumingHandler) handle{{ .RequestCapitalized }}(ctx context.Context, 
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil {
-		incError(h.api.config.Protocol, "{{ .RequestSnake }}", resp.Error.Code)
+		metrics.IncAPIError(h.api.config.Protocol, "{{ .RequestSnake }}", resp.Error.Code)
 		return nil, resp.Error
 	}
 	return resp.Result, nil
