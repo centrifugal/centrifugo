@@ -3,13 +3,25 @@ package proxy
 import (
 	"context"
 	"net/http"
+	"os"
 	"testing"
 
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/middleware"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
 )
+
+func TestMain(m *testing.M) {
+	// Initialize metrics with a custom registry for tests to avoid conflicts
+	registry := prometheus.NewRegistry()
+	_ = metrics.Init(metrics.Config{
+		Registerer: registry,
+	})
+	os.Exit(m.Run())
+}
 
 // TestRequestHeaders_StaticHeadersOverride tests that static headers are set
 // but can be overridden by client headers only when the header key is explicitly
