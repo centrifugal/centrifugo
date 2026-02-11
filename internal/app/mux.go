@@ -507,9 +507,10 @@ func runHTTPServers(
 		}
 
 		useHTTP3 := cfg.HTTP.HTTP3.Enabled && addr == externalAddr
+		useWebtransport := useHTTP3 && handlerFlags&HandlerWebtransport != 0
 
 		var wtServer *webtransport.Server
-		if useHTTP3 {
+		if useWebtransport {
 			wtServer = &webtransport.Server{
 				CheckOrigin: getCheckOrigin(cfg),
 			}
@@ -517,11 +518,16 @@ func runHTTPServers(
 
 		mux := Mux(n, cfgContainer, apiExecutor, handlerFlags, keepHeadersInContext, wtServer)
 
+		var h3Server *http3.Server
 		if useHTTP3 {
-			wtServer.H3 = http3.Server{
+			h3Server = &http3.Server{
 				Addr:      addr,
 				TLSConfig: addrTLSConfig,
 				Handler:   mux,
+			}
+			if useWebtransport {
+				webtransport.ConfigureHTTP3Server(h3Server)
+				wtServer.H3 = h3Server
 			}
 		}
 
@@ -540,7 +546,7 @@ func runHTTPServers(
 		var handler http.Handler = mux
 		if useHTTP3 {
 			handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				_ = wtServer.H3.SetQUICHeaders(w.Header())
+				_ = h3Server.SetQUICHeaders(w.Header())
 				mux.ServeHTTP(w, r)
 			})
 		} else if useH2C {
@@ -598,12 +604,20 @@ func runHTTPServers(
 					hErr <- server.Serve(tlsConn)
 				}()
 				go func() {
-					qErr <- wtServer.Serve(udpConn)
+					if useWebtransport {
+						qErr <- wtServer.Serve(udpConn)
+					} else {
+						qErr <- h3Server.Serve(udpConn)
+					}
 				}()
 
 				select {
 				case err := <-hErr:
-					_ = wtServer.Close()
+					if useWebtransport {
+						_ = wtServer.Close()
+					} else {
+						_ = h3Server.Close()
+					}
 					if !errors.Is(err, http.ErrServerClosed) {
 						log.Fatal().Err(err).Msg("error ListenAndServe")
 					}
