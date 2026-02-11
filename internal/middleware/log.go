@@ -58,10 +58,6 @@ func (lrw *statusResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return hijacker.Hijack()
 }
 
-func (lrw *statusResponseWriter) Connection() *http3.Conn {
-	return lrw.ResponseWriter.(http3.Hijacker).Connection()
-}
-
 func (lrw *statusResponseWriter) HTTPStream() *http3.Stream {
 	return lrw.ResponseWriter.(http3.HTTPStreamer).HTTPStream()
 }
@@ -74,4 +70,12 @@ func (lrw *statusResponseWriter) Flush() {
 // Unwrap is required for http.ResponseController.
 func (lrw *statusResponseWriter) Unwrap() http.ResponseWriter {
 	return lrw.ResponseWriter
+}
+
+func (lrw *statusResponseWriter) ReceivedSettings() <-chan struct{} {
+	return lrw.ResponseWriter.(http3.Settingser).ReceivedSettings()
+}
+
+func (lrw *statusResponseWriter) Settings() *http3.Settings {
+	return lrw.ResponseWriter.(http3.Settingser).Settings()
 }
