@@ -2,9 +2,15 @@ package wt_test
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"fmt"
 	"io"
+	"math/big"
 	"net"
 	"net/http"
 	"testing"
@@ -17,9 +23,35 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestWebTransportWithLogMiddleware(t *testing.T) {
-	cert, err := tls.LoadX509KeyPair("../../tmp/localhost+2.pem", "../../tmp/localhost+2-key.pem")
+// generateTestTLSCert creates a self-signed TLS certificate for testing.
+func generateTestTLSCert(t *testing.T) tls.Certificate {
+	t.Helper()
+
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	require.NoError(t, err)
+
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{Organization: []string{"Test"}},
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().Add(10 * 365 * 24 * time.Hour),
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		DNSNames:     []string{"localhost"},
+		IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
+	}
+
+	certDER, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+	require.NoError(t, err)
+
+	return tls.Certificate{
+		Certificate: [][]byte{certDER},
+		PrivateKey:  key,
+	}
+}
+
+func TestWebTransportWithLogMiddleware(t *testing.T) {
+	cert := generateTestTLSCert(t)
 
 	wtServer := &webtransport.Server{
 		CheckOrigin: func(r *http.Request) bool { return true },
