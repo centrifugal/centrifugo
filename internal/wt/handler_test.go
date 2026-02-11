@@ -48,13 +48,15 @@ func TestWebTransportWithLogMiddleware(t *testing.T) {
 	})
 
 	// Wrap with LogRequest middleware — this is the key part under test.
-	wtServer.H3 = http3.Server{
+	server := &http3.Server{
 		TLSConfig: &tls.Config{
 			Certificates: []tls.Certificate{cert},
 			NextProtos:   []string{http3.NextProtoH3},
 		},
 		Handler: middleware.LogRequest(mux),
 	}
+	webtransport.ConfigureHTTP3Server(server)
+	wtServer.H3 = server
 
 	udpAddr, err := net.ResolveUDPAddr("udp", "localhost:0")
 	require.NoError(t, err)
@@ -71,7 +73,7 @@ func TestWebTransportWithLogMiddleware(t *testing.T) {
 
 	d := webtransport.Dialer{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		QUICConfig:      &quic.Config{EnableDatagrams: true},
+		QUICConfig:      &quic.Config{EnableDatagrams: true, EnableStreamResetPartialDelivery: true},
 	}
 	defer func() {
 		_ = d.Close()
