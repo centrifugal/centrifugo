@@ -6,9 +6,9 @@ import (
 
 	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/service"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -21,14 +21,12 @@ type Dispatcher interface {
 }
 
 type consumerCommon struct {
-	name    string
-	log     zerolog.Logger
-	metrics *commonMetrics
-	nodeID  string
+	name   string
+	log    zerolog.Logger
+	nodeID string
 }
 
 func New(nodeID string, consumingHandler *api.ConsumingHandler, configs []ConsumerConfig) ([]service.Service, error) {
-	metrics := newCommonMetrics(prometheus.DefaultRegisterer)
 	dispatcher := api.NewDispatcher(consumingHandler)
 
 	var services []service.Service
@@ -41,11 +39,12 @@ func New(nodeID string, consumingHandler *api.ConsumingHandler, configs []Consum
 			continue
 		}
 		common := &consumerCommon{
-			name:    config.Name,
-			log:     log.With().Str("consumer", config.Name).Logger(),
-			metrics: metrics,
-			nodeID:  nodeID,
+			name:   config.Name,
+			log:    log.With().Str("consumer", config.Name).Logger(),
+			nodeID: nodeID,
 		}
+		// Initialize consumer metrics with zero values.
+		metrics.InitConsumerMetrics(config.Name)
 		var consumer service.Service
 		var err error
 		switch config.Type {
@@ -70,7 +69,7 @@ func New(nodeID string, consumingHandler *api.ConsumingHandler, configs []Consum
 			return nil, fmt.Errorf("error initializing %s consumer (%s): %w", config.Type, config.Name, err)
 		}
 		services = append(services, consumer)
-		metrics.init(config.Name)
+		metrics.InitConsumerMetrics(config.Name)
 		log.Info().
 			Str("consumer", config.Name).
 			Str("type", config.Type).

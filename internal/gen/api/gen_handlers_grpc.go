@@ -12,6 +12,7 @@ import (
 	"context"
 
 	. "github.com/centrifugal/centrifugo/v6/internal/apiproto"
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -29,7 +30,7 @@ func (s *grpcAPIService) {{ .RequestCapitalized }}(ctx context.Context, req *{{ 
 		span.SetStatus(codes.Error, resp.Error.Error())
 	}
 	if resp.Error != nil && s.useTransportErrorMode(ctx) {
-		incError(s.api.config.Protocol, "{{ .RequestSnake }}", resp.Error.Code)
+		metrics.IncAPIError(s.api.config.Protocol, "{{ .RequestSnake }}", resp.Error.Code)
 		statusCode := MapErrorToGRPCCode(resp.Error)
 		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
 		return nil, transportError.Err()
@@ -37,7 +38,7 @@ func (s *grpcAPIService) {{ .RequestCapitalized }}(ctx context.Context, req *{{ 
 {{- end}}
 {{- if ne .RequestCapitalized "Batch" }}
 	if resp.Error != nil {
-		incError(s.api.config.Protocol, "{{ .RequestSnake }}", resp.Error.Code)
+		metrics.IncAPIError(s.api.config.Protocol, "{{ .RequestSnake }}", resp.Error.Code)
 	}
 {{- end}}
 	return resp, nil

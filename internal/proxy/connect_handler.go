@@ -8,6 +8,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/v6/internal/clientstorage"
 	"github.com/centrifugal/centrifugo/v6/internal/config"
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v6/internal/subsource"
 
@@ -36,10 +37,10 @@ func NewConnectHandler(c ConnectHandlerConfig, cfgContainer *config.Container) *
 	return &ConnectHandler{
 		config:       c,
 		cfgContainer: cfgContainer,
-		summary:      proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
-		histogram:    proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
-		errors:       proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
-		inflight:     proxyCallInflightRequests.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
+		summary:      metrics.ProxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
+		histogram:    metrics.ProxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
+		errors:       metrics.ProxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
+		inflight:     metrics.ProxyCallInflightRequests.WithLabelValues(c.Proxy.Protocol(), "connect", "default"),
 	}
 }
 
