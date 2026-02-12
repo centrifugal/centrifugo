@@ -12,6 +12,8 @@ func MakeVerifierConfig(tokenConf configtypes.Token) (jwtverify.VerifierConfig, 
 	cfg := jwtverify.VerifierConfig{}
 
 	cfg.HMACSecretKey = tokenConf.HMACSecretKey
+	cfg.HMACPreviousSecretKey = tokenConf.HMACPreviousSecretKey
+	cfg.HMACPreviousSecretKeyValidUntil = tokenConf.HMACPreviousSecretKeyValidUntil
 
 	rsaPublicKey := tokenConf.RSAPublicKey
 	if rsaPublicKey != "" {

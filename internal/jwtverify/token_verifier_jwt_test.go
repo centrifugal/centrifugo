@@ -311,7 +311,7 @@ func Test_tokenVerifierJWT_Valid(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, cfgContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret"}, cfgContainer)
 	require.NoError(t, err)
 	ct, err := verifier.VerifyConnectToken(jwtValid, false)
 	require.NoError(t, err)
@@ -326,35 +326,35 @@ func Test_tokenVerifierJWT_Valid_CustomClaim(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test that by default `user_id` claim is ignored.
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, cfgContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret"}, cfgContainer)
 	require.NoError(t, err)
 	ct, err := verifier.VerifyConnectToken(jwtValidCustomUserClaim, false)
 	require.NoError(t, err)
 	require.Equal(t, "", ct.UserID)
 
 	// Now test that custom `user_id` claim works for connection token.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", "user_id"}, cfgContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret", UserIDClaim: "user_id"}, cfgContainer)
 	require.NoError(t, err)
 	ct, err = verifier.VerifyConnectToken(jwtValidCustomUserClaim, false)
 	require.NoError(t, err)
 	require.Equal(t, "test", ct.UserID)
 
 	// And the same for subscription token.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, cfgContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret"}, cfgContainer)
 	require.NoError(t, err)
 	st, err := verifier.VerifySubscribeToken(subJWTValidCustomUserClaim, false)
 	require.NoError(t, err)
 	require.Equal(t, "", st.UserID)
 	require.Equal(t, "channel", st.Channel)
 
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", "user_id"}, cfgContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret", UserIDClaim: "user_id"}, cfgContainer)
 	require.NoError(t, err)
 	st, err = verifier.VerifySubscribeToken(subJWTValidCustomUserClaim, false)
 	require.NoError(t, err)
 	require.Equal(t, "test", st.UserID)
 
 	// Also make sure custom claim returns empty user ID from empty object claims token.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", "user_id"}, cfgContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret", UserIDClaim: "user_id"}, cfgContainer)
 	require.NoError(t, err)
 	ct, err = verifier.VerifyConnectToken(emptyObjectClaimsJWT, false)
 	require.NoError(t, err)
@@ -365,7 +365,7 @@ func Test_tokenVerifierJWT_Audience(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "test2", "", "", "", ""}, cfgContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret", Audience: "test2"}, cfgContainer)
 	require.NoError(t, err)
 
 	// Token without aud.
@@ -376,26 +376,26 @@ func Test_tokenVerifierJWT_Audience(t *testing.T) {
 	token := getRSAConnToken("user", time.Now().Add(time.Hour).Unix(), nil)
 
 	// Verifier with audience which does not match aud in token.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "test2", "", "", "", ""}, cfgContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret", Audience: "test2"}, cfgContainer)
 	require.NoError(t, err)
 
 	_, err = verifier.VerifyConnectToken(token, false)
 	require.ErrorIs(t, err, ErrInvalidToken)
 
 	// Verifier with token audience.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "test", "", "", "", ""}, cfgContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret", Audience: "test"}, cfgContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(token, false)
 	require.NoError(t, err)
 
 	// Verifier with token audience - valid.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "test", "", "", ""}, cfgContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret", AudienceRegex: "test"}, cfgContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(token, false)
 	require.NoError(t, err)
 
 	// Verifier with token audience - invalid.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "test2", "", "", ""}, cfgContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret", AudienceRegex: "test2"}, cfgContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(token, false)
 	require.Error(t, err)
@@ -405,7 +405,7 @@ func Test_tokenVerifierJWT_Issuer(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "test2", "", ""}, cfgContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret", Issuer: "test2"}, cfgContainer)
 	require.NoError(t, err)
 
 	// Token without iss.
@@ -416,25 +416,25 @@ func Test_tokenVerifierJWT_Issuer(t *testing.T) {
 	token := getRSAConnToken("user", time.Now().Add(time.Hour).Unix(), nil)
 
 	// Verifier with issuer which does not match token iss.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "test2", "", ""}, cfgContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret", Issuer: "test2"}, cfgContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(token, false)
 	require.ErrorIs(t, err, ErrInvalidToken)
 
 	// Verifier with token issuer.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "test", "", ""}, cfgContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret", Issuer: "test"}, cfgContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(token, false)
 	require.NoError(t, err)
 
 	// Verifier with token issuer regex - valid.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "test", ""}, cfgContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret", IssuerRegex: "test"}, cfgContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(token, false)
 	require.NoError(t, err)
 
 	// Verifier with token issuer regex - invalid.
-	verifier, err = NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "test2", ""}, cfgContainer)
+	verifier, err = NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret", IssuerRegex: "test2"}, cfgContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(token, false)
 	require.Error(t, err)
@@ -444,7 +444,7 @@ func Test_tokenVerifierJWT_Expired(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, cfgContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret"}, cfgContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(jwtExpired, false)
 	require.Error(t, err)
@@ -455,7 +455,7 @@ func Test_tokenVerifierJWT_DisabledAlgorithm(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, "", "", "", "", "", ""}, cfgContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{}, cfgContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(jwtExpired, false)
 	require.Error(t, err)
@@ -466,7 +466,7 @@ func Test_tokenVerifierJWT_InvalidSignature(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, cfgContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret"}, cfgContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(jwtInvalidSignature, false)
 	require.Error(t, err)
@@ -481,7 +481,7 @@ func Test_tokenVerifierJWT_InvalidSignature_SkipVerify(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, cfgContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret"}, cfgContainer)
 	require.NoError(t, err)
 	ct, err := verifier.VerifyConnectToken(jwtValid+"xxx", true)
 	require.NoError(t, err)
@@ -492,7 +492,7 @@ func Test_tokenVerifierJWT_WithNotBefore(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, cfgContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret"}, cfgContainer)
 	require.NoError(t, err)
 	_, err = verifier.VerifyConnectToken(jwtNotBefore, false)
 	require.Error(t, err)
@@ -506,7 +506,7 @@ func Test_tokenVerifierJWT_StringAudience(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, cfgContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret"}, cfgContainer)
 	require.NoError(t, err)
 	ct, err := verifier.VerifyConnectToken(jwtStringAud, false)
 	require.NoError(t, err)
@@ -517,7 +517,7 @@ func Test_tokenVerifierJWT_ArrayAudience(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, cfgContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret"}, cfgContainer)
 	require.NoError(t, err)
 	ct, err := verifier.VerifyConnectToken(jwtArrayAud, false)
 	require.NoError(t, err)
@@ -536,7 +536,7 @@ func Test_tokenVerifierJWT_VerifyConnectToken(t *testing.T) {
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 
-	verifierJWT, err := NewTokenVerifierJWT(VerifierConfig{"secret", rsaPubKey, ecdsaPubKey, "", "", "", "", "", ""}, cfgContainer)
+	verifierJWT, err := NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret", RSAPublicKey: rsaPubKey, ECDSAPublicKey: ecdsaPubKey}, cfgContainer)
 	require.NoError(t, err)
 
 	_time := time.Now()
@@ -698,7 +698,7 @@ func Test_tokenVerifierJWT_VerifyConnectTokenWithJWK(t *testing.T) {
 			cfgContainer, err := config.NewContainer(cfg)
 			require.NoError(t, err)
 
-			verifier, err := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, ts.URL, "", "", "", "", ""}, cfgContainer)
+			verifier, err := NewTokenVerifierJWT(VerifierConfig{JWKSPublicEndpoint: ts.URL}, cfgContainer)
 			require.NoError(t, err)
 
 			token := getRSAConnToken(tt.token.user, tt.token.exp, privKey, jwt.WithKeyID(tt.jwk.kid))
@@ -732,7 +732,7 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 
-	verifierJWT, err := NewTokenVerifierJWT(VerifierConfig{"secret", rsaPubKey, ecdsaPubKey, "", "", "", "", "", ""}, cfgContainer)
+	verifierJWT, err := NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret", RSAPublicKey: rsaPubKey, ECDSAPublicKey: ecdsaPubKey}, cfgContainer)
 	require.NoError(t, err)
 
 	_time := time.Now()
@@ -878,7 +878,7 @@ func TestJWKS(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, ts.URL, "", "", "", "", ""}, cfgContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{JWKSPublicEndpoint: ts.URL}, cfgContainer)
 	require.NoError(t, err)
 
 	// Validate an RSA token
@@ -920,7 +920,7 @@ func TestJWKS_NoAlg(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, ts.URL, "", "", "", "", ""}, cfgContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{JWKSPublicEndpoint: ts.URL}, cfgContainer)
 	require.NoError(t, err)
 
 	// Validate an RSA token
@@ -953,11 +953,132 @@ func TestJWKS_NoAlg(t *testing.T) {
 	require.ErrorContains(t, err, "invalid token: unsupported JWT algorithm: ES256")
 }
 
+func getHMACConnToken(user string, exp int64, secret string) string {
+	signer, _ := jwt.NewSignerHS(jwt.HS256, []byte(secret))
+	builder := jwt.NewBuilder(signer)
+	claims := &ConnectTokenClaims{
+		Base64Info: "e30=",
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject: user,
+		},
+	}
+	if exp > 0 {
+		claims.ExpiresAt = jwt.NewNumericDate(time.Unix(exp, 0))
+	}
+	token, err := builder.Build(claims)
+	if err != nil {
+		panic(err)
+	}
+	return token.String()
+}
+
+func Test_tokenVerifierJWT_PreviousHMACKey(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	newSecret := "new-secret"
+	oldSecret := "old-secret"
+
+	t.Run("token signed with previous key verifies", func(t *testing.T) {
+		verifier, err := NewTokenVerifierJWT(VerifierConfig{
+			HMACSecretKey:         newSecret,
+			HMACPreviousSecretKey: oldSecret,
+		}, cfgContainer)
+		require.NoError(t, err)
+
+		token := getHMACConnToken("user1", time.Now().Add(time.Hour).Unix(), oldSecret)
+		ct, err := verifier.VerifyConnectToken(token, false)
+		require.NoError(t, err)
+		require.Equal(t, "user1", ct.UserID)
+	})
+
+	t.Run("token signed with current key still verifies", func(t *testing.T) {
+		verifier, err := NewTokenVerifierJWT(VerifierConfig{
+			HMACSecretKey:         newSecret,
+			HMACPreviousSecretKey: oldSecret,
+		}, cfgContainer)
+		require.NoError(t, err)
+
+		token := getHMACConnToken("user1", time.Now().Add(time.Hour).Unix(), newSecret)
+		ct, err := verifier.VerifyConnectToken(token, false)
+		require.NoError(t, err)
+		require.Equal(t, "user1", ct.UserID)
+	})
+
+	t.Run("token signed with previous key fails after valid_until expired", func(t *testing.T) {
+		verifier, err := NewTokenVerifierJWT(VerifierConfig{
+			HMACSecretKey:                   newSecret,
+			HMACPreviousSecretKey:           oldSecret,
+			HMACPreviousSecretKeyValidUntil: time.Now().Add(-time.Hour).Unix(), // Expired 1 hour ago.
+		}, cfgContainer)
+		require.NoError(t, err)
+
+		token := getHMACConnToken("user1", time.Now().Add(time.Hour).Unix(), oldSecret)
+		_, err = verifier.VerifyConnectToken(token, false)
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrInvalidToken)
+	})
+
+	t.Run("token signed with previous key works before valid_until", func(t *testing.T) {
+		verifier, err := NewTokenVerifierJWT(VerifierConfig{
+			HMACSecretKey:                   newSecret,
+			HMACPreviousSecretKey:           oldSecret,
+			HMACPreviousSecretKeyValidUntil: time.Now().Add(time.Hour).Unix(), // Still valid.
+		}, cfgContainer)
+		require.NoError(t, err)
+
+		token := getHMACConnToken("user1", time.Now().Add(time.Hour).Unix(), oldSecret)
+		ct, err := verifier.VerifyConnectToken(token, false)
+		require.NoError(t, err)
+		require.Equal(t, "user1", ct.UserID)
+	})
+
+	t.Run("token signed with unknown key fails", func(t *testing.T) {
+		verifier, err := NewTokenVerifierJWT(VerifierConfig{
+			HMACSecretKey:         newSecret,
+			HMACPreviousSecretKey: oldSecret,
+		}, cfgContainer)
+		require.NoError(t, err)
+
+		token := getHMACConnToken("user1", time.Now().Add(time.Hour).Unix(), "unknown-secret")
+		_, err = verifier.VerifyConnectToken(token, false)
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrInvalidToken)
+	})
+
+	t.Run("reload with new previous key works", func(t *testing.T) {
+		verifier, err := NewTokenVerifierJWT(VerifierConfig{
+			HMACSecretKey:         newSecret,
+			HMACPreviousSecretKey: oldSecret,
+		}, cfgContainer)
+		require.NoError(t, err)
+
+		anotherOldSecret := "another-old-secret"
+		err = verifier.Reload(VerifierConfig{
+			HMACSecretKey:         newSecret,
+			HMACPreviousSecretKey: anotherOldSecret,
+		})
+		require.NoError(t, err)
+
+		// Token signed with original old secret should no longer verify.
+		token := getHMACConnToken("user1", time.Now().Add(time.Hour).Unix(), oldSecret)
+		_, err = verifier.VerifyConnectToken(token, false)
+		require.Error(t, err)
+
+		// Token signed with new previous secret should verify.
+		token = getHMACConnToken("user1", time.Now().Add(time.Hour).Unix(), anotherOldSecret)
+		ct, err := verifier.VerifyConnectToken(token, false)
+		require.NoError(t, err)
+		require.Equal(t, "user1", ct.UserID)
+	})
+}
+
 func BenchmarkConnectTokenVerify_Valid(b *testing.B) {
 	cfg := config.DefaultConfig()
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(b, err)
-	verifierJWT, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, cfgContainer)
+	verifierJWT, err := NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret"}, cfgContainer)
 	require.NoError(b, err)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -974,7 +1095,7 @@ func BenchmarkConnectTokenVerify_Expired(b *testing.B) {
 	cfg := config.DefaultConfig()
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(b, err)
-	verifier, err := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, "", "", "", "", "", ""}, cfgContainer)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret"}, cfgContainer)
 	require.NoError(b, err)
 	for i := 0; i < b.N; i++ {
 		_, err := verifier.VerifyConnectToken(jwtExpired, false)
