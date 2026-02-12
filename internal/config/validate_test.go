@@ -25,6 +25,11 @@ func TestValidatePublicationDataFormat(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:    "json_object is valid",
+			format:  configtypes.PublicationDataFormatJSONObject,
+			wantErr: false,
+		},
+		{
 			name:    "binary is valid",
 			format:  configtypes.PublicationDataFormatBinary,
 			wantErr: false,
@@ -70,6 +75,11 @@ func TestValidatePublicationDataFormatInNamespace(t *testing.T) {
 		{
 			name:    "json in namespace",
 			format:  "json",
+			wantErr: false,
+		},
+		{
+			name:    "json_object in namespace",
+			format:  "json_object",
 			wantErr: false,
 		},
 		{
