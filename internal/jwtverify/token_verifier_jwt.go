@@ -30,6 +30,15 @@ type VerifierConfig struct {
 	// tokens generated using HMAC. Zero value means that HMAC tokens won't be allowed.
 	HMACSecretKey string
 
+	// HMACPreviousSecretKey is the previous HMAC secret key used during key rotation.
+	// When set, tokens that fail verification with HMACSecretKey will be retried with
+	// this key, enabling seamless key rotation without mass disconnects.
+	HMACPreviousSecretKey string
+
+	// HMACPreviousSecretKeyValidUntil is an optional Unix timestamp. If set, the previous
+	// HMAC key will only be used for verification if the current time is before this timestamp.
+	HMACPreviousSecretKeyValidUntil int64
+
 	// RSAPublicKey is a public key used to validate connection and subscription
 	// tokens generated using RSA. Zero value means that RSA tokens won't be allowed.
 	RSAPublicKey *rsa.PublicKey
@@ -117,21 +126,31 @@ func NewTokenVerifierJWT(config VerifierConfig, cfgContainer *config.Container) 
 			return nil, fmt.Errorf("error initializing token algorithms: %w", err)
 		}
 		verifier.algorithms = alg
+		if config.HMACPreviousSecretKey != "" {
+			prevAlg, err := newAlgorithms(config.HMACPreviousSecretKey, nil, nil)
+			if err != nil {
+				return nil, fmt.Errorf("error initializing previous HMAC token algorithms: %w", err)
+			}
+			verifier.previousHMACAlgorithms = prevAlg
+			verifier.hmacPreviousSecretKeyValidUntil = config.HMACPreviousSecretKeyValidUntil
+		}
 	}
 
 	return verifier, nil
 }
 
 type VerifierJWT struct {
-	mu           sync.RWMutex
-	jwksManager  *jwksManager
-	algorithms   *algorithms
-	cfgContainer *config.Container
-	audience     string
-	audienceRe   *regexp.Regexp
-	issuer       string
-	issuerRe     *regexp.Regexp
-	userIDClaim  string
+	mu                              sync.RWMutex
+	jwksManager                     *jwksManager
+	algorithms                      *algorithms
+	previousHMACAlgorithms          *algorithms
+	hmacPreviousSecretKeyValidUntil int64
+	cfgContainer                    *config.Container
+	audience                        string
+	audienceRe                      *regexp.Regexp
+	issuer                          string
+	issuerRe                        *regexp.Regexp
+	userIDClaim                     string
 }
 
 var (
@@ -418,7 +437,16 @@ func (verifier *VerifierJWT) verifySignature(token *jwt.Token) error {
 	verifier.mu.RLock()
 	defer verifier.mu.RUnlock()
 
-	return verifier.algorithms.verify(token)
+	err := verifier.algorithms.verify(token)
+	if err != nil && verifier.previousHMACAlgorithms != nil {
+		if validUntil := verifier.hmacPreviousSecretKeyValidUntil; validUntil > 0 && time.Now().Unix() > validUntil {
+			return err
+		}
+		if prevErr := verifier.previousHMACAlgorithms.verify(token); prevErr == nil {
+			return nil
+		}
+	}
+	return err
 }
 
 func (verifier *VerifierJWT) verifySignatureByJWK(token *jwt.Token, tokenVars map[string]any) error {
@@ -794,6 +822,8 @@ func (verifier *VerifierJWT) Reload(config VerifierConfig) error {
 		}
 		verifier.jwksManager = &jwksManager{mng}
 		verifier.algorithms = nil
+		verifier.previousHMACAlgorithms = nil
+		verifier.hmacPreviousSecretKeyValidUntil = 0
 	} else {
 		alg, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey, config.ECDSAPublicKey)
 		if err != nil {
@@ -801,6 +831,17 @@ func (verifier *VerifierJWT) Reload(config VerifierConfig) error {
 		}
 		verifier.algorithms = alg
 		verifier.jwksManager = nil
+		if config.HMACPreviousSecretKey != "" {
+			prevAlg, err := newAlgorithms(config.HMACPreviousSecretKey, nil, nil)
+			if err != nil {
+				return fmt.Errorf("error initializing previous HMAC token algorithms: %w", err)
+			}
+			verifier.previousHMACAlgorithms = prevAlg
+			verifier.hmacPreviousSecretKeyValidUntil = config.HMACPreviousSecretKeyValidUntil
+		} else {
+			verifier.previousHMACAlgorithms = nil
+			verifier.hmacPreviousSecretKeyValidUntil = 0
+		}
 	}
 
 	verifier.audience = config.Audience

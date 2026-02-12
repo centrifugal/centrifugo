@@ -2652,6 +2652,26 @@
             "is_complex_type": false
           },
           {
+            "field": "client.token.hmac_previous_secret_key",
+            "name": "hmac_previous_secret_key",
+            "go_name": "HMACPreviousSecretKey",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "",
+            "is_complex_type": false
+          },
+          {
+            "field": "client.token.hmac_previous_secret_key_valid_until",
+            "name": "hmac_previous_secret_key_valid_until",
+            "go_name": "HMACPreviousSecretKeyValidUntil",
+            "level": 3,
+            "type": "int64",
+            "default": "",
+            "comment": "",
+            "is_complex_type": false
+          },
+          {
             "field": "client.token.rsa_public_key",
             "name": "rsa_public_key",
             "go_name": "RSAPublicKey",
@@ -2759,6 +2779,26 @@
             "go_name": "HMACSecretKey",
             "level": 3,
             "type": "string",
+            "default": "",
+            "comment": "",
+            "is_complex_type": false
+          },
+          {
+            "field": "client.subscription_token.hmac_previous_secret_key",
+            "name": "hmac_previous_secret_key",
+            "go_name": "HMACPreviousSecretKey",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "",
+            "is_complex_type": false
+          },
+          {
+            "field": "client.subscription_token.hmac_previous_secret_key_valid_until",
+            "name": "hmac_previous_secret_key_valid_until",
+            "go_name": "HMACPreviousSecretKeyValidUntil",
+            "level": 3,
+            "type": "int64",
             "default": "",
             "comment": "",
             "is_complex_type": false

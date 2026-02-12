@@ -51,8 +51,10 @@ type Log struct {
 
 // Token common configuration.
 type Token struct {
-	HMACSecretKey      string `mapstructure:"hmac_secret_key" json:"hmac_secret_key" envconfig:"hmac_secret_key" yaml:"hmac_secret_key" toml:"hmac_secret_key"`
-	RSAPublicKey       string `mapstructure:"rsa_public_key" json:"rsa_public_key" envconfig:"rsa_public_key" yaml:"rsa_public_key" toml:"rsa_public_key"`
+	HMACSecretKey                   string `mapstructure:"hmac_secret_key" json:"hmac_secret_key" envconfig:"hmac_secret_key" yaml:"hmac_secret_key" toml:"hmac_secret_key"`
+	HMACPreviousSecretKey           string `mapstructure:"hmac_previous_secret_key" json:"hmac_previous_secret_key" envconfig:"hmac_previous_secret_key" yaml:"hmac_previous_secret_key" toml:"hmac_previous_secret_key"`
+	HMACPreviousSecretKeyValidUntil int64  `mapstructure:"hmac_previous_secret_key_valid_until" json:"hmac_previous_secret_key_valid_until" envconfig:"hmac_previous_secret_key_valid_until" yaml:"hmac_previous_secret_key_valid_until" toml:"hmac_previous_secret_key_valid_until"`
+	RSAPublicKey                    string `mapstructure:"rsa_public_key" json:"rsa_public_key" envconfig:"rsa_public_key" yaml:"rsa_public_key" toml:"rsa_public_key"`
 	ECDSAPublicKey     string `mapstructure:"ecdsa_public_key" json:"ecdsa_public_key" envconfig:"ecdsa_public_key" yaml:"ecdsa_public_key" toml:"ecdsa_public_key"`
 	JWKSPublicEndpoint string `mapstructure:"jwks_public_endpoint" json:"jwks_public_endpoint" envconfig:"jwks_public_endpoint" yaml:"jwks_public_endpoint" toml:"jwks_public_endpoint"`
 	Audience           string `mapstructure:"audience" json:"audience" envconfig:"audience" yaml:"audience" toml:"audience"`
