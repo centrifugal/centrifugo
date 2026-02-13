@@ -10,8 +10,8 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Better configdoc UI [#1092](https://github.com/centrifugal/centrifugo/pull/1092) – much better looking `centrifugo configdoc` UI, with top level options navigation, search, JSON and YAML config snippets 🔥, dark/light themes.
-* Add `hmac_previous_secret_key` and `hmac_previous_secret_key_valid_until` options to rotate HMAC token [#1103](https://github.com/centrifugal/centrifugo/pull/1103)
+* Better configdoc UI [#1092](https://github.com/centrifugal/centrifugo/pull/1092). Redesigned `centrifugo configdoc` interface with top-level navigation, search, JSON/YAML snippets (🔥), and dark/light themes.
+* Add `hmac_previous_secret_key` and `hmac_previous_secret_key_valid_until` options to provide a possibility to rotate HMAC token [#1103](https://github.com/centrifugal/centrifugo/pull/1103)
 * Adding `json_object` publication data format – more strict format to ensure a JSON object in channels [#1091](https://github.com/centrifugal/centrifugo/pull/1091)
 * Centrifugo Helm chart v13 [was released](https://github.com/centrifugal/helm-charts/releases/tag/centrifugo-13.0.0) - comes with many improvements, documentation and examples. 
 * Adopt latest `quic-go` and `webtransport-go` changes, WebTransport test [#1101](https://github.com/centrifugal/centrifugo/pull/1101)
