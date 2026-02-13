@@ -14,7 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.21
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.6
 	github.com/aws/smithy-go v1.24.0
-	github.com/centrifugal/centrifuge v0.38.1-0.20251226091708-f52fef373c0f
+	github.com/centrifugal/centrifuge v0.38.1-0.20260213041833-1309f7bf3522
 	github.com/centrifugal/protocol v0.18.2
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.5.0
