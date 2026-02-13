@@ -40,18 +40,18 @@ type topicPartition struct {
 }
 
 type KafkaConsumer struct {
-	name           string
-	client         *kgo.Client
-	dispatcher     Dispatcher
-	config         KafkaConfig
-	// mu protects the consumers map. During normal operation, concurrent access is already
+	name       string
+	client     *kgo.Client
+	dispatcher Dispatcher
+	config     KafkaConfig
+	// consumersMu protects the consumers map. During normal operation, concurrent access is already
 	// prevented: franz-go serializes assigned/revoked/lost callbacks, and BlockRebalanceOnPoll
 	// prevents callbacks from firing while pollUntilFatal reads the map. The mutex is needed
 	// for shutdown, when the main goroutine accesses the map (via allTopicPartitions/killConsumers)
 	// while the group management goroutine may still be running callbacks. Must not be held
 	// during killConsumers' wg.Wait() to avoid blocking concurrent callbacks.
-	mu        sync.Mutex
-	consumers map[topicPartition]*partitionConsumer
+	consumersMu    sync.Mutex
+	consumers      map[topicPartition]*partitionConsumer
 	doneCh         chan struct{}
 	common         *consumerCommon
 	testOnlyConfig testOnlyConfig
@@ -351,8 +351,8 @@ func (c *KafkaConsumer) reInitClient(ctx context.Context) error {
 }
 
 func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned map[string][]int32) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.consumersMu.Lock()
+	defer c.consumersMu.Unlock()
 	select {
 	case <-c.doneCh:
 		return // Shutdown in progress, skip creating consumers that will be immediately killed.
@@ -399,8 +399,8 @@ func (c *KafkaConsumer) lost(_ context.Context, _ *kgo.Client, lost map[string][
 }
 
 func (c *KafkaConsumer) allTopicPartitions() map[string][]int32 {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.consumersMu.Lock()
+	defer c.consumersMu.Unlock()
 	result := make(map[string][]int32)
 	for tp := range c.consumers {
 		result[tp.topic] = append(result[tp.topic], tp.partition)
@@ -409,7 +409,7 @@ func (c *KafkaConsumer) allTopicPartitions() map[string][]int32 {
 }
 
 func (c *KafkaConsumer) killConsumers(lost map[string][]int32) {
-	c.mu.Lock()
+	c.consumersMu.Lock()
 	var pcs []*partitionConsumer
 	for topic, partitions := range lost {
 		for _, partition := range partitions {
@@ -422,7 +422,7 @@ func (c *KafkaConsumer) killConsumers(lost map[string][]int32) {
 			pcs = append(pcs, pc)
 		}
 	}
-	c.mu.Unlock()
+	c.consumersMu.Unlock()
 
 	var wg sync.WaitGroup
 	for _, pc := range pcs {
