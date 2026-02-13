@@ -16,6 +16,7 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
 	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 
+	"github.com/rs/zerolog"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/kmsg"
 	"github.com/twmb/franz-go/pkg/sasl/aws"
@@ -29,6 +30,9 @@ type testOnlyConfig struct {
 	topicPartitionBeforePauseCh    chan topicPartition
 	topicPartitionPauseProceedCh   chan struct{}
 	fetchTopicPartitionSubmittedCh chan kgo.FetchTopicPartition
+	// leaveGroupOnShutdown when true sends a manual LeaveGroup request on shutdown.
+	// Used only in tests to simulate the old behavior with dynamic instance IDs.
+	leaveGroupOnShutdown bool
 }
 
 type topicPartition struct {
@@ -37,11 +41,17 @@ type topicPartition struct {
 }
 
 type KafkaConsumer struct {
-	name           string
-	client         *kgo.Client
-	nodeID         string
-	dispatcher     Dispatcher
-	config         KafkaConfig
+	name       string
+	client     *kgo.Client
+	dispatcher Dispatcher
+	config     KafkaConfig
+	// consumersMu protects the consumers map. During normal operation, concurrent access is already
+	// prevented: franz-go serializes assigned/revoked/lost callbacks, and BlockRebalanceOnPoll
+	// prevents callbacks from firing while pollUntilFatal reads the map. The mutex is needed
+	// for shutdown, when the main goroutine accesses the map (via allTopicPartitions/killConsumers)
+	// while the group management goroutine may still be running callbacks. Must not be held
+	// during killConsumers' wg.Wait() to avoid blocking concurrent callbacks.
+	consumersMu    sync.Mutex
 	consumers      map[topicPartition]*partitionConsumer
 	doneCh         chan struct{}
 	common         *consumerCommon
@@ -72,7 +82,7 @@ func NewKafkaConsumer(
 		config.PartitionQueueMaxSize = 1000
 	}
 	consumer := &KafkaConsumer{
-		nodeID:     common.nodeID,
+		name:       common.name,
 		dispatcher: dispatcher,
 		config:     config,
 		consumers:  make(map[topicPartition]*partitionConsumer),
@@ -89,8 +99,64 @@ func NewKafkaConsumer(
 
 const kafkaClientID = "centrifugo"
 
-func (c *KafkaConsumer) getInstanceID() string {
-	return "centrifugo-" + c.nodeID
+// kgoZerologAdapter adapts zerolog.Logger to kgo.Logger interface.
+type kgoZerologAdapter struct {
+	log zerolog.Logger
+}
+
+func (l *kgoZerologAdapter) Level() kgo.LogLevel {
+	switch {
+	case logging.Enabled(logging.TraceLevel):
+		return kgo.LogLevelDebug // Kafka client debug level is more like our trace.
+	case logging.Enabled(logging.InfoLevel):
+		return kgo.LogLevelInfo
+	case logging.Enabled(logging.WarnLevel):
+		return kgo.LogLevelWarn
+	case logging.Enabled(logging.ErrorLevel):
+		return kgo.LogLevelError
+	default:
+		return kgo.LogLevelNone
+	}
+}
+
+func (l *kgoZerologAdapter) Log(level kgo.LogLevel, msg string, keyvals ...any) {
+	var e *zerolog.Event
+	switch level {
+	case kgo.LogLevelError:
+		e = l.log.Error()
+	case kgo.LogLevelWarn:
+		e = l.log.Warn()
+	case kgo.LogLevelInfo:
+		e = l.log.Info()
+	case kgo.LogLevelDebug:
+		e = l.log.Trace() // Kafka client debug level is more like our trace.
+	default:
+		return
+	}
+	for i := 0; i+1 < len(keyvals); i += 2 {
+		if key, ok := keyvals[i].(string); ok {
+			e = e.Interface(key, keyvals[i+1])
+		}
+	}
+	e.Msg(msg)
+}
+
+// leaveGroup sends a manual LeaveGroup request for static members. franz-go's Close does not
+// send LeaveGroup for static members by design. This method is only used in tests to simulate
+// the old behavior where dynamic instance IDs were combined with a manual LeaveGroup.
+func (c *KafkaConsumer) leaveGroup(ctx context.Context, client *kgo.Client) error {
+	req := kmsg.NewPtrLeaveGroupRequest()
+	req.Group = c.config.ConsumerGroup
+	instanceID := c.config.InstanceID
+	reason := "shutdown"
+	req.Members = []kmsg.LeaveGroupRequestMember{
+		{
+			InstanceID: &instanceID,
+			Reason:     &reason,
+		},
+	}
+	_, err := req.RequestWith(ctx, client)
+	return err
 }
 
 func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
@@ -104,8 +170,11 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 		kgo.AutoCommitMarks(),
 		kgo.BlockRebalanceOnPoll(),
 		kgo.ClientID(kafkaClientID),
-		kgo.InstanceID(c.getInstanceID()),
 		kgo.FetchMaxWait(time.Duration(c.config.FetchMaxWait)),
+		kgo.WithLogger(&kgoZerologAdapter{log: c.common.log}),
+	}
+	if c.config.InstanceID != "" {
+		opts = append(opts, kgo.InstanceID(c.config.InstanceID))
 	}
 	if c.config.FetchMaxBytes > 0 {
 		opts = append(opts, kgo.FetchMaxBytes(c.config.FetchMaxBytes))
@@ -167,39 +236,33 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 	return client, nil
 }
 
-func (c *KafkaConsumer) leaveGroup(ctx context.Context, client *kgo.Client) error {
-	req := kmsg.NewPtrLeaveGroupRequest()
-	req.Group = c.config.ConsumerGroup
-	instanceID := c.getInstanceID()
-	reason := "shutdown"
-	req.Members = []kmsg.LeaveGroupRequestMember{
-		{
-			InstanceID: &instanceID,
-			Reason:     &reason,
-		},
-	}
-	_, err := req.RequestWith(ctx, client)
-	return err
-}
-
 func (c *KafkaConsumer) Run(ctx context.Context) error {
 	defer func() {
 		close(c.doneCh)
 		if c.client != nil {
-			closeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			// The reason we make CommitMarkedOffsets here is because franz-go does not send
-			// LeaveGroup request when instanceID is used. So we leave manually. But we have
-			// to commit what we have at this point. The closed doneCh then allows partition
-			// consumers to skip calling CommitMarkedOffsets on revoke. Otherwise, we get
-			// "UNKNOWN_MEMBER_ID" error (since group already left).
-			if err := c.client.CommitMarkedOffsets(closeCtx); err != nil {
-				c.common.log.Error().Err(err).Msg("error committing marked offsets on shutdown")
+			// Stop all partition consumers first to ensure all offsets are marked.
+			c.killConsumers(c.allTopicPartitions())
+			if c.testOnlyConfig.leaveGroupOnShutdown && c.config.InstanceID != "" {
+				// Test-only path simulating old behavior with dynamic instance IDs.
+				// Commit before manual LeaveGroup — the coordinator rejects commits
+				// from members that already left the group.
+				closeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+				if err := c.client.CommitMarkedOffsets(closeCtx); err != nil {
+					c.common.log.Error().Err(err).Msg("error committing marked offsets on shutdown")
+				}
+				if err := c.leaveGroup(closeCtx, c.client); err != nil {
+					c.common.log.Error().Err(err).Msg("error leaving consumer group")
+				}
 			}
-			err := c.leaveGroup(closeCtx, c.client)
-			if err != nil {
-				c.common.log.Error().Err(err).Msg("error leaving consumer group")
-			}
+			// CloseAllowingRebalance calls AllowRebalance (required since we use
+			// BlockRebalanceOnPoll) and then Close. Close triggers the manage loop
+			// exit which calls onRevoked with a valid client context and no
+			// joinAndSync WLock contention — so CommitMarkedOffsets in onRevoked
+			// succeeds without racing. For non-static members (no InstanceID),
+			// Close sends LeaveGroup automatically. For static members (InstanceID
+			// is set), Close does not send LeaveGroup – so the replacement consumer
+			// with the same instance ID can take over partitions seamlessly.
 			c.client.CloseAllowingRebalance()
 		}
 	}()
@@ -266,7 +329,7 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 				select {
 				case <-ctx.Done():
 					return
-				case <-consumer.quit:
+				case <-consumer.partitionCtx.Done():
 					return
 				default:
 				}
@@ -337,20 +400,19 @@ func (c *KafkaConsumer) reInitClient(ctx context.Context) error {
 }
 
 func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned map[string][]int32) {
+	c.consumersMu.Lock()
+	defer c.consumersMu.Unlock()
+	select {
+	case <-c.doneCh:
+		return // Shutdown in progress, skip creating consumers that will be immediately killed.
+	default:
+	}
 	for topic, partitions := range assigned {
 		for _, partition := range partitions {
-			quitCh := make(chan struct{})
 			partitionCtx, cancel := context.WithCancel(ctx)
-			go func() {
-				select {
-				case <-ctx.Done():
-					cancel()
-				case <-quitCh:
-					cancel()
-				}
-			}()
 			pc := &partitionConsumer{
 				partitionCtx: partitionCtx,
+				cancelFunc:   cancel,
 				dispatcher:   c.dispatcher,
 				cl:           cl,
 				topic:        topic,
@@ -359,7 +421,6 @@ func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned m
 				name:         c.name,
 				common:       c.common,
 
-				quit:  quitCh,
 				done:  make(chan struct{}),
 				queue: newUnboundedQueue(),
 			}
@@ -371,13 +432,9 @@ func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned m
 
 func (c *KafkaConsumer) revoked(ctx context.Context, cl *kgo.Client, revoked map[string][]int32) {
 	c.killConsumers(revoked)
-	select {
-	case <-c.doneCh:
-		// Do not try to CommitMarkedOffsets since on shutdown we call it manually.
-	default:
-		if err := cl.CommitMarkedOffsets(ctx); err != nil {
-			c.common.log.Error().Err(err).Msg("error committing marked offsets on revoke")
-		}
+	// Always commit marked offsets on revoke.
+	if err := cl.CommitMarkedOffsets(ctx); err != nil {
+		c.common.log.Error().Err(err).Msg("error committing marked offsets on revoke")
 	}
 }
 
@@ -386,25 +443,45 @@ func (c *KafkaConsumer) lost(_ context.Context, _ *kgo.Client, lost map[string][
 	// Losing means we cannot commit: an error happened.
 }
 
-func (c *KafkaConsumer) killConsumers(lost map[string][]int32) {
-	var wg sync.WaitGroup
-	defer wg.Wait()
+func (c *KafkaConsumer) allTopicPartitions() map[string][]int32 {
+	c.consumersMu.Lock()
+	defer c.consumersMu.Unlock()
+	result := make(map[string][]int32)
+	for tp := range c.consumers {
+		result[tp.topic] = append(result[tp.topic], tp.partition)
+	}
+	return result
+}
 
+func (c *KafkaConsumer) killConsumers(lost map[string][]int32) {
+	c.consumersMu.Lock()
+	var pcs []*partitionConsumer
 	for topic, partitions := range lost {
 		for _, partition := range partitions {
 			tp := topicPartition{topic, partition}
 			pc := c.consumers[tp]
+			if pc == nil {
+				continue
+			}
 			delete(c.consumers, tp)
-			pc.queue.Close()
-			close(pc.quit)
-			wg.Add(1)
-			go func() { <-pc.done; wg.Done() }()
+			pcs = append(pcs, pc)
 		}
 	}
+	c.consumersMu.Unlock()
+
+	var wg sync.WaitGroup
+	for _, pc := range pcs {
+		pc.queue.Close()
+		pc.cancelFunc()
+		wg.Add(1)
+		go func() { <-pc.done; wg.Done() }()
+	}
+	wg.Wait()
 }
 
 type partitionConsumer struct {
 	partitionCtx context.Context
+	cancelFunc   context.CancelFunc
 	dispatcher   Dispatcher
 	cl           *kgo.Client
 	topic        string
@@ -413,7 +490,6 @@ type partitionConsumer struct {
 	name         string
 	common       *consumerCommon
 
-	quit  chan struct{}
 	done  chan struct{}
 	queue *unboundedQueue
 }
@@ -536,6 +612,9 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 			if err == nil {
 				if retries > 0 {
 					pc.common.log.Info().Str("topic", record.Topic).Int32("partition", record.Partition).Msg("OK processing message after errors")
+				}
+				if logging.Enabled(logging.TraceLevel) {
+					pc.common.log.Trace().Str("topic", record.Topic).Int32("partition", record.Partition).Int64("offset", record.Offset).Msg("record processed")
 				}
 				metrics.ConsumerProcessedTotal.WithLabelValues(pc.name).Inc()
 				pc.cl.MarkCommitRecords(record)

@@ -1026,6 +1026,281 @@ func TestUnboundedQueue_ConcurrentSafety(t *testing.T) {
 	require.Equal(t, 0, q.NumRecords(), "queue should be empty after all pops")
 }
 
+// TestKafkaConsumer_RollingRestart compares message delivery delays during a 1-by-1
+// rolling restart of 3 consumers across 3 instance ID modes:
+//   - dynamic_instance_id: new unique instance ID each time (old default behavior)
+//   - no_instance_id: no static membership (new default)
+//   - stable_instance_id: stable instance IDs like centrifugo-0, centrifugo-1, centrifugo-2
+func TestKafkaConsumer_RollingRestart(t *testing.T) {
+	t.Skip()
+	const (
+		numPartitions = int32(6)
+		numConsumers  = 3
+	)
+
+	type consumerHandle struct {
+		cancel context.CancelFunc
+		doneCh chan struct{}
+	}
+
+	type mode struct {
+		name                 string
+		instanceID           func(consumerIndex int) string
+		leaveGroupOnShutdown bool // simulate old behavior: manual LeaveGroup for static members
+	}
+
+	modes := []mode{
+		{
+			name:                 "dynamic_instance_id",
+			instanceID:           func(i int) string { return "centrifugo-" + uuid.New().String() },
+			leaveGroupOnShutdown: true, // old behavior: manual LeaveGroup for dynamic static members
+		},
+		{
+			name:       "no_instance_id",
+			instanceID: func(i int) string { return "" },
+		},
+		{
+			name:       "stable_instance_id",
+			instanceID: func(i int) string { return fmt.Sprintf("centrifugo-stable-%d", i) },
+		},
+	}
+
+	type restartResult struct {
+		consumerIndex int
+		delay         time.Duration
+	}
+
+	results := make(map[string][]restartResult)
+
+	for _, m := range modes {
+		m := m
+		t.Run(m.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+			defer cancel()
+
+			topic := "rollout_test_" + uuid.New().String()
+			group := "rollout_group_" + uuid.New().String()
+
+			err := createTestTopic(ctx, topic, numPartitions, 1)
+			require.NoError(t, err)
+
+			// Start continuous producer that sends to all partitions frequently.
+			producerCtx, producerCancel := context.WithCancel(ctx)
+			defer producerCancel()
+
+			producer, err := kgo.NewClient(
+				kgo.SeedBrokers(testKafkaBrokerURL),
+				kgo.RecordPartitioner(kgo.ManualPartitioner()),
+			)
+			require.NoError(t, err)
+
+			go func() {
+				defer producer.Close()
+				for {
+					select {
+					case <-producerCtx.Done():
+						return
+					default:
+					}
+					for p := int32(0); p < numPartitions; p++ {
+						producer.ProduceSync(producerCtx, &kgo.Record{
+							Topic:     topic,
+							Partition: p,
+							Value:     []byte(fmt.Sprintf(`{"ts":%d}`, time.Now().UnixMilli())),
+						})
+					}
+					time.Sleep(50 * time.Millisecond)
+				}
+			}()
+
+			startConsumer := func(index int) (*consumerHandle, <-chan struct{}) {
+				instanceID := m.instanceID(index)
+				config := KafkaConfig{
+					Brokers:       []string{testKafkaBrokerURL},
+					Topics:        []string{topic},
+					ConsumerGroup: group,
+					InstanceID:    instanceID,
+				}
+
+				firstMessageCh := make(chan struct{})
+				firstMessageReceived := atomic.Bool{}
+
+				dispatcher := &MockDispatcher{
+					onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
+						if firstMessageReceived.CompareAndSwap(false, true) {
+							close(firstMessageCh)
+						}
+						return nil
+					},
+				}
+
+				consumer, consumerErr := NewKafkaConsumer(config, dispatcher, testCommon(prometheus.NewRegistry()))
+				require.NoError(t, consumerErr)
+				consumer.testOnlyConfig.leaveGroupOnShutdown = m.leaveGroupOnShutdown
+
+				consumerCtx, consumerCancel := context.WithCancel(ctx)
+				doneCh := make(chan struct{})
+
+				go func() {
+					_ = consumer.Run(consumerCtx)
+					close(doneCh)
+				}()
+
+				return &consumerHandle{
+					cancel: consumerCancel,
+					doneCh: doneCh,
+				}, firstMessageCh
+			}
+
+			// Start initial consumers and wait for each to be active.
+			handles := make([]*consumerHandle, numConsumers)
+			for i := 0; i < numConsumers; i++ {
+				h, firstMsg := startConsumer(i)
+				handles[i] = h
+				select {
+				case <-firstMsg:
+					t.Logf("initial consumer %d is active", i)
+				case <-time.After(60 * time.Second):
+					t.Fatalf("timeout waiting for initial consumer %d to start processing", i)
+				}
+			}
+
+			// Wait for steady state.
+			time.Sleep(5 * time.Second)
+			t.Log("steady state reached, starting rolling restart")
+
+			// Rolling restart: stop and replace consumers one by one.
+			var modeResults []restartResult
+			for i := 0; i < numConsumers; i++ {
+				restartStart := time.Now()
+
+				// Stop old consumer.
+				handles[i].cancel()
+				select {
+				case <-handles[i].doneCh:
+				case <-time.After(30 * time.Second):
+					t.Fatalf("timeout waiting for consumer %d to stop", i)
+				}
+				stopDuration := time.Since(restartStart)
+
+				// Start replacement.
+				var firstMsg <-chan struct{}
+				handles[i], firstMsg = startConsumer(i)
+
+				// Wait for replacement to process its first message.
+				select {
+				case <-firstMsg:
+				case <-time.After(60 * time.Second):
+					t.Fatalf("timeout waiting for replacement consumer %d to start processing", i)
+				}
+
+				delay := time.Since(restartStart)
+				modeResults = append(modeResults, restartResult{consumerIndex: i, delay: delay})
+				t.Logf("consumer %d: stop=%v, total restart delay=%v", i, stopDuration, delay)
+
+				// Let things stabilize before next restart.
+				time.Sleep(2 * time.Second)
+			}
+			results[m.name] = modeResults
+
+			// Cleanup.
+			for i := 0; i < numConsumers; i++ {
+				handles[i].cancel()
+				<-handles[i].doneCh
+			}
+			producerCancel()
+		})
+	}
+
+	// Print comparison summary.
+	t.Log("\n========== ROLLING RESTART COMPARISON ==========")
+	for _, m := range modes {
+		modeResults := results[m.name]
+		var total time.Duration
+		for _, r := range modeResults {
+			total += r.delay
+		}
+		t.Logf("\n--- %s ---", m.name)
+		for _, r := range modeResults {
+			t.Logf("  consumer %d restart: %v", r.consumerIndex, r.delay)
+		}
+		t.Logf("  TOTAL rollout delay: %v", total)
+	}
+	t.Log("================================================")
+}
+
+// TestKafkaConsumer_CommitsOffsetsOnShutdown verifies that offsets marked just before
+// shutdown are actually committed to Kafka. After the consumer processes all messages
+// and is shut down, we use kadm to check that committed offsets match the number of
+// produced messages.
+func TestKafkaConsumer_CommitsOffsetsOnShutdown(t *testing.T) {
+	t.Parallel()
+	testKafkaTopic := "centrifugo_consumer_test_" + uuid.New().String()
+	consumerGroup := uuid.New().String()
+	const numMessages = 5
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	err := createTestTopic(ctx, testKafkaTopic, 1, 1)
+	require.NoError(t, err)
+
+	// Produce messages before starting the consumer.
+	for i := 0; i < numMessages; i++ {
+		err = produceTestMessage(testKafkaTopic, []byte(fmt.Sprintf(`{"msg":%d}`, i)), nil)
+		require.NoError(t, err)
+	}
+
+	allProcessed := make(chan struct{})
+	var processedCount atomic.Int32
+	consumerClosed := make(chan struct{})
+
+	consumerCtx, consumerCancel := context.WithCancel(ctx)
+
+	config := KafkaConfig{
+		Brokers:       []string{testKafkaBrokerURL},
+		Topics:        []string{testKafkaTopic},
+		ConsumerGroup: consumerGroup,
+	}
+
+	consumer, err := NewKafkaConsumer(config, &MockDispatcher{
+		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
+			if int(processedCount.Add(1)) == numMessages {
+				close(allProcessed)
+			}
+			return nil
+		},
+	}, testCommon(prometheus.NewRegistry()))
+	require.NoError(t, err)
+
+	go func() {
+		_ = consumer.Run(consumerCtx)
+		close(consumerClosed)
+	}()
+
+	waitCh(t, allProcessed, 30*time.Second, "timeout waiting for all messages to be processed")
+
+	// Shut down consumer — this should commit marked offsets.
+	consumerCancel()
+	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer to close")
+
+	// Check committed offsets via kadm.
+	cl, err := kgo.NewClient(kgo.SeedBrokers(testKafkaBrokerURL))
+	require.NoError(t, err)
+	defer cl.Close()
+
+	admClient := kadm.NewClient(cl)
+	defer admClient.Close()
+
+	offsets, err := admClient.FetchOffsets(ctx, consumerGroup)
+	require.NoError(t, err)
+
+	offset, ok := offsets.Lookup(testKafkaTopic, 0)
+	require.True(t, ok, "committed offset not found for topic %s partition 0", testKafkaTopic)
+	require.Equal(t, int64(numMessages), offset.At,
+		"committed offset should equal number of produced messages")
+}
+
 func BenchmarkKafkaConsumer_ConsumePreLoadedTopic(b *testing.B) {
 	const (
 		numPartitions = 10

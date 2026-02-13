@@ -813,6 +813,13 @@ type KafkaConsumerConfig struct {
 	SASLUser      string `mapstructure:"sasl_user" json:"sasl_user" envconfig:"sasl_user" yaml:"sasl_user" toml:"sasl_user"`
 	SASLPassword  string `mapstructure:"sasl_password" json:"sasl_password" envconfig:"sasl_password" yaml:"sasl_password" toml:"sasl_password"`
 
+	// InstanceID sets a stable consumer group instance ID for Kafka static membership.
+	// When set, enables the static membership protocol: during rolling restarts, a replacement
+	// consumer with the same instance ID takes over partitions seamlessly without triggering
+	// a group rebalance. This should be a stable identifier across restarts (e.g. Kubernetes pod name).
+	// When empty (default), static membership is not used.
+	InstanceID string `mapstructure:"instance_id" json:"instance_id" envconfig:"instance_id" yaml:"instance_id" toml:"instance_id"`
+
 	// MethodHeader is a header name to extract method name from Kafka message.
 	// If provided in message, then payload must be just a serialized API request object.
 	MethodHeader string `mapstructure:"method_header" default:"centrifugo-method" json:"method_header" envconfig:"method_header" yaml:"method_header" toml:"method_header"`

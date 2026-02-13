@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
@@ -22,7 +22,6 @@ type NatsJetStreamConsumerConfig = configtypes.NatsJetStreamConsumerConfig
 
 // NatsJetStreamConsumer consumes messages from NATS JetStream.
 type NatsJetStreamConsumer struct {
-	name           string
 	config         NatsJetStreamConsumerConfig
 	dispatcher     Dispatcher
 	nc             *nats.Conn
@@ -179,9 +178,9 @@ func (c *NatsJetStreamConsumer) msgHandler(msg jetstream.Msg) {
 	if processErr == nil {
 		if err := msg.Ack(); err != nil {
 			c.common.log.Error().Err(err).Msg("failed to ack message")
-			metrics.ConsumerErrorsTotal.WithLabelValues(c.name).Inc()
+			metrics.ConsumerErrorsTotal.WithLabelValues(c.common.name).Inc()
 		} else {
-			metrics.ConsumerProcessedTotal.WithLabelValues(c.name).Inc()
+			metrics.ConsumerProcessedTotal.WithLabelValues(c.common.name).Inc()
 		}
 	} else {
 		c.common.log.Error().Err(processErr).Msg("processing message failed")
