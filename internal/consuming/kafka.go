@@ -196,24 +196,29 @@ func (c *KafkaConsumer) Run(ctx context.Context) error {
 	defer func() {
 		close(c.doneCh)
 		if c.client != nil {
-			// Stop all partition consumers first to ensure no more offsets are being marked.
+			// Stop all partition consumers first to ensure all offsets are marked.
 			c.killConsumers(c.allTopicPartitions())
-			closeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			// Now safe to commit — all partition consumers have stopped marking offsets.
-			if err := c.client.CommitMarkedOffsets(closeCtx); err != nil {
-				c.common.log.Error().Err(err).Msg("error committing marked offsets on shutdown")
-			}
 			if c.testOnlyConfig.leaveGroupOnShutdown && c.config.InstanceID != "" {
+				// Test-only path simulating old behavior with dynamic instance IDs.
+				// Commit before manual LeaveGroup — the coordinator rejects commits
+				// from members that already left the group.
+				closeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+				if err := c.client.CommitMarkedOffsets(closeCtx); err != nil {
+					c.common.log.Error().Err(err).Msg("error committing marked offsets on shutdown")
+				}
 				if err := c.leaveGroup(closeCtx, c.client); err != nil {
 					c.common.log.Error().Err(err).Msg("error leaving consumer group")
 				}
 			}
 			// CloseAllowingRebalance calls AllowRebalance (required since we use
-			// BlockRebalanceOnPoll) and then Close. For non-static members (no InstanceID),
-			// Close sends LeaveGroup automatically. For static members (InstanceID is set),
-			// Close does not send LeaveGroup – so the replacement consumer with the same
-			// instance ID can take over partitions seamlessly without triggering a rebalance.
+			// BlockRebalanceOnPoll) and then Close. Close triggers the manage loop
+			// exit which calls onRevoked with a valid client context and no
+			// joinAndSync WLock contention — so CommitMarkedOffsets in onRevoked
+			// succeeds without racing. For non-static members (no InstanceID),
+			// Close sends LeaveGroup automatically. For static members (InstanceID
+			// is set), Close does not send LeaveGroup – so the replacement consumer
+			// with the same instance ID can take over partitions seamlessly.
 			c.client.CloseAllowingRebalance()
 		}
 	}()
@@ -383,13 +388,9 @@ func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned m
 
 func (c *KafkaConsumer) revoked(ctx context.Context, cl *kgo.Client, revoked map[string][]int32) {
 	c.killConsumers(revoked)
-	select {
-	case <-c.doneCh:
-		// Do not try to CommitMarkedOffsets since on shutdown we call it manually.
-	default:
-		if err := cl.CommitMarkedOffsets(ctx); err != nil {
-			c.common.log.Error().Err(err).Msg("error committing marked offsets on revoke")
-		}
+	// Always commit marked offsets on revoke.
+	if err := cl.CommitMarkedOffsets(ctx); err != nil {
+		c.common.log.Error().Err(err).Msg("error committing marked offsets on revoke")
 	}
 }
 

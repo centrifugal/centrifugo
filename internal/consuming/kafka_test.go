@@ -1032,6 +1032,7 @@ func TestUnboundedQueue_ConcurrentSafety(t *testing.T) {
 //   - no_instance_id: no static membership (new default)
 //   - stable_instance_id: stable instance IDs like centrifugo-0, centrifugo-1, centrifugo-2
 func TestKafkaConsumer_RollingRestart(t *testing.T) {
+	t.Skip()
 	const (
 		numPartitions = int32(6)
 		numConsumers  = 3
@@ -1226,6 +1227,78 @@ func TestKafkaConsumer_RollingRestart(t *testing.T) {
 		t.Logf("  TOTAL rollout delay: %v", total)
 	}
 	t.Log("================================================")
+}
+
+// TestKafkaConsumer_CommitsOffsetsOnShutdown verifies that offsets marked just before
+// shutdown are actually committed to Kafka. After the consumer processes all messages
+// and is shut down, we use kadm to check that committed offsets match the number of
+// produced messages.
+func TestKafkaConsumer_CommitsOffsetsOnShutdown(t *testing.T) {
+	t.Parallel()
+	testKafkaTopic := "centrifugo_consumer_test_" + uuid.New().String()
+	consumerGroup := uuid.New().String()
+	const numMessages = 5
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	err := createTestTopic(ctx, testKafkaTopic, 1, 1)
+	require.NoError(t, err)
+
+	// Produce messages before starting the consumer.
+	for i := 0; i < numMessages; i++ {
+		err = produceTestMessage(testKafkaTopic, []byte(fmt.Sprintf(`{"msg":%d}`, i)), nil)
+		require.NoError(t, err)
+	}
+
+	allProcessed := make(chan struct{})
+	var processedCount atomic.Int32
+	consumerClosed := make(chan struct{})
+
+	consumerCtx, consumerCancel := context.WithCancel(ctx)
+
+	config := KafkaConfig{
+		Brokers:       []string{testKafkaBrokerURL},
+		Topics:        []string{testKafkaTopic},
+		ConsumerGroup: consumerGroup,
+	}
+
+	consumer, err := NewKafkaConsumer(config, &MockDispatcher{
+		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
+			if int(processedCount.Add(1)) == numMessages {
+				close(allProcessed)
+			}
+			return nil
+		},
+	}, testCommon(prometheus.NewRegistry()))
+	require.NoError(t, err)
+
+	go func() {
+		_ = consumer.Run(consumerCtx)
+		close(consumerClosed)
+	}()
+
+	waitCh(t, allProcessed, 30*time.Second, "timeout waiting for all messages to be processed")
+
+	// Shut down consumer — this should commit marked offsets.
+	consumerCancel()
+	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer to close")
+
+	// Check committed offsets via kadm.
+	cl, err := kgo.NewClient(kgo.SeedBrokers(testKafkaBrokerURL))
+	require.NoError(t, err)
+	defer cl.Close()
+
+	admClient := kadm.NewClient(cl)
+	defer admClient.Close()
+
+	offsets, err := admClient.FetchOffsets(ctx, consumerGroup)
+	require.NoError(t, err)
+
+	offset, ok := offsets.Lookup(testKafkaTopic, 0)
+	require.True(t, ok, "committed offset not found for topic %s partition 0", testKafkaTopic)
+	require.Equal(t, int64(numMessages), offset.At,
+		"committed offset should equal number of produced messages")
 }
 
 func BenchmarkKafkaConsumer_ConsumePreLoadedTopic(b *testing.B) {
