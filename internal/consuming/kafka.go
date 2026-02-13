@@ -44,7 +44,14 @@ type KafkaConsumer struct {
 	client         *kgo.Client
 	dispatcher     Dispatcher
 	config         KafkaConfig
-	consumers      map[topicPartition]*partitionConsumer
+	// mu protects the consumers map. During normal operation, concurrent access is already
+	// prevented: franz-go serializes assigned/revoked/lost callbacks, and BlockRebalanceOnPoll
+	// prevents callbacks from firing while pollUntilFatal reads the map. The mutex is needed
+	// for shutdown, when the main goroutine accesses the map (via allTopicPartitions/killConsumers)
+	// while the group management goroutine may still be running callbacks. Must not be held
+	// during killConsumers' wg.Wait() to avoid blocking concurrent callbacks.
+	mu        sync.Mutex
+	consumers map[topicPartition]*partitionConsumer
 	doneCh         chan struct{}
 	common         *consumerCommon
 	testOnlyConfig testOnlyConfig
@@ -74,6 +81,7 @@ func NewKafkaConsumer(
 		config.PartitionQueueMaxSize = 1000
 	}
 	consumer := &KafkaConsumer{
+		name:       common.name,
 		dispatcher: dispatcher,
 		config:     config,
 		consumers:  make(map[topicPartition]*partitionConsumer),
@@ -188,10 +196,11 @@ func (c *KafkaConsumer) Run(ctx context.Context) error {
 	defer func() {
 		close(c.doneCh)
 		if c.client != nil {
+			// Stop all partition consumers first to ensure no more offsets are being marked.
+			c.killConsumers(c.allTopicPartitions())
 			closeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
-			// Commit marked offsets before closing the client. We do this explicitly to ensure
-			// all processed records are committed before we close.
+			// Now safe to commit — all partition consumers have stopped marking offsets.
 			if err := c.client.CommitMarkedOffsets(closeCtx); err != nil {
 				c.common.log.Error().Err(err).Msg("error committing marked offsets on shutdown")
 			}
@@ -271,7 +280,7 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 				select {
 				case <-ctx.Done():
 					return
-				case <-consumer.quit:
+				case <-consumer.partitionCtx.Done():
 					return
 				default:
 				}
@@ -342,20 +351,19 @@ func (c *KafkaConsumer) reInitClient(ctx context.Context) error {
 }
 
 func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned map[string][]int32) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	select {
+	case <-c.doneCh:
+		return // Shutdown in progress, skip creating consumers that will be immediately killed.
+	default:
+	}
 	for topic, partitions := range assigned {
 		for _, partition := range partitions {
-			quitCh := make(chan struct{})
 			partitionCtx, cancel := context.WithCancel(ctx)
-			go func() {
-				select {
-				case <-ctx.Done():
-					cancel()
-				case <-quitCh:
-					cancel()
-				}
-			}()
 			pc := &partitionConsumer{
 				partitionCtx: partitionCtx,
+				cancelFunc:   cancel,
 				dispatcher:   c.dispatcher,
 				cl:           cl,
 				topic:        topic,
@@ -364,7 +372,6 @@ func (c *KafkaConsumer) assigned(ctx context.Context, cl *kgo.Client, assigned m
 				name:         c.name,
 				common:       c.common,
 
-				quit:  quitCh,
 				done:  make(chan struct{}),
 				queue: newUnboundedQueue(),
 			}
@@ -391,25 +398,45 @@ func (c *KafkaConsumer) lost(_ context.Context, _ *kgo.Client, lost map[string][
 	// Losing means we cannot commit: an error happened.
 }
 
-func (c *KafkaConsumer) killConsumers(lost map[string][]int32) {
-	var wg sync.WaitGroup
-	defer wg.Wait()
+func (c *KafkaConsumer) allTopicPartitions() map[string][]int32 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	result := make(map[string][]int32)
+	for tp := range c.consumers {
+		result[tp.topic] = append(result[tp.topic], tp.partition)
+	}
+	return result
+}
 
+func (c *KafkaConsumer) killConsumers(lost map[string][]int32) {
+	c.mu.Lock()
+	var pcs []*partitionConsumer
 	for topic, partitions := range lost {
 		for _, partition := range partitions {
 			tp := topicPartition{topic, partition}
 			pc := c.consumers[tp]
+			if pc == nil {
+				continue
+			}
 			delete(c.consumers, tp)
-			pc.queue.Close()
-			close(pc.quit)
-			wg.Add(1)
-			go func() { <-pc.done; wg.Done() }()
+			pcs = append(pcs, pc)
 		}
 	}
+	c.mu.Unlock()
+
+	var wg sync.WaitGroup
+	for _, pc := range pcs {
+		pc.queue.Close()
+		pc.cancelFunc()
+		wg.Add(1)
+		go func() { <-pc.done; wg.Done() }()
+	}
+	wg.Wait()
 }
 
 type partitionConsumer struct {
 	partitionCtx context.Context
+	cancelFunc   context.CancelFunc
 	dispatcher   Dispatcher
 	cl           *kgo.Client
 	topic        string
@@ -418,7 +445,6 @@ type partitionConsumer struct {
 	name         string
 	common       *consumerCommon
 
-	quit  chan struct{}
 	done  chan struct{}
 	queue *unboundedQueue
 }
