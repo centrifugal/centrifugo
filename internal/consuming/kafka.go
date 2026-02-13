@@ -16,6 +16,7 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
 	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 
+	"github.com/rs/zerolog"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/kmsg"
 	"github.com/twmb/franz-go/pkg/sasl/aws"
@@ -98,6 +99,48 @@ func NewKafkaConsumer(
 
 const kafkaClientID = "centrifugo"
 
+// kgoZerologAdapter adapts zerolog.Logger to kgo.Logger interface.
+type kgoZerologAdapter struct {
+	log zerolog.Logger
+}
+
+func (l *kgoZerologAdapter) Level() kgo.LogLevel {
+	switch {
+	case logging.Enabled(logging.TraceLevel):
+		return kgo.LogLevelDebug // Kafka client debug level is more like our trace.
+	case logging.Enabled(logging.InfoLevel):
+		return kgo.LogLevelInfo
+	case logging.Enabled(logging.WarnLevel):
+		return kgo.LogLevelWarn
+	case logging.Enabled(logging.ErrorLevel):
+		return kgo.LogLevelError
+	default:
+		return kgo.LogLevelNone
+	}
+}
+
+func (l *kgoZerologAdapter) Log(level kgo.LogLevel, msg string, keyvals ...any) {
+	var e *zerolog.Event
+	switch level {
+	case kgo.LogLevelError:
+		e = l.log.Error()
+	case kgo.LogLevelWarn:
+		e = l.log.Warn()
+	case kgo.LogLevelInfo:
+		e = l.log.Info()
+	case kgo.LogLevelDebug:
+		e = l.log.Trace() // Kafka client debug level is more like our trace.
+	default:
+		return
+	}
+	for i := 0; i+1 < len(keyvals); i += 2 {
+		if key, ok := keyvals[i].(string); ok {
+			e = e.Interface(key, keyvals[i+1])
+		}
+	}
+	e.Msg(msg)
+}
+
 // leaveGroup sends a manual LeaveGroup request for static members. franz-go's Close does not
 // send LeaveGroup for static members by design. This method is only used in tests to simulate
 // the old behavior where dynamic instance IDs were combined with a manual LeaveGroup.
@@ -128,6 +171,7 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 		kgo.BlockRebalanceOnPoll(),
 		kgo.ClientID(kafkaClientID),
 		kgo.FetchMaxWait(time.Duration(c.config.FetchMaxWait)),
+		kgo.WithLogger(&kgoZerologAdapter{log: c.common.log}),
 	}
 	if c.config.InstanceID != "" {
 		opts = append(opts, kgo.InstanceID(c.config.InstanceID))
@@ -568,6 +612,9 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 			if err == nil {
 				if retries > 0 {
 					pc.common.log.Info().Str("topic", record.Topic).Int32("partition", record.Partition).Msg("OK processing message after errors")
+				}
+				if logging.Enabled(logging.TraceLevel) {
+					pc.common.log.Trace().Str("topic", record.Topic).Int32("partition", record.Partition).Int64("offset", record.Offset).Msg("record processed")
 				}
 				metrics.ConsumerProcessedTotal.WithLabelValues(pc.name).Inc()
 				pc.cl.MarkCommitRecords(record)
