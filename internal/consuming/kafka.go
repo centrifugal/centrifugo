@@ -29,6 +29,9 @@ type testOnlyConfig struct {
 	topicPartitionBeforePauseCh    chan topicPartition
 	topicPartitionPauseProceedCh   chan struct{}
 	fetchTopicPartitionSubmittedCh chan kgo.FetchTopicPartition
+	// leaveGroupOnShutdown when true sends a manual LeaveGroup request on shutdown.
+	// Used only in tests to simulate the old behavior with dynamic instance IDs.
+	leaveGroupOnShutdown bool
 }
 
 type topicPartition struct {
@@ -39,7 +42,6 @@ type topicPartition struct {
 type KafkaConsumer struct {
 	name           string
 	client         *kgo.Client
-	nodeID         string
 	dispatcher     Dispatcher
 	config         KafkaConfig
 	consumers      map[topicPartition]*partitionConsumer
@@ -72,7 +74,6 @@ func NewKafkaConsumer(
 		config.PartitionQueueMaxSize = 1000
 	}
 	consumer := &KafkaConsumer{
-		nodeID:     common.nodeID,
 		dispatcher: dispatcher,
 		config:     config,
 		consumers:  make(map[topicPartition]*partitionConsumer),
@@ -89,8 +90,22 @@ func NewKafkaConsumer(
 
 const kafkaClientID = "centrifugo"
 
-func (c *KafkaConsumer) getInstanceID() string {
-	return "centrifugo-" + c.nodeID
+// leaveGroup sends a manual LeaveGroup request for static members. franz-go's Close does not
+// send LeaveGroup for static members by design. This method is only used in tests to simulate
+// the old behavior where dynamic instance IDs were combined with a manual LeaveGroup.
+func (c *KafkaConsumer) leaveGroup(ctx context.Context, client *kgo.Client) error {
+	req := kmsg.NewPtrLeaveGroupRequest()
+	req.Group = c.config.ConsumerGroup
+	instanceID := c.config.InstanceID
+	reason := "shutdown"
+	req.Members = []kmsg.LeaveGroupRequestMember{
+		{
+			InstanceID: &instanceID,
+			Reason:     &reason,
+		},
+	}
+	_, err := req.RequestWith(ctx, client)
+	return err
 }
 
 func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
@@ -104,8 +119,10 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 		kgo.AutoCommitMarks(),
 		kgo.BlockRebalanceOnPoll(),
 		kgo.ClientID(kafkaClientID),
-		kgo.InstanceID(c.getInstanceID()),
 		kgo.FetchMaxWait(time.Duration(c.config.FetchMaxWait)),
+	}
+	if c.config.InstanceID != "" {
+		opts = append(opts, kgo.InstanceID(c.config.InstanceID))
 	}
 	if c.config.FetchMaxBytes > 0 {
 		opts = append(opts, kgo.FetchMaxBytes(c.config.FetchMaxBytes))
@@ -167,39 +184,27 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 	return client, nil
 }
 
-func (c *KafkaConsumer) leaveGroup(ctx context.Context, client *kgo.Client) error {
-	req := kmsg.NewPtrLeaveGroupRequest()
-	req.Group = c.config.ConsumerGroup
-	instanceID := c.getInstanceID()
-	reason := "shutdown"
-	req.Members = []kmsg.LeaveGroupRequestMember{
-		{
-			InstanceID: &instanceID,
-			Reason:     &reason,
-		},
-	}
-	_, err := req.RequestWith(ctx, client)
-	return err
-}
-
 func (c *KafkaConsumer) Run(ctx context.Context) error {
 	defer func() {
 		close(c.doneCh)
 		if c.client != nil {
 			closeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
-			// The reason we make CommitMarkedOffsets here is because franz-go does not send
-			// LeaveGroup request when instanceID is used. So we leave manually. But we have
-			// to commit what we have at this point. The closed doneCh then allows partition
-			// consumers to skip calling CommitMarkedOffsets on revoke. Otherwise, we get
-			// "UNKNOWN_MEMBER_ID" error (since group already left).
+			// Commit marked offsets before closing the client. We do this explicitly to ensure
+			// all processed records are committed before we close.
 			if err := c.client.CommitMarkedOffsets(closeCtx); err != nil {
 				c.common.log.Error().Err(err).Msg("error committing marked offsets on shutdown")
 			}
-			err := c.leaveGroup(closeCtx, c.client)
-			if err != nil {
-				c.common.log.Error().Err(err).Msg("error leaving consumer group")
+			if c.testOnlyConfig.leaveGroupOnShutdown && c.config.InstanceID != "" {
+				if err := c.leaveGroup(closeCtx, c.client); err != nil {
+					c.common.log.Error().Err(err).Msg("error leaving consumer group")
+				}
 			}
+			// CloseAllowingRebalance calls AllowRebalance (required since we use
+			// BlockRebalanceOnPoll) and then Close. For non-static members (no InstanceID),
+			// Close sends LeaveGroup automatically. For static members (InstanceID is set),
+			// Close does not send LeaveGroup – so the replacement consumer with the same
+			// instance ID can take over partitions seamlessly without triggering a rebalance.
 			c.client.CloseAllowingRebalance()
 		}
 	}()
