@@ -153,3 +153,63 @@ func (d *JSONRequestDecoder) DecodeChannels(data []byte) (*ChannelsRequest, erro
 	}
 	return &p, nil
 }
+
+// DecodeMapPublish ...
+func (d *JSONRequestDecoder) DecodeMapPublish(data []byte) (*MapPublishRequest, error) {
+	var p MapPublishRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeMapRemove ...
+func (d *JSONRequestDecoder) DecodeMapRemove(data []byte) (*MapRemoveRequest, error) {
+	var p MapRemoveRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeMapReadState ...
+func (d *JSONRequestDecoder) DecodeMapReadState(data []byte) (*MapReadStateRequest, error) {
+	var p MapReadStateRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeMapReadStream ...
+func (d *JSONRequestDecoder) DecodeMapReadStream(data []byte) (*MapReadStreamRequest, error) {
+	var p MapReadStreamRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeMapStats ...
+func (d *JSONRequestDecoder) DecodeMapStats(data []byte) (*MapStatsRequest, error) {
+	var p MapStatsRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeMapClear ...
+func (d *JSONRequestDecoder) DecodeMapClear(data []byte) (*MapClearRequest, error) {
+	var p MapClearRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}

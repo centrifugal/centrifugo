@@ -185,6 +185,53 @@ type ChannelOptions struct {
 	// SubscribeStreamBidirectional enables using bidirectional stream proxy for the namespace.
 	SubscribeStreamBidirectional bool `mapstructure:"subscribe_stream_proxy_bidirectional" json:"subscribe_stream_proxy_bidirectional" envconfig:"subscribe_stream_proxy_bidirectional" yaml:"subscribe_stream_proxy_bidirectional" toml:"subscribe_stream_proxy_bidirectional"`
 
+	// SubscriptionTypes defines allowed subscription types for the namespace.
+	// Valid values: "stream", "map", "map_clients", "map_users".
+	// Default: ["stream"] (traditional PUB/SUB with history).
+	SubscriptionTypes []string `mapstructure:"subscription_types" json:"subscription_types" envconfig:"subscription_types" yaml:"subscription_types" toml:"subscription_types"`
+
+	// MapSyncMode controls how map state is synchronized with subscribers.
+	// Valid values: "ephemeral" (no stream, live updates only) or "converging"
+	// (stream-backed with delta recovery). Only relevant when subscription_types
+	// includes map types.
+	MapSyncMode string `mapstructure:"map_sync_mode" json:"map_sync_mode" envconfig:"map_sync_mode" yaml:"map_sync_mode" toml:"map_sync_mode"`
+	// MapRetentionMode controls how map entries are retained.
+	// Valid values: "expiring" (entries expire after map_key_ttl) or "permanent"
+	// (entries live until explicitly removed). Only relevant when subscription_types
+	// includes map types.
+	MapRetentionMode string `mapstructure:"map_retention_mode" json:"map_retention_mode" envconfig:"map_retention_mode" yaml:"map_retention_mode" toml:"map_retention_mode"`
+	// MapKeyTTL is the automatic expiration time for map entries. Required when
+	// map_retention_mode is "expiring". Ignored when "permanent".
+	MapKeyTTL Duration `mapstructure:"map_key_ttl" json:"map_key_ttl" envconfig:"map_key_ttl" yaml:"map_key_ttl" toml:"map_key_ttl"`
+	// MapOrdered enables score-based ordering (descending) for map entries.
+	MapOrdered bool `mapstructure:"map_ordered" json:"map_ordered" envconfig:"map_ordered" yaml:"map_ordered" toml:"map_ordered"`
+	// MapStreamSize is the maximum number of stream entries for map channels.
+	// Auto-derived if not set: 100 for "converging" mode, must be 0 for "ephemeral".
+	MapStreamSize int `mapstructure:"map_stream_size" json:"map_stream_size" envconfig:"map_stream_size" yaml:"map_stream_size" toml:"map_stream_size"`
+	// MapStreamTTL is the retention period for map stream entries.
+	// Auto-derived if not set: "1m" for "converging" mode, must be 0 for "ephemeral".
+	MapStreamTTL Duration `mapstructure:"map_stream_ttl" json:"map_stream_ttl" envconfig:"map_stream_ttl" yaml:"map_stream_ttl" toml:"map_stream_ttl"`
+	// MapMetaTTL is the retention period for map metadata (epoch, offset).
+	// Auto-derived based on sync mode and retention mode if not set.
+	MapMetaTTL Duration `mapstructure:"map_meta_ttl" json:"map_meta_ttl" envconfig:"map_meta_ttl" yaml:"map_meta_ttl" toml:"map_meta_ttl"`
+	// MapClientPresenceNamespace is the namespace for client presence channels.
+	// When set, client presence (key=clientID, full ClientInfo) is published to
+	// {namespace}{boundary}{channel_rest} on subscribe and removed on unsubscribe.
+	// For example, with namespace "clients" and boundary ":", subscribing to "game:abc"
+	// publishes presence to "clients:abc". Empty string means no client presence.
+	MapClientPresenceNamespace string `mapstructure:"map_client_presence_namespace" json:"map_client_presence_namespace" envconfig:"map_client_presence_namespace" yaml:"map_client_presence_namespace" toml:"map_client_presence_namespace"`
+	// MapUserPresenceNamespace is the namespace for user presence channels.
+	// When set, user presence (key=userID) is published to
+	// {namespace}{boundary}{channel_rest} on subscribe. User presence entries are
+	// not removed on unsubscribe — they expire via TTL to provide grace period for
+	// quick reconnects. Empty string means no user presence.
+	MapUserPresenceNamespace string `mapstructure:"map_user_presence_namespace" json:"map_user_presence_namespace" envconfig:"map_user_presence_namespace" yaml:"map_user_presence_namespace" toml:"map_user_presence_namespace"`
+	// MapRemoveOnUnsubscribe enables automatic cleanup of map state when subscription
+	// ends. When enabled, the entry with key=clientID is removed from the channel's
+	// map state on unsubscribe or disconnect. Useful for ephemeral state like cursor
+	// positions that should not persist after the client leaves.
+	MapRemoveOnUnsubscribe bool `mapstructure:"map_remove_on_unsubscribe" json:"map_remove_on_unsubscribe" envconfig:"map_remove_on_unsubscribe" yaml:"map_remove_on_unsubscribe" toml:"map_remove_on_unsubscribe"`
+
 	Compiled `json:"-" yaml:"-" toml:"-"`
 }
 

@@ -15,4 +15,10 @@ var Requests = []string{
 	"RPC",
 	"Refresh",
 	"Channels",
+	"MapPublish",
+	"MapRemove",
+	"MapReadState",
+	"MapReadStream",
+	"MapStats",
+	"MapClear",
 }

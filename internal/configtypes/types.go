@@ -432,6 +432,24 @@ type Client struct {
 	// ConnectCodeToUnidirectionalDisconnect is a configuration for a feature to transform connect error codes to the disconnect code
 	// for unidirectional transports.
 	ConnectCodeToUnidirectionalDisconnect ConnectCodeToUnidirectionalDisconnect `mapstructure:"connect_code_to_unidirectional_disconnect" json:"connect_code_to_unidirectional_disconnect" envconfig:"connect_code_to_unidirectional_disconnect" yaml:"connect_code_to_unidirectional_disconnect" toml:"connect_code_to_unidirectional_disconnect"`
+	// MapMaxPaginationLimit sets the maximum number of items a client can request per page in map
+	// subscription pagination requests. Zero means no limit.
+	MapMaxPaginationLimit int `mapstructure:"map_max_pagination_limit" json:"map_max_pagination_limit" envconfig:"map_max_pagination_limit" yaml:"map_max_pagination_limit" toml:"map_max_pagination_limit"`
+	// MapMinStreamPaginationLimit sets the minimum number of items for stream pagination.
+	// This prevents excessive round trips when clients send very small limits. Zero means no minimum.
+	MapMinStreamPaginationLimit int `mapstructure:"map_min_stream_pagination_limit" json:"map_min_stream_pagination_limit" envconfig:"map_min_stream_pagination_limit" yaml:"map_min_stream_pagination_limit" toml:"map_min_stream_pagination_limit"`
+	// MapMaxImmediateJoinStateSize sets the maximum number of state entries allowed for immediate
+	// join. If state exceeds this, the client must paginate. Zero means no limit.
+	MapMaxImmediateJoinStateSize int `mapstructure:"map_max_immediate_join_state_size" json:"map_max_immediate_join_state_size" envconfig:"map_max_immediate_join_state_size" yaml:"map_max_immediate_join_state_size" toml:"map_max_immediate_join_state_size"`
+	// MapRecoveryMaxPublicationLimit sets the maximum number of stream publications to recover
+	// during map subscription live transition. Zero means no limit. Default: 300.
+	MapRecoveryMaxPublicationLimit int `mapstructure:"map_recovery_max_publication_limit" json:"map_recovery_max_publication_limit" envconfig:"map_recovery_max_publication_limit" default:"300" yaml:"map_recovery_max_publication_limit" toml:"map_recovery_max_publication_limit"`
+	// MapStateToLiveEnabled controls whether server can transition directly from STATE to LIVE
+	// phase on the last state page, skipping STREAM phase entirely.
+	MapStateToLiveEnabled bool `mapstructure:"map_state_to_live_enabled" json:"map_state_to_live_enabled" envconfig:"map_state_to_live_enabled" yaml:"map_state_to_live_enabled" toml:"map_state_to_live_enabled"`
+	// MapSubscribeCatchUpTimeout sets the maximum time a client can spend paginating through state
+	// and stream phases before going live. If exceeded, the client is disconnected. Default: "5s".
+	MapSubscribeCatchUpTimeout Duration `mapstructure:"map_subscribe_catch_up_timeout" json:"map_subscribe_catch_up_timeout" envconfig:"map_subscribe_catch_up_timeout" default:"5s" yaml:"map_subscribe_catch_up_timeout" toml:"map_subscribe_catch_up_timeout"`
 }
 
 type UniConnectCodeToDisconnectTransforms []UniConnectCodeToDisconnectTransform

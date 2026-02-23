@@ -1768,6 +1768,580 @@
     ]
   },
   {
+    "field": "map_broker",
+    "name": "map_broker",
+    "go_name": "MapBroker",
+    "level": 1,
+    "type": "MapBroker",
+    "default": "",
+    "comment": "MapBroker allows to configure a map broker for synchronized keyed state channels.\nWhen enabled, clients can use map subscription types for channels in namespaces\nthat have map types in subscription_types.",
+    "is_complex_type": true,
+    "children": [
+      {
+        "field": "map_broker.enabled",
+        "name": "enabled",
+        "go_name": "Enabled",
+        "level": 2,
+        "type": "bool",
+        "default": "",
+        "comment": "Enabled enables the map broker. When false, map subscriptions are not available.",
+        "is_complex_type": false
+      },
+      {
+        "field": "map_broker.type",
+        "name": "type",
+        "go_name": "Type",
+        "level": 2,
+        "type": "string",
+        "default": "memory",
+        "comment": "Type of map broker to use. Can be \"memory\", \"redis\", or \"postgres\".",
+        "is_complex_type": false
+      },
+      {
+        "field": "map_broker.redis",
+        "name": "redis",
+        "go_name": "Redis",
+        "level": 2,
+        "type": "RedisMapBroker",
+        "default": "",
+        "comment": "Redis is a configuration for \"redis\" map broker.",
+        "is_complex_type": true,
+        "children": [
+          {
+            "field": "map_broker.redis.prefix",
+            "name": "prefix",
+            "go_name": "Prefix",
+            "level": 3,
+            "type": "string",
+            "default": "centrifugo",
+            "comment": "Prefix for all Redis keys and channels.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.address",
+            "name": "address",
+            "go_name": "Address",
+            "level": 3,
+            "type": "[]string",
+            "default": "redis://127.0.0.1:6379",
+            "comment": "Address is a list of Redis shard addresses. In most cases a single shard is used. But when many\naddresses provided Centrifugo will distribute keys between shards using consistent hashing.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.connect_timeout",
+            "name": "connect_timeout",
+            "go_name": "ConnectTimeout",
+            "level": 3,
+            "type": "Duration",
+            "default": "1s",
+            "comment": "ConnectTimeout is a timeout for establishing connection to Redis.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.io_timeout",
+            "name": "io_timeout",
+            "go_name": "IOTimeout",
+            "level": 3,
+            "type": "Duration",
+            "default": "4s",
+            "comment": "IOTimeout is a timeout for all read/write operations against Redis (can be considered as a request timeout).",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.db",
+            "name": "db",
+            "go_name": "DB",
+            "level": 3,
+            "type": "int",
+            "default": "0",
+            "comment": "DB is a Redis database to use. Generally it's not recommended to use non-zero DB. Note, that Redis\nPUB/SUB is global for all databases in a single Redis instance. So when using non-zero DB make sure\nthat different Centrifugo setups use different prefixes.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.user",
+            "name": "user",
+            "go_name": "User",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "User is a Redis user.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.password",
+            "name": "password",
+            "go_name": "Password",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "Password is a Redis password.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.client_name",
+            "name": "client_name",
+            "go_name": "ClientName",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "ClientName allows changing a Redis client name used when connecting.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.force_resp2",
+            "name": "force_resp2",
+            "go_name": "ForceResp2",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "ForceResp2 forces use of Redis Resp2 protocol for communication.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.cluster_address",
+            "name": "cluster_address",
+            "go_name": "ClusterAddress",
+            "level": 3,
+            "type": "[]string",
+            "default": "",
+            "comment": "ClusterAddress is a list of Redis cluster addresses. When several provided - data will be sharded\nbetween them using consistent hashing. Several Cluster addresses within one shard may be passed\ncomma-separated.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.tls",
+            "name": "tls",
+            "go_name": "TLS",
+            "level": 3,
+            "type": "TLSConfig",
+            "default": "",
+            "comment": "TLS is a configuration for Redis TLS support.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "map_broker.redis.tls.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled turns on using TLS.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.tls.cert_pem",
+                "name": "cert_pem",
+                "go_name": "CertPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "CertPem is a PEM certificate.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.tls.key_pem",
+                "name": "key_pem",
+                "go_name": "KeyPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "KeyPem is a path to a file with key in PEM format.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.tls.server_ca_pem",
+                "name": "server_ca_pem",
+                "go_name": "ServerCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.tls.client_ca_pem",
+                "name": "client_ca_pem",
+                "go_name": "ClientCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.tls.insecure_skip_verify",
+                "name": "insecure_skip_verify",
+                "go_name": "InsecureSkipVerify",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "InsecureSkipVerify turns off server certificate verification.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.tls.server_name",
+                "name": "server_name",
+                "go_name": "ServerName",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "map_broker.redis.sentinel_address",
+            "name": "sentinel_address",
+            "go_name": "SentinelAddress",
+            "level": 3,
+            "type": "[]string",
+            "default": "",
+            "comment": "SentinelAddress allows setting Redis Sentinel addresses. When provided - Sentinel will be used.\nWhen multiple addresses provided - data will be sharded between them using consistent hashing.\nSeveral Sentinel addresses within one shard may be passed comma-separated.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.sentinel_user",
+            "name": "sentinel_user",
+            "go_name": "SentinelUser",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "SentinelUser is a Redis Sentinel user.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.sentinel_password",
+            "name": "sentinel_password",
+            "go_name": "SentinelPassword",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "SentinelPassword is a Redis Sentinel password.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.sentinel_master_name",
+            "name": "sentinel_master_name",
+            "go_name": "SentinelMasterName",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "SentinelMasterName is a Redis master name in Sentinel setup.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.sentinel_client_name",
+            "name": "sentinel_client_name",
+            "go_name": "SentinelClientName",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "SentinelClientName is a Redis Sentinel client name used when connecting.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.sentinel_tls",
+            "name": "sentinel_tls",
+            "go_name": "SentinelTLS",
+            "level": 3,
+            "type": "TLSConfig",
+            "default": "",
+            "comment": "SentinelTLS is a configuration for Redis Sentinel TLS support.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "map_broker.redis.sentinel_tls.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled turns on using TLS.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.sentinel_tls.cert_pem",
+                "name": "cert_pem",
+                "go_name": "CertPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "CertPem is a PEM certificate.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.sentinel_tls.key_pem",
+                "name": "key_pem",
+                "go_name": "KeyPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "KeyPem is a path to a file with key in PEM format.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.sentinel_tls.server_ca_pem",
+                "name": "server_ca_pem",
+                "go_name": "ServerCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.sentinel_tls.client_ca_pem",
+                "name": "client_ca_pem",
+                "go_name": "ClientCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.sentinel_tls.insecure_skip_verify",
+                "name": "insecure_skip_verify",
+                "go_name": "InsecureSkipVerify",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "InsecureSkipVerify turns off server certificate verification.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.sentinel_tls.server_name",
+                "name": "server_name",
+                "go_name": "ServerName",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "map_broker.redis.replica_client",
+            "name": "replica_client",
+            "go_name": "ReplicaClient",
+            "level": 3,
+            "type": "RedisReplicaClient",
+            "default": "",
+            "comment": "ReplicaClient is a configuration for Redis replica client.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "map_broker.redis.replica_client.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled enables replica client.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "map_broker.redis.cleanup_interval",
+            "name": "cleanup_interval",
+            "go_name": "CleanupInterval",
+            "level": 3,
+            "type": "Duration",
+            "default": "1s",
+            "comment": "CleanupInterval defines how often to run the cleanup worker that generates\nremove events for expired keyed state entries. Default: \"1s\".\nSet to \"-1\" to disable cleanup.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.cleanup_batch_size",
+            "name": "cleanup_batch_size",
+            "go_name": "CleanupBatchSize",
+            "level": 3,
+            "type": "int",
+            "default": "100",
+            "comment": "CleanupBatchSize defines max entries to process per channel per cleanup cycle.\nDefault: 100.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.idempotent_result_ttl",
+            "name": "idempotent_result_ttl",
+            "go_name": "IdempotentResultTTL",
+            "level": 3,
+            "type": "Duration",
+            "default": "5m",
+            "comment": "IdempotentResultTTL is a time-to-live for idempotent publish results.\nDefault: \"5m\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.skip_pub_sub",
+            "name": "skip_pub_sub",
+            "go_name": "SkipPubSub",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "SkipPubSub disables PUB/SUB for the map broker. When true, the broker only works\nwith data structures without publishing to channels. Useful when PUB/SUB is handled\nby another component.",
+            "is_complex_type": false
+          }
+        ]
+      },
+      {
+        "field": "map_broker.postgres",
+        "name": "postgres",
+        "go_name": "Postgres",
+        "level": 2,
+        "type": "PostgresMapBroker",
+        "default": "",
+        "comment": "Postgres is a configuration for \"postgres\" map broker.",
+        "is_complex_type": true,
+        "children": [
+          {
+            "field": "map_broker.postgres.dsn",
+            "name": "dsn",
+            "go_name": "DSN",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "DSN is the primary PostgreSQL connection string.\nExample: \"postgres://user:pass@localhost:5432/dbname?sslmode=disable\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.pool_size",
+            "name": "pool_size",
+            "go_name": "PoolSize",
+            "level": 3,
+            "type": "int",
+            "default": "32",
+            "comment": "PoolSize sets the maximum number of connections in the pool. Default: 32.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.num_shards",
+            "name": "num_shards",
+            "go_name": "NumShards",
+            "level": 3,
+            "type": "int",
+            "default": "16",
+            "comment": "NumShards is the total number of shards for parallel delivery workers.\nChannels are distributed across shards using consistent hashing. Default: 16.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.ttl_check_interval",
+            "name": "ttl_check_interval",
+            "go_name": "TTLCheckInterval",
+            "level": 3,
+            "type": "Duration",
+            "default": "1s",
+            "comment": "TTLCheckInterval is how often to check for expired keys. Default: \"1s\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.cleanup_interval",
+            "name": "cleanup_interval",
+            "go_name": "CleanupInterval",
+            "level": 3,
+            "type": "Duration",
+            "default": "1m",
+            "comment": "CleanupInterval is how often to clean up expired stream/meta/idempotency entries.\nDefault: \"1m\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.idempotent_result_ttl",
+            "name": "idempotent_result_ttl",
+            "go_name": "IdempotentResultTTL",
+            "level": 3,
+            "type": "Duration",
+            "default": "5m",
+            "comment": "IdempotentResultTTL is the default TTL for idempotency keys. Default: \"5m\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.binary_data",
+            "name": "binary_data",
+            "go_name": "BinaryData",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "BinaryData uses BYTEA columns instead of JSONB for data fields.\nSet to true if data payloads are not valid JSON (e.g. binary/protobuf).",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.stream_retention",
+            "name": "stream_retention",
+            "go_name": "StreamRetention",
+            "level": 3,
+            "type": "Duration",
+            "default": "24h",
+            "comment": "StreamRetention controls how long stream entries are kept. Default: \"24h\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.use_notify",
+            "name": "use_notify",
+            "go_name": "UseNotify",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "UseNotify enables LISTEN/NOTIFY for low-latency outbox wakeup.\nWhen false (default), outbox worker uses polling only.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.skip_shard_lock",
+            "name": "skip_shard_lock",
+            "go_name": "SkipShardLock",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "SkipShardLock disables per-shard serialization of stream inserts.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.skip_schema_init",
+            "name": "skip_schema_init",
+            "go_name": "SkipSchemaInit",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "SkipSchemaInit disables automatic schema initialization on startup.\nWhen true, the schema must be managed externally (e.g. via migrations).",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.outbox",
+            "name": "outbox",
+            "go_name": "Outbox",
+            "level": 3,
+            "type": "PostgresMapBrokerOutbox",
+            "default": "",
+            "comment": "Outbox configures the outbox-based delivery mode.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "map_broker.postgres.outbox.poll_interval",
+                "name": "poll_interval",
+                "go_name": "PollInterval",
+                "level": 4,
+                "type": "Duration",
+                "default": "50ms",
+                "comment": "PollInterval is how often to poll for new stream entries when idle. Default: \"50ms\".",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.postgres.outbox.batch_size",
+                "name": "batch_size",
+                "go_name": "BatchSize",
+                "level": 4,
+                "type": "int",
+                "default": "1000",
+                "comment": "BatchSize is the maximum number of rows to process per batch. Default: 1000.",
+                "is_complex_type": false
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
     "field": "client",
     "name": "client",
     "go_name": "Client",
@@ -3222,6 +3796,66 @@
             ]
           }
         ]
+      },
+      {
+        "field": "client.map_max_pagination_limit",
+        "name": "map_max_pagination_limit",
+        "go_name": "MapMaxPaginationLimit",
+        "level": 2,
+        "type": "int",
+        "default": "",
+        "comment": "MapMaxPaginationLimit sets the maximum number of items a client can request per page in map\nsubscription pagination requests. Zero means no limit.",
+        "is_complex_type": false
+      },
+      {
+        "field": "client.map_min_stream_pagination_limit",
+        "name": "map_min_stream_pagination_limit",
+        "go_name": "MapMinStreamPaginationLimit",
+        "level": 2,
+        "type": "int",
+        "default": "",
+        "comment": "MapMinStreamPaginationLimit sets the minimum number of items for stream pagination.\nThis prevents excessive round trips when clients send very small limits. Zero means no minimum.",
+        "is_complex_type": false
+      },
+      {
+        "field": "client.map_max_immediate_join_state_size",
+        "name": "map_max_immediate_join_state_size",
+        "go_name": "MapMaxImmediateJoinStateSize",
+        "level": 2,
+        "type": "int",
+        "default": "",
+        "comment": "MapMaxImmediateJoinStateSize sets the maximum number of state entries allowed for immediate\njoin. If state exceeds this, the client must paginate. Zero means no limit.",
+        "is_complex_type": false
+      },
+      {
+        "field": "client.map_recovery_max_publication_limit",
+        "name": "map_recovery_max_publication_limit",
+        "go_name": "MapRecoveryMaxPublicationLimit",
+        "level": 2,
+        "type": "int",
+        "default": "300",
+        "comment": "MapRecoveryMaxPublicationLimit sets the maximum number of stream publications to recover\nduring map subscription live transition. Zero means no limit. Default: 300.",
+        "is_complex_type": false
+      },
+      {
+        "field": "client.map_state_to_live_enabled",
+        "name": "map_state_to_live_enabled",
+        "go_name": "MapStateToLiveEnabled",
+        "level": 2,
+        "type": "bool",
+        "default": "",
+        "comment": "MapStateToLiveEnabled controls whether server can transition directly from STATE to LIVE\nphase on the last state page, skipping STREAM phase entirely.",
+        "is_complex_type": false
+      },
+      {
+        "field": "client.map_subscribe_catch_up_timeout",
+        "name": "map_subscribe_catch_up_timeout",
+        "go_name": "MapSubscribeCatchUpTimeout",
+        "level": 2,
+        "type": "Duration",
+        "default": "5s",
+        "comment": "MapSubscribeCatchUpTimeout sets the maximum time a client can spend paginating through state\nand stream phases before going live. If exceeded, the client is disconnected. Default: \"5s\".",
+        "is_complex_type": false
       }
     ]
   },
@@ -5250,6 +5884,86 @@
             "default": "",
             "comment": "SubscribeStreamBidirectional enables using bidirectional stream proxy for the namespace.",
             "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.subscription_types",
+            "name": "subscription_types",
+            "go_name": "SubscriptionTypes",
+            "level": 3,
+            "type": "[]string",
+            "default": "",
+            "comment": "SubscriptionTypes defines allowed subscription types for the namespace.\nValid values: \"stream\", \"map\", \"map_clients\", \"map_users\".\nDefault: [\"stream\"] (traditional PUB/SUB with history).",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_sync_mode",
+            "name": "map_sync_mode",
+            "go_name": "MapSyncMode",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapSyncMode controls how map state is synchronized with subscribers.\nValid values: \"ephemeral\" (no stream, live updates only) or \"converging\"\n(stream-backed with delta recovery). Only relevant when subscription_types\nincludes map types.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_retention_mode",
+            "name": "map_retention_mode",
+            "go_name": "MapRetentionMode",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapRetentionMode controls how map entries are retained.\nValid values: \"expiring\" (entries expire after map_key_ttl) or \"permanent\"\n(entries live until explicitly removed). Only relevant when subscription_types\nincludes map types.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_key_ttl",
+            "name": "map_key_ttl",
+            "go_name": "MapKeyTTL",
+            "level": 3,
+            "type": "Duration",
+            "default": "",
+            "comment": "MapKeyTTL is the automatic expiration time for map entries. Required when\nmap_retention_mode is \"expiring\". Ignored when \"permanent\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_ordered",
+            "name": "map_ordered",
+            "go_name": "MapOrdered",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapOrdered enables score-based ordering (descending) for map entries.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_stream_size",
+            "name": "map_stream_size",
+            "go_name": "MapStreamSize",
+            "level": 3,
+            "type": "int",
+            "default": "",
+            "comment": "MapStreamSize is the maximum number of stream entries for map channels.\nAuto-derived if not set: 100 for \"converging\" mode, must be 0 for \"ephemeral\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_stream_ttl",
+            "name": "map_stream_ttl",
+            "go_name": "MapStreamTTL",
+            "level": 3,
+            "type": "Duration",
+            "default": "",
+            "comment": "MapStreamTTL is the retention period for map stream entries.\nAuto-derived if not set: \"1m\" for \"converging\" mode, must be 0 for \"ephemeral\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_meta_ttl",
+            "name": "map_meta_ttl",
+            "go_name": "MapMetaTTL",
+            "level": 3,
+            "type": "Duration",
+            "default": "",
+            "comment": "MapMetaTTL is the retention period for map metadata (epoch, offset).\nAuto-derived based on sync mode and retention mode if not set.",
+            "is_complex_type": false
           }
         ]
       },
@@ -5641,6 +6355,86 @@
             "type": "bool",
             "default": "",
             "comment": "SubscribeStreamBidirectional enables using bidirectional stream proxy for the namespace.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].subscription_types",
+            "name": "subscription_types",
+            "go_name": "SubscriptionTypes",
+            "level": 3,
+            "type": "[]string",
+            "default": "",
+            "comment": "SubscriptionTypes defines allowed subscription types for the namespace.\nValid values: \"stream\", \"map\", \"map_clients\", \"map_users\".\nDefault: [\"stream\"] (traditional PUB/SUB with history).",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_sync_mode",
+            "name": "map_sync_mode",
+            "go_name": "MapSyncMode",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapSyncMode controls how map state is synchronized with subscribers.\nValid values: \"ephemeral\" (no stream, live updates only) or \"converging\"\n(stream-backed with delta recovery). Only relevant when subscription_types\nincludes map types.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_retention_mode",
+            "name": "map_retention_mode",
+            "go_name": "MapRetentionMode",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapRetentionMode controls how map entries are retained.\nValid values: \"expiring\" (entries expire after map_key_ttl) or \"permanent\"\n(entries live until explicitly removed). Only relevant when subscription_types\nincludes map types.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_key_ttl",
+            "name": "map_key_ttl",
+            "go_name": "MapKeyTTL",
+            "level": 3,
+            "type": "Duration",
+            "default": "",
+            "comment": "MapKeyTTL is the automatic expiration time for map entries. Required when\nmap_retention_mode is \"expiring\". Ignored when \"permanent\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_ordered",
+            "name": "map_ordered",
+            "go_name": "MapOrdered",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapOrdered enables score-based ordering (descending) for map entries.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_stream_size",
+            "name": "map_stream_size",
+            "go_name": "MapStreamSize",
+            "level": 3,
+            "type": "int",
+            "default": "",
+            "comment": "MapStreamSize is the maximum number of stream entries for map channels.\nAuto-derived if not set: 100 for \"converging\" mode, must be 0 for \"ephemeral\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_stream_ttl",
+            "name": "map_stream_ttl",
+            "go_name": "MapStreamTTL",
+            "level": 3,
+            "type": "Duration",
+            "default": "",
+            "comment": "MapStreamTTL is the retention period for map stream entries.\nAuto-derived if not set: \"1m\" for \"converging\" mode, must be 0 for \"ephemeral\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_meta_ttl",
+            "name": "map_meta_ttl",
+            "go_name": "MapMetaTTL",
+            "level": 3,
+            "type": "Duration",
+            "default": "",
+            "comment": "MapMetaTTL is the retention period for map metadata (epoch, offset).\nAuto-derived based on sync mode and retention mode if not set.",
             "is_complex_type": false
           }
         ]

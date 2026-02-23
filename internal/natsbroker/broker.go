@@ -168,13 +168,13 @@ func (b *NatsBroker) IsSupportedPublishChannel(ch string) bool {
 }
 
 // Publish - see Broker interface description.
-func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOptions) (centrifuge.StreamPosition, bool, error) {
+func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOptions) (centrifuge.PublishResult, error) {
 	if !b.IsSupportedPublishChannel(ch) {
 		// Do not support wildcard subscriptions.
-		return centrifuge.StreamPosition{}, false, centrifuge.ErrorBadRequest
+		return centrifuge.PublishResult{}, centrifuge.ErrorBadRequest
 	}
 	if b.config.RawMode.Enabled {
-		return centrifuge.StreamPosition{}, false, b.nc.Publish(string(b.clientChannel(ch)), data)
+		return centrifuge.PublishResult{}, b.nc.Publish(string(b.clientChannel(ch)), data)
 	}
 	push := &protocol.Push{
 		Channel: ch,
@@ -188,9 +188,9 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 	}
 	byteMessage, err := push.MarshalVT()
 	if err != nil {
-		return centrifuge.StreamPosition{}, false, err
+		return centrifuge.PublishResult{}, err
 	}
-	return centrifuge.StreamPosition{}, false, b.nc.Publish(string(b.clientChannel(ch)), byteMessage)
+	return centrifuge.PublishResult{}, b.nc.Publish(string(b.clientChannel(ch)), byteMessage)
 }
 
 // We experimentally support attaching epoch to publication.

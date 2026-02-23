@@ -152,6 +152,11 @@ func Run(cmd *cobra.Command, configFile string) {
 		log.Fatal().Err(err).Msg("configure engines error")
 	}
 
+	err = configureMapBroker(node, cfgContainer)
+	if err != nil {
+		log.Fatal().Err(err).Msg("configure map broker error")
+	}
+
 	verifierConfig, err := confighelpers.MakeVerifierConfig(cfg.Client.Token)
 	if err != nil {
 		log.Fatal().Err(err).Msg("error creating JWT verifier config")

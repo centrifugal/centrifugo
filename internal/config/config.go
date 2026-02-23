@@ -42,6 +42,10 @@ type Config struct {
 	// PresenceManager is superfast, but it's not distributed. Redis PresenceManager provides a seamless
 	// horizontal scalability.
 	PresenceManager configtypes.PresenceManager `mapstructure:"presence_manager" json:"presence_manager" envconfig:"presence_manager" toml:"presence_manager" yaml:"presence_manager"`
+	// MapBroker allows to configure a map broker for synchronized keyed state channels.
+	// When enabled, clients can use map subscription types for channels in namespaces
+	// that have map types in subscription_types.
+	MapBroker configtypes.MapBroker `mapstructure:"map_broker" json:"map_broker" envconfig:"map_broker" toml:"map_broker" yaml:"map_broker"`
 
 	// Client contains real-time client connection related configuration.
 	Client configtypes.Client `mapstructure:"client" json:"client" envconfig:"client" toml:"client" yaml:"client"`
@@ -133,6 +137,8 @@ func DefineFlags(rootCmd *cobra.Command) {
 	rootCmd.Flags().StringP("broker.type", "", "memory", "broker to use: memory, redis or nats")
 	rootCmd.Flags().BoolP("presence_manager.enabled", "", false, "enable presence manager")
 	rootCmd.Flags().StringP("presence_manager.type", "", "memory", "presence manager to use: memory or redis")
+	rootCmd.Flags().BoolP("map_broker.enabled", "", false, "enable map broker")
+	rootCmd.Flags().StringP("map_broker.type", "", "memory", "map broker to use: memory, redis or postgres")
 	rootCmd.Flags().StringP("log.level", "", "info", "set the log level: trace, debug, info, warn, error, fatal or none")
 	rootCmd.Flags().StringP("log.file", "", "", "optional log file - if not specified logs go to STDOUT")
 	rootCmd.Flags().BoolP("debug.enabled", "", false, "enable debug endpoints")
@@ -171,7 +177,8 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 		bindPFlags := []string{
 			"pid_file", "http_server.port", "http_server.address", "http_server.internal_port",
 			"http_server.internal_address", "log.level", "log.file", "engine.type", "broker.enabled", "broker.type",
-			"presence_manager.enabled", "presence_manager.type", "debug.enabled", "admin.enabled", "admin.external",
+			"presence_manager.enabled", "presence_manager.type", "map_broker.enabled", "map_broker.type",
+			"debug.enabled", "admin.enabled", "admin.external",
 			"admin.insecure", "client.insecure", "http_api.insecure", "http_api.external", "prometheus.enabled",
 			"health.enabled", "grpc_api.enabled", "grpc_api.port", "uni_grpc.enabled", "uni_grpc.port",
 			"uni_websocket.enabled", "uni_sse.enabled", "uni_http_stream.enabled", "sse.enabled", "http_stream.enabled",

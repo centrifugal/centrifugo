@@ -1,11 +1,13 @@
 package app
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 	"github.com/centrifugal/centrifugo/v6/internal/confighelpers"
 	"github.com/centrifugal/centrifugo/v6/internal/natsbroker"
+	"github.com/centrifugal/centrifugo/v6/internal/pgmapbroker"
 	"github.com/centrifugal/centrifugo/v6/internal/redisnatsbroker"
 
 	"github.com/centrifugal/centrifuge"
@@ -209,4 +211,67 @@ func createRedisPresenceManager(n *centrifuge.Node, cfgContainer *config.Contain
 		return nil, mode, fmt.Errorf("error creating Redis presence manager: %w", err)
 	}
 	return presenceManager, mode, nil
+}
+
+func configureMapBroker(node *centrifuge.Node, cfgContainer *config.Container) error {
+	cfg := cfgContainer.Config()
+	if !cfg.MapBroker.Enabled {
+		return nil
+	}
+	var mapBroker centrifuge.MapBroker
+	var mapBrokerMode string
+	var err error
+	switch cfg.MapBroker.Type {
+	case "memory":
+		mapBroker, err = centrifuge.NewMemoryMapBroker(node, centrifuge.MemoryMapBrokerConfig{})
+	case "redis":
+		var redisShards []*centrifuge.RedisShard
+		redisShards, mapBrokerMode, err = confighelpers.CentrifugeRedisShards(node, cfg.MapBroker.Redis.Redis)
+		if err != nil {
+			return fmt.Errorf("error creating Redis shards for map broker: %w", err)
+		}
+		mapBroker, err = confighelpers.CentrifugeRedisMapBroker(
+			node, cfg.MapBroker.Redis.Prefix, redisShards, cfg.MapBroker.Redis.RedisMapBrokerCommon)
+	case "postgres":
+		pgCfg := cfg.MapBroker.Postgres
+		pgBrokerCfg := pgmapbroker.PostgresMapBrokerConfig{
+			DSN:                 pgCfg.DSN,
+			PoolSize:            pgCfg.PoolSize,
+			NumShards:           pgCfg.NumShards,
+			TTLCheckInterval:    pgCfg.TTLCheckInterval.ToDuration(),
+			CleanupInterval:     pgCfg.CleanupInterval.ToDuration(),
+			IdempotentResultTTL: pgCfg.IdempotentResultTTL.ToDuration(),
+			BinaryData:          pgCfg.BinaryData,
+			StreamRetention:     pgCfg.StreamRetention.ToDuration(),
+			UseNotify:           pgCfg.UseNotify,
+			SkipShardLock:       pgCfg.SkipShardLock,
+			Outbox: pgmapbroker.OutboxConfig{
+				PollInterval: pgCfg.Outbox.PollInterval.ToDuration(),
+				BatchSize:    pgCfg.Outbox.BatchSize,
+			},
+		}
+		mapBroker, err = pgmapbroker.NewPostgresMapBroker(node, pgBrokerCfg)
+		if err != nil {
+			return fmt.Errorf("error creating Postgres map broker: %w", err)
+		}
+		if !pgCfg.SkipSchemaInit {
+			pgBroker := mapBroker.(*pgmapbroker.PostgresMapBroker)
+			if schemaErr := pgBroker.EnsureSchema(context.Background()); schemaErr != nil {
+				return fmt.Errorf("error initializing Postgres map broker schema: %w", schemaErr)
+			}
+		}
+		mapBrokerMode = "postgres"
+	default:
+		return fmt.Errorf("unknown map broker type: %s", cfg.MapBroker.Type)
+	}
+	if err != nil {
+		return fmt.Errorf("error creating map broker: %v", err)
+	}
+	event := log.Info().Str("map_broker_type", cfg.MapBroker.Type)
+	if mapBrokerMode != "" {
+		event.Str("map_broker_mode", mapBrokerMode)
+	}
+	event.Msg("map broker enabled")
+	node.SetMapBroker(mapBroker)
+	return nil
 }

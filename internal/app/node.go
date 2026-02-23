@@ -33,6 +33,43 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 	cfg.NodeInfoMetricsAggregateInterval = appCfg.Node.InfoMetricsAggregateInterval.ToDuration()
 	cfg.HistoryMaxPublicationLimit = appCfg.Client.HistoryMaxPublicationLimit
 	cfg.RecoveryMaxPublicationLimit = appCfg.Client.RecoveryMaxPublicationLimit
+	cfg.MapMaxPaginationLimit = appCfg.Client.MapMaxPaginationLimit
+	cfg.MapMinStreamPaginationLimit = appCfg.Client.MapMinStreamPaginationLimit
+	cfg.MapMaxImmediateJoinStateSize = appCfg.Client.MapMaxImmediateJoinStateSize
+	cfg.MapRecoveryMaxPublicationLimit = appCfg.Client.MapRecoveryMaxPublicationLimit
+	cfg.MapStateToLiveEnabled = appCfg.Client.MapStateToLiveEnabled
+	cfg.MapSubscribeCatchUpTimeout = appCfg.Client.MapSubscribeCatchUpTimeout.ToDuration()
+	if appCfg.MapBroker.Enabled {
+		cfg.GetMapChannelOptions = func(channel string) centrifuge.MapChannelOptions {
+			_, _, chOpts, ok, err := cfgContainer.ChannelOptions(channel)
+			if err != nil || !ok {
+				return centrifuge.MapChannelOptions{}
+			}
+			var syncMode centrifuge.MapSyncMode
+			switch chOpts.MapSyncMode {
+			case "ephemeral":
+				syncMode = centrifuge.MapSyncEphemeral
+			case "converging":
+				syncMode = centrifuge.MapSyncConverging
+			}
+			var retentionMode centrifuge.MapRetentionMode
+			switch chOpts.MapRetentionMode {
+			case "expiring":
+				retentionMode = centrifuge.MapRetentionExpiring
+			case "permanent":
+				retentionMode = centrifuge.MapRetentionPermanent
+			}
+			return centrifuge.MapChannelOptions{
+				SyncMode:      syncMode,
+				RetentionMode: retentionMode,
+				KeyTTL:        chOpts.MapKeyTTL.ToDuration(),
+				Ordered:       chOpts.MapOrdered,
+				StreamSize:    chOpts.MapStreamSize,
+				StreamTTL:     chOpts.MapStreamTTL.ToDuration(),
+				MetaTTL:       chOpts.MapMetaTTL.ToDuration(),
+			}
+		}
+	}
 	cfg.HistoryMetaTTL = appCfg.Channel.HistoryMetaTTL.ToDuration()
 	cfg.ClientConnectIncludeServerTime = appCfg.Client.ConnectIncludeServerTime
 	cfg.LogLevel = logging.CentrifugeLogLevel(strings.ToLower(appCfg.Log.Level))

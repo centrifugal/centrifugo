@@ -52,6 +52,12 @@ const (
 	CentrifugoApi_SendPushNotification_FullMethodName = "/centrifugal.centrifugo.api.CentrifugoApi/SendPushNotification"
 	CentrifugoApi_UpdatePushStatus_FullMethodName     = "/centrifugal.centrifugo.api.CentrifugoApi/UpdatePushStatus"
 	CentrifugoApi_CancelPush_FullMethodName           = "/centrifugal.centrifugo.api.CentrifugoApi/CancelPush"
+	CentrifugoApi_MapPublish_FullMethodName           = "/centrifugal.centrifugo.api.CentrifugoApi/MapPublish"
+	CentrifugoApi_MapRemove_FullMethodName            = "/centrifugal.centrifugo.api.CentrifugoApi/MapRemove"
+	CentrifugoApi_MapReadState_FullMethodName         = "/centrifugal.centrifugo.api.CentrifugoApi/MapReadState"
+	CentrifugoApi_MapReadStream_FullMethodName        = "/centrifugal.centrifugo.api.CentrifugoApi/MapReadStream"
+	CentrifugoApi_MapStats_FullMethodName             = "/centrifugal.centrifugo.api.CentrifugoApi/MapStats"
+	CentrifugoApi_MapClear_FullMethodName             = "/centrifugal.centrifugo.api.CentrifugoApi/MapClear"
 )
 
 // CentrifugoApiClient is the client API for CentrifugoApi service.
@@ -91,6 +97,12 @@ type CentrifugoApiClient interface {
 	SendPushNotification(ctx context.Context, in *SendPushNotificationRequest, opts ...grpc.CallOption) (*SendPushNotificationResponse, error)
 	UpdatePushStatus(ctx context.Context, in *UpdatePushStatusRequest, opts ...grpc.CallOption) (*UpdatePushStatusResponse, error)
 	CancelPush(ctx context.Context, in *CancelPushRequest, opts ...grpc.CallOption) (*CancelPushResponse, error)
+	MapPublish(ctx context.Context, in *MapPublishRequest, opts ...grpc.CallOption) (*MapPublishResponse, error)
+	MapRemove(ctx context.Context, in *MapRemoveRequest, opts ...grpc.CallOption) (*MapRemoveResponse, error)
+	MapReadState(ctx context.Context, in *MapReadStateRequest, opts ...grpc.CallOption) (*MapReadStateResponse, error)
+	MapReadStream(ctx context.Context, in *MapReadStreamRequest, opts ...grpc.CallOption) (*MapReadStreamResponse, error)
+	MapStats(ctx context.Context, in *MapStatsRequest, opts ...grpc.CallOption) (*MapStatsResponse, error)
+	MapClear(ctx context.Context, in *MapClearRequest, opts ...grpc.CallOption) (*MapClearResponse, error)
 }
 
 type centrifugoApiClient struct {
@@ -431,6 +443,66 @@ func (c *centrifugoApiClient) CancelPush(ctx context.Context, in *CancelPushRequ
 	return out, nil
 }
 
+func (c *centrifugoApiClient) MapPublish(ctx context.Context, in *MapPublishRequest, opts ...grpc.CallOption) (*MapPublishResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MapPublishResponse)
+	err := c.cc.Invoke(ctx, CentrifugoApi_MapPublish_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoApiClient) MapRemove(ctx context.Context, in *MapRemoveRequest, opts ...grpc.CallOption) (*MapRemoveResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MapRemoveResponse)
+	err := c.cc.Invoke(ctx, CentrifugoApi_MapRemove_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoApiClient) MapReadState(ctx context.Context, in *MapReadStateRequest, opts ...grpc.CallOption) (*MapReadStateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MapReadStateResponse)
+	err := c.cc.Invoke(ctx, CentrifugoApi_MapReadState_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoApiClient) MapReadStream(ctx context.Context, in *MapReadStreamRequest, opts ...grpc.CallOption) (*MapReadStreamResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MapReadStreamResponse)
+	err := c.cc.Invoke(ctx, CentrifugoApi_MapReadStream_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoApiClient) MapStats(ctx context.Context, in *MapStatsRequest, opts ...grpc.CallOption) (*MapStatsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MapStatsResponse)
+	err := c.cc.Invoke(ctx, CentrifugoApi_MapStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoApiClient) MapClear(ctx context.Context, in *MapClearRequest, opts ...grpc.CallOption) (*MapClearResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MapClearResponse)
+	err := c.cc.Invoke(ctx, CentrifugoApi_MapClear_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CentrifugoApiServer is the server API for CentrifugoApi service.
 // All implementations must embed UnimplementedCentrifugoApiServer
 // for forward compatibility.
@@ -468,6 +540,12 @@ type CentrifugoApiServer interface {
 	SendPushNotification(context.Context, *SendPushNotificationRequest) (*SendPushNotificationResponse, error)
 	UpdatePushStatus(context.Context, *UpdatePushStatusRequest) (*UpdatePushStatusResponse, error)
 	CancelPush(context.Context, *CancelPushRequest) (*CancelPushResponse, error)
+	MapPublish(context.Context, *MapPublishRequest) (*MapPublishResponse, error)
+	MapRemove(context.Context, *MapRemoveRequest) (*MapRemoveResponse, error)
+	MapReadState(context.Context, *MapReadStateRequest) (*MapReadStateResponse, error)
+	MapReadStream(context.Context, *MapReadStreamRequest) (*MapReadStreamResponse, error)
+	MapStats(context.Context, *MapStatsRequest) (*MapStatsResponse, error)
+	MapClear(context.Context, *MapClearRequest) (*MapClearResponse, error)
 	mustEmbedUnimplementedCentrifugoApiServer()
 }
 
@@ -576,6 +654,24 @@ func (UnimplementedCentrifugoApiServer) UpdatePushStatus(context.Context, *Updat
 }
 func (UnimplementedCentrifugoApiServer) CancelPush(context.Context, *CancelPushRequest) (*CancelPushResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CancelPush not implemented")
+}
+func (UnimplementedCentrifugoApiServer) MapPublish(context.Context, *MapPublishRequest) (*MapPublishResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MapPublish not implemented")
+}
+func (UnimplementedCentrifugoApiServer) MapRemove(context.Context, *MapRemoveRequest) (*MapRemoveResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MapRemove not implemented")
+}
+func (UnimplementedCentrifugoApiServer) MapReadState(context.Context, *MapReadStateRequest) (*MapReadStateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MapReadState not implemented")
+}
+func (UnimplementedCentrifugoApiServer) MapReadStream(context.Context, *MapReadStreamRequest) (*MapReadStreamResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MapReadStream not implemented")
+}
+func (UnimplementedCentrifugoApiServer) MapStats(context.Context, *MapStatsRequest) (*MapStatsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MapStats not implemented")
+}
+func (UnimplementedCentrifugoApiServer) MapClear(context.Context, *MapClearRequest) (*MapClearResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MapClear not implemented")
 }
 func (UnimplementedCentrifugoApiServer) mustEmbedUnimplementedCentrifugoApiServer() {}
 func (UnimplementedCentrifugoApiServer) testEmbeddedByValue()                       {}
@@ -1192,6 +1288,114 @@ func _CentrifugoApi_CancelPush_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CentrifugoApi_MapPublish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MapPublishRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).MapPublish(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CentrifugoApi_MapPublish_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).MapPublish(ctx, req.(*MapPublishRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CentrifugoApi_MapRemove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MapRemoveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).MapRemove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CentrifugoApi_MapRemove_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).MapRemove(ctx, req.(*MapRemoveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CentrifugoApi_MapReadState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MapReadStateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).MapReadState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CentrifugoApi_MapReadState_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).MapReadState(ctx, req.(*MapReadStateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CentrifugoApi_MapReadStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MapReadStreamRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).MapReadStream(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CentrifugoApi_MapReadStream_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).MapReadStream(ctx, req.(*MapReadStreamRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CentrifugoApi_MapStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MapStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).MapStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CentrifugoApi_MapStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).MapStats(ctx, req.(*MapStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CentrifugoApi_MapClear_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MapClearRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).MapClear(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CentrifugoApi_MapClear_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).MapClear(ctx, req.(*MapClearRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CentrifugoApi_ServiceDesc is the grpc.ServiceDesc for CentrifugoApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1330,6 +1534,30 @@ var CentrifugoApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CancelPush",
 			Handler:    _CentrifugoApi_CancelPush_Handler,
+		},
+		{
+			MethodName: "MapPublish",
+			Handler:    _CentrifugoApi_MapPublish_Handler,
+		},
+		{
+			MethodName: "MapRemove",
+			Handler:    _CentrifugoApi_MapRemove_Handler,
+		},
+		{
+			MethodName: "MapReadState",
+			Handler:    _CentrifugoApi_MapReadState_Handler,
+		},
+		{
+			MethodName: "MapReadStream",
+			Handler:    _CentrifugoApi_MapReadStream_Handler,
+		},
+		{
+			MethodName: "MapStats",
+			Handler:    _CentrifugoApi_MapStats_Handler,
+		},
+		{
+			MethodName: "MapClear",
+			Handler:    _CentrifugoApi_MapClear_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
