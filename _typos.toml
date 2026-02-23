@@ -29,6 +29,7 @@ flate = "flate"
 [files]
 # Ignore certain files/directories
 extend-exclude = [
+    "misc/release/notes.md",
     "internal/*/statik.go",
     "*.sum",
     "*.mod",
