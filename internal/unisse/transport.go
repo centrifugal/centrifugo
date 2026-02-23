@@ -12,6 +12,7 @@ import (
 type eventsourceTransport struct {
 	mu             sync.Mutex
 	req            *http.Request
+	ack            chan struct{}
 	messages       chan [][]byte
 	disconnectCh   chan *centrifuge.Disconnect
 	closedCh       chan struct{}
@@ -20,7 +21,7 @@ type eventsourceTransport struct {
 	protoMajor     int
 }
 
-func newEventsourceTransport(req *http.Request, pingPongConfig centrifuge.PingPongConfig) *eventsourceTransport {
+func newEventsourceTransport(req *http.Request, pingPongConfig centrifuge.PingPongConfig, ack chan struct{}) *eventsourceTransport {
 	return &eventsourceTransport{
 		messages:       make(chan [][]byte),
 		disconnectCh:   make(chan *centrifuge.Disconnect),
@@ -28,6 +29,7 @@ func newEventsourceTransport(req *http.Request, pingPongConfig centrifuge.PingPo
 		req:            req,
 		pingPongConfig: pingPongConfig,
 		protoMajor:     req.ProtoMajor,
+		ack:            ack,
 	}
 }
 
@@ -83,6 +85,10 @@ func (t *eventsourceTransport) WriteMany(messages ...[]byte) error {
 	}
 	select {
 	case t.messages <- messages:
+	case <-t.closedCh:
+	}
+	select {
+	case <-t.ack:
 	case <-t.closedCh:
 		return nil
 	}

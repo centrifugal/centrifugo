@@ -80,7 +80,8 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	transport := newEventsourceTransport(r, h.pingPong)
+	ack := make(chan struct{})
+	transport := newEventsourceTransport(r, h.pingPong, ack)
 	c, closeFn, err := centrifuge.NewClient(r.Context(), h.node, transport)
 	if err != nil {
 		log.Error().Err(err).Str("transport", transportName).Msg("error create client")
@@ -134,6 +135,13 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = rc.Flush()
 
+	sendAck := func() {
+		select {
+		case ack <- struct{}{}:
+		case <-r.Context().Done():
+		}
+	}
+
 	for {
 		select {
 		case <-r.Context().Done():
@@ -142,17 +150,20 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		case messages, messagesOK := <-transport.messages:
 			if !messagesOK {
+				sendAck()
 				return
 			}
 			_ = rc.SetWriteDeadline(time.Now().Add(streamWriteTimeout))
 			for _, msg := range messages {
 				_, err = w.Write(convert.StringToBytes("data: " + convert.BytesToString(msg) + "\n\n"))
 				if err != nil {
+					sendAck()
 					return
 				}
 			}
 			_ = rc.Flush()
 			_ = rc.SetWriteDeadline(time.Time{})
+			sendAck()
 		}
 	}
 }
