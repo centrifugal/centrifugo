@@ -293,6 +293,28 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 		}
 	}
 
+	if c.MapPublishProxyName != "" && !slices.Contains(proxyNames, c.MapPublishProxyName) {
+		return fmt.Errorf("map publish proxy with name \"%s\" not found", c.MapPublishProxyName)
+	}
+	if c.MapPublishProxyEnabled && c.MapPublishProxyName == DefaultProxyName {
+		if err := validateProxy("default", cfg.Channel.Proxy.MapPublish); err != nil {
+			return fmt.Errorf("in channel.proxy.map_publish: %v", err)
+		}
+	}
+
+	if c.MapRemoveProxyName != "" && !slices.Contains(proxyNames, c.MapRemoveProxyName) {
+		return fmt.Errorf("map remove proxy with name \"%s\" not found", c.MapRemoveProxyName)
+	}
+	if c.MapRemoveProxyEnabled && c.MapRemoveProxyName == DefaultProxyName {
+		if err := validateProxy("default", cfg.Channel.Proxy.MapRemove); err != nil {
+			return fmt.Errorf("in channel.proxy.map_remove: %v", err)
+		}
+	}
+
+	if c.MapClientKey != "" && !slices.Contains([]string{"client_id", "user_id"}, c.MapClientKey) {
+		return fmt.Errorf("unknown map_client_key: %q (valid: \"client_id\", \"user_id\")", c.MapClientKey)
+	}
+
 	for _, st := range c.SubscriptionTypes {
 		if !slices.Contains([]string{"stream", "map", "map_clients", "map_users"}, st) {
 			return fmt.Errorf("unknown subscription type: %q", st)

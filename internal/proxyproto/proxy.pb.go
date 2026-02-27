@@ -1449,6 +1449,446 @@ func (x *PublishResponse) GetDisconnect() *Disconnect {
 	return nil
 }
 
+type MapPublishRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Client        string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	Transport     string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
+	Protocol      string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	Encoding      string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
+	User          string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user,omitempty"`
+	Channel       string                 `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
+	Key           string                 `protobuf:"bytes,12,opt,name=key,proto3" json:"key,omitempty"`
+	Data          Raw                    `protobuf:"bytes,13,opt,name=data,proto3" json:"data,omitempty"`
+	B64Data       string                 `protobuf:"bytes,14,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	Meta          Raw                    `protobuf:"bytes,15,opt,name=meta,proto3" json:"meta,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapPublishRequest) Reset() {
+	*x = MapPublishRequest{}
+	mi := &file_proxy_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapPublishRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapPublishRequest) ProtoMessage() {}
+
+func (x *MapPublishRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxy_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapPublishRequest.ProtoReflect.Descriptor instead.
+func (*MapPublishRequest) Descriptor() ([]byte, []int) {
+	return file_proxy_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *MapPublishRequest) GetClient() string {
+	if x != nil {
+		return x.Client
+	}
+	return ""
+}
+
+func (x *MapPublishRequest) GetTransport() string {
+	if x != nil {
+		return x.Transport
+	}
+	return ""
+}
+
+func (x *MapPublishRequest) GetProtocol() string {
+	if x != nil {
+		return x.Protocol
+	}
+	return ""
+}
+
+func (x *MapPublishRequest) GetEncoding() string {
+	if x != nil {
+		return x.Encoding
+	}
+	return ""
+}
+
+func (x *MapPublishRequest) GetUser() string {
+	if x != nil {
+		return x.User
+	}
+	return ""
+}
+
+func (x *MapPublishRequest) GetChannel() string {
+	if x != nil {
+		return x.Channel
+	}
+	return ""
+}
+
+func (x *MapPublishRequest) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *MapPublishRequest) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *MapPublishRequest) GetB64Data() string {
+	if x != nil {
+		return x.B64Data
+	}
+	return ""
+}
+
+func (x *MapPublishRequest) GetMeta() []byte {
+	if x != nil {
+		return x.Meta
+	}
+	return nil
+}
+
+type MapPublishResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Data          Raw                    `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	B64Data       string                 `protobuf:"bytes,3,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapPublishResult) Reset() {
+	*x = MapPublishResult{}
+	mi := &file_proxy_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapPublishResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapPublishResult) ProtoMessage() {}
+
+func (x *MapPublishResult) ProtoReflect() protoreflect.Message {
+	mi := &file_proxy_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapPublishResult.ProtoReflect.Descriptor instead.
+func (*MapPublishResult) Descriptor() ([]byte, []int) {
+	return file_proxy_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *MapPublishResult) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *MapPublishResult) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *MapPublishResult) GetB64Data() string {
+	if x != nil {
+		return x.B64Data
+	}
+	return ""
+}
+
+type MapPublishResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Result        *MapPublishResult      `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	Error         *Error                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	Disconnect    *Disconnect            `protobuf:"bytes,3,opt,name=disconnect,proto3" json:"disconnect,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapPublishResponse) Reset() {
+	*x = MapPublishResponse{}
+	mi := &file_proxy_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapPublishResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapPublishResponse) ProtoMessage() {}
+
+func (x *MapPublishResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxy_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapPublishResponse.ProtoReflect.Descriptor instead.
+func (*MapPublishResponse) Descriptor() ([]byte, []int) {
+	return file_proxy_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *MapPublishResponse) GetResult() *MapPublishResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+func (x *MapPublishResponse) GetError() *Error {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
+func (x *MapPublishResponse) GetDisconnect() *Disconnect {
+	if x != nil {
+		return x.Disconnect
+	}
+	return nil
+}
+
+type MapRemoveRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Client        string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	Transport     string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
+	Protocol      string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	Encoding      string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
+	User          string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user,omitempty"`
+	Channel       string                 `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
+	Key           string                 `protobuf:"bytes,12,opt,name=key,proto3" json:"key,omitempty"`
+	Meta          Raw                    `protobuf:"bytes,13,opt,name=meta,proto3" json:"meta,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapRemoveRequest) Reset() {
+	*x = MapRemoveRequest{}
+	mi := &file_proxy_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapRemoveRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapRemoveRequest) ProtoMessage() {}
+
+func (x *MapRemoveRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxy_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapRemoveRequest.ProtoReflect.Descriptor instead.
+func (*MapRemoveRequest) Descriptor() ([]byte, []int) {
+	return file_proxy_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *MapRemoveRequest) GetClient() string {
+	if x != nil {
+		return x.Client
+	}
+	return ""
+}
+
+func (x *MapRemoveRequest) GetTransport() string {
+	if x != nil {
+		return x.Transport
+	}
+	return ""
+}
+
+func (x *MapRemoveRequest) GetProtocol() string {
+	if x != nil {
+		return x.Protocol
+	}
+	return ""
+}
+
+func (x *MapRemoveRequest) GetEncoding() string {
+	if x != nil {
+		return x.Encoding
+	}
+	return ""
+}
+
+func (x *MapRemoveRequest) GetUser() string {
+	if x != nil {
+		return x.User
+	}
+	return ""
+}
+
+func (x *MapRemoveRequest) GetChannel() string {
+	if x != nil {
+		return x.Channel
+	}
+	return ""
+}
+
+func (x *MapRemoveRequest) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *MapRemoveRequest) GetMeta() []byte {
+	if x != nil {
+		return x.Meta
+	}
+	return nil
+}
+
+type MapRemoveResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapRemoveResult) Reset() {
+	*x = MapRemoveResult{}
+	mi := &file_proxy_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapRemoveResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapRemoveResult) ProtoMessage() {}
+
+func (x *MapRemoveResult) ProtoReflect() protoreflect.Message {
+	mi := &file_proxy_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapRemoveResult.ProtoReflect.Descriptor instead.
+func (*MapRemoveResult) Descriptor() ([]byte, []int) {
+	return file_proxy_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *MapRemoveResult) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+type MapRemoveResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Result        *MapRemoveResult       `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	Error         *Error                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	Disconnect    *Disconnect            `protobuf:"bytes,3,opt,name=disconnect,proto3" json:"disconnect,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapRemoveResponse) Reset() {
+	*x = MapRemoveResponse{}
+	mi := &file_proxy_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapRemoveResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapRemoveResponse) ProtoMessage() {}
+
+func (x *MapRemoveResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxy_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapRemoveResponse.ProtoReflect.Descriptor instead.
+func (*MapRemoveResponse) Descriptor() ([]byte, []int) {
+	return file_proxy_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *MapRemoveResponse) GetResult() *MapRemoveResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+func (x *MapRemoveResponse) GetError() *Error {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
+func (x *MapRemoveResponse) GetDisconnect() *Disconnect {
+	if x != nil {
+		return x.Disconnect
+	}
+	return nil
+}
+
 type RPCRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Client        string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
@@ -1466,7 +1906,7 @@ type RPCRequest struct {
 
 func (x *RPCRequest) Reset() {
 	*x = RPCRequest{}
-	mi := &file_proxy_proto_msgTypes[19]
+	mi := &file_proxy_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1478,7 +1918,7 @@ func (x *RPCRequest) String() string {
 func (*RPCRequest) ProtoMessage() {}
 
 func (x *RPCRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proxy_proto_msgTypes[19]
+	mi := &file_proxy_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1491,7 +1931,7 @@ func (x *RPCRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RPCRequest.ProtoReflect.Descriptor instead.
 func (*RPCRequest) Descriptor() ([]byte, []int) {
-	return file_proxy_proto_rawDescGZIP(), []int{19}
+	return file_proxy_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *RPCRequest) GetClient() string {
@@ -1567,7 +2007,7 @@ type RPCResult struct {
 
 func (x *RPCResult) Reset() {
 	*x = RPCResult{}
-	mi := &file_proxy_proto_msgTypes[20]
+	mi := &file_proxy_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1579,7 +2019,7 @@ func (x *RPCResult) String() string {
 func (*RPCResult) ProtoMessage() {}
 
 func (x *RPCResult) ProtoReflect() protoreflect.Message {
-	mi := &file_proxy_proto_msgTypes[20]
+	mi := &file_proxy_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1592,7 +2032,7 @@ func (x *RPCResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RPCResult.ProtoReflect.Descriptor instead.
 func (*RPCResult) Descriptor() ([]byte, []int) {
-	return file_proxy_proto_rawDescGZIP(), []int{20}
+	return file_proxy_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *RPCResult) GetData() []byte {
@@ -1620,7 +2060,7 @@ type RPCResponse struct {
 
 func (x *RPCResponse) Reset() {
 	*x = RPCResponse{}
-	mi := &file_proxy_proto_msgTypes[21]
+	mi := &file_proxy_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1632,7 +2072,7 @@ func (x *RPCResponse) String() string {
 func (*RPCResponse) ProtoMessage() {}
 
 func (x *RPCResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proxy_proto_msgTypes[21]
+	mi := &file_proxy_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1645,7 +2085,7 @@ func (x *RPCResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RPCResponse.ProtoReflect.Descriptor instead.
 func (*RPCResponse) Descriptor() ([]byte, []int) {
-	return file_proxy_proto_rawDescGZIP(), []int{21}
+	return file_proxy_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *RPCResponse) GetResult() *RPCResult {
@@ -1684,7 +2124,7 @@ type SubRefreshRequest struct {
 
 func (x *SubRefreshRequest) Reset() {
 	*x = SubRefreshRequest{}
-	mi := &file_proxy_proto_msgTypes[22]
+	mi := &file_proxy_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1696,7 +2136,7 @@ func (x *SubRefreshRequest) String() string {
 func (*SubRefreshRequest) ProtoMessage() {}
 
 func (x *SubRefreshRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proxy_proto_msgTypes[22]
+	mi := &file_proxy_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1709,7 +2149,7 @@ func (x *SubRefreshRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubRefreshRequest.ProtoReflect.Descriptor instead.
 func (*SubRefreshRequest) Descriptor() ([]byte, []int) {
-	return file_proxy_proto_rawDescGZIP(), []int{22}
+	return file_proxy_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *SubRefreshRequest) GetClient() string {
@@ -1773,7 +2213,7 @@ type SubRefreshResult struct {
 
 func (x *SubRefreshResult) Reset() {
 	*x = SubRefreshResult{}
-	mi := &file_proxy_proto_msgTypes[23]
+	mi := &file_proxy_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1785,7 +2225,7 @@ func (x *SubRefreshResult) String() string {
 func (*SubRefreshResult) ProtoMessage() {}
 
 func (x *SubRefreshResult) ProtoReflect() protoreflect.Message {
-	mi := &file_proxy_proto_msgTypes[23]
+	mi := &file_proxy_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1798,7 +2238,7 @@ func (x *SubRefreshResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubRefreshResult.ProtoReflect.Descriptor instead.
 func (*SubRefreshResult) Descriptor() ([]byte, []int) {
-	return file_proxy_proto_rawDescGZIP(), []int{23}
+	return file_proxy_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *SubRefreshResult) GetExpired() bool {
@@ -1840,7 +2280,7 @@ type SubRefreshResponse struct {
 
 func (x *SubRefreshResponse) Reset() {
 	*x = SubRefreshResponse{}
-	mi := &file_proxy_proto_msgTypes[24]
+	mi := &file_proxy_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1852,7 +2292,7 @@ func (x *SubRefreshResponse) String() string {
 func (*SubRefreshResponse) ProtoMessage() {}
 
 func (x *SubRefreshResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proxy_proto_msgTypes[24]
+	mi := &file_proxy_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1865,7 +2305,7 @@ func (x *SubRefreshResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubRefreshResponse.ProtoReflect.Descriptor instead.
 func (*SubRefreshResponse) Descriptor() ([]byte, []int) {
-	return file_proxy_proto_rawDescGZIP(), []int{24}
+	return file_proxy_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *SubRefreshResponse) GetResult() *SubRefreshResult {
@@ -1902,7 +2342,7 @@ type Publication struct {
 
 func (x *Publication) Reset() {
 	*x = Publication{}
-	mi := &file_proxy_proto_msgTypes[25]
+	mi := &file_proxy_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1914,7 +2354,7 @@ func (x *Publication) String() string {
 func (*Publication) ProtoMessage() {}
 
 func (x *Publication) ProtoReflect() protoreflect.Message {
-	mi := &file_proxy_proto_msgTypes[25]
+	mi := &file_proxy_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1927,7 +2367,7 @@ func (x *Publication) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Publication.ProtoReflect.Descriptor instead.
 func (*Publication) Descriptor() ([]byte, []int) {
-	return file_proxy_proto_rawDescGZIP(), []int{25}
+	return file_proxy_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *Publication) GetData() []byte {
@@ -1958,7 +2398,7 @@ type StreamSubscribeRequest struct {
 
 func (x *StreamSubscribeRequest) Reset() {
 	*x = StreamSubscribeRequest{}
-	mi := &file_proxy_proto_msgTypes[26]
+	mi := &file_proxy_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1970,7 +2410,7 @@ func (x *StreamSubscribeRequest) String() string {
 func (*StreamSubscribeRequest) ProtoMessage() {}
 
 func (x *StreamSubscribeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proxy_proto_msgTypes[26]
+	mi := &file_proxy_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1983,7 +2423,7 @@ func (x *StreamSubscribeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamSubscribeRequest.ProtoReflect.Descriptor instead.
 func (*StreamSubscribeRequest) Descriptor() ([]byte, []int) {
-	return file_proxy_proto_rawDescGZIP(), []int{26}
+	return file_proxy_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *StreamSubscribeRequest) GetSubscribeRequest() *SubscribeRequest {
@@ -2012,7 +2452,7 @@ type StreamSubscribeResponse struct {
 
 func (x *StreamSubscribeResponse) Reset() {
 	*x = StreamSubscribeResponse{}
-	mi := &file_proxy_proto_msgTypes[27]
+	mi := &file_proxy_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2024,7 +2464,7 @@ func (x *StreamSubscribeResponse) String() string {
 func (*StreamSubscribeResponse) ProtoMessage() {}
 
 func (x *StreamSubscribeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proxy_proto_msgTypes[27]
+	mi := &file_proxy_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2037,7 +2477,7 @@ func (x *StreamSubscribeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamSubscribeResponse.ProtoReflect.Descriptor instead.
 func (*StreamSubscribeResponse) Descriptor() ([]byte, []int) {
-	return file_proxy_proto_rawDescGZIP(), []int{27}
+	return file_proxy_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *StreamSubscribeResponse) GetSubscribeResponse() *SubscribeResponse {
@@ -2063,7 +2503,7 @@ type NotifyCacheEmptyRequest struct {
 
 func (x *NotifyCacheEmptyRequest) Reset() {
 	*x = NotifyCacheEmptyRequest{}
-	mi := &file_proxy_proto_msgTypes[28]
+	mi := &file_proxy_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2075,7 +2515,7 @@ func (x *NotifyCacheEmptyRequest) String() string {
 func (*NotifyCacheEmptyRequest) ProtoMessage() {}
 
 func (x *NotifyCacheEmptyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proxy_proto_msgTypes[28]
+	mi := &file_proxy_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2088,7 +2528,7 @@ func (x *NotifyCacheEmptyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NotifyCacheEmptyRequest.ProtoReflect.Descriptor instead.
 func (*NotifyCacheEmptyRequest) Descriptor() ([]byte, []int) {
-	return file_proxy_proto_rawDescGZIP(), []int{28}
+	return file_proxy_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *NotifyCacheEmptyRequest) GetChannel() string {
@@ -2107,7 +2547,7 @@ type NotifyCacheEmptyResponse struct {
 
 func (x *NotifyCacheEmptyResponse) Reset() {
 	*x = NotifyCacheEmptyResponse{}
-	mi := &file_proxy_proto_msgTypes[29]
+	mi := &file_proxy_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2119,7 +2559,7 @@ func (x *NotifyCacheEmptyResponse) String() string {
 func (*NotifyCacheEmptyResponse) ProtoMessage() {}
 
 func (x *NotifyCacheEmptyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proxy_proto_msgTypes[29]
+	mi := &file_proxy_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2132,7 +2572,7 @@ func (x *NotifyCacheEmptyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NotifyCacheEmptyResponse.ProtoReflect.Descriptor instead.
 func (*NotifyCacheEmptyResponse) Descriptor() ([]byte, []int) {
-	return file_proxy_proto_rawDescGZIP(), []int{29}
+	return file_proxy_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *NotifyCacheEmptyResponse) GetResult() *NotifyCacheEmptyResult {
@@ -2151,7 +2591,7 @@ type NotifyCacheEmptyResult struct {
 
 func (x *NotifyCacheEmptyResult) Reset() {
 	*x = NotifyCacheEmptyResult{}
-	mi := &file_proxy_proto_msgTypes[30]
+	mi := &file_proxy_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2163,7 +2603,7 @@ func (x *NotifyCacheEmptyResult) String() string {
 func (*NotifyCacheEmptyResult) ProtoMessage() {}
 
 func (x *NotifyCacheEmptyResult) ProtoReflect() protoreflect.Message {
-	mi := &file_proxy_proto_msgTypes[30]
+	mi := &file_proxy_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2176,7 +2616,7 @@ func (x *NotifyCacheEmptyResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NotifyCacheEmptyResult.ProtoReflect.Descriptor instead.
 func (*NotifyCacheEmptyResult) Descriptor() ([]byte, []int) {
-	return file_proxy_proto_rawDescGZIP(), []int{30}
+	return file_proxy_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *NotifyCacheEmptyResult) GetPopulated() bool {
@@ -2195,7 +2635,7 @@ type NotifyChannelStateRequest struct {
 
 func (x *NotifyChannelStateRequest) Reset() {
 	*x = NotifyChannelStateRequest{}
-	mi := &file_proxy_proto_msgTypes[31]
+	mi := &file_proxy_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2207,7 +2647,7 @@ func (x *NotifyChannelStateRequest) String() string {
 func (*NotifyChannelStateRequest) ProtoMessage() {}
 
 func (x *NotifyChannelStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proxy_proto_msgTypes[31]
+	mi := &file_proxy_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2220,7 +2660,7 @@ func (x *NotifyChannelStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NotifyChannelStateRequest.ProtoReflect.Descriptor instead.
 func (*NotifyChannelStateRequest) Descriptor() ([]byte, []int) {
-	return file_proxy_proto_rawDescGZIP(), []int{31}
+	return file_proxy_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *NotifyChannelStateRequest) GetEvents() []*ChannelEvent {
@@ -2241,7 +2681,7 @@ type ChannelEvent struct {
 
 func (x *ChannelEvent) Reset() {
 	*x = ChannelEvent{}
-	mi := &file_proxy_proto_msgTypes[32]
+	mi := &file_proxy_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2253,7 +2693,7 @@ func (x *ChannelEvent) String() string {
 func (*ChannelEvent) ProtoMessage() {}
 
 func (x *ChannelEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_proxy_proto_msgTypes[32]
+	mi := &file_proxy_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2266,7 +2706,7 @@ func (x *ChannelEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChannelEvent.ProtoReflect.Descriptor instead.
 func (*ChannelEvent) Descriptor() ([]byte, []int) {
-	return file_proxy_proto_rawDescGZIP(), []int{32}
+	return file_proxy_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *ChannelEvent) GetTimeMs() int64 {
@@ -2300,7 +2740,7 @@ type NotifyChannelStateResponse struct {
 
 func (x *NotifyChannelStateResponse) Reset() {
 	*x = NotifyChannelStateResponse{}
-	mi := &file_proxy_proto_msgTypes[33]
+	mi := &file_proxy_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2312,7 +2752,7 @@ func (x *NotifyChannelStateResponse) String() string {
 func (*NotifyChannelStateResponse) ProtoMessage() {}
 
 func (x *NotifyChannelStateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proxy_proto_msgTypes[33]
+	mi := &file_proxy_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2325,7 +2765,7 @@ func (x *NotifyChannelStateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NotifyChannelStateResponse.ProtoReflect.Descriptor instead.
 func (*NotifyChannelStateResponse) Descriptor() ([]byte, []int) {
-	return file_proxy_proto_rawDescGZIP(), []int{33}
+	return file_proxy_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *NotifyChannelStateResponse) GetResult() *NotifyChannelStateResult {
@@ -2350,7 +2790,7 @@ type NotifyChannelStateResult struct {
 
 func (x *NotifyChannelStateResult) Reset() {
 	*x = NotifyChannelStateResult{}
-	mi := &file_proxy_proto_msgTypes[34]
+	mi := &file_proxy_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2362,7 +2802,7 @@ func (x *NotifyChannelStateResult) String() string {
 func (*NotifyChannelStateResult) ProtoMessage() {}
 
 func (x *NotifyChannelStateResult) ProtoReflect() protoreflect.Message {
-	mi := &file_proxy_proto_msgTypes[34]
+	mi := &file_proxy_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2375,7 +2815,7 @@ func (x *NotifyChannelStateResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NotifyChannelStateResult.ProtoReflect.Descriptor instead.
 func (*NotifyChannelStateResult) Descriptor() ([]byte, []int) {
-	return file_proxy_proto_rawDescGZIP(), []int{34}
+	return file_proxy_proto_rawDescGZIP(), []int{40}
 }
 
 var File_proxy_proto protoreflect.FileDescriptor
@@ -2513,6 +2953,46 @@ const file_proxy_proto_rawDesc = "" +
 	"\x05error\x18\x02 \x01(\v2#.centrifugal.centrifugo.proxy.ErrorR\x05error\x12H\n" +
 	"\n" +
 	"disconnect\x18\x03 \x01(\v2(.centrifugal.centrifugo.proxy.DisconnectR\n" +
+	"disconnect\"\x83\x02\n" +
+	"\x11MapPublishRequest\x12\x16\n" +
+	"\x06client\x18\x01 \x01(\tR\x06client\x12\x1c\n" +
+	"\ttransport\x18\x02 \x01(\tR\ttransport\x12\x1a\n" +
+	"\bprotocol\x18\x03 \x01(\tR\bprotocol\x12\x1a\n" +
+	"\bencoding\x18\x04 \x01(\tR\bencoding\x12\x12\n" +
+	"\x04user\x18\n" +
+	" \x01(\tR\x04user\x12\x18\n" +
+	"\achannel\x18\v \x01(\tR\achannel\x12\x10\n" +
+	"\x03key\x18\f \x01(\tR\x03key\x12\x12\n" +
+	"\x04data\x18\r \x01(\fR\x04data\x12\x18\n" +
+	"\ab64data\x18\x0e \x01(\tR\ab64data\x12\x12\n" +
+	"\x04meta\x18\x0f \x01(\fR\x04meta\"R\n" +
+	"\x10MapPublishResult\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x12\n" +
+	"\x04data\x18\x02 \x01(\fR\x04data\x12\x18\n" +
+	"\ab64data\x18\x03 \x01(\tR\ab64data\"\xe1\x01\n" +
+	"\x12MapPublishResponse\x12F\n" +
+	"\x06result\x18\x01 \x01(\v2..centrifugal.centrifugo.proxy.MapPublishResultR\x06result\x129\n" +
+	"\x05error\x18\x02 \x01(\v2#.centrifugal.centrifugo.proxy.ErrorR\x05error\x12H\n" +
+	"\n" +
+	"disconnect\x18\x03 \x01(\v2(.centrifugal.centrifugo.proxy.DisconnectR\n" +
+	"disconnect\"\xd4\x01\n" +
+	"\x10MapRemoveRequest\x12\x16\n" +
+	"\x06client\x18\x01 \x01(\tR\x06client\x12\x1c\n" +
+	"\ttransport\x18\x02 \x01(\tR\ttransport\x12\x1a\n" +
+	"\bprotocol\x18\x03 \x01(\tR\bprotocol\x12\x1a\n" +
+	"\bencoding\x18\x04 \x01(\tR\bencoding\x12\x12\n" +
+	"\x04user\x18\n" +
+	" \x01(\tR\x04user\x12\x18\n" +
+	"\achannel\x18\v \x01(\tR\achannel\x12\x10\n" +
+	"\x03key\x18\f \x01(\tR\x03key\x12\x12\n" +
+	"\x04meta\x18\r \x01(\fR\x04meta\"#\n" +
+	"\x0fMapRemoveResult\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\"\xdf\x01\n" +
+	"\x11MapRemoveResponse\x12E\n" +
+	"\x06result\x18\x01 \x01(\v2-.centrifugal.centrifugo.proxy.MapRemoveResultR\x06result\x129\n" +
+	"\x05error\x18\x02 \x01(\v2#.centrifugal.centrifugo.proxy.ErrorR\x05error\x12H\n" +
+	"\n" +
+	"disconnect\x18\x03 \x01(\v2(.centrifugal.centrifugo.proxy.DisconnectR\n" +
 	"disconnect\"\xe8\x01\n" +
 	"\n" +
 	"RPCRequest\x12\x16\n" +
@@ -2582,7 +3062,7 @@ const file_proxy_proto_rawDesc = "" +
 	"\x1aNotifyChannelStateResponse\x12N\n" +
 	"\x06result\x18\x01 \x01(\v26.centrifugal.centrifugo.proxy.NotifyChannelStateResultR\x06result\x129\n" +
 	"\x05error\x18\x02 \x01(\v2#.centrifugal.centrifugo.proxy.ErrorR\x05error\"\x1a\n" +
-	"\x18NotifyChannelStateResult2\xa3\t\n" +
+	"\x18NotifyChannelStateResult2\x82\v\n" +
 	"\x0fCentrifugoProxy\x12f\n" +
 	"\aConnect\x12,.centrifugal.centrifugo.proxy.ConnectRequest\x1a-.centrifugal.centrifugo.proxy.ConnectResponse\x12f\n" +
 	"\aRefresh\x12,.centrifugal.centrifugo.proxy.RefreshRequest\x1a-.centrifugal.centrifugo.proxy.RefreshResponse\x12l\n" +
@@ -2594,7 +3074,10 @@ const file_proxy_proto_rawDesc = "" +
 	"\x17SubscribeUnidirectional\x12..centrifugal.centrifugo.proxy.SubscribeRequest\x1a5.centrifugal.centrifugo.proxy.StreamSubscribeResponse0\x01\x12\x89\x01\n" +
 	"\x16SubscribeBidirectional\x124.centrifugal.centrifugo.proxy.StreamSubscribeRequest\x1a5.centrifugal.centrifugo.proxy.StreamSubscribeResponse(\x010\x01\x12\x81\x01\n" +
 	"\x10NotifyCacheEmpty\x125.centrifugal.centrifugo.proxy.NotifyCacheEmptyRequest\x1a6.centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse\x12\x87\x01\n" +
-	"\x12NotifyChannelState\x127.centrifugal.centrifugo.proxy.NotifyChannelStateRequest\x1a8.centrifugal.centrifugo.proxy.NotifyChannelStateResponseB\x0fZ\r./;proxyprotob\x06proto3"
+	"\x12NotifyChannelState\x127.centrifugal.centrifugo.proxy.NotifyChannelStateRequest\x1a8.centrifugal.centrifugo.proxy.NotifyChannelStateResponse\x12o\n" +
+	"\n" +
+	"MapPublish\x12/.centrifugal.centrifugo.proxy.MapPublishRequest\x1a0.centrifugal.centrifugo.proxy.MapPublishResponse\x12l\n" +
+	"\tMapRemove\x12..centrifugal.centrifugo.proxy.MapRemoveRequest\x1a/.centrifugal.centrifugo.proxy.MapRemoveResponseB\x0fZ\r./;proxyprotob\x06proto3"
 
 var (
 	file_proxy_proto_rawDescOnce sync.Once
@@ -2608,7 +3091,7 @@ func file_proxy_proto_rawDescGZIP() []byte {
 	return file_proxy_proto_rawDescData
 }
 
-var file_proxy_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
+var file_proxy_proto_msgTypes = make([]protoimpl.MessageInfo, 43)
 var file_proxy_proto_goTypes = []any{
 	(*Disconnect)(nil),                 // 0: centrifugal.centrifugo.proxy.Disconnect
 	(*Error)(nil),                      // 1: centrifugal.centrifugo.proxy.Error
@@ -2629,28 +3112,34 @@ var file_proxy_proto_goTypes = []any{
 	(*PublishRequest)(nil),             // 16: centrifugal.centrifugo.proxy.PublishRequest
 	(*PublishResult)(nil),              // 17: centrifugal.centrifugo.proxy.PublishResult
 	(*PublishResponse)(nil),            // 18: centrifugal.centrifugo.proxy.PublishResponse
-	(*RPCRequest)(nil),                 // 19: centrifugal.centrifugo.proxy.RPCRequest
-	(*RPCResult)(nil),                  // 20: centrifugal.centrifugo.proxy.RPCResult
-	(*RPCResponse)(nil),                // 21: centrifugal.centrifugo.proxy.RPCResponse
-	(*SubRefreshRequest)(nil),          // 22: centrifugal.centrifugo.proxy.SubRefreshRequest
-	(*SubRefreshResult)(nil),           // 23: centrifugal.centrifugo.proxy.SubRefreshResult
-	(*SubRefreshResponse)(nil),         // 24: centrifugal.centrifugo.proxy.SubRefreshResponse
-	(*Publication)(nil),                // 25: centrifugal.centrifugo.proxy.Publication
-	(*StreamSubscribeRequest)(nil),     // 26: centrifugal.centrifugo.proxy.StreamSubscribeRequest
-	(*StreamSubscribeResponse)(nil),    // 27: centrifugal.centrifugo.proxy.StreamSubscribeResponse
-	(*NotifyCacheEmptyRequest)(nil),    // 28: centrifugal.centrifugo.proxy.NotifyCacheEmptyRequest
-	(*NotifyCacheEmptyResponse)(nil),   // 29: centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse
-	(*NotifyCacheEmptyResult)(nil),     // 30: centrifugal.centrifugo.proxy.NotifyCacheEmptyResult
-	(*NotifyChannelStateRequest)(nil),  // 31: centrifugal.centrifugo.proxy.NotifyChannelStateRequest
-	(*ChannelEvent)(nil),               // 32: centrifugal.centrifugo.proxy.ChannelEvent
-	(*NotifyChannelStateResponse)(nil), // 33: centrifugal.centrifugo.proxy.NotifyChannelStateResponse
-	(*NotifyChannelStateResult)(nil),   // 34: centrifugal.centrifugo.proxy.NotifyChannelStateResult
-	nil,                                // 35: centrifugal.centrifugo.proxy.ConnectResult.SubsEntry
-	nil,                                // 36: centrifugal.centrifugo.proxy.Publication.TagsEntry
+	(*MapPublishRequest)(nil),          // 19: centrifugal.centrifugo.proxy.MapPublishRequest
+	(*MapPublishResult)(nil),           // 20: centrifugal.centrifugo.proxy.MapPublishResult
+	(*MapPublishResponse)(nil),         // 21: centrifugal.centrifugo.proxy.MapPublishResponse
+	(*MapRemoveRequest)(nil),           // 22: centrifugal.centrifugo.proxy.MapRemoveRequest
+	(*MapRemoveResult)(nil),            // 23: centrifugal.centrifugo.proxy.MapRemoveResult
+	(*MapRemoveResponse)(nil),          // 24: centrifugal.centrifugo.proxy.MapRemoveResponse
+	(*RPCRequest)(nil),                 // 25: centrifugal.centrifugo.proxy.RPCRequest
+	(*RPCResult)(nil),                  // 26: centrifugal.centrifugo.proxy.RPCResult
+	(*RPCResponse)(nil),                // 27: centrifugal.centrifugo.proxy.RPCResponse
+	(*SubRefreshRequest)(nil),          // 28: centrifugal.centrifugo.proxy.SubRefreshRequest
+	(*SubRefreshResult)(nil),           // 29: centrifugal.centrifugo.proxy.SubRefreshResult
+	(*SubRefreshResponse)(nil),         // 30: centrifugal.centrifugo.proxy.SubRefreshResponse
+	(*Publication)(nil),                // 31: centrifugal.centrifugo.proxy.Publication
+	(*StreamSubscribeRequest)(nil),     // 32: centrifugal.centrifugo.proxy.StreamSubscribeRequest
+	(*StreamSubscribeResponse)(nil),    // 33: centrifugal.centrifugo.proxy.StreamSubscribeResponse
+	(*NotifyCacheEmptyRequest)(nil),    // 34: centrifugal.centrifugo.proxy.NotifyCacheEmptyRequest
+	(*NotifyCacheEmptyResponse)(nil),   // 35: centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse
+	(*NotifyCacheEmptyResult)(nil),     // 36: centrifugal.centrifugo.proxy.NotifyCacheEmptyResult
+	(*NotifyChannelStateRequest)(nil),  // 37: centrifugal.centrifugo.proxy.NotifyChannelStateRequest
+	(*ChannelEvent)(nil),               // 38: centrifugal.centrifugo.proxy.ChannelEvent
+	(*NotifyChannelStateResponse)(nil), // 39: centrifugal.centrifugo.proxy.NotifyChannelStateResponse
+	(*NotifyChannelStateResult)(nil),   // 40: centrifugal.centrifugo.proxy.NotifyChannelStateResult
+	nil,                                // 41: centrifugal.centrifugo.proxy.ConnectResult.SubsEntry
+	nil,                                // 42: centrifugal.centrifugo.proxy.Publication.TagsEntry
 }
 var file_proxy_proto_depIdxs = []int32{
 	13, // 0: centrifugal.centrifugo.proxy.SubscribeOptions.override:type_name -> centrifugal.centrifugo.proxy.SubscribeOptionOverride
-	35, // 1: centrifugal.centrifugo.proxy.ConnectResult.subs:type_name -> centrifugal.centrifugo.proxy.ConnectResult.SubsEntry
+	41, // 1: centrifugal.centrifugo.proxy.ConnectResult.subs:type_name -> centrifugal.centrifugo.proxy.ConnectResult.SubsEntry
 	5,  // 2: centrifugal.centrifugo.proxy.ConnectResult.caps:type_name -> centrifugal.centrifugo.proxy.ChannelsCapability
 	4,  // 3: centrifugal.centrifugo.proxy.ConnectResponse.result:type_name -> centrifugal.centrifugo.proxy.ConnectResult
 	1,  // 4: centrifugal.centrifugo.proxy.ConnectResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
@@ -2671,47 +3160,57 @@ var file_proxy_proto_depIdxs = []int32{
 	17, // 19: centrifugal.centrifugo.proxy.PublishResponse.result:type_name -> centrifugal.centrifugo.proxy.PublishResult
 	1,  // 20: centrifugal.centrifugo.proxy.PublishResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
 	0,  // 21: centrifugal.centrifugo.proxy.PublishResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	20, // 22: centrifugal.centrifugo.proxy.RPCResponse.result:type_name -> centrifugal.centrifugo.proxy.RPCResult
-	1,  // 23: centrifugal.centrifugo.proxy.RPCResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	0,  // 24: centrifugal.centrifugo.proxy.RPCResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	23, // 25: centrifugal.centrifugo.proxy.SubRefreshResponse.result:type_name -> centrifugal.centrifugo.proxy.SubRefreshResult
-	1,  // 26: centrifugal.centrifugo.proxy.SubRefreshResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	0,  // 27: centrifugal.centrifugo.proxy.SubRefreshResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	36, // 28: centrifugal.centrifugo.proxy.Publication.tags:type_name -> centrifugal.centrifugo.proxy.Publication.TagsEntry
-	10, // 29: centrifugal.centrifugo.proxy.StreamSubscribeRequest.subscribe_request:type_name -> centrifugal.centrifugo.proxy.SubscribeRequest
-	25, // 30: centrifugal.centrifugo.proxy.StreamSubscribeRequest.publication:type_name -> centrifugal.centrifugo.proxy.Publication
-	15, // 31: centrifugal.centrifugo.proxy.StreamSubscribeResponse.subscribe_response:type_name -> centrifugal.centrifugo.proxy.SubscribeResponse
-	25, // 32: centrifugal.centrifugo.proxy.StreamSubscribeResponse.publication:type_name -> centrifugal.centrifugo.proxy.Publication
-	30, // 33: centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse.result:type_name -> centrifugal.centrifugo.proxy.NotifyCacheEmptyResult
-	32, // 34: centrifugal.centrifugo.proxy.NotifyChannelStateRequest.events:type_name -> centrifugal.centrifugo.proxy.ChannelEvent
-	34, // 35: centrifugal.centrifugo.proxy.NotifyChannelStateResponse.result:type_name -> centrifugal.centrifugo.proxy.NotifyChannelStateResult
-	1,  // 36: centrifugal.centrifugo.proxy.NotifyChannelStateResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	3,  // 37: centrifugal.centrifugo.proxy.ConnectResult.SubsEntry.value:type_name -> centrifugal.centrifugo.proxy.SubscribeOptions
-	2,  // 38: centrifugal.centrifugo.proxy.CentrifugoProxy.Connect:input_type -> centrifugal.centrifugo.proxy.ConnectRequest
-	7,  // 39: centrifugal.centrifugo.proxy.CentrifugoProxy.Refresh:input_type -> centrifugal.centrifugo.proxy.RefreshRequest
-	10, // 40: centrifugal.centrifugo.proxy.CentrifugoProxy.Subscribe:input_type -> centrifugal.centrifugo.proxy.SubscribeRequest
-	16, // 41: centrifugal.centrifugo.proxy.CentrifugoProxy.Publish:input_type -> centrifugal.centrifugo.proxy.PublishRequest
-	19, // 42: centrifugal.centrifugo.proxy.CentrifugoProxy.RPC:input_type -> centrifugal.centrifugo.proxy.RPCRequest
-	22, // 43: centrifugal.centrifugo.proxy.CentrifugoProxy.SubRefresh:input_type -> centrifugal.centrifugo.proxy.SubRefreshRequest
-	10, // 44: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeUnidirectional:input_type -> centrifugal.centrifugo.proxy.SubscribeRequest
-	26, // 45: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeBidirectional:input_type -> centrifugal.centrifugo.proxy.StreamSubscribeRequest
-	28, // 46: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyCacheEmpty:input_type -> centrifugal.centrifugo.proxy.NotifyCacheEmptyRequest
-	31, // 47: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyChannelState:input_type -> centrifugal.centrifugo.proxy.NotifyChannelStateRequest
-	6,  // 48: centrifugal.centrifugo.proxy.CentrifugoProxy.Connect:output_type -> centrifugal.centrifugo.proxy.ConnectResponse
-	9,  // 49: centrifugal.centrifugo.proxy.CentrifugoProxy.Refresh:output_type -> centrifugal.centrifugo.proxy.RefreshResponse
-	15, // 50: centrifugal.centrifugo.proxy.CentrifugoProxy.Subscribe:output_type -> centrifugal.centrifugo.proxy.SubscribeResponse
-	18, // 51: centrifugal.centrifugo.proxy.CentrifugoProxy.Publish:output_type -> centrifugal.centrifugo.proxy.PublishResponse
-	21, // 52: centrifugal.centrifugo.proxy.CentrifugoProxy.RPC:output_type -> centrifugal.centrifugo.proxy.RPCResponse
-	24, // 53: centrifugal.centrifugo.proxy.CentrifugoProxy.SubRefresh:output_type -> centrifugal.centrifugo.proxy.SubRefreshResponse
-	27, // 54: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeUnidirectional:output_type -> centrifugal.centrifugo.proxy.StreamSubscribeResponse
-	27, // 55: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeBidirectional:output_type -> centrifugal.centrifugo.proxy.StreamSubscribeResponse
-	29, // 56: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyCacheEmpty:output_type -> centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse
-	33, // 57: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyChannelState:output_type -> centrifugal.centrifugo.proxy.NotifyChannelStateResponse
-	48, // [48:58] is the sub-list for method output_type
-	38, // [38:48] is the sub-list for method input_type
-	38, // [38:38] is the sub-list for extension type_name
-	38, // [38:38] is the sub-list for extension extendee
-	0,  // [0:38] is the sub-list for field type_name
+	20, // 22: centrifugal.centrifugo.proxy.MapPublishResponse.result:type_name -> centrifugal.centrifugo.proxy.MapPublishResult
+	1,  // 23: centrifugal.centrifugo.proxy.MapPublishResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	0,  // 24: centrifugal.centrifugo.proxy.MapPublishResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
+	23, // 25: centrifugal.centrifugo.proxy.MapRemoveResponse.result:type_name -> centrifugal.centrifugo.proxy.MapRemoveResult
+	1,  // 26: centrifugal.centrifugo.proxy.MapRemoveResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	0,  // 27: centrifugal.centrifugo.proxy.MapRemoveResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
+	26, // 28: centrifugal.centrifugo.proxy.RPCResponse.result:type_name -> centrifugal.centrifugo.proxy.RPCResult
+	1,  // 29: centrifugal.centrifugo.proxy.RPCResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	0,  // 30: centrifugal.centrifugo.proxy.RPCResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
+	29, // 31: centrifugal.centrifugo.proxy.SubRefreshResponse.result:type_name -> centrifugal.centrifugo.proxy.SubRefreshResult
+	1,  // 32: centrifugal.centrifugo.proxy.SubRefreshResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	0,  // 33: centrifugal.centrifugo.proxy.SubRefreshResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
+	42, // 34: centrifugal.centrifugo.proxy.Publication.tags:type_name -> centrifugal.centrifugo.proxy.Publication.TagsEntry
+	10, // 35: centrifugal.centrifugo.proxy.StreamSubscribeRequest.subscribe_request:type_name -> centrifugal.centrifugo.proxy.SubscribeRequest
+	31, // 36: centrifugal.centrifugo.proxy.StreamSubscribeRequest.publication:type_name -> centrifugal.centrifugo.proxy.Publication
+	15, // 37: centrifugal.centrifugo.proxy.StreamSubscribeResponse.subscribe_response:type_name -> centrifugal.centrifugo.proxy.SubscribeResponse
+	31, // 38: centrifugal.centrifugo.proxy.StreamSubscribeResponse.publication:type_name -> centrifugal.centrifugo.proxy.Publication
+	36, // 39: centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse.result:type_name -> centrifugal.centrifugo.proxy.NotifyCacheEmptyResult
+	38, // 40: centrifugal.centrifugo.proxy.NotifyChannelStateRequest.events:type_name -> centrifugal.centrifugo.proxy.ChannelEvent
+	40, // 41: centrifugal.centrifugo.proxy.NotifyChannelStateResponse.result:type_name -> centrifugal.centrifugo.proxy.NotifyChannelStateResult
+	1,  // 42: centrifugal.centrifugo.proxy.NotifyChannelStateResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	3,  // 43: centrifugal.centrifugo.proxy.ConnectResult.SubsEntry.value:type_name -> centrifugal.centrifugo.proxy.SubscribeOptions
+	2,  // 44: centrifugal.centrifugo.proxy.CentrifugoProxy.Connect:input_type -> centrifugal.centrifugo.proxy.ConnectRequest
+	7,  // 45: centrifugal.centrifugo.proxy.CentrifugoProxy.Refresh:input_type -> centrifugal.centrifugo.proxy.RefreshRequest
+	10, // 46: centrifugal.centrifugo.proxy.CentrifugoProxy.Subscribe:input_type -> centrifugal.centrifugo.proxy.SubscribeRequest
+	16, // 47: centrifugal.centrifugo.proxy.CentrifugoProxy.Publish:input_type -> centrifugal.centrifugo.proxy.PublishRequest
+	25, // 48: centrifugal.centrifugo.proxy.CentrifugoProxy.RPC:input_type -> centrifugal.centrifugo.proxy.RPCRequest
+	28, // 49: centrifugal.centrifugo.proxy.CentrifugoProxy.SubRefresh:input_type -> centrifugal.centrifugo.proxy.SubRefreshRequest
+	10, // 50: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeUnidirectional:input_type -> centrifugal.centrifugo.proxy.SubscribeRequest
+	32, // 51: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeBidirectional:input_type -> centrifugal.centrifugo.proxy.StreamSubscribeRequest
+	34, // 52: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyCacheEmpty:input_type -> centrifugal.centrifugo.proxy.NotifyCacheEmptyRequest
+	37, // 53: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyChannelState:input_type -> centrifugal.centrifugo.proxy.NotifyChannelStateRequest
+	19, // 54: centrifugal.centrifugo.proxy.CentrifugoProxy.MapPublish:input_type -> centrifugal.centrifugo.proxy.MapPublishRequest
+	22, // 55: centrifugal.centrifugo.proxy.CentrifugoProxy.MapRemove:input_type -> centrifugal.centrifugo.proxy.MapRemoveRequest
+	6,  // 56: centrifugal.centrifugo.proxy.CentrifugoProxy.Connect:output_type -> centrifugal.centrifugo.proxy.ConnectResponse
+	9,  // 57: centrifugal.centrifugo.proxy.CentrifugoProxy.Refresh:output_type -> centrifugal.centrifugo.proxy.RefreshResponse
+	15, // 58: centrifugal.centrifugo.proxy.CentrifugoProxy.Subscribe:output_type -> centrifugal.centrifugo.proxy.SubscribeResponse
+	18, // 59: centrifugal.centrifugo.proxy.CentrifugoProxy.Publish:output_type -> centrifugal.centrifugo.proxy.PublishResponse
+	27, // 60: centrifugal.centrifugo.proxy.CentrifugoProxy.RPC:output_type -> centrifugal.centrifugo.proxy.RPCResponse
+	30, // 61: centrifugal.centrifugo.proxy.CentrifugoProxy.SubRefresh:output_type -> centrifugal.centrifugo.proxy.SubRefreshResponse
+	33, // 62: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeUnidirectional:output_type -> centrifugal.centrifugo.proxy.StreamSubscribeResponse
+	33, // 63: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeBidirectional:output_type -> centrifugal.centrifugo.proxy.StreamSubscribeResponse
+	35, // 64: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyCacheEmpty:output_type -> centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse
+	39, // 65: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyChannelState:output_type -> centrifugal.centrifugo.proxy.NotifyChannelStateResponse
+	21, // 66: centrifugal.centrifugo.proxy.CentrifugoProxy.MapPublish:output_type -> centrifugal.centrifugo.proxy.MapPublishResponse
+	24, // 67: centrifugal.centrifugo.proxy.CentrifugoProxy.MapRemove:output_type -> centrifugal.centrifugo.proxy.MapRemoveResponse
+	56, // [56:68] is the sub-list for method output_type
+	44, // [44:56] is the sub-list for method input_type
+	44, // [44:44] is the sub-list for extension type_name
+	44, // [44:44] is the sub-list for extension extendee
+	0,  // [0:44] is the sub-list for field type_name
 }
 
 func init() { file_proxy_proto_init() }
@@ -2725,7 +3224,7 @@ func file_proxy_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proxy_proto_rawDesc), len(file_proxy_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   37,
+			NumMessages:   43,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

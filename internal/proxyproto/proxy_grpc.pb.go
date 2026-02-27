@@ -29,6 +29,8 @@ const (
 	CentrifugoProxy_SubscribeBidirectional_FullMethodName  = "/centrifugal.centrifugo.proxy.CentrifugoProxy/SubscribeBidirectional"
 	CentrifugoProxy_NotifyCacheEmpty_FullMethodName        = "/centrifugal.centrifugo.proxy.CentrifugoProxy/NotifyCacheEmpty"
 	CentrifugoProxy_NotifyChannelState_FullMethodName      = "/centrifugal.centrifugo.proxy.CentrifugoProxy/NotifyChannelState"
+	CentrifugoProxy_MapPublish_FullMethodName              = "/centrifugal.centrifugo.proxy.CentrifugoProxy/MapPublish"
+	CentrifugoProxy_MapRemove_FullMethodName               = "/centrifugal.centrifugo.proxy.CentrifugoProxy/MapRemove"
 )
 
 // CentrifugoProxyClient is the client API for CentrifugoProxy service.
@@ -62,6 +64,10 @@ type CentrifugoProxyClient interface {
 	// NotifyChannelState can be used to receive channel events such as channel "occupied" and "vacated".
 	// This is a feature in a preview state and is only available in Centrifugo PRO.
 	NotifyChannelState(ctx context.Context, in *NotifyChannelStateRequest, opts ...grpc.CallOption) (*NotifyChannelStateResponse, error)
+	// MapPublish to proxy map publish attempts to channels.
+	MapPublish(ctx context.Context, in *MapPublishRequest, opts ...grpc.CallOption) (*MapPublishResponse, error)
+	// MapRemove to proxy map remove attempts from channels.
+	MapRemove(ctx context.Context, in *MapRemoveRequest, opts ...grpc.CallOption) (*MapRemoveResponse, error)
 }
 
 type centrifugoProxyClient struct {
@@ -184,6 +190,26 @@ func (c *centrifugoProxyClient) NotifyChannelState(ctx context.Context, in *Noti
 	return out, nil
 }
 
+func (c *centrifugoProxyClient) MapPublish(ctx context.Context, in *MapPublishRequest, opts ...grpc.CallOption) (*MapPublishResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MapPublishResponse)
+	err := c.cc.Invoke(ctx, CentrifugoProxy_MapPublish_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoProxyClient) MapRemove(ctx context.Context, in *MapRemoveRequest, opts ...grpc.CallOption) (*MapRemoveResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MapRemoveResponse)
+	err := c.cc.Invoke(ctx, CentrifugoProxy_MapRemove_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CentrifugoProxyServer is the server API for CentrifugoProxy service.
 // All implementations must embed UnimplementedCentrifugoProxyServer
 // for forward compatibility.
@@ -215,6 +241,10 @@ type CentrifugoProxyServer interface {
 	// NotifyChannelState can be used to receive channel events such as channel "occupied" and "vacated".
 	// This is a feature in a preview state and is only available in Centrifugo PRO.
 	NotifyChannelState(context.Context, *NotifyChannelStateRequest) (*NotifyChannelStateResponse, error)
+	// MapPublish to proxy map publish attempts to channels.
+	MapPublish(context.Context, *MapPublishRequest) (*MapPublishResponse, error)
+	// MapRemove to proxy map remove attempts from channels.
+	MapRemove(context.Context, *MapRemoveRequest) (*MapRemoveResponse, error)
 	mustEmbedUnimplementedCentrifugoProxyServer()
 }
 
@@ -254,6 +284,12 @@ func (UnimplementedCentrifugoProxyServer) NotifyCacheEmpty(context.Context, *Not
 }
 func (UnimplementedCentrifugoProxyServer) NotifyChannelState(context.Context, *NotifyChannelStateRequest) (*NotifyChannelStateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method NotifyChannelState not implemented")
+}
+func (UnimplementedCentrifugoProxyServer) MapPublish(context.Context, *MapPublishRequest) (*MapPublishResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MapPublish not implemented")
+}
+func (UnimplementedCentrifugoProxyServer) MapRemove(context.Context, *MapRemoveRequest) (*MapRemoveResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MapRemove not implemented")
 }
 func (UnimplementedCentrifugoProxyServer) mustEmbedUnimplementedCentrifugoProxyServer() {}
 func (UnimplementedCentrifugoProxyServer) testEmbeddedByValue()                         {}
@@ -438,6 +474,42 @@ func _CentrifugoProxy_NotifyChannelState_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CentrifugoProxy_MapPublish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MapPublishRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoProxyServer).MapPublish(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CentrifugoProxy_MapPublish_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoProxyServer).MapPublish(ctx, req.(*MapPublishRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CentrifugoProxy_MapRemove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MapRemoveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoProxyServer).MapRemove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CentrifugoProxy_MapRemove_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoProxyServer).MapRemove(ctx, req.(*MapRemoveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CentrifugoProxy_ServiceDesc is the grpc.ServiceDesc for CentrifugoProxy service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -476,6 +548,14 @@ var CentrifugoProxy_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "NotifyChannelState",
 			Handler:    _CentrifugoProxy_NotifyChannelState_Handler,
+		},
+		{
+			MethodName: "MapPublish",
+			Handler:    _CentrifugoProxy_MapPublish_Handler,
+		},
+		{
+			MethodName: "MapRemove",
+			Handler:    _CentrifugoProxy_MapRemove_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -232,6 +232,36 @@ type ChannelOptions struct {
 	// positions that should not persist after the client leaves.
 	MapRemoveOnUnsubscribe bool `mapstructure:"map_remove_on_unsubscribe" json:"map_remove_on_unsubscribe" envconfig:"map_remove_on_unsubscribe" yaml:"map_remove_on_unsubscribe" toml:"map_remove_on_unsubscribe"`
 
+	// MapPublishForAnonymous allows anonymous clients to map-publish.
+	MapPublishForAnonymous bool `mapstructure:"allow_map_publish_for_anonymous" json:"allow_map_publish_for_anonymous" envconfig:"allow_map_publish_for_anonymous" yaml:"allow_map_publish_for_anonymous" toml:"allow_map_publish_for_anonymous"`
+	// MapPublishForSubscriber allows subscribed clients to map-publish.
+	MapPublishForSubscriber bool `mapstructure:"allow_map_publish_for_subscriber" json:"allow_map_publish_for_subscriber" envconfig:"allow_map_publish_for_subscriber" yaml:"allow_map_publish_for_subscriber" toml:"allow_map_publish_for_subscriber"`
+	// MapPublishForClient allows authenticated clients to map-publish.
+	MapPublishForClient bool `mapstructure:"allow_map_publish_for_client" json:"allow_map_publish_for_client" envconfig:"allow_map_publish_for_client" yaml:"allow_map_publish_for_client" toml:"allow_map_publish_for_client"`
+
+	// MapPublishProxyEnabled turns on proxy for map publish.
+	MapPublishProxyEnabled bool `mapstructure:"map_publish_proxy_enabled" json:"map_publish_proxy_enabled" envconfig:"map_publish_proxy_enabled" yaml:"map_publish_proxy_enabled" toml:"map_publish_proxy_enabled"`
+	// MapPublishProxyName of proxy for map publish.
+	MapPublishProxyName string `mapstructure:"map_publish_proxy_name" default:"default" json:"map_publish_proxy_name" envconfig:"map_publish_proxy_name" yaml:"map_publish_proxy_name" toml:"map_publish_proxy_name"`
+
+	// MapRemoveForAnonymous allows anonymous clients to map-remove.
+	MapRemoveForAnonymous bool `mapstructure:"allow_map_remove_for_anonymous" json:"allow_map_remove_for_anonymous" envconfig:"allow_map_remove_for_anonymous" yaml:"allow_map_remove_for_anonymous" toml:"allow_map_remove_for_anonymous"`
+	// MapRemoveForSubscriber allows subscribed clients to map-remove.
+	MapRemoveForSubscriber bool `mapstructure:"allow_map_remove_for_subscriber" json:"allow_map_remove_for_subscriber" envconfig:"allow_map_remove_for_subscriber" yaml:"allow_map_remove_for_subscriber" toml:"allow_map_remove_for_subscriber"`
+	// MapRemoveForClient allows authenticated clients to map-remove.
+	MapRemoveForClient bool `mapstructure:"allow_map_remove_for_client" json:"allow_map_remove_for_client" envconfig:"allow_map_remove_for_client" yaml:"allow_map_remove_for_client" toml:"allow_map_remove_for_client"`
+
+	// MapRemoveProxyEnabled turns on proxy for map remove.
+	MapRemoveProxyEnabled bool `mapstructure:"map_remove_proxy_enabled" json:"map_remove_proxy_enabled" envconfig:"map_remove_proxy_enabled" yaml:"map_remove_proxy_enabled" toml:"map_remove_proxy_enabled"`
+	// MapRemoveProxyName of proxy for map remove.
+	MapRemoveProxyName string `mapstructure:"map_remove_proxy_name" default:"default" json:"map_remove_proxy_name" envconfig:"map_remove_proxy_name" yaml:"map_remove_proxy_name" toml:"map_remove_proxy_name"`
+
+	// MapClientKey controls server-driven key assignment for both map publish and map remove.
+	// "client_id" — key overridden with client ID.
+	// "user_id" — key overridden with user ID.
+	// Empty (default) — client-provided key used as-is.
+	MapClientKey string `mapstructure:"map_client_key" json:"map_client_key" envconfig:"map_client_key" yaml:"map_client_key" toml:"map_client_key"`
+
 	Compiled `json:"-" yaml:"-" toml:"-"`
 }
 

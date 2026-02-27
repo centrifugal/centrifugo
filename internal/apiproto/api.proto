@@ -898,6 +898,7 @@ message MapPublishRequest {
     uint64 version = 10;
     string version_epoch = 11;
     int64 score = 12;
+    string key_mode = 13;
 }
 
 message MapPublishResponse {

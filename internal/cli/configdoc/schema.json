@@ -3798,43 +3798,43 @@
         ]
       },
       {
-        "field": "client.map_max_pagination_limit",
-        "name": "map_max_pagination_limit",
-        "go_name": "MapMaxPaginationLimit",
+        "field": "client.map_pagination_max_limit",
+        "name": "map_pagination_max_limit",
+        "go_name": "MapPaginationMaxLimit",
         "level": 2,
         "type": "int",
-        "default": "",
-        "comment": "MapMaxPaginationLimit sets the maximum number of items a client can request per page in map\nsubscription pagination requests. Zero means no limit.",
+        "default": "1000",
+        "comment": "MapPaginationMaxLimit sets the maximum number of items a client can request per page in map\nsubscription pagination requests. Zero means default (1000).",
         "is_complex_type": false
       },
       {
-        "field": "client.map_min_stream_pagination_limit",
-        "name": "map_min_stream_pagination_limit",
-        "go_name": "MapMinStreamPaginationLimit",
+        "field": "client.map_pagination_min_limit",
+        "name": "map_pagination_min_limit",
+        "go_name": "MapPaginationMinLimit",
         "level": 2,
         "type": "int",
-        "default": "",
-        "comment": "MapMinStreamPaginationLimit sets the minimum number of items for stream pagination.\nThis prevents excessive round trips when clients send very small limits. Zero means no minimum.",
+        "default": "100",
+        "comment": "MapPaginationMinLimit sets the minimum number of items per page in map subscription pagination requests. This prevents excessive round trips. Zero means default (100).",
         "is_complex_type": false
       },
       {
-        "field": "client.map_max_immediate_join_state_size",
-        "name": "map_max_immediate_join_state_size",
-        "go_name": "MapMaxImmediateJoinStateSize",
+        "field": "client.map_immediate_join_max_state_size",
+        "name": "map_immediate_join_max_state_size",
+        "go_name": "MapImmediateJoinMaxStateSize",
         "level": 2,
         "type": "int",
         "default": "",
-        "comment": "MapMaxImmediateJoinStateSize sets the maximum number of state entries allowed for immediate\njoin. If state exceeds this, the client must paginate. Zero means no limit.",
+        "comment": "MapImmediateJoinMaxStateSize sets the maximum number of state entries allowed for immediate\njoin. If state exceeds this, the client must paginate. Zero means no limit.",
         "is_complex_type": false
       },
       {
-        "field": "client.map_recovery_max_publication_limit",
-        "name": "map_recovery_max_publication_limit",
-        "go_name": "MapRecoveryMaxPublicationLimit",
+        "field": "client.map_live_transition_max_publication_limit",
+        "name": "map_live_transition_max_publication_limit",
+        "go_name": "MapLiveTransitionMaxPublicationLimit",
         "level": 2,
         "type": "int",
         "default": "300",
-        "comment": "MapRecoveryMaxPublicationLimit sets the maximum number of stream publications to recover\nduring map subscription live transition. Zero means no limit. Default: 300.",
+        "comment": "MapLiveTransitionMaxPublicationLimit sets the maximum number of stream publications to recover\nduring map subscription live transition. Zero means no limit. Default: 300.",
         "is_complex_type": false
       },
       {
@@ -5502,6 +5502,818 @@
                 ]
               }
             ]
+          },
+          {
+            "field": "channel.proxy.map_publish",
+            "name": "map_publish",
+            "go_name": "MapPublish",
+            "level": 3,
+            "type": "Proxy",
+            "default": "",
+            "comment": "MapPublish proxy configuration.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "channel.proxy.map_publish.endpoint",
+                "name": "endpoint",
+                "go_name": "Endpoint",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "Endpoint - HTTP address or GRPC service endpoint.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_publish.timeout",
+                "name": "timeout",
+                "go_name": "Timeout",
+                "level": 4,
+                "type": "Duration",
+                "default": "1s",
+                "comment": "Timeout for proxy request.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_publish.http_headers",
+                "name": "http_headers",
+                "go_name": "HttpHeaders",
+                "level": 4,
+                "type": "[]string",
+                "default": "",
+                "comment": "HttpHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.\nIf GRPC proxy is used then request HTTP headers set to outgoing request metadata.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_publish.grpc_metadata",
+                "name": "grpc_metadata",
+                "go_name": "GrpcMetadata",
+                "level": 4,
+                "type": "[]string",
+                "default": "",
+                "comment": "GrpcMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by\ndefault. If HTTP proxy is used then these keys become outgoing request HTTP headers.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_publish.binary_encoding",
+                "name": "binary_encoding",
+                "go_name": "BinaryEncoding",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "BinaryEncoding makes proxy send data as base64 string (assuming it contains custom\nnon-JSON payload).",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_publish.include_connection_meta",
+                "name": "include_connection_meta",
+                "go_name": "IncludeConnectionMeta",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "IncludeConnectionMeta to each proxy request (except connect proxy where it's obtained).",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_publish.http",
+                "name": "http",
+                "go_name": "HTTP",
+                "level": 4,
+                "type": "ProxyCommonHTTP",
+                "default": "",
+                "comment": "",
+                "is_complex_type": true,
+                "children": [
+                  {
+                    "field": "channel.proxy.map_publish.http.tls",
+                    "name": "tls",
+                    "go_name": "TLS",
+                    "level": 5,
+                    "type": "TLSConfig",
+                    "default": "",
+                    "comment": "TLS for HTTP client.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.map_publish.http.tls.enabled",
+                        "name": "enabled",
+                        "go_name": "Enabled",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "Enabled turns on using TLS.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.http.tls.cert_pem",
+                        "name": "cert_pem",
+                        "go_name": "CertPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "CertPem is a PEM certificate.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.http.tls.key_pem",
+                        "name": "key_pem",
+                        "go_name": "KeyPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "KeyPem is a path to a file with key in PEM format.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.http.tls.server_ca_pem",
+                        "name": "server_ca_pem",
+                        "go_name": "ServerCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.http.tls.client_ca_pem",
+                        "name": "client_ca_pem",
+                        "go_name": "ClientCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.http.tls.insecure_skip_verify",
+                        "name": "insecure_skip_verify",
+                        "go_name": "InsecureSkipVerify",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "InsecureSkipVerify turns off server certificate verification.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.http.tls.server_name",
+                        "name": "server_name",
+                        "go_name": "ServerName",
+                        "level": 6,
+                        "type": "string",
+                        "default": "",
+                        "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                        "is_complex_type": false
+                      }
+                    ]
+                  },
+                  {
+                    "field": "channel.proxy.map_publish.http.static_headers",
+                    "name": "static_headers",
+                    "go_name": "StaticHeaders",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticHeaders is a static set of key/value pairs to attach to HTTP proxy request as\nheaders. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticHttpHeaders map.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.map_publish.http.status_to_code_transforms",
+                    "name": "status_to_code_transforms",
+                    "go_name": "StatusToCodeTransforms",
+                    "level": 5,
+                    "type": "[]HttpStatusToCodeTransform",
+                    "default": "[]",
+                    "comment": "StatusToCodeTransforms allow to map HTTP status codes from proxy to Disconnect or Error messages.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.map_publish.http.status_to_code_transforms[].status_code",
+                        "name": "status_code",
+                        "go_name": "StatusCode",
+                        "level": 6,
+                        "type": "int",
+                        "default": "",
+                        "comment": "StatusCode is an HTTP status code to transform.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.http.status_to_code_transforms[].to_error",
+                        "name": "to_error",
+                        "go_name": "ToError",
+                        "level": 6,
+                        "type": "TransformError",
+                        "default": "",
+                        "comment": "ToError is a transform to protocol error.",
+                        "is_complex_type": true,
+                        "children": [
+                          {
+                            "field": "channel.proxy.map_publish.http.status_to_code_transforms[].to_error.code",
+                            "name": "code",
+                            "go_name": "Code",
+                            "level": 7,
+                            "type": "uint32",
+                            "default": "",
+                            "comment": "Code of error.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.map_publish.http.status_to_code_transforms[].to_error.message",
+                            "name": "message",
+                            "go_name": "Message",
+                            "level": 7,
+                            "type": "string",
+                            "default": "",
+                            "comment": "Message is a human-readable message of error.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.map_publish.http.status_to_code_transforms[].to_error.temporary",
+                            "name": "temporary",
+                            "go_name": "Temporary",
+                            "level": 7,
+                            "type": "bool",
+                            "default": "",
+                            "comment": "Temporary is a flag to mark error as temporary.",
+                            "is_complex_type": false
+                          }
+                        ]
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.http.status_to_code_transforms[].to_disconnect",
+                        "name": "to_disconnect",
+                        "go_name": "ToDisconnect",
+                        "level": 6,
+                        "type": "TransformDisconnect",
+                        "default": "",
+                        "comment": "ToDisconnect is a transform to protocol disconnect.",
+                        "is_complex_type": true,
+                        "children": [
+                          {
+                            "field": "channel.proxy.map_publish.http.status_to_code_transforms[].to_disconnect.code",
+                            "name": "code",
+                            "go_name": "Code",
+                            "level": 7,
+                            "type": "uint32",
+                            "default": "",
+                            "comment": "Code of disconnect.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.map_publish.http.status_to_code_transforms[].to_disconnect.reason",
+                            "name": "reason",
+                            "go_name": "Reason",
+                            "level": 7,
+                            "type": "string",
+                            "default": "",
+                            "comment": "Reason is a human-readable reason of disconnect.",
+                            "is_complex_type": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "field": "channel.proxy.map_publish.grpc",
+                "name": "grpc",
+                "go_name": "GRPC",
+                "level": 4,
+                "type": "ProxyCommonGRPC",
+                "default": "",
+                "comment": "",
+                "is_complex_type": true,
+                "children": [
+                  {
+                    "field": "channel.proxy.map_publish.grpc.tls",
+                    "name": "tls",
+                    "go_name": "TLS",
+                    "level": 5,
+                    "type": "TLSConfig",
+                    "default": "",
+                    "comment": "TLS is a common configuration for GRPC client TLS.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.map_publish.grpc.tls.enabled",
+                        "name": "enabled",
+                        "go_name": "Enabled",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "Enabled turns on using TLS.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.grpc.tls.cert_pem",
+                        "name": "cert_pem",
+                        "go_name": "CertPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "CertPem is a PEM certificate.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.grpc.tls.key_pem",
+                        "name": "key_pem",
+                        "go_name": "KeyPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "KeyPem is a path to a file with key in PEM format.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.grpc.tls.server_ca_pem",
+                        "name": "server_ca_pem",
+                        "go_name": "ServerCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.grpc.tls.client_ca_pem",
+                        "name": "client_ca_pem",
+                        "go_name": "ClientCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.grpc.tls.insecure_skip_verify",
+                        "name": "insecure_skip_verify",
+                        "go_name": "InsecureSkipVerify",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "InsecureSkipVerify turns off server certificate verification.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.grpc.tls.server_name",
+                        "name": "server_name",
+                        "go_name": "ServerName",
+                        "level": 6,
+                        "type": "string",
+                        "default": "",
+                        "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                        "is_complex_type": false
+                      }
+                    ]
+                  },
+                  {
+                    "field": "channel.proxy.map_publish.grpc.credentials_key",
+                    "name": "credentials_key",
+                    "go_name": "CredentialsKey",
+                    "level": 5,
+                    "type": "string",
+                    "default": "",
+                    "comment": "CredentialsKey is a custom key to add into per-RPC credentials.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.map_publish.grpc.credentials_value",
+                    "name": "credentials_value",
+                    "go_name": "CredentialsValue",
+                    "level": 5,
+                    "type": "string",
+                    "default": "",
+                    "comment": "CredentialsValue is a custom value for GrpcCredentialsKey.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.map_publish.grpc.compression",
+                    "name": "compression",
+                    "go_name": "Compression",
+                    "level": 5,
+                    "type": "bool",
+                    "default": "",
+                    "comment": "Compression enables compression for outgoing calls (gzip).",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.map_publish.grpc.static_metadata",
+                    "name": "static_metadata",
+                    "go_name": "StaticMetadata",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticMetadata is a static set of key/value pairs to attach to GRPC proxy request as\nmetadata. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticMetadata map (but only if explicitly allowed).",
+                    "is_complex_type": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "field": "channel.proxy.map_remove",
+            "name": "map_remove",
+            "go_name": "MapRemove",
+            "level": 3,
+            "type": "Proxy",
+            "default": "",
+            "comment": "MapRemove proxy configuration.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "channel.proxy.map_remove.endpoint",
+                "name": "endpoint",
+                "go_name": "Endpoint",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "Endpoint - HTTP address or GRPC service endpoint.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_remove.timeout",
+                "name": "timeout",
+                "go_name": "Timeout",
+                "level": 4,
+                "type": "Duration",
+                "default": "1s",
+                "comment": "Timeout for proxy request.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_remove.http_headers",
+                "name": "http_headers",
+                "go_name": "HttpHeaders",
+                "level": 4,
+                "type": "[]string",
+                "default": "",
+                "comment": "HttpHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.\nIf GRPC proxy is used then request HTTP headers set to outgoing request metadata.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_remove.grpc_metadata",
+                "name": "grpc_metadata",
+                "go_name": "GrpcMetadata",
+                "level": 4,
+                "type": "[]string",
+                "default": "",
+                "comment": "GrpcMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by\ndefault. If HTTP proxy is used then these keys become outgoing request HTTP headers.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_remove.binary_encoding",
+                "name": "binary_encoding",
+                "go_name": "BinaryEncoding",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "BinaryEncoding makes proxy send data as base64 string (assuming it contains custom\nnon-JSON payload).",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_remove.include_connection_meta",
+                "name": "include_connection_meta",
+                "go_name": "IncludeConnectionMeta",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "IncludeConnectionMeta to each proxy request (except connect proxy where it's obtained).",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_remove.http",
+                "name": "http",
+                "go_name": "HTTP",
+                "level": 4,
+                "type": "ProxyCommonHTTP",
+                "default": "",
+                "comment": "",
+                "is_complex_type": true,
+                "children": [
+                  {
+                    "field": "channel.proxy.map_remove.http.tls",
+                    "name": "tls",
+                    "go_name": "TLS",
+                    "level": 5,
+                    "type": "TLSConfig",
+                    "default": "",
+                    "comment": "TLS for HTTP client.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.map_remove.http.tls.enabled",
+                        "name": "enabled",
+                        "go_name": "Enabled",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "Enabled turns on using TLS.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.http.tls.cert_pem",
+                        "name": "cert_pem",
+                        "go_name": "CertPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "CertPem is a PEM certificate.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.http.tls.key_pem",
+                        "name": "key_pem",
+                        "go_name": "KeyPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "KeyPem is a path to a file with key in PEM format.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.http.tls.server_ca_pem",
+                        "name": "server_ca_pem",
+                        "go_name": "ServerCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.http.tls.client_ca_pem",
+                        "name": "client_ca_pem",
+                        "go_name": "ClientCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.http.tls.insecure_skip_verify",
+                        "name": "insecure_skip_verify",
+                        "go_name": "InsecureSkipVerify",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "InsecureSkipVerify turns off server certificate verification.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.http.tls.server_name",
+                        "name": "server_name",
+                        "go_name": "ServerName",
+                        "level": 6,
+                        "type": "string",
+                        "default": "",
+                        "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                        "is_complex_type": false
+                      }
+                    ]
+                  },
+                  {
+                    "field": "channel.proxy.map_remove.http.static_headers",
+                    "name": "static_headers",
+                    "go_name": "StaticHeaders",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticHeaders is a static set of key/value pairs to attach to HTTP proxy request as\nheaders. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticHttpHeaders map.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.map_remove.http.status_to_code_transforms",
+                    "name": "status_to_code_transforms",
+                    "go_name": "StatusToCodeTransforms",
+                    "level": 5,
+                    "type": "[]HttpStatusToCodeTransform",
+                    "default": "[]",
+                    "comment": "StatusToCodeTransforms allow to map HTTP status codes from proxy to Disconnect or Error messages.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.map_remove.http.status_to_code_transforms[].status_code",
+                        "name": "status_code",
+                        "go_name": "StatusCode",
+                        "level": 6,
+                        "type": "int",
+                        "default": "",
+                        "comment": "StatusCode is an HTTP status code to transform.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.http.status_to_code_transforms[].to_error",
+                        "name": "to_error",
+                        "go_name": "ToError",
+                        "level": 6,
+                        "type": "TransformError",
+                        "default": "",
+                        "comment": "ToError is a transform to protocol error.",
+                        "is_complex_type": true,
+                        "children": [
+                          {
+                            "field": "channel.proxy.map_remove.http.status_to_code_transforms[].to_error.code",
+                            "name": "code",
+                            "go_name": "Code",
+                            "level": 7,
+                            "type": "uint32",
+                            "default": "",
+                            "comment": "Code of error.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.map_remove.http.status_to_code_transforms[].to_error.message",
+                            "name": "message",
+                            "go_name": "Message",
+                            "level": 7,
+                            "type": "string",
+                            "default": "",
+                            "comment": "Message is a human-readable message of error.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.map_remove.http.status_to_code_transforms[].to_error.temporary",
+                            "name": "temporary",
+                            "go_name": "Temporary",
+                            "level": 7,
+                            "type": "bool",
+                            "default": "",
+                            "comment": "Temporary is a flag to mark error as temporary.",
+                            "is_complex_type": false
+                          }
+                        ]
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.http.status_to_code_transforms[].to_disconnect",
+                        "name": "to_disconnect",
+                        "go_name": "ToDisconnect",
+                        "level": 6,
+                        "type": "TransformDisconnect",
+                        "default": "",
+                        "comment": "ToDisconnect is a transform to protocol disconnect.",
+                        "is_complex_type": true,
+                        "children": [
+                          {
+                            "field": "channel.proxy.map_remove.http.status_to_code_transforms[].to_disconnect.code",
+                            "name": "code",
+                            "go_name": "Code",
+                            "level": 7,
+                            "type": "uint32",
+                            "default": "",
+                            "comment": "Code of disconnect.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.map_remove.http.status_to_code_transforms[].to_disconnect.reason",
+                            "name": "reason",
+                            "go_name": "Reason",
+                            "level": 7,
+                            "type": "string",
+                            "default": "",
+                            "comment": "Reason is a human-readable reason of disconnect.",
+                            "is_complex_type": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "field": "channel.proxy.map_remove.grpc",
+                "name": "grpc",
+                "go_name": "GRPC",
+                "level": 4,
+                "type": "ProxyCommonGRPC",
+                "default": "",
+                "comment": "",
+                "is_complex_type": true,
+                "children": [
+                  {
+                    "field": "channel.proxy.map_remove.grpc.tls",
+                    "name": "tls",
+                    "go_name": "TLS",
+                    "level": 5,
+                    "type": "TLSConfig",
+                    "default": "",
+                    "comment": "TLS is a common configuration for GRPC client TLS.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.map_remove.grpc.tls.enabled",
+                        "name": "enabled",
+                        "go_name": "Enabled",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "Enabled turns on using TLS.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.grpc.tls.cert_pem",
+                        "name": "cert_pem",
+                        "go_name": "CertPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "CertPem is a PEM certificate.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.grpc.tls.key_pem",
+                        "name": "key_pem",
+                        "go_name": "KeyPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "KeyPem is a path to a file with key in PEM format.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.grpc.tls.server_ca_pem",
+                        "name": "server_ca_pem",
+                        "go_name": "ServerCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.grpc.tls.client_ca_pem",
+                        "name": "client_ca_pem",
+                        "go_name": "ClientCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.grpc.tls.insecure_skip_verify",
+                        "name": "insecure_skip_verify",
+                        "go_name": "InsecureSkipVerify",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "InsecureSkipVerify turns off server certificate verification.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.grpc.tls.server_name",
+                        "name": "server_name",
+                        "go_name": "ServerName",
+                        "level": 6,
+                        "type": "string",
+                        "default": "",
+                        "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                        "is_complex_type": false
+                      }
+                    ]
+                  },
+                  {
+                    "field": "channel.proxy.map_remove.grpc.credentials_key",
+                    "name": "credentials_key",
+                    "go_name": "CredentialsKey",
+                    "level": 5,
+                    "type": "string",
+                    "default": "",
+                    "comment": "CredentialsKey is a custom key to add into per-RPC credentials.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.map_remove.grpc.credentials_value",
+                    "name": "credentials_value",
+                    "go_name": "CredentialsValue",
+                    "level": 5,
+                    "type": "string",
+                    "default": "",
+                    "comment": "CredentialsValue is a custom value for GrpcCredentialsKey.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.map_remove.grpc.compression",
+                    "name": "compression",
+                    "go_name": "Compression",
+                    "level": 5,
+                    "type": "bool",
+                    "default": "",
+                    "comment": "Compression enables compression for outgoing calls (gzip).",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.map_remove.grpc.static_metadata",
+                    "name": "static_metadata",
+                    "go_name": "StaticMetadata",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticMetadata is a static set of key/value pairs to attach to GRPC proxy request as\nmetadata. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticMetadata map (but only if explicitly allowed).",
+                    "is_complex_type": false
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -5963,6 +6775,146 @@
             "type": "Duration",
             "default": "",
             "comment": "MapMetaTTL is the retention period for map metadata (epoch, offset).\nAuto-derived based on sync mode and retention mode if not set.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_client_presence_namespace",
+            "name": "map_client_presence_namespace",
+            "go_name": "MapClientPresenceNamespace",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapClientPresenceNamespace is the namespace for client presence channels.\nWhen set, client presence (key=clientID, full ClientInfo) is published to\n{namespace}{boundary}{channel_rest} on subscribe and removed on unsubscribe.\nFor example, with namespace \"clients\" and boundary \":\", subscribing to \"game:abc\"\npublishes presence to \"clients:abc\". Empty string means no client presence.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_user_presence_namespace",
+            "name": "map_user_presence_namespace",
+            "go_name": "MapUserPresenceNamespace",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapUserPresenceNamespace is the namespace for user presence channels.\nWhen set, user presence (key=userID) is published to\n{namespace}{boundary}{channel_rest} on subscribe. User presence entries are\nnot removed on unsubscribe — they expire via TTL to provide grace period for\nquick reconnects. Empty string means no user presence.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_remove_on_unsubscribe",
+            "name": "map_remove_on_unsubscribe",
+            "go_name": "MapRemoveOnUnsubscribe",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapRemoveOnUnsubscribe enables automatic cleanup of map state when subscription\nends. When enabled, the entry with key=clientID is removed from the channel's\nmap state on unsubscribe or disconnect. Useful for ephemeral state like cursor\npositions that should not persist after the client leaves.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.allow_map_publish_for_anonymous",
+            "name": "allow_map_publish_for_anonymous",
+            "go_name": "MapPublishForAnonymous",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapPublishForAnonymous allows anonymous clients to map-publish.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.allow_map_publish_for_subscriber",
+            "name": "allow_map_publish_for_subscriber",
+            "go_name": "MapPublishForSubscriber",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapPublishForSubscriber allows subscribed clients to map-publish.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.allow_map_publish_for_client",
+            "name": "allow_map_publish_for_client",
+            "go_name": "MapPublishForClient",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapPublishForClient allows authenticated clients to map-publish.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_publish_proxy_enabled",
+            "name": "map_publish_proxy_enabled",
+            "go_name": "MapPublishProxyEnabled",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapPublishProxyEnabled turns on proxy for map publish.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_publish_proxy_name",
+            "name": "map_publish_proxy_name",
+            "go_name": "MapPublishProxyName",
+            "level": 3,
+            "type": "string",
+            "default": "default",
+            "comment": "MapPublishProxyName of proxy for map publish.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.allow_map_remove_for_anonymous",
+            "name": "allow_map_remove_for_anonymous",
+            "go_name": "MapRemoveForAnonymous",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapRemoveForAnonymous allows anonymous clients to map-remove.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.allow_map_remove_for_subscriber",
+            "name": "allow_map_remove_for_subscriber",
+            "go_name": "MapRemoveForSubscriber",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapRemoveForSubscriber allows subscribed clients to map-remove.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.allow_map_remove_for_client",
+            "name": "allow_map_remove_for_client",
+            "go_name": "MapRemoveForClient",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapRemoveForClient allows authenticated clients to map-remove.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_remove_proxy_enabled",
+            "name": "map_remove_proxy_enabled",
+            "go_name": "MapRemoveProxyEnabled",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapRemoveProxyEnabled turns on proxy for map remove.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_remove_proxy_name",
+            "name": "map_remove_proxy_name",
+            "go_name": "MapRemoveProxyName",
+            "level": 3,
+            "type": "string",
+            "default": "default",
+            "comment": "MapRemoveProxyName of proxy for map remove.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_client_key",
+            "name": "map_client_key",
+            "go_name": "MapClientKey",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapClientKey controls server-driven key assignment for both map publish and map remove.\n\"client_id\" — key overridden with client ID.\n\"user_id\" — key overridden with user ID.\nEmpty (default) — client-provided key used as-is.",
             "is_complex_type": false
           }
         ]
@@ -6435,6 +7387,146 @@
             "type": "Duration",
             "default": "",
             "comment": "MapMetaTTL is the retention period for map metadata (epoch, offset).\nAuto-derived based on sync mode and retention mode if not set.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_client_presence_namespace",
+            "name": "map_client_presence_namespace",
+            "go_name": "MapClientPresenceNamespace",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapClientPresenceNamespace is the namespace for client presence channels.\nWhen set, client presence (key=clientID, full ClientInfo) is published to\n{namespace}{boundary}{channel_rest} on subscribe and removed on unsubscribe.\nFor example, with namespace \"clients\" and boundary \":\", subscribing to \"game:abc\"\npublishes presence to \"clients:abc\". Empty string means no client presence.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_user_presence_namespace",
+            "name": "map_user_presence_namespace",
+            "go_name": "MapUserPresenceNamespace",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapUserPresenceNamespace is the namespace for user presence channels.\nWhen set, user presence (key=userID) is published to\n{namespace}{boundary}{channel_rest} on subscribe. User presence entries are\nnot removed on unsubscribe — they expire via TTL to provide grace period for\nquick reconnects. Empty string means no user presence.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_remove_on_unsubscribe",
+            "name": "map_remove_on_unsubscribe",
+            "go_name": "MapRemoveOnUnsubscribe",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapRemoveOnUnsubscribe enables automatic cleanup of map state when subscription\nends. When enabled, the entry with key=clientID is removed from the channel's\nmap state on unsubscribe or disconnect. Useful for ephemeral state like cursor\npositions that should not persist after the client leaves.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].allow_map_publish_for_anonymous",
+            "name": "allow_map_publish_for_anonymous",
+            "go_name": "MapPublishForAnonymous",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapPublishForAnonymous allows anonymous clients to map-publish.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].allow_map_publish_for_subscriber",
+            "name": "allow_map_publish_for_subscriber",
+            "go_name": "MapPublishForSubscriber",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapPublishForSubscriber allows subscribed clients to map-publish.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].allow_map_publish_for_client",
+            "name": "allow_map_publish_for_client",
+            "go_name": "MapPublishForClient",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapPublishForClient allows authenticated clients to map-publish.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_publish_proxy_enabled",
+            "name": "map_publish_proxy_enabled",
+            "go_name": "MapPublishProxyEnabled",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapPublishProxyEnabled turns on proxy for map publish.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_publish_proxy_name",
+            "name": "map_publish_proxy_name",
+            "go_name": "MapPublishProxyName",
+            "level": 3,
+            "type": "string",
+            "default": "default",
+            "comment": "MapPublishProxyName of proxy for map publish.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].allow_map_remove_for_anonymous",
+            "name": "allow_map_remove_for_anonymous",
+            "go_name": "MapRemoveForAnonymous",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapRemoveForAnonymous allows anonymous clients to map-remove.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].allow_map_remove_for_subscriber",
+            "name": "allow_map_remove_for_subscriber",
+            "go_name": "MapRemoveForSubscriber",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapRemoveForSubscriber allows subscribed clients to map-remove.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].allow_map_remove_for_client",
+            "name": "allow_map_remove_for_client",
+            "go_name": "MapRemoveForClient",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapRemoveForClient allows authenticated clients to map-remove.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_remove_proxy_enabled",
+            "name": "map_remove_proxy_enabled",
+            "go_name": "MapRemoveProxyEnabled",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "MapRemoveProxyEnabled turns on proxy for map remove.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_remove_proxy_name",
+            "name": "map_remove_proxy_name",
+            "go_name": "MapRemoveProxyName",
+            "level": 3,
+            "type": "string",
+            "default": "default",
+            "comment": "MapRemoveProxyName of proxy for map remove.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_client_key",
+            "name": "map_client_key",
+            "go_name": "MapClientKey",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapClientKey controls server-driven key assignment for both map publish and map remove.\n\"client_id\" — key overridden with client ID.\n\"user_id\" — key overridden with user ID.\nEmpty (default) — client-provided key used as-is.",
             "is_complex_type": false
           }
         ]

@@ -54,6 +54,12 @@ func (s *Handler) Routes() map[string]http.HandlerFunc {
 		"/rpc":            s.handleRPC,
 		"/refresh":        s.handleRefresh,
 		"/channels":       s.handleChannels,
+		"/map_publish":    s.handleMapPublish,
+		"/map_remove":     s.handleMapRemove,
+		"/map_read_state": s.handleMapReadState,
+		"/map_read_stream": s.handleMapReadStream,
+		"/map_stats":      s.handleMapStats,
+		"/map_clear":      s.handleMapClear,
 	}
 }
 

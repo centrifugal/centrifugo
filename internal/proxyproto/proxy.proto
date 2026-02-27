@@ -32,6 +32,10 @@ service CentrifugoProxy {
   // NotifyChannelState can be used to receive channel events such as channel "occupied" and "vacated".
   // This is a feature in a preview state and is only available in Centrifugo PRO.
   rpc NotifyChannelState(NotifyChannelStateRequest) returns (NotifyChannelStateResponse);
+  // MapPublish to proxy map publish attempts to channels.
+  rpc MapPublish(MapPublishRequest) returns (MapPublishResponse);
+  // MapRemove to proxy map remove attempts from channels.
+  rpc MapRemove(MapRemoveRequest) returns (MapRemoveResponse);
 }
 
 message Disconnect {
@@ -185,6 +189,54 @@ message PublishResult {
 
 message PublishResponse {
   PublishResult result = 1;
+  Error error = 2;
+  Disconnect disconnect = 3;
+}
+
+message MapPublishRequest {
+  string client = 1;
+  string transport = 2;
+  string protocol = 3;
+  string encoding = 4;
+
+  string user = 10;
+  string channel = 11;
+  string key = 12;
+  bytes data = 13;
+  string b64data = 14;
+  bytes meta = 15;
+}
+
+message MapPublishResult {
+  string key = 1;
+  bytes data = 2;
+  string b64data = 3;
+}
+
+message MapPublishResponse {
+  MapPublishResult result = 1;
+  Error error = 2;
+  Disconnect disconnect = 3;
+}
+
+message MapRemoveRequest {
+  string client = 1;
+  string transport = 2;
+  string protocol = 3;
+  string encoding = 4;
+
+  string user = 10;
+  string channel = 11;
+  string key = 12;
+  bytes meta = 13;
+}
+
+message MapRemoveResult {
+  string key = 1;
+}
+
+message MapRemoveResponse {
+  MapRemoveResult result = 1;
   Error error = 2;
   Disconnect disconnect = 3;
 }

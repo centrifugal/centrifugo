@@ -22,6 +22,8 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		SubscribeProxies:       map[string]proxy.SubscribeProxy{},
 		SubRefreshProxies:      map[string]proxy.SubRefreshProxy{},
 		SubscribeStreamProxies: map[string]*proxy.SubscribeStreamProxy{},
+		MapPublishProxies:      map[string]proxy.MapPublishProxy{},
+		MapRemoveProxies:       map[string]proxy.MapRemoveProxy{},
 	}
 
 	var keepHeadersInContext bool
@@ -161,6 +163,56 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		}
 	}
 
+	mapPublishProxyEnabled := cfg.Channel.WithoutNamespace.MapPublishProxyEnabled
+	mapPublishProxyName := cfg.Channel.WithoutNamespace.MapPublishProxyName
+	if mapPublishProxyEnabled {
+		var p proxy.Config
+		if mapPublishProxyName == config.DefaultProxyName {
+			p = cfg.Channel.Proxy.MapPublish
+		} else {
+			p, proxyFound = namedProxies[mapPublishProxyName]
+			if !proxyFound {
+				return nil, false, fmt.Errorf("map publish proxy not found: %s", mapPublishProxyName)
+			}
+		}
+		if _, ok := proxyMap.MapPublishProxies[mapPublishProxyName]; !ok {
+			mpp, err := proxy.GetMapPublishProxy(mapPublishProxyName, p)
+			if err != nil {
+				return nil, false, fmt.Errorf("error creating map publish proxy %s: %w", mapPublishProxyName, err)
+			}
+			proxyMap.MapPublishProxies[mapPublishProxyName] = mpp
+		}
+		log.Info().Str("proxy_name", mapPublishProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("map publish proxy enabled for channels without namespace")
+		if len(p.HttpHeaders) > 0 {
+			keepHeadersInContext = true
+		}
+	}
+
+	mapRemoveProxyEnabled := cfg.Channel.WithoutNamespace.MapRemoveProxyEnabled
+	mapRemoveProxyName := cfg.Channel.WithoutNamespace.MapRemoveProxyName
+	if mapRemoveProxyEnabled {
+		var p proxy.Config
+		if mapRemoveProxyName == config.DefaultProxyName {
+			p = cfg.Channel.Proxy.MapRemove
+		} else {
+			p, proxyFound = namedProxies[mapRemoveProxyName]
+			if !proxyFound {
+				return nil, false, fmt.Errorf("map remove proxy not found: %s", mapRemoveProxyName)
+			}
+		}
+		if _, ok := proxyMap.MapRemoveProxies[mapRemoveProxyName]; !ok {
+			mrp, err := proxy.GetMapRemoveProxy(mapRemoveProxyName, p)
+			if err != nil {
+				return nil, false, fmt.Errorf("error creating map remove proxy %s: %w", mapRemoveProxyName, err)
+			}
+			proxyMap.MapRemoveProxies[mapRemoveProxyName] = mrp
+		}
+		log.Info().Str("proxy_name", mapRemoveProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("map remove proxy enabled for channels without namespace")
+		if len(p.HttpHeaders) > 0 {
+			keepHeadersInContext = true
+		}
+	}
+
 	for _, ns := range cfg.Channel.Namespaces {
 		subscribeProxyEnabled := ns.SubscribeProxyEnabled
 		subscribeProxyName := ns.SubscribeProxyName
@@ -260,6 +312,56 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 				proxyMap.SubscribeStreamProxies[subscribeStreamProxyName] = sp
 			}
 			log.Info().Str("proxy_name", subscribeStreamProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Str("namespace", ns.Name).Msg("subscribe stream proxy enabled for channels in namespace")
+			if len(p.HttpHeaders) > 0 {
+				keepHeadersInContext = true
+			}
+		}
+
+		mapPublishProxyEnabled := ns.MapPublishProxyEnabled
+		mapPublishProxyName := ns.MapPublishProxyName
+		if mapPublishProxyEnabled {
+			var p proxy.Config
+			if mapPublishProxyName == config.DefaultProxyName {
+				p = cfg.Channel.Proxy.MapPublish
+			} else {
+				p, proxyFound = namedProxies[mapPublishProxyName]
+				if !proxyFound {
+					return nil, false, fmt.Errorf("map publish proxy not found: %s", mapPublishProxyName)
+				}
+			}
+			if _, ok := proxyMap.MapPublishProxies[mapPublishProxyName]; !ok {
+				mpp, err := proxy.GetMapPublishProxy(mapPublishProxyName, p)
+				if err != nil {
+					return nil, false, fmt.Errorf("error creating map publish proxy %s: %w", mapPublishProxyName, err)
+				}
+				proxyMap.MapPublishProxies[mapPublishProxyName] = mpp
+			}
+			log.Info().Str("proxy_name", mapPublishProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Str("namespace", ns.Name).Msg("map publish proxy enabled for channels in namespace")
+			if len(p.HttpHeaders) > 0 {
+				keepHeadersInContext = true
+			}
+		}
+
+		mapRemoveProxyEnabled := ns.MapRemoveProxyEnabled
+		mapRemoveProxyName := ns.MapRemoveProxyName
+		if mapRemoveProxyEnabled {
+			var p proxy.Config
+			if mapRemoveProxyName == config.DefaultProxyName {
+				p = cfg.Channel.Proxy.MapRemove
+			} else {
+				p, proxyFound = namedProxies[mapRemoveProxyName]
+				if !proxyFound {
+					return nil, false, fmt.Errorf("map remove proxy not found: %s", mapRemoveProxyName)
+				}
+			}
+			if _, ok := proxyMap.MapRemoveProxies[mapRemoveProxyName]; !ok {
+				mrp, err := proxy.GetMapRemoveProxy(mapRemoveProxyName, p)
+				if err != nil {
+					return nil, false, fmt.Errorf("error creating map remove proxy %s: %w", mapRemoveProxyName, err)
+				}
+				proxyMap.MapRemoveProxies[mapRemoveProxyName] = mrp
+			}
+			log.Info().Str("proxy_name", mapRemoveProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Str("namespace", ns.Name).Msg("map remove proxy enabled for channels in namespace")
 			if len(p.HttpHeaders) > 0 {
 				keepHeadersInContext = true
 			}

@@ -432,18 +432,18 @@ type Client struct {
 	// ConnectCodeToUnidirectionalDisconnect is a configuration for a feature to transform connect error codes to the disconnect code
 	// for unidirectional transports.
 	ConnectCodeToUnidirectionalDisconnect ConnectCodeToUnidirectionalDisconnect `mapstructure:"connect_code_to_unidirectional_disconnect" json:"connect_code_to_unidirectional_disconnect" envconfig:"connect_code_to_unidirectional_disconnect" yaml:"connect_code_to_unidirectional_disconnect" toml:"connect_code_to_unidirectional_disconnect"`
-	// MapMaxPaginationLimit sets the maximum number of items a client can request per page in map
-	// subscription pagination requests. Zero means no limit.
-	MapMaxPaginationLimit int `mapstructure:"map_max_pagination_limit" json:"map_max_pagination_limit" envconfig:"map_max_pagination_limit" yaml:"map_max_pagination_limit" toml:"map_max_pagination_limit"`
-	// MapMinStreamPaginationLimit sets the minimum number of items for stream pagination.
-	// This prevents excessive round trips when clients send very small limits. Zero means no minimum.
-	MapMinStreamPaginationLimit int `mapstructure:"map_min_stream_pagination_limit" json:"map_min_stream_pagination_limit" envconfig:"map_min_stream_pagination_limit" yaml:"map_min_stream_pagination_limit" toml:"map_min_stream_pagination_limit"`
-	// MapMaxImmediateJoinStateSize sets the maximum number of state entries allowed for immediate
+	// MapPaginationMaxLimit sets the maximum number of items a client can request per page in map
+	// subscription pagination requests. Zero means default (1000).
+	MapPaginationMaxLimit int `mapstructure:"map_pagination_max_limit" json:"map_pagination_max_limit" envconfig:"map_pagination_max_limit" default:"1000" yaml:"map_pagination_max_limit" toml:"map_pagination_max_limit"`
+	// MapPaginationMinLimit sets the minimum number of items per page in map subscription
+	// pagination requests. This prevents excessive round trips. Zero means default (100).
+	MapPaginationMinLimit int `mapstructure:"map_pagination_min_limit" json:"map_pagination_min_limit" envconfig:"map_pagination_min_limit" default:"100" yaml:"map_pagination_min_limit" toml:"map_pagination_min_limit"`
+	// MapImmediateJoinMaxStateSize sets the maximum number of state entries allowed for immediate
 	// join. If state exceeds this, the client must paginate. Zero means no limit.
-	MapMaxImmediateJoinStateSize int `mapstructure:"map_max_immediate_join_state_size" json:"map_max_immediate_join_state_size" envconfig:"map_max_immediate_join_state_size" yaml:"map_max_immediate_join_state_size" toml:"map_max_immediate_join_state_size"`
-	// MapRecoveryMaxPublicationLimit sets the maximum number of stream publications to recover
+	MapImmediateJoinMaxStateSize int `mapstructure:"map_immediate_join_max_state_size" json:"map_immediate_join_max_state_size" envconfig:"map_immediate_join_max_state_size" yaml:"map_immediate_join_max_state_size" toml:"map_immediate_join_max_state_size"`
+	// MapLiveTransitionMaxPublicationLimit sets the maximum number of stream publications to recover
 	// during map subscription live transition. Zero means no limit. Default: 300.
-	MapRecoveryMaxPublicationLimit int `mapstructure:"map_recovery_max_publication_limit" json:"map_recovery_max_publication_limit" envconfig:"map_recovery_max_publication_limit" default:"300" yaml:"map_recovery_max_publication_limit" toml:"map_recovery_max_publication_limit"`
+	MapLiveTransitionMaxPublicationLimit int `mapstructure:"map_live_transition_max_publication_limit" json:"map_live_transition_max_publication_limit" envconfig:"map_live_transition_max_publication_limit" default:"300" yaml:"map_live_transition_max_publication_limit" toml:"map_live_transition_max_publication_limit"`
 	// MapStateToLiveEnabled controls whether server can transition directly from STATE to LIVE
 	// phase on the last state page, skipping STREAM phase entirely.
 	MapStateToLiveEnabled bool `mapstructure:"map_state_to_live_enabled" json:"map_state_to_live_enabled" envconfig:"map_state_to_live_enabled" yaml:"map_state_to_live_enabled" toml:"map_state_to_live_enabled"`
@@ -489,6 +489,10 @@ type ChannelProxyContainer struct {
 	SubRefresh Proxy `mapstructure:"sub_refresh" json:"sub_refresh" envconfig:"sub_refresh" yaml:"sub_refresh" toml:"sub_refresh"`
 	// SubscribeStream proxy configuration.
 	SubscribeStream Proxy `mapstructure:"subscribe_stream" json:"subscribe_stream" envconfig:"subscribe_stream" yaml:"subscribe_stream" toml:"subscribe_stream"`
+	// MapPublish proxy configuration.
+	MapPublish Proxy `mapstructure:"map_publish" json:"map_publish" envconfig:"map_publish" yaml:"map_publish" toml:"map_publish"`
+	// MapRemove proxy configuration.
+	MapRemove Proxy `mapstructure:"map_remove" json:"map_remove" envconfig:"map_remove" yaml:"map_remove" toml:"map_remove"`
 }
 
 type Channel struct {

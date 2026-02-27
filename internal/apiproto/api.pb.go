@@ -8344,6 +8344,7 @@ type MapPublishRequest struct {
 	Version        uint64                 `protobuf:"varint,10,opt,name=version,proto3" json:"version,omitempty"`
 	VersionEpoch   string                 `protobuf:"bytes,11,opt,name=version_epoch,json=versionEpoch,proto3" json:"version_epoch,omitempty"`
 	Score          int64                  `protobuf:"varint,12,opt,name=score,proto3" json:"score,omitempty"`
+	KeyMode        string                 `protobuf:"bytes,13,opt,name=key_mode,json=keyMode,proto3" json:"key_mode,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -8460,6 +8461,13 @@ func (x *MapPublishRequest) GetScore() int64 {
 		return x.Score
 	}
 	return 0
+}
+
+func (x *MapPublishRequest) GetKeyMode() string {
+	if x != nil {
+		return x.KeyMode
+	}
+	return ""
 }
 
 type MapPublishResponse struct {
@@ -10185,7 +10193,7 @@ const file_api_proto_rawDesc = "" +
 	"\x12CancelPushResponse\x127\n" +
 	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12D\n" +
 	"\x06result\x18\x02 \x01(\v2,.centrifugal.centrifugo.api.CancelPushResultR\x06result\"\x12\n" +
-	"\x10CancelPushResult\"\xcf\x03\n" +
+	"\x10CancelPushResult\"\xea\x03\n" +
 	"\x11MapPublishRequest\x12\x18\n" +
 	"\achannel\x18\x01 \x01(\tR\achannel\x12\x10\n" +
 	"\x03key\x18\x02 \x01(\tR\x03key\x12\x12\n" +
@@ -10200,7 +10208,8 @@ const file_api_proto_rawDesc = "" +
 	"\aversion\x18\n" +
 	" \x01(\x04R\aversion\x12#\n" +
 	"\rversion_epoch\x18\v \x01(\tR\fversionEpoch\x12\x14\n" +
-	"\x05score\x18\f \x01(\x03R\x05score\x1a7\n" +
+	"\x05score\x18\f \x01(\x03R\x05score\x12\x19\n" +
+	"\bkey_mode\x18\r \x01(\tR\akeyMode\x1a7\n" +
 	"\tTagsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x93\x01\n" +

@@ -33,6 +33,8 @@ type ProxyMap struct {
 	SubscribeProxies       map[string]proxy.SubscribeProxy
 	SubRefreshProxies      map[string]proxy.SubRefreshProxy
 	SubscribeStreamProxies map[string]*proxy.SubscribeStreamProxy
+	MapPublishProxies      map[string]proxy.MapPublishProxy
+	MapRemoveProxies       map[string]proxy.MapRemoveProxy
 }
 
 // Handler for client connections.
@@ -127,6 +129,20 @@ func (h *Handler) Setup() error {
 		}).Handle()
 	}
 
+	var mapPublishProxyHandler proxy.MapPublishHandlerFunc
+	if len(h.proxyMap.MapPublishProxies) > 0 {
+		mapPublishProxyHandler = proxy.NewMapPublishHandler(proxy.MapPublishHandlerConfig{
+			Proxies: h.proxyMap.MapPublishProxies,
+		}).Handle(h.node)
+	}
+
+	var mapRemoveProxyHandler proxy.MapRemoveHandlerFunc
+	if len(h.proxyMap.MapRemoveProxies) > 0 {
+		mapRemoveProxyHandler = proxy.NewMapRemoveHandler(proxy.MapRemoveHandlerConfig{
+			Proxies: h.proxyMap.MapRemoveProxies,
+		}).Handle(h.node)
+	}
+
 	cfg := h.cfgContainer.Config()
 	concurrency := cfg.Client.Concurrency
 
@@ -183,6 +199,20 @@ func (h *Handler) Setup() error {
 		client.OnPublish(func(event centrifuge.PublishEvent, cb centrifuge.PublishCallback) {
 			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
 				reply, err := h.OnPublish(client, event, publishProxyHandler)
+				cb(reply, err)
+			})
+		})
+
+		client.OnMapPublish(func(event centrifuge.MapPublishEvent, cb centrifuge.MapPublishCallback) {
+			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
+				reply, err := h.OnMapPublish(client, event, mapPublishProxyHandler)
+				cb(reply, err)
+			})
+		})
+
+		client.OnMapRemove(func(event centrifuge.MapRemoveEvent, cb centrifuge.MapRemoveCallback) {
+			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
+				reply, err := h.OnMapRemove(client, event, mapRemoveProxyHandler)
 				cb(reply, err)
 			})
 		})
@@ -867,6 +897,106 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 		log.Error().Err(err).Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("error publishing message")
 	}
 	return centrifuge.PublishReply{Result: &result}, err
+}
+
+// OnMapPublish ...
+func (h *Handler) OnMapPublish(c Client, e centrifuge.MapPublishEvent, mapPublishProxyHandler proxy.MapPublishHandlerFunc) (centrifuge.MapPublishReply, error) {
+	cfg := h.cfgContainer.Config()
+
+	_, rest, chOpts, found, err := h.cfgContainer.ChannelOptions(e.Channel)
+	if err != nil {
+		log.Error().Err(err).Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("error getting channel options")
+		return centrifuge.MapPublishReply{}, err
+	}
+	if !found {
+		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("map publish unknown channel")
+		return centrifuge.MapPublishReply{}, centrifuge.ErrorUnknownChannel
+	}
+	if err = h.validateChannelName(c, rest, chOpts, e.Channel); err != nil {
+		return centrifuge.MapPublishReply{}, err
+	}
+
+	if chOpts.MapPublishProxyEnabled {
+		if mapPublishProxyHandler == nil {
+			log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("map publish proxy not enabled")
+			return centrifuge.MapPublishReply{}, centrifuge.ErrorNotAvailable
+		}
+		return mapPublishProxyHandler(c, e, chOpts, getPerCallData(c))
+	}
+
+	var allowed bool
+	if chOpts.MapPublishForClient && (c.UserID() != "" || chOpts.MapPublishForAnonymous) {
+		allowed = true
+	} else if chOpts.MapPublishForSubscriber && c.IsSubscribed(e.Channel) && (c.UserID() != "" || chOpts.MapPublishForAnonymous) {
+		allowed = true
+	} else if cfg.Client.Insecure {
+		allowed = true
+	}
+
+	if !allowed {
+		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("attempt to map publish without sufficient permission")
+		return centrifuge.MapPublishReply{}, centrifuge.ErrorPermissionDenied
+	}
+
+	reply := centrifuge.MapPublishReply{}
+	switch chOpts.MapClientKey {
+	case "client_id":
+		reply.Key = c.ID()
+	case "user_id":
+		reply.Key = c.UserID()
+	}
+
+	return reply, nil
+}
+
+// OnMapRemove ...
+func (h *Handler) OnMapRemove(c Client, e centrifuge.MapRemoveEvent, mapRemoveProxyHandler proxy.MapRemoveHandlerFunc) (centrifuge.MapRemoveReply, error) {
+	cfg := h.cfgContainer.Config()
+
+	_, rest, chOpts, found, err := h.cfgContainer.ChannelOptions(e.Channel)
+	if err != nil {
+		log.Error().Err(err).Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("error getting channel options")
+		return centrifuge.MapRemoveReply{}, err
+	}
+	if !found {
+		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("map remove unknown channel")
+		return centrifuge.MapRemoveReply{}, centrifuge.ErrorUnknownChannel
+	}
+	if err = h.validateChannelName(c, rest, chOpts, e.Channel); err != nil {
+		return centrifuge.MapRemoveReply{}, err
+	}
+
+	if chOpts.MapRemoveProxyEnabled {
+		if mapRemoveProxyHandler == nil {
+			log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("map remove proxy not enabled")
+			return centrifuge.MapRemoveReply{}, centrifuge.ErrorNotAvailable
+		}
+		return mapRemoveProxyHandler(c, e, chOpts, getPerCallData(c))
+	}
+
+	var allowed bool
+	if chOpts.MapRemoveForClient && (c.UserID() != "" || chOpts.MapRemoveForAnonymous) {
+		allowed = true
+	} else if chOpts.MapRemoveForSubscriber && c.IsSubscribed(e.Channel) && (c.UserID() != "" || chOpts.MapRemoveForAnonymous) {
+		allowed = true
+	} else if cfg.Client.Insecure {
+		allowed = true
+	}
+
+	if !allowed {
+		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("attempt to map remove without sufficient permission")
+		return centrifuge.MapRemoveReply{}, centrifuge.ErrorPermissionDenied
+	}
+
+	reply := centrifuge.MapRemoveReply{}
+	switch chOpts.MapClientKey {
+	case "client_id":
+		reply.Key = c.ID()
+	case "user_id":
+		reply.Key = c.UserID()
+	}
+
+	return reply, nil
 }
 
 func (h *Handler) hasAccessToPresence(c Client, channel string, chOpts configtypes.ChannelOptions, forceSubscribed bool) bool {

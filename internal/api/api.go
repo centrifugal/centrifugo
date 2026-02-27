@@ -901,6 +901,9 @@ func (h *Executor) MapPublish(ctx context.Context, cmd *MapPublishRequest) *MapP
 	}
 	opts.Version = cmd.Version
 	opts.VersionEpoch = cmd.VersionEpoch
+	if cmd.KeyMode != "" {
+		opts.KeyMode = centrifuge.KeyMode(cmd.KeyMode)
+	}
 
 	result, err := h.node.MapPublish(ctx, ch, cmd.Key, opts)
 	if err != nil {

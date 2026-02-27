@@ -80,6 +80,26 @@ func GetSubscribeProxy(name string, p Config) (SubscribeProxy, error) {
 	return NewGRPCSubscribeProxy(name, p)
 }
 
+func GetMapPublishProxy(name string, p Config) (MapPublishProxy, error) {
+	for i, header := range p.HttpHeaders {
+		p.HttpHeaders[i] = strings.ToLower(header)
+	}
+	if isHttpEndpoint(p.Endpoint) {
+		return NewHTTPMapPublishProxy(p)
+	}
+	return NewGRPCMapPublishProxy(name, p)
+}
+
+func GetMapRemoveProxy(name string, p Config) (MapRemoveProxy, error) {
+	for i, header := range p.HttpHeaders {
+		p.HttpHeaders[i] = strings.ToLower(header)
+	}
+	if isHttpEndpoint(p.Endpoint) {
+		return NewHTTPMapRemoveProxy(p)
+	}
+	return NewGRPCMapRemoveProxy(name, p)
+}
+
 type PerCallData struct {
 	Meta json.RawMessage
 }

@@ -10,6 +10,8 @@ type ResponseDecoder interface {
 	DecodePublishResponse(data []byte) (*PublishResponse, error)
 	DecodeSubRefreshResponse(data []byte) (*SubRefreshResponse, error)
 	DecodeNotifyCacheEmptyResponse(data []byte) (*NotifyCacheEmptyResponse, error)
+	DecodeMapPublishResponse(data []byte) (*MapPublishResponse, error)
+	DecodeMapRemoveResponse(data []byte) (*MapRemoveResponse, error)
 }
 
 var _ ResponseDecoder = (*JSONDecoder)(nil)
@@ -72,6 +74,24 @@ func (e *JSONDecoder) DecodeSubRefreshResponse(data []byte) (*SubRefreshResponse
 
 func (e *JSONDecoder) DecodeNotifyCacheEmptyResponse(data []byte) (*NotifyCacheEmptyResponse, error) {
 	var resp NotifyCacheEmptyResponse
+	err := json.Unmarshal(data, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+func (e *JSONDecoder) DecodeMapPublishResponse(data []byte) (*MapPublishResponse, error) {
+	var resp MapPublishResponse
+	err := json.Unmarshal(data, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+func (e *JSONDecoder) DecodeMapRemoveResponse(data []byte) (*MapRemoveResponse, error) {
+	var resp MapRemoveResponse
 	err := json.Unmarshal(data, &resp)
 	if err != nil {
 		return nil, err
