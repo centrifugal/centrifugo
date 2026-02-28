@@ -3818,16 +3818,6 @@
         "is_complex_type": false
       },
       {
-        "field": "client.map_immediate_join_max_state_size",
-        "name": "map_immediate_join_max_state_size",
-        "go_name": "MapImmediateJoinMaxStateSize",
-        "level": 2,
-        "type": "int",
-        "default": "",
-        "comment": "MapImmediateJoinMaxStateSize sets the maximum number of state entries allowed for immediate\njoin. If state exceeds this, the client must paginate. Zero means no limit.",
-        "is_complex_type": false
-      },
-      {
         "field": "client.map_live_transition_max_publication_limit",
         "name": "map_live_transition_max_publication_limit",
         "go_name": "MapLiveTransitionMaxPublicationLimit",
@@ -3835,16 +3825,6 @@
         "type": "int",
         "default": "300",
         "comment": "MapLiveTransitionMaxPublicationLimit sets the maximum number of stream publications to recover\nduring map subscription live transition. Zero means no limit. Default: 300.",
-        "is_complex_type": false
-      },
-      {
-        "field": "client.map_state_to_live_enabled",
-        "name": "map_state_to_live_enabled",
-        "go_name": "MapStateToLiveEnabled",
-        "level": 2,
-        "type": "bool",
-        "default": "",
-        "comment": "MapStateToLiveEnabled controls whether server can transition directly from STATE to LIVE\nphase on the last state page, skipping STREAM phase entirely.",
         "is_complex_type": false
       },
       {

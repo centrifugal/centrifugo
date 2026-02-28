@@ -35,9 +35,7 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 	cfg.RecoveryMaxPublicationLimit = appCfg.Client.RecoveryMaxPublicationLimit
 	cfg.MapPaginationMaxLimit = appCfg.Client.MapPaginationMaxLimit
 	cfg.MapPaginationMinLimit = appCfg.Client.MapPaginationMinLimit
-	cfg.MapImmediateJoinMaxStateSize = appCfg.Client.MapImmediateJoinMaxStateSize
 	cfg.MapLiveTransitionMaxPublicationLimit = appCfg.Client.MapLiveTransitionMaxPublicationLimit
-	cfg.MapStateToLiveEnabled = appCfg.Client.MapStateToLiveEnabled
 	cfg.MapSubscribeCatchUpTimeout = appCfg.Client.MapSubscribeCatchUpTimeout.ToDuration()
 	if appCfg.MapBroker.Enabled {
 		cfg.GetMapChannelOptions = func(channel string) centrifuge.MapChannelOptions {

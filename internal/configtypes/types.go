@@ -438,15 +438,9 @@ type Client struct {
 	// MapPaginationMinLimit sets the minimum number of items per page in map subscription
 	// pagination requests. This prevents excessive round trips. Zero means default (100).
 	MapPaginationMinLimit int `mapstructure:"map_pagination_min_limit" json:"map_pagination_min_limit" envconfig:"map_pagination_min_limit" default:"100" yaml:"map_pagination_min_limit" toml:"map_pagination_min_limit"`
-	// MapImmediateJoinMaxStateSize sets the maximum number of state entries allowed for immediate
-	// join. If state exceeds this, the client must paginate. Zero means no limit.
-	MapImmediateJoinMaxStateSize int `mapstructure:"map_immediate_join_max_state_size" json:"map_immediate_join_max_state_size" envconfig:"map_immediate_join_max_state_size" yaml:"map_immediate_join_max_state_size" toml:"map_immediate_join_max_state_size"`
 	// MapLiveTransitionMaxPublicationLimit sets the maximum number of stream publications to recover
 	// during map subscription live transition. Zero means no limit. Default: 300.
 	MapLiveTransitionMaxPublicationLimit int `mapstructure:"map_live_transition_max_publication_limit" json:"map_live_transition_max_publication_limit" envconfig:"map_live_transition_max_publication_limit" default:"300" yaml:"map_live_transition_max_publication_limit" toml:"map_live_transition_max_publication_limit"`
-	// MapStateToLiveEnabled controls whether server can transition directly from STATE to LIVE
-	// phase on the last state page, skipping STREAM phase entirely.
-	MapStateToLiveEnabled bool `mapstructure:"map_state_to_live_enabled" json:"map_state_to_live_enabled" envconfig:"map_state_to_live_enabled" yaml:"map_state_to_live_enabled" toml:"map_state_to_live_enabled"`
 	// MapSubscribeCatchUpTimeout sets the maximum time a client can spend paginating through state
 	// and stream phases before going live. If exceeded, the client is disconnected. Default: "5s".
 	MapSubscribeCatchUpTimeout Duration `mapstructure:"map_subscribe_catch_up_timeout" json:"map_subscribe_catch_up_timeout" envconfig:"map_subscribe_catch_up_timeout" default:"5s" yaml:"map_subscribe_catch_up_timeout" toml:"map_subscribe_catch_up_timeout"`

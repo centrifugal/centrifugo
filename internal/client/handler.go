@@ -939,6 +939,9 @@ func (h *Handler) OnMapPublish(c Client, e centrifuge.MapPublishEvent, mapPublis
 	}
 
 	reply := centrifuge.MapPublishReply{}
+	if chOpts.DeltaPublish {
+		reply.Options.UseDelta = true
+	}
 	switch chOpts.MapClientKey {
 	case "client_id":
 		reply.Key = c.ID()

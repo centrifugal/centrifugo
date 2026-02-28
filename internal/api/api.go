@@ -867,6 +867,16 @@ func (h *Executor) MapPublish(ctx context.Context, cmd *MapPublishRequest) *MapP
 		return resp
 	}
 
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
+	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
+		resp.Error = ErrorUnknownChannel
+		return resp
+	}
+
 	var data []byte
 	if cmd.B64Data != "" {
 		byteInfo, err := base64.StdEncoding.DecodeString(cmd.B64Data)
@@ -891,12 +901,17 @@ func (h *Executor) MapPublish(ctx context.Context, cmd *MapPublishRequest) *MapP
 		streamData = cmd.StreamData
 	}
 
+	delta := cmd.Delta
+	if chOpts.DeltaPublish {
+		delta = true
+	}
+
 	opts := centrifuge.MapPublishOptions{
 		Data:           data,
 		StreamData:     streamData,
 		Tags:           cmd.GetTags(),
 		IdempotencyKey: cmd.GetIdempotencyKey(),
-		UseDelta:       cmd.Delta,
+		UseDelta:       delta,
 		Score:          cmd.Score,
 	}
 	opts.Version = cmd.Version
