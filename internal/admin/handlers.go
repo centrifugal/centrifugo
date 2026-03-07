@@ -137,6 +137,7 @@ func (s *Handler) initHandler(w http.ResponseWriter, r *http.Request) {
 
 // authHandler allows to get admin web interface token.
 func (s *Handler) authHandler(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024) // 1MB limit.
 	formPassword := r.FormValue("password")
 
 	password := s.config.Password

@@ -54,5 +54,23 @@ local-deps:
 	go mod download
 	go mod vendor
 
+GOLANGCI_LINT_VERSION := $(shell cat .golangci-lint-version)
+
+lint:
+	@if ! command -v golangci-lint >/dev/null 2>&1; then \
+		echo "golangci-lint not found. Run 'make install-lint' to install $(GOLANGCI_LINT_VERSION)."; \
+		exit 1; \
+	fi
+	@INSTALLED=$$(golangci-lint version --short 2>/dev/null); \
+	EXPECTED=$$(echo $(GOLANGCI_LINT_VERSION) | sed 's/^v//'); \
+	if [ "$${INSTALLED%%.*}" != "$${EXPECTED%%.*}" ] || [ "$${INSTALLED#*.}" != "$${EXPECTED#*.}" ]; then \
+		echo "golangci-lint version mismatch: installed $${INSTALLED}, expected $${EXPECTED}. Run 'make install-lint'."; \
+		exit 1; \
+	fi
+	golangci-lint run --timeout 10m0s --verbose
+
+install-lint:
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+
 build:
 	CGO_ENABLED=0 go build

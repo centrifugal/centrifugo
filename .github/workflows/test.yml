@@ -19,11 +19,14 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
+      - name: Read golangci-lint version
+        id: golangci-lint-version
+        run: echo "version=$(cat .golangci-lint-version)" >> "$GITHUB_OUTPUT"
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.9
-          args: --timeout 3m0s --verbose
+          version: ${{ steps.golangci-lint-version.outputs.version }}
+          args: --timeout 10m0s --verbose
   test:
     name: Test with Go ${{ matrix.go-version }}
     runs-on: ubuntu-latest

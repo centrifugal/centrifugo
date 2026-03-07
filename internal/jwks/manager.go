@@ -116,7 +116,7 @@ func (m *Manager) FetchKey(ctx context.Context, kid string, tokenVars map[string
 }
 
 func (m *Manager) loadData(req *http.Request) ([]byte, error) {
-	resp, err := m.client.Do(req)
+	resp, err := m.client.Do(req) //nolint:gosec // URL is from server configuration, not user input.
 	if err != nil {
 		return nil, err
 	}
