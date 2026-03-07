@@ -215,9 +215,6 @@ func createRedisPresenceManager(n *centrifuge.Node, cfgContainer *config.Contain
 
 func configureMapBroker(node *centrifuge.Node, cfgContainer *config.Container) error {
 	cfg := cfgContainer.Config()
-	if !cfg.MapBroker.Enabled {
-		return nil
-	}
 	var mapBroker centrifuge.MapBroker
 	var mapBrokerMode string
 	var err error
@@ -271,7 +268,7 @@ func configureMapBroker(node *centrifuge.Node, cfgContainer *config.Container) e
 	if mapBrokerMode != "" {
 		event.Str("map_broker_mode", mapBrokerMode)
 	}
-	event.Msg("map broker enabled")
+	event.Msg("initializing map broker")
 	node.SetMapBroker(mapBroker)
 	return nil
 }

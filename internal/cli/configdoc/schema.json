@@ -1774,19 +1774,9 @@
     "level": 1,
     "type": "MapBroker",
     "default": "",
-    "comment": "MapBroker allows to configure a map broker for synchronized keyed state channels.\nWhen enabled, clients can use map subscription types for channels in namespaces\nthat have map types in subscription_types.",
+    "comment": "MapBroker allows to configure a map broker for synchronized keyed state channels.\nClients can use map subscription types for channels in namespaces\nthat have map types in subscription_types.",
     "is_complex_type": true,
     "children": [
-      {
-        "field": "map_broker.enabled",
-        "name": "enabled",
-        "go_name": "Enabled",
-        "level": 2,
-        "type": "bool",
-        "default": "",
-        "comment": "Enabled enables the map broker. When false, map subscriptions are not available.",
-        "is_complex_type": false
-      },
       {
         "field": "map_broker.type",
         "name": "type",

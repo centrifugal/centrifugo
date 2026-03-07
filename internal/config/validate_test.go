@@ -160,12 +160,9 @@ func TestValidateGlobalPublicationDataFormat(t *testing.T) {
 	}
 }
 
-// mapDefaultConfig returns a Config with map broker enabled and memory type,
-// suitable as a base for map namespace validation tests.
+// mapDefaultConfig returns a Config suitable as a base for map namespace validation tests.
 func mapDefaultConfig() Config {
 	cfg := DefaultConfig()
-	cfg.MapBroker.Enabled = true
-	cfg.MapBroker.Type = "memory"
 	return cfg
 }
 
@@ -426,16 +423,6 @@ func TestValidateMapNamespace_RequiredFields(t *testing.T) {
 		require.Contains(t, err.Error(), "map_retention_mode is required")
 	})
 
-	t.Run("map_broker_not_enabled", func(t *testing.T) {
-		cfg := DefaultConfig() // map broker not enabled
-		ns := mapNamespace("ns", "ephemeral", "expiring")
-		ns.MapKeyTTL = configtypes.Duration(30 * time.Second)
-		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
-		err := cfg.Validate()
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "map_broker must be enabled")
-	})
-
 	t.Run("invalid_sync_mode", func(t *testing.T) {
 		cfg := mapDefaultConfig()
 		ns := mapNamespace("ns", "unknown_mode", "expiring")
@@ -583,7 +570,6 @@ func TestValidateMapNamespace_PresenceAndRemoveOptions(t *testing.T) {
 func TestValidateMapNamespace_MapBrokerType(t *testing.T) {
 	t.Run("unknown_type", func(t *testing.T) {
 		cfg := DefaultConfig()
-		cfg.MapBroker.Enabled = true
 		cfg.MapBroker.Type = "unknown"
 		err := cfg.Validate()
 		require.Error(t, err)
@@ -593,7 +579,6 @@ func TestValidateMapNamespace_MapBrokerType(t *testing.T) {
 	for _, brokerType := range []string{"memory", "redis", "postgres"} {
 		t.Run("valid_"+brokerType, func(t *testing.T) {
 			cfg := DefaultConfig()
-			cfg.MapBroker.Enabled = true
 			cfg.MapBroker.Type = brokerType
 			require.NoError(t, cfg.Validate())
 		})

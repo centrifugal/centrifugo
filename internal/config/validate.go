@@ -178,10 +178,8 @@ func (c Config) Validate() error {
 
 	// Map broker validation.
 	var knownMapBrokers = []string{"memory", "redis", "postgres"}
-	if c.MapBroker.Enabled {
-		if !slices.Contains(knownMapBrokers, c.MapBroker.Type) {
-			return fmt.Errorf("unknown map broker type: %s", c.MapBroker.Type)
-		}
+	if !slices.Contains(knownMapBrokers, c.MapBroker.Type) {
+		return fmt.Errorf("unknown map broker type: %s", c.MapBroker.Type)
 	}
 
 	return nil
@@ -330,9 +328,6 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 		return s == "map" || s == "map_clients" || s == "map_users"
 	})
 	if hasMapTypes {
-		if !cfg.MapBroker.Enabled {
-			return fmt.Errorf("map_broker must be enabled when subscription_types includes map types")
-		}
 		if c.MapSyncMode == "" {
 			return fmt.Errorf("map_sync_mode is required when subscription_types includes map types")
 		}

@@ -76,8 +76,6 @@ type PresenceManager struct {
 
 // MapBroker configures the map broker used for synchronized keyed state channels.
 type MapBroker struct {
-	// Enabled enables the map broker. When false, map subscriptions are not available.
-	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	// Type of map broker to use. Can be "memory", "redis", or "postgres".
 	Type string `mapstructure:"type" default:"memory" json:"type" envconfig:"type" yaml:"type" toml:"type"`
 	// Redis is a configuration for "redis" map broker.

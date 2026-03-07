@@ -137,7 +137,6 @@ func DefineFlags(rootCmd *cobra.Command) {
 	rootCmd.Flags().StringP("broker.type", "", "memory", "broker to use: memory, redis or nats")
 	rootCmd.Flags().BoolP("presence_manager.enabled", "", false, "enable presence manager")
 	rootCmd.Flags().StringP("presence_manager.type", "", "memory", "presence manager to use: memory or redis")
-	rootCmd.Flags().BoolP("map_broker.enabled", "", false, "enable map broker")
 	rootCmd.Flags().StringP("map_broker.type", "", "memory", "map broker to use: memory, redis or postgres")
 	rootCmd.Flags().StringP("log.level", "", "info", "set the log level: trace, debug, info, warn, error, fatal or none")
 	rootCmd.Flags().StringP("log.file", "", "", "optional log file - if not specified logs go to STDOUT")
@@ -177,7 +176,7 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 		bindPFlags := []string{
 			"pid_file", "http_server.port", "http_server.address", "http_server.internal_port",
 			"http_server.internal_address", "log.level", "log.file", "engine.type", "broker.enabled", "broker.type",
-			"presence_manager.enabled", "presence_manager.type", "map_broker.enabled", "map_broker.type",
+			"presence_manager.enabled", "presence_manager.type", "map_broker.type",
 			"debug.enabled", "admin.enabled", "admin.external",
 			"admin.insecure", "client.insecure", "http_api.insecure", "http_api.external", "prometheus.enabled",
 			"health.enabled", "grpc_api.enabled", "grpc_api.port", "uni_grpc.enabled", "uni_grpc.port",
