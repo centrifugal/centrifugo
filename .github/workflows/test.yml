@@ -10,6 +10,7 @@ jobs:
   typos:
     name: Typos Check
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     continue-on-error: true
     steps:
       - uses: actions/checkout@v5
