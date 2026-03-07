@@ -1,6 +1,6 @@
 module github.com/centrifugal/centrifugo/v6
 
-go 1.25.0
+go 1.26
 
 require (
 	cloud.google.com/go/pubsub/v2 v2.4.0
