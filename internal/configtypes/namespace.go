@@ -185,20 +185,20 @@ type ChannelOptions struct {
 	// SubscribeStreamBidirectional enables using bidirectional stream proxy for the namespace.
 	SubscribeStreamBidirectional bool `mapstructure:"subscribe_stream_proxy_bidirectional" json:"subscribe_stream_proxy_bidirectional" envconfig:"subscribe_stream_proxy_bidirectional" yaml:"subscribe_stream_proxy_bidirectional" toml:"subscribe_stream_proxy_bidirectional"`
 
-	// SubscriptionTypes defines allowed subscription types for the namespace.
+	// SubscriptionType defines the subscription type for the namespace.
 	// Valid values: "stream", "map", "map_clients", "map_users".
-	// Default: ["stream"] (traditional PUB/SUB with history).
-	SubscriptionTypes []string `mapstructure:"subscription_types" json:"subscription_types" envconfig:"subscription_types" yaml:"subscription_types" toml:"subscription_types"`
+	// Default: "stream" (traditional PUB/SUB with history).
+	SubscriptionType string `mapstructure:"subscription_type" json:"subscription_type" envconfig:"subscription_type" yaml:"subscription_type" toml:"subscription_type"`
 
 	// MapSyncMode controls how map state is synchronized with subscribers.
 	// Valid values: "ephemeral" (no stream, live updates only) or "converging"
-	// (stream-backed with delta recovery). Only relevant when subscription_types
-	// includes map types.
+	// (stream-backed with delta recovery). Only relevant when subscription_type
+	// is a map type.
 	MapSyncMode string `mapstructure:"map_sync_mode" json:"map_sync_mode" envconfig:"map_sync_mode" yaml:"map_sync_mode" toml:"map_sync_mode"`
 	// MapRetentionMode controls how map entries are retained.
 	// Valid values: "expiring" (entries expire after map_key_ttl) or "permanent"
-	// (entries live until explicitly removed). Only relevant when subscription_types
-	// includes map types.
+	// (entries live until explicitly removed). Only relevant when subscription_type
+	// is a map type.
 	MapRetentionMode string `mapstructure:"map_retention_mode" json:"map_retention_mode" envconfig:"map_retention_mode" yaml:"map_retention_mode" toml:"map_retention_mode"`
 	// MapKeyTTL is the automatic expiration time for map entries. Required when
 	// map_retention_mode is "expiring". Ignored when "permanent".
@@ -226,11 +226,11 @@ type ChannelOptions struct {
 	// not removed on unsubscribe — they expire via TTL to provide grace period for
 	// quick reconnects. Empty string means no user presence.
 	MapUserPresenceNamespace string `mapstructure:"map_user_presence_namespace" json:"map_user_presence_namespace" envconfig:"map_user_presence_namespace" yaml:"map_user_presence_namespace" toml:"map_user_presence_namespace"`
-	// MapRemoveOnUnsubscribe enables automatic cleanup of map state when subscription
+	// MapRemoveClientOnUnsubscribe enables automatic cleanup of map state when subscription
 	// ends. When enabled, the entry with key=clientID is removed from the channel's
 	// map state on unsubscribe or disconnect. Useful for ephemeral state like cursor
 	// positions that should not persist after the client leaves.
-	MapRemoveOnUnsubscribe bool `mapstructure:"map_remove_on_unsubscribe" json:"map_remove_on_unsubscribe" envconfig:"map_remove_on_unsubscribe" yaml:"map_remove_on_unsubscribe" toml:"map_remove_on_unsubscribe"`
+	MapRemoveClientOnUnsubscribe bool `mapstructure:"map_remove_client_on_unsubscribe" json:"map_remove_client_on_unsubscribe" envconfig:"map_remove_client_on_unsubscribe" yaml:"map_remove_client_on_unsubscribe" toml:"map_remove_client_on_unsubscribe"`
 
 	// MapPublishForAnonymous allows anonymous clients to map-publish.
 	MapPublishForAnonymous bool `mapstructure:"allow_map_publish_for_anonymous" json:"allow_map_publish_for_anonymous" envconfig:"allow_map_publish_for_anonymous" yaml:"allow_map_publish_for_anonymous" toml:"allow_map_publish_for_anonymous"`
@@ -259,7 +259,7 @@ type ChannelOptions struct {
 	// MapClientKey controls server-driven key assignment for both map publish and map remove.
 	// "client_id" — key overridden with client ID.
 	// "user_id" — key overridden with user ID.
-	// Empty (default) — client-provided key used as-is.
+	// Empty (default) — client-provided key used as-is – but the backend is encouraged to validate it.
 	MapClientKey string `mapstructure:"map_client_key" json:"map_client_key" envconfig:"map_client_key" yaml:"map_client_key" toml:"map_client_key"`
 
 	Compiled `json:"-" yaml:"-" toml:"-"`

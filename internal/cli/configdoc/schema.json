@@ -1774,7 +1774,7 @@
     "level": 1,
     "type": "MapBroker",
     "default": "",
-    "comment": "MapBroker allows to configure a map broker for synchronized keyed state channels.\nClients can use map subscription types for channels in namespaces\nthat have map types in subscription_types.",
+    "comment": "MapBroker allows to configure a map broker for synchronized keyed state channels.\nClients can use map subscription types for channels in namespaces\nthat have a map subscription_type.",
     "is_complex_type": true,
     "children": [
       {
@@ -6668,13 +6668,13 @@
             "is_complex_type": false
           },
           {
-            "field": "channel.without_namespace.subscription_types",
-            "name": "subscription_types",
-            "go_name": "SubscriptionTypes",
+            "field": "channel.without_namespace.subscription_type",
+            "name": "subscription_type",
+            "go_name": "SubscriptionType",
             "level": 3,
-            "type": "[]string",
+            "type": "string",
             "default": "",
-            "comment": "SubscriptionTypes defines allowed subscription types for the namespace.\nValid values: \"stream\", \"map\", \"map_clients\", \"map_users\".\nDefault: [\"stream\"] (traditional PUB/SUB with history).",
+            "comment": "SubscriptionType defines the subscription type for the namespace.\nValid values: \"stream\", \"map\", \"map_clients\", \"map_users\".\nDefault: \"stream\" (traditional PUB/SUB with history).",
             "is_complex_type": false
           },
           {
@@ -6684,7 +6684,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "MapSyncMode controls how map state is synchronized with subscribers.\nValid values: \"ephemeral\" (no stream, live updates only) or \"converging\"\n(stream-backed with delta recovery). Only relevant when subscription_types\nincludes map types.",
+            "comment": "MapSyncMode controls how map state is synchronized with subscribers.\nValid values: \"ephemeral\" (no stream, live updates only) or \"converging\"\n(stream-backed with delta recovery). Only relevant when subscription_type\nis a map type.",
             "is_complex_type": false
           },
           {
@@ -6694,7 +6694,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "MapRetentionMode controls how map entries are retained.\nValid values: \"expiring\" (entries expire after map_key_ttl) or \"permanent\"\n(entries live until explicitly removed). Only relevant when subscription_types\nincludes map types.",
+            "comment": "MapRetentionMode controls how map entries are retained.\nValid values: \"expiring\" (entries expire after map_key_ttl) or \"permanent\"\n(entries live until explicitly removed). Only relevant when subscription_type\nis a map type.",
             "is_complex_type": false
           },
           {
@@ -6768,13 +6768,13 @@
             "is_complex_type": false
           },
           {
-            "field": "channel.without_namespace.map_remove_on_unsubscribe",
-            "name": "map_remove_on_unsubscribe",
-            "go_name": "MapRemoveOnUnsubscribe",
+            "field": "channel.without_namespace.map_remove_client_on_unsubscribe",
+            "name": "map_remove_client_on_unsubscribe",
+            "go_name": "MapRemoveClientOnUnsubscribe",
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "MapRemoveOnUnsubscribe enables automatic cleanup of map state when subscription\nends. When enabled, the entry with key=clientID is removed from the channel's\nmap state on unsubscribe or disconnect. Useful for ephemeral state like cursor\npositions that should not persist after the client leaves.",
+            "comment": "MapRemoveClientOnUnsubscribe enables automatic cleanup of map state when subscription\nends. When enabled, the entry with key=clientID is removed from the channel's\nmap state on unsubscribe or disconnect. Useful for ephemeral state like cursor\npositions that should not persist after the client leaves.",
             "is_complex_type": false
           },
           {
@@ -7280,13 +7280,13 @@
             "is_complex_type": false
           },
           {
-            "field": "channel.namespaces[].subscription_types",
-            "name": "subscription_types",
-            "go_name": "SubscriptionTypes",
+            "field": "channel.namespaces[].subscription_type",
+            "name": "subscription_type",
+            "go_name": "SubscriptionType",
             "level": 3,
-            "type": "[]string",
+            "type": "string",
             "default": "",
-            "comment": "SubscriptionTypes defines allowed subscription types for the namespace.\nValid values: \"stream\", \"map\", \"map_clients\", \"map_users\".\nDefault: [\"stream\"] (traditional PUB/SUB with history).",
+            "comment": "SubscriptionType defines the subscription type for the namespace.\nValid values: \"stream\", \"map\", \"map_clients\", \"map_users\".\nDefault: \"stream\" (traditional PUB/SUB with history).",
             "is_complex_type": false
           },
           {
@@ -7296,7 +7296,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "MapSyncMode controls how map state is synchronized with subscribers.\nValid values: \"ephemeral\" (no stream, live updates only) or \"converging\"\n(stream-backed with delta recovery). Only relevant when subscription_types\nincludes map types.",
+            "comment": "MapSyncMode controls how map state is synchronized with subscribers.\nValid values: \"ephemeral\" (no stream, live updates only) or \"converging\"\n(stream-backed with delta recovery). Only relevant when subscription_type\nis a map type.",
             "is_complex_type": false
           },
           {
@@ -7306,7 +7306,7 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "MapRetentionMode controls how map entries are retained.\nValid values: \"expiring\" (entries expire after map_key_ttl) or \"permanent\"\n(entries live until explicitly removed). Only relevant when subscription_types\nincludes map types.",
+            "comment": "MapRetentionMode controls how map entries are retained.\nValid values: \"expiring\" (entries expire after map_key_ttl) or \"permanent\"\n(entries live until explicitly removed). Only relevant when subscription_type\nis a map type.",
             "is_complex_type": false
           },
           {
@@ -7380,13 +7380,13 @@
             "is_complex_type": false
           },
           {
-            "field": "channel.namespaces[].map_remove_on_unsubscribe",
-            "name": "map_remove_on_unsubscribe",
-            "go_name": "MapRemoveOnUnsubscribe",
+            "field": "channel.namespaces[].map_remove_client_on_unsubscribe",
+            "name": "map_remove_client_on_unsubscribe",
+            "go_name": "MapRemoveClientOnUnsubscribe",
             "level": 3,
             "type": "bool",
             "default": "",
-            "comment": "MapRemoveOnUnsubscribe enables automatic cleanup of map state when subscription\nends. When enabled, the entry with key=clientID is removed from the channel's\nmap state on unsubscribe or disconnect. Useful for ephemeral state like cursor\npositions that should not persist after the client leaves.",
+            "comment": "MapRemoveClientOnUnsubscribe enables automatic cleanup of map state when subscription\nends. When enabled, the entry with key=clientID is removed from the channel's\nmap state on unsubscribe or disconnect. Useful for ephemeral state like cursor\npositions that should not persist after the client leaves.",
             "is_complex_type": false
           },
           {

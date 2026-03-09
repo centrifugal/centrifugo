@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"slices"
 	"unicode"
 
 	"github.com/centrifugal/centrifugo/v6/internal/clientcontext"
@@ -634,13 +633,13 @@ func isASCII(s string) bool {
 }
 
 // isSubscriptionTypeAllowed checks whether the given subscription type
-// is permitted by the namespace's configured subscription_types list.
-// When no types are configured, only stream subscriptions are allowed.
-func isSubscriptionTypeAllowed(subType centrifuge.SubscriptionType, configuredTypes []string) bool {
-	if len(configuredTypes) == 0 {
+// matches the namespace's configured subscription_type.
+// When no type is configured, only stream subscriptions are allowed.
+func isSubscriptionTypeAllowed(subType centrifuge.SubscriptionType, configuredType string) bool {
+	if configuredType == "" {
 		return subType == centrifuge.SubscriptionTypeStream
 	}
-	return slices.Contains(configuredTypes, subType.String())
+	return configuredType == subType.String()
 }
 
 func (h *Handler) validChannelName(rest string, chOpts configtypes.ChannelOptions, channel string) (bool, error) {
@@ -693,7 +692,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		return centrifuge.SubscribeReply{}, SubscribeExtra{}, err
 	}
 
-	if !isSubscriptionTypeAllowed(e.Type, chOpts.SubscriptionTypes) {
+	if !isSubscriptionTypeAllowed(e.Type, chOpts.SubscriptionType) {
 		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("subscription type not allowed for namespace")
 		return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorPermissionDenied
 	}
@@ -711,14 +710,14 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	options.HistoryMetaTTL = chOpts.HistoryMetaTTL.ToDuration()
 	options.AllowedDeltaTypes = chOpts.AllowedDeltaTypes
 	options.AllowTagsFilter = chOpts.AllowTagsFilter
-	options.MapRemoveOnUnsubscribe = chOpts.MapRemoveOnUnsubscribe
+	options.MapRemoveClientOnUnsubscribe = chOpts.MapRemoveClientOnUnsubscribe
 	if chOpts.MapClientPresenceNamespace != "" {
 		namespaceBoundary := h.cfgContainer.Config().Channel.NamespaceBoundary
-		options.MapClientPresenceChannelPrefix = chOpts.MapClientPresenceNamespace + namespaceBoundary
+		options.MapClientPresenceChannel = chOpts.MapClientPresenceNamespace + namespaceBoundary + rest
 	}
 	if chOpts.MapUserPresenceNamespace != "" {
 		namespaceBoundary := h.cfgContainer.Config().Channel.NamespaceBoundary
-		options.MapUserPresenceChannelPrefix = chOpts.MapUserPresenceNamespace + namespaceBoundary
+		options.MapUserPresenceChannel = chOpts.MapUserPresenceNamespace + namespaceBoundary + rest
 	}
 
 	isPrivateChannel := h.cfgContainer.IsPrivateChannel(e.Channel)

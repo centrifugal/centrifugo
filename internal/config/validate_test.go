@@ -170,9 +170,9 @@ func mapNamespace(name string, syncMode, retentionMode string) configtypes.Chann
 	return configtypes.ChannelNamespace{
 		Name: name,
 		ChannelOptions: configtypes.ChannelOptions{
-			SubscriptionTypes: []string{"map"},
-			MapSyncMode:       syncMode,
-			MapRetentionMode:  retentionMode,
+			SubscriptionType: "map",
+			MapSyncMode:      syncMode,
+			MapRetentionMode: retentionMode,
 		},
 	}
 }
@@ -399,9 +399,9 @@ func TestValidateMapNamespace_RequiredFields(t *testing.T) {
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{{
 			Name: "ns",
 			ChannelOptions: configtypes.ChannelOptions{
-				SubscriptionTypes: []string{"map"},
-				MapRetentionMode:  "expiring",
-				MapKeyTTL:         configtypes.Duration(30 * time.Second),
+				SubscriptionType: "map",
+				MapRetentionMode: "expiring",
+				MapKeyTTL:        configtypes.Duration(30 * time.Second),
 			},
 		}}
 		err := cfg.Validate()
@@ -414,8 +414,8 @@ func TestValidateMapNamespace_RequiredFields(t *testing.T) {
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{{
 			Name: "ns",
 			ChannelOptions: configtypes.ChannelOptions{
-				SubscriptionTypes: []string{"map"},
-				MapSyncMode:       "ephemeral",
+				SubscriptionType: "map",
+				MapSyncMode:      "ephemeral",
 			},
 		}}
 		err := cfg.Validate()
@@ -447,20 +447,20 @@ func TestValidateMapNamespace_RequiredFields(t *testing.T) {
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{{
 			Name: "ns",
 			ChannelOptions: configtypes.ChannelOptions{
-				SubscriptionTypes: []string{"invalid_type"},
+				SubscriptionType: "invalid_type",
 			},
 		}}
 		err := cfg.Validate()
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "unknown subscription type")
+		require.Contains(t, err.Error(), "unknown subscription_type")
 	})
 }
 
-func TestValidateMapNamespace_SubscriptionTypes(t *testing.T) {
+func TestValidateMapNamespace_SubscriptionType(t *testing.T) {
 	t.Run("map_clients", func(t *testing.T) {
 		cfg := mapDefaultConfig()
 		ns := mapNamespace("ns", "ephemeral", "expiring")
-		ns.SubscriptionTypes = []string{"map_clients"}
+		ns.SubscriptionType = "map_clients"
 		ns.MapKeyTTL = configtypes.Duration(60 * time.Second)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
 		require.NoError(t, cfg.Validate())
@@ -469,16 +469,8 @@ func TestValidateMapNamespace_SubscriptionTypes(t *testing.T) {
 	t.Run("map_users", func(t *testing.T) {
 		cfg := mapDefaultConfig()
 		ns := mapNamespace("ns", "ephemeral", "expiring")
-		ns.SubscriptionTypes = []string{"map_users"}
+		ns.SubscriptionType = "map_users"
 		ns.MapKeyTTL = configtypes.Duration(60 * time.Second)
-		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
-		require.NoError(t, cfg.Validate())
-	})
-
-	t.Run("mixed_map_and_stream", func(t *testing.T) {
-		cfg := mapDefaultConfig()
-		ns := mapNamespace("ns", "converging", "permanent")
-		ns.SubscriptionTypes = []string{"stream", "map", "map_clients"}
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
 		require.NoError(t, cfg.Validate())
 	})
@@ -488,7 +480,7 @@ func TestValidateMapNamespace_SubscriptionTypes(t *testing.T) {
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{{
 			Name: "ns",
 			ChannelOptions: configtypes.ChannelOptions{
-				SubscriptionTypes: []string{"stream"},
+				SubscriptionType: "stream",
 			},
 		}}
 		require.NoError(t, cfg.Validate())
@@ -500,7 +492,7 @@ func TestValidateMapNamespace_PresenceAndRemoveOptions(t *testing.T) {
 		cfg := mapDefaultConfig()
 		ns := mapNamespace("ns", "ephemeral", "expiring")
 		ns.MapKeyTTL = configtypes.Duration(60 * time.Second)
-		ns.MapRemoveOnUnsubscribe = true
+		ns.MapRemoveClientOnUnsubscribe = true
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
 		require.NoError(t, cfg.Validate())
 	})
@@ -510,13 +502,13 @@ func TestValidateMapNamespace_PresenceAndRemoveOptions(t *testing.T) {
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{{
 			Name: "ns",
 			ChannelOptions: configtypes.ChannelOptions{
-				SubscriptionTypes:      []string{"stream"},
-				MapRemoveOnUnsubscribe: true,
+				SubscriptionType:             "stream",
+				MapRemoveClientOnUnsubscribe: true,
 			},
 		}}
 		err := cfg.Validate()
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "map_remove_on_unsubscribe requires subscription_types to include map types")
+		require.Contains(t, err.Error(), "map_remove_client_on_unsubscribe requires subscription_type to be a map type")
 	})
 
 	t.Run("client_presence_namespace_valid", func(t *testing.T) {
@@ -557,13 +549,13 @@ func TestValidateMapNamespace_PresenceAndRemoveOptions(t *testing.T) {
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{{
 			Name: "ns",
 			ChannelOptions: configtypes.ChannelOptions{
-				SubscriptionTypes:          []string{"stream"},
+				SubscriptionType:           "stream",
 				MapClientPresenceNamespace: "clients",
 			},
 		}}
 		err := cfg.Validate()
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "map_client_presence_namespace requires subscription_types to include map types")
+		require.Contains(t, err.Error(), "map_client_presence_namespace requires subscription_type to be a map type")
 	})
 }
 

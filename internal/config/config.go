@@ -44,7 +44,7 @@ type Config struct {
 	PresenceManager configtypes.PresenceManager `mapstructure:"presence_manager" json:"presence_manager" envconfig:"presence_manager" toml:"presence_manager" yaml:"presence_manager"`
 	// MapBroker allows to configure a map broker for synchronized keyed state channels.
 	// When enabled, clients can use map subscription types for channels in namespaces
-	// that have map types in subscription_types.
+	// that have a map subscription_type.
 	MapBroker configtypes.MapBroker `mapstructure:"map_broker" json:"map_broker" envconfig:"map_broker" toml:"map_broker" yaml:"map_broker"`
 
 	// Client contains real-time client connection related configuration.

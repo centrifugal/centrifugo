@@ -313,10 +313,8 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 		return fmt.Errorf("unknown map_client_key: %q (valid: \"client_id\", \"user_id\")", c.MapClientKey)
 	}
 
-	for _, st := range c.SubscriptionTypes {
-		if !slices.Contains([]string{"stream", "map", "map_clients", "map_users"}, st) {
-			return fmt.Errorf("unknown subscription type: %q", st)
-		}
+	if c.SubscriptionType != "" && !slices.Contains([]string{"stream", "map", "map_clients", "map_users"}, c.SubscriptionType) {
+		return fmt.Errorf("unknown subscription_type: %q", c.SubscriptionType)
 	}
 	if c.MapSyncMode != "" && !slices.Contains([]string{"ephemeral", "converging"}, c.MapSyncMode) {
 		return fmt.Errorf("unknown map_sync_mode: %q (valid: \"ephemeral\", \"converging\")", c.MapSyncMode)
@@ -324,15 +322,13 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 	if c.MapRetentionMode != "" && !slices.Contains([]string{"expiring", "permanent"}, c.MapRetentionMode) {
 		return fmt.Errorf("unknown map_retention_mode: %q (valid: \"expiring\", \"permanent\")", c.MapRetentionMode)
 	}
-	hasMapTypes := slices.ContainsFunc(c.SubscriptionTypes, func(s string) bool {
-		return s == "map" || s == "map_clients" || s == "map_users"
-	})
-	if hasMapTypes {
+	hasMapType := c.SubscriptionType == "map" || c.SubscriptionType == "map_clients" || c.SubscriptionType == "map_users"
+	if hasMapType {
 		if c.MapSyncMode == "" {
-			return fmt.Errorf("map_sync_mode is required when subscription_types includes map types")
+			return fmt.Errorf("map_sync_mode is required when subscription_type is a map type")
 		}
 		if c.MapRetentionMode == "" {
-			return fmt.Errorf("map_retention_mode is required when subscription_types includes map types")
+			return fmt.Errorf("map_retention_mode is required when subscription_type is a map type")
 		}
 	}
 	if c.MapRetentionMode == "expiring" {
@@ -380,14 +376,14 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 			}
 		}
 	}
-	if c.MapRemoveOnUnsubscribe && !hasMapTypes {
-		return fmt.Errorf("map_remove_on_unsubscribe requires subscription_types to include map types")
+	if c.MapRemoveClientOnUnsubscribe && !hasMapType {
+		return fmt.Errorf("map_remove_client_on_unsubscribe requires subscription_type to be a map type")
 	}
-	if c.MapClientPresenceNamespace != "" && !hasMapTypes {
-		return fmt.Errorf("map_client_presence_namespace requires subscription_types to include map types")
+	if c.MapClientPresenceNamespace != "" && !hasMapType {
+		return fmt.Errorf("map_client_presence_namespace requires subscription_type to be a map type")
 	}
-	if c.MapUserPresenceNamespace != "" && !hasMapTypes {
-		return fmt.Errorf("map_user_presence_namespace requires subscription_types to include map types")
+	if c.MapUserPresenceNamespace != "" && !hasMapType {
+		return fmt.Errorf("map_user_presence_namespace requires subscription_type to be a map type")
 	}
 
 	return nil
