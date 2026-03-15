@@ -277,7 +277,6 @@ type SharedPollConfig struct {
 	RefreshConcurrency             int      `mapstructure:"refresh_concurrency" json:"refresh_concurrency" envconfig:"refresh_concurrency" yaml:"refresh_concurrency" toml:"refresh_concurrency"`
 	MaxTrackedPerConnection        int      `mapstructure:"max_tracked_per_connection" json:"max_tracked_per_connection" envconfig:"max_tracked_per_connection" yaml:"max_tracked_per_connection" toml:"max_tracked_per_connection"`
 	SendItemVersions               bool     `mapstructure:"send_item_versions" json:"send_item_versions" envconfig:"send_item_versions" yaml:"send_item_versions" toml:"send_item_versions"`
-	KeepLatestData                 bool     `mapstructure:"keep_latest_data" json:"keep_latest_data" envconfig:"keep_latest_data" yaml:"keep_latest_data" toml:"keep_latest_data"`
 	MaxConsecutiveAbsences         int      `mapstructure:"max_consecutive_absences" json:"max_consecutive_absences" envconfig:"max_consecutive_absences" yaml:"max_consecutive_absences" toml:"max_consecutive_absences"`
 	SharedPollChannelShutdownDelay Duration `mapstructure:"shared_poll_channel_shutdown_delay" json:"shared_poll_channel_shutdown_delay" envconfig:"shared_poll_channel_shutdown_delay" yaml:"shared_poll_channel_shutdown_delay" toml:"shared_poll_channel_shutdown_delay"`
 }

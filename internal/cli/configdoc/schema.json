@@ -6988,16 +6988,6 @@
                 "is_complex_type": false
               },
               {
-                "field": "channel.without_namespace.shared_poll.keep_latest_data",
-                "name": "keep_latest_data",
-                "go_name": "KeepLatestData",
-                "level": 4,
-                "type": "bool",
-                "default": "",
-                "comment": "",
-                "is_complex_type": false
-              },
-              {
                 "field": "channel.without_namespace.shared_poll.max_consecutive_absences",
                 "name": "max_consecutive_absences",
                 "go_name": "MaxConsecutiveAbsences",
@@ -7705,16 +7695,6 @@
                 "field": "channel.namespaces[].shared_poll.send_item_versions",
                 "name": "send_item_versions",
                 "go_name": "SendItemVersions",
-                "level": 4,
-                "type": "bool",
-                "default": "",
-                "comment": "",
-                "is_complex_type": false
-              },
-              {
-                "field": "channel.namespaces[].shared_poll.keep_latest_data",
-                "name": "keep_latest_data",
-                "go_name": "KeepLatestData",
                 "level": 4,
                 "type": "bool",
                 "default": "",
