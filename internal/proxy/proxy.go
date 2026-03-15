@@ -100,6 +100,16 @@ func GetMapRemoveProxy(name string, p Config) (MapRemoveProxy, error) {
 	return NewGRPCMapRemoveProxy(name, p)
 }
 
+func GetSharedPollRefreshProxy(name string, p Config) (SharedPollRefreshProxy, error) {
+	for i, header := range p.HttpHeaders {
+		p.HttpHeaders[i] = strings.ToLower(header)
+	}
+	if isHttpEndpoint(p.Endpoint) {
+		return NewHTTPSharedPollRefreshProxy(p)
+	}
+	return NewGRPCSharedPollRefreshProxy(name, p)
+}
+
 type PerCallData struct {
 	Meta json.RawMessage
 }

@@ -15,15 +15,16 @@ import (
 
 func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 	proxyMap := &client.ProxyMap{
-		ConnectProxy:           nil,
-		RefreshProxy:           nil,
-		RpcProxies:             map[string]proxy.RPCProxy{},
-		PublishProxies:         map[string]proxy.PublishProxy{},
-		SubscribeProxies:       map[string]proxy.SubscribeProxy{},
-		SubRefreshProxies:      map[string]proxy.SubRefreshProxy{},
-		SubscribeStreamProxies: map[string]*proxy.SubscribeStreamProxy{},
-		MapPublishProxies:      map[string]proxy.MapPublishProxy{},
-		MapRemoveProxies:       map[string]proxy.MapRemoveProxy{},
+		ConnectProxy:             nil,
+		RefreshProxy:             nil,
+		RpcProxies:               map[string]proxy.RPCProxy{},
+		PublishProxies:           map[string]proxy.PublishProxy{},
+		SubscribeProxies:         map[string]proxy.SubscribeProxy{},
+		SubRefreshProxies:        map[string]proxy.SubRefreshProxy{},
+		SubscribeStreamProxies:   map[string]*proxy.SubscribeStreamProxy{},
+		MapPublishProxies:        map[string]proxy.MapPublishProxy{},
+		MapRemoveProxies:         map[string]proxy.MapRemoveProxy{},
+		SharedPollRefreshProxies: map[string]*proxy.SharedPollRefreshHandler{},
 	}
 
 	var keepHeadersInContext bool
@@ -366,6 +367,47 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 				keepHeadersInContext = true
 			}
 		}
+
+		if ns.SubscriptionType == "shared_poll" && ns.SharedPoll.ProxyName != "" {
+			sharedPollProxyName := ns.SharedPoll.ProxyName
+			if _, ok := proxyMap.SharedPollRefreshProxies[sharedPollProxyName]; !ok {
+				var p proxy.Config
+				p, proxyFound = namedProxies[sharedPollProxyName]
+				if !proxyFound {
+					return nil, false, fmt.Errorf("shared poll refresh proxy not found: %s", sharedPollProxyName)
+				}
+				sp, err := proxy.GetSharedPollRefreshProxy(sharedPollProxyName, p)
+				if err != nil {
+					return nil, false, fmt.Errorf("error creating shared poll refresh proxy %s: %w", sharedPollProxyName, err)
+				}
+				handler := proxy.NewSharedPollRefreshHandler(proxy.SharedPollRefreshHandlerConfig{
+					Proxy: sp,
+				})
+				proxyMap.SharedPollRefreshProxies[sharedPollProxyName] = handler
+			}
+			log.Info().Str("proxy_name", sharedPollProxyName).Str("namespace", ns.Name).Msg("shared poll refresh proxy enabled for channels in namespace")
+		}
+	}
+
+	// Also check without-namespace channels for shared poll proxy.
+	if cfg.Channel.WithoutNamespace.SubscriptionType == "shared_poll" && cfg.Channel.WithoutNamespace.SharedPoll.ProxyName != "" {
+		sharedPollProxyName := cfg.Channel.WithoutNamespace.SharedPoll.ProxyName
+		if _, ok := proxyMap.SharedPollRefreshProxies[sharedPollProxyName]; !ok {
+			var p proxy.Config
+			p, proxyFound = namedProxies[sharedPollProxyName]
+			if !proxyFound {
+				return nil, false, fmt.Errorf("shared poll refresh proxy not found: %s", sharedPollProxyName)
+			}
+			sp, err := proxy.GetSharedPollRefreshProxy(sharedPollProxyName, p)
+			if err != nil {
+				return nil, false, fmt.Errorf("error creating shared poll refresh proxy %s: %w", sharedPollProxyName, err)
+			}
+			handler := proxy.NewSharedPollRefreshHandler(proxy.SharedPollRefreshHandlerConfig{
+				Proxy: sp,
+			})
+			proxyMap.SharedPollRefreshProxies[sharedPollProxyName] = handler
+		}
+		log.Info().Str("proxy_name", sharedPollProxyName).Msg("shared poll refresh proxy enabled for channels without namespace")
 	}
 
 	rpcProxyEnabled := cfg.RPC.WithoutNamespace.ProxyEnabled

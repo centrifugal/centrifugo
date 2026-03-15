@@ -32,8 +32,9 @@ type ProxyMap struct {
 	SubscribeProxies       map[string]proxy.SubscribeProxy
 	SubRefreshProxies      map[string]proxy.SubRefreshProxy
 	SubscribeStreamProxies map[string]*proxy.SubscribeStreamProxy
-	MapPublishProxies      map[string]proxy.MapPublishProxy
-	MapRemoveProxies       map[string]proxy.MapRemoveProxy
+	MapPublishProxies          map[string]proxy.MapPublishProxy
+	MapRemoveProxies           map[string]proxy.MapRemoveProxy
+	SharedPollRefreshProxies   map[string]*proxy.SharedPollRefreshHandler
 }
 
 // Handler for client connections.
@@ -142,6 +143,18 @@ func (h *Handler) Setup() error {
 		}).Handle(h.node)
 	}
 
+	// Wire shared poll refresh proxy handlers.
+	if len(h.proxyMap.SharedPollRefreshProxies) > 0 {
+		// Pick the first handler – in practice we expect a single shared poll proxy for now,
+		// the per-namespace dispatch can be added later.
+		var sharedPollHandler centrifuge.SharedPollHandler
+		for _, handler := range h.proxyMap.SharedPollRefreshProxies {
+			sharedPollHandler = handler.Handle(h.node)
+			break
+		}
+		h.node.OnSharedPoll(sharedPollHandler)
+	}
+
 	cfg := h.cfgContainer.Config()
 	concurrency := cfg.Client.Concurrency
 
@@ -212,6 +225,13 @@ func (h *Handler) Setup() error {
 		client.OnMapRemove(func(event centrifuge.MapRemoveEvent, cb centrifuge.MapRemoveCallback) {
 			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
 				reply, err := h.OnMapRemove(client, event, mapRemoveProxyHandler)
+				cb(reply, err)
+			})
+		})
+
+		client.OnKeyedTrack(func(event centrifuge.KeyedTrackEvent, cb centrifuge.KeyedTrackCallback) {
+			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
+				reply, err := h.OnKeyedTrack(client, event)
 				cb(reply, err)
 			})
 		})
@@ -999,6 +1019,45 @@ func (h *Handler) OnMapRemove(c Client, e centrifuge.MapRemoveEvent, mapRemovePr
 	}
 
 	return reply, nil
+}
+
+// OnKeyedTrack handles track requests for shared poll channels.
+func (h *Handler) OnKeyedTrack(c Client, e centrifuge.KeyedTrackEvent) (centrifuge.KeyedTrackReply, error) {
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(e.Channel)
+	if err != nil {
+		log.Error().Err(err).Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("error getting channel options")
+		return centrifuge.KeyedTrackReply{}, err
+	}
+	if !found {
+		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("keyed track unknown channel")
+		return centrifuge.KeyedTrackReply{}, centrifuge.ErrorUnknownChannel
+	}
+	if chOpts.SubscriptionType != "shared_poll" {
+		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("keyed track not allowed for non-shared_poll channel")
+		return centrifuge.KeyedTrackReply{}, centrifuge.ErrorPermissionDenied
+	}
+
+	secret := chOpts.SharedPoll.TokenHMACSecret
+	if secret == "" {
+		log.Error().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("shared poll token_hmac_secret not configured")
+		return centrifuge.KeyedTrackReply{}, centrifuge.ErrorInternal
+	}
+
+	keys := make([]string, len(e.Items))
+	for i, item := range e.Items {
+		keys[i] = item.Key
+	}
+
+	if !verifyTrackSignature(secret, e.Channel, e.Signature, keys, e.UserID) {
+		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("invalid track signature")
+		return centrifuge.KeyedTrackReply{}, centrifuge.ErrorPermissionDenied
+	}
+
+	_, expiry := parseSignatureTimestamps(e.Signature)
+
+	return centrifuge.KeyedTrackReply{
+		ExpireAt: expiry,
+	}, nil
 }
 
 func (h *Handler) hasAccessToPresence(c Client, channel string, chOpts configtypes.ChannelOptions, forceSubscribed bool) bool {

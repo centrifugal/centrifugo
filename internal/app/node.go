@@ -66,6 +66,25 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 			MetaTTL:       chOpts.MapMetaTTL.ToDuration(),
 		}
 	}
+	cfg.GetSharedPollChannelOptions = func(channel string) (centrifuge.SharedPollChannelOptions, bool) {
+		_, _, chOpts, ok, err := cfgContainer.ChannelOptions(channel)
+		if err != nil || !ok {
+			return centrifuge.SharedPollChannelOptions{}, false
+		}
+		if chOpts.SubscriptionType != "shared_poll" {
+			return centrifuge.SharedPollChannelOptions{}, false
+		}
+		return centrifuge.SharedPollChannelOptions{
+			MaxTrackedPerConnection:        chOpts.SharedPoll.MaxTrackedPerConnection,
+			RefreshInterval:                chOpts.SharedPoll.RefreshInterval.ToDuration(),
+			RefreshBatchSize:               chOpts.SharedPoll.RefreshBatchSize,
+			RefreshConcurrency:             chOpts.SharedPoll.RefreshConcurrency,
+			SendItemVersions:               chOpts.SharedPoll.SendItemVersions,
+			KeepLatestData:                 chOpts.SharedPoll.KeepLatestData,
+			MaxConsecutiveAbsences:         chOpts.SharedPoll.MaxConsecutiveAbsences,
+			SharedPollChannelShutdownDelay: chOpts.SharedPoll.SharedPollChannelShutdownDelay.ToDuration(),
+		}, true
+	}
 	cfg.HistoryMetaTTL = appCfg.Channel.HistoryMetaTTL.ToDuration()
 	cfg.ClientConnectIncludeServerTime = appCfg.Client.ConnectIncludeServerTime
 	cfg.LogLevel = logging.CentrifugeLogLevel(strings.ToLower(appCfg.Log.Level))

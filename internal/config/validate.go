@@ -313,8 +313,16 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 		return fmt.Errorf("unknown map_client_key: %q (valid: \"client_id\", \"user_id\")", c.MapClientKey)
 	}
 
-	if c.SubscriptionType != "" && !slices.Contains([]string{"stream", "map", "map_clients", "map_users"}, c.SubscriptionType) {
+	if c.SubscriptionType != "" && !slices.Contains([]string{"stream", "map", "map_clients", "map_users", "shared_poll"}, c.SubscriptionType) {
 		return fmt.Errorf("unknown subscription_type: %q", c.SubscriptionType)
+	}
+	if c.SubscriptionType == "shared_poll" {
+		if c.SharedPoll.TokenHMACSecret == "" {
+			return fmt.Errorf("token_hmac_secret is required when subscription_type is \"shared_poll\"")
+		}
+		if c.SharedPoll.ProxyName != "" && !slices.Contains(proxyNames, c.SharedPoll.ProxyName) {
+			return fmt.Errorf("shared poll proxy with name %q not found", c.SharedPoll.ProxyName)
+		}
 	}
 	if c.MapSyncMode != "" && !slices.Contains([]string{"ephemeral", "converging"}, c.MapSyncMode) {
 		return fmt.Errorf("unknown map_sync_mode: %q (valid: \"ephemeral\", \"converging\")", c.MapSyncMode)

@@ -12,6 +12,7 @@ type RequestEncoder interface {
 	EncodeNotifyCacheEmptyRequest(req *NotifyCacheEmptyRequest) ([]byte, error)
 	EncodeMapPublishRequest(req *MapPublishRequest) ([]byte, error)
 	EncodeMapRemoveRequest(req *MapRemoveRequest) ([]byte, error)
+	EncodeSharedPollRefreshRequest(req *SharedPollRefreshRequest) ([]byte, error)
 }
 
 var _ RequestEncoder = (*JSONEncoder)(nil)
@@ -51,5 +52,9 @@ func (e *JSONEncoder) EncodeMapPublishRequest(req *MapPublishRequest) ([]byte, e
 }
 
 func (e *JSONEncoder) EncodeMapRemoveRequest(req *MapRemoveRequest) ([]byte, error) {
+	return json.Marshal(req)
+}
+
+func (e *JSONEncoder) EncodeSharedPollRefreshRequest(req *SharedPollRefreshRequest) ([]byte, error) {
 	return json.Marshal(req)
 }

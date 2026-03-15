@@ -262,7 +262,24 @@ type ChannelOptions struct {
 	// Empty (default) — client-provided key used as-is – but the backend is encouraged to validate it.
 	MapClientKey string `mapstructure:"map_client_key" json:"map_client_key" envconfig:"map_client_key" yaml:"map_client_key" toml:"map_client_key"`
 
+	// SharedPoll contains configuration for shared poll subscription type.
+	SharedPoll SharedPollConfig `mapstructure:"shared_poll" json:"shared_poll" envconfig:"shared_poll" yaml:"shared_poll" toml:"shared_poll"`
+
 	Compiled `json:"-" yaml:"-" toml:"-"`
+}
+
+// SharedPollConfig contains configuration for shared poll subscription type.
+type SharedPollConfig struct {
+	ProxyName                      string   `mapstructure:"proxy_name" json:"proxy_name" envconfig:"proxy_name" yaml:"proxy_name" toml:"proxy_name"`
+	TokenHMACSecret                string   `mapstructure:"token_hmac_secret" json:"token_hmac_secret" envconfig:"token_hmac_secret" yaml:"token_hmac_secret" toml:"token_hmac_secret"`
+	RefreshInterval                Duration `mapstructure:"refresh_interval" json:"refresh_interval" envconfig:"refresh_interval" yaml:"refresh_interval" toml:"refresh_interval"`
+	RefreshBatchSize               int      `mapstructure:"refresh_batch_size" json:"refresh_batch_size" envconfig:"refresh_batch_size" yaml:"refresh_batch_size" toml:"refresh_batch_size"`
+	RefreshConcurrency             int      `mapstructure:"refresh_concurrency" json:"refresh_concurrency" envconfig:"refresh_concurrency" yaml:"refresh_concurrency" toml:"refresh_concurrency"`
+	MaxTrackedPerConnection        int      `mapstructure:"max_tracked_per_connection" json:"max_tracked_per_connection" envconfig:"max_tracked_per_connection" yaml:"max_tracked_per_connection" toml:"max_tracked_per_connection"`
+	SendItemVersions               bool     `mapstructure:"send_item_versions" json:"send_item_versions" envconfig:"send_item_versions" yaml:"send_item_versions" toml:"send_item_versions"`
+	KeepLatestData                 bool     `mapstructure:"keep_latest_data" json:"keep_latest_data" envconfig:"keep_latest_data" yaml:"keep_latest_data" toml:"keep_latest_data"`
+	MaxConsecutiveAbsences         int      `mapstructure:"max_consecutive_absences" json:"max_consecutive_absences" envconfig:"max_consecutive_absences" yaml:"max_consecutive_absences" toml:"max_consecutive_absences"`
+	SharedPollChannelShutdownDelay Duration `mapstructure:"shared_poll_channel_shutdown_delay" json:"shared_poll_channel_shutdown_delay" envconfig:"shared_poll_channel_shutdown_delay" yaml:"shared_poll_channel_shutdown_delay" toml:"shared_poll_channel_shutdown_delay"`
 }
 
 type Compiled struct {

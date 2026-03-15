@@ -1774,7 +1774,7 @@
     "level": 1,
     "type": "MapBroker",
     "default": "",
-    "comment": "MapBroker allows to configure a map broker for synchronized keyed state channels.\nClients can use map subscription types for channels in namespaces\nthat have a map subscription_type.",
+    "comment": "MapBroker allows to configure a map broker for synchronized keyed state channels.\nWhen enabled, clients can use map subscription types for channels in namespaces\nthat have a map subscription_type.",
     "is_complex_type": true,
     "children": [
       {
@@ -3804,7 +3804,7 @@
         "level": 2,
         "type": "int",
         "default": "100",
-        "comment": "MapPaginationMinLimit sets the minimum number of items per page in map subscription pagination requests. This prevents excessive round trips. Zero means default (100).",
+        "comment": "MapPaginationMinLimit sets the minimum number of items per page in map subscription\npagination requests. This prevents excessive round trips. Zero means default (100).",
         "is_complex_type": false
       },
       {
@@ -6884,8 +6884,120 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "MapClientKey controls server-driven key assignment for both map publish and map remove.\n\"client_id\" — key overridden with client ID.\n\"user_id\" — key overridden with user ID.\nEmpty (default) — client-provided key used as-is.",
+            "comment": "MapClientKey controls server-driven key assignment for both map publish and map remove.\n\"client_id\" — key overridden with client ID.\n\"user_id\" — key overridden with user ID.\nEmpty (default) — client-provided key used as-is – but the backend is encouraged to validate it.",
             "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.shared_poll",
+            "name": "shared_poll",
+            "go_name": "SharedPoll",
+            "level": 3,
+            "type": "SharedPollConfig",
+            "default": "",
+            "comment": "SharedPoll contains configuration for shared poll subscription type.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "channel.without_namespace.shared_poll.proxy_name",
+                "name": "proxy_name",
+                "go_name": "ProxyName",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.token_hmac_secret",
+                "name": "token_hmac_secret",
+                "go_name": "TokenHMACSecret",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.refresh_interval",
+                "name": "refresh_interval",
+                "go_name": "RefreshInterval",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.refresh_batch_size",
+                "name": "refresh_batch_size",
+                "go_name": "RefreshBatchSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.refresh_concurrency",
+                "name": "refresh_concurrency",
+                "go_name": "RefreshConcurrency",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.max_tracked_per_connection",
+                "name": "max_tracked_per_connection",
+                "go_name": "MaxTrackedPerConnection",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.send_item_versions",
+                "name": "send_item_versions",
+                "go_name": "SendItemVersions",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.keep_latest_data",
+                "name": "keep_latest_data",
+                "go_name": "KeepLatestData",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.max_consecutive_absences",
+                "name": "max_consecutive_absences",
+                "go_name": "MaxConsecutiveAbsences",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.shared_poll_channel_shutdown_delay",
+                "name": "shared_poll_channel_shutdown_delay",
+                "go_name": "SharedPollChannelShutdownDelay",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              }
+            ]
           }
         ]
       },
@@ -7496,8 +7608,120 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "MapClientKey controls server-driven key assignment for both map publish and map remove.\n\"client_id\" — key overridden with client ID.\n\"user_id\" — key overridden with user ID.\nEmpty (default) — client-provided key used as-is.",
+            "comment": "MapClientKey controls server-driven key assignment for both map publish and map remove.\n\"client_id\" — key overridden with client ID.\n\"user_id\" — key overridden with user ID.\nEmpty (default) — client-provided key used as-is – but the backend is encouraged to validate it.",
             "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].shared_poll",
+            "name": "shared_poll",
+            "go_name": "SharedPoll",
+            "level": 3,
+            "type": "SharedPollConfig",
+            "default": "",
+            "comment": "SharedPoll contains configuration for shared poll subscription type.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "channel.namespaces[].shared_poll.proxy_name",
+                "name": "proxy_name",
+                "go_name": "ProxyName",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.token_hmac_secret",
+                "name": "token_hmac_secret",
+                "go_name": "TokenHMACSecret",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.refresh_interval",
+                "name": "refresh_interval",
+                "go_name": "RefreshInterval",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.refresh_batch_size",
+                "name": "refresh_batch_size",
+                "go_name": "RefreshBatchSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.refresh_concurrency",
+                "name": "refresh_concurrency",
+                "go_name": "RefreshConcurrency",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.max_tracked_per_connection",
+                "name": "max_tracked_per_connection",
+                "go_name": "MaxTrackedPerConnection",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.send_item_versions",
+                "name": "send_item_versions",
+                "go_name": "SendItemVersions",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.keep_latest_data",
+                "name": "keep_latest_data",
+                "go_name": "KeepLatestData",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.max_consecutive_absences",
+                "name": "max_consecutive_absences",
+                "go_name": "MaxConsecutiveAbsences",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.shared_poll_channel_shutdown_delay",
+                "name": "shared_poll_channel_shutdown_delay",
+                "go_name": "SharedPollChannelShutdownDelay",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              }
+            ]
           }
         ]
       },
