@@ -36,6 +36,8 @@ service CentrifugoProxy {
   rpc MapPublish(MapPublishRequest) returns (MapPublishResponse);
   // MapRemove to proxy map remove attempts from channels.
   rpc MapRemove(MapRemoveRequest) returns (MapRemoveResponse);
+  // SharedPollRefresh to proxy shared poll refresh requests to the app backend.
+  rpc SharedPollRefresh(SharedPollRefreshRequest) returns (SharedPollRefreshResponse);
 }
 
 message Disconnect {
@@ -342,3 +344,30 @@ message NotifyChannelStateResponse {
 }
 
 message NotifyChannelStateResult {}
+
+message SharedPollRefreshRequest {
+  string channel = 1;
+  repeated SharedPollRefreshItem items = 2;
+}
+
+message SharedPollRefreshItem {
+  string key = 1;
+  uint64 version = 2;
+}
+
+message SharedPollRefreshResult {
+  repeated SharedPollRefreshResultItem items = 1;
+}
+
+message SharedPollRefreshResultItem {
+  string key = 1;
+  bytes data = 2;
+  uint64 version = 3;
+  bool removed = 4;
+  bytes prev_data = 5;
+}
+
+message SharedPollRefreshResponse {
+  SharedPollRefreshResult result = 1;
+  Error error = 2;
+}

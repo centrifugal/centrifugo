@@ -31,6 +31,7 @@ const (
 	CentrifugoProxy_NotifyChannelState_FullMethodName      = "/centrifugal.centrifugo.proxy.CentrifugoProxy/NotifyChannelState"
 	CentrifugoProxy_MapPublish_FullMethodName              = "/centrifugal.centrifugo.proxy.CentrifugoProxy/MapPublish"
 	CentrifugoProxy_MapRemove_FullMethodName               = "/centrifugal.centrifugo.proxy.CentrifugoProxy/MapRemove"
+	CentrifugoProxy_SharedPollRefresh_FullMethodName       = "/centrifugal.centrifugo.proxy.CentrifugoProxy/SharedPollRefresh"
 )
 
 // CentrifugoProxyClient is the client API for CentrifugoProxy service.
@@ -68,6 +69,8 @@ type CentrifugoProxyClient interface {
 	MapPublish(ctx context.Context, in *MapPublishRequest, opts ...grpc.CallOption) (*MapPublishResponse, error)
 	// MapRemove to proxy map remove attempts from channels.
 	MapRemove(ctx context.Context, in *MapRemoveRequest, opts ...grpc.CallOption) (*MapRemoveResponse, error)
+	// SharedPollRefresh to proxy shared poll refresh requests to the app backend.
+	SharedPollRefresh(ctx context.Context, in *SharedPollRefreshRequest, opts ...grpc.CallOption) (*SharedPollRefreshResponse, error)
 }
 
 type centrifugoProxyClient struct {
@@ -210,6 +213,16 @@ func (c *centrifugoProxyClient) MapRemove(ctx context.Context, in *MapRemoveRequ
 	return out, nil
 }
 
+func (c *centrifugoProxyClient) SharedPollRefresh(ctx context.Context, in *SharedPollRefreshRequest, opts ...grpc.CallOption) (*SharedPollRefreshResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SharedPollRefreshResponse)
+	err := c.cc.Invoke(ctx, CentrifugoProxy_SharedPollRefresh_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CentrifugoProxyServer is the server API for CentrifugoProxy service.
 // All implementations must embed UnimplementedCentrifugoProxyServer
 // for forward compatibility.
@@ -245,6 +258,8 @@ type CentrifugoProxyServer interface {
 	MapPublish(context.Context, *MapPublishRequest) (*MapPublishResponse, error)
 	// MapRemove to proxy map remove attempts from channels.
 	MapRemove(context.Context, *MapRemoveRequest) (*MapRemoveResponse, error)
+	// SharedPollRefresh to proxy shared poll refresh requests to the app backend.
+	SharedPollRefresh(context.Context, *SharedPollRefreshRequest) (*SharedPollRefreshResponse, error)
 	mustEmbedUnimplementedCentrifugoProxyServer()
 }
 
@@ -290,6 +305,9 @@ func (UnimplementedCentrifugoProxyServer) MapPublish(context.Context, *MapPublis
 }
 func (UnimplementedCentrifugoProxyServer) MapRemove(context.Context, *MapRemoveRequest) (*MapRemoveResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MapRemove not implemented")
+}
+func (UnimplementedCentrifugoProxyServer) SharedPollRefresh(context.Context, *SharedPollRefreshRequest) (*SharedPollRefreshResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SharedPollRefresh not implemented")
 }
 func (UnimplementedCentrifugoProxyServer) mustEmbedUnimplementedCentrifugoProxyServer() {}
 func (UnimplementedCentrifugoProxyServer) testEmbeddedByValue()                         {}
@@ -510,6 +528,24 @@ func _CentrifugoProxy_MapRemove_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CentrifugoProxy_SharedPollRefresh_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SharedPollRefreshRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoProxyServer).SharedPollRefresh(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CentrifugoProxy_SharedPollRefresh_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoProxyServer).SharedPollRefresh(ctx, req.(*SharedPollRefreshRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CentrifugoProxy_ServiceDesc is the grpc.ServiceDesc for CentrifugoProxy service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -556,6 +592,10 @@ var CentrifugoProxy_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MapRemove",
 			Handler:    _CentrifugoProxy_MapRemove_Handler,
+		},
+		{
+			MethodName: "SharedPollRefresh",
+			Handler:    _CentrifugoProxy_SharedPollRefresh_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -2818,6 +2818,282 @@ func (*NotifyChannelStateResult) Descriptor() ([]byte, []int) {
 	return file_proxy_proto_rawDescGZIP(), []int{40}
 }
 
+type SharedPollRefreshRequest struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Channel       string                   `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	Items         []*SharedPollRefreshItem `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SharedPollRefreshRequest) Reset() {
+	*x = SharedPollRefreshRequest{}
+	mi := &file_proxy_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SharedPollRefreshRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SharedPollRefreshRequest) ProtoMessage() {}
+
+func (x *SharedPollRefreshRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxy_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SharedPollRefreshRequest.ProtoReflect.Descriptor instead.
+func (*SharedPollRefreshRequest) Descriptor() ([]byte, []int) {
+	return file_proxy_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *SharedPollRefreshRequest) GetChannel() string {
+	if x != nil {
+		return x.Channel
+	}
+	return ""
+}
+
+func (x *SharedPollRefreshRequest) GetItems() []*SharedPollRefreshItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+type SharedPollRefreshItem struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Version       uint64                 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SharedPollRefreshItem) Reset() {
+	*x = SharedPollRefreshItem{}
+	mi := &file_proxy_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SharedPollRefreshItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SharedPollRefreshItem) ProtoMessage() {}
+
+func (x *SharedPollRefreshItem) ProtoReflect() protoreflect.Message {
+	mi := &file_proxy_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SharedPollRefreshItem.ProtoReflect.Descriptor instead.
+func (*SharedPollRefreshItem) Descriptor() ([]byte, []int) {
+	return file_proxy_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *SharedPollRefreshItem) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *SharedPollRefreshItem) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+type SharedPollRefreshResult struct {
+	state         protoimpl.MessageState         `protogen:"open.v1"`
+	Items         []*SharedPollRefreshResultItem `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SharedPollRefreshResult) Reset() {
+	*x = SharedPollRefreshResult{}
+	mi := &file_proxy_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SharedPollRefreshResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SharedPollRefreshResult) ProtoMessage() {}
+
+func (x *SharedPollRefreshResult) ProtoReflect() protoreflect.Message {
+	mi := &file_proxy_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SharedPollRefreshResult.ProtoReflect.Descriptor instead.
+func (*SharedPollRefreshResult) Descriptor() ([]byte, []int) {
+	return file_proxy_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *SharedPollRefreshResult) GetItems() []*SharedPollRefreshResultItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+type SharedPollRefreshResultItem struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Data          Raw                    `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	Version       uint64                 `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
+	Removed       bool                   `protobuf:"varint,4,opt,name=removed,proto3" json:"removed,omitempty"`
+	PrevData      Raw                    `protobuf:"bytes,5,opt,name=prev_data,json=prevData,proto3" json:"prev_data,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SharedPollRefreshResultItem) Reset() {
+	*x = SharedPollRefreshResultItem{}
+	mi := &file_proxy_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SharedPollRefreshResultItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SharedPollRefreshResultItem) ProtoMessage() {}
+
+func (x *SharedPollRefreshResultItem) ProtoReflect() protoreflect.Message {
+	mi := &file_proxy_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SharedPollRefreshResultItem.ProtoReflect.Descriptor instead.
+func (*SharedPollRefreshResultItem) Descriptor() ([]byte, []int) {
+	return file_proxy_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *SharedPollRefreshResultItem) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *SharedPollRefreshResultItem) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *SharedPollRefreshResultItem) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *SharedPollRefreshResultItem) GetRemoved() bool {
+	if x != nil {
+		return x.Removed
+	}
+	return false
+}
+
+func (x *SharedPollRefreshResultItem) GetPrevData() []byte {
+	if x != nil {
+		return x.PrevData
+	}
+	return nil
+}
+
+type SharedPollRefreshResponse struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Result        *SharedPollRefreshResult `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	Error         *Error                   `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SharedPollRefreshResponse) Reset() {
+	*x = SharedPollRefreshResponse{}
+	mi := &file_proxy_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SharedPollRefreshResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SharedPollRefreshResponse) ProtoMessage() {}
+
+func (x *SharedPollRefreshResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxy_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SharedPollRefreshResponse.ProtoReflect.Descriptor instead.
+func (*SharedPollRefreshResponse) Descriptor() ([]byte, []int) {
+	return file_proxy_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *SharedPollRefreshResponse) GetResult() *SharedPollRefreshResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+func (x *SharedPollRefreshResponse) GetError() *Error {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
 var File_proxy_proto protoreflect.FileDescriptor
 
 const file_proxy_proto_rawDesc = "" +
@@ -3062,7 +3338,24 @@ const file_proxy_proto_rawDesc = "" +
 	"\x1aNotifyChannelStateResponse\x12N\n" +
 	"\x06result\x18\x01 \x01(\v26.centrifugal.centrifugo.proxy.NotifyChannelStateResultR\x06result\x129\n" +
 	"\x05error\x18\x02 \x01(\v2#.centrifugal.centrifugo.proxy.ErrorR\x05error\"\x1a\n" +
-	"\x18NotifyChannelStateResult2\x82\v\n" +
+	"\x18NotifyChannelStateResult\"\x7f\n" +
+	"\x18SharedPollRefreshRequest\x12\x18\n" +
+	"\achannel\x18\x01 \x01(\tR\achannel\x12I\n" +
+	"\x05items\x18\x02 \x03(\v23.centrifugal.centrifugo.proxy.SharedPollRefreshItemR\x05items\"C\n" +
+	"\x15SharedPollRefreshItem\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\x04R\aversion\"j\n" +
+	"\x17SharedPollRefreshResult\x12O\n" +
+	"\x05items\x18\x01 \x03(\v29.centrifugal.centrifugo.proxy.SharedPollRefreshResultItemR\x05items\"\x94\x01\n" +
+	"\x1bSharedPollRefreshResultItem\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x12\n" +
+	"\x04data\x18\x02 \x01(\fR\x04data\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\x04R\aversion\x12\x18\n" +
+	"\aremoved\x18\x04 \x01(\bR\aremoved\x12\x1b\n" +
+	"\tprev_data\x18\x05 \x01(\fR\bprevData\"\xa5\x01\n" +
+	"\x19SharedPollRefreshResponse\x12M\n" +
+	"\x06result\x18\x01 \x01(\v25.centrifugal.centrifugo.proxy.SharedPollRefreshResultR\x06result\x129\n" +
+	"\x05error\x18\x02 \x01(\v2#.centrifugal.centrifugo.proxy.ErrorR\x05error2\x89\f\n" +
 	"\x0fCentrifugoProxy\x12f\n" +
 	"\aConnect\x12,.centrifugal.centrifugo.proxy.ConnectRequest\x1a-.centrifugal.centrifugo.proxy.ConnectResponse\x12f\n" +
 	"\aRefresh\x12,.centrifugal.centrifugo.proxy.RefreshRequest\x1a-.centrifugal.centrifugo.proxy.RefreshResponse\x12l\n" +
@@ -3077,7 +3370,8 @@ const file_proxy_proto_rawDesc = "" +
 	"\x12NotifyChannelState\x127.centrifugal.centrifugo.proxy.NotifyChannelStateRequest\x1a8.centrifugal.centrifugo.proxy.NotifyChannelStateResponse\x12o\n" +
 	"\n" +
 	"MapPublish\x12/.centrifugal.centrifugo.proxy.MapPublishRequest\x1a0.centrifugal.centrifugo.proxy.MapPublishResponse\x12l\n" +
-	"\tMapRemove\x12..centrifugal.centrifugo.proxy.MapRemoveRequest\x1a/.centrifugal.centrifugo.proxy.MapRemoveResponseB\x0fZ\r./;proxyprotob\x06proto3"
+	"\tMapRemove\x12..centrifugal.centrifugo.proxy.MapRemoveRequest\x1a/.centrifugal.centrifugo.proxy.MapRemoveResponse\x12\x84\x01\n" +
+	"\x11SharedPollRefresh\x126.centrifugal.centrifugo.proxy.SharedPollRefreshRequest\x1a7.centrifugal.centrifugo.proxy.SharedPollRefreshResponseB\x0fZ\r./;proxyprotob\x06proto3"
 
 var (
 	file_proxy_proto_rawDescOnce sync.Once
@@ -3091,55 +3385,60 @@ func file_proxy_proto_rawDescGZIP() []byte {
 	return file_proxy_proto_rawDescData
 }
 
-var file_proxy_proto_msgTypes = make([]protoimpl.MessageInfo, 43)
+var file_proxy_proto_msgTypes = make([]protoimpl.MessageInfo, 48)
 var file_proxy_proto_goTypes = []any{
-	(*Disconnect)(nil),                 // 0: centrifugal.centrifugo.proxy.Disconnect
-	(*Error)(nil),                      // 1: centrifugal.centrifugo.proxy.Error
-	(*ConnectRequest)(nil),             // 2: centrifugal.centrifugo.proxy.ConnectRequest
-	(*SubscribeOptions)(nil),           // 3: centrifugal.centrifugo.proxy.SubscribeOptions
-	(*ConnectResult)(nil),              // 4: centrifugal.centrifugo.proxy.ConnectResult
-	(*ChannelsCapability)(nil),         // 5: centrifugal.centrifugo.proxy.ChannelsCapability
-	(*ConnectResponse)(nil),            // 6: centrifugal.centrifugo.proxy.ConnectResponse
-	(*RefreshRequest)(nil),             // 7: centrifugal.centrifugo.proxy.RefreshRequest
-	(*RefreshResult)(nil),              // 8: centrifugal.centrifugo.proxy.RefreshResult
-	(*RefreshResponse)(nil),            // 9: centrifugal.centrifugo.proxy.RefreshResponse
-	(*SubscribeRequest)(nil),           // 10: centrifugal.centrifugo.proxy.SubscribeRequest
-	(*BoolValue)(nil),                  // 11: centrifugal.centrifugo.proxy.BoolValue
-	(*Int32Value)(nil),                 // 12: centrifugal.centrifugo.proxy.Int32Value
-	(*SubscribeOptionOverride)(nil),    // 13: centrifugal.centrifugo.proxy.SubscribeOptionOverride
-	(*SubscribeResult)(nil),            // 14: centrifugal.centrifugo.proxy.SubscribeResult
-	(*SubscribeResponse)(nil),          // 15: centrifugal.centrifugo.proxy.SubscribeResponse
-	(*PublishRequest)(nil),             // 16: centrifugal.centrifugo.proxy.PublishRequest
-	(*PublishResult)(nil),              // 17: centrifugal.centrifugo.proxy.PublishResult
-	(*PublishResponse)(nil),            // 18: centrifugal.centrifugo.proxy.PublishResponse
-	(*MapPublishRequest)(nil),          // 19: centrifugal.centrifugo.proxy.MapPublishRequest
-	(*MapPublishResult)(nil),           // 20: centrifugal.centrifugo.proxy.MapPublishResult
-	(*MapPublishResponse)(nil),         // 21: centrifugal.centrifugo.proxy.MapPublishResponse
-	(*MapRemoveRequest)(nil),           // 22: centrifugal.centrifugo.proxy.MapRemoveRequest
-	(*MapRemoveResult)(nil),            // 23: centrifugal.centrifugo.proxy.MapRemoveResult
-	(*MapRemoveResponse)(nil),          // 24: centrifugal.centrifugo.proxy.MapRemoveResponse
-	(*RPCRequest)(nil),                 // 25: centrifugal.centrifugo.proxy.RPCRequest
-	(*RPCResult)(nil),                  // 26: centrifugal.centrifugo.proxy.RPCResult
-	(*RPCResponse)(nil),                // 27: centrifugal.centrifugo.proxy.RPCResponse
-	(*SubRefreshRequest)(nil),          // 28: centrifugal.centrifugo.proxy.SubRefreshRequest
-	(*SubRefreshResult)(nil),           // 29: centrifugal.centrifugo.proxy.SubRefreshResult
-	(*SubRefreshResponse)(nil),         // 30: centrifugal.centrifugo.proxy.SubRefreshResponse
-	(*Publication)(nil),                // 31: centrifugal.centrifugo.proxy.Publication
-	(*StreamSubscribeRequest)(nil),     // 32: centrifugal.centrifugo.proxy.StreamSubscribeRequest
-	(*StreamSubscribeResponse)(nil),    // 33: centrifugal.centrifugo.proxy.StreamSubscribeResponse
-	(*NotifyCacheEmptyRequest)(nil),    // 34: centrifugal.centrifugo.proxy.NotifyCacheEmptyRequest
-	(*NotifyCacheEmptyResponse)(nil),   // 35: centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse
-	(*NotifyCacheEmptyResult)(nil),     // 36: centrifugal.centrifugo.proxy.NotifyCacheEmptyResult
-	(*NotifyChannelStateRequest)(nil),  // 37: centrifugal.centrifugo.proxy.NotifyChannelStateRequest
-	(*ChannelEvent)(nil),               // 38: centrifugal.centrifugo.proxy.ChannelEvent
-	(*NotifyChannelStateResponse)(nil), // 39: centrifugal.centrifugo.proxy.NotifyChannelStateResponse
-	(*NotifyChannelStateResult)(nil),   // 40: centrifugal.centrifugo.proxy.NotifyChannelStateResult
-	nil,                                // 41: centrifugal.centrifugo.proxy.ConnectResult.SubsEntry
-	nil,                                // 42: centrifugal.centrifugo.proxy.Publication.TagsEntry
+	(*Disconnect)(nil),                  // 0: centrifugal.centrifugo.proxy.Disconnect
+	(*Error)(nil),                       // 1: centrifugal.centrifugo.proxy.Error
+	(*ConnectRequest)(nil),              // 2: centrifugal.centrifugo.proxy.ConnectRequest
+	(*SubscribeOptions)(nil),            // 3: centrifugal.centrifugo.proxy.SubscribeOptions
+	(*ConnectResult)(nil),               // 4: centrifugal.centrifugo.proxy.ConnectResult
+	(*ChannelsCapability)(nil),          // 5: centrifugal.centrifugo.proxy.ChannelsCapability
+	(*ConnectResponse)(nil),             // 6: centrifugal.centrifugo.proxy.ConnectResponse
+	(*RefreshRequest)(nil),              // 7: centrifugal.centrifugo.proxy.RefreshRequest
+	(*RefreshResult)(nil),               // 8: centrifugal.centrifugo.proxy.RefreshResult
+	(*RefreshResponse)(nil),             // 9: centrifugal.centrifugo.proxy.RefreshResponse
+	(*SubscribeRequest)(nil),            // 10: centrifugal.centrifugo.proxy.SubscribeRequest
+	(*BoolValue)(nil),                   // 11: centrifugal.centrifugo.proxy.BoolValue
+	(*Int32Value)(nil),                  // 12: centrifugal.centrifugo.proxy.Int32Value
+	(*SubscribeOptionOverride)(nil),     // 13: centrifugal.centrifugo.proxy.SubscribeOptionOverride
+	(*SubscribeResult)(nil),             // 14: centrifugal.centrifugo.proxy.SubscribeResult
+	(*SubscribeResponse)(nil),           // 15: centrifugal.centrifugo.proxy.SubscribeResponse
+	(*PublishRequest)(nil),              // 16: centrifugal.centrifugo.proxy.PublishRequest
+	(*PublishResult)(nil),               // 17: centrifugal.centrifugo.proxy.PublishResult
+	(*PublishResponse)(nil),             // 18: centrifugal.centrifugo.proxy.PublishResponse
+	(*MapPublishRequest)(nil),           // 19: centrifugal.centrifugo.proxy.MapPublishRequest
+	(*MapPublishResult)(nil),            // 20: centrifugal.centrifugo.proxy.MapPublishResult
+	(*MapPublishResponse)(nil),          // 21: centrifugal.centrifugo.proxy.MapPublishResponse
+	(*MapRemoveRequest)(nil),            // 22: centrifugal.centrifugo.proxy.MapRemoveRequest
+	(*MapRemoveResult)(nil),             // 23: centrifugal.centrifugo.proxy.MapRemoveResult
+	(*MapRemoveResponse)(nil),           // 24: centrifugal.centrifugo.proxy.MapRemoveResponse
+	(*RPCRequest)(nil),                  // 25: centrifugal.centrifugo.proxy.RPCRequest
+	(*RPCResult)(nil),                   // 26: centrifugal.centrifugo.proxy.RPCResult
+	(*RPCResponse)(nil),                 // 27: centrifugal.centrifugo.proxy.RPCResponse
+	(*SubRefreshRequest)(nil),           // 28: centrifugal.centrifugo.proxy.SubRefreshRequest
+	(*SubRefreshResult)(nil),            // 29: centrifugal.centrifugo.proxy.SubRefreshResult
+	(*SubRefreshResponse)(nil),          // 30: centrifugal.centrifugo.proxy.SubRefreshResponse
+	(*Publication)(nil),                 // 31: centrifugal.centrifugo.proxy.Publication
+	(*StreamSubscribeRequest)(nil),      // 32: centrifugal.centrifugo.proxy.StreamSubscribeRequest
+	(*StreamSubscribeResponse)(nil),     // 33: centrifugal.centrifugo.proxy.StreamSubscribeResponse
+	(*NotifyCacheEmptyRequest)(nil),     // 34: centrifugal.centrifugo.proxy.NotifyCacheEmptyRequest
+	(*NotifyCacheEmptyResponse)(nil),    // 35: centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse
+	(*NotifyCacheEmptyResult)(nil),      // 36: centrifugal.centrifugo.proxy.NotifyCacheEmptyResult
+	(*NotifyChannelStateRequest)(nil),   // 37: centrifugal.centrifugo.proxy.NotifyChannelStateRequest
+	(*ChannelEvent)(nil),                // 38: centrifugal.centrifugo.proxy.ChannelEvent
+	(*NotifyChannelStateResponse)(nil),  // 39: centrifugal.centrifugo.proxy.NotifyChannelStateResponse
+	(*NotifyChannelStateResult)(nil),    // 40: centrifugal.centrifugo.proxy.NotifyChannelStateResult
+	(*SharedPollRefreshRequest)(nil),    // 41: centrifugal.centrifugo.proxy.SharedPollRefreshRequest
+	(*SharedPollRefreshItem)(nil),       // 42: centrifugal.centrifugo.proxy.SharedPollRefreshItem
+	(*SharedPollRefreshResult)(nil),     // 43: centrifugal.centrifugo.proxy.SharedPollRefreshResult
+	(*SharedPollRefreshResultItem)(nil), // 44: centrifugal.centrifugo.proxy.SharedPollRefreshResultItem
+	(*SharedPollRefreshResponse)(nil),   // 45: centrifugal.centrifugo.proxy.SharedPollRefreshResponse
+	nil,                                 // 46: centrifugal.centrifugo.proxy.ConnectResult.SubsEntry
+	nil,                                 // 47: centrifugal.centrifugo.proxy.Publication.TagsEntry
 }
 var file_proxy_proto_depIdxs = []int32{
 	13, // 0: centrifugal.centrifugo.proxy.SubscribeOptions.override:type_name -> centrifugal.centrifugo.proxy.SubscribeOptionOverride
-	41, // 1: centrifugal.centrifugo.proxy.ConnectResult.subs:type_name -> centrifugal.centrifugo.proxy.ConnectResult.SubsEntry
+	46, // 1: centrifugal.centrifugo.proxy.ConnectResult.subs:type_name -> centrifugal.centrifugo.proxy.ConnectResult.SubsEntry
 	5,  // 2: centrifugal.centrifugo.proxy.ConnectResult.caps:type_name -> centrifugal.centrifugo.proxy.ChannelsCapability
 	4,  // 3: centrifugal.centrifugo.proxy.ConnectResponse.result:type_name -> centrifugal.centrifugo.proxy.ConnectResult
 	1,  // 4: centrifugal.centrifugo.proxy.ConnectResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
@@ -3172,7 +3471,7 @@ var file_proxy_proto_depIdxs = []int32{
 	29, // 31: centrifugal.centrifugo.proxy.SubRefreshResponse.result:type_name -> centrifugal.centrifugo.proxy.SubRefreshResult
 	1,  // 32: centrifugal.centrifugo.proxy.SubRefreshResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
 	0,  // 33: centrifugal.centrifugo.proxy.SubRefreshResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	42, // 34: centrifugal.centrifugo.proxy.Publication.tags:type_name -> centrifugal.centrifugo.proxy.Publication.TagsEntry
+	47, // 34: centrifugal.centrifugo.proxy.Publication.tags:type_name -> centrifugal.centrifugo.proxy.Publication.TagsEntry
 	10, // 35: centrifugal.centrifugo.proxy.StreamSubscribeRequest.subscribe_request:type_name -> centrifugal.centrifugo.proxy.SubscribeRequest
 	31, // 36: centrifugal.centrifugo.proxy.StreamSubscribeRequest.publication:type_name -> centrifugal.centrifugo.proxy.Publication
 	15, // 37: centrifugal.centrifugo.proxy.StreamSubscribeResponse.subscribe_response:type_name -> centrifugal.centrifugo.proxy.SubscribeResponse
@@ -3181,36 +3480,42 @@ var file_proxy_proto_depIdxs = []int32{
 	38, // 40: centrifugal.centrifugo.proxy.NotifyChannelStateRequest.events:type_name -> centrifugal.centrifugo.proxy.ChannelEvent
 	40, // 41: centrifugal.centrifugo.proxy.NotifyChannelStateResponse.result:type_name -> centrifugal.centrifugo.proxy.NotifyChannelStateResult
 	1,  // 42: centrifugal.centrifugo.proxy.NotifyChannelStateResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	3,  // 43: centrifugal.centrifugo.proxy.ConnectResult.SubsEntry.value:type_name -> centrifugal.centrifugo.proxy.SubscribeOptions
-	2,  // 44: centrifugal.centrifugo.proxy.CentrifugoProxy.Connect:input_type -> centrifugal.centrifugo.proxy.ConnectRequest
-	7,  // 45: centrifugal.centrifugo.proxy.CentrifugoProxy.Refresh:input_type -> centrifugal.centrifugo.proxy.RefreshRequest
-	10, // 46: centrifugal.centrifugo.proxy.CentrifugoProxy.Subscribe:input_type -> centrifugal.centrifugo.proxy.SubscribeRequest
-	16, // 47: centrifugal.centrifugo.proxy.CentrifugoProxy.Publish:input_type -> centrifugal.centrifugo.proxy.PublishRequest
-	25, // 48: centrifugal.centrifugo.proxy.CentrifugoProxy.RPC:input_type -> centrifugal.centrifugo.proxy.RPCRequest
-	28, // 49: centrifugal.centrifugo.proxy.CentrifugoProxy.SubRefresh:input_type -> centrifugal.centrifugo.proxy.SubRefreshRequest
-	10, // 50: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeUnidirectional:input_type -> centrifugal.centrifugo.proxy.SubscribeRequest
-	32, // 51: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeBidirectional:input_type -> centrifugal.centrifugo.proxy.StreamSubscribeRequest
-	34, // 52: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyCacheEmpty:input_type -> centrifugal.centrifugo.proxy.NotifyCacheEmptyRequest
-	37, // 53: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyChannelState:input_type -> centrifugal.centrifugo.proxy.NotifyChannelStateRequest
-	19, // 54: centrifugal.centrifugo.proxy.CentrifugoProxy.MapPublish:input_type -> centrifugal.centrifugo.proxy.MapPublishRequest
-	22, // 55: centrifugal.centrifugo.proxy.CentrifugoProxy.MapRemove:input_type -> centrifugal.centrifugo.proxy.MapRemoveRequest
-	6,  // 56: centrifugal.centrifugo.proxy.CentrifugoProxy.Connect:output_type -> centrifugal.centrifugo.proxy.ConnectResponse
-	9,  // 57: centrifugal.centrifugo.proxy.CentrifugoProxy.Refresh:output_type -> centrifugal.centrifugo.proxy.RefreshResponse
-	15, // 58: centrifugal.centrifugo.proxy.CentrifugoProxy.Subscribe:output_type -> centrifugal.centrifugo.proxy.SubscribeResponse
-	18, // 59: centrifugal.centrifugo.proxy.CentrifugoProxy.Publish:output_type -> centrifugal.centrifugo.proxy.PublishResponse
-	27, // 60: centrifugal.centrifugo.proxy.CentrifugoProxy.RPC:output_type -> centrifugal.centrifugo.proxy.RPCResponse
-	30, // 61: centrifugal.centrifugo.proxy.CentrifugoProxy.SubRefresh:output_type -> centrifugal.centrifugo.proxy.SubRefreshResponse
-	33, // 62: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeUnidirectional:output_type -> centrifugal.centrifugo.proxy.StreamSubscribeResponse
-	33, // 63: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeBidirectional:output_type -> centrifugal.centrifugo.proxy.StreamSubscribeResponse
-	35, // 64: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyCacheEmpty:output_type -> centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse
-	39, // 65: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyChannelState:output_type -> centrifugal.centrifugo.proxy.NotifyChannelStateResponse
-	21, // 66: centrifugal.centrifugo.proxy.CentrifugoProxy.MapPublish:output_type -> centrifugal.centrifugo.proxy.MapPublishResponse
-	24, // 67: centrifugal.centrifugo.proxy.CentrifugoProxy.MapRemove:output_type -> centrifugal.centrifugo.proxy.MapRemoveResponse
-	56, // [56:68] is the sub-list for method output_type
-	44, // [44:56] is the sub-list for method input_type
-	44, // [44:44] is the sub-list for extension type_name
-	44, // [44:44] is the sub-list for extension extendee
-	0,  // [0:44] is the sub-list for field type_name
+	42, // 43: centrifugal.centrifugo.proxy.SharedPollRefreshRequest.items:type_name -> centrifugal.centrifugo.proxy.SharedPollRefreshItem
+	44, // 44: centrifugal.centrifugo.proxy.SharedPollRefreshResult.items:type_name -> centrifugal.centrifugo.proxy.SharedPollRefreshResultItem
+	43, // 45: centrifugal.centrifugo.proxy.SharedPollRefreshResponse.result:type_name -> centrifugal.centrifugo.proxy.SharedPollRefreshResult
+	1,  // 46: centrifugal.centrifugo.proxy.SharedPollRefreshResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	3,  // 47: centrifugal.centrifugo.proxy.ConnectResult.SubsEntry.value:type_name -> centrifugal.centrifugo.proxy.SubscribeOptions
+	2,  // 48: centrifugal.centrifugo.proxy.CentrifugoProxy.Connect:input_type -> centrifugal.centrifugo.proxy.ConnectRequest
+	7,  // 49: centrifugal.centrifugo.proxy.CentrifugoProxy.Refresh:input_type -> centrifugal.centrifugo.proxy.RefreshRequest
+	10, // 50: centrifugal.centrifugo.proxy.CentrifugoProxy.Subscribe:input_type -> centrifugal.centrifugo.proxy.SubscribeRequest
+	16, // 51: centrifugal.centrifugo.proxy.CentrifugoProxy.Publish:input_type -> centrifugal.centrifugo.proxy.PublishRequest
+	25, // 52: centrifugal.centrifugo.proxy.CentrifugoProxy.RPC:input_type -> centrifugal.centrifugo.proxy.RPCRequest
+	28, // 53: centrifugal.centrifugo.proxy.CentrifugoProxy.SubRefresh:input_type -> centrifugal.centrifugo.proxy.SubRefreshRequest
+	10, // 54: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeUnidirectional:input_type -> centrifugal.centrifugo.proxy.SubscribeRequest
+	32, // 55: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeBidirectional:input_type -> centrifugal.centrifugo.proxy.StreamSubscribeRequest
+	34, // 56: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyCacheEmpty:input_type -> centrifugal.centrifugo.proxy.NotifyCacheEmptyRequest
+	37, // 57: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyChannelState:input_type -> centrifugal.centrifugo.proxy.NotifyChannelStateRequest
+	19, // 58: centrifugal.centrifugo.proxy.CentrifugoProxy.MapPublish:input_type -> centrifugal.centrifugo.proxy.MapPublishRequest
+	22, // 59: centrifugal.centrifugo.proxy.CentrifugoProxy.MapRemove:input_type -> centrifugal.centrifugo.proxy.MapRemoveRequest
+	41, // 60: centrifugal.centrifugo.proxy.CentrifugoProxy.SharedPollRefresh:input_type -> centrifugal.centrifugo.proxy.SharedPollRefreshRequest
+	6,  // 61: centrifugal.centrifugo.proxy.CentrifugoProxy.Connect:output_type -> centrifugal.centrifugo.proxy.ConnectResponse
+	9,  // 62: centrifugal.centrifugo.proxy.CentrifugoProxy.Refresh:output_type -> centrifugal.centrifugo.proxy.RefreshResponse
+	15, // 63: centrifugal.centrifugo.proxy.CentrifugoProxy.Subscribe:output_type -> centrifugal.centrifugo.proxy.SubscribeResponse
+	18, // 64: centrifugal.centrifugo.proxy.CentrifugoProxy.Publish:output_type -> centrifugal.centrifugo.proxy.PublishResponse
+	27, // 65: centrifugal.centrifugo.proxy.CentrifugoProxy.RPC:output_type -> centrifugal.centrifugo.proxy.RPCResponse
+	30, // 66: centrifugal.centrifugo.proxy.CentrifugoProxy.SubRefresh:output_type -> centrifugal.centrifugo.proxy.SubRefreshResponse
+	33, // 67: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeUnidirectional:output_type -> centrifugal.centrifugo.proxy.StreamSubscribeResponse
+	33, // 68: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeBidirectional:output_type -> centrifugal.centrifugo.proxy.StreamSubscribeResponse
+	35, // 69: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyCacheEmpty:output_type -> centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse
+	39, // 70: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyChannelState:output_type -> centrifugal.centrifugo.proxy.NotifyChannelStateResponse
+	21, // 71: centrifugal.centrifugo.proxy.CentrifugoProxy.MapPublish:output_type -> centrifugal.centrifugo.proxy.MapPublishResponse
+	24, // 72: centrifugal.centrifugo.proxy.CentrifugoProxy.MapRemove:output_type -> centrifugal.centrifugo.proxy.MapRemoveResponse
+	45, // 73: centrifugal.centrifugo.proxy.CentrifugoProxy.SharedPollRefresh:output_type -> centrifugal.centrifugo.proxy.SharedPollRefreshResponse
+	61, // [61:74] is the sub-list for method output_type
+	48, // [48:61] is the sub-list for method input_type
+	48, // [48:48] is the sub-list for extension type_name
+	48, // [48:48] is the sub-list for extension extendee
+	0,  // [0:48] is the sub-list for field type_name
 }
 
 func init() { file_proxy_proto_init() }
@@ -3224,7 +3529,7 @@ func file_proxy_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proxy_proto_rawDesc), len(file_proxy_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   43,
+			NumMessages:   48,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
