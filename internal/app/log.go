@@ -19,6 +19,9 @@ func logStartWarnings(cfg config.Config, cfgMeta config.Meta) {
 	if cfg.Admin.Insecure {
 		log.Warn().Msg("INSECURE admin mode enabled, make sure you understand risks")
 	}
+	if cfg.Client.InsecureSkipTokenSignatureVerify {
+		log.Warn().Msg("INSECURE skip token signature verify enabled, make sure you understand risks")
+	}
 	if cfg.Debug.Enabled {
 		log.Warn().Msg("DEBUG mode enabled, see on " + cfg.Debug.HandlerPrefix)
 	}

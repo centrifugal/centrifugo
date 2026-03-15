@@ -3314,6 +3314,16 @@
             "default": "",
             "comment": "",
             "is_complex_type": false
+          },
+          {
+            "field": "client.token.insecure_skip_jwks_endpoint_safety_check",
+            "name": "insecure_skip_jwks_endpoint_safety_check",
+            "go_name": "InsecureSkipJWKSEndpointSafetyCheck",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "",
+            "is_complex_type": false
           }
         ]
       },
@@ -3443,6 +3453,16 @@
             "go_name": "UserIDClaim",
             "level": 3,
             "type": "string",
+            "default": "",
+            "comment": "",
+            "is_complex_type": false
+          },
+          {
+            "field": "client.subscription_token.insecure_skip_jwks_endpoint_safety_check",
+            "name": "insecure_skip_jwks_endpoint_safety_check",
+            "go_name": "InsecureSkipJWKSEndpointSafetyCheck",
+            "level": 3,
+            "type": "bool",
             "default": "",
             "comment": "",
             "is_complex_type": false

@@ -8,9 +8,11 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"time"
 
 	"github.com/rakutentech/jwk-go/jwk"
+	"github.com/rs/zerolog/log"
 	"github.com/valyala/fasttemplate"
 	"golang.org/x/sync/singleflight"
 )
@@ -116,7 +118,7 @@ func (m *Manager) FetchKey(ctx context.Context, kid string, tokenVars map[string
 }
 
 func (m *Manager) loadData(req *http.Request) ([]byte, error) {
-	resp, err := m.client.Do(req)
+	resp, err := m.client.Do(req) //nolint:gosec // URL is from server configuration, not user input.
 	if err != nil {
 		return nil, err
 	}
@@ -130,6 +132,20 @@ func (m *Manager) loadData(req *http.Request) ([]byte, error) {
 
 func (m *Manager) fetchKey(ctx context.Context, kid string, tokenVars map[string]any) (*JWK, error) {
 	jwkURL := m.url.ExecuteString(tokenVars)
+
+	// Reject requests where template substitution produced a URL with path traversal.
+	u, err := url.Parse(jwkURL)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing JWKS URL: %w", err)
+	}
+	if u.Path != "" {
+		if cleanPath := path.Clean(u.Path); cleanPath != u.Path {
+			log.Info().Str("path", u.Path).Str("clean_path", cleanPath).
+				Msg("JWKS URL path contains traversal sequences, request rejected")
+			return nil, fmt.Errorf("JWKS URL path contains traversal sequences: %q", u.Path)
+		}
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, jwkURL, nil)
 	if err != nil {
 		return nil, err

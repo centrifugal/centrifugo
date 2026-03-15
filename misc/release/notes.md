@@ -8,23 +8,20 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## What's changed
 
+This release contains breaking change to address CVE discovered in [Dynamic JWKs endpoint](https://centrifugal.dev/docs/server/authentication#dynamic-jwks-endpoint) feature. If you use that feature you need to update Centrifugo configuration. See fixes section for the details.
+
 ### Improvements
 
-* Better configdoc UI [#1092](https://github.com/centrifugal/centrifugo/pull/1092). Redesigned `centrifugo configdoc` interface with top-level navigation, search, JSON/YAML snippets (🔥), and dark/light themes.
-* Add `hmac_previous_secret_key` and `hmac_previous_secret_key_valid_until` options to provide a possibility to rotate HMAC token [#1103](https://github.com/centrifugal/centrifugo/pull/1103)
-* Adding `json_object` publication data format – more strict format to ensure a JSON object in channels [#1091](https://github.com/centrifugal/centrifugo/pull/1091)
-* Centrifugo Helm chart v13 [was released](https://github.com/centrifugal/helm-charts/releases/tag/centrifugo-13.0.0) - comes with many improvements, documentation and examples. 
-* Adopt latest `quic-go` and `webtransport-go` changes, WebTransport test [#1101](https://github.com/centrifugal/centrifugo/pull/1101)
-* Refactor metrics – makes metrics configurable on server start and discoverable from one place [#1093](https://github.com/centrifugal/centrifugo/pull/1093)
-* Kafka consumer: avoid using static instance id by default, add logging, eliminate one extra goroutine per partition, improved shutdown [#1105](https://github.com/centrifugal/centrifugo/pull/1105)
+* This release is the first built with Go 1.26. This version of the Go language includes a new garbage collector called the [Green Tea garbage collector](https://go.dev/doc/go1.26#new-garbage-collector). This may affect the performance of your Centrifugo installation; in most cases, we expect the impact to be positive. If you notice any performance changes in Centrifugo after upgrading to this release, please let us know in the community rooms. More information about the new GC can be found [here](https://go.dev/blog/greenteagc).
+* Updated the Alpine image to 3.22 in the Dockerfile.
+* Improve lint layout to improve local DX
 
 ### Fixes
 
-* Redis broker: avoid offset incrementing on publication suppress by version [centrifugal/centrifuge#549](https://github.com/centrifugal/centrifuge/pull/549)
-* Add missing mutex Unlock() by @palkan in [centrifugal/centrifuge#552](https://github.com/centrifugal/centrifuge/pull/552)
+* [CVE-2026-32301](https://github.com/centrifugal/centrifugo/security/advisories/CVE-2026-32301) Fixed SSRF vulnerability in [Dynamic JWKS endpoint](https://centrifugal.dev/docs/server/authentication#dynamic-jwks-endpoint) feature. When using JWKS endpoint URL templates with placeholders extracted from JWT claims via `issuer_regex` or `audience_regex`, an attacker could craft a JWT with malicious claim values to redirect JWKS key fetches to an attacker-controlled server, enabling token forgery. **Action required:** if you use dynamic JWKS endpoints, update your `issuer_regex`/`audience_regex` patterns so that named capture groups used in the JWKS URL template contain only an explicit list of allowed literal values (e.g., `(?P<tenant>tenant1|tenant2|tenant3)` instead of `(?P<tenant>.+)`). Centrifugo will now reject configurations where these groups allow arbitrary input. A temporary escape hatch `client.token.insecure_skip_jwks_endpoint_safety_check` option is available but will be removed in future releases.
+* The Go version update (1.25.7 to 1.26.1) and update of Go x/net library allow inheriting fixes for several recently discovered CVE.
 
 ### Miscellaneous
 
-* This release is built with Go 1.25.7
-* Updated dependencies
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.6.1).
+* This release is built with Go 1.26.1
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.6.6).

@@ -197,7 +197,7 @@ func TestProcess(t *testing.T) {
 	}
 
 	if s.MultiWordVarWithAutoSplit != 24 {
-		t.Errorf("expected %q, got %q", 24, s.MultiWordVarWithAutoSplit)
+		t.Errorf("expected %d, got %d", 24, s.MultiWordVarWithAutoSplit)
 	}
 
 	if s.MultiWordACRWithAutoSplit != 25 {

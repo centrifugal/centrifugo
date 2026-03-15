@@ -38,6 +38,7 @@ func MakeVerifierConfig(tokenConf configtypes.Token) (jwtverify.VerifierConfig, 
 	cfg.AudienceRegex = tokenConf.AudienceRegex
 	cfg.Issuer = tokenConf.Issuer
 	cfg.IssuerRegex = tokenConf.IssuerRegex
+	cfg.InsecureSkipJWKSEndpointSafetyCheck = tokenConf.InsecureSkipJWKSEndpointSafetyCheck
 
 	if tokenConf.UserIDClaim != "" {
 		cfg.UserIDClaim = tokenConf.UserIDClaim

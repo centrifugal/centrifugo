@@ -143,6 +143,45 @@ func TestManagerInitialFetchKey(t *testing.T) {
 	}
 }
 
+func TestManagerFetchKey_PathTraversalRejected(t *testing.T) {
+	kid := "test-kid"
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("request should have been rejected before reaching the server")
+	}))
+	defer ts.Close()
+
+	manager, err := NewManager(ts.URL + "/tenants/{{tenant}}/jwks.json")
+	require.NoError(t, err)
+
+	// Path traversal via ".." — must be rejected.
+	tokenVars := map[string]any{"tenant": "../../etc"}
+	_, err = manager.FetchKey(context.Background(), kid, tokenVars)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "traversal")
+
+	// Single ".." segment — also rejected.
+	tokenVars = map[string]any{"tenant": ".."}
+	_, err = manager.FetchKey(context.Background(), kid, tokenVars)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "traversal")
+
+	// Clean value — must succeed (uses real server).
+	_, pubKey, err := randomKeys()
+	require.NoError(t, err)
+
+	ts2 := httptest.NewServer(jwksHandler(testKey{kid, pubKey}))
+	defer ts2.Close()
+
+	manager, err = NewManager(ts2.URL + "/tenants/{{tenant}}/jwks.json")
+	require.NoError(t, err)
+
+	tokenVars = map[string]any{"tenant": "acme"}
+	key, err := manager.FetchKey(context.Background(), kid, tokenVars)
+	require.NoError(t, err)
+	require.Equal(t, kid, key.Kid)
+}
+
 func TestManagerCachedFetchKey(t *testing.T) {
 	testCases := []struct {
 		Name         string

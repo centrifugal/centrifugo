@@ -71,6 +71,12 @@ type VerifierConfig struct {
 	// UserIDClaim allows overriding default claim used to extract user ID from token.
 	// By default, Centrifugo uses "sub" and we recommend keeping the default if possible.
 	UserIDClaim string
+
+	// InsecureSkipJWKSEndpointSafetyCheck disables the config-time safety validation of
+	// JWKS endpoint URL templates. This is INSECURE and exists only as a temporary escape
+	// hatch for users upgrading with existing permissive regex patterns. This option will
+	// be removed in a future release.
+	InsecureSkipJWKSEndpointSafetyCheck bool
 }
 
 func (c VerifierConfig) Validate() error {
@@ -79,6 +85,15 @@ func (c VerifierConfig) Validate() error {
 	}
 	if c.Issuer != "" && c.IssuerRegex != "" {
 		return errors.New("can not use both token_issuer and token_issuer_regex, configure only one of them")
+	}
+	if c.JWKSPublicEndpoint != "" {
+		if err := validateJWKSEndpointSafety(c.JWKSPublicEndpoint, c.IssuerRegex, c.AudienceRegex); err != nil {
+			if c.InsecureSkipJWKSEndpointSafetyCheck {
+				log.Warn().Err(err).Msg("JWKS endpoint template safety check skipped — this is INSECURE and the escape hatch will be removed in a future release, please update your regex to use an explicit list of allowed values")
+			} else {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -456,19 +471,15 @@ func (verifier *VerifierJWT) verifySignatureByJWK(token *jwt.Token, tokenVars ma
 	return verifier.jwksManager.verify(token, tokenVars)
 }
 
-func (verifier *VerifierJWT) validateClaims(claims jwt.RegisteredClaims, tokenVars map[string]any) error {
-	if verifier.audience != "" && !claims.IsForAudience(verifier.audience) {
-		return fmt.Errorf("%w: invalid audience", ErrInvalidToken)
-	}
-
-	if verifier.issuer != "" && !claims.IsIssuer(verifier.issuer) {
-		return fmt.Errorf("%w: invalid issuer", ErrInvalidToken)
-	}
-
+// extractTokenVars extracts named group matches from issuer/audience regex into tokenVars.
+// This must be called before signature verification because the extracted values may be
+// needed to construct the JWKS endpoint URL. Returns an error if regex is configured but
+// the claim doesn't match.
+func (verifier *VerifierJWT) extractTokenVars(claims jwt.RegisteredClaims, tokenVars map[string]any) error {
 	if verifier.issuerRe != nil {
 		match := verifier.issuerRe.FindStringSubmatch(claims.Issuer)
 		if len(match) == 0 {
-			return fmt.Errorf("%w: issuer not matched", ErrInvalidToken)
+			return errors.New("issuer not matched")
 		}
 		for i, name := range verifier.issuerRe.SubexpNames() {
 			if i != 0 && name != "" {
@@ -493,8 +504,22 @@ func (verifier *VerifierJWT) validateClaims(claims jwt.RegisteredClaims, tokenVa
 			break
 		}
 		if !matched {
-			return fmt.Errorf("%w: audience not matched", ErrInvalidToken)
+			return errors.New("audience not matched")
 		}
+	}
+
+	return nil
+}
+
+// validateClaims checks issuer and audience claims against configured values.
+// Must be called after signature verification.
+func (verifier *VerifierJWT) validateClaims(claims jwt.RegisteredClaims) error {
+	if verifier.audience != "" && !claims.IsForAudience(verifier.audience) {
+		return errors.New("invalid audience")
+	}
+
+	if verifier.issuer != "" && !claims.IsIssuer(verifier.issuer) {
+		return errors.New("invalid issuer")
 	}
 
 	return nil
@@ -513,8 +538,9 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 
 	tokenVars := map[string]any{}
 
-	if err := verifier.validateClaims(claims.RegisteredClaims, tokenVars); err != nil {
-		return ConnectToken{}, err
+	// Extract token vars before signature verification — needed to construct JWKS URL.
+	if err = verifier.extractTokenVars(claims.RegisteredClaims, tokenVars); err != nil {
+		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
 	if !skipVerify {
@@ -526,6 +552,11 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 		if err != nil {
 			return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 		}
+	}
+
+	// Validate claims after signature verification.
+	if err = verifier.validateClaims(claims.RegisteredClaims); err != nil {
+		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
 	if claims.Channel != "" {
@@ -679,8 +710,9 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 
 	tokenVars := map[string]any{}
 
-	if err := verifier.validateClaims(claims.RegisteredClaims, tokenVars); err != nil {
-		return SubscribeToken{}, err
+	// Extract token vars before signature verification — needed to construct JWKS URL.
+	if err = verifier.extractTokenVars(claims.RegisteredClaims, tokenVars); err != nil {
+		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
 	if !skipVerify {
@@ -692,6 +724,11 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 		if err != nil {
 			return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 		}
+	}
+
+	// Validate claims after signature verification.
+	if err = verifier.validateClaims(claims.RegisteredClaims); err != nil {
+		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
 	now := time.Now()

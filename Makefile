@@ -46,6 +46,9 @@ packagecloud-rpm:
 	# PACKAGECLOUD_TOKEN env must be set
 	package_cloud push FZambia/centrifugo/el/7 PACKAGES/*.rpm
 
+update-deps:
+	./misc/scripts/update-deps.sh
+
 deps:
 	go mod tidy
 
@@ -53,6 +56,31 @@ local-deps:
 	go mod tidy
 	go mod download
 	go mod vendor
+
+GOLANGCI_LINT_VERSION := $(shell cat .golangci-lint-version)
+
+lint:
+	@if ! command -v golangci-lint >/dev/null 2>&1; then \
+		echo "golangci-lint not found. Run 'make install-lint' to install $(GOLANGCI_LINT_VERSION)."; \
+		exit 1; \
+	fi
+	@INSTALLED=$$(golangci-lint version --short 2>/dev/null); \
+	EXPECTED=$$(echo $(GOLANGCI_LINT_VERSION) | sed 's/^v//'); \
+	if [ "$${INSTALLED%%.*}" != "$${EXPECTED%%.*}" ] || [ "$${INSTALLED#*.}" != "$${EXPECTED#*.}" ]; then \
+		echo "golangci-lint version mismatch: installed $${INSTALLED}, expected $${EXPECTED}. Run 'make install-lint'."; \
+		exit 1; \
+	fi
+	golangci-lint run --timeout 10m0s --verbose
+
+install-lint:
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+
+vuln:
+	@if ! command -v govulncheck >/dev/null 2>&1; then \
+		echo "govulncheck not found, installing..."; \
+		go install golang.org/x/vuln/cmd/govulncheck@latest; \
+	fi
+	govulncheck ./...
 
 build:
 	CGO_ENABLED=0 go build

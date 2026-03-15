@@ -61,7 +61,8 @@ type Token struct {
 	AudienceRegex      string `mapstructure:"audience_regex" json:"audience_regex" envconfig:"audience_regex" yaml:"audience_regex" toml:"audience_regex"`
 	Issuer             string `mapstructure:"issuer" json:"issuer" envconfig:"issuer" yaml:"issuer" toml:"issuer"`
 	IssuerRegex        string `mapstructure:"issuer_regex" json:"issuer_regex" envconfig:"issuer_regex" yaml:"issuer_regex" toml:"issuer_regex"`
-	UserIDClaim        string `mapstructure:"user_id_claim" json:"user_id_claim" envconfig:"user_id_claim" yaml:"user_id_claim" toml:"user_id_claim"`
+	UserIDClaim                         string `mapstructure:"user_id_claim" json:"user_id_claim" envconfig:"user_id_claim" yaml:"user_id_claim" toml:"user_id_claim"`
+	InsecureSkipJWKSEndpointSafetyCheck bool   `mapstructure:"insecure_skip_jwks_endpoint_safety_check" json:"insecure_skip_jwks_endpoint_safety_check" envconfig:"insecure_skip_jwks_endpoint_safety_check" yaml:"insecure_skip_jwks_endpoint_safety_check" toml:"insecure_skip_jwks_endpoint_safety_check"`
 }
 
 // SubscriptionToken can be used to set custom configuration for subscription tokens.
