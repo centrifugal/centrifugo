@@ -85,13 +85,13 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 				return centrifuge.SharedPollChannelOptions{}, false
 			}
 			return centrifuge.SharedPollChannelOptions{
-				MaxTrackedPerConnection:        chOpts.SharedPoll.MaxTrackedPerConnection,
-				RefreshInterval:                chOpts.SharedPoll.RefreshInterval.ToDuration(),
-				RefreshBatchSize:               chOpts.SharedPoll.RefreshBatchSize,
-				RefreshConcurrency:             chOpts.SharedPoll.RefreshConcurrency,
-				SendItemVersions:               chOpts.SharedPoll.SendItemVersions,
-				MaxConsecutiveAbsences:         chOpts.SharedPoll.MaxConsecutiveAbsences,
-				SharedPollChannelShutdownDelay: chOpts.SharedPoll.SharedPollChannelShutdownDelay.ToDuration(),
+				MaxKeysPerConnection:   chOpts.SharedPoll.MaxKeysPerConnection,
+				RefreshInterval:        chOpts.SharedPoll.RefreshInterval.ToDuration(),
+				RefreshBatchSize:       chOpts.SharedPoll.RefreshBatchSize,
+				RefreshConcurrency:     chOpts.SharedPoll.RefreshConcurrency,
+				SendItemVersions:       chOpts.SharedPoll.SendItemVersions,
+				MaxConsecutiveAbsences: chOpts.SharedPoll.MaxConsecutiveAbsences,
+				ChannelShutdownDelay:   chOpts.SharedPoll.ChannelShutdownDelay.ToDuration(),
 			}, true
 		}
 	}
