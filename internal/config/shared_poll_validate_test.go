@@ -9,34 +9,38 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func sharedPollDefaultProxy() configtypes.Proxy {
+	return configtypes.Proxy{
+		Endpoint: "http://localhost:3001/refresh",
+		Timeout:  configtypes.Duration(5 * time.Second),
+	}
+}
+
 func TestSharedPollConfig_Validation_MissingSecret(t *testing.T) {
 	cfg := DefaultConfig()
+	cfg.Channel.Proxy.SharedPollRefresh = sharedPollDefaultProxy()
 	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
 		{
 			Name: "poll",
 			ChannelOptions: configtypes.ChannelOptions{
 				SubscriptionType: "shared_poll",
-				SharedPoll: configtypes.SharedPollConfig{
-					// No TokenHMACSecret.
-				},
 			},
 		},
 	}
 	err := cfg.Validate()
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "token_hmac_secret")
+	require.Contains(t, err.Error(), "hmac_secret_key")
 }
 
 func TestSharedPollConfig_Validation_WithSecret(t *testing.T) {
 	cfg := DefaultConfig()
+	cfg.Client.SharedPoll.HMACSecretKey = "my-secret"
+	cfg.Channel.Proxy.SharedPollRefresh = sharedPollDefaultProxy()
 	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
 		{
 			Name: "poll",
 			ChannelOptions: configtypes.ChannelOptions{
 				SubscriptionType: "shared_poll",
-				SharedPoll: configtypes.SharedPollConfig{
-					TokenHMACSecret: "my-secret",
-				},
 			},
 		},
 	}
@@ -46,14 +50,14 @@ func TestSharedPollConfig_Validation_WithSecret(t *testing.T) {
 
 func TestSharedPollConfig_Validation_InvalidProxyName(t *testing.T) {
 	cfg := DefaultConfig()
+	cfg.Client.SharedPoll.HMACSecretKey = "my-secret"
 	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
 		{
 			Name: "poll",
 			ChannelOptions: configtypes.ChannelOptions{
 				SubscriptionType: "shared_poll",
 				SharedPoll: configtypes.SharedPollConfig{
-					TokenHMACSecret: "my-secret",
-					ProxyName:       "nonexistent_proxy",
+					ProxyName: "nonexistent_proxy",
 				},
 			},
 		},
@@ -66,6 +70,7 @@ func TestSharedPollConfig_Validation_InvalidProxyName(t *testing.T) {
 
 func TestSharedPollConfig_Validation_ValidProxyName(t *testing.T) {
 	cfg := DefaultConfig()
+	cfg.Client.SharedPoll.HMACSecretKey = "my-secret"
 	cfg.Proxies = []configtypes.NamedProxy{
 		{
 			Name: "poll_backend",
@@ -81,8 +86,7 @@ func TestSharedPollConfig_Validation_ValidProxyName(t *testing.T) {
 			ChannelOptions: configtypes.ChannelOptions{
 				SubscriptionType: "shared_poll",
 				SharedPoll: configtypes.SharedPollConfig{
-					TokenHMACSecret: "my-secret",
-					ProxyName:       "poll_backend",
+					ProxyName: "poll_backend",
 				},
 			},
 		},
@@ -93,14 +97,13 @@ func TestSharedPollConfig_Validation_ValidProxyName(t *testing.T) {
 
 func TestSharedPollConfig_SubscriptionTypeValid(t *testing.T) {
 	cfg := DefaultConfig()
+	cfg.Client.SharedPoll.HMACSecretKey = "secret"
+	cfg.Channel.Proxy.SharedPollRefresh = sharedPollDefaultProxy()
 	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
 		{
 			Name: "poll",
 			ChannelOptions: configtypes.ChannelOptions{
 				SubscriptionType: "shared_poll",
-				SharedPoll: configtypes.SharedPollConfig{
-					TokenHMACSecret: "secret",
-				},
 			},
 		},
 	}
@@ -118,18 +121,18 @@ func TestSharedPollConfig_UnknownSubscriptionType(t *testing.T) {
 
 func TestSharedPollConfig_WithoutNamespaceValidation(t *testing.T) {
 	cfg := DefaultConfig()
+	cfg.Client.SharedPoll.HMACSecretKey = "secret"
+	cfg.Channel.Proxy.SharedPollRefresh = sharedPollDefaultProxy()
 	cfg.Channel.WithoutNamespace.SubscriptionType = "shared_poll"
-	cfg.Channel.WithoutNamespace.SharedPoll = configtypes.SharedPollConfig{
-		TokenHMACSecret: "secret",
-	}
 	err := cfg.Validate()
 	require.NoError(t, err)
 }
 
 func TestSharedPollConfig_WithoutNamespaceMissingSecret(t *testing.T) {
 	cfg := DefaultConfig()
+	cfg.Channel.Proxy.SharedPollRefresh = sharedPollDefaultProxy()
 	cfg.Channel.WithoutNamespace.SubscriptionType = "shared_poll"
 	err := cfg.Validate()
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "token_hmac_secret")
+	require.Contains(t, err.Error(), "hmac_secret_key")
 }

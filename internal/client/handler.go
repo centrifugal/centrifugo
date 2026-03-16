@@ -1037,9 +1037,9 @@ func (h *Handler) OnKeyedTrack(c Client, e centrifuge.KeyedTrackEvent) (centrifu
 		return centrifuge.KeyedTrackReply{}, centrifuge.ErrorPermissionDenied
 	}
 
-	secret := chOpts.SharedPoll.TokenHMACSecret
-	if secret == "" {
-		log.Error().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("shared poll token_hmac_secret not configured")
+	sharedPollCfg := h.cfgContainer.Config().Client.SharedPoll
+	if sharedPollCfg.HMACSecretKey == "" {
+		log.Error().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("shared poll hmac_secret_key not configured")
 		return centrifuge.KeyedTrackReply{}, centrifuge.ErrorInternal
 	}
 
@@ -1048,7 +1048,18 @@ func (h *Handler) OnKeyedTrack(c Client, e centrifuge.KeyedTrackEvent) (centrifu
 		keys[i] = item.Key
 	}
 
-	if !verifyTrackSignature(secret, e.Channel, e.Signature, keys, e.UserID) {
+	verified := verifyTrackSignature(sharedPollCfg.HMACSecretKey, e.Channel, e.Signature, keys, e.UserID)
+	if !verified && sharedPollCfg.HMACPreviousSecretKey != "" {
+		if sharedPollCfg.HMACPreviousSecretKeyValidUntil > 0 {
+			iat, _ := parseSignatureTimestamps(e.Signature)
+			if iat > sharedPollCfg.HMACPreviousSecretKeyValidUntil {
+				log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("track signature issued after previous secret key expiry")
+				return centrifuge.KeyedTrackReply{}, centrifuge.ErrorPermissionDenied
+			}
+		}
+		verified = verifyTrackSignature(sharedPollCfg.HMACPreviousSecretKey, e.Channel, e.Signature, keys, e.UserID)
+	}
+	if !verified {
 		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("invalid track signature")
 		return centrifuge.KeyedTrackReply{}, centrifuge.ErrorPermissionDenied
 	}

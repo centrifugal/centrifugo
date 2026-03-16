@@ -271,7 +271,6 @@ type ChannelOptions struct {
 // SharedPollConfig contains configuration for shared poll subscription type.
 type SharedPollConfig struct {
 	ProxyName                      string   `mapstructure:"proxy_name" json:"proxy_name" envconfig:"proxy_name" yaml:"proxy_name" toml:"proxy_name"`
-	TokenHMACSecret                string   `mapstructure:"token_hmac_secret" json:"token_hmac_secret" envconfig:"token_hmac_secret" yaml:"token_hmac_secret" toml:"token_hmac_secret"`
 	RefreshInterval                Duration `mapstructure:"refresh_interval" json:"refresh_interval" envconfig:"refresh_interval" yaml:"refresh_interval" toml:"refresh_interval"`
 	RefreshBatchSize               int      `mapstructure:"refresh_batch_size" json:"refresh_batch_size" envconfig:"refresh_batch_size" yaml:"refresh_batch_size" toml:"refresh_batch_size"`
 	RefreshConcurrency             int      `mapstructure:"refresh_concurrency" json:"refresh_concurrency" envconfig:"refresh_concurrency" yaml:"refresh_concurrency" toml:"refresh_concurrency"`
