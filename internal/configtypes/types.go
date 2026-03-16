@@ -488,6 +488,8 @@ type ChannelProxyContainer struct {
 	MapPublish Proxy `mapstructure:"map_publish" json:"map_publish" envconfig:"map_publish" yaml:"map_publish" toml:"map_publish"`
 	// MapRemove proxy configuration.
 	MapRemove Proxy `mapstructure:"map_remove" json:"map_remove" envconfig:"map_remove" yaml:"map_remove" toml:"map_remove"`
+	// SharedPollRefresh proxy configuration.
+	SharedPollRefresh Proxy `mapstructure:"shared_poll_refresh" json:"shared_poll_refresh" envconfig:"shared_poll_refresh" yaml:"shared_poll_refresh" toml:"shared_poll_refresh"`
 }
 
 type Channel struct {

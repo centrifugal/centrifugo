@@ -323,6 +323,15 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 		if c.SharedPoll.ProxyName != "" && !slices.Contains(proxyNames, c.SharedPoll.ProxyName) {
 			return fmt.Errorf("shared poll proxy with name %q not found", c.SharedPoll.ProxyName)
 		}
+		sharedPollProxyName := c.SharedPoll.ProxyName
+		if sharedPollProxyName == "" {
+			sharedPollProxyName = DefaultProxyName
+		}
+		if sharedPollProxyName == DefaultProxyName {
+			if err := validateProxy("default", cfg.Channel.Proxy.SharedPollRefresh); err != nil {
+				return fmt.Errorf("in channel.proxy.shared_poll_refresh: %v", err)
+			}
+		}
 	}
 	if c.MapSyncMode != "" && !slices.Contains([]string{"ephemeral", "converging"}, c.MapSyncMode) {
 		return fmt.Errorf("unknown map_sync_mode: %q (valid: \"ephemeral\", \"converging\")", c.MapSyncMode)

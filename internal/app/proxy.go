@@ -368,13 +368,20 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			}
 		}
 
-		if ns.SubscriptionType == "shared_poll" && ns.SharedPoll.ProxyName != "" {
+		if ns.SubscriptionType == "shared_poll" {
 			sharedPollProxyName := ns.SharedPoll.ProxyName
+			if sharedPollProxyName == "" {
+				sharedPollProxyName = config.DefaultProxyName
+			}
 			if _, ok := proxyMap.SharedPollRefreshProxies[sharedPollProxyName]; !ok {
 				var p proxy.Config
-				p, proxyFound = namedProxies[sharedPollProxyName]
-				if !proxyFound {
-					return nil, false, fmt.Errorf("shared poll refresh proxy not found: %s", sharedPollProxyName)
+				if sharedPollProxyName == config.DefaultProxyName {
+					p = cfg.Channel.Proxy.SharedPollRefresh
+				} else {
+					p, proxyFound = namedProxies[sharedPollProxyName]
+					if !proxyFound {
+						return nil, false, fmt.Errorf("shared poll refresh proxy not found: %s", sharedPollProxyName)
+					}
 				}
 				sp, err := proxy.GetSharedPollRefreshProxy(sharedPollProxyName, p)
 				if err != nil {
@@ -390,13 +397,20 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 	}
 
 	// Also check without-namespace channels for shared poll proxy.
-	if cfg.Channel.WithoutNamespace.SubscriptionType == "shared_poll" && cfg.Channel.WithoutNamespace.SharedPoll.ProxyName != "" {
+	if cfg.Channel.WithoutNamespace.SubscriptionType == "shared_poll" {
 		sharedPollProxyName := cfg.Channel.WithoutNamespace.SharedPoll.ProxyName
+		if sharedPollProxyName == "" {
+			sharedPollProxyName = config.DefaultProxyName
+		}
 		if _, ok := proxyMap.SharedPollRefreshProxies[sharedPollProxyName]; !ok {
 			var p proxy.Config
-			p, proxyFound = namedProxies[sharedPollProxyName]
-			if !proxyFound {
-				return nil, false, fmt.Errorf("shared poll refresh proxy not found: %s", sharedPollProxyName)
+			if sharedPollProxyName == config.DefaultProxyName {
+				p = cfg.Channel.Proxy.SharedPollRefresh
+			} else {
+				p, proxyFound = namedProxies[sharedPollProxyName]
+				if !proxyFound {
+					return nil, false, fmt.Errorf("shared poll refresh proxy not found: %s", sharedPollProxyName)
+				}
 			}
 			sp, err := proxy.GetSharedPollRefreshProxy(sharedPollProxyName, p)
 			if err != nil {
