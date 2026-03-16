@@ -42,8 +42,8 @@ type trackSignatureVerifier struct {
 }
 
 type verifyBufs struct {
-	payload    []byte
-	hexBuf     []byte
+	payload     []byte
+	hexBuf      []byte
 	expectedHex []byte
 }
 
