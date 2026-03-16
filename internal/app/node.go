@@ -76,6 +76,7 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 		}
 	}
 	if hasSharedPoll {
+		cfg.SharedPollConcurrencyLimit = appCfg.SharedPoll.ConcurrencyLimit
 		cfg.GetSharedPollChannelOptions = func(channel string) (centrifuge.SharedPollChannelOptions, bool) {
 			_, _, chOpts, ok, err := cfgContainer.ChannelOptions(channel)
 			if err != nil || !ok {
@@ -88,7 +89,6 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 				MaxKeysPerConnection:   chOpts.SharedPoll.MaxKeysPerConnection,
 				RefreshInterval:        chOpts.SharedPoll.RefreshInterval.ToDuration(),
 				RefreshBatchSize:       chOpts.SharedPoll.RefreshBatchSize,
-				RefreshConcurrency:     chOpts.SharedPoll.RefreshConcurrency,
 				SendItemVersions:       chOpts.SharedPoll.SendItemVersions,
 				MaxConsecutiveAbsences: chOpts.SharedPoll.MaxConsecutiveAbsences,
 				ChannelShutdownDelay:   chOpts.SharedPoll.ChannelShutdownDelay.ToDuration(),

@@ -47,6 +47,9 @@ type Config struct {
 	// that have a map subscription_type.
 	MapBroker configtypes.MapBroker `mapstructure:"map_broker" json:"map_broker" envconfig:"map_broker" toml:"map_broker" yaml:"map_broker"`
 
+	// SharedPoll contains configuration for shared poll subscriptions.
+	SharedPoll configtypes.SharedPoll `mapstructure:"shared_poll" json:"shared_poll" envconfig:"shared_poll" toml:"shared_poll" yaml:"shared_poll"`
+
 	// Client contains real-time client connection related configuration.
 	Client configtypes.Client `mapstructure:"client" json:"client" envconfig:"client" toml:"client" yaml:"client"`
 	// Channel contains real-time channel related configuration.

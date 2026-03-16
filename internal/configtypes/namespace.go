@@ -273,7 +273,6 @@ type SharedPollConfig struct {
 	ProxyName              string   `mapstructure:"proxy_name" json:"proxy_name" envconfig:"proxy_name" yaml:"proxy_name" toml:"proxy_name"`
 	RefreshInterval        Duration `mapstructure:"refresh_interval" json:"refresh_interval" envconfig:"refresh_interval" yaml:"refresh_interval" toml:"refresh_interval"`
 	RefreshBatchSize       int      `mapstructure:"refresh_batch_size" json:"refresh_batch_size" envconfig:"refresh_batch_size" yaml:"refresh_batch_size" toml:"refresh_batch_size"`
-	RefreshConcurrency     int      `mapstructure:"refresh_concurrency" json:"refresh_concurrency" envconfig:"refresh_concurrency" yaml:"refresh_concurrency" toml:"refresh_concurrency"`
 	MaxKeysPerConnection   int      `mapstructure:"max_keys_per_connection" json:"max_keys_per_connection" envconfig:"max_keys_per_connection" yaml:"max_keys_per_connection" toml:"max_keys_per_connection"`
 	SendItemVersions       bool     `mapstructure:"send_item_versions" json:"send_item_versions" envconfig:"send_item_versions" yaml:"send_item_versions" toml:"send_item_versions"`
 	MaxConsecutiveAbsences int      `mapstructure:"max_consecutive_absences" json:"max_consecutive_absences" envconfig:"max_consecutive_absences" yaml:"max_consecutive_absences" toml:"max_consecutive_absences"`

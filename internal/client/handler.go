@@ -1044,7 +1044,7 @@ func (h *Handler) OnKeyedTrack(c Client, e centrifuge.KeyedTrackEvent) (centrifu
 		return centrifuge.KeyedTrackReply{}, centrifuge.ErrorPermissionDenied
 	}
 
-	sharedPollCfg := h.cfgContainer.Config().Client.SharedPoll
+	sharedPollCfg := h.cfgContainer.Config().SharedPoll
 	if sharedPollCfg.HMACSecretKey == "" {
 		log.Error().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("shared poll hmac_secret_key not configured")
 		return centrifuge.KeyedTrackReply{}, centrifuge.ErrorInternal
@@ -1079,7 +1079,7 @@ func (h *Handler) OnKeyedTrack(c Client, e centrifuge.KeyedTrackEvent) (centrifu
 	}, nil
 }
 
-func (h *Handler) getTrackSignatureVerifiers(cfg configtypes.ClientSharedPoll) (*trackSignatureVerifier, *trackSignatureVerifier) {
+func (h *Handler) getTrackSignatureVerifiers(cfg configtypes.SharedPoll) (*trackSignatureVerifier, *trackSignatureVerifier) {
 	h.trackSigMu.RLock()
 	v := h.trackSigVerifier
 	vKey := h.trackSigVerifierKey

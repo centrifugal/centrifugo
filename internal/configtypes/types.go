@@ -72,11 +72,12 @@ type SubscriptionToken struct {
 	Token   `mapstructure:",squash" yaml:",inline"`
 }
 
-// ClientSharedPoll contains HMAC signature configuration for shared poll subscriptions.
-type ClientSharedPoll struct {
+// SharedPoll contains configuration for shared poll subscriptions.
+type SharedPoll struct {
 	HMACSecretKey                   string `mapstructure:"hmac_secret_key" json:"hmac_secret_key" envconfig:"hmac_secret_key" yaml:"hmac_secret_key" toml:"hmac_secret_key"`
 	HMACPreviousSecretKey           string `mapstructure:"hmac_previous_secret_key" json:"hmac_previous_secret_key" envconfig:"hmac_previous_secret_key" yaml:"hmac_previous_secret_key" toml:"hmac_previous_secret_key"`
 	HMACPreviousSecretKeyValidUntil int64  `mapstructure:"hmac_previous_secret_key_valid_until" json:"hmac_previous_secret_key_valid_until" envconfig:"hmac_previous_secret_key_valid_until" yaml:"hmac_previous_secret_key_valid_until" toml:"hmac_previous_secret_key_valid_until"`
+	ConcurrencyLimit                int    `mapstructure:"concurrency_limit" json:"concurrency_limit" envconfig:"concurrency_limit" yaml:"concurrency_limit" toml:"concurrency_limit"`
 }
 
 // HTTP3 is EXPERIMENTAL.
@@ -388,8 +389,6 @@ type Client struct {
 	// Centrifugo will use this configuration for subscription tokens only. Configuration in Token is then only
 	// used for connection tokens.
 	SubscriptionToken SubscriptionToken `mapstructure:"subscription_token" json:"subscription_token" envconfig:"subscription_token" yaml:"subscription_token" toml:"subscription_token"`
-	// SharedPoll contains HMAC signature configuration for shared poll subscriptions.
-	SharedPoll ClientSharedPoll `mapstructure:"shared_poll" json:"shared_poll" envconfig:"shared_poll" yaml:"shared_poll" toml:"shared_poll"`
 	// AllowAnonymousConnectWithoutToken allows to connect to Centrifugo without a token. In this case connection will
 	// be accepted but client will be anonymous (i.e. will have empty user ID).
 	AllowAnonymousConnectWithoutToken bool `mapstructure:"allow_anonymous_connect_without_token" json:"allow_anonymous_connect_without_token" envconfig:"allow_anonymous_connect_without_token" yaml:"allow_anonymous_connect_without_token" toml:"allow_anonymous_connect_without_token"`

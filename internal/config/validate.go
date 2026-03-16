@@ -317,8 +317,8 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 		return fmt.Errorf("unknown subscription_type: %q", c.SubscriptionType)
 	}
 	if c.SubscriptionType == "shared_poll" {
-		if cfg.Client.SharedPoll.HMACSecretKey == "" {
-			return fmt.Errorf("client.shared_poll.hmac_secret_key is required when subscription_type is \"shared_poll\"")
+		if cfg.SharedPoll.HMACSecretKey == "" {
+			return fmt.Errorf("shared_poll.hmac_secret_key is required when subscription_type is \"shared_poll\"")
 		}
 		if c.SharedPoll.ProxyName != "" && !slices.Contains(proxyNames, c.SharedPoll.ProxyName) {
 			return fmt.Errorf("shared poll proxy with name %q not found", c.SharedPoll.ProxyName)
