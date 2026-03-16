@@ -4,10 +4,11 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
+	"hash"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const gracePeriodSeconds = 30
@@ -33,7 +34,43 @@ func parseSignatureTimestamps(sig string) (iat int64, expiry int64) {
 	return iatVal, expiryVal
 }
 
+// trackSignatureVerifier reuses HMAC hashers and buffers for signature verification.
+// Thread-safe via sync.Pool.
+type trackSignatureVerifier struct {
+	macPool sync.Pool
+	bufPool sync.Pool
+}
+
+type verifyBufs struct {
+	payload    []byte
+	hexBuf     []byte
+	expectedHex []byte
+}
+
+func newTrackSignatureVerifier(secret string) *trackSignatureVerifier {
+	return &trackSignatureVerifier{
+		macPool: sync.Pool{
+			New: func() any {
+				return hmac.New(sha256.New, []byte(secret))
+			},
+		},
+		bufPool: sync.Pool{
+			New: func() any {
+				return &verifyBufs{
+					payload:     make([]byte, 0, 256),
+					hexBuf:      make([]byte, hex.EncodedLen(sha256.Size)),
+					expectedHex: make([]byte, hex.EncodedLen(sha256.Size)),
+				}
+			},
+		},
+	}
+}
+
 func verifyTrackSignature(secret string, channel string, sig string, keys []string, userID string) bool {
+	return newTrackSignatureVerifier(secret).verify(channel, sig, keys, userID)
+}
+
+func (v *trackSignatureVerifier) verify(channel string, sig string, keys []string, userID string) bool {
 	first := strings.IndexByte(sig, ':')
 	if first < 0 {
 		return false
@@ -52,10 +89,28 @@ func verifyTrackSignature(secret string, channel string, sig string, keys []stri
 	sort.Strings(sortedKeys)
 	keysHash := sha256.Sum256([]byte(strings.Join(sortedKeys, "\x00")))
 
-	payload := fmt.Sprintf("%s:%s:%x:%s:%s", channel, userID, keysHash, iatStr, expiryStr)
-	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write([]byte(payload))
-	expectedHex := hex.EncodeToString(mac.Sum(nil))
+	mac := v.macPool.Get().(hash.Hash)
+	bufs := v.bufPool.Get().(*verifyBufs)
 
-	return hmac.Equal([]byte(hmacHex), []byte(expectedHex))
+	mac.Reset()
+	bufs.payload = bufs.payload[:0]
+	bufs.payload = append(bufs.payload, iatStr...)
+	bufs.payload = append(bufs.payload, ':')
+	bufs.payload = append(bufs.payload, expiryStr...)
+	bufs.payload = append(bufs.payload, ':')
+	bufs.payload = append(bufs.payload, userID...)
+	bufs.payload = append(bufs.payload, ':')
+	bufs.payload = append(bufs.payload, channel...)
+	bufs.payload = append(bufs.payload, ':')
+	hex.Encode(bufs.hexBuf, keysHash[:])
+	bufs.payload = append(bufs.payload, bufs.hexBuf...)
+	mac.Write(bufs.payload)
+	hex.Encode(bufs.expectedHex, mac.Sum(nil))
+
+	result := hmac.Equal([]byte(hmacHex), bufs.expectedHex)
+
+	v.macPool.Put(mac)
+	v.bufPool.Put(bufs)
+
+	return result
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sync"
 	"unicode"
 
 	"github.com/centrifugal/centrifugo/v6/internal/clientcontext"
@@ -45,6 +46,12 @@ type Handler struct {
 	subTokenVerifier *jwtverify.VerifierJWT
 	proxyMap         *ProxyMap
 	rpcExtension     map[string]RPCExtensionFunc
+
+	trackSigMu          sync.RWMutex
+	trackSigVerifier    *trackSignatureVerifier
+	trackSigVerifierKey string
+	trackSigPrevVerifier    *trackSignatureVerifier
+	trackSigPrevVerifierKey string
 }
 
 // NewHandler creates new Handler.
@@ -1048,8 +1055,9 @@ func (h *Handler) OnKeyedTrack(c Client, e centrifuge.KeyedTrackEvent) (centrifu
 		keys[i] = item.Key
 	}
 
-	verified := verifyTrackSignature(sharedPollCfg.HMACSecretKey, e.Channel, e.Signature, keys, e.UserID)
-	if !verified && sharedPollCfg.HMACPreviousSecretKey != "" {
+	verifier, prevVerifier := h.getTrackSignatureVerifiers(sharedPollCfg)
+	verified := verifier.verify(e.Channel, e.Signature, keys, e.UserID)
+	if !verified && prevVerifier != nil {
 		if sharedPollCfg.HMACPreviousSecretKeyValidUntil > 0 {
 			iat, _ := parseSignatureTimestamps(e.Signature)
 			if iat > sharedPollCfg.HMACPreviousSecretKeyValidUntil {
@@ -1057,7 +1065,7 @@ func (h *Handler) OnKeyedTrack(c Client, e centrifuge.KeyedTrackEvent) (centrifu
 				return centrifuge.KeyedTrackReply{}, centrifuge.ErrorPermissionDenied
 			}
 		}
-		verified = verifyTrackSignature(sharedPollCfg.HMACPreviousSecretKey, e.Channel, e.Signature, keys, e.UserID)
+		verified = prevVerifier.verify(e.Channel, e.Signature, keys, e.UserID)
 	}
 	if !verified {
 		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("invalid track signature")
@@ -1069,6 +1077,40 @@ func (h *Handler) OnKeyedTrack(c Client, e centrifuge.KeyedTrackEvent) (centrifu
 	return centrifuge.KeyedTrackReply{
 		ExpireAt: expiry,
 	}, nil
+}
+
+func (h *Handler) getTrackSignatureVerifiers(cfg configtypes.ClientSharedPoll) (*trackSignatureVerifier, *trackSignatureVerifier) {
+	h.trackSigMu.RLock()
+	v := h.trackSigVerifier
+	vKey := h.trackSigVerifierKey
+	pv := h.trackSigPrevVerifier
+	pvKey := h.trackSigPrevVerifierKey
+	h.trackSigMu.RUnlock()
+
+	if vKey == cfg.HMACSecretKey && pvKey == cfg.HMACPreviousSecretKey {
+		return v, pv
+	}
+
+	h.trackSigMu.Lock()
+	defer h.trackSigMu.Unlock()
+	// Double-check after acquiring write lock.
+	if h.trackSigVerifierKey == cfg.HMACSecretKey && h.trackSigPrevVerifierKey == cfg.HMACPreviousSecretKey {
+		return h.trackSigVerifier, h.trackSigPrevVerifier
+	}
+	if h.trackSigVerifierKey != cfg.HMACSecretKey {
+		h.trackSigVerifier = newTrackSignatureVerifier(cfg.HMACSecretKey)
+		h.trackSigVerifierKey = cfg.HMACSecretKey
+	}
+	if cfg.HMACPreviousSecretKey != "" {
+		if h.trackSigPrevVerifierKey != cfg.HMACPreviousSecretKey {
+			h.trackSigPrevVerifier = newTrackSignatureVerifier(cfg.HMACPreviousSecretKey)
+			h.trackSigPrevVerifierKey = cfg.HMACPreviousSecretKey
+		}
+	} else {
+		h.trackSigPrevVerifier = nil
+		h.trackSigPrevVerifierKey = ""
+	}
+	return h.trackSigVerifier, h.trackSigPrevVerifier
 }
 
 func (h *Handler) hasAccessToPresence(c Client, channel string, chOpts configtypes.ChannelOptions, forceSubscribed bool) bool {
