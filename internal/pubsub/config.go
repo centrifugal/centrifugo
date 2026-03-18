@@ -12,10 +12,10 @@ type Config struct {
 	Type string
 	// Channel is the notification channel/subject name. Prefix is applied automatically.
 	Channel string
-	// Redis connection config with prefix. Used when Type is "redis".
-	Redis configtypes.RedisPrefixed
-	// Nats connection config with prefix. Used when Type is "nats".
-	Nats configtypes.NatsPrefixed
+	// Redis connection config. Used when Type is "redis".
+	Redis configtypes.RedisEmptyPrefixed
+	// Nats connection config. Used when Type is "nats".
+	Nats configtypes.NatsEmptyPrefixed
 }
 
 // New creates a PubSub instance from config.

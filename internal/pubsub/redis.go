@@ -16,7 +16,7 @@ type RedisPubSub struct {
 
 // NewRedisPubSub creates a new Redis-backed PubSub.
 // The channel name is constructed as prefix + channelName.
-func NewRedisPubSub(cfg configtypes.RedisPrefixed, channelName string) (*RedisPubSub, error) {
+func NewRedisPubSub(cfg configtypes.RedisEmptyPrefixed, channelName string) (*RedisPubSub, error) {
 	shards, err := redisshard.BuildRedisShards(cfg.Redis)
 	if err != nil {
 		return nil, fmt.Errorf("error building Redis shards for pubsub: %w", err)

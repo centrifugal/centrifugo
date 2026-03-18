@@ -17,7 +17,7 @@ type NatsPubSub struct {
 
 // NewNatsPubSub creates a new NATS-backed PubSub.
 // The subject is constructed as prefix + subjectName.
-func NewNatsPubSub(cfg configtypes.NatsPrefixed, subjectName string) (*NatsPubSub, error) {
+func NewNatsPubSub(cfg configtypes.NatsEmptyPrefixed, subjectName string) (*NatsPubSub, error) {
 	url := cfg.URL
 	if url == "" {
 		url = nats.DefaultURL
