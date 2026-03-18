@@ -227,6 +227,13 @@ type NatsPrefixed struct {
 	NatsCommon `mapstructure:",squash" yaml:",inline"`
 }
 
+// NatsEmptyPrefixed is like NatsPrefixed but defaults to an empty prefix.
+// Useful for standalone pub/sub channels where a prefix is not needed by default.
+type NatsEmptyPrefixed struct {
+	Prefix     string `mapstructure:"prefix" json:"prefix" envconfig:"prefix" yaml:"prefix" toml:"prefix"`
+	NatsCommon `mapstructure:",squash" yaml:",inline"`
+}
+
 type NatsCommon struct {
 	// URL is a Nats server URL.
 	URL string `mapstructure:"url" json:"url" envconfig:"url" yaml:"url" toml:"url" default:"nats://localhost:4222"`

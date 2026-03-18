@@ -50,6 +50,13 @@ type RedisPrefixed struct {
 	Redis  `mapstructure:",squash" yaml:",inline"`
 }
 
+// RedisEmptyPrefixed is like RedisPrefixed but defaults to an empty prefix.
+// Useful for standalone pub/sub channels where a prefix is not needed by default.
+type RedisEmptyPrefixed struct {
+	Prefix string `mapstructure:"prefix" json:"prefix" envconfig:"prefix" yaml:"prefix" toml:"prefix"`
+	Redis  `mapstructure:",squash" yaml:",inline"`
+}
+
 // RedisReplicaClient allows configuring Redis replica options.
 type RedisReplicaClient struct {
 	// Enabled enables replica client.

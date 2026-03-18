@@ -395,11 +395,6 @@ func (s *RedisShard) RunMulti(op MultiOp) []rueidis.RedisResult {
 	return op(s.client)
 }
 
-// IsCluster returns true if the shard is connected to a Redis Cluster.
-func (s *RedisShard) IsCluster() bool {
-	return s.isCluster
-}
-
 // Publish sends data to a Redis PUB/SUB channel.
 // Uses SPUBLISH for cluster mode, PUBLISH otherwise.
 func (s *RedisShard) Publish(ctx context.Context, channel string, data []byte) error {
