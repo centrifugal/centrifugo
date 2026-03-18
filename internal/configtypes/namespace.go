@@ -214,18 +214,18 @@ type ChannelOptions struct {
 	// MapMetaTTL is the retention period for map metadata (epoch, offset).
 	// Auto-derived based on sync mode and retention mode if not set.
 	MapMetaTTL Duration `mapstructure:"map_meta_ttl" json:"map_meta_ttl" envconfig:"map_meta_ttl" yaml:"map_meta_ttl" toml:"map_meta_ttl"`
-	// MapClientPresenceNamespace is the namespace for client presence channels.
+	// MapClientPresenceChannelPrefix is the prefix for client presence channels.
 	// When set, client presence (key=clientID, full ClientInfo) is published to
-	// {namespace}{boundary}{channel_rest} on subscribe and removed on unsubscribe.
-	// For example, with namespace "clients" and boundary ":", subscribing to "game:abc"
-	// publishes presence to "clients:abc". Empty string means no client presence.
-	MapClientPresenceNamespace string `mapstructure:"map_client_presence_namespace" json:"map_client_presence_namespace" envconfig:"map_client_presence_namespace" yaml:"map_client_presence_namespace" toml:"map_client_presence_namespace"`
-	// MapUserPresenceNamespace is the namespace for user presence channels.
+	// {prefix}{channel} on subscribe and removed on unsubscribe.
+	// For example, with prefix "clients:" subscribing to "game:abc"
+	// publishes presence to "clients:game:abc". Empty string means no client presence.
+	MapClientPresenceChannelPrefix string `mapstructure:"map_client_presence_channel_prefix" json:"map_client_presence_channel_prefix" envconfig:"map_client_presence_channel_prefix" yaml:"map_client_presence_channel_prefix" toml:"map_client_presence_channel_prefix"`
+	// MapUserPresenceChannelPrefix is the prefix for user presence channels.
 	// When set, user presence (key=userID) is published to
-	// {namespace}{boundary}{channel_rest} on subscribe. User presence entries are
+	// {prefix}{channel} on subscribe. User presence entries are
 	// not removed on unsubscribe — they expire via TTL to provide grace period for
 	// quick reconnects. Empty string means no user presence.
-	MapUserPresenceNamespace string `mapstructure:"map_user_presence_namespace" json:"map_user_presence_namespace" envconfig:"map_user_presence_namespace" yaml:"map_user_presence_namespace" toml:"map_user_presence_namespace"`
+	MapUserPresenceChannelPrefix string `mapstructure:"map_user_presence_channel_prefix" json:"map_user_presence_channel_prefix" envconfig:"map_user_presence_channel_prefix" yaml:"map_user_presence_channel_prefix" toml:"map_user_presence_channel_prefix"`
 	// MapRemoveClientOnUnsubscribe enables automatic cleanup of map state when subscription
 	// ends. When enabled, the entry with key=clientID is removed from the channel's
 	// map state on unsubscribe or disconnect. Useful for ephemeral state like cursor

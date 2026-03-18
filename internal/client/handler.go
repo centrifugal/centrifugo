@@ -738,13 +738,11 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	options.AllowedDeltaTypes = chOpts.AllowedDeltaTypes
 	options.AllowTagsFilter = chOpts.AllowTagsFilter
 	options.MapRemoveClientOnUnsubscribe = chOpts.MapRemoveClientOnUnsubscribe
-	if chOpts.MapClientPresenceNamespace != "" {
-		namespaceBoundary := h.cfgContainer.Config().Channel.NamespaceBoundary
-		options.MapClientPresenceChannel = chOpts.MapClientPresenceNamespace + namespaceBoundary + rest
+	if chOpts.MapClientPresenceChannelPrefix != "" {
+		options.MapClientPresenceChannel = chOpts.MapClientPresenceChannelPrefix + e.Channel
 	}
-	if chOpts.MapUserPresenceNamespace != "" {
-		namespaceBoundary := h.cfgContainer.Config().Channel.NamespaceBoundary
-		options.MapUserPresenceChannel = chOpts.MapUserPresenceNamespace + namespaceBoundary + rest
+	if chOpts.MapUserPresenceChannelPrefix != "" {
+		options.MapUserPresenceChannel = chOpts.MapUserPresenceChannelPrefix + e.Channel
 	}
 
 	isPrivateChannel := h.cfgContainer.IsPrivateChannel(e.Channel)

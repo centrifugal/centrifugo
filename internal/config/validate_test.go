@@ -511,51 +511,53 @@ func TestValidateMapNamespace_PresenceAndRemoveOptions(t *testing.T) {
 		require.Contains(t, err.Error(), "map_remove_client_on_unsubscribe requires subscription_type to be a map type")
 	})
 
-	t.Run("client_presence_namespace_valid", func(t *testing.T) {
+	t.Run("client_presence_channel_prefix_valid", func(t *testing.T) {
 		cfg := mapDefaultConfig()
 		ns := mapNamespace("games", "ephemeral", "expiring")
 		ns.MapKeyTTL = configtypes.Duration(60 * time.Second)
-		ns.MapClientPresenceNamespace = "clients"
+		ns.MapClientPresenceChannelPrefix = "clients:"
 		clients := mapNamespace("clients", "ephemeral", "expiring")
 		clients.MapKeyTTL = configtypes.Duration(60 * time.Second)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns, clients}
 		require.NoError(t, cfg.Validate())
 	})
 
-	t.Run("client_presence_namespace_not_found", func(t *testing.T) {
+	t.Run("client_presence_channel_prefix_not_found", func(t *testing.T) {
 		cfg := mapDefaultConfig()
 		ns := mapNamespace("games", "ephemeral", "expiring")
 		ns.MapKeyTTL = configtypes.Duration(60 * time.Second)
-		ns.MapClientPresenceNamespace = "nonexistent"
+		ns.MapClientPresenceChannelPrefix = "nonexistent:"
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
 		err := cfg.Validate()
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "map_client_presence_namespace \"nonexistent\" not found")
+		require.Contains(t, err.Error(), "map_client_presence_channel_prefix")
+		require.Contains(t, err.Error(), "does not exist")
 	})
 
-	t.Run("user_presence_namespace_not_found", func(t *testing.T) {
+	t.Run("user_presence_channel_prefix_not_found", func(t *testing.T) {
 		cfg := mapDefaultConfig()
 		ns := mapNamespace("games", "ephemeral", "expiring")
 		ns.MapKeyTTL = configtypes.Duration(60 * time.Second)
-		ns.MapUserPresenceNamespace = "nonexistent"
+		ns.MapUserPresenceChannelPrefix = "nonexistent:"
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
 		err := cfg.Validate()
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "map_user_presence_namespace \"nonexistent\" not found")
+		require.Contains(t, err.Error(), "map_user_presence_channel_prefix")
+		require.Contains(t, err.Error(), "does not exist")
 	})
 
-	t.Run("presence_namespace_requires_map_type", func(t *testing.T) {
+	t.Run("presence_channel_prefix_requires_map_type", func(t *testing.T) {
 		cfg := mapDefaultConfig()
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{{
 			Name: "ns",
 			ChannelOptions: configtypes.ChannelOptions{
-				SubscriptionType:           "stream",
-				MapClientPresenceNamespace: "clients",
+				SubscriptionType:               "stream",
+				MapClientPresenceChannelPrefix: "clients:",
 			},
 		}}
 		err := cfg.Validate()
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "map_client_presence_namespace requires subscription_type to be a map type")
+		require.Contains(t, err.Error(), "map_client_presence_channel_prefix requires subscription_type to be a map type")
 	})
 }
 

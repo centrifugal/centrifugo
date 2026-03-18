@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
@@ -111,13 +112,23 @@ func (c Config) Validate() error {
 		return fmt.Errorf("namespace for user personal channel not found: %s", personalChannelNamespace)
 	}
 
-	// Validate that map presence namespace references point to existing namespaces.
+	// Validate that map presence channel prefix references point to existing namespaces with map type.
+	boundary := c.Channel.NamespaceBoundary
+	if boundary == "" {
+		boundary = ":"
+	}
 	for _, n := range c.Channel.Namespaces {
-		if n.MapClientPresenceNamespace != "" && !slices.Contains(nss, n.MapClientPresenceNamespace) {
-			return fmt.Errorf("namespace %s: map_client_presence_namespace %q not found", n.Name, n.MapClientPresenceNamespace)
+		if n.MapClientPresenceChannelPrefix != "" {
+			targetNs := strings.SplitN(n.MapClientPresenceChannelPrefix+"x", boundary, 2)[0]
+			if !slices.Contains(nss, targetNs) {
+				return fmt.Errorf("namespace %s: map_client_presence_channel_prefix %q resolves to namespace %q which does not exist", n.Name, n.MapClientPresenceChannelPrefix, targetNs)
+			}
 		}
-		if n.MapUserPresenceNamespace != "" && !slices.Contains(nss, n.MapUserPresenceNamespace) {
-			return fmt.Errorf("namespace %s: map_user_presence_namespace %q not found", n.Name, n.MapUserPresenceNamespace)
+		if n.MapUserPresenceChannelPrefix != "" {
+			targetNs := strings.SplitN(n.MapUserPresenceChannelPrefix+"x", boundary, 2)[0]
+			if !slices.Contains(nss, targetNs) {
+				return fmt.Errorf("namespace %s: map_user_presence_channel_prefix %q resolves to namespace %q which does not exist", n.Name, n.MapUserPresenceChannelPrefix, targetNs)
+			}
 		}
 	}
 
@@ -396,11 +407,11 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 	if c.MapRemoveClientOnUnsubscribe && !hasMapType {
 		return fmt.Errorf("map_remove_client_on_unsubscribe requires subscription_type to be a map type")
 	}
-	if c.MapClientPresenceNamespace != "" && !hasMapType {
-		return fmt.Errorf("map_client_presence_namespace requires subscription_type to be a map type")
+	if c.MapClientPresenceChannelPrefix != "" && !hasMapType {
+		return fmt.Errorf("map_client_presence_channel_prefix requires subscription_type to be a map type")
 	}
-	if c.MapUserPresenceNamespace != "" && !hasMapType {
-		return fmt.Errorf("map_user_presence_namespace requires subscription_type to be a map type")
+	if c.MapUserPresenceChannelPrefix != "" && !hasMapType {
+		return fmt.Errorf("map_user_presence_channel_prefix requires subscription_type to be a map type")
 	}
 
 	return nil
