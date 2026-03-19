@@ -62,8 +62,8 @@ func (h *MapPublishHandler) Handle(node *centrifuge.Node) MapPublishHandlerFunc 
 		var histogram prometheus.Observer
 		var errors prometheus.Counter
 
-		proxyEnabled := chOpts.MapPublishProxyEnabled
-		proxyName := chOpts.MapPublishProxyName
+		proxyEnabled := chOpts.Map.PublishProxyEnabled
+		proxyName := chOpts.Map.PublishProxyName
 		if !proxyEnabled {
 			log.Info().Str("channel", e.Channel).Msg("map publish proxy not enabled for a channel")
 			return centrifuge.MapPublishReply{}, centrifuge.ErrorNotAvailable

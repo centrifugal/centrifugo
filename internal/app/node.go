@@ -43,14 +43,14 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 			return centrifuge.MapChannelOptions{}
 		}
 		var syncMode centrifuge.MapSyncMode
-		switch chOpts.MapSyncMode {
+		switch chOpts.Map.SyncMode {
 		case "ephemeral":
 			syncMode = centrifuge.MapSyncEphemeral
 		case "converging":
 			syncMode = centrifuge.MapSyncConverging
 		}
 		var retentionMode centrifuge.MapRetentionMode
-		switch chOpts.MapRetentionMode {
+		switch chOpts.Map.RetentionMode {
 		case "expiring":
 			retentionMode = centrifuge.MapRetentionExpiring
 		case "permanent":
@@ -59,11 +59,11 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 		return centrifuge.MapChannelOptions{
 			SyncMode:      syncMode,
 			RetentionMode: retentionMode,
-			KeyTTL:        chOpts.MapKeyTTL.ToDuration(),
-			Ordered:       chOpts.MapOrdered,
-			StreamSize:    chOpts.MapStreamSize,
-			StreamTTL:     chOpts.MapStreamTTL.ToDuration(),
-			MetaTTL:       chOpts.MapMetaTTL.ToDuration(),
+			KeyTTL:        chOpts.Map.KeyTTL.ToDuration(),
+			Ordered:       chOpts.Map.Ordered,
+			StreamSize:    chOpts.Map.StreamSize,
+			StreamTTL:     chOpts.Map.StreamTTL.ToDuration(),
+			MetaTTL:       chOpts.Map.MetaTTL.ToDuration(),
 		}
 	}
 	hasSharedPoll := appCfg.Channel.WithoutNamespace.SubscriptionType == "shared_poll"

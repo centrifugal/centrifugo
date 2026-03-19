@@ -737,12 +737,12 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	options.HistoryMetaTTL = chOpts.HistoryMetaTTL.ToDuration()
 	options.AllowedDeltaTypes = chOpts.AllowedDeltaTypes
 	options.AllowTagsFilter = chOpts.AllowTagsFilter
-	options.MapRemoveClientOnUnsubscribe = chOpts.MapRemoveClientOnUnsubscribe
-	if chOpts.MapClientPresenceChannelPrefix != "" {
-		options.MapClientPresenceChannel = chOpts.MapClientPresenceChannelPrefix + e.Channel
+	options.MapRemoveClientOnUnsubscribe = chOpts.Map.RemoveClientOnUnsubscribe
+	if chOpts.Map.ClientPresenceChannelPrefix != "" {
+		options.MapClientPresenceChannel = chOpts.Map.ClientPresenceChannelPrefix + e.Channel
 	}
-	if chOpts.MapUserPresenceChannelPrefix != "" {
-		options.MapUserPresenceChannel = chOpts.MapUserPresenceChannelPrefix + e.Channel
+	if chOpts.Map.UserPresenceChannelPrefix != "" {
+		options.MapUserPresenceChannel = chOpts.Map.UserPresenceChannelPrefix + e.Channel
 	}
 
 	isPrivateChannel := h.cfgContainer.IsPrivateChannel(e.Channel)
@@ -940,7 +940,7 @@ func (h *Handler) OnMapPublish(c Client, e centrifuge.MapPublishEvent, mapPublis
 		return centrifuge.MapPublishReply{}, err
 	}
 
-	if chOpts.MapPublishProxyEnabled {
+	if chOpts.Map.PublishProxyEnabled {
 		if mapPublishProxyHandler == nil {
 			log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("map publish proxy not enabled")
 			return centrifuge.MapPublishReply{}, centrifuge.ErrorNotAvailable
@@ -949,9 +949,9 @@ func (h *Handler) OnMapPublish(c Client, e centrifuge.MapPublishEvent, mapPublis
 	}
 
 	var allowed bool
-	if chOpts.MapPublishForClient && (c.UserID() != "" || chOpts.MapPublishForAnonymous) {
+	if chOpts.Map.AllowPublishForClient && (c.UserID() != "" || chOpts.Map.AllowPublishForAnonymous) {
 		allowed = true
-	} else if chOpts.MapPublishForSubscriber && c.IsSubscribed(e.Channel) && (c.UserID() != "" || chOpts.MapPublishForAnonymous) {
+	} else if chOpts.Map.AllowPublishForSubscriber && c.IsSubscribed(e.Channel) && (c.UserID() != "" || chOpts.Map.AllowPublishForAnonymous) {
 		allowed = true
 	} else if cfg.Client.Insecure {
 		allowed = true
@@ -966,7 +966,7 @@ func (h *Handler) OnMapPublish(c Client, e centrifuge.MapPublishEvent, mapPublis
 	if chOpts.DeltaPublish {
 		reply.Options.UseDelta = true
 	}
-	switch chOpts.MapClientKey {
+	switch chOpts.Map.ClientKey {
 	case "client_id":
 		reply.Key = c.ID()
 	case "user_id":
@@ -993,7 +993,7 @@ func (h *Handler) OnMapRemove(c Client, e centrifuge.MapRemoveEvent, mapRemovePr
 		return centrifuge.MapRemoveReply{}, err
 	}
 
-	if chOpts.MapRemoveProxyEnabled {
+	if chOpts.Map.RemoveProxyEnabled {
 		if mapRemoveProxyHandler == nil {
 			log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("map remove proxy not enabled")
 			return centrifuge.MapRemoveReply{}, centrifuge.ErrorNotAvailable
@@ -1002,9 +1002,9 @@ func (h *Handler) OnMapRemove(c Client, e centrifuge.MapRemoveEvent, mapRemovePr
 	}
 
 	var allowed bool
-	if chOpts.MapRemoveForClient && (c.UserID() != "" || chOpts.MapRemoveForAnonymous) {
+	if chOpts.Map.AllowRemoveForClient && (c.UserID() != "" || chOpts.Map.AllowRemoveForAnonymous) {
 		allowed = true
-	} else if chOpts.MapRemoveForSubscriber && c.IsSubscribed(e.Channel) && (c.UserID() != "" || chOpts.MapRemoveForAnonymous) {
+	} else if chOpts.Map.AllowRemoveForSubscriber && c.IsSubscribed(e.Channel) && (c.UserID() != "" || chOpts.Map.AllowRemoveForAnonymous) {
 		allowed = true
 	} else if cfg.Client.Insecure {
 		allowed = true
@@ -1016,7 +1016,7 @@ func (h *Handler) OnMapRemove(c Client, e centrifuge.MapRemoveEvent, mapRemovePr
 	}
 
 	reply := centrifuge.MapRemoveReply{}
-	switch chOpts.MapClientKey {
+	switch chOpts.Map.ClientKey {
 	case "client_id":
 		reply.Key = c.ID()
 	case "user_id":

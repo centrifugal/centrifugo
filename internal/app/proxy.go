@@ -164,8 +164,8 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		}
 	}
 
-	mapPublishProxyEnabled := cfg.Channel.WithoutNamespace.MapPublishProxyEnabled
-	mapPublishProxyName := cfg.Channel.WithoutNamespace.MapPublishProxyName
+	mapPublishProxyEnabled := cfg.Channel.WithoutNamespace.Map.PublishProxyEnabled
+	mapPublishProxyName := cfg.Channel.WithoutNamespace.Map.PublishProxyName
 	if mapPublishProxyEnabled {
 		var p proxy.Config
 		if mapPublishProxyName == config.DefaultProxyName {
@@ -189,8 +189,8 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		}
 	}
 
-	mapRemoveProxyEnabled := cfg.Channel.WithoutNamespace.MapRemoveProxyEnabled
-	mapRemoveProxyName := cfg.Channel.WithoutNamespace.MapRemoveProxyName
+	mapRemoveProxyEnabled := cfg.Channel.WithoutNamespace.Map.RemoveProxyEnabled
+	mapRemoveProxyName := cfg.Channel.WithoutNamespace.Map.RemoveProxyName
 	if mapRemoveProxyEnabled {
 		var p proxy.Config
 		if mapRemoveProxyName == config.DefaultProxyName {
@@ -318,8 +318,8 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			}
 		}
 
-		mapPublishProxyEnabled := ns.MapPublishProxyEnabled
-		mapPublishProxyName := ns.MapPublishProxyName
+		mapPublishProxyEnabled := ns.Map.PublishProxyEnabled
+		mapPublishProxyName := ns.Map.PublishProxyName
 		if mapPublishProxyEnabled {
 			var p proxy.Config
 			if mapPublishProxyName == config.DefaultProxyName {
@@ -343,8 +343,8 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			}
 		}
 
-		mapRemoveProxyEnabled := ns.MapRemoveProxyEnabled
-		mapRemoveProxyName := ns.MapRemoveProxyName
+		mapRemoveProxyEnabled := ns.Map.RemoveProxyEnabled
+		mapRemoveProxyName := ns.Map.RemoveProxyName
 		if mapRemoveProxyEnabled {
 			var p proxy.Config
 			if mapRemoveProxyName == config.DefaultProxyName {

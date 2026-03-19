@@ -190,82 +190,38 @@ type ChannelOptions struct {
 	// Default: "stream" (traditional PUB/SUB with history).
 	SubscriptionType string `mapstructure:"subscription_type" json:"subscription_type" envconfig:"subscription_type" yaml:"subscription_type" toml:"subscription_type"`
 
-	// MapSyncMode controls how map state is synchronized with subscribers.
-	// Valid values: "ephemeral" (no stream, live updates only) or "converging"
-	// (stream-backed with delta recovery). Only relevant when subscription_type
-	// is a map type.
-	MapSyncMode string `mapstructure:"map_sync_mode" json:"map_sync_mode" envconfig:"map_sync_mode" yaml:"map_sync_mode" toml:"map_sync_mode"`
-	// MapRetentionMode controls how map entries are retained.
-	// Valid values: "expiring" (entries expire after map_key_ttl) or "permanent"
-	// (entries live until explicitly removed). Only relevant when subscription_type
-	// is a map type.
-	MapRetentionMode string `mapstructure:"map_retention_mode" json:"map_retention_mode" envconfig:"map_retention_mode" yaml:"map_retention_mode" toml:"map_retention_mode"`
-	// MapKeyTTL is the automatic expiration time for map entries. Required when
-	// map_retention_mode is "expiring". Ignored when "permanent".
-	MapKeyTTL Duration `mapstructure:"map_key_ttl" json:"map_key_ttl" envconfig:"map_key_ttl" yaml:"map_key_ttl" toml:"map_key_ttl"`
-	// MapOrdered enables score-based ordering (descending) for map entries.
-	MapOrdered bool `mapstructure:"map_ordered" json:"map_ordered" envconfig:"map_ordered" yaml:"map_ordered" toml:"map_ordered"`
-	// MapStreamSize is the maximum number of stream entries for map channels.
-	// Auto-derived if not set: 100 for "converging" mode, must be 0 for "ephemeral".
-	MapStreamSize int `mapstructure:"map_stream_size" json:"map_stream_size" envconfig:"map_stream_size" yaml:"map_stream_size" toml:"map_stream_size"`
-	// MapStreamTTL is the retention period for map stream entries.
-	// Auto-derived if not set: "1m" for "converging" mode, must be 0 for "ephemeral".
-	MapStreamTTL Duration `mapstructure:"map_stream_ttl" json:"map_stream_ttl" envconfig:"map_stream_ttl" yaml:"map_stream_ttl" toml:"map_stream_ttl"`
-	// MapMetaTTL is the retention period for map metadata (epoch, offset).
-	// Auto-derived based on sync mode and retention mode if not set.
-	MapMetaTTL Duration `mapstructure:"map_meta_ttl" json:"map_meta_ttl" envconfig:"map_meta_ttl" yaml:"map_meta_ttl" toml:"map_meta_ttl"`
-	// MapClientPresenceChannelPrefix is the prefix for client presence channels.
-	// When set, client presence (key=clientID, full ClientInfo) is published to
-	// {prefix}{channel} on subscribe and removed on unsubscribe.
-	// For example, with prefix "clients:" subscribing to "game:abc"
-	// publishes presence to "clients:game:abc". Empty string means no client presence.
-	MapClientPresenceChannelPrefix string `mapstructure:"map_client_presence_channel_prefix" json:"map_client_presence_channel_prefix" envconfig:"map_client_presence_channel_prefix" yaml:"map_client_presence_channel_prefix" toml:"map_client_presence_channel_prefix"`
-	// MapUserPresenceChannelPrefix is the prefix for user presence channels.
-	// When set, user presence (key=userID) is published to
-	// {prefix}{channel} on subscribe. User presence entries are
-	// not removed on unsubscribe — they expire via TTL to provide grace period for
-	// quick reconnects. Empty string means no user presence.
-	MapUserPresenceChannelPrefix string `mapstructure:"map_user_presence_channel_prefix" json:"map_user_presence_channel_prefix" envconfig:"map_user_presence_channel_prefix" yaml:"map_user_presence_channel_prefix" toml:"map_user_presence_channel_prefix"`
-	// MapRemoveClientOnUnsubscribe enables automatic cleanup of map state when subscription
-	// ends. When enabled, the entry with key=clientID is removed from the channel's
-	// map state on unsubscribe or disconnect. Useful for ephemeral state like cursor
-	// positions that should not persist after the client leaves.
-	MapRemoveClientOnUnsubscribe bool `mapstructure:"map_remove_client_on_unsubscribe" json:"map_remove_client_on_unsubscribe" envconfig:"map_remove_client_on_unsubscribe" yaml:"map_remove_client_on_unsubscribe" toml:"map_remove_client_on_unsubscribe"`
-
-	// MapPublishForAnonymous allows anonymous clients to map-publish.
-	MapPublishForAnonymous bool `mapstructure:"allow_map_publish_for_anonymous" json:"allow_map_publish_for_anonymous" envconfig:"allow_map_publish_for_anonymous" yaml:"allow_map_publish_for_anonymous" toml:"allow_map_publish_for_anonymous"`
-	// MapPublishForSubscriber allows subscribed clients to map-publish.
-	MapPublishForSubscriber bool `mapstructure:"allow_map_publish_for_subscriber" json:"allow_map_publish_for_subscriber" envconfig:"allow_map_publish_for_subscriber" yaml:"allow_map_publish_for_subscriber" toml:"allow_map_publish_for_subscriber"`
-	// MapPublishForClient allows authenticated clients to map-publish.
-	MapPublishForClient bool `mapstructure:"allow_map_publish_for_client" json:"allow_map_publish_for_client" envconfig:"allow_map_publish_for_client" yaml:"allow_map_publish_for_client" toml:"allow_map_publish_for_client"`
-
-	// MapPublishProxyEnabled turns on proxy for map publish.
-	MapPublishProxyEnabled bool `mapstructure:"map_publish_proxy_enabled" json:"map_publish_proxy_enabled" envconfig:"map_publish_proxy_enabled" yaml:"map_publish_proxy_enabled" toml:"map_publish_proxy_enabled"`
-	// MapPublishProxyName of proxy for map publish.
-	MapPublishProxyName string `mapstructure:"map_publish_proxy_name" default:"default" json:"map_publish_proxy_name" envconfig:"map_publish_proxy_name" yaml:"map_publish_proxy_name" toml:"map_publish_proxy_name"`
-
-	// MapRemoveForAnonymous allows anonymous clients to map-remove.
-	MapRemoveForAnonymous bool `mapstructure:"allow_map_remove_for_anonymous" json:"allow_map_remove_for_anonymous" envconfig:"allow_map_remove_for_anonymous" yaml:"allow_map_remove_for_anonymous" toml:"allow_map_remove_for_anonymous"`
-	// MapRemoveForSubscriber allows subscribed clients to map-remove.
-	MapRemoveForSubscriber bool `mapstructure:"allow_map_remove_for_subscriber" json:"allow_map_remove_for_subscriber" envconfig:"allow_map_remove_for_subscriber" yaml:"allow_map_remove_for_subscriber" toml:"allow_map_remove_for_subscriber"`
-	// MapRemoveForClient allows authenticated clients to map-remove.
-	MapRemoveForClient bool `mapstructure:"allow_map_remove_for_client" json:"allow_map_remove_for_client" envconfig:"allow_map_remove_for_client" yaml:"allow_map_remove_for_client" toml:"allow_map_remove_for_client"`
-
-	// MapRemoveProxyEnabled turns on proxy for map remove.
-	MapRemoveProxyEnabled bool `mapstructure:"map_remove_proxy_enabled" json:"map_remove_proxy_enabled" envconfig:"map_remove_proxy_enabled" yaml:"map_remove_proxy_enabled" toml:"map_remove_proxy_enabled"`
-	// MapRemoveProxyName of proxy for map remove.
-	MapRemoveProxyName string `mapstructure:"map_remove_proxy_name" default:"default" json:"map_remove_proxy_name" envconfig:"map_remove_proxy_name" yaml:"map_remove_proxy_name" toml:"map_remove_proxy_name"`
-
-	// MapClientKey controls server-driven key assignment for both map publish and map remove.
-	// "client_id" — key overridden with client ID.
-	// "user_id" — key overridden with user ID.
-	// Empty (default) — client-provided key used as-is – but the backend is encouraged to validate it.
-	MapClientKey string `mapstructure:"map_client_key" json:"map_client_key" envconfig:"map_client_key" yaml:"map_client_key" toml:"map_client_key"`
+	// Map contains configuration for map subscription types (map, map_clients, map_users).
+	Map MapConfig `mapstructure:"map" json:"map" envconfig:"map" yaml:"map" toml:"map"`
 
 	// SharedPoll contains configuration for shared poll subscription type.
 	SharedPoll SharedPollConfig `mapstructure:"shared_poll" json:"shared_poll" envconfig:"shared_poll" yaml:"shared_poll" toml:"shared_poll"`
 
 	Compiled `json:"-" yaml:"-" toml:"-"`
+}
+
+// MapConfig contains configuration for map subscription types (map, map_clients, map_users).
+type MapConfig struct {
+	SyncMode                    string   `mapstructure:"sync_mode" json:"sync_mode" envconfig:"sync_mode" yaml:"sync_mode" toml:"sync_mode"`
+	RetentionMode               string   `mapstructure:"retention_mode" json:"retention_mode" envconfig:"retention_mode" yaml:"retention_mode" toml:"retention_mode"`
+	KeyTTL                      Duration `mapstructure:"key_ttl" json:"key_ttl" envconfig:"key_ttl" yaml:"key_ttl" toml:"key_ttl"`
+	Ordered                     bool     `mapstructure:"ordered" json:"ordered" envconfig:"ordered" yaml:"ordered" toml:"ordered"`
+	StreamSize                  int      `mapstructure:"stream_size" json:"stream_size" envconfig:"stream_size" yaml:"stream_size" toml:"stream_size"`
+	StreamTTL                   Duration `mapstructure:"stream_ttl" json:"stream_ttl" envconfig:"stream_ttl" yaml:"stream_ttl" toml:"stream_ttl"`
+	MetaTTL                     Duration `mapstructure:"meta_ttl" json:"meta_ttl" envconfig:"meta_ttl" yaml:"meta_ttl" toml:"meta_ttl"`
+	ClientPresenceChannelPrefix string   `mapstructure:"client_presence_channel_prefix" json:"client_presence_channel_prefix" envconfig:"client_presence_channel_prefix" yaml:"client_presence_channel_prefix" toml:"client_presence_channel_prefix"`
+	UserPresenceChannelPrefix   string   `mapstructure:"user_presence_channel_prefix" json:"user_presence_channel_prefix" envconfig:"user_presence_channel_prefix" yaml:"user_presence_channel_prefix" toml:"user_presence_channel_prefix"`
+	RemoveClientOnUnsubscribe   bool     `mapstructure:"remove_client_on_unsubscribe" json:"remove_client_on_unsubscribe" envconfig:"remove_client_on_unsubscribe" yaml:"remove_client_on_unsubscribe" toml:"remove_client_on_unsubscribe"`
+	ClientKey                   string   `mapstructure:"client_key" json:"client_key" envconfig:"client_key" yaml:"client_key" toml:"client_key"`
+	AllowPublishForClient       bool     `mapstructure:"allow_publish_for_client" json:"allow_publish_for_client" envconfig:"allow_publish_for_client" yaml:"allow_publish_for_client" toml:"allow_publish_for_client"`
+	AllowPublishForSubscriber   bool     `mapstructure:"allow_publish_for_subscriber" json:"allow_publish_for_subscriber" envconfig:"allow_publish_for_subscriber" yaml:"allow_publish_for_subscriber" toml:"allow_publish_for_subscriber"`
+	AllowPublishForAnonymous    bool     `mapstructure:"allow_publish_for_anonymous" json:"allow_publish_for_anonymous" envconfig:"allow_publish_for_anonymous" yaml:"allow_publish_for_anonymous" toml:"allow_publish_for_anonymous"`
+	AllowRemoveForClient        bool     `mapstructure:"allow_remove_for_client" json:"allow_remove_for_client" envconfig:"allow_remove_for_client" yaml:"allow_remove_for_client" toml:"allow_remove_for_client"`
+	AllowRemoveForSubscriber    bool     `mapstructure:"allow_remove_for_subscriber" json:"allow_remove_for_subscriber" envconfig:"allow_remove_for_subscriber" yaml:"allow_remove_for_subscriber" toml:"allow_remove_for_subscriber"`
+	AllowRemoveForAnonymous     bool     `mapstructure:"allow_remove_for_anonymous" json:"allow_remove_for_anonymous" envconfig:"allow_remove_for_anonymous" yaml:"allow_remove_for_anonymous" toml:"allow_remove_for_anonymous"`
+	PublishProxyEnabled         bool     `mapstructure:"publish_proxy_enabled" json:"publish_proxy_enabled" envconfig:"publish_proxy_enabled" yaml:"publish_proxy_enabled" toml:"publish_proxy_enabled"`
+	PublishProxyName            string   `mapstructure:"publish_proxy_name" default:"default" json:"publish_proxy_name" envconfig:"publish_proxy_name" yaml:"publish_proxy_name" toml:"publish_proxy_name"`
+	RemoveProxyEnabled          bool     `mapstructure:"remove_proxy_enabled" json:"remove_proxy_enabled" envconfig:"remove_proxy_enabled" yaml:"remove_proxy_enabled" toml:"remove_proxy_enabled"`
+	RemoveProxyName             string   `mapstructure:"remove_proxy_name" default:"default" json:"remove_proxy_name" envconfig:"remove_proxy_name" yaml:"remove_proxy_name" toml:"remove_proxy_name"`
 }
 
 // SharedPollConfig contains configuration for shared poll subscription type.

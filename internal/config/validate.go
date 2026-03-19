@@ -118,16 +118,16 @@ func (c Config) Validate() error {
 		boundary = ":"
 	}
 	for _, n := range c.Channel.Namespaces {
-		if n.MapClientPresenceChannelPrefix != "" {
-			targetNs := strings.SplitN(n.MapClientPresenceChannelPrefix+"x", boundary, 2)[0]
+		if n.Map.ClientPresenceChannelPrefix != "" {
+			targetNs := strings.SplitN(n.Map.ClientPresenceChannelPrefix+"x", boundary, 2)[0]
 			if !slices.Contains(nss, targetNs) {
-				return fmt.Errorf("namespace %s: map_client_presence_channel_prefix %q resolves to namespace %q which does not exist", n.Name, n.MapClientPresenceChannelPrefix, targetNs)
+				return fmt.Errorf("namespace %s: map.client_presence_channel_prefix %q resolves to namespace %q which does not exist", n.Name, n.Map.ClientPresenceChannelPrefix, targetNs)
 			}
 		}
-		if n.MapUserPresenceChannelPrefix != "" {
-			targetNs := strings.SplitN(n.MapUserPresenceChannelPrefix+"x", boundary, 2)[0]
+		if n.Map.UserPresenceChannelPrefix != "" {
+			targetNs := strings.SplitN(n.Map.UserPresenceChannelPrefix+"x", boundary, 2)[0]
 			if !slices.Contains(nss, targetNs) {
-				return fmt.Errorf("namespace %s: map_user_presence_channel_prefix %q resolves to namespace %q which does not exist", n.Name, n.MapUserPresenceChannelPrefix, targetNs)
+				return fmt.Errorf("namespace %s: map.user_presence_channel_prefix %q resolves to namespace %q which does not exist", n.Name, n.Map.UserPresenceChannelPrefix, targetNs)
 			}
 		}
 	}
@@ -302,26 +302,26 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 		}
 	}
 
-	if c.MapPublishProxyName != "" && !slices.Contains(proxyNames, c.MapPublishProxyName) {
-		return fmt.Errorf("map publish proxy with name \"%s\" not found", c.MapPublishProxyName)
+	if c.Map.PublishProxyName != "" && !slices.Contains(proxyNames, c.Map.PublishProxyName) {
+		return fmt.Errorf("map publish proxy with name \"%s\" not found", c.Map.PublishProxyName)
 	}
-	if c.MapPublishProxyEnabled && c.MapPublishProxyName == DefaultProxyName {
+	if c.Map.PublishProxyEnabled && c.Map.PublishProxyName == DefaultProxyName {
 		if err := validateProxy("default", cfg.Channel.Proxy.MapPublish); err != nil {
 			return fmt.Errorf("in channel.proxy.map_publish: %v", err)
 		}
 	}
 
-	if c.MapRemoveProxyName != "" && !slices.Contains(proxyNames, c.MapRemoveProxyName) {
-		return fmt.Errorf("map remove proxy with name \"%s\" not found", c.MapRemoveProxyName)
+	if c.Map.RemoveProxyName != "" && !slices.Contains(proxyNames, c.Map.RemoveProxyName) {
+		return fmt.Errorf("map remove proxy with name \"%s\" not found", c.Map.RemoveProxyName)
 	}
-	if c.MapRemoveProxyEnabled && c.MapRemoveProxyName == DefaultProxyName {
+	if c.Map.RemoveProxyEnabled && c.Map.RemoveProxyName == DefaultProxyName {
 		if err := validateProxy("default", cfg.Channel.Proxy.MapRemove); err != nil {
 			return fmt.Errorf("in channel.proxy.map_remove: %v", err)
 		}
 	}
 
-	if c.MapClientKey != "" && !slices.Contains([]string{"client_id", "user_id"}, c.MapClientKey) {
-		return fmt.Errorf("unknown map_client_key: %q (valid: \"client_id\", \"user_id\")", c.MapClientKey)
+	if c.Map.ClientKey != "" && !slices.Contains([]string{"client_id", "user_id"}, c.Map.ClientKey) {
+		return fmt.Errorf("unknown map.client_key: %q (valid: \"client_id\", \"user_id\")", c.Map.ClientKey)
 	}
 
 	if c.SubscriptionType != "" && !slices.Contains([]string{"stream", "map", "map_clients", "map_users", "shared_poll"}, c.SubscriptionType) {
@@ -347,74 +347,74 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 			return fmt.Errorf("invalid shared_poll refresh_mode: %q", c.SharedPoll.RefreshMode)
 		}
 	}
-	if c.MapSyncMode != "" && !slices.Contains([]string{"ephemeral", "converging"}, c.MapSyncMode) {
-		return fmt.Errorf("unknown map_sync_mode: %q (valid: \"ephemeral\", \"converging\")", c.MapSyncMode)
+	if c.Map.SyncMode != "" && !slices.Contains([]string{"ephemeral", "converging"}, c.Map.SyncMode) {
+		return fmt.Errorf("unknown map.sync_mode: %q (valid: \"ephemeral\", \"converging\")", c.Map.SyncMode)
 	}
-	if c.MapRetentionMode != "" && !slices.Contains([]string{"expiring", "permanent"}, c.MapRetentionMode) {
-		return fmt.Errorf("unknown map_retention_mode: %q (valid: \"expiring\", \"permanent\")", c.MapRetentionMode)
+	if c.Map.RetentionMode != "" && !slices.Contains([]string{"expiring", "permanent"}, c.Map.RetentionMode) {
+		return fmt.Errorf("unknown map.retention_mode: %q (valid: \"expiring\", \"permanent\")", c.Map.RetentionMode)
 	}
 	hasMapType := c.SubscriptionType == "map" || c.SubscriptionType == "map_clients" || c.SubscriptionType == "map_users"
 	if hasMapType {
-		if c.MapSyncMode == "" {
-			return fmt.Errorf("map_sync_mode is required when subscription_type is a map type")
+		if c.Map.SyncMode == "" {
+			return fmt.Errorf("map.sync_mode is required when subscription_type is a map type")
 		}
-		if c.MapRetentionMode == "" {
-			return fmt.Errorf("map_retention_mode is required when subscription_type is a map type")
-		}
-	}
-	if c.MapRetentionMode == "expiring" {
-		if c.MapKeyTTL == 0 {
-			return fmt.Errorf("map_key_ttl is required when map_retention_mode is \"expiring\"")
-		}
-		if c.MapKeyTTL.ToDuration() < 0 {
-			return fmt.Errorf("map_key_ttl must be positive")
+		if c.Map.RetentionMode == "" {
+			return fmt.Errorf("map.retention_mode is required when subscription_type is a map type")
 		}
 	}
-	if c.MapRetentionMode == "permanent" && c.MapKeyTTL != 0 {
-		return fmt.Errorf("map_key_ttl must not be set when map_retention_mode is \"permanent\" (entries don't expire)")
-	}
-	if c.MapSyncMode == "ephemeral" {
-		if c.MapStreamSize > 0 {
-			return fmt.Errorf("map_stream_size must be 0 for map_sync_mode \"ephemeral\"")
+	if c.Map.RetentionMode == "expiring" {
+		if c.Map.KeyTTL == 0 {
+			return fmt.Errorf("map.key_ttl is required when map.retention_mode is \"expiring\"")
 		}
-		if c.MapStreamTTL != 0 {
-			return fmt.Errorf("map_stream_ttl must be 0 for map_sync_mode \"ephemeral\"")
-		}
-		if c.MapMetaTTL != 0 {
-			return fmt.Errorf("map_meta_ttl must be 0 for map_sync_mode \"ephemeral\"")
+		if c.Map.KeyTTL.ToDuration() < 0 {
+			return fmt.Errorf("map.key_ttl must be positive")
 		}
 	}
-	if c.MapSyncMode == "converging" {
-		if c.MapStreamSize < 0 {
-			return fmt.Errorf("map_stream_size must be non-negative")
+	if c.Map.RetentionMode == "permanent" && c.Map.KeyTTL != 0 {
+		return fmt.Errorf("map.key_ttl must not be set when map.retention_mode is \"permanent\" (entries don't expire)")
+	}
+	if c.Map.SyncMode == "ephemeral" {
+		if c.Map.StreamSize > 0 {
+			return fmt.Errorf("map.stream_size must be 0 for map.sync_mode \"ephemeral\"")
 		}
-		if c.MapStreamTTL.ToDuration() < 0 {
-			return fmt.Errorf("map_stream_ttl must be non-negative")
+		if c.Map.StreamTTL != 0 {
+			return fmt.Errorf("map.stream_ttl must be 0 for map.sync_mode \"ephemeral\"")
 		}
-		if c.MapMetaTTL.ToDuration() < 0 {
-			return fmt.Errorf("map_meta_ttl must be non-negative")
+		if c.Map.MetaTTL != 0 {
+			return fmt.Errorf("map.meta_ttl must be 0 for map.sync_mode \"ephemeral\"")
+		}
+	}
+	if c.Map.SyncMode == "converging" {
+		if c.Map.StreamSize < 0 {
+			return fmt.Errorf("map.stream_size must be non-negative")
+		}
+		if c.Map.StreamTTL.ToDuration() < 0 {
+			return fmt.Errorf("map.stream_ttl must be non-negative")
+		}
+		if c.Map.MetaTTL.ToDuration() < 0 {
+			return fmt.Errorf("map.meta_ttl must be non-negative")
 		}
 		// MetaTTL must be >= StreamTTL. When either is zero, centrifuge auto-derives
 		// defaults (StreamTTL=1min, MetaTTL=StreamTTL*10 for expiring or permanent for
 		// permanent). We validate against auto-derived values to prevent runtime errors.
-		if c.MapMetaTTL != 0 {
-			effectiveStreamTTL := c.MapStreamTTL.ToDuration()
+		if c.Map.MetaTTL != 0 {
+			effectiveStreamTTL := c.Map.StreamTTL.ToDuration()
 			if effectiveStreamTTL == 0 {
 				effectiveStreamTTL = time.Minute // centrifuge default
 			}
-			if c.MapMetaTTL.ToDuration() < effectiveStreamTTL {
-				return fmt.Errorf("map_meta_ttl (%s) must be >= map_stream_ttl (%s) (metadata must outlive stream)", c.MapMetaTTL, configtypes.Duration(effectiveStreamTTL))
+			if c.Map.MetaTTL.ToDuration() < effectiveStreamTTL {
+				return fmt.Errorf("map.meta_ttl (%s) must be >= map.stream_ttl (%s) (metadata must outlive stream)", c.Map.MetaTTL, configtypes.Duration(effectiveStreamTTL))
 			}
 		}
 	}
-	if c.MapRemoveClientOnUnsubscribe && !hasMapType {
-		return fmt.Errorf("map_remove_client_on_unsubscribe requires subscription_type to be a map type")
+	if c.Map.RemoveClientOnUnsubscribe && !hasMapType {
+		return fmt.Errorf("map.remove_client_on_unsubscribe requires subscription_type to be a map type")
 	}
-	if c.MapClientPresenceChannelPrefix != "" && !hasMapType {
-		return fmt.Errorf("map_client_presence_channel_prefix requires subscription_type to be a map type")
+	if c.Map.ClientPresenceChannelPrefix != "" && !hasMapType {
+		return fmt.Errorf("map.client_presence_channel_prefix requires subscription_type to be a map type")
 	}
-	if c.MapUserPresenceChannelPrefix != "" && !hasMapType {
-		return fmt.Errorf("map_user_presence_channel_prefix requires subscription_type to be a map type")
+	if c.Map.UserPresenceChannelPrefix != "" && !hasMapType {
+		return fmt.Errorf("map.user_presence_channel_prefix requires subscription_type to be a map type")
 	}
 
 	return nil

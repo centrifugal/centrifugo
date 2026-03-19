@@ -61,8 +61,8 @@ func (h *MapRemoveHandler) Handle(node *centrifuge.Node) MapRemoveHandlerFunc {
 		var histogram prometheus.Observer
 		var errors prometheus.Counter
 
-		proxyEnabled := chOpts.MapRemoveProxyEnabled
-		proxyName := chOpts.MapRemoveProxyName
+		proxyEnabled := chOpts.Map.RemoveProxyEnabled
+		proxyName := chOpts.Map.RemoveProxyName
 		if !proxyEnabled {
 			log.Info().Str("channel", e.Channel).Msg("map remove proxy not enabled for a channel")
 			return centrifuge.MapRemoveReply{}, centrifuge.ErrorNotAvailable
