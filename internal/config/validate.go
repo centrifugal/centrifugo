@@ -343,6 +343,9 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 				return fmt.Errorf("in channel.proxy.shared_poll_refresh: %v", err)
 			}
 		}
+		if !slices.Contains([]string{"", "full", "diff"}, c.SharedPoll.RefreshMode) {
+			return fmt.Errorf("invalid shared_poll refresh_mode: %q", c.SharedPoll.RefreshMode)
+		}
 	}
 	if c.MapSyncMode != "" && !slices.Contains([]string{"ephemeral", "converging"}, c.MapSyncMode) {
 		return fmt.Errorf("unknown map_sync_mode: %q (valid: \"ephemeral\", \"converging\")", c.MapSyncMode)

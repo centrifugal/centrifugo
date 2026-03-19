@@ -34,7 +34,7 @@ func TestSharedPollConfig_Validation_MissingSecret(t *testing.T) {
 
 func TestSharedPollConfig_Validation_WithSecret(t *testing.T) {
 	cfg := DefaultConfig()
-	cfg.Client.SharedPoll.HMACSecretKey = "my-secret"
+	cfg.SharedPoll.HMACSecretKey = "my-secret"
 	cfg.Channel.Proxy.SharedPollRefresh = sharedPollDefaultProxy()
 	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
 		{
@@ -50,7 +50,7 @@ func TestSharedPollConfig_Validation_WithSecret(t *testing.T) {
 
 func TestSharedPollConfig_Validation_InvalidProxyName(t *testing.T) {
 	cfg := DefaultConfig()
-	cfg.Client.SharedPoll.HMACSecretKey = "my-secret"
+	cfg.SharedPoll.HMACSecretKey = "my-secret"
 	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
 		{
 			Name: "poll",
@@ -70,7 +70,7 @@ func TestSharedPollConfig_Validation_InvalidProxyName(t *testing.T) {
 
 func TestSharedPollConfig_Validation_ValidProxyName(t *testing.T) {
 	cfg := DefaultConfig()
-	cfg.Client.SharedPoll.HMACSecretKey = "my-secret"
+	cfg.SharedPoll.HMACSecretKey = "my-secret"
 	cfg.Proxies = []configtypes.NamedProxy{
 		{
 			Name: "poll_backend",
@@ -97,7 +97,7 @@ func TestSharedPollConfig_Validation_ValidProxyName(t *testing.T) {
 
 func TestSharedPollConfig_SubscriptionTypeValid(t *testing.T) {
 	cfg := DefaultConfig()
-	cfg.Client.SharedPoll.HMACSecretKey = "secret"
+	cfg.SharedPoll.HMACSecretKey = "secret"
 	cfg.Channel.Proxy.SharedPollRefresh = sharedPollDefaultProxy()
 	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
 		{
@@ -121,7 +121,7 @@ func TestSharedPollConfig_UnknownSubscriptionType(t *testing.T) {
 
 func TestSharedPollConfig_WithoutNamespaceValidation(t *testing.T) {
 	cfg := DefaultConfig()
-	cfg.Client.SharedPoll.HMACSecretKey = "secret"
+	cfg.SharedPoll.HMACSecretKey = "secret"
 	cfg.Channel.Proxy.SharedPollRefresh = sharedPollDefaultProxy()
 	cfg.Channel.WithoutNamespace.SubscriptionType = "shared_poll"
 	err := cfg.Validate()

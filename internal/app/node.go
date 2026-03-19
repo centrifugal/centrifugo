@@ -89,7 +89,7 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 				MaxKeysPerConnection:   chOpts.SharedPoll.MaxKeysPerConnection,
 				RefreshInterval:        chOpts.SharedPoll.RefreshInterval.ToDuration(),
 				RefreshBatchSize:       chOpts.SharedPoll.RefreshBatchSize,
-				SendItemVersions:       chOpts.SharedPoll.SendItemVersions,
+				RefreshMode:            chOpts.SharedPoll.RefreshMode,
 				MaxConsecutiveAbsences: chOpts.SharedPoll.MaxConsecutiveAbsences,
 				ChannelShutdownDelay:   chOpts.SharedPoll.ChannelShutdownDelay.ToDuration(),
 			}, true

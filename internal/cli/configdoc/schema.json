@@ -6978,11 +6978,11 @@
                 "is_complex_type": false
               },
               {
-                "field": "channel.without_namespace.shared_poll.send_item_versions",
-                "name": "send_item_versions",
-                "go_name": "SendItemVersions",
+                "field": "channel.without_namespace.shared_poll.refresh_mode",
+                "name": "refresh_mode",
+                "go_name": "RefreshMode",
                 "level": 4,
-                "type": "bool",
+                "type": "string",
                 "default": "",
                 "comment": "",
                 "is_complex_type": false
@@ -7692,11 +7692,11 @@
                 "is_complex_type": false
               },
               {
-                "field": "channel.namespaces[].shared_poll.send_item_versions",
-                "name": "send_item_versions",
-                "go_name": "SendItemVersions",
+                "field": "channel.namespaces[].shared_poll.refresh_mode",
+                "name": "refresh_mode",
+                "go_name": "RefreshMode",
                 "level": 4,
-                "type": "bool",
+                "type": "string",
                 "default": "",
                 "comment": "",
                 "is_complex_type": false
