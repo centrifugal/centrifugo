@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-const gracePeriodSeconds = 30
+const gracePeriodSeconds = 5
 
 func parseSignatureTimestamps(sig string) (iat int64, expiry int64) {
 	first := strings.IndexByte(sig, ':')

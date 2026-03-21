@@ -118,16 +118,16 @@ func (c Config) Validate() error {
 		boundary = ":"
 	}
 	for _, n := range c.Channel.Namespaces {
-		if n.Map.ClientPresenceChannelPrefix != "" {
-			targetNs := strings.SplitN(n.Map.ClientPresenceChannelPrefix+"x", boundary, 2)[0]
+		if n.MapClientsPresenceChannelPrefix != "" {
+			targetNs := strings.SplitN(n.MapClientsPresenceChannelPrefix+"x", boundary, 2)[0]
 			if !slices.Contains(nss, targetNs) {
-				return fmt.Errorf("namespace %s: map.client_presence_channel_prefix %q resolves to namespace %q which does not exist", n.Name, n.Map.ClientPresenceChannelPrefix, targetNs)
+				return fmt.Errorf("namespace %s: map_clients_presence_channel_prefix %q resolves to namespace %q which does not exist", n.Name, n.MapClientsPresenceChannelPrefix, targetNs)
 			}
 		}
-		if n.Map.UserPresenceChannelPrefix != "" {
-			targetNs := strings.SplitN(n.Map.UserPresenceChannelPrefix+"x", boundary, 2)[0]
+		if n.MapUsersPresenceChannelPrefix != "" {
+			targetNs := strings.SplitN(n.MapUsersPresenceChannelPrefix+"x", boundary, 2)[0]
 			if !slices.Contains(nss, targetNs) {
-				return fmt.Errorf("namespace %s: map.user_presence_channel_prefix %q resolves to namespace %q which does not exist", n.Name, n.Map.UserPresenceChannelPrefix, targetNs)
+				return fmt.Errorf("namespace %s: map_users_presence_channel_prefix %q resolves to namespace %q which does not exist", n.Name, n.MapUsersPresenceChannelPrefix, targetNs)
 			}
 		}
 	}
@@ -409,12 +409,6 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 	}
 	if c.Map.RemoveClientOnUnsubscribe && !hasMapType {
 		return fmt.Errorf("map.remove_client_on_unsubscribe requires subscription_type to be a map type")
-	}
-	if c.Map.ClientPresenceChannelPrefix != "" && !hasMapType {
-		return fmt.Errorf("map.client_presence_channel_prefix requires subscription_type to be a map type")
-	}
-	if c.Map.UserPresenceChannelPrefix != "" && !hasMapType {
-		return fmt.Errorf("map.user_presence_channel_prefix requires subscription_type to be a map type")
 	}
 
 	return nil

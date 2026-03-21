@@ -448,6 +448,9 @@ type Client struct {
 	// ConnectCodeToUnidirectionalDisconnect is a configuration for a feature to transform connect error codes to the disconnect code
 	// for unidirectional transports.
 	ConnectCodeToUnidirectionalDisconnect ConnectCodeToUnidirectionalDisconnect `mapstructure:"connect_code_to_unidirectional_disconnect" json:"connect_code_to_unidirectional_disconnect" envconfig:"connect_code_to_unidirectional_disconnect" yaml:"connect_code_to_unidirectional_disconnect" toml:"connect_code_to_unidirectional_disconnect"`
+	// MapPaginationDefaultLimit sets the default number of items per page when the client does not
+	// specify a limit. Zero means default (100).
+	MapPaginationDefaultLimit int `mapstructure:"map_pagination_default_limit" json:"map_pagination_default_limit" envconfig:"map_pagination_default_limit" default:"100" yaml:"map_pagination_default_limit" toml:"map_pagination_default_limit"`
 	// MapPaginationMaxLimit sets the maximum number of items a client can request per page in map
 	// subscription pagination requests. Zero means default (1000).
 	MapPaginationMaxLimit int `mapstructure:"map_pagination_max_limit" json:"map_pagination_max_limit" envconfig:"map_pagination_max_limit" default:"1000" yaml:"map_pagination_max_limit" toml:"map_pagination_max_limit"`

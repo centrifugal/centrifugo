@@ -33,6 +33,7 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 	cfg.NodeInfoMetricsAggregateInterval = appCfg.Node.InfoMetricsAggregateInterval.ToDuration()
 	cfg.HistoryMaxPublicationLimit = appCfg.Client.HistoryMaxPublicationLimit
 	cfg.RecoveryMaxPublicationLimit = appCfg.Client.RecoveryMaxPublicationLimit
+	cfg.MapPaginationDefaultLimit = appCfg.Client.MapPaginationDefaultLimit
 	cfg.MapPaginationMaxLimit = appCfg.Client.MapPaginationMaxLimit
 	cfg.MapPaginationMinLimit = appCfg.Client.MapPaginationMinLimit
 	cfg.MapLiveTransitionMaxPublicationLimit = appCfg.Client.MapLiveTransitionMaxPublicationLimit
@@ -92,6 +93,7 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 				RefreshMode:            chOpts.SharedPoll.RefreshMode,
 				MaxConsecutiveAbsences: chOpts.SharedPoll.MaxConsecutiveAbsences,
 				ChannelShutdownDelay:   chOpts.SharedPoll.ChannelShutdownDelay.ToDuration(),
+				TrackExpiredExtraDelay: chOpts.SharedPoll.TrackExpiredExtraDelay.ToDuration(),
 			}, true
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"sync"
+	"time"
 	"unicode"
 
 	"github.com/centrifugal/centrifugo/v6/internal/clientcontext"
@@ -150,16 +151,28 @@ func (h *Handler) Setup() error {
 		}).Handle(h.node)
 	}
 
-	// Wire shared poll refresh proxy handlers.
+	// Wire shared poll refresh proxy handlers with per-namespace dispatch.
 	if len(h.proxyMap.SharedPollRefreshProxies) > 0 {
-		// Pick the first handler – in practice we expect a single shared poll proxy for now,
-		// the per-namespace dispatch can be added later.
-		var sharedPollHandler centrifuge.SharedPollHandler
-		for _, handler := range h.proxyMap.SharedPollRefreshProxies {
-			sharedPollHandler = handler.Handle(h.node)
-			break
+		handlers := make(map[string]centrifuge.SharedPollHandler, len(h.proxyMap.SharedPollRefreshProxies))
+		for name, handler := range h.proxyMap.SharedPollRefreshProxies {
+			handlers[name] = handler.Handle(h.node)
 		}
-		h.node.OnSharedPoll(sharedPollHandler)
+		cfgContainer := h.cfgContainer
+		h.node.OnSharedPoll(func(ctx context.Context, event centrifuge.SharedPollEvent) (centrifuge.SharedPollResult, error) {
+			_, _, chOpts, found, err := cfgContainer.ChannelOptions(event.Channel)
+			if err != nil || !found {
+				return centrifuge.SharedPollResult{}, centrifuge.ErrorInternal
+			}
+			proxyName := chOpts.SharedPoll.ProxyName
+			if proxyName == "" {
+				proxyName = config.DefaultProxyName
+			}
+			handler, ok := handlers[proxyName]
+			if !ok {
+				return centrifuge.SharedPollResult{}, centrifuge.ErrorInternal
+			}
+			return handler(ctx, event)
+		})
 	}
 
 	cfg := h.cfgContainer.Config()
@@ -738,11 +751,11 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	options.AllowedDeltaTypes = chOpts.AllowedDeltaTypes
 	options.AllowTagsFilter = chOpts.AllowTagsFilter
 	options.MapRemoveClientOnUnsubscribe = chOpts.Map.RemoveClientOnUnsubscribe
-	if chOpts.Map.ClientPresenceChannelPrefix != "" {
-		options.MapClientPresenceChannel = chOpts.Map.ClientPresenceChannelPrefix + e.Channel
+	if chOpts.MapClientsPresenceChannelPrefix != "" {
+		options.MapClientPresenceChannel = chOpts.MapClientsPresenceChannelPrefix + e.Channel
 	}
-	if chOpts.Map.UserPresenceChannelPrefix != "" {
-		options.MapUserPresenceChannel = chOpts.Map.UserPresenceChannelPrefix + e.Channel
+	if chOpts.MapUsersPresenceChannelPrefix != "" {
+		options.MapUserPresenceChannel = chOpts.MapUsersPresenceChannelPrefix + e.Channel
 	}
 
 	isPrivateChannel := h.cfgContainer.IsPrivateChannel(e.Channel)
@@ -1071,6 +1084,10 @@ func (h *Handler) OnKeyedTrack(c Client, e centrifuge.KeyedTrackEvent) (centrifu
 	}
 
 	_, expiry := parseSignatureTimestamps(e.Signature)
+	if expiry > 0 && expiry+gracePeriodSeconds < time.Now().Unix() {
+		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("track signature expired")
+		return centrifuge.KeyedTrackReply{}, centrifuge.ErrorTokenExpired
+	}
 
 	return centrifuge.KeyedTrackReply{
 		ExpireAt: expiry,

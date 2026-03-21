@@ -1196,6 +1196,158 @@ func TestClientOnSubscribe_SubRefreshProxy(t *testing.T) {
 	require.False(t, reply.ClientSideRefresh)
 }
 
+// buildSharedPollDispatch builds the dispatch closure identical to handler.go's Setup(),
+// using plain SharedPollHandler functions instead of proxy.SharedPollRefreshHandler
+// (avoids prometheus dependency in tests).
+func buildSharedPollDispatch(
+	cfgContainer *config.Container,
+	handlers map[string]centrifuge.SharedPollHandler,
+) func(ctx context.Context, event centrifuge.SharedPollEvent) (centrifuge.SharedPollResult, error) {
+	return func(ctx context.Context, event centrifuge.SharedPollEvent) (centrifuge.SharedPollResult, error) {
+		_, _, chOpts, found, err := cfgContainer.ChannelOptions(event.Channel)
+		if err != nil || !found {
+			return centrifuge.SharedPollResult{}, centrifuge.ErrorInternal
+		}
+		proxyName := chOpts.SharedPoll.ProxyName
+		if proxyName == "" {
+			proxyName = config.DefaultProxyName
+		}
+		handler, ok := handlers[proxyName]
+		if !ok {
+			return centrifuge.SharedPollResult{}, centrifuge.ErrorInternal
+		}
+		return handler(ctx, event)
+	}
+}
+
+func TestSharedPollRefreshProxyDispatch_Default(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.Client.Insecure = true
+	cfg.SharedPoll.HMACSecretKey = "test-secret"
+	cfg.Channel.WithoutNamespace.SubscriptionType = "shared_poll"
+	cfg.Channel.Proxy.SharedPollRefresh.Endpoint = "http://localhost:9999"
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	var defaultCalls int
+	handlers := map[string]centrifuge.SharedPollHandler{
+		"default": func(_ context.Context, event centrifuge.SharedPollEvent) (centrifuge.SharedPollResult, error) {
+			defaultCalls++
+			return centrifuge.SharedPollResult{}, nil
+		},
+	}
+
+	dispatch := buildSharedPollDispatch(cfgContainer, handlers)
+
+	// Channel without namespace should use default proxy.
+	_, err = dispatch(context.Background(), centrifuge.SharedPollEvent{
+		Channel: "test_channel",
+		Items:   []centrifuge.SharedPollItem{{Key: "k1", Version: 0}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, 1, defaultCalls)
+}
+
+func TestSharedPollRefreshProxyDispatch_NamedProxy(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.Client.Insecure = true
+	cfg.SharedPoll.HMACSecretKey = "test-secret"
+	cfg.Proxies = configtypes.NamedProxies{
+		{Name: "backend_a", Proxy: configtypes.Proxy{Endpoint: "http://backend-a:9999", Timeout: configtypes.Duration(time.Second)}},
+		{Name: "backend_b", Proxy: configtypes.Proxy{Endpoint: "http://backend-b:9999", Timeout: configtypes.Duration(time.Second)}},
+	}
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
+		{
+			Name: "ns1",
+			ChannelOptions: configtypes.ChannelOptions{
+				SubscriptionType: "shared_poll",
+				SharedPoll: configtypes.SharedPollConfig{
+					ProxyName: "backend_a",
+				},
+			},
+		},
+		{
+			Name: "ns2",
+			ChannelOptions: configtypes.ChannelOptions{
+				SubscriptionType: "shared_poll",
+				SharedPoll: configtypes.SharedPollConfig{
+					ProxyName: "backend_b",
+				},
+			},
+		},
+	}
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	var callsA, callsB int
+	handlers := map[string]centrifuge.SharedPollHandler{
+		"backend_a": func(_ context.Context, event centrifuge.SharedPollEvent) (centrifuge.SharedPollResult, error) {
+			callsA++
+			return centrifuge.SharedPollResult{}, nil
+		},
+		"backend_b": func(_ context.Context, event centrifuge.SharedPollEvent) (centrifuge.SharedPollResult, error) {
+			callsB++
+			return centrifuge.SharedPollResult{}, nil
+		},
+	}
+
+	dispatch := buildSharedPollDispatch(cfgContainer, handlers)
+
+	// Channel in ns1 should use backend_a.
+	_, err = dispatch(context.Background(), centrifuge.SharedPollEvent{
+		Channel: "ns1:ch1",
+		Items:   []centrifuge.SharedPollItem{{Key: "k1", Version: 0}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, 1, callsA)
+	require.Equal(t, 0, callsB)
+
+	// Channel in ns2 should use backend_b.
+	_, err = dispatch(context.Background(), centrifuge.SharedPollEvent{
+		Channel: "ns2:ch1",
+		Items:   []centrifuge.SharedPollItem{{Key: "k1", Version: 0}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, 1, callsA)
+	require.Equal(t, 1, callsB)
+
+	// Another call to ns1 should increment only backend_a.
+	_, err = dispatch(context.Background(), centrifuge.SharedPollEvent{
+		Channel: "ns1:ch2",
+		Items:   []centrifuge.SharedPollItem{{Key: "k2", Version: 0}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, 2, callsA)
+	require.Equal(t, 1, callsB)
+}
+
+func TestSharedPollRefreshProxyDispatch_FallbackToDefault(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.Client.Insecure = true
+	cfg.SharedPoll.HMACSecretKey = "test-secret"
+	cfg.Channel.Proxy.SharedPollRefresh.Endpoint = "http://localhost:9999"
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	var defaultCalls int
+	handlers := map[string]centrifuge.SharedPollHandler{
+		"default": func(_ context.Context, event centrifuge.SharedPollEvent) (centrifuge.SharedPollResult, error) {
+			defaultCalls++
+			return centrifuge.SharedPollResult{}, nil
+		},
+	}
+
+	dispatch := buildSharedPollDispatch(cfgContainer, handlers)
+
+	// Channel without shared_poll configured — proxy name will be empty → "default".
+	_, err = dispatch(context.Background(), centrifuge.SharedPollEvent{
+		Channel: "some_channel",
+		Items:   []centrifuge.SharedPollItem{{Key: "k1", Version: 0}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, 1, defaultCalls)
+}
+
 func TestSingleConnection(t *testing.T) {
 	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()

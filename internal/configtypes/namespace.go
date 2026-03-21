@@ -67,6 +67,14 @@ type ChannelOptions struct {
 	// ForcePushJoinLeave forces sending join/leave messages towards subscribers.
 	ForcePushJoinLeave bool `mapstructure:"force_push_join_leave" json:"force_push_join_leave" envconfig:"force_push_join_leave" yaml:"force_push_join_leave" toml:"force_push_join_leave"`
 
+	// MapClientsPresenceChannelPrefix is a prefix for map-based client presence channel.
+	// When set, client presence is tracked via MapBroker in a channel formed by this prefix + original channel name.
+	MapClientsPresenceChannelPrefix string `mapstructure:"map_clients_presence_channel_prefix" json:"map_clients_presence_channel_prefix" envconfig:"map_clients_presence_channel_prefix" yaml:"map_clients_presence_channel_prefix" toml:"map_clients_presence_channel_prefix"`
+
+	// MapUsersPresenceChannelPrefix is a prefix for map-based user presence channel.
+	// When set, user presence is tracked via MapBroker in a channel formed by this prefix + original channel name.
+	MapUsersPresenceChannelPrefix string `mapstructure:"map_users_presence_channel_prefix" json:"map_users_presence_channel_prefix" envconfig:"map_users_presence_channel_prefix" yaml:"map_users_presence_channel_prefix" toml:"map_users_presence_channel_prefix"`
+
 	// HistorySize determines max amount of history messages for a channel,
 	// Zero value means no history for channel. Centrifuge history has an
 	// auxiliary role with current Engines – it can not replace your backend
@@ -186,7 +194,7 @@ type ChannelOptions struct {
 	SubscribeStreamBidirectional bool `mapstructure:"subscribe_stream_proxy_bidirectional" json:"subscribe_stream_proxy_bidirectional" envconfig:"subscribe_stream_proxy_bidirectional" yaml:"subscribe_stream_proxy_bidirectional" toml:"subscribe_stream_proxy_bidirectional"`
 
 	// SubscriptionType defines the subscription type for the namespace.
-	// Valid values: "stream", "map", "map_clients", "map_users".
+	// Valid values: "stream", "map", "map_clients", "map_users", "shared_poll".
 	// Default: "stream" (traditional PUB/SUB with history).
 	SubscriptionType string `mapstructure:"subscription_type" json:"subscription_type" envconfig:"subscription_type" yaml:"subscription_type" toml:"subscription_type"`
 
@@ -208,8 +216,6 @@ type MapConfig struct {
 	StreamSize                  int      `mapstructure:"stream_size" json:"stream_size" envconfig:"stream_size" yaml:"stream_size" toml:"stream_size"`
 	StreamTTL                   Duration `mapstructure:"stream_ttl" json:"stream_ttl" envconfig:"stream_ttl" yaml:"stream_ttl" toml:"stream_ttl"`
 	MetaTTL                     Duration `mapstructure:"meta_ttl" json:"meta_ttl" envconfig:"meta_ttl" yaml:"meta_ttl" toml:"meta_ttl"`
-	ClientPresenceChannelPrefix string   `mapstructure:"client_presence_channel_prefix" json:"client_presence_channel_prefix" envconfig:"client_presence_channel_prefix" yaml:"client_presence_channel_prefix" toml:"client_presence_channel_prefix"`
-	UserPresenceChannelPrefix   string   `mapstructure:"user_presence_channel_prefix" json:"user_presence_channel_prefix" envconfig:"user_presence_channel_prefix" yaml:"user_presence_channel_prefix" toml:"user_presence_channel_prefix"`
 	RemoveClientOnUnsubscribe   bool     `mapstructure:"remove_client_on_unsubscribe" json:"remove_client_on_unsubscribe" envconfig:"remove_client_on_unsubscribe" yaml:"remove_client_on_unsubscribe" toml:"remove_client_on_unsubscribe"`
 	ClientKey                   string   `mapstructure:"client_key" json:"client_key" envconfig:"client_key" yaml:"client_key" toml:"client_key"`
 	AllowPublishForClient       bool     `mapstructure:"allow_publish_for_client" json:"allow_publish_for_client" envconfig:"allow_publish_for_client" yaml:"allow_publish_for_client" toml:"allow_publish_for_client"`
@@ -233,6 +239,7 @@ type SharedPollConfig struct {
 	RefreshMode            string   `mapstructure:"refresh_mode" json:"refresh_mode" envconfig:"refresh_mode" yaml:"refresh_mode" toml:"refresh_mode"`
 	MaxConsecutiveAbsences int      `mapstructure:"max_consecutive_absences" json:"max_consecutive_absences" envconfig:"max_consecutive_absences" yaml:"max_consecutive_absences" toml:"max_consecutive_absences"`
 	ChannelShutdownDelay   Duration `mapstructure:"channel_shutdown_delay" json:"channel_shutdown_delay" envconfig:"channel_shutdown_delay" yaml:"channel_shutdown_delay" toml:"channel_shutdown_delay"`
+	TrackExpiredExtraDelay Duration `mapstructure:"track_expired_extra_delay" json:"track_expired_extra_delay" envconfig:"track_expired_extra_delay" yaml:"track_expired_extra_delay" toml:"track_expired_extra_delay"`
 }
 
 type Compiled struct {
