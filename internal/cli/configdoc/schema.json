@@ -2332,6 +2332,58 @@
     ]
   },
   {
+    "field": "shared_poll",
+    "name": "shared_poll",
+    "go_name": "SharedPoll",
+    "level": 1,
+    "type": "SharedPoll",
+    "default": "",
+    "comment": "SharedPoll contains configuration for shared poll subscriptions.",
+    "is_complex_type": true,
+    "children": [
+      {
+        "field": "shared_poll.hmac_secret_key",
+        "name": "hmac_secret_key",
+        "go_name": "HMACSecretKey",
+        "level": 2,
+        "type": "string",
+        "default": "",
+        "comment": "",
+        "is_complex_type": false
+      },
+      {
+        "field": "shared_poll.hmac_previous_secret_key",
+        "name": "hmac_previous_secret_key",
+        "go_name": "HMACPreviousSecretKey",
+        "level": 2,
+        "type": "string",
+        "default": "",
+        "comment": "",
+        "is_complex_type": false
+      },
+      {
+        "field": "shared_poll.hmac_previous_secret_key_valid_until",
+        "name": "hmac_previous_secret_key_valid_until",
+        "go_name": "HMACPreviousSecretKeyValidUntil",
+        "level": 2,
+        "type": "int64",
+        "default": "",
+        "comment": "",
+        "is_complex_type": false
+      },
+      {
+        "field": "shared_poll.concurrency_limit",
+        "name": "concurrency_limit",
+        "go_name": "ConcurrencyLimit",
+        "level": 2,
+        "type": "int",
+        "default": "",
+        "comment": "",
+        "is_complex_type": false
+      }
+    ]
+  },
+  {
     "field": "client",
     "name": "client",
     "go_name": "Client",
@@ -3806,6 +3858,16 @@
             ]
           }
         ]
+      },
+      {
+        "field": "client.map_pagination_default_limit",
+        "name": "map_pagination_default_limit",
+        "go_name": "MapPaginationDefaultLimit",
+        "level": 2,
+        "type": "int",
+        "default": "100",
+        "comment": "MapPaginationDefaultLimit sets the default number of items per page when the client does not\nspecify a limit. Zero means default (100).",
+        "is_complex_type": false
       },
       {
         "field": "client.map_pagination_max_limit",
@@ -6304,6 +6366,412 @@
                 ]
               }
             ]
+          },
+          {
+            "field": "channel.proxy.shared_poll_refresh",
+            "name": "shared_poll_refresh",
+            "go_name": "SharedPollRefresh",
+            "level": 3,
+            "type": "Proxy",
+            "default": "",
+            "comment": "SharedPollRefresh proxy configuration.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "channel.proxy.shared_poll_refresh.endpoint",
+                "name": "endpoint",
+                "go_name": "Endpoint",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "Endpoint - HTTP address or GRPC service endpoint.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.shared_poll_refresh.timeout",
+                "name": "timeout",
+                "go_name": "Timeout",
+                "level": 4,
+                "type": "Duration",
+                "default": "1s",
+                "comment": "Timeout for proxy request.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.shared_poll_refresh.http_headers",
+                "name": "http_headers",
+                "go_name": "HttpHeaders",
+                "level": 4,
+                "type": "[]string",
+                "default": "",
+                "comment": "HttpHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.\nIf GRPC proxy is used then request HTTP headers set to outgoing request metadata.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.shared_poll_refresh.grpc_metadata",
+                "name": "grpc_metadata",
+                "go_name": "GrpcMetadata",
+                "level": 4,
+                "type": "[]string",
+                "default": "",
+                "comment": "GrpcMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by\ndefault. If HTTP proxy is used then these keys become outgoing request HTTP headers.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.shared_poll_refresh.binary_encoding",
+                "name": "binary_encoding",
+                "go_name": "BinaryEncoding",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "BinaryEncoding makes proxy send data as base64 string (assuming it contains custom\nnon-JSON payload).",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.shared_poll_refresh.include_connection_meta",
+                "name": "include_connection_meta",
+                "go_name": "IncludeConnectionMeta",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "IncludeConnectionMeta to each proxy request (except connect proxy where it's obtained).",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.shared_poll_refresh.http",
+                "name": "http",
+                "go_name": "HTTP",
+                "level": 4,
+                "type": "ProxyCommonHTTP",
+                "default": "",
+                "comment": "",
+                "is_complex_type": true,
+                "children": [
+                  {
+                    "field": "channel.proxy.shared_poll_refresh.http.tls",
+                    "name": "tls",
+                    "go_name": "TLS",
+                    "level": 5,
+                    "type": "TLSConfig",
+                    "default": "",
+                    "comment": "TLS for HTTP client.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.tls.enabled",
+                        "name": "enabled",
+                        "go_name": "Enabled",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "Enabled turns on using TLS.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.tls.cert_pem",
+                        "name": "cert_pem",
+                        "go_name": "CertPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "CertPem is a PEM certificate.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.tls.key_pem",
+                        "name": "key_pem",
+                        "go_name": "KeyPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "KeyPem is a path to a file with key in PEM format.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.tls.server_ca_pem",
+                        "name": "server_ca_pem",
+                        "go_name": "ServerCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.tls.client_ca_pem",
+                        "name": "client_ca_pem",
+                        "go_name": "ClientCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.tls.insecure_skip_verify",
+                        "name": "insecure_skip_verify",
+                        "go_name": "InsecureSkipVerify",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "InsecureSkipVerify turns off server certificate verification.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.tls.server_name",
+                        "name": "server_name",
+                        "go_name": "ServerName",
+                        "level": 6,
+                        "type": "string",
+                        "default": "",
+                        "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                        "is_complex_type": false
+                      }
+                    ]
+                  },
+                  {
+                    "field": "channel.proxy.shared_poll_refresh.http.static_headers",
+                    "name": "static_headers",
+                    "go_name": "StaticHeaders",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticHeaders is a static set of key/value pairs to attach to HTTP proxy request as\nheaders. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticHttpHeaders map.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms",
+                    "name": "status_to_code_transforms",
+                    "go_name": "StatusToCodeTransforms",
+                    "level": 5,
+                    "type": "[]HttpStatusToCodeTransform",
+                    "default": "[]",
+                    "comment": "StatusToCodeTransforms allow to map HTTP status codes from proxy to Disconnect or Error messages.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms[].status_code",
+                        "name": "status_code",
+                        "go_name": "StatusCode",
+                        "level": 6,
+                        "type": "int",
+                        "default": "",
+                        "comment": "StatusCode is an HTTP status code to transform.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms[].to_error",
+                        "name": "to_error",
+                        "go_name": "ToError",
+                        "level": 6,
+                        "type": "TransformError",
+                        "default": "",
+                        "comment": "ToError is a transform to protocol error.",
+                        "is_complex_type": true,
+                        "children": [
+                          {
+                            "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms[].to_error.code",
+                            "name": "code",
+                            "go_name": "Code",
+                            "level": 7,
+                            "type": "uint32",
+                            "default": "",
+                            "comment": "Code of error.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms[].to_error.message",
+                            "name": "message",
+                            "go_name": "Message",
+                            "level": 7,
+                            "type": "string",
+                            "default": "",
+                            "comment": "Message is a human-readable message of error.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms[].to_error.temporary",
+                            "name": "temporary",
+                            "go_name": "Temporary",
+                            "level": 7,
+                            "type": "bool",
+                            "default": "",
+                            "comment": "Temporary is a flag to mark error as temporary.",
+                            "is_complex_type": false
+                          }
+                        ]
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms[].to_disconnect",
+                        "name": "to_disconnect",
+                        "go_name": "ToDisconnect",
+                        "level": 6,
+                        "type": "TransformDisconnect",
+                        "default": "",
+                        "comment": "ToDisconnect is a transform to protocol disconnect.",
+                        "is_complex_type": true,
+                        "children": [
+                          {
+                            "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms[].to_disconnect.code",
+                            "name": "code",
+                            "go_name": "Code",
+                            "level": 7,
+                            "type": "uint32",
+                            "default": "",
+                            "comment": "Code of disconnect.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms[].to_disconnect.reason",
+                            "name": "reason",
+                            "go_name": "Reason",
+                            "level": 7,
+                            "type": "string",
+                            "default": "",
+                            "comment": "Reason is a human-readable reason of disconnect.",
+                            "is_complex_type": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "field": "channel.proxy.shared_poll_refresh.grpc",
+                "name": "grpc",
+                "go_name": "GRPC",
+                "level": 4,
+                "type": "ProxyCommonGRPC",
+                "default": "",
+                "comment": "",
+                "is_complex_type": true,
+                "children": [
+                  {
+                    "field": "channel.proxy.shared_poll_refresh.grpc.tls",
+                    "name": "tls",
+                    "go_name": "TLS",
+                    "level": 5,
+                    "type": "TLSConfig",
+                    "default": "",
+                    "comment": "TLS is a common configuration for GRPC client TLS.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.grpc.tls.enabled",
+                        "name": "enabled",
+                        "go_name": "Enabled",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "Enabled turns on using TLS.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.grpc.tls.cert_pem",
+                        "name": "cert_pem",
+                        "go_name": "CertPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "CertPem is a PEM certificate.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.grpc.tls.key_pem",
+                        "name": "key_pem",
+                        "go_name": "KeyPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "KeyPem is a path to a file with key in PEM format.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.grpc.tls.server_ca_pem",
+                        "name": "server_ca_pem",
+                        "go_name": "ServerCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.grpc.tls.client_ca_pem",
+                        "name": "client_ca_pem",
+                        "go_name": "ClientCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.grpc.tls.insecure_skip_verify",
+                        "name": "insecure_skip_verify",
+                        "go_name": "InsecureSkipVerify",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "InsecureSkipVerify turns off server certificate verification.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.grpc.tls.server_name",
+                        "name": "server_name",
+                        "go_name": "ServerName",
+                        "level": 6,
+                        "type": "string",
+                        "default": "",
+                        "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                        "is_complex_type": false
+                      }
+                    ]
+                  },
+                  {
+                    "field": "channel.proxy.shared_poll_refresh.grpc.credentials_key",
+                    "name": "credentials_key",
+                    "go_name": "CredentialsKey",
+                    "level": 5,
+                    "type": "string",
+                    "default": "",
+                    "comment": "CredentialsKey is a custom key to add into per-RPC credentials.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.shared_poll_refresh.grpc.credentials_value",
+                    "name": "credentials_value",
+                    "go_name": "CredentialsValue",
+                    "level": 5,
+                    "type": "string",
+                    "default": "",
+                    "comment": "CredentialsValue is a custom value for GrpcCredentialsKey.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.shared_poll_refresh.grpc.compression",
+                    "name": "compression",
+                    "go_name": "Compression",
+                    "level": 5,
+                    "type": "bool",
+                    "default": "",
+                    "comment": "Compression enables compression for outgoing calls (gzip).",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.shared_poll_refresh.grpc.static_metadata",
+                    "name": "static_metadata",
+                    "go_name": "StaticMetadata",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticMetadata is a static set of key/value pairs to attach to GRPC proxy request as\nmetadata. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticMetadata map (but only if explicitly allowed).",
+                    "is_complex_type": false
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -6345,6 +6813,26 @@
             "type": "bool",
             "default": "",
             "comment": "ForcePushJoinLeave forces sending join/leave messages towards subscribers.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_clients_presence_channel_prefix",
+            "name": "map_clients_presence_channel_prefix",
+            "go_name": "MapClientsPresenceChannelPrefix",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapClientsPresenceChannelPrefix is a prefix for map-based client presence channel.\nWhen set, client presence is tracked via MapBroker in a channel formed by this prefix + original channel name.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_users_presence_channel_prefix",
+            "name": "map_users_presence_channel_prefix",
+            "go_name": "MapUsersPresenceChannelPrefix",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapUsersPresenceChannelPrefix is a prefix for map-based user presence channel.\nWhen set, user presence is tracked via MapBroker in a channel formed by this prefix + original channel name.",
             "is_complex_type": false
           },
           {
@@ -6694,218 +7182,210 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "SubscriptionType defines the subscription type for the namespace.\nValid values: \"stream\", \"map\", \"map_clients\", \"map_users\".\nDefault: \"stream\" (traditional PUB/SUB with history).",
+            "comment": "SubscriptionType defines the subscription type for the namespace.\nValid values: \"stream\", \"map\", \"map_clients\", \"map_users\", \"shared_poll\".\nDefault: \"stream\" (traditional PUB/SUB with history).",
             "is_complex_type": false
           },
           {
-            "field": "channel.without_namespace.map_sync_mode",
-            "name": "map_sync_mode",
-            "go_name": "MapSyncMode",
+            "field": "channel.without_namespace.map",
+            "name": "map",
+            "go_name": "Map",
             "level": 3,
-            "type": "string",
+            "type": "MapConfig",
             "default": "",
-            "comment": "MapSyncMode controls how map state is synchronized with subscribers.\nValid values: \"ephemeral\" (no stream, live updates only) or \"converging\"\n(stream-backed with delta recovery). Only relevant when subscription_type\nis a map type.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.map_retention_mode",
-            "name": "map_retention_mode",
-            "go_name": "MapRetentionMode",
-            "level": 3,
-            "type": "string",
-            "default": "",
-            "comment": "MapRetentionMode controls how map entries are retained.\nValid values: \"expiring\" (entries expire after map_key_ttl) or \"permanent\"\n(entries live until explicitly removed). Only relevant when subscription_type\nis a map type.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.map_key_ttl",
-            "name": "map_key_ttl",
-            "go_name": "MapKeyTTL",
-            "level": 3,
-            "type": "Duration",
-            "default": "",
-            "comment": "MapKeyTTL is the automatic expiration time for map entries. Required when\nmap_retention_mode is \"expiring\". Ignored when \"permanent\".",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.map_ordered",
-            "name": "map_ordered",
-            "go_name": "MapOrdered",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapOrdered enables score-based ordering (descending) for map entries.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.map_stream_size",
-            "name": "map_stream_size",
-            "go_name": "MapStreamSize",
-            "level": 3,
-            "type": "int",
-            "default": "",
-            "comment": "MapStreamSize is the maximum number of stream entries for map channels.\nAuto-derived if not set: 100 for \"converging\" mode, must be 0 for \"ephemeral\".",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.map_stream_ttl",
-            "name": "map_stream_ttl",
-            "go_name": "MapStreamTTL",
-            "level": 3,
-            "type": "Duration",
-            "default": "",
-            "comment": "MapStreamTTL is the retention period for map stream entries.\nAuto-derived if not set: \"1m\" for \"converging\" mode, must be 0 for \"ephemeral\".",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.map_meta_ttl",
-            "name": "map_meta_ttl",
-            "go_name": "MapMetaTTL",
-            "level": 3,
-            "type": "Duration",
-            "default": "",
-            "comment": "MapMetaTTL is the retention period for map metadata (epoch, offset).\nAuto-derived based on sync mode and retention mode if not set.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.map_client_presence_namespace",
-            "name": "map_client_presence_namespace",
-            "go_name": "MapClientPresenceNamespace",
-            "level": 3,
-            "type": "string",
-            "default": "",
-            "comment": "MapClientPresenceNamespace is the namespace for client presence channels.\nWhen set, client presence (key=clientID, full ClientInfo) is published to\n{namespace}{boundary}{channel_rest} on subscribe and removed on unsubscribe.\nFor example, with namespace \"clients\" and boundary \":\", subscribing to \"game:abc\"\npublishes presence to \"clients:abc\". Empty string means no client presence.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.map_user_presence_namespace",
-            "name": "map_user_presence_namespace",
-            "go_name": "MapUserPresenceNamespace",
-            "level": 3,
-            "type": "string",
-            "default": "",
-            "comment": "MapUserPresenceNamespace is the namespace for user presence channels.\nWhen set, user presence (key=userID) is published to\n{namespace}{boundary}{channel_rest} on subscribe. User presence entries are\nnot removed on unsubscribe — they expire via TTL to provide grace period for\nquick reconnects. Empty string means no user presence.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.map_remove_client_on_unsubscribe",
-            "name": "map_remove_client_on_unsubscribe",
-            "go_name": "MapRemoveClientOnUnsubscribe",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapRemoveClientOnUnsubscribe enables automatic cleanup of map state when subscription\nends. When enabled, the entry with key=clientID is removed from the channel's\nmap state on unsubscribe or disconnect. Useful for ephemeral state like cursor\npositions that should not persist after the client leaves.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.allow_map_publish_for_anonymous",
-            "name": "allow_map_publish_for_anonymous",
-            "go_name": "MapPublishForAnonymous",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapPublishForAnonymous allows anonymous clients to map-publish.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.allow_map_publish_for_subscriber",
-            "name": "allow_map_publish_for_subscriber",
-            "go_name": "MapPublishForSubscriber",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapPublishForSubscriber allows subscribed clients to map-publish.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.allow_map_publish_for_client",
-            "name": "allow_map_publish_for_client",
-            "go_name": "MapPublishForClient",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapPublishForClient allows authenticated clients to map-publish.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.map_publish_proxy_enabled",
-            "name": "map_publish_proxy_enabled",
-            "go_name": "MapPublishProxyEnabled",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapPublishProxyEnabled turns on proxy for map publish.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.map_publish_proxy_name",
-            "name": "map_publish_proxy_name",
-            "go_name": "MapPublishProxyName",
-            "level": 3,
-            "type": "string",
-            "default": "default",
-            "comment": "MapPublishProxyName of proxy for map publish.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.allow_map_remove_for_anonymous",
-            "name": "allow_map_remove_for_anonymous",
-            "go_name": "MapRemoveForAnonymous",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapRemoveForAnonymous allows anonymous clients to map-remove.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.allow_map_remove_for_subscriber",
-            "name": "allow_map_remove_for_subscriber",
-            "go_name": "MapRemoveForSubscriber",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapRemoveForSubscriber allows subscribed clients to map-remove.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.allow_map_remove_for_client",
-            "name": "allow_map_remove_for_client",
-            "go_name": "MapRemoveForClient",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapRemoveForClient allows authenticated clients to map-remove.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.map_remove_proxy_enabled",
-            "name": "map_remove_proxy_enabled",
-            "go_name": "MapRemoveProxyEnabled",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapRemoveProxyEnabled turns on proxy for map remove.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.map_remove_proxy_name",
-            "name": "map_remove_proxy_name",
-            "go_name": "MapRemoveProxyName",
-            "level": 3,
-            "type": "string",
-            "default": "default",
-            "comment": "MapRemoveProxyName of proxy for map remove.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.without_namespace.map_client_key",
-            "name": "map_client_key",
-            "go_name": "MapClientKey",
-            "level": 3,
-            "type": "string",
-            "default": "",
-            "comment": "MapClientKey controls server-driven key assignment for both map publish and map remove.\n\"client_id\" — key overridden with client ID.\n\"user_id\" — key overridden with user ID.\nEmpty (default) — client-provided key used as-is – but the backend is encouraged to validate it.",
-            "is_complex_type": false
+            "comment": "Map contains configuration for map subscription types (map, map_clients, map_users).",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "channel.without_namespace.map.sync_mode",
+                "name": "sync_mode",
+                "go_name": "SyncMode",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.retention_mode",
+                "name": "retention_mode",
+                "go_name": "RetentionMode",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.key_ttl",
+                "name": "key_ttl",
+                "go_name": "KeyTTL",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.ordered",
+                "name": "ordered",
+                "go_name": "Ordered",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.stream_size",
+                "name": "stream_size",
+                "go_name": "StreamSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.stream_ttl",
+                "name": "stream_ttl",
+                "go_name": "StreamTTL",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.meta_ttl",
+                "name": "meta_ttl",
+                "go_name": "MetaTTL",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.remove_client_on_unsubscribe",
+                "name": "remove_client_on_unsubscribe",
+                "go_name": "RemoveClientOnUnsubscribe",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.client_key",
+                "name": "client_key",
+                "go_name": "ClientKey",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.allow_publish_for_client",
+                "name": "allow_publish_for_client",
+                "go_name": "AllowPublishForClient",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.allow_publish_for_subscriber",
+                "name": "allow_publish_for_subscriber",
+                "go_name": "AllowPublishForSubscriber",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.allow_publish_for_anonymous",
+                "name": "allow_publish_for_anonymous",
+                "go_name": "AllowPublishForAnonymous",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.allow_remove_for_client",
+                "name": "allow_remove_for_client",
+                "go_name": "AllowRemoveForClient",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.allow_remove_for_subscriber",
+                "name": "allow_remove_for_subscriber",
+                "go_name": "AllowRemoveForSubscriber",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.allow_remove_for_anonymous",
+                "name": "allow_remove_for_anonymous",
+                "go_name": "AllowRemoveForAnonymous",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.publish_proxy_enabled",
+                "name": "publish_proxy_enabled",
+                "go_name": "PublishProxyEnabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.publish_proxy_name",
+                "name": "publish_proxy_name",
+                "go_name": "PublishProxyName",
+                "level": 4,
+                "type": "string",
+                "default": "default",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.remove_proxy_enabled",
+                "name": "remove_proxy_enabled",
+                "go_name": "RemoveProxyEnabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.remove_proxy_name",
+                "name": "remove_proxy_name",
+                "go_name": "RemoveProxyName",
+                "level": 4,
+                "type": "string",
+                "default": "default",
+                "comment": "",
+                "is_complex_type": false
+              }
+            ]
           },
           {
             "field": "channel.without_namespace.shared_poll",
@@ -6921,16 +7401,6 @@
                 "field": "channel.without_namespace.shared_poll.proxy_name",
                 "name": "proxy_name",
                 "go_name": "ProxyName",
-                "level": 4,
-                "type": "string",
-                "default": "",
-                "comment": "",
-                "is_complex_type": false
-              },
-              {
-                "field": "channel.without_namespace.shared_poll.token_hmac_secret",
-                "name": "token_hmac_secret",
-                "go_name": "TokenHMACSecret",
                 "level": 4,
                 "type": "string",
                 "default": "",
@@ -6958,19 +7428,9 @@
                 "is_complex_type": false
               },
               {
-                "field": "channel.without_namespace.shared_poll.refresh_concurrency",
-                "name": "refresh_concurrency",
-                "go_name": "RefreshConcurrency",
-                "level": 4,
-                "type": "int",
-                "default": "",
-                "comment": "",
-                "is_complex_type": false
-              },
-              {
-                "field": "channel.without_namespace.shared_poll.max_tracked_per_connection",
-                "name": "max_tracked_per_connection",
-                "go_name": "MaxTrackedPerConnection",
+                "field": "channel.without_namespace.shared_poll.max_keys_per_connection",
+                "name": "max_keys_per_connection",
+                "go_name": "MaxKeysPerConnection",
                 "level": 4,
                 "type": "int",
                 "default": "",
@@ -6998,11 +7458,31 @@
                 "is_complex_type": false
               },
               {
-                "field": "channel.without_namespace.shared_poll.shared_poll_channel_shutdown_delay",
-                "name": "shared_poll_channel_shutdown_delay",
-                "go_name": "SharedPollChannelShutdownDelay",
+                "field": "channel.without_namespace.shared_poll.channel_shutdown_delay",
+                "name": "channel_shutdown_delay",
+                "go_name": "ChannelShutdownDelay",
                 "level": 4,
                 "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.track_expired_extra_delay",
+                "name": "track_expired_extra_delay",
+                "go_name": "TrackExpiredExtraDelay",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.publish_enabled",
+                "name": "publish_enabled",
+                "go_name": "PublishEnabled",
+                "level": 4,
+                "type": "bool",
                 "default": "",
                 "comment": "",
                 "is_complex_type": false
@@ -7059,6 +7539,26 @@
             "type": "bool",
             "default": "",
             "comment": "ForcePushJoinLeave forces sending join/leave messages towards subscribers.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_clients_presence_channel_prefix",
+            "name": "map_clients_presence_channel_prefix",
+            "go_name": "MapClientsPresenceChannelPrefix",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapClientsPresenceChannelPrefix is a prefix for map-based client presence channel.\nWhen set, client presence is tracked via MapBroker in a channel formed by this prefix + original channel name.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_users_presence_channel_prefix",
+            "name": "map_users_presence_channel_prefix",
+            "go_name": "MapUsersPresenceChannelPrefix",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapUsersPresenceChannelPrefix is a prefix for map-based user presence channel.\nWhen set, user presence is tracked via MapBroker in a channel formed by this prefix + original channel name.",
             "is_complex_type": false
           },
           {
@@ -7408,218 +7908,210 @@
             "level": 3,
             "type": "string",
             "default": "",
-            "comment": "SubscriptionType defines the subscription type for the namespace.\nValid values: \"stream\", \"map\", \"map_clients\", \"map_users\".\nDefault: \"stream\" (traditional PUB/SUB with history).",
+            "comment": "SubscriptionType defines the subscription type for the namespace.\nValid values: \"stream\", \"map\", \"map_clients\", \"map_users\", \"shared_poll\".\nDefault: \"stream\" (traditional PUB/SUB with history).",
             "is_complex_type": false
           },
           {
-            "field": "channel.namespaces[].map_sync_mode",
-            "name": "map_sync_mode",
-            "go_name": "MapSyncMode",
+            "field": "channel.namespaces[].map",
+            "name": "map",
+            "go_name": "Map",
             "level": 3,
-            "type": "string",
+            "type": "MapConfig",
             "default": "",
-            "comment": "MapSyncMode controls how map state is synchronized with subscribers.\nValid values: \"ephemeral\" (no stream, live updates only) or \"converging\"\n(stream-backed with delta recovery). Only relevant when subscription_type\nis a map type.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].map_retention_mode",
-            "name": "map_retention_mode",
-            "go_name": "MapRetentionMode",
-            "level": 3,
-            "type": "string",
-            "default": "",
-            "comment": "MapRetentionMode controls how map entries are retained.\nValid values: \"expiring\" (entries expire after map_key_ttl) or \"permanent\"\n(entries live until explicitly removed). Only relevant when subscription_type\nis a map type.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].map_key_ttl",
-            "name": "map_key_ttl",
-            "go_name": "MapKeyTTL",
-            "level": 3,
-            "type": "Duration",
-            "default": "",
-            "comment": "MapKeyTTL is the automatic expiration time for map entries. Required when\nmap_retention_mode is \"expiring\". Ignored when \"permanent\".",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].map_ordered",
-            "name": "map_ordered",
-            "go_name": "MapOrdered",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapOrdered enables score-based ordering (descending) for map entries.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].map_stream_size",
-            "name": "map_stream_size",
-            "go_name": "MapStreamSize",
-            "level": 3,
-            "type": "int",
-            "default": "",
-            "comment": "MapStreamSize is the maximum number of stream entries for map channels.\nAuto-derived if not set: 100 for \"converging\" mode, must be 0 for \"ephemeral\".",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].map_stream_ttl",
-            "name": "map_stream_ttl",
-            "go_name": "MapStreamTTL",
-            "level": 3,
-            "type": "Duration",
-            "default": "",
-            "comment": "MapStreamTTL is the retention period for map stream entries.\nAuto-derived if not set: \"1m\" for \"converging\" mode, must be 0 for \"ephemeral\".",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].map_meta_ttl",
-            "name": "map_meta_ttl",
-            "go_name": "MapMetaTTL",
-            "level": 3,
-            "type": "Duration",
-            "default": "",
-            "comment": "MapMetaTTL is the retention period for map metadata (epoch, offset).\nAuto-derived based on sync mode and retention mode if not set.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].map_client_presence_namespace",
-            "name": "map_client_presence_namespace",
-            "go_name": "MapClientPresenceNamespace",
-            "level": 3,
-            "type": "string",
-            "default": "",
-            "comment": "MapClientPresenceNamespace is the namespace for client presence channels.\nWhen set, client presence (key=clientID, full ClientInfo) is published to\n{namespace}{boundary}{channel_rest} on subscribe and removed on unsubscribe.\nFor example, with namespace \"clients\" and boundary \":\", subscribing to \"game:abc\"\npublishes presence to \"clients:abc\". Empty string means no client presence.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].map_user_presence_namespace",
-            "name": "map_user_presence_namespace",
-            "go_name": "MapUserPresenceNamespace",
-            "level": 3,
-            "type": "string",
-            "default": "",
-            "comment": "MapUserPresenceNamespace is the namespace for user presence channels.\nWhen set, user presence (key=userID) is published to\n{namespace}{boundary}{channel_rest} on subscribe. User presence entries are\nnot removed on unsubscribe — they expire via TTL to provide grace period for\nquick reconnects. Empty string means no user presence.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].map_remove_client_on_unsubscribe",
-            "name": "map_remove_client_on_unsubscribe",
-            "go_name": "MapRemoveClientOnUnsubscribe",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapRemoveClientOnUnsubscribe enables automatic cleanup of map state when subscription\nends. When enabled, the entry with key=clientID is removed from the channel's\nmap state on unsubscribe or disconnect. Useful for ephemeral state like cursor\npositions that should not persist after the client leaves.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].allow_map_publish_for_anonymous",
-            "name": "allow_map_publish_for_anonymous",
-            "go_name": "MapPublishForAnonymous",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapPublishForAnonymous allows anonymous clients to map-publish.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].allow_map_publish_for_subscriber",
-            "name": "allow_map_publish_for_subscriber",
-            "go_name": "MapPublishForSubscriber",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapPublishForSubscriber allows subscribed clients to map-publish.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].allow_map_publish_for_client",
-            "name": "allow_map_publish_for_client",
-            "go_name": "MapPublishForClient",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapPublishForClient allows authenticated clients to map-publish.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].map_publish_proxy_enabled",
-            "name": "map_publish_proxy_enabled",
-            "go_name": "MapPublishProxyEnabled",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapPublishProxyEnabled turns on proxy for map publish.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].map_publish_proxy_name",
-            "name": "map_publish_proxy_name",
-            "go_name": "MapPublishProxyName",
-            "level": 3,
-            "type": "string",
-            "default": "default",
-            "comment": "MapPublishProxyName of proxy for map publish.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].allow_map_remove_for_anonymous",
-            "name": "allow_map_remove_for_anonymous",
-            "go_name": "MapRemoveForAnonymous",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapRemoveForAnonymous allows anonymous clients to map-remove.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].allow_map_remove_for_subscriber",
-            "name": "allow_map_remove_for_subscriber",
-            "go_name": "MapRemoveForSubscriber",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapRemoveForSubscriber allows subscribed clients to map-remove.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].allow_map_remove_for_client",
-            "name": "allow_map_remove_for_client",
-            "go_name": "MapRemoveForClient",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapRemoveForClient allows authenticated clients to map-remove.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].map_remove_proxy_enabled",
-            "name": "map_remove_proxy_enabled",
-            "go_name": "MapRemoveProxyEnabled",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "MapRemoveProxyEnabled turns on proxy for map remove.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].map_remove_proxy_name",
-            "name": "map_remove_proxy_name",
-            "go_name": "MapRemoveProxyName",
-            "level": 3,
-            "type": "string",
-            "default": "default",
-            "comment": "MapRemoveProxyName of proxy for map remove.",
-            "is_complex_type": false
-          },
-          {
-            "field": "channel.namespaces[].map_client_key",
-            "name": "map_client_key",
-            "go_name": "MapClientKey",
-            "level": 3,
-            "type": "string",
-            "default": "",
-            "comment": "MapClientKey controls server-driven key assignment for both map publish and map remove.\n\"client_id\" — key overridden with client ID.\n\"user_id\" — key overridden with user ID.\nEmpty (default) — client-provided key used as-is – but the backend is encouraged to validate it.",
-            "is_complex_type": false
+            "comment": "Map contains configuration for map subscription types (map, map_clients, map_users).",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "channel.namespaces[].map.sync_mode",
+                "name": "sync_mode",
+                "go_name": "SyncMode",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.retention_mode",
+                "name": "retention_mode",
+                "go_name": "RetentionMode",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.key_ttl",
+                "name": "key_ttl",
+                "go_name": "KeyTTL",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.ordered",
+                "name": "ordered",
+                "go_name": "Ordered",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.stream_size",
+                "name": "stream_size",
+                "go_name": "StreamSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.stream_ttl",
+                "name": "stream_ttl",
+                "go_name": "StreamTTL",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.meta_ttl",
+                "name": "meta_ttl",
+                "go_name": "MetaTTL",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.remove_client_on_unsubscribe",
+                "name": "remove_client_on_unsubscribe",
+                "go_name": "RemoveClientOnUnsubscribe",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.client_key",
+                "name": "client_key",
+                "go_name": "ClientKey",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.allow_publish_for_client",
+                "name": "allow_publish_for_client",
+                "go_name": "AllowPublishForClient",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.allow_publish_for_subscriber",
+                "name": "allow_publish_for_subscriber",
+                "go_name": "AllowPublishForSubscriber",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.allow_publish_for_anonymous",
+                "name": "allow_publish_for_anonymous",
+                "go_name": "AllowPublishForAnonymous",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.allow_remove_for_client",
+                "name": "allow_remove_for_client",
+                "go_name": "AllowRemoveForClient",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.allow_remove_for_subscriber",
+                "name": "allow_remove_for_subscriber",
+                "go_name": "AllowRemoveForSubscriber",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.allow_remove_for_anonymous",
+                "name": "allow_remove_for_anonymous",
+                "go_name": "AllowRemoveForAnonymous",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.publish_proxy_enabled",
+                "name": "publish_proxy_enabled",
+                "go_name": "PublishProxyEnabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.publish_proxy_name",
+                "name": "publish_proxy_name",
+                "go_name": "PublishProxyName",
+                "level": 4,
+                "type": "string",
+                "default": "default",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.remove_proxy_enabled",
+                "name": "remove_proxy_enabled",
+                "go_name": "RemoveProxyEnabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.remove_proxy_name",
+                "name": "remove_proxy_name",
+                "go_name": "RemoveProxyName",
+                "level": 4,
+                "type": "string",
+                "default": "default",
+                "comment": "",
+                "is_complex_type": false
+              }
+            ]
           },
           {
             "field": "channel.namespaces[].shared_poll",
@@ -7635,16 +8127,6 @@
                 "field": "channel.namespaces[].shared_poll.proxy_name",
                 "name": "proxy_name",
                 "go_name": "ProxyName",
-                "level": 4,
-                "type": "string",
-                "default": "",
-                "comment": "",
-                "is_complex_type": false
-              },
-              {
-                "field": "channel.namespaces[].shared_poll.token_hmac_secret",
-                "name": "token_hmac_secret",
-                "go_name": "TokenHMACSecret",
                 "level": 4,
                 "type": "string",
                 "default": "",
@@ -7672,19 +8154,9 @@
                 "is_complex_type": false
               },
               {
-                "field": "channel.namespaces[].shared_poll.refresh_concurrency",
-                "name": "refresh_concurrency",
-                "go_name": "RefreshConcurrency",
-                "level": 4,
-                "type": "int",
-                "default": "",
-                "comment": "",
-                "is_complex_type": false
-              },
-              {
-                "field": "channel.namespaces[].shared_poll.max_tracked_per_connection",
-                "name": "max_tracked_per_connection",
-                "go_name": "MaxTrackedPerConnection",
+                "field": "channel.namespaces[].shared_poll.max_keys_per_connection",
+                "name": "max_keys_per_connection",
+                "go_name": "MaxKeysPerConnection",
                 "level": 4,
                 "type": "int",
                 "default": "",
@@ -7712,11 +8184,31 @@
                 "is_complex_type": false
               },
               {
-                "field": "channel.namespaces[].shared_poll.shared_poll_channel_shutdown_delay",
-                "name": "shared_poll_channel_shutdown_delay",
-                "go_name": "SharedPollChannelShutdownDelay",
+                "field": "channel.namespaces[].shared_poll.channel_shutdown_delay",
+                "name": "channel_shutdown_delay",
+                "go_name": "ChannelShutdownDelay",
                 "level": 4,
                 "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.track_expired_extra_delay",
+                "name": "track_expired_extra_delay",
+                "go_name": "TrackExpiredExtraDelay",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.publish_enabled",
+                "name": "publish_enabled",
+                "go_name": "PublishEnabled",
+                "level": 4,
+                "type": "bool",
                 "default": "",
                 "comment": "",
                 "is_complex_type": false
