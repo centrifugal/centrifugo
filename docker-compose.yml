@@ -31,7 +31,7 @@ services:
       - "8085:8085"
 
   aws-localstack:
-    image: localstack/localstack
+    image: localstack/localstack:4.14
     container_name: localstack
     ports:
       - "4566:4566"   # Edge port for all services.
