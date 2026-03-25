@@ -16,23 +16,28 @@ import (
 // SharedPollRefreshHandlerConfig ...
 type SharedPollRefreshHandlerConfig struct {
 	Proxy SharedPollRefreshProxy
+	Name  string
 }
 
 // SharedPollRefreshHandler ...
 type SharedPollRefreshHandler struct {
-	proxy     SharedPollRefreshProxy
-	summary   prometheus.Observer
-	histogram prometheus.Observer
-	errors    prometheus.Counter
+	proxy         SharedPollRefreshProxy
+	summary       prometheus.Observer
+	histogram     prometheus.Observer
+	errors        prometheus.Counter
+	requestItems  prometheus.Observer
+	responseItems prometheus.Observer
 }
 
 // NewSharedPollRefreshHandler ...
 func NewSharedPollRefreshHandler(c SharedPollRefreshHandlerConfig) *SharedPollRefreshHandler {
 	return &SharedPollRefreshHandler{
-		proxy:     c.Proxy,
-		summary:   metrics.ProxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "shared_poll_refresh", ""),
-		histogram: metrics.ProxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "shared_poll_refresh", ""),
-		errors:    metrics.ProxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "shared_poll_refresh", ""),
+		proxy:         c.Proxy,
+		summary:       metrics.ProxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "shared_poll_refresh", c.Name),
+		histogram:     metrics.ProxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "shared_poll_refresh", c.Name),
+		errors:        metrics.ProxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "shared_poll_refresh", c.Name),
+		requestItems:  metrics.SharedPollProxyRequestItems.WithLabelValues(c.Name),
+		responseItems: metrics.SharedPollProxyResponseItems.WithLabelValues(c.Name),
 	}
 }
 
@@ -52,6 +57,7 @@ func (h *SharedPollRefreshHandler) Handle(node *centrifuge.Node) centrifuge.Shar
 			Channel: event.Channel,
 			Items:   protoItems,
 		}
+		h.requestItems.Observe(float64(len(event.Items)))
 
 		resp, err := h.proxy.ProxySharedPollRefresh(ctx, req)
 		duration := time.Since(started).Seconds()
@@ -70,6 +76,7 @@ func (h *SharedPollRefreshHandler) Handle(node *centrifuge.Node) centrifuge.Shar
 			return centrifuge.SharedPollResult{}, nil
 		}
 
+		h.responseItems.Observe(float64(len(resp.Result.Items)))
 		items := make([]centrifuge.SharedPollRefreshItem, len(resp.Result.Items))
 		for i, item := range resp.Result.Items {
 			items[i] = centrifuge.SharedPollRefreshItem{

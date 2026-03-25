@@ -14,6 +14,8 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/jackc/pgx/v5"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -1970,35 +1972,28 @@ func (e *PostgresMapBroker) processOutboxBatch(ctx context.Context, pool *pgxpoo
 	return len(buf.metas), maxID, nil
 }
 
-// logFields returns fields with broker_name added if configured.
-// If fields is nil, a new map is created.
-func (e *PostgresMapBroker) logFields(fields map[string]any) map[string]any {
-	if e.conf.Name == "" {
-		return fields
+func (e *PostgresMapBroker) logEvent() *zerolog.Event {
+	ev := log.Error()
+	if e.conf.Name != "" {
+		ev = ev.Str("broker_name", e.conf.Name)
 	}
-	if fields == nil {
-		fields = map[string]any{}
-	}
-	fields["broker_name"] = e.conf.Name
-	return fields
+	return ev
 }
 
 func (e *PostgresMapBroker) logErrorMsg(msg string, err error) {
-	if e.node != nil {
-		e.node.Log(centrifuge.NewErrorLogEntry(err, msg, e.logFields(nil)))
-	}
+	e.logEvent().Err(err).Msg(msg)
 }
 
 func (e *PostgresMapBroker) logError(msg string, err error, shardID int) {
-	if e.node != nil {
-		e.node.Log(centrifuge.NewErrorLogEntry(err, msg, e.logFields(map[string]any{"shard": shardID})))
-	}
+	e.logEvent().Err(err).Int("shard", shardID).Msg(msg)
 }
 
 func (e *PostgresMapBroker) logInfo(msg string, shardID int) {
-	if e.node != nil && e.node.LogEnabled(centrifuge.LogLevelInfo) {
-		e.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, msg, e.logFields(map[string]any{"shard": shardID})))
+	ev := log.Info()
+	if e.conf.Name != "" {
+		ev = ev.Str("broker_name", e.conf.Name)
 	}
+	ev.Int("shard", shardID).Msg(msg)
 }
 
 // ============================================================================
@@ -2033,7 +2028,7 @@ func (e *PostgresMapBroker) expireKeys(ctx context.Context) {
 		LIMIT 100
 	`, e.names.state))
 	if err != nil {
-		e.node.Log(centrifuge.NewErrorLogEntry(err, "error querying channels for key expiration", e.logFields(nil)))
+		e.logErrorMsg("error querying channels for key expiration", err)
 		e.node.IncMapBrokerCleanupErrors(e.conf.Name)
 		return
 	}
@@ -2051,7 +2046,7 @@ func (e *PostgresMapBroker) expireKeys(ctx context.Context) {
 	for _, ch := range channels {
 		chOpts, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().GetMapChannelOptions, ch)
 		if err != nil {
-			e.node.Log(centrifuge.NewErrorLogEntry(err, "error resolving channel options for key expiration", e.logFields(map[string]any{"channel": ch})))
+			e.logEvent().Err(err).Str("channel", ch).Msg("error resolving channel options for key expiration")
 			e.node.IncMapBrokerCleanupErrors(e.conf.Name)
 			continue
 		}
@@ -2072,7 +2067,7 @@ func (e *PostgresMapBroker) expireKeys(ctx context.Context) {
 			FROM %s($1, $2, $3::interval, $4, $5)
 		`, e.names.expireKeys), 1000, numShards, metaTTL, ch, e.conf.SkipShardLock)
 		if err != nil {
-			e.node.Log(centrifuge.NewErrorLogEntry(err, "error in batch key expiration", e.logFields(map[string]any{"channel": ch})))
+			e.logEvent().Err(err).Str("channel", ch).Msg("error in batch key expiration")
 			e.node.IncMapBrokerCleanupErrors(e.conf.Name)
 			continue
 		}

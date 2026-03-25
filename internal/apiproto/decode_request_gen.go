@@ -213,3 +213,13 @@ func (d *JSONRequestDecoder) DecodeMapClear(data []byte) (*MapClearRequest, erro
 	}
 	return &p, nil
 }
+
+// DecodeSharedPollPublish ...
+func (d *JSONRequestDecoder) DecodeSharedPollPublish(data []byte) (*SharedPollPublishRequest, error) {
+	var p SharedPollPublishRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}

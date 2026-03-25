@@ -39,6 +39,10 @@ type Registry struct {
 	consumerProcessedTotal *prometheus.CounterVec
 	consumerErrorsTotal    *prometheus.CounterVec
 
+	// Shared poll proxy metrics
+	sharedPollProxyRequestItems  *prometheus.HistogramVec
+	sharedPollProxyResponseItems *prometheus.HistogramVec
+
 	// Middleware metrics
 	connLimitReached  prometheus.Counter
 	httpRequestsTotal *prometheus.CounterVec
@@ -67,6 +71,9 @@ func Init(cfg Config) error {
 
 	ConsumerProcessedTotal = reg.consumerProcessedTotal
 	ConsumerErrorsTotal = reg.consumerErrorsTotal
+
+	SharedPollProxyRequestItems = reg.sharedPollProxyRequestItems
+	SharedPollProxyResponseItems = reg.sharedPollProxyResponseItems
 
 	ConnLimitReached = reg.connLimitReached
 	HTTPRequestsTotal = reg.httpRequestsTotal
@@ -179,6 +186,25 @@ func newRegistry(cfg Config) (*Registry, error) {
 		ConstLabels: constLabels,
 	}, []string{"consumer_name"})
 
+	// Shared poll proxy metrics
+	m.sharedPollProxyRequestItems = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "shared_poll_proxy",
+		Name:        "request_items",
+		Help:        "Number of items per shared poll proxy request.",
+		Buckets:     []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000},
+		ConstLabels: constLabels,
+	}, []string{"name"})
+
+	m.sharedPollProxyResponseItems = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "shared_poll_proxy",
+		Name:        "response_items",
+		Help:        "Number of items per shared poll proxy response.",
+		Buckets:     []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000},
+		ConstLabels: constLabels,
+	}, []string{"name"})
+
 	// Middleware metrics
 	m.connLimitReached = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace:   metricsNamespace,
@@ -213,6 +239,8 @@ func newRegistry(cfg Config) (*Registry, error) {
 		m.rpcDurationSummary,
 		m.consumerProcessedTotal,
 		m.consumerErrorsTotal,
+		m.sharedPollProxyRequestItems,
+		m.sharedPollProxyResponseItems,
 		m.connLimitReached,
 		m.httpRequestsTotal,
 	}

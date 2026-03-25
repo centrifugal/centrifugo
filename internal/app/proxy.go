@@ -389,6 +389,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 				}
 				handler := proxy.NewSharedPollRefreshHandler(proxy.SharedPollRefreshHandlerConfig{
 					Proxy: sp,
+					Name:  sharedPollProxyName,
 				})
 				proxyMap.SharedPollRefreshProxies[sharedPollProxyName] = handler
 			}
@@ -418,6 +419,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			}
 			handler := proxy.NewSharedPollRefreshHandler(proxy.SharedPollRefreshHandlerConfig{
 				Proxy: sp,
+				Name:  sharedPollProxyName,
 			})
 			proxyMap.SharedPollRefreshProxies[sharedPollProxyName] = handler
 		}

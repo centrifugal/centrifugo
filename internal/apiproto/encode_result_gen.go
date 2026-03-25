@@ -108,3 +108,8 @@ func (e *JSONResultEncoder) EncodeMapStats(res *MapStatsResult) ([]byte, error) 
 func (e *JSONResultEncoder) EncodeMapClear(res *MapClearResult) ([]byte, error) {
 	return json.Marshal(res)
 }
+
+// EncodeSharedPollPublish ...
+func (e *JSONResultEncoder) EncodeSharedPollPublish(res *SharedPollPublishResult) ([]byte, error) {
+	return json.Marshal(res)
+}

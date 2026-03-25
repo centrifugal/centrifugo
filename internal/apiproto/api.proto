@@ -44,6 +44,7 @@ service CentrifugoApi {
     rpc MapReadStream (MapReadStreamRequest) returns (MapReadStreamResponse) {}
     rpc MapStats (MapStatsRequest) returns (MapStatsResponse) {}
     rpc MapClear (MapClearRequest) returns (MapClearResponse) {}
+    rpc SharedPollPublish (SharedPollPublishRequest) returns (SharedPollPublishResponse) {}
 }
 
 message Command {
@@ -87,6 +88,7 @@ message Command {
     MapReadStreamRequest map_read_stream = 39;
     MapStatsRequest map_stats = 40;
     MapClearRequest map_clear = 41;
+    SharedPollPublishRequest shared_poll_publish = 42;
 }
 
 message Error {
@@ -137,6 +139,7 @@ message Reply {
     MapReadStreamResult map_read_stream = 39;
     MapStatsResult map_stats = 40;
     MapClearResult map_clear = 41;
+    SharedPollPublishResult shared_poll_publish = 42;
 }
 
 message BatchRequest {
@@ -1005,3 +1008,18 @@ message MapClearResponse {
 }
 
 message MapClearResult {}
+
+message SharedPollPublishRequest {
+    string channel = 1;
+    string key = 2;
+    bytes data = 3;
+    string b64data = 4;
+    uint64 version = 5;
+}
+
+message SharedPollPublishResponse {
+    Error error = 1;
+    SharedPollPublishResult result = 2;
+}
+
+message SharedPollPublishResult {}

@@ -58,6 +58,7 @@ const (
 	CentrifugoApi_MapReadStream_FullMethodName        = "/centrifugal.centrifugo.api.CentrifugoApi/MapReadStream"
 	CentrifugoApi_MapStats_FullMethodName             = "/centrifugal.centrifugo.api.CentrifugoApi/MapStats"
 	CentrifugoApi_MapClear_FullMethodName             = "/centrifugal.centrifugo.api.CentrifugoApi/MapClear"
+	CentrifugoApi_SharedPollPublish_FullMethodName    = "/centrifugal.centrifugo.api.CentrifugoApi/SharedPollPublish"
 )
 
 // CentrifugoApiClient is the client API for CentrifugoApi service.
@@ -103,6 +104,7 @@ type CentrifugoApiClient interface {
 	MapReadStream(ctx context.Context, in *MapReadStreamRequest, opts ...grpc.CallOption) (*MapReadStreamResponse, error)
 	MapStats(ctx context.Context, in *MapStatsRequest, opts ...grpc.CallOption) (*MapStatsResponse, error)
 	MapClear(ctx context.Context, in *MapClearRequest, opts ...grpc.CallOption) (*MapClearResponse, error)
+	SharedPollPublish(ctx context.Context, in *SharedPollPublishRequest, opts ...grpc.CallOption) (*SharedPollPublishResponse, error)
 }
 
 type centrifugoApiClient struct {
@@ -503,6 +505,16 @@ func (c *centrifugoApiClient) MapClear(ctx context.Context, in *MapClearRequest,
 	return out, nil
 }
 
+func (c *centrifugoApiClient) SharedPollPublish(ctx context.Context, in *SharedPollPublishRequest, opts ...grpc.CallOption) (*SharedPollPublishResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SharedPollPublishResponse)
+	err := c.cc.Invoke(ctx, CentrifugoApi_SharedPollPublish_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CentrifugoApiServer is the server API for CentrifugoApi service.
 // All implementations must embed UnimplementedCentrifugoApiServer
 // for forward compatibility.
@@ -546,6 +558,7 @@ type CentrifugoApiServer interface {
 	MapReadStream(context.Context, *MapReadStreamRequest) (*MapReadStreamResponse, error)
 	MapStats(context.Context, *MapStatsRequest) (*MapStatsResponse, error)
 	MapClear(context.Context, *MapClearRequest) (*MapClearResponse, error)
+	SharedPollPublish(context.Context, *SharedPollPublishRequest) (*SharedPollPublishResponse, error)
 	mustEmbedUnimplementedCentrifugoApiServer()
 }
 
@@ -672,6 +685,9 @@ func (UnimplementedCentrifugoApiServer) MapStats(context.Context, *MapStatsReque
 }
 func (UnimplementedCentrifugoApiServer) MapClear(context.Context, *MapClearRequest) (*MapClearResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MapClear not implemented")
+}
+func (UnimplementedCentrifugoApiServer) SharedPollPublish(context.Context, *SharedPollPublishRequest) (*SharedPollPublishResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SharedPollPublish not implemented")
 }
 func (UnimplementedCentrifugoApiServer) mustEmbedUnimplementedCentrifugoApiServer() {}
 func (UnimplementedCentrifugoApiServer) testEmbeddedByValue()                       {}
@@ -1396,6 +1412,24 @@ func _CentrifugoApi_MapClear_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CentrifugoApi_SharedPollPublish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SharedPollPublishRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).SharedPollPublish(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CentrifugoApi_SharedPollPublish_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).SharedPollPublish(ctx, req.(*SharedPollPublishRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CentrifugoApi_ServiceDesc is the grpc.ServiceDesc for CentrifugoApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1558,6 +1592,10 @@ var CentrifugoApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MapClear",
 			Handler:    _CentrifugoApi_MapClear_Handler,
+		},
+		{
+			MethodName: "SharedPollPublish",
+			Handler:    _CentrifugoApi_SharedPollPublish_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

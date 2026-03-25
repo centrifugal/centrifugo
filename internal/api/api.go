@@ -136,6 +136,10 @@ func (h *Executor) processCmd(ctx context.Context, cmd *Command, i int, replies 
 		method = "map_clear"
 		res := h.MapClear(ctx, cmd.MapClear)
 		replies[i].MapClear, replies[i].Error = res.Result, res.Error
+	} else if cmd.SharedPollPublish != nil {
+		method = "shared_poll_publish"
+		res := h.SharedPollPublish(ctx, cmd.SharedPollPublish)
+		replies[i].SharedPollPublish, replies[i].Error = res.Result, res.Error
 	} else {
 		method = "unknown"
 		replies[i].Error = ErrorNotFound
@@ -1130,6 +1134,57 @@ func (h *Executor) MapClear(ctx context.Context, cmd *MapClearRequest) *MapClear
 		return resp
 	}
 	resp.Result = &MapClearResult{}
+	return resp
+}
+
+func (h *Executor) SharedPollPublish(ctx context.Context, cmd *SharedPollPublishRequest) *SharedPollPublishResponse {
+	defer metrics.ObserveAPICommand(time.Now(), h.config.Protocol, "shared_poll_publish")
+
+	ch := cmd.Channel
+	if h.config.UseOpenTelemetry {
+		span := trace.SpanFromContext(ctx)
+		span.SetAttributes(attribute.String("centrifugo.channel", ch))
+	}
+
+	resp := &SharedPollPublishResponse{}
+	if ch == "" || cmd.Key == "" || cmd.Version == 0 {
+		resp.Error = ErrorBadRequest
+		return resp
+	}
+
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
+	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
+		resp.Error = ErrorUnknownChannel
+		return resp
+	}
+	if chOpts.SubscriptionType != "shared_poll" {
+		resp.Error = ErrorBadRequest
+		return resp
+	}
+
+	var data []byte
+	if cmd.B64Data != "" {
+		byteInfo, err := base64.StdEncoding.DecodeString(cmd.B64Data)
+		if err != nil {
+			resp.Error = ErrorBadRequest
+			return resp
+		}
+		data = byteInfo
+	} else {
+		data = cmd.Data
+	}
+
+	err = h.node.SharedPollPublish(ctx, ch, cmd.Key, cmd.Version, data)
+	if err != nil {
+		log.Error().Err(err).Str("channel", ch).Msg("error in shared poll publish")
+		resp.Error = ErrorInternal
+		return resp
+	}
+	resp.Result = &SharedPollPublishResult{}
 	return resp
 }
 

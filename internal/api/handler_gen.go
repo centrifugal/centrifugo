@@ -837,3 +837,45 @@ func (s *Handler) handleMapClear(w http.ResponseWriter, r *http.Request) {
 
 	s.writeJson(w, data)
 }
+
+func (s *Handler) handleSharedPollPublish(w http.ResponseWriter, r *http.Request) {
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "shared_poll_publish", "read_body")
+		s.handleReadDataError(r, w, err)
+		return
+	}
+
+	req, err := requestDecoder.DecodeSharedPollPublish(data)
+	if err != nil {
+		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "shared_poll_publish", "unmarshal")
+		s.handleUnmarshalError(r, w, err)
+		return
+	}
+
+	resp := s.api.SharedPollPublish(r.Context(), req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(r.Context())
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+
+	if resp.Error != nil && s.useTransportErrorMode(r) {
+		metrics.IncAPIError(s.api.config.Protocol, "shared_poll_publish", resp.Error.Code)
+		statusCode := MapErrorToHTTPCode(resp.Error)
+		data, _ = EncodeError(resp.Error)
+		s.writeJsonCustomStatus(w, statusCode, data)
+		return
+	}
+
+	data, err = responseEncoder.EncodeSharedPollPublish(resp)
+	if err != nil {
+		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "shared_poll_publish", "marshal")
+		s.handleMarshalError(r, w, err)
+		return
+	}
+	if resp.Error != nil {
+		metrics.IncAPIError(s.api.config.Protocol, "shared_poll_publish", resp.Error.Code)
+	}
+
+	s.writeJson(w, data)
+}

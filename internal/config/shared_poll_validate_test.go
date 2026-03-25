@@ -136,3 +136,105 @@ func TestSharedPollConfig_WithoutNamespaceMissingSecret(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "hmac_secret_key")
 }
+
+func TestSharedPollConfig_VersionlessPublishEnabled(t *testing.T) {
+	t.Run("empty_mode_publish_enabled_rejected", func(t *testing.T) {
+		cfg := DefaultConfig()
+		cfg.SharedPoll.HMACSecretKey = "secret"
+		cfg.Channel.Proxy.SharedPollRefresh = sharedPollDefaultProxy()
+		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
+			{
+				Name: "poll",
+				ChannelOptions: configtypes.ChannelOptions{
+					SubscriptionType: "shared_poll",
+					SharedPoll: configtypes.SharedPollConfig{
+						RefreshMode:    "",
+						PublishEnabled: true,
+					},
+				},
+			},
+		}
+		err := cfg.Validate()
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "publish_enabled is incompatible with versionless")
+	})
+
+	t.Run("versionless_mode_publish_enabled_rejected", func(t *testing.T) {
+		cfg := DefaultConfig()
+		cfg.SharedPoll.HMACSecretKey = "secret"
+		cfg.Channel.Proxy.SharedPollRefresh = sharedPollDefaultProxy()
+		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
+			{
+				Name: "poll",
+				ChannelOptions: configtypes.ChannelOptions{
+					SubscriptionType: "shared_poll",
+					SharedPoll: configtypes.SharedPollConfig{
+						RefreshMode:    "versionless",
+						PublishEnabled: true,
+					},
+				},
+			},
+		}
+		err := cfg.Validate()
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "publish_enabled is incompatible with versionless")
+	})
+
+	t.Run("full_mode_publish_enabled_accepted", func(t *testing.T) {
+		cfg := DefaultConfig()
+		cfg.SharedPoll.HMACSecretKey = "secret"
+		cfg.Channel.Proxy.SharedPollRefresh = sharedPollDefaultProxy()
+		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
+			{
+				Name: "poll",
+				ChannelOptions: configtypes.ChannelOptions{
+					SubscriptionType: "shared_poll",
+					SharedPoll: configtypes.SharedPollConfig{
+						RefreshMode:    "full",
+						PublishEnabled: true,
+					},
+				},
+			},
+		}
+		err := cfg.Validate()
+		require.NoError(t, err)
+	})
+
+	t.Run("versionless_no_publish_accepted", func(t *testing.T) {
+		cfg := DefaultConfig()
+		cfg.SharedPoll.HMACSecretKey = "secret"
+		cfg.Channel.Proxy.SharedPollRefresh = sharedPollDefaultProxy()
+		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
+			{
+				Name: "poll",
+				ChannelOptions: configtypes.ChannelOptions{
+					SubscriptionType: "shared_poll",
+					SharedPoll: configtypes.SharedPollConfig{
+						RefreshMode: "versionless",
+					},
+				},
+			},
+		}
+		err := cfg.Validate()
+		require.NoError(t, err)
+	})
+
+	t.Run("versionless_string_accepted", func(t *testing.T) {
+		cfg := DefaultConfig()
+		cfg.SharedPoll.HMACSecretKey = "secret"
+		cfg.Channel.Proxy.SharedPollRefresh = sharedPollDefaultProxy()
+		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
+			{
+				Name: "poll",
+				ChannelOptions: configtypes.ChannelOptions{
+					SubscriptionType: "shared_poll",
+					SharedPoll: configtypes.SharedPollConfig{
+						RefreshMode: "versionless",
+					},
+				},
+			},
+		}
+		err := cfg.Validate()
+		require.NoError(t, err)
+	})
+}

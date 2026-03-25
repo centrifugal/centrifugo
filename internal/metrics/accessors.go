@@ -24,6 +24,12 @@ var (
 	ConsumerErrorsTotal    *prometheus.CounterVec
 )
 
+// Shared poll proxy metrics - exported for use by proxy package
+var (
+	SharedPollProxyRequestItems  *prometheus.HistogramVec
+	SharedPollProxyResponseItems *prometheus.HistogramVec
+)
+
 // Middleware metrics - exported for use by middleware package
 var (
 	ConnLimitReached  prometheus.Counter

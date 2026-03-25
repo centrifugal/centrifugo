@@ -94,6 +94,7 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 				MaxConsecutiveAbsences: chOpts.SharedPoll.MaxConsecutiveAbsences,
 				ChannelShutdownDelay:   chOpts.SharedPoll.ChannelShutdownDelay.ToDuration(),
 				TrackExpiredExtraDelay: chOpts.SharedPoll.TrackExpiredExtraDelay.ToDuration(),
+				PublishEnabled:         chOpts.SharedPoll.PublishEnabled,
 			}, true
 		}
 	}

@@ -240,6 +240,7 @@ type SharedPollConfig struct {
 	MaxConsecutiveAbsences int      `mapstructure:"max_consecutive_absences" json:"max_consecutive_absences" envconfig:"max_consecutive_absences" yaml:"max_consecutive_absences" toml:"max_consecutive_absences"`
 	ChannelShutdownDelay   Duration `mapstructure:"channel_shutdown_delay" json:"channel_shutdown_delay" envconfig:"channel_shutdown_delay" yaml:"channel_shutdown_delay" toml:"channel_shutdown_delay"`
 	TrackExpiredExtraDelay Duration `mapstructure:"track_expired_extra_delay" json:"track_expired_extra_delay" envconfig:"track_expired_extra_delay" yaml:"track_expired_extra_delay" toml:"track_expired_extra_delay"`
+	PublishEnabled         bool     `mapstructure:"publish_enabled" json:"publish_enabled" envconfig:"publish_enabled" yaml:"publish_enabled" toml:"publish_enabled"`
 }
 
 type Compiled struct {
