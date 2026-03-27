@@ -628,12 +628,12 @@ func (e *PostgresMapBroker) Publish(ctx context.Context, ch string, key string, 
 	}
 
 	// Reject CAS and Version in ephemeral mode.
-	if chOpts.SyncMode == centrifuge.MapSyncEphemeral {
+	if chOpts.Mode.IsEphemeral() {
 		if opts.ExpectedPosition != nil {
-			return centrifuge.MapUpdateResult{}, errors.New("CAS (ExpectedPosition) requires SyncMode Converging")
+			return centrifuge.MapUpdateResult{}, errors.New("CAS (ExpectedPosition) requires durable or persistent mode")
 		}
 		if opts.Version > 0 {
-			return centrifuge.MapUpdateResult{}, errors.New("version-based dedup requires SyncMode Converging")
+			return centrifuge.MapUpdateResult{}, errors.New("version-based dedup requires durable or persistent mode")
 		}
 	}
 
@@ -785,9 +785,9 @@ func (e *PostgresMapBroker) Remove(ctx context.Context, ch string, key string, o
 	}
 
 	// Reject CAS in ephemeral mode.
-	if chOpts.SyncMode == centrifuge.MapSyncEphemeral {
+	if chOpts.Mode.IsEphemeral() {
 		if opts.ExpectedPosition != nil {
-			return centrifuge.MapUpdateResult{}, errors.New("CAS (ExpectedPosition) requires SyncMode Converging")
+			return centrifuge.MapUpdateResult{}, errors.New("CAS (ExpectedPosition) requires durable or persistent mode")
 		}
 	}
 

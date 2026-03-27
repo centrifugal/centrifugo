@@ -350,44 +350,40 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 			return fmt.Errorf("shared_poll publish_enabled is incompatible with versionless refresh_mode (requires explicit versions)")
 		}
 	}
-	if c.Map.SyncMode != "" && !slices.Contains([]string{"ephemeral", "converging"}, c.Map.SyncMode) {
-		return fmt.Errorf("unknown map.sync_mode: %q (valid: \"ephemeral\", \"converging\")", c.Map.SyncMode)
-	}
-	if c.Map.RetentionMode != "" && !slices.Contains([]string{"expiring", "permanent"}, c.Map.RetentionMode) {
-		return fmt.Errorf("unknown map.retention_mode: %q (valid: \"expiring\", \"permanent\")", c.Map.RetentionMode)
+	if c.Map.Mode != "" && !slices.Contains([]string{"ephemeral", "durable", "persistent"}, c.Map.Mode) {
+		return fmt.Errorf("unknown map.mode: %q (valid: \"ephemeral\", \"durable\", \"persistent\")", c.Map.Mode)
 	}
 	hasMapType := c.SubscriptionType == "map" || c.SubscriptionType == "map_clients" || c.SubscriptionType == "map_users"
 	if hasMapType {
-		if c.Map.SyncMode == "" {
-			return fmt.Errorf("map.sync_mode is required when subscription_type is a map type")
-		}
-		if c.Map.RetentionMode == "" {
-			return fmt.Errorf("map.retention_mode is required when subscription_type is a map type")
+		if c.Map.Mode == "" {
+			return fmt.Errorf("map.mode is required when subscription_type is a map type")
 		}
 	}
-	if c.Map.RetentionMode == "expiring" {
+	mapHasExpiry := c.Map.Mode == "ephemeral" || c.Map.Mode == "durable"
+	if mapHasExpiry {
 		if c.Map.KeyTTL == 0 {
-			return fmt.Errorf("map.key_ttl is required when map.retention_mode is \"expiring\"")
+			return fmt.Errorf("map.key_ttl is required when map.mode is %q", c.Map.Mode)
 		}
 		if c.Map.KeyTTL.ToDuration() < 0 {
 			return fmt.Errorf("map.key_ttl must be positive")
 		}
 	}
-	if c.Map.RetentionMode == "permanent" && c.Map.KeyTTL != 0 {
-		return fmt.Errorf("map.key_ttl must not be set when map.retention_mode is \"permanent\" (entries don't expire)")
+	if c.Map.Mode == "persistent" && c.Map.KeyTTL != 0 {
+		return fmt.Errorf("map.key_ttl must not be set when map.mode is \"persistent\" (entries don't expire)")
 	}
-	if c.Map.SyncMode == "ephemeral" {
+	if c.Map.Mode == "ephemeral" {
 		if c.Map.StreamSize > 0 {
-			return fmt.Errorf("map.stream_size must be 0 for map.sync_mode \"ephemeral\"")
+			return fmt.Errorf("map.stream_size must be 0 for map.mode \"ephemeral\"")
 		}
 		if c.Map.StreamTTL != 0 {
-			return fmt.Errorf("map.stream_ttl must be 0 for map.sync_mode \"ephemeral\"")
+			return fmt.Errorf("map.stream_ttl must be 0 for map.mode \"ephemeral\"")
 		}
 		if c.Map.MetaTTL != 0 {
-			return fmt.Errorf("map.meta_ttl must be 0 for map.sync_mode \"ephemeral\"")
+			return fmt.Errorf("map.meta_ttl must be 0 for map.mode \"ephemeral\"")
 		}
 	}
-	if c.Map.SyncMode == "converging" {
+	mapHasStream := c.Map.Mode == "durable" || c.Map.Mode == "persistent"
+	if mapHasStream {
 		if c.Map.StreamSize < 0 {
 			return fmt.Errorf("map.stream_size must be non-negative")
 		}
@@ -397,13 +393,10 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 		if c.Map.MetaTTL.ToDuration() < 0 {
 			return fmt.Errorf("map.meta_ttl must be non-negative")
 		}
-		// MetaTTL must be >= StreamTTL. When either is zero, centrifuge auto-derives
-		// defaults (StreamTTL=1min, MetaTTL=StreamTTL*10 for expiring or permanent for
-		// permanent). We validate against auto-derived values to prevent runtime errors.
 		if c.Map.MetaTTL != 0 {
 			effectiveStreamTTL := c.Map.StreamTTL.ToDuration()
 			if effectiveStreamTTL == 0 {
-				effectiveStreamTTL = time.Minute // centrifuge default
+				effectiveStreamTTL = time.Minute
 			}
 			if c.Map.MetaTTL.ToDuration() < effectiveStreamTTL {
 				return fmt.Errorf("map.meta_ttl (%s) must be >= map.stream_ttl (%s) (metadata must outlive stream)", c.Map.MetaTTL, configtypes.Duration(effectiveStreamTTL))

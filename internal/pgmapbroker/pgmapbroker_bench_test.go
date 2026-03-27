@@ -21,8 +21,7 @@ func setupPostgresMapBrokerBench(b *testing.B) (*PostgresMapBroker, func()) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionPermanent,
+				Mode: centrifuge.MapModePersistent,
 			}
 		},
 	})
@@ -58,8 +57,7 @@ func setupPostgresMapBrokerBenchOrdered(b *testing.B) (*PostgresMapBroker, func(
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
 				Ordered:       true,
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        time.Minute,
 			}
 		},
@@ -493,8 +491,7 @@ func setupPostgresMapBrokerOutboxBench(b *testing.B) (*PostgresMapBroker, func()
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionPermanent,
+				Mode: centrifuge.MapModePersistent,
 			}
 		},
 	})
@@ -537,8 +534,7 @@ func setupPostgresMapBrokerOutboxBenchWithHandler(b *testing.B, handler centrifu
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionPermanent,
+				Mode: centrifuge.MapModePersistent,
 			}
 		},
 	})
@@ -809,8 +805,7 @@ func BenchmarkPostgresMapBroker_Cleanup(b *testing.B) {
 				node, _ := centrifuge.New(centrifuge.Config{
 					GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 						return centrifuge.MapChannelOptions{
-							SyncMode:      centrifuge.MapSyncConverging,
-							RetentionMode: centrifuge.MapRetentionExpiring,
+							Mode: centrifuge.MapModeDurable,
 							KeyTTL:        time.Millisecond,
 							Ordered:       ordered,
 						}

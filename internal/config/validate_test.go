@@ -166,20 +166,20 @@ func mapDefaultConfig() Config {
 	return cfg
 }
 
-func mapNamespace(name string, syncMode, retentionMode string) configtypes.ChannelNamespace {
+func mapNamespace(name, mode string) configtypes.ChannelNamespace {
 	return configtypes.ChannelNamespace{
 		Name: name,
 		ChannelOptions: configtypes.ChannelOptions{
 			SubscriptionType: "map",
-			Map:              configtypes.MapConfig{SyncMode: syncMode, RetentionMode: retentionMode},
+			Map:              configtypes.MapConfig{Mode: mode},
 		},
 	}
 }
 
-func TestValidateMapNamespace_EphemeralExpiring(t *testing.T) {
+func TestValidateMapNamespace_Ephemeral(t *testing.T) {
 	t.Run("valid_minimal", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ee", "ephemeral", "expiring")
+		ns := mapNamespace("ee", "ephemeral")
 		ns.Map.KeyTTL = configtypes.Duration(60 * time.Second)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
 		require.NoError(t, cfg.Validate())
@@ -187,7 +187,7 @@ func TestValidateMapNamespace_EphemeralExpiring(t *testing.T) {
 
 	t.Run("missing_key_ttl", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ee", "ephemeral", "expiring")
+		ns := mapNamespace("ee", "ephemeral")
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
 		err := cfg.Validate()
 		require.Error(t, err)
@@ -196,7 +196,7 @@ func TestValidateMapNamespace_EphemeralExpiring(t *testing.T) {
 
 	t.Run("stream_size_rejected", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ee", "ephemeral", "expiring")
+		ns := mapNamespace("ee", "ephemeral")
 		ns.Map.KeyTTL = configtypes.Duration(60 * time.Second)
 		ns.Map.StreamSize = 100
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
@@ -207,7 +207,7 @@ func TestValidateMapNamespace_EphemeralExpiring(t *testing.T) {
 
 	t.Run("stream_ttl_rejected", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ee", "ephemeral", "expiring")
+		ns := mapNamespace("ee", "ephemeral")
 		ns.Map.KeyTTL = configtypes.Duration(60 * time.Second)
 		ns.Map.StreamTTL = configtypes.Duration(time.Minute)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
@@ -218,7 +218,7 @@ func TestValidateMapNamespace_EphemeralExpiring(t *testing.T) {
 
 	t.Run("meta_ttl_rejected", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ee", "ephemeral", "expiring")
+		ns := mapNamespace("ee", "ephemeral")
 		ns.Map.KeyTTL = configtypes.Duration(60 * time.Second)
 		ns.Map.MetaTTL = configtypes.Duration(10 * time.Minute)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
@@ -228,41 +228,12 @@ func TestValidateMapNamespace_EphemeralExpiring(t *testing.T) {
 	})
 }
 
-func TestValidateMapNamespace_EphemeralPermanent(t *testing.T) {
-	t.Run("valid_minimal", func(t *testing.T) {
-		cfg := mapDefaultConfig()
-		ns := mapNamespace("ep", "ephemeral", "permanent")
-		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
-		require.NoError(t, cfg.Validate())
-	})
-
-	t.Run("key_ttl_rejected", func(t *testing.T) {
-		cfg := mapDefaultConfig()
-		ns := mapNamespace("ep", "ephemeral", "permanent")
-		ns.Map.KeyTTL = configtypes.Duration(60 * time.Second)
-		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
-		err := cfg.Validate()
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "map.key_ttl must not be set")
-	})
-
-	t.Run("stream_options_rejected", func(t *testing.T) {
-		cfg := mapDefaultConfig()
-		ns := mapNamespace("ep", "ephemeral", "permanent")
-		ns.Map.StreamSize = 50
-		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
-		err := cfg.Validate()
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "map.stream_size must be 0")
-	})
-}
-
-func TestValidateMapNamespace_ConvergingExpiring(t *testing.T) {
+func TestValidateMapNamespace_Durable(t *testing.T) {
 	t.Run("valid_minimal_defaults_zero", func(t *testing.T) {
-		// Converging+expiring with all stream options at zero is valid
+		// Durable with all stream options at zero is valid
 		// because centrifuge auto-derives defaults at runtime.
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "converging", "expiring")
+		ns := mapNamespace("ce", "durable")
 		ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
 		require.NoError(t, cfg.Validate())
@@ -270,7 +241,7 @@ func TestValidateMapNamespace_ConvergingExpiring(t *testing.T) {
 
 	t.Run("valid_explicit_stream_options", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "converging", "expiring")
+		ns := mapNamespace("ce", "durable")
 		ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
 		ns.Map.StreamSize = 200
 		ns.Map.StreamTTL = configtypes.Duration(2 * time.Minute)
@@ -281,7 +252,7 @@ func TestValidateMapNamespace_ConvergingExpiring(t *testing.T) {
 
 	t.Run("missing_key_ttl", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "converging", "expiring")
+		ns := mapNamespace("ce", "durable")
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
 		err := cfg.Validate()
 		require.Error(t, err)
@@ -290,7 +261,7 @@ func TestValidateMapNamespace_ConvergingExpiring(t *testing.T) {
 
 	t.Run("meta_ttl_less_than_stream_ttl", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "converging", "expiring")
+		ns := mapNamespace("ce", "durable")
 		ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
 		ns.Map.StreamTTL = configtypes.Duration(10 * time.Minute)
 		ns.Map.MetaTTL = configtypes.Duration(5 * time.Minute) // less than stream_ttl
@@ -302,7 +273,7 @@ func TestValidateMapNamespace_ConvergingExpiring(t *testing.T) {
 
 	t.Run("meta_ttl_equals_stream_ttl_ok", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "converging", "expiring")
+		ns := mapNamespace("ce", "durable")
 		ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
 		ns.Map.StreamTTL = configtypes.Duration(5 * time.Minute)
 		ns.Map.MetaTTL = configtypes.Duration(5 * time.Minute) // equals stream_ttl
@@ -313,7 +284,7 @@ func TestValidateMapNamespace_ConvergingExpiring(t *testing.T) {
 	t.Run("only_stream_ttl_set_meta_ttl_zero_ok", func(t *testing.T) {
 		// When only stream_ttl is set, meta_ttl=0 means auto-derived by centrifuge.
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "converging", "expiring")
+		ns := mapNamespace("ce", "durable")
 		ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
 		ns.Map.StreamTTL = configtypes.Duration(5 * time.Minute)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
@@ -322,7 +293,7 @@ func TestValidateMapNamespace_ConvergingExpiring(t *testing.T) {
 
 	t.Run("only_meta_ttl_set_stream_ttl_zero_ok", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "converging", "expiring")
+		ns := mapNamespace("ce", "durable")
 		ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
 		ns.Map.MetaTTL = configtypes.Duration(10 * time.Minute)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
@@ -333,7 +304,7 @@ func TestValidateMapNamespace_ConvergingExpiring(t *testing.T) {
 		// StreamTTL=0 will be auto-derived to 1min by centrifuge.
 		// MetaTTL=30s is less than that — must be caught at config time.
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "converging", "expiring")
+		ns := mapNamespace("ce", "durable")
 		ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
 		ns.Map.MetaTTL = configtypes.Duration(30 * time.Second) // < auto-derived 1min
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
@@ -344,7 +315,7 @@ func TestValidateMapNamespace_ConvergingExpiring(t *testing.T) {
 
 	t.Run("meta_ttl_equals_auto_derived_stream_ttl_ok", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "converging", "expiring")
+		ns := mapNamespace("ce", "durable")
 		ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
 		ns.Map.MetaTTL = configtypes.Duration(1 * time.Minute) // == auto-derived 1min
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
@@ -352,17 +323,17 @@ func TestValidateMapNamespace_ConvergingExpiring(t *testing.T) {
 	})
 }
 
-func TestValidateMapNamespace_ConvergingPermanent(t *testing.T) {
+func TestValidateMapNamespace_Persistent(t *testing.T) {
 	t.Run("valid_minimal", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("cp", "converging", "permanent")
+		ns := mapNamespace("cp", "persistent")
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
 		require.NoError(t, cfg.Validate())
 	})
 
 	t.Run("valid_with_stream_options", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("cp", "converging", "permanent")
+		ns := mapNamespace("cp", "persistent")
 		ns.Map.StreamSize = 500
 		ns.Map.StreamTTL = configtypes.Duration(5 * time.Minute)
 		ns.Map.MetaTTL = configtypes.Duration(50 * time.Minute)
@@ -372,7 +343,7 @@ func TestValidateMapNamespace_ConvergingPermanent(t *testing.T) {
 
 	t.Run("key_ttl_rejected", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("cp", "converging", "permanent")
+		ns := mapNamespace("cp", "persistent")
 		ns.Map.KeyTTL = configtypes.Duration(60 * time.Second)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
 		err := cfg.Validate()
@@ -382,7 +353,7 @@ func TestValidateMapNamespace_ConvergingPermanent(t *testing.T) {
 
 	t.Run("meta_ttl_less_than_stream_ttl", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("cp", "converging", "permanent")
+		ns := mapNamespace("cp", "persistent")
 		ns.Map.StreamTTL = configtypes.Duration(10 * time.Minute)
 		ns.Map.MetaTTL = configtypes.Duration(1 * time.Minute)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
@@ -393,51 +364,28 @@ func TestValidateMapNamespace_ConvergingPermanent(t *testing.T) {
 }
 
 func TestValidateMapNamespace_RequiredFields(t *testing.T) {
-	t.Run("missing_sync_mode", func(t *testing.T) {
+	t.Run("missing_mode", func(t *testing.T) {
 		cfg := mapDefaultConfig()
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{{
 			Name: "ns",
 			ChannelOptions: configtypes.ChannelOptions{
 				SubscriptionType: "map",
-				Map:              configtypes.MapConfig{RetentionMode: "expiring", KeyTTL: configtypes.Duration(30 * time.Second)},
+				Map:              configtypes.MapConfig{},
 			},
 		}}
 		err := cfg.Validate()
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "map.sync_mode is required")
+		require.Contains(t, err.Error(), "map.mode is required")
 	})
 
-	t.Run("missing_retention_mode", func(t *testing.T) {
+	t.Run("invalid_mode", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{{
-			Name: "ns",
-			ChannelOptions: configtypes.ChannelOptions{
-				SubscriptionType: "map",
-				Map:              configtypes.MapConfig{SyncMode: "ephemeral"},
-			},
-		}}
-		err := cfg.Validate()
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "map.retention_mode is required")
-	})
-
-	t.Run("invalid_sync_mode", func(t *testing.T) {
-		cfg := mapDefaultConfig()
-		ns := mapNamespace("ns", "unknown_mode", "expiring")
+		ns := mapNamespace("ns", "unknown_mode")
 		ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
 		err := cfg.Validate()
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "unknown map.sync_mode")
-	})
-
-	t.Run("invalid_retention_mode", func(t *testing.T) {
-		cfg := mapDefaultConfig()
-		ns := mapNamespace("ns", "ephemeral", "unknown_mode")
-		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
-		err := cfg.Validate()
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "unknown map.retention_mode")
+		require.Contains(t, err.Error(), "unknown map.mode")
 	})
 
 	t.Run("invalid_subscription_type", func(t *testing.T) {
@@ -457,7 +405,7 @@ func TestValidateMapNamespace_RequiredFields(t *testing.T) {
 func TestValidateMapNamespace_SubscriptionType(t *testing.T) {
 	t.Run("map_clients", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ns", "ephemeral", "expiring")
+		ns := mapNamespace("ns", "ephemeral")
 		ns.SubscriptionType = "map_clients"
 		ns.Map.KeyTTL = configtypes.Duration(60 * time.Second)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
@@ -466,7 +414,7 @@ func TestValidateMapNamespace_SubscriptionType(t *testing.T) {
 
 	t.Run("map_users", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ns", "ephemeral", "expiring")
+		ns := mapNamespace("ns", "ephemeral")
 		ns.SubscriptionType = "map_users"
 		ns.Map.KeyTTL = configtypes.Duration(60 * time.Second)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
@@ -488,7 +436,7 @@ func TestValidateMapNamespace_SubscriptionType(t *testing.T) {
 func TestValidateMapNamespace_PresenceAndRemoveOptions(t *testing.T) {
 	t.Run("remove_on_unsubscribe_valid", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ns", "ephemeral", "expiring")
+		ns := mapNamespace("ns", "ephemeral")
 		ns.Map.KeyTTL = configtypes.Duration(60 * time.Second)
 		ns.Map.RemoveClientOnUnsubscribe = true
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
@@ -511,10 +459,10 @@ func TestValidateMapNamespace_PresenceAndRemoveOptions(t *testing.T) {
 
 	t.Run("map_clients_presence_channel_prefix_valid", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("games", "ephemeral", "expiring")
+		ns := mapNamespace("games", "ephemeral")
 		ns.Map.KeyTTL = configtypes.Duration(60 * time.Second)
 		ns.MapClientsPresenceChannelPrefix = "clients:"
-		clients := mapNamespace("clients", "ephemeral", "expiring")
+		clients := mapNamespace("clients", "ephemeral")
 		clients.Map.KeyTTL = configtypes.Duration(60 * time.Second)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns, clients}
 		require.NoError(t, cfg.Validate())
@@ -522,7 +470,7 @@ func TestValidateMapNamespace_PresenceAndRemoveOptions(t *testing.T) {
 
 	t.Run("map_clients_presence_channel_prefix_not_found", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("games", "ephemeral", "expiring")
+		ns := mapNamespace("games", "ephemeral")
 		ns.Map.KeyTTL = configtypes.Duration(60 * time.Second)
 		ns.MapClientsPresenceChannelPrefix = "nonexistent:"
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
@@ -534,7 +482,7 @@ func TestValidateMapNamespace_PresenceAndRemoveOptions(t *testing.T) {
 
 	t.Run("map_users_presence_channel_prefix_not_found", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("games", "ephemeral", "expiring")
+		ns := mapNamespace("games", "ephemeral")
 		ns.Map.KeyTTL = configtypes.Duration(60 * time.Second)
 		ns.MapUsersPresenceChannelPrefix = "nonexistent:"
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
@@ -546,7 +494,7 @@ func TestValidateMapNamespace_PresenceAndRemoveOptions(t *testing.T) {
 
 	t.Run("presence_channel_prefix_works_with_stream_type", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		clients := mapNamespace("clients", "ephemeral", "expiring")
+		clients := mapNamespace("clients", "ephemeral")
 		clients.Map.KeyTTL = configtypes.Duration(60 * time.Second)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{{
 			Name: "ns",

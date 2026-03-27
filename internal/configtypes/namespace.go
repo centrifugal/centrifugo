@@ -209,8 +209,7 @@ type ChannelOptions struct {
 
 // MapConfig contains configuration for map subscription types (map, map_clients, map_users).
 type MapConfig struct {
-	SyncMode                    string   `mapstructure:"sync_mode" json:"sync_mode" envconfig:"sync_mode" yaml:"sync_mode" toml:"sync_mode"`
-	RetentionMode               string   `mapstructure:"retention_mode" json:"retention_mode" envconfig:"retention_mode" yaml:"retention_mode" toml:"retention_mode"`
+	Mode                        string   `mapstructure:"mode" json:"mode" envconfig:"mode" yaml:"mode" toml:"mode"`
 	KeyTTL                      Duration `mapstructure:"key_ttl" json:"key_ttl" envconfig:"key_ttl" yaml:"key_ttl" toml:"key_ttl"`
 	Ordered                     bool     `mapstructure:"ordered" json:"ordered" envconfig:"ordered" yaml:"ordered" toml:"ordered"`
 	StreamSize                  int      `mapstructure:"stream_size" json:"stream_size" envconfig:"stream_size" yaml:"stream_size" toml:"stream_size"`

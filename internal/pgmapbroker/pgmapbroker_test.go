@@ -118,8 +118,7 @@ func TestPostgresMapBroker_StatefulChannel(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -179,8 +178,7 @@ func TestPostgresMapBroker_StatefulChannelOrdered(t *testing.T) {
 				StreamSize:    100,
 				StreamTTL:     300 * time.Second,
 				KeyTTL:        300 * time.Second,
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 			}
 		},
 	})
@@ -219,8 +217,7 @@ func TestPostgresMapBroker_StateRevision(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -271,8 +268,7 @@ func TestPostgresMapBroker_StatePagination(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -332,8 +328,7 @@ func TestPostgresMapBroker_StreamRecovery(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -371,8 +366,7 @@ func TestPostgresMapBroker_Idempotency(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -419,8 +413,7 @@ func TestPostgresMapBroker_KeyMode(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -480,8 +473,7 @@ func TestPostgresMapBroker_CAS(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -536,8 +528,7 @@ func TestPostgresMapBroker_CleanupMetrics(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        2 * time.Second,
 			}
 		},
@@ -589,8 +580,7 @@ func TestPostgresMapBroker_KeyTTL(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        2 * time.Second,
 			}
 		},
@@ -634,8 +624,7 @@ func TestPostgresMapBroker_Version(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -684,8 +673,7 @@ func TestPostgresMapBroker_PerKeyVersion(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -747,8 +735,7 @@ func TestPostgresMapBroker_Remove(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -814,8 +801,7 @@ func TestPostgresMapBroker_Stats(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -849,8 +835,7 @@ func TestPostgresMapBroker_EpochMismatch(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -909,8 +894,7 @@ func TestPostgresMapBroker_ConcurrentPublishOrdering(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -973,8 +957,7 @@ func TestPostgresMapBroker_OutboxOrdering(t *testing.T) {
 	node, err := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -1070,8 +1053,7 @@ func TestPostgresMapBroker_OutboxConcurrentPublish(t *testing.T) {
 	node, err := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -1180,8 +1162,7 @@ func TestPostgresMapBroker_Delta_Outbox(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -1324,8 +1305,7 @@ func TestPostgresMapBroker_Clear(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -1382,8 +1362,7 @@ func TestPostgresMapBroker_ClearDoesNotAffectOtherChannels(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -1533,8 +1512,7 @@ func TestPostgresMapBroker_EnsureSchema_Fresh(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -1569,8 +1547,7 @@ func TestPostgresMapBroker_EnsureSchema_Idempotent(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -1607,8 +1584,7 @@ func TestPostgresMapBroker_EnsureSchema_PartialState(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -1651,8 +1627,7 @@ func TestPostgresMapBroker_EnsureSchema_BinaryData(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -1686,8 +1661,7 @@ func TestPostgresMapBroker_EnsureSchema_FunctionalAfterSetup(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -1752,8 +1726,7 @@ func TestPostgresMapBroker_EnsureSchema_VersionTracking(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -1792,8 +1765,7 @@ func TestPostgresMapBroker_EnsureSchema_BothPrefixesCreated(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -1837,8 +1809,7 @@ func TestPostgresMapBroker_EnsureSchema_MigrationExecution(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -1905,8 +1876,7 @@ func TestPostgresMapBroker_EnsureSchema_MigrationIdempotent(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -1961,8 +1931,7 @@ func TestPostgresMapBroker_EnsureSchema_FreshInstallSkipsMigrations(t *testing.T
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -2013,8 +1982,7 @@ func TestPostgresMapBroker_EnsureSchema_VersionPreservedOnDDLRerun(t *testing.T)
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -2066,8 +2034,7 @@ func TestPostgresMapBroker_EnsureSchema_FunctionalAfterMigration(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -2143,8 +2110,7 @@ func TestPostgresMapBroker_OrderedStateAsc(t *testing.T) {
 				StreamSize:    100,
 				StreamTTL:     300 * time.Second,
 				KeyTTL:        300 * time.Second,
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 			}
 		},
 	})
@@ -2209,8 +2175,7 @@ func TestPostgresMapBroker_OrderedStatePaginationAsc(t *testing.T) {
 				StreamSize:    100,
 				StreamTTL:     300 * time.Second,
 				KeyTTL:        300 * time.Second,
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 			}
 		},
 	})
@@ -2281,8 +2246,7 @@ func TestPostgresMapBroker_OrderedStateAscSameScores(t *testing.T) {
 				StreamSize:    100,
 				StreamTTL:     300 * time.Second,
 				KeyTTL:        300 * time.Second,
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 			}
 		},
 	})
@@ -2346,8 +2310,7 @@ func TestPostgresMapBroker_ClientInfoInState(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -2407,8 +2370,7 @@ func TestPostgresMapBroker_ClientInfoInStream(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -2451,8 +2413,7 @@ func TestPostgresMapBroker_ClientInfoDelivery_Outbox(t *testing.T) {
 	node, err := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -2542,8 +2503,7 @@ func TestPostgresMapBroker_AllColumnTypes(t *testing.T) {
 	node, err := centrifuge.New(centrifuge.Config{
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 				Ordered:       true,
 			}
@@ -2739,8 +2699,7 @@ func TestPostgresMapBroker_RedisFanout_Delivery(t *testing.T) {
 		LogHandler: func(entry centrifuge.LogEntry) {},
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -2847,8 +2806,7 @@ func TestPostgresMapBroker_RedisFanout_Delta(t *testing.T) {
 		LogHandler: func(entry centrifuge.LogEntry) {},
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -2973,8 +2931,7 @@ func TestPostgresMapBroker_RedisFanout_AdvisoryLockExclusion(t *testing.T) {
 		LogHandler: func(entry centrifuge.LogEntry) {},
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -2987,8 +2944,7 @@ func TestPostgresMapBroker_RedisFanout_AdvisoryLockExclusion(t *testing.T) {
 		LogHandler: func(entry centrifuge.LogEntry) {},
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
@@ -3146,8 +3102,7 @@ func TestPostgresMapBroker_RedisFanout_ClientInfo(t *testing.T) {
 		LogHandler: func(entry centrifuge.LogEntry) {},
 		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 			return centrifuge.MapChannelOptions{
-				SyncMode:      centrifuge.MapSyncConverging,
-				RetentionMode: centrifuge.MapRetentionExpiring,
+				Mode: centrifuge.MapModeDurable,
 				KeyTTL:        60 * time.Second,
 			}
 		},
