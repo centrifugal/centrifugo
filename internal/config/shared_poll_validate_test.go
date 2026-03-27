@@ -190,7 +190,7 @@ func TestSharedPollConfig_VersionlessPublishEnabled(t *testing.T) {
 				ChannelOptions: configtypes.ChannelOptions{
 					SubscriptionType: "shared_poll",
 					SharedPoll: configtypes.SharedPollConfig{
-						RefreshMode:    "full",
+						RefreshMode:    "versioned",
 						PublishEnabled: true,
 					},
 				},
