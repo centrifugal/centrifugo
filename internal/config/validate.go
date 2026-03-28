@@ -343,11 +343,11 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 				return fmt.Errorf("in channel.proxy.shared_poll_refresh: %v", err)
 			}
 		}
-		if !slices.Contains([]string{"", "versionless", "versioned"}, c.SharedPoll.RefreshMode) {
-			return fmt.Errorf("invalid shared_poll refresh_mode: %q", c.SharedPoll.RefreshMode)
+		if !slices.Contains([]string{"", "versionless", "versioned"}, c.SharedPoll.Mode) {
+			return fmt.Errorf("invalid shared_poll mode: %q", c.SharedPoll.Mode)
 		}
-		if c.SharedPoll.PublishEnabled && (c.SharedPoll.RefreshMode == "" || c.SharedPoll.RefreshMode == "versionless") {
-			return fmt.Errorf("shared_poll publish_enabled is incompatible with versionless refresh_mode (requires explicit versions)")
+		if c.SharedPoll.PublishEnabled && (c.SharedPoll.Mode == "" || c.SharedPoll.Mode == "versionless") {
+			return fmt.Errorf("shared_poll publish_enabled is incompatible with versionless mode (requires explicit versions)")
 		}
 	}
 	if c.Map.Mode != "" && !slices.Contains([]string{"ephemeral", "durable", "persistent"}, c.Map.Mode) {

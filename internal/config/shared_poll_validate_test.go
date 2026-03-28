@@ -148,7 +148,7 @@ func TestSharedPollConfig_VersionlessPublishEnabled(t *testing.T) {
 				ChannelOptions: configtypes.ChannelOptions{
 					SubscriptionType: "shared_poll",
 					SharedPoll: configtypes.SharedPollConfig{
-						RefreshMode:    "",
+						Mode:    "",
 						PublishEnabled: true,
 					},
 				},
@@ -169,7 +169,7 @@ func TestSharedPollConfig_VersionlessPublishEnabled(t *testing.T) {
 				ChannelOptions: configtypes.ChannelOptions{
 					SubscriptionType: "shared_poll",
 					SharedPoll: configtypes.SharedPollConfig{
-						RefreshMode:    "versionless",
+						Mode:    "versionless",
 						PublishEnabled: true,
 					},
 				},
@@ -190,7 +190,7 @@ func TestSharedPollConfig_VersionlessPublishEnabled(t *testing.T) {
 				ChannelOptions: configtypes.ChannelOptions{
 					SubscriptionType: "shared_poll",
 					SharedPoll: configtypes.SharedPollConfig{
-						RefreshMode:    "versioned",
+						Mode:    "versioned",
 						PublishEnabled: true,
 					},
 				},
@@ -210,7 +210,7 @@ func TestSharedPollConfig_VersionlessPublishEnabled(t *testing.T) {
 				ChannelOptions: configtypes.ChannelOptions{
 					SubscriptionType: "shared_poll",
 					SharedPoll: configtypes.SharedPollConfig{
-						RefreshMode: "versionless",
+						Mode: "versionless",
 					},
 				},
 			},
@@ -229,7 +229,7 @@ func TestSharedPollConfig_VersionlessPublishEnabled(t *testing.T) {
 				ChannelOptions: configtypes.ChannelOptions{
 					SubscriptionType: "shared_poll",
 					SharedPoll: configtypes.SharedPollConfig{
-						RefreshMode: "versionless",
+						Mode: "versionless",
 					},
 				},
 			},

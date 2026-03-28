@@ -235,7 +235,7 @@ type SharedPollConfig struct {
 	RefreshInterval        Duration `mapstructure:"refresh_interval" json:"refresh_interval" envconfig:"refresh_interval" yaml:"refresh_interval" toml:"refresh_interval"`
 	RefreshBatchSize       int      `mapstructure:"refresh_batch_size" json:"refresh_batch_size" envconfig:"refresh_batch_size" yaml:"refresh_batch_size" toml:"refresh_batch_size"`
 	MaxKeysPerConnection   int      `mapstructure:"max_keys_per_connection" json:"max_keys_per_connection" envconfig:"max_keys_per_connection" yaml:"max_keys_per_connection" toml:"max_keys_per_connection"`
-	RefreshMode            string   `mapstructure:"refresh_mode" json:"refresh_mode" envconfig:"refresh_mode" yaml:"refresh_mode" toml:"refresh_mode"`
+	Mode                   string   `mapstructure:"mode" json:"mode" envconfig:"mode" yaml:"mode" toml:"mode"`
 	MaxConsecutiveAbsences int      `mapstructure:"max_consecutive_absences" json:"max_consecutive_absences" envconfig:"max_consecutive_absences" yaml:"max_consecutive_absences" toml:"max_consecutive_absences"`
 	ChannelShutdownDelay   Duration `mapstructure:"channel_shutdown_delay" json:"channel_shutdown_delay" envconfig:"channel_shutdown_delay" yaml:"channel_shutdown_delay" toml:"channel_shutdown_delay"`
 	TrackExpiredExtraDelay Duration `mapstructure:"track_expired_extra_delay" json:"track_expired_extra_delay" envconfig:"track_expired_extra_delay" yaml:"track_expired_extra_delay" toml:"track_expired_extra_delay"`
