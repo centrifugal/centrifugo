@@ -33,12 +33,12 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 	cfg.NodeInfoMetricsAggregateInterval = appCfg.Node.InfoMetricsAggregateInterval.ToDuration()
 	cfg.HistoryMaxPublicationLimit = appCfg.Client.HistoryMaxPublicationLimit
 	cfg.RecoveryMaxPublicationLimit = appCfg.Client.RecoveryMaxPublicationLimit
-	cfg.MapPaginationDefaultLimit = appCfg.Client.MapPaginationDefaultLimit
-	cfg.MapPaginationMaxLimit = appCfg.Client.MapPaginationMaxLimit
-	cfg.MapPaginationMinLimit = appCfg.Client.MapPaginationMinLimit
-	cfg.MapLiveTransitionMaxPublicationLimit = appCfg.Client.MapLiveTransitionMaxPublicationLimit
-	cfg.MapSubscribeCatchUpTimeout = appCfg.Client.MapSubscribeCatchUpTimeout.ToDuration()
-	cfg.GetMapChannelOptions = func(channel string) centrifuge.MapChannelOptions {
+	cfg.Map.PaginationDefaultLimit = appCfg.Client.MapPaginationDefaultLimit
+	cfg.Map.PaginationMaxLimit = appCfg.Client.MapPaginationMaxLimit
+	cfg.Map.PaginationMinLimit = appCfg.Client.MapPaginationMinLimit
+	cfg.Map.LiveTransitionMaxPublicationLimit = appCfg.Client.MapLiveTransitionMaxPublicationLimit
+	cfg.Map.SubscribeCatchUpTimeout = appCfg.Client.MapSubscribeCatchUpTimeout.ToDuration()
+	cfg.Map.GetMapChannelOptions = func(channel string) centrifuge.MapChannelOptions {
 		_, _, chOpts, ok, err := cfgContainer.ChannelOptions(channel)
 		if err != nil || !ok {
 			return centrifuge.MapChannelOptions{}
@@ -71,8 +71,8 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 		}
 	}
 	if hasSharedPoll {
-		cfg.SharedPollConcurrencyLimit = appCfg.SharedPoll.ConcurrencyLimit
-		cfg.GetSharedPollChannelOptions = func(channel string) (centrifuge.SharedPollChannelOptions, bool) {
+		cfg.SharedPoll.ConcurrencyLimit = appCfg.SharedPoll.ConcurrencyLimit
+		cfg.SharedPoll.GetSharedPollChannelOptions = func(channel string) (centrifuge.SharedPollChannelOptions, bool) {
 			_, _, chOpts, ok, err := cfgContainer.ChannelOptions(channel)
 			if err != nil || !ok {
 				return centrifuge.SharedPollChannelOptions{}, false

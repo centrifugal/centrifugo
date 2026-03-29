@@ -14,10 +14,10 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/jackc/pgx/v5"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 //go:embed internal/sql/schema_jsonb.sql
@@ -622,7 +622,7 @@ func parseSuppressReason(reason *string) centrifuge.SuppressReason {
 // Publish publishes data to a map channel using the cf_map_publish SQL function.
 func (e *PostgresMapBroker) Publish(ctx context.Context, ch string, key string, opts centrifuge.MapPublishOptions) (centrifuge.MapUpdateResult, error) {
 	// Resolve and validate channel options.
-	chOpts, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().GetMapChannelOptions, ch)
+	chOpts, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().Map.GetMapChannelOptions, ch)
 	if err != nil {
 		return centrifuge.MapUpdateResult{}, err
 	}
@@ -779,7 +779,7 @@ func (e *PostgresMapBroker) Publish(ctx context.Context, ch string, key string, 
 // Remove removes a key from keyed state using the cf_map_remove SQL function.
 func (e *PostgresMapBroker) Remove(ctx context.Context, ch string, key string, opts centrifuge.MapRemoveOptions) (centrifuge.MapUpdateResult, error) {
 	// Resolve and validate channel options.
-	chOpts, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().GetMapChannelOptions, ch)
+	chOpts, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().Map.GetMapChannelOptions, ch)
 	if err != nil {
 		return centrifuge.MapUpdateResult{}, err
 	}
@@ -881,7 +881,7 @@ func (e *PostgresMapBroker) ReadState(ctx context.Context, ch string, opts centr
 
 	// Full/paginated state read.
 	// Resolve channel options before building query (pure Go, no DB call).
-	chOpts, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().GetMapChannelOptions, ch)
+	chOpts, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().Map.GetMapChannelOptions, ch)
 	if err != nil {
 		return centrifuge.MapStateResult{}, err
 	}
@@ -2044,7 +2044,7 @@ func (e *PostgresMapBroker) expireKeys(ctx context.Context) {
 
 	// Process each channel with its own resolved options.
 	for _, ch := range channels {
-		chOpts, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().GetMapChannelOptions, ch)
+		chOpts, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().Map.GetMapChannelOptions, ch)
 		if err != nil {
 			e.logEvent().Err(err).Str("channel", ch).Msg("error resolving channel options for key expiration")
 			e.node.IncMapBrokerCleanupErrors(e.conf.Name)

@@ -163,9 +163,9 @@ func TestParseSignatureTimestamps_RealSignature(t *testing.T) {
 
 func TestTrackSignature_GracePeriod(t *testing.T) {
 	now := time.Now().Unix()
-	// Expired 10 seconds ago — within 30-second grace period.
+	// Expired 3 seconds ago — within 5-second grace period.
 	iat := now - 3600
-	expiry := now - 10
+	expiry := now - 3
 	sig := makeTestSignature(testSecret, "test:channel", []string{"key1"}, "user1", iat, expiry)
 
 	// HMAC is valid (verifyTrackSignature doesn't check expiry).

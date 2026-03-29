@@ -19,10 +19,12 @@ func setupPostgresMapBrokerBench(b *testing.B) (*PostgresMapBroker, func()) {
 	connString := getPostgresConnString(b)
 
 	node, _ := centrifuge.New(centrifuge.Config{
-		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
-			return centrifuge.MapChannelOptions{
-				Mode: centrifuge.MapModePersistent,
-			}
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode: centrifuge.MapModePersistent,
+				}
+			},
 		},
 	})
 	broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
@@ -54,12 +56,14 @@ func setupPostgresMapBrokerBenchOrdered(b *testing.B) (*PostgresMapBroker, func(
 	connString := getPostgresConnString(b)
 
 	node, _ := centrifuge.New(centrifuge.Config{
-		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
-			return centrifuge.MapChannelOptions{
-				Ordered:       true,
-				Mode: centrifuge.MapModeDurable,
-				KeyTTL:        time.Minute,
-			}
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Ordered: true,
+					Mode:    centrifuge.MapModeDurable,
+					KeyTTL:  time.Minute,
+				}
+			},
 		},
 	})
 	broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
@@ -489,10 +493,12 @@ func setupPostgresMapBrokerOutboxBench(b *testing.B) (*PostgresMapBroker, func()
 	connString := getPostgresConnString(b)
 
 	node, _ := centrifuge.New(centrifuge.Config{
-		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
-			return centrifuge.MapChannelOptions{
-				Mode: centrifuge.MapModePersistent,
-			}
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode: centrifuge.MapModePersistent,
+				}
+			},
 		},
 	})
 	// Use fewer shards than pool size to leave connections available for Publish calls.
@@ -532,10 +538,12 @@ func setupPostgresMapBrokerOutboxBenchWithHandler(b *testing.B, handler centrifu
 	connString := getPostgresConnString(b)
 
 	node, _ := centrifuge.New(centrifuge.Config{
-		GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
-			return centrifuge.MapChannelOptions{
-				Mode: centrifuge.MapModePersistent,
-			}
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode: centrifuge.MapModePersistent,
+				}
+			},
 		},
 	})
 	// Use fewer shards than pool size to leave connections available for Publish calls.
@@ -803,19 +811,21 @@ func BenchmarkPostgresMapBroker_Cleanup(b *testing.B) {
 			b.Run(fmt.Sprintf("%s/keys_%d", orderLabel, numKeys), func(b *testing.B) {
 				connString := getPostgresConnString(b)
 				node, _ := centrifuge.New(centrifuge.Config{
-					GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
-						return centrifuge.MapChannelOptions{
-							Mode: centrifuge.MapModeDurable,
-							KeyTTL:        time.Millisecond,
-							Ordered:       ordered,
-						}
+					Map: centrifuge.MapConfig{
+						GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+							return centrifuge.MapChannelOptions{
+								Mode:    centrifuge.MapModeDurable,
+								KeyTTL:  time.Millisecond,
+								Ordered: ordered,
+							}
+						},
 					},
 				})
 				broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
 					DSN:              connString,
 					BinaryData:       true,
-					TTLCheckInterval: time.Hour,  // Prevent background TTL worker interference.
-					CleanupInterval:  time.Hour,  // Prevent background cleanup worker interference.
+					TTLCheckInterval: time.Hour, // Prevent background TTL worker interference.
+					CleanupInterval:  time.Hour, // Prevent background cleanup worker interference.
 				})
 				if err != nil {
 					b.Fatal(err)
