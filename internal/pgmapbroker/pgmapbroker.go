@@ -84,6 +84,7 @@ func splitSchemaSQL(sql string) (ddl, funcs string) {
 type pgNames struct {
 	stream, state, meta, idempotency, shardLock, schemaVersion string // table names
 	publish, remove, expireKeys                                string // function names
+	publishStream, removeStream                                string // stream-only function names (ExternalState)
 	notifyChannel                                              string // pg_notify channel name
 }
 
@@ -102,6 +103,8 @@ func newPgNames(binary bool) pgNames {
 		publish:       p + "publish",
 		remove:        p + "remove",
 		expireKeys:    p + "expire_keys",
+		publishStream: p + "publish_stream",
+		removeStream:  p + "remove_stream",
 		notifyChannel: p + "stream_notify",
 	}
 }
@@ -583,17 +586,17 @@ func (e *PostgresMapBroker) EnsureSchema(ctx context.Context) error {
 }
 
 // Subscribe delegates to inner Broker when configured, otherwise no-op.
-func (e *PostgresMapBroker) Subscribe(ch string) error {
+func (e *PostgresMapBroker) Subscribe(channels ...string) error {
 	if e.conf.Broker != nil {
-		return e.conf.Broker.Subscribe(ch)
+		return e.conf.Broker.Subscribe(channels...)
 	}
 	return nil
 }
 
 // Unsubscribe delegates to inner Broker when configured, otherwise no-op.
-func (e *PostgresMapBroker) Unsubscribe(ch string) error {
+func (e *PostgresMapBroker) Unsubscribe(channels ...string) error {
 	if e.conf.Broker != nil {
-		return e.conf.Broker.Unsubscribe(ch)
+		return e.conf.Broker.Unsubscribe(channels...)
 	}
 	return nil
 }
@@ -635,6 +638,23 @@ func (e *PostgresMapBroker) Publish(ctx context.Context, ch string, key string, 
 		if opts.Version > 0 {
 			return centrifuge.MapUpdateResult{}, errors.New("version-based dedup requires durable or persistent mode")
 		}
+	}
+
+	// ExternalState: broker has no state — reject operations that depend on it.
+	if chOpts.ExternalState {
+		if opts.UseDelta {
+			return centrifuge.MapUpdateResult{}, errors.New("delta not supported with ExternalState")
+		}
+		if opts.ExpectedPosition != nil {
+			return centrifuge.MapUpdateResult{}, errors.New("CAS not supported with ExternalState")
+		}
+		if opts.Version > 0 {
+			return centrifuge.MapUpdateResult{}, errors.New("version dedup not supported with ExternalState")
+		}
+		if opts.KeyMode != centrifuge.KeyModeReplace {
+			return centrifuge.MapUpdateResult{}, errors.New("key mode conditions not supported with ExternalState")
+		}
+		return e.publishStream(ctx, ch, key, opts, chOpts)
 	}
 
 	// Prepare client info fields
@@ -791,6 +811,14 @@ func (e *PostgresMapBroker) Remove(ctx context.Context, ch string, key string, o
 		}
 	}
 
+	// ExternalState: broker has no state — reject operations that depend on it.
+	if chOpts.ExternalState {
+		if opts.ExpectedPosition != nil {
+			return centrifuge.MapUpdateResult{}, errors.New("CAS not supported with ExternalState")
+		}
+		return e.removeStream(ctx, ch, key, opts, chOpts)
+	}
+
 	// Prepare TTLs as interval strings.
 	var metaTTL, idempotencyTTL *string
 	if chOpts.MetaTTL > 0 {
@@ -865,9 +893,169 @@ func (e *PostgresMapBroker) Remove(ctx context.Context, ch string, key string, o
 	return centrifuge.MapUpdateResult{Position: newPos}, nil
 }
 
+// publishStream is the ExternalState publish path. It calls the stream-only SQL
+// function which skips the state table entirely and only writes to stream + meta.
+func (e *PostgresMapBroker) publishStream(ctx context.Context, ch string, key string, opts centrifuge.MapPublishOptions, chOpts centrifuge.MapChannelOptions) (centrifuge.MapUpdateResult, error) {
+	// Prepare client info fields
+	var clientID, userID *string
+	var connInfo, chanInfo []byte
+	var publishedAt *time.Time
+	if opts.ClientInfo != nil {
+		if opts.ClientInfo.ClientID != "" {
+			clientID = &opts.ClientInfo.ClientID
+		}
+		if opts.ClientInfo.UserID != "" {
+			userID = &opts.ClientInfo.UserID
+		}
+		connInfo = opts.ClientInfo.ConnInfo
+		chanInfo = opts.ClientInfo.ChanInfo
+		now := time.Now()
+		publishedAt = &now
+	}
+
+	// Prepare tags as json.RawMessage so pgx encodes it as JSON (not hex bytea).
+	var tagsJSON json.RawMessage
+	if opts.Tags != nil {
+		tagsJSON, _ = json.Marshal(opts.Tags)
+	}
+
+	// Prepare TTLs as interval strings.
+	var metaTTL, idempotencyTTL *string
+	if chOpts.MetaTTL > 0 {
+		s := durationToIntervalString(chOpts.MetaTTL)
+		metaTTL = &s
+	}
+	idempotentResultTTL := opts.IdempotentResultTTL
+	if idempotentResultTTL == 0 {
+		idempotentResultTTL = e.conf.IdempotentResultTTL
+	}
+	if opts.IdempotencyKey != "" && idempotentResultTTL > 0 {
+		s := durationToIntervalString(idempotentResultTTL)
+		idempotencyTTL = &s
+	}
+
+	// Prepare idempotency key
+	var idempotencyKey *string
+	if opts.IdempotencyKey != "" {
+		idempotencyKey = &opts.IdempotencyKey
+	}
+
+	// StreamData is stored in stream; state always uses Data.
+	var streamData []byte
+	if len(opts.StreamData) > 0 {
+		streamData = opts.StreamData
+	}
+
+	numShards := e.conf.NumShards
+
+	var id *int64
+	var channelOffset int64
+	var epoch string
+	var suppressed bool
+	var suppressReason *string
+
+	err := e.pool.QueryRow(ctx, fmt.Sprintf(`
+		SELECT result_id, channel_offset, epoch, suppressed, suppress_reason
+		FROM %s($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::interval, $11, $12, $13, $14::interval, $15)
+	`, e.names.publishStream),
+		ch, key, e.dataParam(opts.Data), tagsJSON,
+		clientID, userID, e.dataParam(connInfo), e.dataParam(chanInfo), publishedAt,
+		metaTTL, numShards, e.dataParam(streamData), idempotencyKey, idempotencyTTL,
+		e.conf.SkipShardLock,
+	).Scan(&id, &channelOffset, &epoch, &suppressed, &suppressReason)
+
+	if err != nil {
+		return centrifuge.MapUpdateResult{}, err
+	}
+
+	newPos := centrifuge.StreamPosition{Offset: uint64(channelOffset), Epoch: epoch}
+
+	if suppressed {
+		return centrifuge.MapUpdateResult{
+			Position:       newPos,
+			Suppressed:     true,
+			SuppressReason: parseSuppressReason(suppressReason),
+		}, nil
+	}
+
+	return centrifuge.MapUpdateResult{Position: newPos}, nil
+}
+
+// removeStream is the ExternalState remove path. It calls the stream-only SQL
+// function which skips the state table entirely and only writes to stream + meta.
+func (e *PostgresMapBroker) removeStream(ctx context.Context, ch string, key string, opts centrifuge.MapRemoveOptions, chOpts centrifuge.MapChannelOptions) (centrifuge.MapUpdateResult, error) {
+	// Prepare TTLs as interval strings.
+	var metaTTL, idempotencyTTL *string
+	if chOpts.MetaTTL > 0 {
+		s := durationToIntervalString(chOpts.MetaTTL)
+		metaTTL = &s
+	}
+	idempotentResultTTL := opts.IdempotentResultTTL
+	if idempotentResultTTL == 0 {
+		idempotentResultTTL = e.conf.IdempotentResultTTL
+	}
+	if opts.IdempotencyKey != "" && idempotentResultTTL > 0 {
+		s := durationToIntervalString(idempotentResultTTL)
+		idempotencyTTL = &s
+	}
+
+	// Prepare idempotency key
+	var idempotencyKey *string
+	if opts.IdempotencyKey != "" {
+		idempotencyKey = &opts.IdempotencyKey
+	}
+
+	// Client info is not available in remove options
+	var clientID, userID *string
+
+	numShards := e.conf.NumShards
+
+	var id *int64
+	var channelOffset int64
+	var epoch string
+	var suppressed bool
+	var suppressReason *string
+
+	err := e.pool.QueryRow(ctx, fmt.Sprintf(`
+		SELECT result_id, channel_offset, epoch, suppressed, suppress_reason
+		FROM %s($1, $2, $3, $4, $5::interval, $6, $7, $8::interval, $9)
+	`, e.names.removeStream),
+		ch, key, clientID, userID, metaTTL,
+		numShards, idempotencyKey, idempotencyTTL,
+		e.conf.SkipShardLock,
+	).Scan(&id, &channelOffset, &epoch, &suppressed, &suppressReason)
+
+	if err != nil {
+		return centrifuge.MapUpdateResult{}, err
+	}
+
+	newPos := centrifuge.StreamPosition{Offset: uint64(channelOffset), Epoch: epoch}
+
+	if suppressed {
+		return centrifuge.MapUpdateResult{
+			Position:       newPos,
+			Suppressed:     true,
+			SuppressReason: parseSuppressReason(suppressReason),
+		}, nil
+	}
+
+	return centrifuge.MapUpdateResult{Position: newPos}, nil
+}
+
 // ReadState retrieves keyed state with revisions.
 func (e *PostgresMapBroker) ReadState(ctx context.Context, ch string, opts centrifuge.MapReadStateOptions) (centrifuge.MapStateResult, error) {
 	pool := e.getReadPool(ch, opts.AllowCached)
+
+	// Resolve channel options to check for ExternalState.
+	chOpts, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().Map.GetMapChannelOptions, ch)
+	if err != nil {
+		return centrifuge.MapStateResult{}, err
+	}
+
+	// ExternalState: return only stream position, no state entries.
+	if chOpts.ExternalState {
+		return e.readStatePosition(ctx, pool, ch, opts)
+	}
 
 	// Limit=0 with no key: return just stream position, no transaction needed.
 	if opts.Limit == 0 && opts.Key == "" {
@@ -879,13 +1067,7 @@ func (e *PostgresMapBroker) ReadState(ctx context.Context, ch string, opts centr
 		return e.readStateKey(ctx, pool, ch, opts)
 	}
 
-	// Full/paginated state read.
-	// Resolve channel options before building query (pure Go, no DB call).
-	chOpts, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().Map.GetMapChannelOptions, ch)
-	if err != nil {
-		return centrifuge.MapStateResult{}, err
-	}
-
+	// Full/paginated state read (chOpts already resolved above).
 	limit := opts.Limit
 	if limit < 0 {
 		limit = 100000

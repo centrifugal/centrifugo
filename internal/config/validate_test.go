@@ -507,6 +507,55 @@ func TestValidateMapNamespace_PresenceAndRemoveOptions(t *testing.T) {
 	})
 }
 
+func TestValidate_ExternalState_RequiresPersistent(t *testing.T) {
+	for _, mode := range []string{"ephemeral", "durable"} {
+		t.Run(mode, func(t *testing.T) {
+			cfg := mapDefaultConfig()
+			ns := mapNamespace("es", mode)
+			if mode == "ephemeral" || mode == "durable" {
+				ns.Map.KeyTTL = configtypes.Duration(60 * time.Second)
+			}
+			ns.Map.ExternalState = true
+			cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
+			err := cfg.Validate()
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "map.external_state requires map.mode \"persistent\"")
+		})
+	}
+}
+
+func TestValidate_ExternalState_RejectsOrdered(t *testing.T) {
+	cfg := mapDefaultConfig()
+	ns := mapNamespace("es", "persistent")
+	ns.Map.ExternalState = true
+	ns.Map.Ordered = true
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
+	err := cfg.Validate()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "map.external_state is incompatible with map.ordered")
+}
+
+func TestValidate_ExternalState_RejectsKeyTTL(t *testing.T) {
+	cfg := mapDefaultConfig()
+	ns := mapNamespace("es", "persistent")
+	ns.Map.ExternalState = true
+	ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
+	err := cfg.Validate()
+	require.Error(t, err)
+	// Persistent mode already rejects key_ttl, but external_state also has its own check.
+	// We just verify validation fails with a relevant message about key_ttl.
+	require.Contains(t, err.Error(), "key_ttl")
+}
+
+func TestValidate_ExternalState_ValidConfig(t *testing.T) {
+	cfg := mapDefaultConfig()
+	ns := mapNamespace("es", "persistent")
+	ns.Map.ExternalState = true
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
+	require.NoError(t, cfg.Validate())
+}
+
 func TestValidateMapNamespace_MapBrokerType(t *testing.T) {
 	t.Run("unknown_type", func(t *testing.T) {
 		cfg := DefaultConfig()

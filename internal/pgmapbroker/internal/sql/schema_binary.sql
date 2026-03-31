@@ -613,3 +613,207 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+-- cf_binary_map_publish_stream: Stream-only publish for ExternalState mode.
+-- Skips state table entirely — only writes to stream + meta.
+CREATE OR REPLACE FUNCTION cf_binary_map_publish_stream(
+    p_channel TEXT,
+    p_key TEXT,
+    p_data BYTEA,
+    p_tags JSONB DEFAULT NULL,
+    p_client_id TEXT DEFAULT NULL,
+    p_user_id TEXT DEFAULT NULL,
+    p_conn_info BYTEA DEFAULT NULL,
+    p_chan_info BYTEA DEFAULT NULL,
+    p_published_at TIMESTAMPTZ DEFAULT NULL,
+    p_meta_ttl INTERVAL DEFAULT NULL,
+    p_num_shards INTEGER DEFAULT NULL,
+    p_stream_data BYTEA DEFAULT NULL,
+    p_idempotency_key TEXT DEFAULT NULL,
+    p_idempotency_ttl INTERVAL DEFAULT NULL,
+    p_skip_shard_lock BOOLEAN DEFAULT FALSE
+) RETURNS TABLE(
+    result_id BIGINT,
+    channel_offset BIGINT,
+    epoch TEXT,
+    suppressed BOOLEAN,
+    suppress_reason TEXT
+) AS $$
+DECLARE
+    v_offset BIGINT;
+    v_id BIGINT;
+    v_epoch TEXT;
+    v_current_offset BIGINT;
+    v_shard_id INTEGER;
+BEGIN
+    -- Auto-derive num_shards from shard_lock table when not provided.
+    IF p_num_shards IS NULL THEN
+        SELECT COUNT(*)::INTEGER INTO p_num_shards FROM cf_binary_map_shard_lock;
+    END IF;
+
+    -- Calculate shard_id from channel hash
+    v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
+
+    -- 0. Per-shard serialization lock
+    IF NOT p_skip_shard_lock THEN
+        PERFORM 1 FROM cf_binary_map_shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
+    END IF;
+
+    -- 1. Get or create stream metadata
+    INSERT INTO cf_binary_map_meta (channel, top_offset, epoch, updated_at)
+    VALUES (p_channel, 0, substr(md5(random()::text || random()::text), 1, 8), NOW())
+    ON CONFLICT (channel) DO NOTHING;
+
+    SELECT top_offset, m.epoch
+    INTO v_offset, v_epoch
+    FROM cf_binary_map_meta m WHERE m.channel = p_channel FOR UPDATE;
+
+    -- 2. Check idempotency
+    IF p_idempotency_key IS NOT NULL THEN
+        SELECT result_offset INTO v_current_offset
+        FROM cf_binary_map_idempotency
+        WHERE channel = p_channel AND idempotency_key = p_idempotency_key
+          AND expires_at > NOW();
+        IF FOUND THEN
+            RETURN QUERY SELECT NULL::BIGINT, v_current_offset, v_epoch, TRUE,
+                'idempotency'::TEXT;
+            RETURN;
+        END IF;
+    END IF;
+
+    -- 3. Increment offset
+    UPDATE cf_binary_map_meta SET
+        top_offset = top_offset + 1,
+        expires_at = COALESCE(CASE WHEN p_meta_ttl IS NOT NULL THEN NOW() + p_meta_ttl ELSE NULL END, expires_at),
+        updated_at = NOW()
+    WHERE channel = p_channel
+    RETURNING top_offset INTO v_offset;
+
+    -- 4. Insert into stream (no state table interaction)
+    INSERT INTO cf_binary_map_stream (
+        channel, channel_offset, epoch, key, data, tags, client_id, user_id, conn_info, chan_info, subscribed_at, shard_id
+    ) VALUES (
+        p_channel, v_offset, v_epoch, p_key, COALESCE(p_stream_data, p_data), p_tags, p_client_id, p_user_id, p_conn_info, p_chan_info, p_published_at,
+        v_shard_id
+    ) RETURNING cf_binary_map_stream.id INTO v_id;
+
+    -- 5. Save idempotency key
+    IF p_idempotency_key IS NOT NULL THEN
+        INSERT INTO cf_binary_map_idempotency (channel, idempotency_key, result_offset, result_id, expires_at)
+        VALUES (p_channel, p_idempotency_key, v_offset, v_id, NOW() + COALESCE(p_idempotency_ttl, INTERVAL '5 minutes'))
+        ON CONFLICT DO NOTHING;
+    END IF;
+
+    -- 6. Notify outbox workers
+    PERFORM pg_notify('cf_binary_map_stream_notify', '');
+
+    RETURN QUERY SELECT v_id, v_offset, v_epoch, FALSE, NULL::TEXT;
+END;
+$$ LANGUAGE plpgsql;
+
+-- cf_binary_map_remove_stream: Stream-only remove for ExternalState mode.
+-- Skips state table entirely — only writes to stream + meta.
+CREATE OR REPLACE FUNCTION cf_binary_map_remove_stream(
+    p_channel TEXT,
+    p_key TEXT,
+    p_client_id TEXT DEFAULT NULL,
+    p_user_id TEXT DEFAULT NULL,
+    p_meta_ttl INTERVAL DEFAULT NULL,
+    p_num_shards INTEGER DEFAULT NULL,
+    p_idempotency_key TEXT DEFAULT NULL,
+    p_idempotency_ttl INTERVAL DEFAULT NULL,
+    p_skip_shard_lock BOOLEAN DEFAULT FALSE
+) RETURNS TABLE(
+    result_id BIGINT,
+    channel_offset BIGINT,
+    epoch TEXT,
+    suppressed BOOLEAN,
+    suppress_reason TEXT
+) AS $$
+DECLARE
+    v_offset BIGINT;
+    v_id BIGINT;
+    v_epoch TEXT;
+    v_current_offset BIGINT;
+    v_shard_id INTEGER;
+BEGIN
+    -- Auto-derive num_shards from shard_lock table when not provided.
+    IF p_num_shards IS NULL THEN
+        SELECT COUNT(*)::INTEGER INTO p_num_shards FROM cf_binary_map_shard_lock;
+    END IF;
+
+    -- Calculate shard_id from channel hash
+    v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
+
+    -- 0. Per-shard serialization lock
+    IF NOT p_skip_shard_lock THEN
+        PERFORM 1 FROM cf_binary_map_shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
+    END IF;
+
+    -- 1. Get or create stream metadata
+    INSERT INTO cf_binary_map_meta (channel, top_offset, epoch, updated_at)
+    VALUES (p_channel, 0, substr(md5(random()::text || random()::text), 1, 8), NOW())
+    ON CONFLICT (channel) DO NOTHING;
+
+    SELECT top_offset, m.epoch
+    INTO v_offset, v_epoch
+    FROM cf_binary_map_meta m WHERE m.channel = p_channel FOR UPDATE;
+
+    -- 2. Check idempotency
+    IF p_idempotency_key IS NOT NULL THEN
+        SELECT result_offset INTO v_current_offset
+        FROM cf_binary_map_idempotency
+        WHERE channel = p_channel AND idempotency_key = p_idempotency_key
+          AND expires_at > NOW();
+        IF FOUND THEN
+            RETURN QUERY SELECT NULL::BIGINT, v_current_offset, v_epoch, TRUE,
+                'idempotency'::TEXT;
+            RETURN;
+        END IF;
+    END IF;
+
+    -- 3. Increment offset
+    UPDATE cf_binary_map_meta SET
+        top_offset = top_offset + 1,
+        expires_at = COALESCE(CASE WHEN p_meta_ttl IS NOT NULL THEN NOW() + p_meta_ttl ELSE NULL END, expires_at),
+        updated_at = NOW()
+    WHERE channel = p_channel
+    RETURNING top_offset INTO v_offset;
+
+    -- 4. Insert removal into stream (no state table interaction)
+    INSERT INTO cf_binary_map_stream (channel, channel_offset, epoch, key, removed, client_id, user_id, shard_id)
+    VALUES (
+        p_channel, v_offset, v_epoch, p_key, TRUE, p_client_id, p_user_id,
+        v_shard_id
+    ) RETURNING cf_binary_map_stream.id INTO v_id;
+
+    -- 5. Save idempotency key
+    IF p_idempotency_key IS NOT NULL THEN
+        INSERT INTO cf_binary_map_idempotency (channel, idempotency_key, result_offset, result_id, expires_at)
+        VALUES (p_channel, p_idempotency_key, v_offset, v_id, NOW() + COALESCE(p_idempotency_ttl, INTERVAL '5 minutes'))
+        ON CONFLICT DO NOTHING;
+    END IF;
+
+    -- 6. Notify outbox workers
+    PERFORM pg_notify('cf_binary_map_stream_notify', '');
+
+    RETURN QUERY SELECT v_id, v_offset, v_epoch, FALSE, NULL::TEXT;
+END;
+$$ LANGUAGE plpgsql;
+
+-- cf_binary_map_stream_top_position: Get current stream top position (top_offset + epoch).
+-- Lightweight read for ExternalState: app calls this before reading its own DB,
+-- ensuring the stream position covers any mutations during/after the state read.
+CREATE OR REPLACE FUNCTION cf_binary_map_stream_top_position(
+    p_channel TEXT
+) RETURNS TABLE(
+    top_offset BIGINT,
+    epoch TEXT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT COALESCE(m.top_offset, 0::BIGINT), COALESCE(m.epoch, ''::TEXT)
+    FROM (SELECT 1) AS _dummy
+    LEFT JOIN cf_binary_map_meta m ON m.channel = p_channel;
+END;
+$$ LANGUAGE plpgsql;

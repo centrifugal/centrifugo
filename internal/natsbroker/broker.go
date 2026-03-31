@@ -340,45 +340,49 @@ func (b *NatsBroker) handleControl(m *nats.Msg) {
 }
 
 // Subscribe - see Broker interface description.
-func (b *NatsBroker) Subscribe(ch string) error {
-	if !b.IsSupportedSubscribeChannel(ch) {
-		// Do not support wildcard subscriptions.
-		return centrifuge.ErrorBadRequest
-	}
-	clientChannel := b.clientChannel(ch)
-	b.subsMu.RLock()
-	_, ok := b.subs[clientChannel]
-	b.subsMu.RUnlock()
-	if ok {
-		return nil
-	}
-	subscription, err := b.nc.Subscribe(string(clientChannel), b.handleClient)
-	if err != nil {
-		return err
-	}
-	b.subsMu.Lock()
-	defer b.subsMu.Unlock()
-	b.subs[clientChannel] = subWrapper{
-		sub:         subscription,
-		origChannel: ch,
+func (b *NatsBroker) Subscribe(channels ...string) error {
+	for _, ch := range channels {
+		if !b.IsSupportedSubscribeChannel(ch) {
+			// Do not support wildcard subscriptions.
+			return centrifuge.ErrorBadRequest
+		}
+		clientChannel := b.clientChannel(ch)
+		b.subsMu.RLock()
+		_, ok := b.subs[clientChannel]
+		b.subsMu.RUnlock()
+		if ok {
+			continue
+		}
+		subscription, err := b.nc.Subscribe(string(clientChannel), b.handleClient)
+		if err != nil {
+			return err
+		}
+		b.subsMu.Lock()
+		b.subs[clientChannel] = subWrapper{
+			sub:         subscription,
+			origChannel: ch,
+		}
+		b.subsMu.Unlock()
 	}
 	return nil
 }
 
 // Unsubscribe - see Broker interface description.
-func (b *NatsBroker) Unsubscribe(ch string) error {
-	clientChannel := b.clientChannel(ch)
-	b.subsMu.RLock()
-	subWrap, ok := b.subs[clientChannel]
-	b.subsMu.RUnlock()
-	if ok {
-		err := subWrap.sub.Unsubscribe()
-		if err != nil {
-			return err
+func (b *NatsBroker) Unsubscribe(channels ...string) error {
+	for _, ch := range channels {
+		clientChannel := b.clientChannel(ch)
+		b.subsMu.RLock()
+		subWrap, ok := b.subs[clientChannel]
+		b.subsMu.RUnlock()
+		if ok {
+			err := subWrap.sub.Unsubscribe()
+			if err != nil {
+				return err
+			}
+			b.subsMu.Lock()
+			delete(b.subs, clientChannel)
+			b.subsMu.Unlock()
 		}
-		b.subsMu.Lock()
-		defer b.subsMu.Unlock()
-		delete(b.subs, clientChannel)
 	}
 	return nil
 }

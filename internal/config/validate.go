@@ -403,6 +403,17 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 			}
 		}
 	}
+	if c.Map.ExternalState {
+		if c.Map.Mode != "persistent" {
+			return fmt.Errorf("map.external_state requires map.mode \"persistent\"")
+		}
+		if c.Map.Ordered {
+			return fmt.Errorf("map.external_state is incompatible with map.ordered")
+		}
+		if c.Map.KeyTTL != 0 {
+			return fmt.Errorf("map.external_state is incompatible with map.key_ttl")
+		}
+	}
 	if c.Map.RemoveClientOnUnsubscribe && !hasMapType {
 		return fmt.Errorf("map.remove_client_on_unsubscribe requires subscription_type to be a map type")
 	}

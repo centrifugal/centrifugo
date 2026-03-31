@@ -227,6 +227,7 @@ type MapConfig struct {
 	PublishProxyName            string   `mapstructure:"publish_proxy_name" default:"default" json:"publish_proxy_name" envconfig:"publish_proxy_name" yaml:"publish_proxy_name" toml:"publish_proxy_name"`
 	RemoveProxyEnabled          bool     `mapstructure:"remove_proxy_enabled" json:"remove_proxy_enabled" envconfig:"remove_proxy_enabled" yaml:"remove_proxy_enabled" toml:"remove_proxy_enabled"`
 	RemoveProxyName             string   `mapstructure:"remove_proxy_name" default:"default" json:"remove_proxy_name" envconfig:"remove_proxy_name" yaml:"remove_proxy_name" toml:"remove_proxy_name"`
+	ExternalState               bool     `mapstructure:"external_state" json:"external_state" envconfig:"external_state" yaml:"external_state" toml:"external_state"`
 }
 
 // SharedPollConfig contains configuration for shared poll subscription type.
