@@ -373,16 +373,16 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			if sharedPollProxyName == "" {
 				sharedPollProxyName = config.DefaultProxyName
 			}
-			if _, ok := proxyMap.SharedPollRefreshProxies[sharedPollProxyName]; !ok {
-				var p proxy.Config
-				if sharedPollProxyName == config.DefaultProxyName {
-					p = cfg.Channel.Proxy.SharedPollRefresh
-				} else {
-					p, proxyFound = namedProxies[sharedPollProxyName]
-					if !proxyFound {
-						return nil, false, fmt.Errorf("shared poll refresh proxy not found: %s", sharedPollProxyName)
-					}
+			var p proxy.Config
+			if sharedPollProxyName == config.DefaultProxyName {
+				p = cfg.Channel.Proxy.SharedPollRefresh
+			} else {
+				p, proxyFound = namedProxies[sharedPollProxyName]
+				if !proxyFound {
+					return nil, false, fmt.Errorf("shared poll refresh proxy not found: %s", sharedPollProxyName)
 				}
+			}
+			if _, ok := proxyMap.SharedPollRefreshProxies[sharedPollProxyName]; !ok {
 				sp, err := proxy.GetSharedPollRefreshProxy(sharedPollProxyName, p)
 				if err != nil {
 					return nil, false, fmt.Errorf("error creating shared poll refresh proxy %s: %w", sharedPollProxyName, err)
@@ -393,7 +393,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 				})
 				proxyMap.SharedPollRefreshProxies[sharedPollProxyName] = handler
 			}
-			log.Info().Str("proxy_name", sharedPollProxyName).Str("namespace", ns.Name).Msg("shared poll refresh proxy enabled for channels in namespace")
+			log.Info().Str("proxy_name", sharedPollProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Str("namespace", ns.Name).Msg("shared poll refresh proxy enabled for channels in namespace")
 		}
 	}
 
@@ -403,16 +403,16 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		if sharedPollProxyName == "" {
 			sharedPollProxyName = config.DefaultProxyName
 		}
-		if _, ok := proxyMap.SharedPollRefreshProxies[sharedPollProxyName]; !ok {
-			var p proxy.Config
-			if sharedPollProxyName == config.DefaultProxyName {
-				p = cfg.Channel.Proxy.SharedPollRefresh
-			} else {
-				p, proxyFound = namedProxies[sharedPollProxyName]
-				if !proxyFound {
-					return nil, false, fmt.Errorf("shared poll refresh proxy not found: %s", sharedPollProxyName)
-				}
+		var p proxy.Config
+		if sharedPollProxyName == config.DefaultProxyName {
+			p = cfg.Channel.Proxy.SharedPollRefresh
+		} else {
+			p, proxyFound = namedProxies[sharedPollProxyName]
+			if !proxyFound {
+				return nil, false, fmt.Errorf("shared poll refresh proxy not found: %s", sharedPollProxyName)
 			}
+		}
+		if _, ok := proxyMap.SharedPollRefreshProxies[sharedPollProxyName]; !ok {
 			sp, err := proxy.GetSharedPollRefreshProxy(sharedPollProxyName, p)
 			if err != nil {
 				return nil, false, fmt.Errorf("error creating shared poll refresh proxy %s: %w", sharedPollProxyName, err)
@@ -423,7 +423,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			})
 			proxyMap.SharedPollRefreshProxies[sharedPollProxyName] = handler
 		}
-		log.Info().Str("proxy_name", sharedPollProxyName).Msg("shared poll refresh proxy enabled for channels without namespace")
+		log.Info().Str("proxy_name", sharedPollProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("shared poll refresh proxy enabled for channels without namespace")
 	}
 
 	rpcProxyEnabled := cfg.RPC.WithoutNamespace.ProxyEnabled

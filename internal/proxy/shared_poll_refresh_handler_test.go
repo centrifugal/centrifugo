@@ -276,6 +276,30 @@ func TestRefreshProxy_HTTP_LargeResponse(t *testing.T) {
 	require.Equal(t, uint64(100), result.Items[99].Version)
 }
 
+func TestRefreshProxy_HTTP_PrevData(t *testing.T) {
+	handler, server := newTestSharedPollHTTPProxy(t, func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"result": {"items": [{"key": "k1", "data": {"v": 2}, "prev_data": {"v": 1}, "version": 5}]}}`))
+	})
+	defer server.Close()
+
+	node, _ := centrifuge.New(centrifuge.Config{})
+	_ = node.Run()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	fn := handler.Handle(node)
+	result, err := fn(context.Background(), centrifuge.SharedPollEvent{
+		Channel: "ch",
+		Items:   []centrifuge.SharedPollItem{{Key: "k1", Version: 4}},
+	})
+	require.NoError(t, err)
+	require.Len(t, result.Items, 1)
+	require.Equal(t, "k1", result.Items[0].Key)
+	require.Equal(t, uint64(5), result.Items[0].Version)
+	require.Contains(t, string(result.Items[0].Data), "2")
+	require.NotNil(t, result.Items[0].PrevData)
+	require.Contains(t, string(result.Items[0].PrevData), "1")
+}
+
 func joinStrings(ss []string) string {
 	result := ""
 	for i, s := range ss {

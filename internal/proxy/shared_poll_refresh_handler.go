@@ -80,10 +80,11 @@ func (h *SharedPollRefreshHandler) Handle(node *centrifuge.Node) centrifuge.Shar
 		items := make([]centrifuge.SharedPollRefreshItem, len(resp.Result.Items))
 		for i, item := range resp.Result.Items {
 			items[i] = centrifuge.SharedPollRefreshItem{
-				Key:     item.Key,
-				Data:    item.Data,
-				Version: item.Version,
-				Removed: item.Removed,
+				Key:      item.Key,
+				Data:     item.Data,
+				PrevData: item.PrevData,
+				Version:  item.Version,
+				Removed:  item.Removed,
 			}
 		}
 		return centrifuge.SharedPollResult{Items: items}, nil
