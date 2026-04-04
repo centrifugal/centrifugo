@@ -33,11 +33,6 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 	cfg.NodeInfoMetricsAggregateInterval = appCfg.Node.InfoMetricsAggregateInterval.ToDuration()
 	cfg.HistoryMaxPublicationLimit = appCfg.Client.HistoryMaxPublicationLimit
 	cfg.RecoveryMaxPublicationLimit = appCfg.Client.RecoveryMaxPublicationLimit
-	cfg.Map.PaginationDefaultLimit = appCfg.Client.MapPaginationDefaultLimit
-	cfg.Map.PaginationMaxLimit = appCfg.Client.MapPaginationMaxLimit
-	cfg.Map.PaginationMinLimit = appCfg.Client.MapPaginationMinLimit
-	cfg.Map.LiveTransitionMaxPublicationLimit = appCfg.Client.MapLiveTransitionMaxPublicationLimit
-	cfg.Map.SubscribeCatchUpTimeout = appCfg.Client.MapSubscribeCatchUpTimeout.ToDuration()
 	cfg.Map.GetMapChannelOptions = func(channel string) centrifuge.MapChannelOptions {
 		_, _, chOpts, ok, err := cfgContainer.ChannelOptions(channel)
 		if err != nil || !ok {
@@ -53,13 +48,18 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 			mode = centrifuge.MapModePersistent
 		}
 		return centrifuge.MapChannelOptions{
-			Mode:          mode,
-			KeyTTL:        chOpts.Map.KeyTTL.ToDuration(),
-			Ordered:       chOpts.Map.Ordered,
-			StreamSize:    chOpts.Map.StreamSize,
-			StreamTTL:     chOpts.Map.StreamTTL.ToDuration(),
-			MetaTTL:       chOpts.Map.MetaTTL.ToDuration(),
-			ExternalState: chOpts.Map.ExternalState,
+			Mode:                              mode,
+			KeyTTL:                            chOpts.Map.KeyTTL.ToDuration(),
+			Ordered:                           chOpts.Map.Ordered,
+			StreamSize:                        chOpts.Map.StreamSize,
+			StreamTTL:                         chOpts.Map.StreamTTL.ToDuration(),
+			MetaTTL:                           chOpts.Map.MetaTTL.ToDuration(),
+			ExternalState:                     chOpts.Map.ExternalState,
+			DefaultPageSize:                   chOpts.Map.DefaultPageSize,
+			MinPageSize:                       chOpts.Map.MinPageSize,
+			MaxPageSize:                       chOpts.Map.MaxPageSize,
+			LiveTransitionMaxPublicationLimit: chOpts.Map.LiveTransitionMaxPublicationLimit,
+			SubscribeCatchUpTimeout:           chOpts.Map.SubscribeCatchUpTimeout.ToDuration(),
 		}
 	}
 	hasSharedPoll := appCfg.Channel.WithoutNamespace.SubscriptionType == "shared_poll"

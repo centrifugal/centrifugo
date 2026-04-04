@@ -227,7 +227,12 @@ type MapConfig struct {
 	PublishProxyName            string   `mapstructure:"publish_proxy_name" default:"default" json:"publish_proxy_name" envconfig:"publish_proxy_name" yaml:"publish_proxy_name" toml:"publish_proxy_name"`
 	RemoveProxyEnabled          bool     `mapstructure:"remove_proxy_enabled" json:"remove_proxy_enabled" envconfig:"remove_proxy_enabled" yaml:"remove_proxy_enabled" toml:"remove_proxy_enabled"`
 	RemoveProxyName             string   `mapstructure:"remove_proxy_name" default:"default" json:"remove_proxy_name" envconfig:"remove_proxy_name" yaml:"remove_proxy_name" toml:"remove_proxy_name"`
-	ExternalState               bool     `mapstructure:"external_state" json:"external_state" envconfig:"external_state" yaml:"external_state" toml:"external_state"`
+	ExternalState                    bool     `mapstructure:"external_state" json:"external_state" envconfig:"external_state" yaml:"external_state" toml:"external_state"`
+	DefaultPageSize                  int      `mapstructure:"default_page_size" json:"default_page_size" envconfig:"default_page_size" yaml:"default_page_size" toml:"default_page_size"`
+	MinPageSize                      int      `mapstructure:"min_page_size" json:"min_page_size" envconfig:"min_page_size" yaml:"min_page_size" toml:"min_page_size"`
+	MaxPageSize                      int      `mapstructure:"max_page_size" json:"max_page_size" envconfig:"max_page_size" yaml:"max_page_size" toml:"max_page_size"`
+	LiveTransitionMaxPublicationLimit int     `mapstructure:"live_transition_max_publication_limit" json:"live_transition_max_publication_limit" envconfig:"live_transition_max_publication_limit" yaml:"live_transition_max_publication_limit" toml:"live_transition_max_publication_limit"`
+	SubscribeCatchUpTimeout          Duration `mapstructure:"subscribe_catch_up_timeout" json:"subscribe_catch_up_timeout" envconfig:"subscribe_catch_up_timeout" yaml:"subscribe_catch_up_timeout" toml:"subscribe_catch_up_timeout"`
 }
 
 // SharedPollConfig contains configuration for shared poll subscription type.

@@ -448,21 +448,6 @@ type Client struct {
 	// ConnectCodeToUnidirectionalDisconnect is a configuration for a feature to transform connect error codes to the disconnect code
 	// for unidirectional transports.
 	ConnectCodeToUnidirectionalDisconnect ConnectCodeToUnidirectionalDisconnect `mapstructure:"connect_code_to_unidirectional_disconnect" json:"connect_code_to_unidirectional_disconnect" envconfig:"connect_code_to_unidirectional_disconnect" yaml:"connect_code_to_unidirectional_disconnect" toml:"connect_code_to_unidirectional_disconnect"`
-	// MapPaginationDefaultLimit sets the default number of items per page when the client does not
-	// specify a limit. Zero means default (100).
-	MapPaginationDefaultLimit int `mapstructure:"map_pagination_default_limit" json:"map_pagination_default_limit" envconfig:"map_pagination_default_limit" default:"100" yaml:"map_pagination_default_limit" toml:"map_pagination_default_limit"`
-	// MapPaginationMaxLimit sets the maximum number of items a client can request per page in map
-	// subscription pagination requests. Zero means default (1000).
-	MapPaginationMaxLimit int `mapstructure:"map_pagination_max_limit" json:"map_pagination_max_limit" envconfig:"map_pagination_max_limit" default:"1000" yaml:"map_pagination_max_limit" toml:"map_pagination_max_limit"`
-	// MapPaginationMinLimit sets the minimum number of items per page in map subscription
-	// pagination requests. This prevents excessive round trips. Zero means default (100).
-	MapPaginationMinLimit int `mapstructure:"map_pagination_min_limit" json:"map_pagination_min_limit" envconfig:"map_pagination_min_limit" default:"100" yaml:"map_pagination_min_limit" toml:"map_pagination_min_limit"`
-	// MapLiveTransitionMaxPublicationLimit sets the maximum number of stream publications to recover
-	// during map subscription live transition. Zero means no limit. Default: 300.
-	MapLiveTransitionMaxPublicationLimit int `mapstructure:"map_live_transition_max_publication_limit" json:"map_live_transition_max_publication_limit" envconfig:"map_live_transition_max_publication_limit" default:"300" yaml:"map_live_transition_max_publication_limit" toml:"map_live_transition_max_publication_limit"`
-	// MapSubscribeCatchUpTimeout sets the maximum time a client can spend paginating through state
-	// and stream phases before going live. If exceeded, the client is disconnected. Default: "5s".
-	MapSubscribeCatchUpTimeout Duration `mapstructure:"map_subscribe_catch_up_timeout" json:"map_subscribe_catch_up_timeout" envconfig:"map_subscribe_catch_up_timeout" default:"5s" yaml:"map_subscribe_catch_up_timeout" toml:"map_subscribe_catch_up_timeout"`
 }
 
 type UniConnectCodeToDisconnectTransforms []UniConnectCodeToDisconnectTransform
