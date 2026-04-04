@@ -8,7 +8,8 @@ import (
 	"encoding/json"
 	"strconv"
 	"time"
-	"unsafe"
+
+	"github.com/centrifugal/centrifugo/v6/internal/convert"
 )
 
 // byteArena is a chunked arena allocator for byte data. It copies incoming
@@ -48,7 +49,7 @@ func (a *byteArena) copyString(src []byte) string {
 		return ""
 	}
 	b := a.copyBytes(src)
-	return unsafe.String(unsafe.SliceData(b), len(b))
+	return convert.BytesToString(b)
 }
 
 // pgTextFormat is the pgx text wire format code.
@@ -62,7 +63,7 @@ func pgRawInt64(b []byte, format int16) int64 {
 		return 0
 	}
 	if format == pgTextFormat {
-		v, _ := strconv.ParseInt(unsafe.String(unsafe.SliceData(b), len(b)), 10, 64)
+		v, _ := strconv.ParseInt(convert.BytesToString(b), 10, 64)
 		return v
 	}
 	return int64(binary.BigEndian.Uint64(b))
@@ -76,7 +77,7 @@ func pgRawUint64(b []byte, format int16) uint64 {
 		return 0
 	}
 	if format == pgTextFormat {
-		v, _ := strconv.ParseUint(unsafe.String(unsafe.SliceData(b), len(b)), 10, 64)
+		v, _ := strconv.ParseUint(convert.BytesToString(b), 10, 64)
 		return v
 	}
 	return binary.BigEndian.Uint64(b)
@@ -90,7 +91,7 @@ func pgRawInt32(b []byte, format int16) int32 {
 		return 0
 	}
 	if format == pgTextFormat {
-		v, _ := strconv.ParseInt(unsafe.String(unsafe.SliceData(b), len(b)), 10, 32)
+		v, _ := strconv.ParseInt(convert.BytesToString(b), 10, 32)
 		return int32(v)
 	}
 	return int32(binary.BigEndian.Uint32(b))
@@ -168,7 +169,7 @@ func pgRawTimestampMillis(b []byte, format int16) int64 {
 	}
 	if format == pgTextFormat {
 		// PostgreSQL text format for timestamptz, e.g. "2025-06-15 12:34:56.123456+00"
-		t, err := time.Parse("2006-01-02 15:04:05.999999Z07:00:00", unsafe.String(unsafe.SliceData(b), len(b)))
+		t, err := time.Parse("2006-01-02 15:04:05.999999Z07:00:00", convert.BytesToString(b))
 		if err != nil {
 			return 0
 		}
