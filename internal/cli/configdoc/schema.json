@@ -7448,16 +7448,6 @@
                 "is_complex_type": false
               },
               {
-                "field": "channel.without_namespace.shared_poll.max_consecutive_absences",
-                "name": "max_consecutive_absences",
-                "go_name": "MaxConsecutiveAbsences",
-                "level": 4,
-                "type": "int",
-                "default": "",
-                "comment": "",
-                "is_complex_type": false
-              },
-              {
                 "field": "channel.without_namespace.shared_poll.channel_shutdown_delay",
                 "name": "channel_shutdown_delay",
                 "go_name": "ChannelShutdownDelay",
@@ -8169,16 +8159,6 @@
                 "go_name": "RefreshMode",
                 "level": 4,
                 "type": "string",
-                "default": "",
-                "comment": "",
-                "is_complex_type": false
-              },
-              {
-                "field": "channel.namespaces[].shared_poll.max_consecutive_absences",
-                "name": "max_consecutive_absences",
-                "go_name": "MaxConsecutiveAbsences",
-                "level": 4,
-                "type": "int",
                 "default": "",
                 "comment": "",
                 "is_complex_type": false
