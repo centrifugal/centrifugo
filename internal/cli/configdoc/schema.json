@@ -7330,6 +7330,16 @@
             "is_complex_type": false
           },
           {
+            "field": "consumers[].kafka.assume_role_arn",
+            "name": "assume_role_arn",
+            "go_name": "AssumeRoleARN",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "AssumeRoleARN, when set with sasl_mechanism aws-msk-iam, uses AWS STS AssumeRole to obtain\ntemporary credentials for MSK IAM authentication (e.g. cross-account MSK). Base credentials\nand region come from the default AWS SDK chain (AWS_REGION, instance metadata, etc.).\nWhen set, sasl_user and sasl_password are ignored. When empty, static keys from sasl_user/sasl_password are used.",
+            "is_complex_type": false
+          },
+          {
             "field": "consumers[].kafka.instance_id",
             "name": "instance_id",
             "go_name": "InstanceID",

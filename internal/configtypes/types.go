@@ -51,16 +51,16 @@ type Log struct {
 
 // Token common configuration.
 type Token struct {
-	HMACSecretKey                   string `mapstructure:"hmac_secret_key" json:"hmac_secret_key" envconfig:"hmac_secret_key" yaml:"hmac_secret_key" toml:"hmac_secret_key"`
-	HMACPreviousSecretKey           string `mapstructure:"hmac_previous_secret_key" json:"hmac_previous_secret_key" envconfig:"hmac_previous_secret_key" yaml:"hmac_previous_secret_key" toml:"hmac_previous_secret_key"`
-	HMACPreviousSecretKeyValidUntil int64  `mapstructure:"hmac_previous_secret_key_valid_until" json:"hmac_previous_secret_key_valid_until" envconfig:"hmac_previous_secret_key_valid_until" yaml:"hmac_previous_secret_key_valid_until" toml:"hmac_previous_secret_key_valid_until"`
-	RSAPublicKey                    string `mapstructure:"rsa_public_key" json:"rsa_public_key" envconfig:"rsa_public_key" yaml:"rsa_public_key" toml:"rsa_public_key"`
-	ECDSAPublicKey     string `mapstructure:"ecdsa_public_key" json:"ecdsa_public_key" envconfig:"ecdsa_public_key" yaml:"ecdsa_public_key" toml:"ecdsa_public_key"`
-	JWKSPublicEndpoint string `mapstructure:"jwks_public_endpoint" json:"jwks_public_endpoint" envconfig:"jwks_public_endpoint" yaml:"jwks_public_endpoint" toml:"jwks_public_endpoint"`
-	Audience           string `mapstructure:"audience" json:"audience" envconfig:"audience" yaml:"audience" toml:"audience"`
-	AudienceRegex      string `mapstructure:"audience_regex" json:"audience_regex" envconfig:"audience_regex" yaml:"audience_regex" toml:"audience_regex"`
-	Issuer             string `mapstructure:"issuer" json:"issuer" envconfig:"issuer" yaml:"issuer" toml:"issuer"`
-	IssuerRegex        string `mapstructure:"issuer_regex" json:"issuer_regex" envconfig:"issuer_regex" yaml:"issuer_regex" toml:"issuer_regex"`
+	HMACSecretKey                       string `mapstructure:"hmac_secret_key" json:"hmac_secret_key" envconfig:"hmac_secret_key" yaml:"hmac_secret_key" toml:"hmac_secret_key"`
+	HMACPreviousSecretKey               string `mapstructure:"hmac_previous_secret_key" json:"hmac_previous_secret_key" envconfig:"hmac_previous_secret_key" yaml:"hmac_previous_secret_key" toml:"hmac_previous_secret_key"`
+	HMACPreviousSecretKeyValidUntil     int64  `mapstructure:"hmac_previous_secret_key_valid_until" json:"hmac_previous_secret_key_valid_until" envconfig:"hmac_previous_secret_key_valid_until" yaml:"hmac_previous_secret_key_valid_until" toml:"hmac_previous_secret_key_valid_until"`
+	RSAPublicKey                        string `mapstructure:"rsa_public_key" json:"rsa_public_key" envconfig:"rsa_public_key" yaml:"rsa_public_key" toml:"rsa_public_key"`
+	ECDSAPublicKey                      string `mapstructure:"ecdsa_public_key" json:"ecdsa_public_key" envconfig:"ecdsa_public_key" yaml:"ecdsa_public_key" toml:"ecdsa_public_key"`
+	JWKSPublicEndpoint                  string `mapstructure:"jwks_public_endpoint" json:"jwks_public_endpoint" envconfig:"jwks_public_endpoint" yaml:"jwks_public_endpoint" toml:"jwks_public_endpoint"`
+	Audience                            string `mapstructure:"audience" json:"audience" envconfig:"audience" yaml:"audience" toml:"audience"`
+	AudienceRegex                       string `mapstructure:"audience_regex" json:"audience_regex" envconfig:"audience_regex" yaml:"audience_regex" toml:"audience_regex"`
+	Issuer                              string `mapstructure:"issuer" json:"issuer" envconfig:"issuer" yaml:"issuer" toml:"issuer"`
+	IssuerRegex                         string `mapstructure:"issuer_regex" json:"issuer_regex" envconfig:"issuer_regex" yaml:"issuer_regex" toml:"issuer_regex"`
 	UserIDClaim                         string `mapstructure:"user_id_claim" json:"user_id_claim" envconfig:"user_id_claim" yaml:"user_id_claim" toml:"user_id_claim"`
 	InsecureSkipJWKSEndpointSafetyCheck bool   `mapstructure:"insecure_skip_jwks_endpoint_safety_check" json:"insecure_skip_jwks_endpoint_safety_check" envconfig:"insecure_skip_jwks_endpoint_safety_check" yaml:"insecure_skip_jwks_endpoint_safety_check" toml:"insecure_skip_jwks_endpoint_safety_check"`
 }
@@ -813,6 +813,11 @@ type KafkaConsumerConfig struct {
 	SASLMechanism string `mapstructure:"sasl_mechanism" json:"sasl_mechanism" envconfig:"sasl_mechanism" yaml:"sasl_mechanism" toml:"sasl_mechanism"`
 	SASLUser      string `mapstructure:"sasl_user" json:"sasl_user" envconfig:"sasl_user" yaml:"sasl_user" toml:"sasl_user"`
 	SASLPassword  string `mapstructure:"sasl_password" json:"sasl_password" envconfig:"sasl_password" yaml:"sasl_password" toml:"sasl_password"`
+	// AssumeRoleARN, when set with sasl_mechanism aws-msk-iam, uses AWS STS AssumeRole to obtain
+	// temporary credentials for MSK IAM authentication (e.g. cross-account MSK). Base credentials
+	// and region come from the default AWS SDK chain (AWS_REGION, instance metadata, etc.).
+	// When set, sasl_user and sasl_password are ignored. When empty, static keys from sasl_user/sasl_password are used.
+	AssumeRoleARN string `mapstructure:"assume_role_arn" json:"assume_role_arn" envconfig:"assume_role_arn" yaml:"assume_role_arn" toml:"assume_role_arn"`
 
 	// InstanceID sets a stable consumer group instance ID for Kafka static membership.
 	// When set, enables the static membership protocol: during rolling restarts, a replacement
@@ -842,6 +847,9 @@ func (c KafkaConsumerConfig) Validate() error {
 	}
 	if c.PublicationDataMode.Enabled && c.PublicationDataMode.ChannelsHeader == "" {
 		return errors.New("no Kafka channels_header_name provided for publication data mode")
+	}
+	if c.AssumeRoleARN != "" && c.SASLMechanism != "aws-msk-iam" {
+		return errors.New("assume_role_arn requires sasl_mechanism aws-msk-iam")
 	}
 	return nil
 }
