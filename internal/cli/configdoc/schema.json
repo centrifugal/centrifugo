@@ -3858,56 +3858,6 @@
             ]
           }
         ]
-      },
-      {
-        "field": "client.map_pagination_default_limit",
-        "name": "map_pagination_default_limit",
-        "go_name": "MapPaginationDefaultLimit",
-        "level": 2,
-        "type": "int",
-        "default": "100",
-        "comment": "MapPaginationDefaultLimit sets the default number of items per page when the client does not\nspecify a limit. Zero means default (100).",
-        "is_complex_type": false
-      },
-      {
-        "field": "client.map_pagination_max_limit",
-        "name": "map_pagination_max_limit",
-        "go_name": "MapPaginationMaxLimit",
-        "level": 2,
-        "type": "int",
-        "default": "1000",
-        "comment": "MapPaginationMaxLimit sets the maximum number of items a client can request per page in map\nsubscription pagination requests. Zero means default (1000).",
-        "is_complex_type": false
-      },
-      {
-        "field": "client.map_pagination_min_limit",
-        "name": "map_pagination_min_limit",
-        "go_name": "MapPaginationMinLimit",
-        "level": 2,
-        "type": "int",
-        "default": "100",
-        "comment": "MapPaginationMinLimit sets the minimum number of items per page in map subscription\npagination requests. This prevents excessive round trips. Zero means default (100).",
-        "is_complex_type": false
-      },
-      {
-        "field": "client.map_live_transition_max_publication_limit",
-        "name": "map_live_transition_max_publication_limit",
-        "go_name": "MapLiveTransitionMaxPublicationLimit",
-        "level": 2,
-        "type": "int",
-        "default": "300",
-        "comment": "MapLiveTransitionMaxPublicationLimit sets the maximum number of stream publications to recover\nduring map subscription live transition. Zero means no limit. Default: 300.",
-        "is_complex_type": false
-      },
-      {
-        "field": "client.map_subscribe_catch_up_timeout",
-        "name": "map_subscribe_catch_up_timeout",
-        "go_name": "MapSubscribeCatchUpTimeout",
-        "level": 2,
-        "type": "Duration",
-        "default": "5s",
-        "comment": "MapSubscribeCatchUpTimeout sets the maximum time a client can spend paginating through state\nand stream phases before going live. If exceeded, the client is disconnected. Default: \"5s\".",
-        "is_complex_type": false
       }
     ]
   },
@@ -7196,19 +7146,9 @@
             "is_complex_type": true,
             "children": [
               {
-                "field": "channel.without_namespace.map.sync_mode",
-                "name": "sync_mode",
-                "go_name": "SyncMode",
-                "level": 4,
-                "type": "string",
-                "default": "",
-                "comment": "",
-                "is_complex_type": false
-              },
-              {
-                "field": "channel.without_namespace.map.retention_mode",
-                "name": "retention_mode",
-                "go_name": "RetentionMode",
+                "field": "channel.without_namespace.map.mode",
+                "name": "mode",
+                "go_name": "Mode",
                 "level": 4,
                 "type": "string",
                 "default": "",
@@ -7384,6 +7324,66 @@
                 "default": "default",
                 "comment": "",
                 "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.external_state",
+                "name": "external_state",
+                "go_name": "ExternalState",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.default_page_size",
+                "name": "default_page_size",
+                "go_name": "DefaultPageSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.min_page_size",
+                "name": "min_page_size",
+                "go_name": "MinPageSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.max_page_size",
+                "name": "max_page_size",
+                "go_name": "MaxPageSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.live_transition_max_publication_limit",
+                "name": "live_transition_max_publication_limit",
+                "go_name": "LiveTransitionMaxPublicationLimit",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.subscribe_catch_up_timeout",
+                "name": "subscribe_catch_up_timeout",
+                "go_name": "SubscribeCatchUpTimeout",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
               }
             ]
           },
@@ -7438,9 +7438,9 @@
                 "is_complex_type": false
               },
               {
-                "field": "channel.without_namespace.shared_poll.refresh_mode",
-                "name": "refresh_mode",
-                "go_name": "RefreshMode",
+                "field": "channel.without_namespace.shared_poll.mode",
+                "name": "mode",
+                "go_name": "Mode",
                 "level": 4,
                 "type": "string",
                 "default": "",
@@ -7912,19 +7912,9 @@
             "is_complex_type": true,
             "children": [
               {
-                "field": "channel.namespaces[].map.sync_mode",
-                "name": "sync_mode",
-                "go_name": "SyncMode",
-                "level": 4,
-                "type": "string",
-                "default": "",
-                "comment": "",
-                "is_complex_type": false
-              },
-              {
-                "field": "channel.namespaces[].map.retention_mode",
-                "name": "retention_mode",
-                "go_name": "RetentionMode",
+                "field": "channel.namespaces[].map.mode",
+                "name": "mode",
+                "go_name": "Mode",
                 "level": 4,
                 "type": "string",
                 "default": "",
@@ -8100,6 +8090,66 @@
                 "default": "default",
                 "comment": "",
                 "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.external_state",
+                "name": "external_state",
+                "go_name": "ExternalState",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.default_page_size",
+                "name": "default_page_size",
+                "go_name": "DefaultPageSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.min_page_size",
+                "name": "min_page_size",
+                "go_name": "MinPageSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.max_page_size",
+                "name": "max_page_size",
+                "go_name": "MaxPageSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.live_transition_max_publication_limit",
+                "name": "live_transition_max_publication_limit",
+                "go_name": "LiveTransitionMaxPublicationLimit",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.subscribe_catch_up_timeout",
+                "name": "subscribe_catch_up_timeout",
+                "go_name": "SubscribeCatchUpTimeout",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
               }
             ]
           },
@@ -8154,9 +8204,9 @@
                 "is_complex_type": false
               },
               {
-                "field": "channel.namespaces[].shared_poll.refresh_mode",
-                "name": "refresh_mode",
-                "go_name": "RefreshMode",
+                "field": "channel.namespaces[].shared_poll.mode",
+                "name": "mode",
+                "go_name": "Mode",
                 "level": 4,
                 "type": "string",
                 "default": "",
