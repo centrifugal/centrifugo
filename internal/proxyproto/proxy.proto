@@ -40,6 +40,15 @@ service CentrifugoProxy {
   rpc SharedPollRefresh(SharedPollRefreshRequest) returns (SharedPollRefreshResponse);
 }
 
+message FilterNode {
+  string op = 1;
+  string key = 2;
+  string cmp = 3;
+  string val = 4;
+  repeated string vals = 5;
+  repeated FilterNode nodes = 6;
+}
+
 message Disconnect {
   reserved 3;
   uint32 code = 1;
@@ -72,6 +81,7 @@ message SubscribeOptions {
   bytes data = 4;
   string b64data = 5;
   SubscribeOptionOverride override = 6;
+  FilterNode server_tags_filter = 7;
 }
 
 message ConnectResult {
@@ -162,6 +172,7 @@ message SubscribeResult {
   string b64data = 5;
   SubscribeOptionOverride override = 6;
   repeated string allow = 7;
+  FilterNode server_tags_filter = 8;
 }
 
 message SubscribeResponse {
