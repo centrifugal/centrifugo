@@ -12,16 +12,14 @@ This release contains breaking change to address CVE discovered in [Dynamic JWKs
 
 ### Improvements
 
-* This release is the first built with Go 1.26. This version of the Go language includes a new garbage collector called the [Green Tea garbage collector](https://go.dev/doc/go1.26#new-garbage-collector). This may affect the performance of your Centrifugo installation; in most cases, we expect the impact to be positive. If you notice any performance changes in Centrifugo after upgrading to this release, please let us know in the community rooms. More information about the new GC can be found [here](https://go.dev/blog/greenteagc).
-* Updated the Alpine image to 3.22 in the Dockerfile.
-* Improve lint layout to improve local DX
+* Kafka consumer now supports AWS STS AssumeRole for MSK IAM authentication via the new `consumers[].kafka.assume_role_arn` option, [#1129](https://github.com/centrifugal/centrifugo/pull/1129) by @samir-is-here. When set together with `sasl_mechanism: "aws-msk-iam"`, Centrifugo loads base credentials via the AWS SDK default credential chain and assumes the specified IAM role to obtain temporary credentials with automatically refreshed session tokens. This is useful for cross-account MSK access or when running Centrifugo with an EC2/EKS/ECS instance profile. Static `sasl_user`/`sasl_password` keys remain the default when `assume_role_arn` is empty. See [documentation](https://centrifugal.dev/docs/server/consumers#consumerskafkaassume_role_arn).
 
 ### Fixes
 
-* [CVE-2026-32301](https://github.com/centrifugal/centrifugo/security/advisories/CVE-2026-32301) Fixed SSRF vulnerability in [Dynamic JWKS endpoint](https://centrifugal.dev/docs/server/authentication#dynamic-jwks-endpoint) feature. When using JWKS endpoint URL templates with placeholders extracted from JWT claims via `issuer_regex` or `audience_regex`, an attacker could craft a JWT with malicious claim values to redirect JWKS key fetches to an attacker-controlled server, enabling token forgery. **Action required:** if you use dynamic JWKS endpoints, update your `issuer_regex`/`audience_regex` patterns so that named capture groups used in the JWKS URL template contain only an explicit list of allowed literal values (e.g., `(?P<tenant>tenant1|tenant2|tenant3)` instead of `(?P<tenant>.+)`). Centrifugo will now reject configurations where these groups allow arbitrary input. A temporary escape hatch `client.token.insecure_skip_jwks_endpoint_safety_check` option is available but will be removed in future releases.
-* The Go version update (1.25.7 to 1.26.1) and update of Go x/net library allow inheriting fixes for several recently discovered CVE.
+* CI fix: set LocalStack image version to 4.14 in development setup, [#1119](https://github.com/centrifugal/centrifugo/pull/1119).
 
 ### Miscellaneous
 
-* This release is built with Go 1.26.1
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.6.6).
+* This release is built with Go 1.26.2
+* Dependency updates
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.7.1).
