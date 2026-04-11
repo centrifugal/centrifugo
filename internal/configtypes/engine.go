@@ -55,12 +55,15 @@ type RedisEngine struct {
 
 type Broker struct {
 	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
-	// Type of broker to use. Can be "memory", "redis", "nats" at this point.
+	// Type of broker to use. Can be "memory", "redis", "nats", "postgres" at this point.
 	Type string `mapstructure:"type" default:"memory" json:"type" envconfig:"type" yaml:"type" toml:"type"`
 	// Redis is a configuration for "redis" broker.
 	Redis RedisBroker `mapstructure:"redis" json:"redis" envconfig:"redis" toml:"redis" yaml:"redis"`
 	// Nats is a configuration for NATS broker. It does not support history/recovery/cache.
 	Nats NatsBroker `mapstructure:"nats" json:"nats" envconfig:"nats" toml:"nats" yaml:"nats"`
+	// Postgres is a configuration for "postgres" stream broker (PG-backed
+	// implementation of centrifuge.Broker for stream subscriptions).
+	Postgres PostgresStreamBroker `mapstructure:"postgres" json:"postgres" envconfig:"postgres" toml:"postgres" yaml:"postgres"`
 	// RedisNats is a configuration for Redis + NATS broker. It's highly experimental, undocumented and
 	// can only be used when enable_unreleased_features option is set to true. NODOC.
 	RedisNats *RedisNatsBroker `mapstructure:"redisnats" json:"redisnats,omitempty" envconfig:"redisnats" toml:"redisnats,omitempty" yaml:"redisnats,omitempty"`
@@ -141,6 +144,15 @@ type PostgresMapBroker struct {
 	SkipSchemaInit bool `mapstructure:"skip_schema_init" json:"skip_schema_init" envconfig:"skip_schema_init" yaml:"skip_schema_init" toml:"skip_schema_init"`
 	// Outbox configures the outbox-based delivery mode.
 	Outbox PostgresMapBrokerOutbox `mapstructure:"outbox" json:"outbox" envconfig:"outbox" yaml:"outbox" toml:"outbox"`
+	// PartitionLookaheadDays controls how many future daily partitions to
+	// pre-create. Required > 0 so writes don't fail at the day rollover.
+	// Default: 2 (gives a 48-hour safety window if the lookahead worker stalls).
+	PartitionLookaheadDays int `mapstructure:"partition_lookahead_days" json:"partition_lookahead_days" envconfig:"partition_lookahead_days" default:"2" yaml:"partition_lookahead_days" toml:"partition_lookahead_days"`
+	// PartitionRetentionDays controls how old a partition can be before it
+	// gets dropped whole by the partition retention worker. Default: 7.
+	// Set to a large value for longer retention; the special value 0 is
+	// internally promoted to 7 (treat "not set" as default).
+	PartitionRetentionDays int `mapstructure:"partition_retention_days" json:"partition_retention_days" envconfig:"partition_retention_days" default:"7" yaml:"partition_retention_days" toml:"partition_retention_days"`
 }
 
 // PostgresMapBrokerOutbox configures the outbox-based delivery for PostgreSQL map broker.
@@ -149,4 +161,51 @@ type PostgresMapBrokerOutbox struct {
 	PollInterval Duration `mapstructure:"poll_interval" json:"poll_interval" envconfig:"poll_interval" default:"50ms" yaml:"poll_interval" toml:"poll_interval"`
 	// BatchSize is the maximum number of rows to process per batch. Default: 1000.
 	BatchSize int `mapstructure:"batch_size" json:"batch_size" envconfig:"batch_size" default:"1000" yaml:"batch_size" toml:"batch_size"`
+}
+
+// PostgresStreamBroker is a configuration for PostgreSQL-based stream broker.
+// It implements centrifuge.Broker for stream subscriptions, providing
+// transactional publishing alongside business writes in the same SQL transaction.
+type PostgresStreamBroker struct {
+	// DSN is the primary PostgreSQL connection string.
+	DSN string `mapstructure:"dsn" json:"dsn" envconfig:"dsn" yaml:"dsn" toml:"dsn"`
+	// PoolSize sets the maximum number of connections in the pool. Default: 32.
+	PoolSize int `mapstructure:"pool_size" json:"pool_size" envconfig:"pool_size" default:"32" yaml:"pool_size" toml:"pool_size"`
+	// NumShards is the total number of shards for parallel delivery workers.
+	// Channels are distributed across shards using consistent hashing. Default: 16.
+	NumShards int `mapstructure:"num_shards" json:"num_shards" envconfig:"num_shards" default:"16" yaml:"num_shards" toml:"num_shards"`
+	// CleanupInterval is how often the cleanup and partition workers tick. Default: "1m".
+	CleanupInterval Duration `mapstructure:"cleanup_interval" json:"cleanup_interval" envconfig:"cleanup_interval" default:"1m" yaml:"cleanup_interval" toml:"cleanup_interval"`
+	// IdempotentResultTTL is the default TTL for idempotency cache entries. Default: "5m".
+	IdempotentResultTTL Duration `mapstructure:"idempotent_result_ttl" json:"idempotent_result_ttl" envconfig:"idempotent_result_ttl" default:"5m" yaml:"idempotent_result_ttl" toml:"idempotent_result_ttl"`
+	// BinaryData uses BYTEA columns instead of JSONB for data fields.
+	// Set to true if data payloads are not valid JSON.
+	BinaryData bool `mapstructure:"binary_data" json:"binary_data" envconfig:"binary_data" yaml:"binary_data" toml:"binary_data"`
+	// StreamRetention is the safety floor for HistoryMetaTTL when neither
+	// PublishOptions nor node config sets it. Default: "24h". Guarantees
+	// every channel meta row eventually expires.
+	StreamRetention Duration `mapstructure:"stream_retention" json:"stream_retention" envconfig:"stream_retention" default:"24h" yaml:"stream_retention" toml:"stream_retention"`
+	// UseNotify enables LISTEN/NOTIFY for low-latency outbox wakeup.
+	UseNotify bool `mapstructure:"use_notify" json:"use_notify" envconfig:"use_notify" yaml:"use_notify" toml:"use_notify"`
+	// SkipShardLock disables per-shard serialization of history inserts.
+	SkipShardLock bool `mapstructure:"skip_shard_lock" json:"skip_shard_lock" envconfig:"skip_shard_lock" yaml:"skip_shard_lock" toml:"skip_shard_lock"`
+	// SkipSchemaInit disables automatic schema initialization on startup.
+	SkipSchemaInit bool `mapstructure:"skip_schema_init" json:"skip_schema_init" envconfig:"skip_schema_init" yaml:"skip_schema_init" toml:"skip_schema_init"`
+	// Outbox configures the outbox-based delivery mode.
+	Outbox PostgresMapBrokerOutbox `mapstructure:"outbox" json:"outbox" envconfig:"outbox" yaml:"outbox" toml:"outbox"`
+	// PartitionLookaheadDays controls how many future daily partitions to
+	// pre-create. Default: 2 (gives a 48-hour safety window).
+	PartitionLookaheadDays int `mapstructure:"partition_lookahead_days" json:"partition_lookahead_days" envconfig:"partition_lookahead_days" default:"2" yaml:"partition_lookahead_days" toml:"partition_lookahead_days"`
+	// PartitionRetentionDays controls how old a partition can be before it
+	// gets dropped whole by the partition retention worker. Default: 7.
+	PartitionRetentionDays int `mapstructure:"partition_retention_days" json:"partition_retention_days" envconfig:"partition_retention_days" default:"7" yaml:"partition_retention_days" toml:"partition_retention_days"`
+	// FineGrainedHistoryCleanup enables an opt-in chunked DELETE pass that
+	// removes history rows past their channel's history_ttl, instead of
+	// waiting for partition retention. Use for tight-storage deployments
+	// where HistoryTTL is much smaller than PartitionRetentionDays.
+	FineGrainedHistoryCleanup bool `mapstructure:"fine_grained_history_cleanup" json:"fine_grained_history_cleanup" envconfig:"fine_grained_history_cleanup" yaml:"fine_grained_history_cleanup" toml:"fine_grained_history_cleanup"`
+	// CleanupBatchSize bounds each fine-grained cleanup DELETE chunk. Default: 1000.
+	CleanupBatchSize int `mapstructure:"cleanup_batch_size" json:"cleanup_batch_size" envconfig:"cleanup_batch_size" default:"1000" yaml:"cleanup_batch_size" toml:"cleanup_batch_size"`
+	// CleanupChunkPause is the pause between fine-grained cleanup chunks. Default: "100ms".
+	CleanupChunkPause Duration `mapstructure:"cleanup_chunk_pause" json:"cleanup_chunk_pause" envconfig:"cleanup_chunk_pause" default:"100ms" yaml:"cleanup_chunk_pause" toml:"cleanup_chunk_pause"`
 }

@@ -1,15 +1,23 @@
 -- ============================================================================
 -- PostgreSQL MapBroker Schema and Functions (template).
 -- Auto-created by EnsureSchema(). All statements are idempotent.
--- Placeholders replaced by `make pg-schemas`:
---   __DATA_TYPE__ → JSONB or BYTEA
---   __PREFIX__    → cf_map_ or cf_binary_map_
--- Do NOT edit the generated files (schema_jsonb.sql, schema_binary.sql).
+-- Placeholders are replaced at runtime by PostgresMapBroker.renderSchema:
+--   __DATA_TYPE__ → JSONB (default) or BYTEA (when BinaryData is true)
+--   __PREFIX__    → <TablePrefix>_map_ or <TablePrefix>_binary_map_
+--                   where TablePrefix is user-configurable (default "cf").
+-- EnsureSchema renders this template once per variant (JSONB + binary) and
+-- executes both, so a broker always creates both sets of tables regardless
+-- of the BinaryData runtime flag.
 -- ============================================================================
 
 -- Stream Table (Change History + Fan-out)
+-- Stream table is always partitioned by created_at (daily). The composite
+-- primary key (id, created_at) is required because Postgres mandates that
+-- the partition key be part of every unique constraint. Initial partitions
+-- (today + lookahead) are created via pgoutbox.Partitioner.EnsureLookaheadPartitions
+-- after this DDL runs; the partition retention worker drops old partitions.
 CREATE TABLE IF NOT EXISTS __PREFIX__stream (
-    id              BIGSERIAL PRIMARY KEY,
+    id              BIGSERIAL,
     channel         TEXT NOT NULL,
     channel_offset  BIGINT NOT NULL,
     epoch           TEXT NOT NULL DEFAULT '',
@@ -24,9 +32,10 @@ CREATE TABLE IF NOT EXISTS __PREFIX__stream (
     removed         BOOLEAN DEFAULT FALSE,
     score           BIGINT,
     previous_data   __DATA_TYPE__,
-    created_at      TIMESTAMPTZ DEFAULT NOW(),
-    shard_id        SMALLINT NOT NULL DEFAULT 0
-);
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    shard_id        SMALLINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (id, created_at)
+) PARTITION BY RANGE (created_at);
 
 CREATE INDEX IF NOT EXISTS __PREFIX__stream_channel_offset_idx ON __PREFIX__stream (channel, channel_offset);
 CREATE INDEX IF NOT EXISTS __PREFIX__stream_channel_id_idx ON __PREFIX__stream (channel, id DESC);
@@ -181,14 +190,17 @@ BEGIN
         PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
     END IF;
 
-    -- 1. Get or create stream metadata
-    INSERT INTO __PREFIX__meta (channel, top_offset, epoch, updated_at)
+    -- 1. Get or create stream metadata. Atomic UPSERT with no-op write on
+    -- conflict acquires the row lock as part of the same statement, avoiding
+    -- the race where DO NOTHING + SELECT FOR UPDATE could return zero rows
+    -- if a concurrent cleanup deleted the meta between the two statements.
+    -- Qualified column references (m.top_offset, m.epoch) disambiguate from
+    -- the function's OUT parameter named "epoch".
+    INSERT INTO __PREFIX__meta AS m (channel, top_offset, epoch, updated_at)
     VALUES (p_channel, 0, substr(md5(random()::text || random()::text), 1, 8), NOW())
-    ON CONFLICT (channel) DO NOTHING;
-
-    SELECT top_offset, m.epoch
-    INTO v_offset, v_epoch
-    FROM __PREFIX__meta m WHERE m.channel = p_channel FOR UPDATE;
+    ON CONFLICT (channel) DO UPDATE
+        SET updated_at = m.updated_at
+    RETURNING m.top_offset, m.epoch INTO v_offset, v_epoch;
 
     -- 2. Check idempotency
     IF p_idempotency_key IS NOT NULL THEN
@@ -622,9 +634,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- __PREFIX__publish_stream: Stream-only publish for ExternalState mode.
+-- __PREFIX__stream_publish: Stream-only publish for ExternalState mode.
 -- Skips state table entirely — only writes to stream + meta.
-CREATE OR REPLACE FUNCTION __PREFIX__publish_stream(
+CREATE OR REPLACE FUNCTION __PREFIX__stream_publish(
     p_channel TEXT,
     p_key TEXT,
     p_data __DATA_TYPE__,
@@ -667,14 +679,17 @@ BEGIN
         PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
     END IF;
 
-    -- 1. Get or create stream metadata
-    INSERT INTO __PREFIX__meta (channel, top_offset, epoch, updated_at)
+    -- 1. Get or create stream metadata. Atomic UPSERT with no-op write on
+    -- conflict acquires the row lock as part of the same statement, avoiding
+    -- the race where DO NOTHING + SELECT FOR UPDATE could return zero rows
+    -- if a concurrent cleanup deleted the meta between the two statements.
+    -- Qualified column references (m.top_offset, m.epoch) disambiguate from
+    -- the function's OUT parameter named "epoch".
+    INSERT INTO __PREFIX__meta AS m (channel, top_offset, epoch, updated_at)
     VALUES (p_channel, 0, substr(md5(random()::text || random()::text), 1, 8), NOW())
-    ON CONFLICT (channel) DO NOTHING;
-
-    SELECT top_offset, m.epoch
-    INTO v_offset, v_epoch
-    FROM __PREFIX__meta m WHERE m.channel = p_channel FOR UPDATE;
+    ON CONFLICT (channel) DO UPDATE
+        SET updated_at = m.updated_at
+    RETURNING m.top_offset, m.epoch INTO v_offset, v_epoch;
 
     -- 2. Check idempotency
     IF p_idempotency_key IS NOT NULL THEN
@@ -719,9 +734,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- __PREFIX__remove_stream: Stream-only remove for ExternalState mode.
+-- __PREFIX__stream_remove: Stream-only remove for ExternalState mode.
 -- Skips state table entirely — only writes to stream + meta.
-CREATE OR REPLACE FUNCTION __PREFIX__remove_stream(
+CREATE OR REPLACE FUNCTION __PREFIX__stream_remove(
     p_channel TEXT,
     p_key TEXT,
     p_client_id TEXT DEFAULT NULL,
@@ -758,14 +773,17 @@ BEGIN
         PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
     END IF;
 
-    -- 1. Get or create stream metadata
-    INSERT INTO __PREFIX__meta (channel, top_offset, epoch, updated_at)
+    -- 1. Get or create stream metadata. Atomic UPSERT with no-op write on
+    -- conflict acquires the row lock as part of the same statement, avoiding
+    -- the race where DO NOTHING + SELECT FOR UPDATE could return zero rows
+    -- if a concurrent cleanup deleted the meta between the two statements.
+    -- Qualified column references (m.top_offset, m.epoch) disambiguate from
+    -- the function's OUT parameter named "epoch".
+    INSERT INTO __PREFIX__meta AS m (channel, top_offset, epoch, updated_at)
     VALUES (p_channel, 0, substr(md5(random()::text || random()::text), 1, 8), NOW())
-    ON CONFLICT (channel) DO NOTHING;
-
-    SELECT top_offset, m.epoch
-    INTO v_offset, v_epoch
-    FROM __PREFIX__meta m WHERE m.channel = p_channel FOR UPDATE;
+    ON CONFLICT (channel) DO UPDATE
+        SET updated_at = m.updated_at
+    RETURNING m.top_offset, m.epoch INTO v_offset, v_epoch;
 
     -- 2. Check idempotency
     IF p_idempotency_key IS NOT NULL THEN

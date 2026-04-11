@@ -121,6 +121,14 @@ func (h *MapPublishHandler) Handle(node *centrifuge.Node) MapPublishHandlerFunc 
 
 		key := e.Key
 		data := e.Data
+		var streamData []byte
+		var tags map[string]string
+		var score int64
+		var keyMode centrifuge.KeyMode
+		var idempotencyKey string
+		var useDelta bool
+		var version uint64
+		var versionEpoch string
 		if mapPublishRep.Result != nil {
 			if mapPublishRep.Result.Key != "" {
 				key = mapPublishRep.Result.Key
@@ -135,12 +143,38 @@ func (h *MapPublishHandler) Handle(node *centrifuge.Node) MapPublishHandlerFunc 
 				}
 				data = decodedData
 			}
+			if mapPublishRep.Result.StreamData != nil {
+				streamData = mapPublishRep.Result.StreamData
+			} else if mapPublishRep.Result.B64StreamData != "" {
+				decodedStreamData, err := base64.StdEncoding.DecodeString(mapPublishRep.Result.B64StreamData)
+				if err != nil {
+					log.Error().Err(err).Str("client", client.ID()).Msg("error decoding base64 stream data")
+					return centrifuge.MapPublishReply{}, centrifuge.ErrorInternal
+				}
+				streamData = decodedStreamData
+			}
+			tags = mapPublishRep.Result.Tags
+			score = mapPublishRep.Result.Score
+			keyMode = centrifuge.KeyMode(mapPublishRep.Result.KeyMode)
+			idempotencyKey = mapPublishRep.Result.IdempotencyKey
+			useDelta = mapPublishRep.Result.Delta
+			version = mapPublishRep.Result.Version
+			versionEpoch = mapPublishRep.Result.VersionEpoch
 		}
 
 		result, err := node.MapPublish(
 			client.Context(), e.Channel, key,
 			centrifuge.MapPublishOptions{
-				Data: data,
+				Data:           data,
+				StreamData:     streamData,
+				Tags:           tags,
+				Score:          score,
+				KeyMode:        keyMode,
+				IdempotencyKey: idempotencyKey,
+				UseDelta:       useDelta,
+				Version:        version,
+				VersionEpoch:   versionEpoch,
+				ClientInfo:     e.ClientInfo,
 			},
 		)
 		return centrifuge.MapPublishReply{Result: &result}, err

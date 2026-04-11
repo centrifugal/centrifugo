@@ -6,8 +6,10 @@ import (
 
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 	"github.com/centrifugal/centrifugo/v6/internal/confighelpers"
+	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/natsbroker"
 	"github.com/centrifugal/centrifugo/v6/internal/pgmapbroker"
+	"github.com/centrifugal/centrifugo/v6/internal/pgstreambroker"
 	"github.com/centrifugal/centrifugo/v6/internal/redisnatsbroker"
 
 	"github.com/centrifugal/centrifuge"
@@ -54,6 +56,9 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) err
 		case "nats":
 			broker, err = NatsBroker(node, cfg)
 			brokerMode = "nats"
+		case "postgres":
+			broker, err = createPostgresStreamBroker(node, cfg.Broker.Postgres)
+			brokerMode = "postgres"
 		case "redisnats":
 			if !cfg.EnableUnreleasedFeatures {
 				return fmt.Errorf("redisnats broker requires enable_unreleased_features on")
@@ -123,6 +128,39 @@ func createMemoryBroker(n *centrifuge.Node) (centrifuge.Broker, error) {
 	broker, err := centrifuge.NewMemoryBroker(n, *brokerConf)
 	if err != nil {
 		return nil, err
+	}
+	return broker, nil
+}
+
+func createPostgresStreamBroker(node *centrifuge.Node, pgCfg configtypes.PostgresStreamBroker) (centrifuge.Broker, error) {
+	pgBrokerCfg := pgstreambroker.PostgresStreamBrokerConfig{
+		DSN:                       pgCfg.DSN,
+		PoolSize:                  pgCfg.PoolSize,
+		NumShards:                 pgCfg.NumShards,
+		CleanupInterval:           pgCfg.CleanupInterval.ToDuration(),
+		IdempotentResultTTL:       pgCfg.IdempotentResultTTL.ToDuration(),
+		BinaryData:                pgCfg.BinaryData,
+		StreamRetention:           pgCfg.StreamRetention.ToDuration(),
+		UseNotify:                 pgCfg.UseNotify,
+		SkipShardLock:             pgCfg.SkipShardLock,
+		PartitionLookaheadDays:    pgCfg.PartitionLookaheadDays,
+		PartitionRetentionDays:    pgCfg.PartitionRetentionDays,
+		FineGrainedHistoryCleanup: pgCfg.FineGrainedHistoryCleanup,
+		CleanupBatchSize:          pgCfg.CleanupBatchSize,
+		CleanupChunkPause:         pgCfg.CleanupChunkPause.ToDuration(),
+		Outbox: pgstreambroker.OutboxConfig{
+			PollInterval: pgCfg.Outbox.PollInterval.ToDuration(),
+			BatchSize:    pgCfg.Outbox.BatchSize,
+		},
+	}
+	broker, err := pgstreambroker.NewPostgresStreamBroker(node, pgBrokerCfg)
+	if err != nil {
+		return nil, fmt.Errorf("error creating Postgres stream broker: %w", err)
+	}
+	if !pgCfg.SkipSchemaInit {
+		if schemaErr := broker.EnsureSchema(context.Background()); schemaErr != nil {
+			return nil, fmt.Errorf("error initializing Postgres stream broker schema: %w", schemaErr)
+		}
 	}
 	return broker, nil
 }
@@ -232,16 +270,18 @@ func configureMapBroker(node *centrifuge.Node, cfgContainer *config.Container) e
 	case "postgres":
 		pgCfg := cfg.MapBroker.Postgres
 		pgBrokerCfg := pgmapbroker.PostgresMapBrokerConfig{
-			DSN:                 pgCfg.DSN,
-			PoolSize:            pgCfg.PoolSize,
-			NumShards:           pgCfg.NumShards,
-			TTLCheckInterval:    pgCfg.TTLCheckInterval.ToDuration(),
-			CleanupInterval:     pgCfg.CleanupInterval.ToDuration(),
-			IdempotentResultTTL: pgCfg.IdempotentResultTTL.ToDuration(),
-			BinaryData:          pgCfg.BinaryData,
-			StreamRetention:     pgCfg.StreamRetention.ToDuration(),
-			UseNotify:           pgCfg.UseNotify,
-			SkipShardLock:       pgCfg.SkipShardLock,
+			DSN:                    pgCfg.DSN,
+			PoolSize:               pgCfg.PoolSize,
+			NumShards:              pgCfg.NumShards,
+			TTLCheckInterval:       pgCfg.TTLCheckInterval.ToDuration(),
+			CleanupInterval:        pgCfg.CleanupInterval.ToDuration(),
+			IdempotentResultTTL:    pgCfg.IdempotentResultTTL.ToDuration(),
+			BinaryData:             pgCfg.BinaryData,
+			StreamRetention:        pgCfg.StreamRetention.ToDuration(),
+			UseNotify:              pgCfg.UseNotify,
+			SkipShardLock:          pgCfg.SkipShardLock,
+			PartitionLookaheadDays: pgCfg.PartitionLookaheadDays,
+			PartitionRetentionDays: pgCfg.PartitionRetentionDays,
 			Outbox: pgmapbroker.OutboxConfig{
 				PollInterval: pgCfg.Outbox.PollInterval.ToDuration(),
 				BatchSize:    pgCfg.Outbox.BatchSize,

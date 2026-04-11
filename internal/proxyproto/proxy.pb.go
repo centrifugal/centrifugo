@@ -1430,12 +1430,17 @@ func (x *PublishRequest) GetMeta() []byte {
 }
 
 type PublishResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Data          Raw                    `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data       string                 `protobuf:"bytes,2,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	SkipHistory   bool                   `protobuf:"varint,3,opt,name=skip_history,json=skipHistory,proto3" json:"skip_history,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Data           Raw                    `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	B64Data        string                 `protobuf:"bytes,2,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	SkipHistory    bool                   `protobuf:"varint,3,opt,name=skip_history,json=skipHistory,proto3" json:"skip_history,omitempty"`
+	Tags           map[string]string      `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	IdempotencyKey string                 `protobuf:"bytes,5,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	Delta          bool                   `protobuf:"varint,6,opt,name=delta,proto3" json:"delta,omitempty"`
+	Version        uint64                 `protobuf:"varint,7,opt,name=version,proto3" json:"version,omitempty"`
+	VersionEpoch   string                 `protobuf:"bytes,8,opt,name=version_epoch,json=versionEpoch,proto3" json:"version_epoch,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *PublishResult) Reset() {
@@ -1487,6 +1492,41 @@ func (x *PublishResult) GetSkipHistory() bool {
 		return x.SkipHistory
 	}
 	return false
+}
+
+func (x *PublishResult) GetTags() map[string]string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *PublishResult) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
+func (x *PublishResult) GetDelta() bool {
+	if x != nil {
+		return x.Delta
+	}
+	return false
+}
+
+func (x *PublishResult) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *PublishResult) GetVersionEpoch() string {
+	if x != nil {
+		return x.VersionEpoch
+	}
+	return ""
 }
 
 type PublishResponse struct {
@@ -1666,12 +1706,21 @@ func (x *MapPublishRequest) GetMeta() []byte {
 }
 
 type MapPublishResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Data          Raw                    `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data       string                 `protobuf:"bytes,3,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Key            string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Data           Raw                    `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	B64Data        string                 `protobuf:"bytes,3,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	Tags           map[string]string      `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Score          int64                  `protobuf:"varint,5,opt,name=score,proto3" json:"score,omitempty"`
+	KeyMode        string                 `protobuf:"bytes,6,opt,name=key_mode,json=keyMode,proto3" json:"key_mode,omitempty"`
+	StreamData     Raw                    `protobuf:"bytes,7,opt,name=stream_data,json=streamData,proto3" json:"stream_data,omitempty"`
+	B64StreamData  string                 `protobuf:"bytes,8,opt,name=b64stream_data,json=b64streamData,proto3" json:"b64stream_data,omitempty"`
+	IdempotencyKey string                 `protobuf:"bytes,9,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	Delta          bool                   `protobuf:"varint,10,opt,name=delta,proto3" json:"delta,omitempty"`
+	Version        uint64                 `protobuf:"varint,11,opt,name=version,proto3" json:"version,omitempty"`
+	VersionEpoch   string                 `protobuf:"bytes,12,opt,name=version_epoch,json=versionEpoch,proto3" json:"version_epoch,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *MapPublishResult) Reset() {
@@ -1721,6 +1770,69 @@ func (x *MapPublishResult) GetData() []byte {
 func (x *MapPublishResult) GetB64Data() string {
 	if x != nil {
 		return x.B64Data
+	}
+	return ""
+}
+
+func (x *MapPublishResult) GetTags() map[string]string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *MapPublishResult) GetScore() int64 {
+	if x != nil {
+		return x.Score
+	}
+	return 0
+}
+
+func (x *MapPublishResult) GetKeyMode() string {
+	if x != nil {
+		return x.KeyMode
+	}
+	return ""
+}
+
+func (x *MapPublishResult) GetStreamData() []byte {
+	if x != nil {
+		return x.StreamData
+	}
+	return nil
+}
+
+func (x *MapPublishResult) GetB64StreamData() string {
+	if x != nil {
+		return x.B64StreamData
+	}
+	return ""
+}
+
+func (x *MapPublishResult) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
+func (x *MapPublishResult) GetDelta() bool {
+	if x != nil {
+		return x.Delta
+	}
+	return false
+}
+
+func (x *MapPublishResult) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *MapPublishResult) GetVersionEpoch() string {
+	if x != nil {
+		return x.VersionEpoch
 	}
 	return ""
 }
@@ -1886,10 +1998,12 @@ func (x *MapRemoveRequest) GetMeta() []byte {
 }
 
 type MapRemoveResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Key            string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Tags           map[string]string      `protobuf:"bytes,2,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	IdempotencyKey string                 `protobuf:"bytes,3,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *MapRemoveResult) Reset() {
@@ -1925,6 +2039,20 @@ func (*MapRemoveResult) Descriptor() ([]byte, []int) {
 func (x *MapRemoveResult) GetKey() string {
 	if x != nil {
 		return x.Key
+	}
+	return ""
+}
+
+func (x *MapRemoveResult) GetTags() map[string]string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *MapRemoveResult) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
 	}
 	return ""
 }
@@ -3329,11 +3457,19 @@ const file_proxy_proto_rawDesc = "" +
 	"\achannel\x18\v \x01(\tR\achannel\x12\x12\n" +
 	"\x04data\x18\f \x01(\fR\x04data\x12\x18\n" +
 	"\ab64data\x18\r \x01(\tR\ab64data\x12\x12\n" +
-	"\x04meta\x18\x0e \x01(\fR\x04meta\"`\n" +
+	"\x04meta\x18\x0e \x01(\fR\x04meta\"\xe2\x02\n" +
 	"\rPublishResult\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\fR\x04data\x12\x18\n" +
 	"\ab64data\x18\x02 \x01(\tR\ab64data\x12!\n" +
-	"\fskip_history\x18\x03 \x01(\bR\vskipHistory\"\xdb\x01\n" +
+	"\fskip_history\x18\x03 \x01(\bR\vskipHistory\x12I\n" +
+	"\x04tags\x18\x04 \x03(\v25.centrifugal.centrifugo.proxy.PublishResult.TagsEntryR\x04tags\x12'\n" +
+	"\x0fidempotency_key\x18\x05 \x01(\tR\x0eidempotencyKey\x12\x14\n" +
+	"\x05delta\x18\x06 \x01(\bR\x05delta\x12\x18\n" +
+	"\aversion\x18\a \x01(\x04R\aversion\x12#\n" +
+	"\rversion_epoch\x18\b \x01(\tR\fversionEpoch\x1a7\n" +
+	"\tTagsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xdb\x01\n" +
 	"\x0fPublishResponse\x12C\n" +
 	"\x06result\x18\x01 \x01(\v2+.centrifugal.centrifugo.proxy.PublishResultR\x06result\x129\n" +
 	"\x05error\x18\x02 \x01(\v2#.centrifugal.centrifugo.proxy.ErrorR\x05error\x12H\n" +
@@ -3351,11 +3487,25 @@ const file_proxy_proto_rawDesc = "" +
 	"\x03key\x18\f \x01(\tR\x03key\x12\x12\n" +
 	"\x04data\x18\r \x01(\fR\x04data\x12\x18\n" +
 	"\ab64data\x18\x0e \x01(\tR\ab64data\x12\x12\n" +
-	"\x04meta\x18\x0f \x01(\fR\x04meta\"R\n" +
+	"\x04meta\x18\x0f \x01(\fR\x04meta\"\xd0\x03\n" +
 	"\x10MapPublishResult\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x12\n" +
 	"\x04data\x18\x02 \x01(\fR\x04data\x12\x18\n" +
-	"\ab64data\x18\x03 \x01(\tR\ab64data\"\xe1\x01\n" +
+	"\ab64data\x18\x03 \x01(\tR\ab64data\x12L\n" +
+	"\x04tags\x18\x04 \x03(\v28.centrifugal.centrifugo.proxy.MapPublishResult.TagsEntryR\x04tags\x12\x14\n" +
+	"\x05score\x18\x05 \x01(\x03R\x05score\x12\x19\n" +
+	"\bkey_mode\x18\x06 \x01(\tR\akeyMode\x12\x1f\n" +
+	"\vstream_data\x18\a \x01(\fR\n" +
+	"streamData\x12%\n" +
+	"\x0eb64stream_data\x18\b \x01(\tR\rb64streamData\x12'\n" +
+	"\x0fidempotency_key\x18\t \x01(\tR\x0eidempotencyKey\x12\x14\n" +
+	"\x05delta\x18\n" +
+	" \x01(\bR\x05delta\x12\x18\n" +
+	"\aversion\x18\v \x01(\x04R\aversion\x12#\n" +
+	"\rversion_epoch\x18\f \x01(\tR\fversionEpoch\x1a7\n" +
+	"\tTagsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xe1\x01\n" +
 	"\x12MapPublishResponse\x12F\n" +
 	"\x06result\x18\x01 \x01(\v2..centrifugal.centrifugo.proxy.MapPublishResultR\x06result\x129\n" +
 	"\x05error\x18\x02 \x01(\v2#.centrifugal.centrifugo.proxy.ErrorR\x05error\x12H\n" +
@@ -3371,9 +3521,14 @@ const file_proxy_proto_rawDesc = "" +
 	" \x01(\tR\x04user\x12\x18\n" +
 	"\achannel\x18\v \x01(\tR\achannel\x12\x10\n" +
 	"\x03key\x18\f \x01(\tR\x03key\x12\x12\n" +
-	"\x04meta\x18\r \x01(\fR\x04meta\"#\n" +
+	"\x04meta\x18\r \x01(\fR\x04meta\"\xd2\x01\n" +
 	"\x0fMapRemoveResult\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\"\xdf\x01\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12K\n" +
+	"\x04tags\x18\x02 \x03(\v27.centrifugal.centrifugo.proxy.MapRemoveResult.TagsEntryR\x04tags\x12'\n" +
+	"\x0fidempotency_key\x18\x03 \x01(\tR\x0eidempotencyKey\x1a7\n" +
+	"\tTagsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xdf\x01\n" +
 	"\x11MapRemoveResponse\x12E\n" +
 	"\x06result\x18\x01 \x01(\v2-.centrifugal.centrifugo.proxy.MapRemoveResultR\x06result\x129\n" +
 	"\x05error\x18\x02 \x01(\v2#.centrifugal.centrifugo.proxy.ErrorR\x05error\x12H\n" +
@@ -3495,7 +3650,7 @@ func file_proxy_proto_rawDescGZIP() []byte {
 	return file_proxy_proto_rawDescData
 }
 
-var file_proxy_proto_msgTypes = make([]protoimpl.MessageInfo, 49)
+var file_proxy_proto_msgTypes = make([]protoimpl.MessageInfo, 52)
 var file_proxy_proto_goTypes = []any{
 	(*FilterNode)(nil),                  // 0: centrifugal.centrifugo.proxy.FilterNode
 	(*Disconnect)(nil),                  // 1: centrifugal.centrifugo.proxy.Disconnect
@@ -3545,7 +3700,10 @@ var file_proxy_proto_goTypes = []any{
 	(*SharedPollRefreshResultItem)(nil), // 45: centrifugal.centrifugo.proxy.SharedPollRefreshResultItem
 	(*SharedPollRefreshResponse)(nil),   // 46: centrifugal.centrifugo.proxy.SharedPollRefreshResponse
 	nil,                                 // 47: centrifugal.centrifugo.proxy.ConnectResult.SubsEntry
-	nil,                                 // 48: centrifugal.centrifugo.proxy.Publication.TagsEntry
+	nil,                                 // 48: centrifugal.centrifugo.proxy.PublishResult.TagsEntry
+	nil,                                 // 49: centrifugal.centrifugo.proxy.MapPublishResult.TagsEntry
+	nil,                                 // 50: centrifugal.centrifugo.proxy.MapRemoveResult.TagsEntry
+	nil,                                 // 51: centrifugal.centrifugo.proxy.Publication.TagsEntry
 }
 var file_proxy_proto_depIdxs = []int32{
 	0,  // 0: centrifugal.centrifugo.proxy.FilterNode.nodes:type_name -> centrifugal.centrifugo.proxy.FilterNode
@@ -3570,66 +3728,69 @@ var file_proxy_proto_depIdxs = []int32{
 	15, // 19: centrifugal.centrifugo.proxy.SubscribeResponse.result:type_name -> centrifugal.centrifugo.proxy.SubscribeResult
 	2,  // 20: centrifugal.centrifugo.proxy.SubscribeResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
 	1,  // 21: centrifugal.centrifugo.proxy.SubscribeResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	18, // 22: centrifugal.centrifugo.proxy.PublishResponse.result:type_name -> centrifugal.centrifugo.proxy.PublishResult
-	2,  // 23: centrifugal.centrifugo.proxy.PublishResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	1,  // 24: centrifugal.centrifugo.proxy.PublishResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	21, // 25: centrifugal.centrifugo.proxy.MapPublishResponse.result:type_name -> centrifugal.centrifugo.proxy.MapPublishResult
-	2,  // 26: centrifugal.centrifugo.proxy.MapPublishResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	1,  // 27: centrifugal.centrifugo.proxy.MapPublishResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	24, // 28: centrifugal.centrifugo.proxy.MapRemoveResponse.result:type_name -> centrifugal.centrifugo.proxy.MapRemoveResult
-	2,  // 29: centrifugal.centrifugo.proxy.MapRemoveResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	1,  // 30: centrifugal.centrifugo.proxy.MapRemoveResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	27, // 31: centrifugal.centrifugo.proxy.RPCResponse.result:type_name -> centrifugal.centrifugo.proxy.RPCResult
-	2,  // 32: centrifugal.centrifugo.proxy.RPCResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	1,  // 33: centrifugal.centrifugo.proxy.RPCResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	30, // 34: centrifugal.centrifugo.proxy.SubRefreshResponse.result:type_name -> centrifugal.centrifugo.proxy.SubRefreshResult
-	2,  // 35: centrifugal.centrifugo.proxy.SubRefreshResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	1,  // 36: centrifugal.centrifugo.proxy.SubRefreshResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	48, // 37: centrifugal.centrifugo.proxy.Publication.tags:type_name -> centrifugal.centrifugo.proxy.Publication.TagsEntry
-	11, // 38: centrifugal.centrifugo.proxy.StreamSubscribeRequest.subscribe_request:type_name -> centrifugal.centrifugo.proxy.SubscribeRequest
-	32, // 39: centrifugal.centrifugo.proxy.StreamSubscribeRequest.publication:type_name -> centrifugal.centrifugo.proxy.Publication
-	16, // 40: centrifugal.centrifugo.proxy.StreamSubscribeResponse.subscribe_response:type_name -> centrifugal.centrifugo.proxy.SubscribeResponse
-	32, // 41: centrifugal.centrifugo.proxy.StreamSubscribeResponse.publication:type_name -> centrifugal.centrifugo.proxy.Publication
-	37, // 42: centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse.result:type_name -> centrifugal.centrifugo.proxy.NotifyCacheEmptyResult
-	39, // 43: centrifugal.centrifugo.proxy.NotifyChannelStateRequest.events:type_name -> centrifugal.centrifugo.proxy.ChannelEvent
-	41, // 44: centrifugal.centrifugo.proxy.NotifyChannelStateResponse.result:type_name -> centrifugal.centrifugo.proxy.NotifyChannelStateResult
-	2,  // 45: centrifugal.centrifugo.proxy.NotifyChannelStateResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	43, // 46: centrifugal.centrifugo.proxy.SharedPollRefreshRequest.items:type_name -> centrifugal.centrifugo.proxy.SharedPollRefreshItem
-	45, // 47: centrifugal.centrifugo.proxy.SharedPollRefreshResult.items:type_name -> centrifugal.centrifugo.proxy.SharedPollRefreshResultItem
-	44, // 48: centrifugal.centrifugo.proxy.SharedPollRefreshResponse.result:type_name -> centrifugal.centrifugo.proxy.SharedPollRefreshResult
-	2,  // 49: centrifugal.centrifugo.proxy.SharedPollRefreshResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	4,  // 50: centrifugal.centrifugo.proxy.ConnectResult.SubsEntry.value:type_name -> centrifugal.centrifugo.proxy.SubscribeOptions
-	3,  // 51: centrifugal.centrifugo.proxy.CentrifugoProxy.Connect:input_type -> centrifugal.centrifugo.proxy.ConnectRequest
-	8,  // 52: centrifugal.centrifugo.proxy.CentrifugoProxy.Refresh:input_type -> centrifugal.centrifugo.proxy.RefreshRequest
-	11, // 53: centrifugal.centrifugo.proxy.CentrifugoProxy.Subscribe:input_type -> centrifugal.centrifugo.proxy.SubscribeRequest
-	17, // 54: centrifugal.centrifugo.proxy.CentrifugoProxy.Publish:input_type -> centrifugal.centrifugo.proxy.PublishRequest
-	26, // 55: centrifugal.centrifugo.proxy.CentrifugoProxy.RPC:input_type -> centrifugal.centrifugo.proxy.RPCRequest
-	29, // 56: centrifugal.centrifugo.proxy.CentrifugoProxy.SubRefresh:input_type -> centrifugal.centrifugo.proxy.SubRefreshRequest
-	11, // 57: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeUnidirectional:input_type -> centrifugal.centrifugo.proxy.SubscribeRequest
-	33, // 58: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeBidirectional:input_type -> centrifugal.centrifugo.proxy.StreamSubscribeRequest
-	35, // 59: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyCacheEmpty:input_type -> centrifugal.centrifugo.proxy.NotifyCacheEmptyRequest
-	38, // 60: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyChannelState:input_type -> centrifugal.centrifugo.proxy.NotifyChannelStateRequest
-	20, // 61: centrifugal.centrifugo.proxy.CentrifugoProxy.MapPublish:input_type -> centrifugal.centrifugo.proxy.MapPublishRequest
-	23, // 62: centrifugal.centrifugo.proxy.CentrifugoProxy.MapRemove:input_type -> centrifugal.centrifugo.proxy.MapRemoveRequest
-	42, // 63: centrifugal.centrifugo.proxy.CentrifugoProxy.SharedPollRefresh:input_type -> centrifugal.centrifugo.proxy.SharedPollRefreshRequest
-	7,  // 64: centrifugal.centrifugo.proxy.CentrifugoProxy.Connect:output_type -> centrifugal.centrifugo.proxy.ConnectResponse
-	10, // 65: centrifugal.centrifugo.proxy.CentrifugoProxy.Refresh:output_type -> centrifugal.centrifugo.proxy.RefreshResponse
-	16, // 66: centrifugal.centrifugo.proxy.CentrifugoProxy.Subscribe:output_type -> centrifugal.centrifugo.proxy.SubscribeResponse
-	19, // 67: centrifugal.centrifugo.proxy.CentrifugoProxy.Publish:output_type -> centrifugal.centrifugo.proxy.PublishResponse
-	28, // 68: centrifugal.centrifugo.proxy.CentrifugoProxy.RPC:output_type -> centrifugal.centrifugo.proxy.RPCResponse
-	31, // 69: centrifugal.centrifugo.proxy.CentrifugoProxy.SubRefresh:output_type -> centrifugal.centrifugo.proxy.SubRefreshResponse
-	34, // 70: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeUnidirectional:output_type -> centrifugal.centrifugo.proxy.StreamSubscribeResponse
-	34, // 71: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeBidirectional:output_type -> centrifugal.centrifugo.proxy.StreamSubscribeResponse
-	36, // 72: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyCacheEmpty:output_type -> centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse
-	40, // 73: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyChannelState:output_type -> centrifugal.centrifugo.proxy.NotifyChannelStateResponse
-	22, // 74: centrifugal.centrifugo.proxy.CentrifugoProxy.MapPublish:output_type -> centrifugal.centrifugo.proxy.MapPublishResponse
-	25, // 75: centrifugal.centrifugo.proxy.CentrifugoProxy.MapRemove:output_type -> centrifugal.centrifugo.proxy.MapRemoveResponse
-	46, // 76: centrifugal.centrifugo.proxy.CentrifugoProxy.SharedPollRefresh:output_type -> centrifugal.centrifugo.proxy.SharedPollRefreshResponse
-	64, // [64:77] is the sub-list for method output_type
-	51, // [51:64] is the sub-list for method input_type
-	51, // [51:51] is the sub-list for extension type_name
-	51, // [51:51] is the sub-list for extension extendee
-	0,  // [0:51] is the sub-list for field type_name
+	48, // 22: centrifugal.centrifugo.proxy.PublishResult.tags:type_name -> centrifugal.centrifugo.proxy.PublishResult.TagsEntry
+	18, // 23: centrifugal.centrifugo.proxy.PublishResponse.result:type_name -> centrifugal.centrifugo.proxy.PublishResult
+	2,  // 24: centrifugal.centrifugo.proxy.PublishResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	1,  // 25: centrifugal.centrifugo.proxy.PublishResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
+	49, // 26: centrifugal.centrifugo.proxy.MapPublishResult.tags:type_name -> centrifugal.centrifugo.proxy.MapPublishResult.TagsEntry
+	21, // 27: centrifugal.centrifugo.proxy.MapPublishResponse.result:type_name -> centrifugal.centrifugo.proxy.MapPublishResult
+	2,  // 28: centrifugal.centrifugo.proxy.MapPublishResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	1,  // 29: centrifugal.centrifugo.proxy.MapPublishResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
+	50, // 30: centrifugal.centrifugo.proxy.MapRemoveResult.tags:type_name -> centrifugal.centrifugo.proxy.MapRemoveResult.TagsEntry
+	24, // 31: centrifugal.centrifugo.proxy.MapRemoveResponse.result:type_name -> centrifugal.centrifugo.proxy.MapRemoveResult
+	2,  // 32: centrifugal.centrifugo.proxy.MapRemoveResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	1,  // 33: centrifugal.centrifugo.proxy.MapRemoveResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
+	27, // 34: centrifugal.centrifugo.proxy.RPCResponse.result:type_name -> centrifugal.centrifugo.proxy.RPCResult
+	2,  // 35: centrifugal.centrifugo.proxy.RPCResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	1,  // 36: centrifugal.centrifugo.proxy.RPCResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
+	30, // 37: centrifugal.centrifugo.proxy.SubRefreshResponse.result:type_name -> centrifugal.centrifugo.proxy.SubRefreshResult
+	2,  // 38: centrifugal.centrifugo.proxy.SubRefreshResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	1,  // 39: centrifugal.centrifugo.proxy.SubRefreshResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
+	51, // 40: centrifugal.centrifugo.proxy.Publication.tags:type_name -> centrifugal.centrifugo.proxy.Publication.TagsEntry
+	11, // 41: centrifugal.centrifugo.proxy.StreamSubscribeRequest.subscribe_request:type_name -> centrifugal.centrifugo.proxy.SubscribeRequest
+	32, // 42: centrifugal.centrifugo.proxy.StreamSubscribeRequest.publication:type_name -> centrifugal.centrifugo.proxy.Publication
+	16, // 43: centrifugal.centrifugo.proxy.StreamSubscribeResponse.subscribe_response:type_name -> centrifugal.centrifugo.proxy.SubscribeResponse
+	32, // 44: centrifugal.centrifugo.proxy.StreamSubscribeResponse.publication:type_name -> centrifugal.centrifugo.proxy.Publication
+	37, // 45: centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse.result:type_name -> centrifugal.centrifugo.proxy.NotifyCacheEmptyResult
+	39, // 46: centrifugal.centrifugo.proxy.NotifyChannelStateRequest.events:type_name -> centrifugal.centrifugo.proxy.ChannelEvent
+	41, // 47: centrifugal.centrifugo.proxy.NotifyChannelStateResponse.result:type_name -> centrifugal.centrifugo.proxy.NotifyChannelStateResult
+	2,  // 48: centrifugal.centrifugo.proxy.NotifyChannelStateResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	43, // 49: centrifugal.centrifugo.proxy.SharedPollRefreshRequest.items:type_name -> centrifugal.centrifugo.proxy.SharedPollRefreshItem
+	45, // 50: centrifugal.centrifugo.proxy.SharedPollRefreshResult.items:type_name -> centrifugal.centrifugo.proxy.SharedPollRefreshResultItem
+	44, // 51: centrifugal.centrifugo.proxy.SharedPollRefreshResponse.result:type_name -> centrifugal.centrifugo.proxy.SharedPollRefreshResult
+	2,  // 52: centrifugal.centrifugo.proxy.SharedPollRefreshResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	4,  // 53: centrifugal.centrifugo.proxy.ConnectResult.SubsEntry.value:type_name -> centrifugal.centrifugo.proxy.SubscribeOptions
+	3,  // 54: centrifugal.centrifugo.proxy.CentrifugoProxy.Connect:input_type -> centrifugal.centrifugo.proxy.ConnectRequest
+	8,  // 55: centrifugal.centrifugo.proxy.CentrifugoProxy.Refresh:input_type -> centrifugal.centrifugo.proxy.RefreshRequest
+	11, // 56: centrifugal.centrifugo.proxy.CentrifugoProxy.Subscribe:input_type -> centrifugal.centrifugo.proxy.SubscribeRequest
+	17, // 57: centrifugal.centrifugo.proxy.CentrifugoProxy.Publish:input_type -> centrifugal.centrifugo.proxy.PublishRequest
+	26, // 58: centrifugal.centrifugo.proxy.CentrifugoProxy.RPC:input_type -> centrifugal.centrifugo.proxy.RPCRequest
+	29, // 59: centrifugal.centrifugo.proxy.CentrifugoProxy.SubRefresh:input_type -> centrifugal.centrifugo.proxy.SubRefreshRequest
+	11, // 60: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeUnidirectional:input_type -> centrifugal.centrifugo.proxy.SubscribeRequest
+	33, // 61: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeBidirectional:input_type -> centrifugal.centrifugo.proxy.StreamSubscribeRequest
+	35, // 62: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyCacheEmpty:input_type -> centrifugal.centrifugo.proxy.NotifyCacheEmptyRequest
+	38, // 63: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyChannelState:input_type -> centrifugal.centrifugo.proxy.NotifyChannelStateRequest
+	20, // 64: centrifugal.centrifugo.proxy.CentrifugoProxy.MapPublish:input_type -> centrifugal.centrifugo.proxy.MapPublishRequest
+	23, // 65: centrifugal.centrifugo.proxy.CentrifugoProxy.MapRemove:input_type -> centrifugal.centrifugo.proxy.MapRemoveRequest
+	42, // 66: centrifugal.centrifugo.proxy.CentrifugoProxy.SharedPollRefresh:input_type -> centrifugal.centrifugo.proxy.SharedPollRefreshRequest
+	7,  // 67: centrifugal.centrifugo.proxy.CentrifugoProxy.Connect:output_type -> centrifugal.centrifugo.proxy.ConnectResponse
+	10, // 68: centrifugal.centrifugo.proxy.CentrifugoProxy.Refresh:output_type -> centrifugal.centrifugo.proxy.RefreshResponse
+	16, // 69: centrifugal.centrifugo.proxy.CentrifugoProxy.Subscribe:output_type -> centrifugal.centrifugo.proxy.SubscribeResponse
+	19, // 70: centrifugal.centrifugo.proxy.CentrifugoProxy.Publish:output_type -> centrifugal.centrifugo.proxy.PublishResponse
+	28, // 71: centrifugal.centrifugo.proxy.CentrifugoProxy.RPC:output_type -> centrifugal.centrifugo.proxy.RPCResponse
+	31, // 72: centrifugal.centrifugo.proxy.CentrifugoProxy.SubRefresh:output_type -> centrifugal.centrifugo.proxy.SubRefreshResponse
+	34, // 73: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeUnidirectional:output_type -> centrifugal.centrifugo.proxy.StreamSubscribeResponse
+	34, // 74: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeBidirectional:output_type -> centrifugal.centrifugo.proxy.StreamSubscribeResponse
+	36, // 75: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyCacheEmpty:output_type -> centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse
+	40, // 76: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyChannelState:output_type -> centrifugal.centrifugo.proxy.NotifyChannelStateResponse
+	22, // 77: centrifugal.centrifugo.proxy.CentrifugoProxy.MapPublish:output_type -> centrifugal.centrifugo.proxy.MapPublishResponse
+	25, // 78: centrifugal.centrifugo.proxy.CentrifugoProxy.MapRemove:output_type -> centrifugal.centrifugo.proxy.MapRemoveResponse
+	46, // 79: centrifugal.centrifugo.proxy.CentrifugoProxy.SharedPollRefresh:output_type -> centrifugal.centrifugo.proxy.SharedPollRefreshResponse
+	67, // [67:80] is the sub-list for method output_type
+	54, // [54:67] is the sub-list for method input_type
+	54, // [54:54] is the sub-list for extension type_name
+	54, // [54:54] is the sub-list for extension extendee
+	0,  // [0:54] is the sub-list for field type_name
 }
 
 func init() { file_proxy_proto_init() }
@@ -3643,7 +3804,7 @@ func file_proxy_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proxy_proto_rawDesc), len(file_proxy_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   49,
+			NumMessages:   52,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

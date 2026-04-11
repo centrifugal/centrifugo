@@ -85,29 +85,3 @@ vuln:
 build:
 	CGO_ENABLED=0 go build
 
-.PHONY: pg-schemas
-
-PG_SCHEMA_DIR      = internal/pgmapbroker/internal/sql
-PG_SCHEMA_TEMPLATE = $(PG_SCHEMA_DIR)/schema.sql
-PG_SCHEMA_JSONB    = $(PG_SCHEMA_DIR)/schema_jsonb.sql
-PG_SCHEMA_BINARY   = $(PG_SCHEMA_DIR)/schema_binary.sql
-PG_SCHEMA_ALL      = $(PG_SCHEMA_DIR)/schema_all.sql
-
-pg-schemas: $(PG_SCHEMA_JSONB) $(PG_SCHEMA_BINARY) $(PG_SCHEMA_ALL)
-	@echo "Generated $(PG_SCHEMA_JSONB), $(PG_SCHEMA_BINARY), and $(PG_SCHEMA_ALL)"
-
-$(PG_SCHEMA_JSONB): $(PG_SCHEMA_TEMPLATE)
-	@echo '-- Auto-generated from schema.sql — do not edit.' > $@
-	@sed -n '/^-- Stream Table/,$$p' $< | sed -e 's/__DATA_TYPE__/JSONB/g' -e 's/__PREFIX__/cf_map_/g' >> $@
-
-$(PG_SCHEMA_BINARY): $(PG_SCHEMA_TEMPLATE)
-	@echo '-- Auto-generated from schema.sql — do not edit.' > $@
-	@sed -n '/^-- Stream Table/,$$p' $< | sed -e 's/__DATA_TYPE__/BYTEA/g' -e 's/__PREFIX__/cf_binary_map_/g' >> $@
-
-$(PG_SCHEMA_ALL): $(PG_SCHEMA_JSONB) $(PG_SCHEMA_BINARY)
-	@echo '-- Auto-generated unified schema — do not edit.' > $@
-	@echo '-- Apply this file for fresh installs. For upgrades, see migrations/.' >> $@
-	@echo '' >> $@
-	@cat $(PG_SCHEMA_JSONB) >> $@
-	@echo '' >> $@
-	@cat $(PG_SCHEMA_BINARY) >> $@

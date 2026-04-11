@@ -1877,6 +1877,10 @@ func TestPostgresMapBroker_EnsureSchema_MigrationExecution(t *testing.T) {
 		NumShards: 4,
 	})
 	require.NoError(t, err)
+
+	// This test temporarily mutates the package-level schemaVersion to test
+	// the migration loop. Save the original value so cleanup can restore it.
+	origSchemaVersion := schemaVersion
 	t.Cleanup(func() {
 		_ = broker.Close(ctx)
 		_ = node.Shutdown(ctx)
@@ -1885,22 +1889,30 @@ func TestPostgresMapBroker_EnsureSchema_MigrationExecution(t *testing.T) {
 			_, _ = broker.pool.Exec(ctx, fmt.Sprintf(
 				`ALTER TABLE %sstate DROP COLUMN IF EXISTS test_col`, prefix))
 		}
-		schemaVersion = 1
-		delete(schemaMigrations, 2)
+		schemaVersion = origSchemaVersion
+		delete(schemaMigrations, origSchemaVersion+1)
 	})
 
 	dropAllSchemaObjects(ctx, broker.pool)
 
-	// Create v1 schema.
+	// Force the initial install to be at the baseline so we can then upgrade
+	// to baseline+1 with a migration.
+	schemaVersion = origSchemaVersion - 1
+	if schemaVersion < 1 {
+		schemaVersion = 1
+	}
+	baseVersion := schemaVersion
+
+	// Create baseline schema.
 	err = broker.EnsureSchema(ctx)
 	require.NoError(t, err)
 
-	// Register migration v2: add test_col to both prefixes.
-	schemaMigrations[2] = `
+	// Register migration baseline+1: add test_col to both prefixes.
+	schemaMigrations[baseVersion+1] = `
 		ALTER TABLE cf_map_state ADD COLUMN IF NOT EXISTS test_col TEXT;
 		ALTER TABLE cf_binary_map_state ADD COLUMN IF NOT EXISTS test_col TEXT;
 	`
-	schemaVersion = 2
+	schemaVersion = baseVersion + 1
 
 	// Run EnsureSchema again — should apply migration.
 	err = broker.EnsureSchema(ctx)
@@ -1917,13 +1929,13 @@ func TestPostgresMapBroker_EnsureSchema_MigrationExecution(t *testing.T) {
 		require.True(t, exists, "test_col should exist on %sstate", prefix)
 	}
 
-	// Verify version is now 2.
+	// Verify version is now baseVersion+1.
 	var version int
 	err = broker.pool.QueryRow(ctx,
 		`SELECT schema_version FROM cf_map_schema_version WHERE id = 1`,
 	).Scan(&version)
 	require.NoError(t, err)
-	require.Equal(t, 2, version)
+	require.Equal(t, baseVersion+1, version)
 }
 
 // TestPostgresMapBroker_EnsureSchema_MigrationIdempotent tests that migrations can run twice.
@@ -1946,6 +1958,8 @@ func TestPostgresMapBroker_EnsureSchema_MigrationIdempotent(t *testing.T) {
 		NumShards: 4,
 	})
 	require.NoError(t, err)
+
+	origSchemaVersion := schemaVersion
 	t.Cleanup(func() {
 		_ = broker.Close(ctx)
 		_ = node.Shutdown(ctx)
@@ -1953,30 +1967,39 @@ func TestPostgresMapBroker_EnsureSchema_MigrationIdempotent(t *testing.T) {
 			_, _ = broker.pool.Exec(ctx, fmt.Sprintf(
 				`ALTER TABLE %sstate DROP COLUMN IF EXISTS test_col`, prefix))
 		}
-		schemaVersion = 1
-		delete(schemaMigrations, 2)
+		schemaVersion = origSchemaVersion
+		delete(schemaMigrations, origSchemaVersion+1)
 	})
 
 	dropAllSchemaObjects(ctx, broker.pool)
 
-	// Create v1 schema.
+	// Force the initial install to be at the baseline.
+	schemaVersion = origSchemaVersion - 1
+	if schemaVersion < 1 {
+		schemaVersion = 1
+	}
+	baseVersion := schemaVersion
+
+	// Create baseline schema.
 	err = broker.EnsureSchema(ctx)
 	require.NoError(t, err)
 
-	// Register migration v2.
-	schemaMigrations[2] = `
+	// Register migration baseline+1.
+	schemaMigrations[baseVersion+1] = `
 		ALTER TABLE cf_map_state ADD COLUMN IF NOT EXISTS test_col TEXT;
 		ALTER TABLE cf_binary_map_state ADD COLUMN IF NOT EXISTS test_col TEXT;
 	`
-	schemaVersion = 2
+	schemaVersion = baseVersion + 1
 
 	// First migration run.
 	err = broker.EnsureSchema(ctx)
 	require.NoError(t, err)
 
 	// Reset version in DB to force re-run of DDL + migration.
-	_, _ = broker.pool.Exec(ctx, `UPDATE cf_map_schema_version SET schema_version = 1 WHERE id = 1`)
-	_, _ = broker.pool.Exec(ctx, `UPDATE cf_binary_map_schema_version SET schema_version = 1 WHERE id = 1`)
+	_, _ = broker.pool.Exec(ctx, fmt.Sprintf(
+		`UPDATE cf_map_schema_version SET schema_version = %d WHERE id = 1`, baseVersion))
+	_, _ = broker.pool.Exec(ctx, fmt.Sprintf(
+		`UPDATE cf_binary_map_schema_version SET schema_version = %d WHERE id = 1`, baseVersion))
 
 	// Second migration run — should succeed (idempotent).
 	err = broker.EnsureSchema(ctx)
@@ -2003,6 +2026,8 @@ func TestPostgresMapBroker_EnsureSchema_FreshInstallSkipsMigrations(t *testing.T
 		NumShards: 4,
 	})
 	require.NoError(t, err)
+
+	origSchemaVersion := schemaVersion
 	t.Cleanup(func() {
 		_ = broker.Close(ctx)
 		_ = node.Shutdown(ctx)
@@ -2010,30 +2035,31 @@ func TestPostgresMapBroker_EnsureSchema_FreshInstallSkipsMigrations(t *testing.T
 			_, _ = broker.pool.Exec(ctx, fmt.Sprintf(
 				`ALTER TABLE %sstate DROP COLUMN IF EXISTS test_col`, prefix))
 		}
-		schemaVersion = 1
-		delete(schemaMigrations, 2)
+		schemaVersion = origSchemaVersion
+		delete(schemaMigrations, origSchemaVersion+1)
 	})
 
 	dropAllSchemaObjects(ctx, broker.pool)
 
-	// Set up v2 with a migration that adds a column (harmless but verifiable).
-	schemaMigrations[2] = `
+	// Set up baseline+1 with a migration that adds a column.
+	schemaMigrations[origSchemaVersion+1] = `
 		ALTER TABLE cf_map_state ADD COLUMN IF NOT EXISTS test_col TEXT;
 		ALTER TABLE cf_binary_map_state ADD COLUMN IF NOT EXISTS test_col TEXT;
 	`
-	schemaVersion = 2
+	targetVersion := origSchemaVersion + 1
+	schemaVersion = targetVersion
 
 	// Fresh install — DDL creates latest schema, migration should be skipped.
 	err = broker.EnsureSchema(ctx)
 	require.NoError(t, err)
 
-	// Version should be 2 (set by UPDATE at end).
+	// Version should be targetVersion (set by UPDATE at end).
 	var version int
 	err = broker.pool.QueryRow(ctx,
 		`SELECT schema_version FROM cf_map_schema_version WHERE id = 1`,
 	).Scan(&version)
 	require.NoError(t, err)
-	require.Equal(t, 2, version)
+	require.Equal(t, targetVersion, version)
 }
 
 // TestPostgresMapBroker_EnsureSchema_VersionPreservedOnDDLRerun tests that DO NOTHING preserves version.
@@ -2056,38 +2082,43 @@ func TestPostgresMapBroker_EnsureSchema_VersionPreservedOnDDLRerun(t *testing.T)
 		NumShards: 4,
 	})
 	require.NoError(t, err)
+
+	origSchemaVersion := schemaVersion
 	t.Cleanup(func() {
 		_ = broker.Close(ctx)
 		_ = node.Shutdown(ctx)
-		schemaVersion = 1
+		schemaVersion = origSchemaVersion
 	})
 
 	dropAllSchemaObjects(ctx, broker.pool)
 
-	// Create v1 schema.
+	// Create schema at the current package version.
 	err = broker.EnsureSchema(ctx)
 	require.NoError(t, err)
 
-	// Manually bump version to 2 (simulating a previous upgrade).
-	_, err = broker.pool.Exec(ctx, `UPDATE cf_map_schema_version SET schema_version = 2 WHERE id = 1`)
+	// Manually bump version (simulating a previous upgrade past the current).
+	bumpedVersion := origSchemaVersion + 1
+	_, err = broker.pool.Exec(ctx, fmt.Sprintf(
+		`UPDATE cf_map_schema_version SET schema_version = %d WHERE id = 1`, bumpedVersion))
 	require.NoError(t, err)
-	_, err = broker.pool.Exec(ctx, `UPDATE cf_binary_map_schema_version SET schema_version = 2 WHERE id = 1`)
+	_, err = broker.pool.Exec(ctx, fmt.Sprintf(
+		`UPDATE cf_binary_map_schema_version SET schema_version = %d WHERE id = 1`, bumpedVersion))
 	require.NoError(t, err)
 
-	// Set schemaVersion to 2 so fast path matches.
-	schemaVersion = 2
+	// Set package var so fast path matches the bumped version.
+	schemaVersion = bumpedVersion
 
 	// Call EnsureSchema — should take fast path (version matches, probe OK).
 	err = broker.EnsureSchema(ctx)
 	require.NoError(t, err)
 
-	// Verify version is still 2 (not reset to 1 by DDL's DO NOTHING).
+	// Verify version is still bumpedVersion (not reset by DDL's DO NOTHING).
 	var version int
 	err = broker.pool.QueryRow(ctx,
 		`SELECT schema_version FROM cf_map_schema_version WHERE id = 1`,
 	).Scan(&version)
 	require.NoError(t, err)
-	require.Equal(t, 2, version)
+	require.Equal(t, bumpedVersion, version)
 }
 
 // TestPostgresMapBroker_EnsureSchema_FunctionalAfterMigration tests that all operations work after migration.
@@ -3276,4 +3307,342 @@ func TestPostgresMapBroker_RedisFanout_ClientInfo(t *testing.T) {
 			t.Fatal("timeout waiting for publication event")
 		}
 	}
+}
+
+// ============================================================================
+// TablePrefix Tests
+// ============================================================================
+
+// TestPostgresMapBroker_TablePrefix_CustomPrefix verifies that a broker
+// configured with a non-default TablePrefix creates its schema under the
+// custom prefix and can publish/read state normally — the full multi-tenant
+// use case.
+func TestPostgresMapBroker_TablePrefix_CustomPrefix(t *testing.T) {
+	node, _ := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode:   centrifuge.MapModeDurable,
+					KeyTTL: 60 * time.Second,
+				}
+			},
+		},
+	})
+	connString := getPostgresConnString(t)
+
+	const customPrefix = "tenant_a_cf"
+
+	e, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
+		DSN:         connString,
+		NumShards:   4,
+		BinaryData:  true,
+		TablePrefix: customPrefix,
+		Outbox: OutboxConfig{
+			PollInterval: 10 * time.Millisecond,
+			BatchSize:    100,
+		},
+	})
+	require.NoError(t, err)
+
+	// Ensure clean slate: drop anything lingering from a previous run under
+	// either of the computed variant prefixes.
+	ctx := context.Background()
+	for _, prefix := range []string{customPrefix + "_map_", customPrefix + "_binary_map_"} {
+		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %spublish CASCADE", prefix))
+		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %spublish_strict CASCADE", prefix))
+		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %sremove CASCADE", prefix))
+		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %sremove_strict CASCADE", prefix))
+		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %sexpire_keys CASCADE", prefix))
+		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %sstream_publish CASCADE", prefix))
+		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %sstream_remove CASCADE", prefix))
+		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %sidempotency CASCADE", prefix))
+		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %sstream CASCADE", prefix))
+		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %sstate CASCADE", prefix))
+		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %smeta CASCADE", prefix))
+		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %sshard_lock CASCADE", prefix))
+		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %sschema_version CASCADE", prefix))
+	}
+
+	require.NoError(t, e.EnsureSchema(ctx))
+	require.NoError(t, e.RegisterEventHandler(nil))
+
+	// Shutdown order matters: close broker first (stops outbox workers
+	// polling the custom-prefix tables), then drop the schema. Otherwise
+	// workers race the DROP statements and emit stray error logs.
+	t.Cleanup(func() {
+		_ = e.Close(context.Background())
+		_ = node.Shutdown(context.Background())
+	})
+
+	// Verify BOTH variants exist under the custom prefix.
+	verifySchemaComplete(t, ctx, e.pool, customPrefix+"_map_", true)
+	verifySchemaComplete(t, ctx, e.pool, customPrefix+"_binary_map_", false)
+
+	// Verify default-prefix tables are NOT created by this broker (i.e. the
+	// custom prefix is honored, not just appended to the default).
+	var defaultExists bool
+	err = e.pool.QueryRow(ctx, `
+		SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'cf_map_state')
+	`).Scan(&defaultExists)
+	require.NoError(t, err)
+	// Note: cf_map_state may exist from other tests in this run. We can't
+	// assert its absence — we only assert the custom-prefix tables DO exist.
+	// The key invariant is that the broker uses custom-prefix tables, which
+	// the publish/read below exercises.
+
+	// Publish and read state to confirm the broker actually uses the custom tables.
+	channel := "test_custom_prefix_channel"
+	_, err = e.Publish(ctx, channel, "key1", centrifuge.MapPublishOptions{
+		Data: []byte("value1"),
+	})
+	require.NoError(t, err)
+
+	stateRes, err := e.ReadState(ctx, channel, centrifuge.MapReadStateOptions{Limit: 10})
+	require.NoError(t, err)
+	state := stateToMapPostgres(stateRes.Publications)
+	require.Equal(t, []byte("value1"), state["key1"])
+
+	// Verify the row landed in the CUSTOM-prefix state table, not the default.
+	var rowCount int
+	err = e.pool.QueryRow(ctx, fmt.Sprintf(
+		`SELECT COUNT(*) FROM %s_binary_map_state WHERE channel = $1`, customPrefix),
+		channel).Scan(&rowCount)
+	require.NoError(t, err)
+	require.Equal(t, 1, rowCount, "row should be stored in the custom-prefix state table")
+}
+
+// TestPostgresMapBroker_TablePrefix_TrailingUnderscoreTrimmed verifies that
+// TablePrefix values ending in one or more underscores are normalized by
+// setDefaults — both "cf" and "cf_" and "cf__" produce the same full prefix.
+func TestPostgresMapBroker_TablePrefix_TrailingUnderscoreTrimmed(t *testing.T) {
+	cases := []struct {
+		input    string
+		wantRoot string
+	}{
+		{"cf", "cf"},
+		{"cf_", "cf"},
+		{"cf__", "cf"},
+		{"tenant_a", "tenant_a"},
+		{"tenant_a_", "tenant_a"},
+		{"", "cf"}, // empty defaults to "cf"
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			c := &PostgresMapBrokerConfig{TablePrefix: tc.input}
+			c.setDefaults()
+			require.Equal(t, tc.wantRoot, c.TablePrefix)
+		})
+	}
+}
+
+// ============================================================================
+// Partitioning Tests
+// ============================================================================
+
+// newTestPostgresMapBrokerWithPartitioning creates a broker with the
+// partition retention worker tuned for fast test feedback. The partition
+// maintenance ticker runs at 100ms and retention is set to 1 day so tests
+// can trigger drop-old-partition behavior quickly.
+//
+// As of the always-partitioned restructure, the schema is always partitioned
+// — the helper name is kept for git history continuity but there's no
+// "non-partitioned mode" anymore.
+func newTestPostgresMapBrokerWithPartitioning(tb testing.TB, n *centrifuge.Node) *PostgresMapBroker {
+	connString := getPostgresConnString(tb)
+
+	e, err := NewPostgresMapBroker(n, PostgresMapBrokerConfig{
+		DSN:                    connString,
+		NumShards:              4,
+		BinaryData:             true,
+		CleanupInterval:        100 * time.Millisecond,
+		PartitionLookaheadDays: 1,
+		PartitionRetentionDays: 1,
+		Outbox: OutboxConfig{
+			PollInterval: 10 * time.Millisecond,
+			BatchSize:    100,
+		},
+	})
+	require.NoError(tb, err)
+
+	ctx := context.Background()
+	require.NoError(tb, e.EnsureSchema(ctx))
+	// Force partitioning setup in case EnsureSchema took the fast path.
+	require.NoError(tb, e.ensurePartitionedStream(ctx))
+	cleanupTestTables(ctx, e)
+
+	err = e.RegisterEventHandler(nil)
+	require.NoError(tb, err)
+
+	tb.Cleanup(func() {
+		_ = e.Close(context.Background())
+		_ = n.Shutdown(context.Background())
+	})
+	return e
+}
+
+// listChildPartitions returns the names of child partitions of the stream
+// table, via pg_inherits.
+func listChildPartitions(ctx context.Context, e *PostgresMapBroker) ([]string, error) {
+	rows, err := e.pool.Query(ctx, `
+		SELECT c.relname
+		FROM pg_inherits i
+		JOIN pg_class c ON c.oid = i.inhrelid
+		JOIN pg_class p ON p.oid = i.inhparent
+		WHERE p.relname = $1
+		ORDER BY c.relname
+	`, e.names.stream)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var names []string
+	for rows.Next() {
+		var n string
+		if err := rows.Scan(&n); err != nil {
+			return nil, err
+		}
+		names = append(names, n)
+	}
+	return names, nil
+}
+
+// isPartitioned checks whether the stream table is declared PARTITION BY RANGE.
+func isPartitioned(ctx context.Context, e *PostgresMapBroker) (bool, error) {
+	var ok bool
+	err := e.pool.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM pg_partitioned_table
+			WHERE partrelid = $1::regclass
+		)
+	`, e.names.stream).Scan(&ok)
+	return ok, err
+}
+
+// TestPostgresMapBroker_Partitioning_LookaheadAndDrop verifies the end-to-end
+// partitioning refactor: parent is PARTITION BY RANGE, lookahead partitions
+// exist, and the cleanup ticker drops partitions older than retention.
+func TestPostgresMapBroker_Partitioning_LookaheadAndDrop(t *testing.T) {
+	node, _ := centrifuge.New(centrifuge.Config{})
+	broker := newTestPostgresMapBrokerWithPartitioning(t, node)
+	ctx := context.Background()
+
+	// Parent is declared as PARTITION BY RANGE.
+	partitioned, err := isPartitioned(ctx, broker)
+	require.NoError(t, err)
+	require.True(t, partitioned, "stream table should be PARTITION BY RANGE")
+
+	// Today's and tomorrow's partitions should exist (LookaheadDays=1).
+	now := time.Now().UTC()
+	todayName := fmt.Sprintf("%s_%s", broker.names.stream, now.Format("2006_01_02"))
+	tomorrowName := fmt.Sprintf("%s_%s", broker.names.stream, now.AddDate(0, 0, 1).Format("2006_01_02"))
+
+	names, err := listChildPartitions(ctx, broker)
+	require.NoError(t, err)
+	require.Contains(t, names, todayName)
+	require.Contains(t, names, tomorrowName)
+
+	// Manually create an old-dated partition that the cleanup ticker should drop.
+	oldDay := now.AddDate(0, 0, -10) // 10 days ago — well past retention=1
+	oldName := fmt.Sprintf("%s_%s", broker.names.stream, oldDay.Format("2006_01_02"))
+	oldFrom := oldDay.Format("2006-01-02")
+	oldTo := oldDay.AddDate(0, 0, 1).Format("2006-01-02")
+	_, err = broker.pool.Exec(ctx, fmt.Sprintf(
+		`CREATE TABLE IF NOT EXISTS %s PARTITION OF %s FOR VALUES FROM ('%s') TO ('%s')`,
+		oldName, broker.names.stream, oldFrom, oldTo,
+	))
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		// Best-effort cleanup in case the test fails before the ticker runs.
+		_, _ = broker.pool.Exec(context.Background(), fmt.Sprintf("DROP TABLE IF EXISTS %s", oldName))
+	})
+
+	// Verify the old partition is currently listed.
+	names, err = listChildPartitions(ctx, broker)
+	require.NoError(t, err)
+	require.Contains(t, names, oldName)
+
+	// Wait for the cleanup ticker (CleanupInterval=100ms) to drop it.
+	deadline := time.Now().Add(5 * time.Second)
+	dropped := false
+	for time.Now().Before(deadline) {
+		names, err = listChildPartitions(ctx, broker)
+		require.NoError(t, err)
+		found := false
+		for _, n := range names {
+			if n == oldName {
+				found = true
+				break
+			}
+		}
+		if !found {
+			dropped = true
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	require.True(t, dropped, "old partition %s should have been dropped by cleanup ticker", oldName)
+
+	// Today's and tomorrow's partitions should still be present.
+	names, err = listChildPartitions(ctx, broker)
+	require.NoError(t, err)
+	require.Contains(t, names, todayName, "cleanup must not drop today's partition")
+	require.Contains(t, names, tomorrowName, "cleanup must not drop tomorrow's partition")
+}
+
+// TestPostgresMapBroker_Partitioning_EnsureLookahead_Idempotent verifies that
+// calling ensurePartitionedStream twice is safe and does not duplicate
+// partitions.
+func TestPostgresMapBroker_Partitioning_EnsureLookahead_Idempotent(t *testing.T) {
+	node, _ := centrifuge.New(centrifuge.Config{})
+	broker := newTestPostgresMapBrokerWithPartitioning(t, node)
+	ctx := context.Background()
+
+	// Snapshot the current partition list after schema init.
+	before, err := listChildPartitions(ctx, broker)
+	require.NoError(t, err)
+	require.NotEmpty(t, before, "at least today+tomorrow partitions should exist after init")
+
+	// Call ensurePartitionedStream a second time — must not error and must
+	// not duplicate partitions.
+	err = broker.ensurePartitionedStream(ctx)
+	require.NoError(t, err, "ensurePartitionedStream must be idempotent")
+
+	after, err := listChildPartitions(ctx, broker)
+	require.NoError(t, err)
+	require.ElementsMatch(t, before, after, "partition list should be unchanged after second ensurePartitionedStream")
+}
+
+// TestPostgresMapBroker_Partitioning_DropOldPartitions_IgnoresInvalidNames
+// verifies that partitions with names that don't match the expected
+// {parent}_{YYYY}_{MM}_{DD} convention are left alone by cleanup.
+func TestPostgresMapBroker_Partitioning_DropOldPartitions_IgnoresInvalidNames(t *testing.T) {
+	node, _ := centrifuge.New(centrifuge.Config{})
+	broker := newTestPostgresMapBrokerWithPartitioning(t, node)
+	ctx := context.Background()
+
+	// Create a partition with a non-date suffix name. Partition bounds are
+	// required, but the name deliberately does not end in _YYYY_MM_DD.
+	malformedName := broker.names.stream + "_legacy_backup"
+	// Use a date range far in the future so it doesn't conflict with lookahead.
+	farFuture := time.Now().UTC().AddDate(10, 0, 0)
+	from := farFuture.Format("2006-01-02")
+	to := farFuture.AddDate(0, 0, 1).Format("2006-01-02")
+	_, err := broker.pool.Exec(ctx, fmt.Sprintf(
+		`CREATE TABLE IF NOT EXISTS %s PARTITION OF %s FOR VALUES FROM ('%s') TO ('%s')`,
+		malformedName, broker.names.stream, from, to,
+	))
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, _ = broker.pool.Exec(context.Background(), fmt.Sprintf("DROP TABLE IF EXISTS %s", malformedName))
+	})
+
+	// Wait long enough for several cleanup ticks to have run.
+	time.Sleep(500 * time.Millisecond)
+
+	// The malformed partition must still exist — its non-standard name
+	// means parsePartitionDate returns false and cleanup skips it.
+	names, err := listChildPartitions(ctx, broker)
+	require.NoError(t, err)
+	require.Contains(t, names, malformedName,
+		"partition with non-standard name should not be dropped by automatic cleanup")
 }

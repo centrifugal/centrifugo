@@ -808,7 +808,7 @@
         "level": 2,
         "type": "string",
         "default": "memory",
-        "comment": "Type of broker to use. Can be \"memory\", \"redis\", \"nats\" at this point.",
+        "comment": "Type of broker to use. Can be \"memory\", \"redis\", \"nats\", \"postgres\" at this point.",
         "is_complex_type": false
       },
       {
@@ -1352,6 +1352,200 @@
                 "is_complex_type": false
               }
             ]
+          }
+        ]
+      },
+      {
+        "field": "broker.postgres",
+        "name": "postgres",
+        "go_name": "Postgres",
+        "level": 2,
+        "type": "PostgresStreamBroker",
+        "default": "",
+        "comment": "Postgres is a configuration for \"postgres\" stream broker (PG-backed\nimplementation of centrifuge.Broker for stream subscriptions).",
+        "is_complex_type": true,
+        "children": [
+          {
+            "field": "broker.postgres.dsn",
+            "name": "dsn",
+            "go_name": "DSN",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "DSN is the primary PostgreSQL connection string.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.pool_size",
+            "name": "pool_size",
+            "go_name": "PoolSize",
+            "level": 3,
+            "type": "int",
+            "default": "32",
+            "comment": "PoolSize sets the maximum number of connections in the pool. Default: 32.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.num_shards",
+            "name": "num_shards",
+            "go_name": "NumShards",
+            "level": 3,
+            "type": "int",
+            "default": "16",
+            "comment": "NumShards is the total number of shards for parallel delivery workers.\nChannels are distributed across shards using consistent hashing. Default: 16.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.cleanup_interval",
+            "name": "cleanup_interval",
+            "go_name": "CleanupInterval",
+            "level": 3,
+            "type": "Duration",
+            "default": "1m",
+            "comment": "CleanupInterval is how often the cleanup and partition workers tick. Default: \"1m\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.idempotent_result_ttl",
+            "name": "idempotent_result_ttl",
+            "go_name": "IdempotentResultTTL",
+            "level": 3,
+            "type": "Duration",
+            "default": "5m",
+            "comment": "IdempotentResultTTL is the default TTL for idempotency cache entries. Default: \"5m\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.binary_data",
+            "name": "binary_data",
+            "go_name": "BinaryData",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "BinaryData uses BYTEA columns instead of JSONB for data fields.\nSet to true if data payloads are not valid JSON.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.stream_retention",
+            "name": "stream_retention",
+            "go_name": "StreamRetention",
+            "level": 3,
+            "type": "Duration",
+            "default": "24h",
+            "comment": "StreamRetention is the safety floor for HistoryMetaTTL when neither\nPublishOptions nor node config sets it. Default: \"24h\". Guarantees\nevery channel meta row eventually expires.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.use_notify",
+            "name": "use_notify",
+            "go_name": "UseNotify",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "UseNotify enables LISTEN/NOTIFY for low-latency outbox wakeup.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.skip_shard_lock",
+            "name": "skip_shard_lock",
+            "go_name": "SkipShardLock",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "SkipShardLock disables per-shard serialization of history inserts.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.skip_schema_init",
+            "name": "skip_schema_init",
+            "go_name": "SkipSchemaInit",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "SkipSchemaInit disables automatic schema initialization on startup.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.outbox",
+            "name": "outbox",
+            "go_name": "Outbox",
+            "level": 3,
+            "type": "PostgresMapBrokerOutbox",
+            "default": "",
+            "comment": "Outbox configures the outbox-based delivery mode.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "broker.postgres.outbox.poll_interval",
+                "name": "poll_interval",
+                "go_name": "PollInterval",
+                "level": 4,
+                "type": "Duration",
+                "default": "50ms",
+                "comment": "PollInterval is how often to poll for new stream entries when idle. Default: \"50ms\".",
+                "is_complex_type": false
+              },
+              {
+                "field": "broker.postgres.outbox.batch_size",
+                "name": "batch_size",
+                "go_name": "BatchSize",
+                "level": 4,
+                "type": "int",
+                "default": "1000",
+                "comment": "BatchSize is the maximum number of rows to process per batch. Default: 1000.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "broker.postgres.partition_lookahead_days",
+            "name": "partition_lookahead_days",
+            "go_name": "PartitionLookaheadDays",
+            "level": 3,
+            "type": "int",
+            "default": "2",
+            "comment": "PartitionLookaheadDays controls how many future daily partitions to\npre-create. Default: 2 (gives a 48-hour safety window).",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.partition_retention_days",
+            "name": "partition_retention_days",
+            "go_name": "PartitionRetentionDays",
+            "level": 3,
+            "type": "int",
+            "default": "7",
+            "comment": "PartitionRetentionDays controls how old a partition can be before it\ngets dropped whole by the partition retention worker. Default: 7.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.fine_grained_history_cleanup",
+            "name": "fine_grained_history_cleanup",
+            "go_name": "FineGrainedHistoryCleanup",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "FineGrainedHistoryCleanup enables an opt-in chunked DELETE pass that\nremoves history rows past their channel's history_ttl, instead of\nwaiting for partition retention. Use for tight-storage deployments\nwhere HistoryTTL is much smaller than PartitionRetentionDays.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.cleanup_batch_size",
+            "name": "cleanup_batch_size",
+            "go_name": "CleanupBatchSize",
+            "level": 3,
+            "type": "int",
+            "default": "1000",
+            "comment": "CleanupBatchSize bounds each fine-grained cleanup DELETE chunk. Default: 1000.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.cleanup_chunk_pause",
+            "name": "cleanup_chunk_pause",
+            "go_name": "CleanupChunkPause",
+            "level": 3,
+            "type": "Duration",
+            "default": "100ms",
+            "comment": "CleanupChunkPause is the pause between fine-grained cleanup chunks. Default: \"100ms\".",
+            "is_complex_type": false
           }
         ]
       }
@@ -2326,6 +2520,26 @@
                 "is_complex_type": false
               }
             ]
+          },
+          {
+            "field": "map_broker.postgres.partition_lookahead_days",
+            "name": "partition_lookahead_days",
+            "go_name": "PartitionLookaheadDays",
+            "level": 3,
+            "type": "int",
+            "default": "2",
+            "comment": "PartitionLookaheadDays controls how many future daily partitions to\npre-create. Required \u003e 0 so writes don't fail at the day rollover.\nDefault: 2 (gives a 48-hour safety window if the lookahead worker stalls).",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.partition_retention_days",
+            "name": "partition_retention_days",
+            "go_name": "PartitionRetentionDays",
+            "level": 3,
+            "type": "int",
+            "default": "7",
+            "comment": "PartitionRetentionDays controls how old a partition can be before it\ngets dropped whole by the partition retention worker. Default: 7.\nSet to a large value for longer retention; the special value 0 is\ninternally promoted to 7 (treat \"not set\" as default).",
+            "is_complex_type": false
           }
         ]
       }

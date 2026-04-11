@@ -114,15 +114,22 @@ func (h *MapRemoveHandler) Handle(node *centrifuge.Node) MapRemoveHandlerFunc {
 		}
 
 		key := e.Key
+		var tags map[string]string
+		var idempotencyKey string
 		if mapRemoveRep.Result != nil {
 			if mapRemoveRep.Result.Key != "" {
 				key = mapRemoveRep.Result.Key
 			}
+			tags = mapRemoveRep.Result.Tags
+			idempotencyKey = mapRemoveRep.Result.IdempotencyKey
 		}
 
 		result, err := node.MapRemove(
 			client.Context(), e.Channel, key,
-			centrifuge.MapRemoveOptions{},
+			centrifuge.MapRemoveOptions{
+				Tags:           tags,
+				IdempotencyKey: idempotencyKey,
+			},
 		)
 		return centrifuge.MapRemoveReply{Result: &result}, err
 	}

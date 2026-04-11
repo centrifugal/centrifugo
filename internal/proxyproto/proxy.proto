@@ -198,6 +198,11 @@ message PublishResult {
   bytes data = 1;
   string b64data = 2;
   bool skip_history = 3;
+  map<string, string> tags = 4;
+  string idempotency_key = 5;
+  bool delta = 6;
+  uint64 version = 7;
+  string version_epoch = 8;
 }
 
 message PublishResponse {
@@ -224,6 +229,15 @@ message MapPublishResult {
   string key = 1;
   bytes data = 2;
   string b64data = 3;
+  map<string, string> tags = 4;
+  int64 score = 5;
+  string key_mode = 6;
+  bytes stream_data = 7;
+  string b64stream_data = 8;
+  string idempotency_key = 9;
+  bool delta = 10;
+  uint64 version = 11;
+  string version_epoch = 12;
 }
 
 message MapPublishResponse {
@@ -246,6 +260,8 @@ message MapRemoveRequest {
 
 message MapRemoveResult {
   string key = 1;
+  map<string, string> tags = 2;
+  string idempotency_key = 3;
 }
 
 message MapRemoveResponse {

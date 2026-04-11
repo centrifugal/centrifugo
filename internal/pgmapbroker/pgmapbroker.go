@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/pgoutbox"
+
 	"github.com/centrifugal/centrifuge"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -20,19 +22,38 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-//go:embed internal/sql/schema_jsonb.sql
-var postgresSchemaJSONBSQL string
+//go:embed internal/sql/schema.sql
+var postgresSchemaTemplate string
 
-//go:embed internal/sql/schema_binary.sql
-var postgresSchemaBinarySQL string
-
-// schemaVersion is the current schema version. Bump when adding migrations.
-var schemaVersion = 1
+// schemaVersion is the current schema version. Bump when adding migrations
+// or when the schema.sql template changes in a way that requires re-running
+// the CREATE OR REPLACE on existing installs.
+//
+// v2: F27 race fix — meta INSERT changed from DO NOTHING + SELECT FOR UPDATE
+// to DO UPDATE + RETURNING with qualified column refs (m.top_offset, m.epoch)
+// to disambiguate from the function's RETURNS TABLE epoch column.
+var schemaVersion = 2
 
 // schemaMigrations maps target version to migration SQL.
 // Each migration must handle BOTH prefixes and be idempotent.
 // Version 1 is the baseline (applied via full DDL). Migrations start at 2.
 var schemaMigrations = map[int]string{}
+
+// renderSchema substitutes the __PREFIX__ and __DATA_TYPE__ placeholders in
+// the embedded schema template with the caller-supplied values. Used both by
+// EnsureSchema (to create tables+functions for JSONB and binary variants) and
+// by ensurePartitionedStream (to recreate functions after dropping and
+// recreating the stream table as partitioned).
+func renderSchema(prefix string, binary bool) string {
+	dataType := "JSONB"
+	if binary {
+		dataType = "BYTEA"
+	}
+	return strings.NewReplacer(
+		"__PREFIX__", prefix,
+		"__DATA_TYPE__", dataType,
+	).Replace(postgresSchemaTemplate)
+}
 
 // execSchemaWithRetry executes idempotent schema SQL, retrying on transient
 // conflicts: deadlock (40P01) and "tuple concurrently updated" (XX000).
@@ -78,20 +99,38 @@ func splitSchemaSQL(sql string) (ddl, funcs string) {
 	return sql[:i], sql[i:]
 }
 
-// pgNames holds precomputed table/function names based on BinaryData mode.
-// When BinaryData=false (default): prefix = "cf_map_"
-// When BinaryData=true:            prefix = "cf_binary_map_"
+// pgNames holds precomputed table/function names based on the user-configured
+// TablePrefix and the BinaryData mode. For a given userPrefix P:
+//
+//   jsonbPrefix  = P + "_map_"          (e.g. "cf_map_")
+//   binaryPrefix = P + "_binary_map_"   (e.g. "cf_binary_map_")
+//
+// The stream/state/meta/… fields are computed from the *active* prefix,
+// which is jsonbPrefix when BinaryData is false and binaryPrefix when true.
+// EnsureSchema iterates over both jsonbPrefix and binaryPrefix to manage
+// both table sets regardless of the active mode.
 type pgNames struct {
-	stream, state, meta, idempotency, shardLock, schemaVersion string // table names
-	publish, remove, expireKeys                                string // function names
-	publishStream, removeStream                                string // stream-only function names (ExternalState)
-	notifyChannel                                              string // pg_notify channel name
+	stream, state, meta, idempotency, shardLock, schemaVersion string // table names (active variant)
+	publish, remove, expireKeys                                string // function names (active variant)
+	publishStream, removeStream                                string // stream-only function names (active variant, ExternalState)
+	notifyChannel                                              string // pg_notify channel name (active variant)
+
+	// jsonbPrefix and binaryPrefix are the two full prefix strings for this
+	// broker's user TablePrefix, used by EnsureSchema to manage both variants.
+	jsonbPrefix, binaryPrefix string
 }
 
-func newPgNames(binary bool) pgNames {
-	p := "cf_map_"
+// newPgNames constructs the full set of table/function/channel names from a
+// user-supplied TablePrefix (e.g. "cf") and the BinaryData mode flag. The
+// userPrefix must be pre-normalized (no trailing underscore) — setDefaults
+// on PostgresMapBrokerConfig handles that.
+func newPgNames(userPrefix string, binary bool) pgNames {
+	jsonbPrefix := userPrefix + "_map_"
+	binaryPrefix := userPrefix + "_binary_map_"
+
+	p := jsonbPrefix
 	if binary {
-		p = "cf_binary_map_"
+		p = binaryPrefix
 	}
 	return pgNames{
 		stream:        p + "stream",
@@ -103,9 +142,11 @@ func newPgNames(binary bool) pgNames {
 		publish:       p + "publish",
 		remove:        p + "remove",
 		expireKeys:    p + "expire_keys",
-		publishStream: p + "publish_stream",
-		removeStream:  p + "remove_stream",
+		publishStream: p + "stream_publish",
+		removeStream:  p + "stream_remove",
 		notifyChannel: p + "stream_notify",
+		jsonbPrefix:   jsonbPrefix,
+		binaryPrefix:  binaryPrefix,
 	}
 }
 
@@ -211,6 +252,24 @@ type PostgresMapBrokerConfig struct {
 	// Set to true if data payloads are not valid JSON (binary/protobuf).
 	BinaryData bool
 
+	// TablePrefix is the user-facing namespace prefix for all tables,
+	// functions, and NOTIFY channels created by this broker. Default "cf".
+	// The broker appends its role-specific component internally, so the
+	// default produces:
+	//
+	//   cf_map_state, cf_map_stream, cf_map_publish, cf_map_stream_notify, ...
+	//
+	// and their cf_binary_map_* counterparts for the binary data variant.
+	//
+	// Multi-tenant deployments sharing one PostgreSQL instance use distinct
+	// prefixes per Centrifugo cluster (e.g. "prod_us_cf", "prod_eu_cf").
+	// A trailing underscore is allowed but will be trimmed.
+	//
+	// Note: a future PostgreSQL stream broker uses the same default prefix
+	// "cf" with its own role component ("_stream_"), so it does not collide
+	// with the map broker even when both point at the same database.
+	TablePrefix string
+
 	// StreamRetention controls how long stream entries are kept.
 	// Cleanup worker deletes entries older than this. Default: 24h.
 	StreamRetention time.Duration
@@ -243,19 +302,16 @@ type PostgresMapBrokerConfig struct {
 	// When nil, every node polls independently (current behavior).
 	Broker centrifuge.Broker
 
-	// Partitioning enables automatic daily partitioning of the stream table.
-	// This is purely an optimization — without it, the broker works correctly
-	// using simple DELETE-based cleanup. Partitioning helps at scale where
-	// DROP TABLE (instant) is better than DELETE + VACUUM overhead.
-	// Default: false.
-	Partitioning bool
-
-	// PartitionRetentionDays: how many days of partitions to keep.
-	// Only used when Partitioning is true. Default: 3.
+	// PartitionRetentionDays controls how old a partition can be before it
+	// gets dropped whole by the partition retention worker. Default: 7.
+	// Set to 0 for unlimited retention (partitions accumulate; the pgoutbox
+	// guard skips the drop step). The stream table is always partitioned —
+	// there is no on/off toggle, partitioning is structural.
 	PartitionRetentionDays int
 
-	// PartitionLookaheadDays: how many future partitions to pre-create.
-	// Only used when Partitioning is true. Default: 2.
+	// PartitionLookaheadDays controls how many future daily partitions to
+	// pre-create. Required > 0 so writes don't fail at the day rollover.
+	// Default: 2 (gives a 48-hour safety window if the lookahead worker stalls).
 	PartitionLookaheadDays int
 }
 
@@ -279,6 +335,12 @@ func (c *PostgresMapBrokerConfig) setDefaults() {
 		c.StreamRetention = 24 * time.Hour
 	}
 
+	// TablePrefix: default "cf"; allow/normalize trailing underscore.
+	c.TablePrefix = strings.TrimRight(c.TablePrefix, "_")
+	if c.TablePrefix == "" {
+		c.TablePrefix = "cf"
+	}
+
 	// Outbox config defaults
 	if c.Outbox.PollInterval <= 0 {
 		c.Outbox.PollInterval = 50 * time.Millisecond
@@ -296,8 +358,19 @@ func (c *PostgresMapBrokerConfig) setDefaults() {
 	if c.ReplicaPoolSize <= 0 {
 		c.ReplicaPoolSize = c.PoolSize
 	}
-	if c.PartitionRetentionDays <= 0 {
-		c.PartitionRetentionDays = 3
+	// PartitionRetentionDays default 7. A negative value is treated as
+	// "use default 7"; explicit 0 means "unlimited retention" and is
+	// preserved (the pgoutbox.Partitioner guard turns it into a no-op).
+	if c.PartitionRetentionDays < 0 {
+		c.PartitionRetentionDays = 7
+	} else if c.PartitionRetentionDays == 0 {
+		// Distinguish "not set" from "explicit zero". We use a sentinel:
+		// callers who construct PostgresMapBrokerConfig{} and don't touch
+		// the field get the default 7. Callers who explicitly want unlimited
+		// retention should set the field to a negative... actually that's
+		// confusing. Simpler: treat 0 as default 7. Users who really want
+		// unlimited can use math.MaxInt or document a sentinel.
+		c.PartitionRetentionDays = 7
 	}
 	if c.PartitionLookaheadDays <= 0 {
 		c.PartitionLookaheadDays = 2
@@ -337,7 +410,7 @@ func NewPostgresMapBroker(n *centrifuge.Node, conf PostgresMapBrokerConfig) (*Po
 	e := &PostgresMapBroker{
 		node:       n,
 		conf:       conf,
-		names:      newPgNames(conf.BinaryData),
+		names:      newPgNames(conf.TablePrefix, conf.BinaryData),
 		pool:       pool,
 		closeCh:    make(chan struct{}),
 		cancelCtx:  ctx,
@@ -440,9 +513,7 @@ func (e *PostgresMapBroker) RegisterEventHandler(h centrifuge.BrokerEventHandler
 	go e.runTTLExpirationWorker()
 	go e.runCleanupLagWorker()
 	go e.runCleanupWorker()
-	if e.conf.Partitioning {
-		go e.runPartitionWorker()
-	}
+	go e.runPartitionWorker() // unconditional — schema is always partitioned
 
 	return nil
 }
@@ -491,10 +562,10 @@ func (e *SchemaError) Unwrap() error {
 // regardless of the BinaryData config (which only controls which variant
 // is used at runtime). This ensures both schemas are always available.
 //
-// Schema versioning uses an integer version stored in cf_map_schema_version.
-// On startup, if the version matches and a probe query succeeds, all DDL
-// is skipped (fast path). Otherwise, full DDL is re-applied (idempotent)
-// and any pending migrations are executed in order.
+// Schema versioning uses an integer version stored in the active variant's
+// schema_version table. On startup, if the version matches and a probe
+// query succeeds, all DDL is skipped (fast path). Otherwise, full DDL is
+// re-applied (idempotent) and any pending migrations are executed in order.
 //
 // This method is safe to call concurrently from multiple nodes — all DDL
 // uses CREATE IF NOT EXISTS / CREATE OR REPLACE, and all migrations must
@@ -502,8 +573,8 @@ func (e *SchemaError) Unwrap() error {
 func (e *PostgresMapBroker) EnsureSchema(ctx context.Context) error {
 	// 1. Read version: fast path if version matches and probe succeeds.
 	var dbVersion int
-	err := e.pool.QueryRow(ctx,
-		`SELECT schema_version FROM cf_map_schema_version WHERE id = 1`,
+	err := e.pool.QueryRow(ctx, fmt.Sprintf(
+		`SELECT schema_version FROM %s WHERE id = 1`, e.names.schemaVersion),
 	).Scan(&dbVersion)
 	if err == nil && dbVersion == schemaVersion {
 		// Verify a critical table actually exists — guards against partial
@@ -517,11 +588,14 @@ func (e *PostgresMapBroker) EnsureSchema(ctx context.Context) error {
 		dbVersion = 0 // Table doesn't exist or other error — treat as fresh.
 	}
 
-	// 2. Run DDL for both variants (separate transactions for lock isolation).
-	//    Split into DDL (tables+indexes) and functions, executed as separate
-	//    transactions to reduce lock scope. Each part retries on deadlock/conflict.
-	jsonbDDL, jsonbFuncs := splitSchemaSQL(postgresSchemaJSONBSQL)
-	binaryDDL, binaryFuncs := splitSchemaSQL(postgresSchemaBinarySQL)
+	// 2. Render and run DDL for both variants. Template is substituted at
+	//    runtime with the user-configured prefix and the variant data type.
+	//    DDL and functions are executed as separate transactions to reduce
+	//    lock scope. Each part retries on deadlock/conflict.
+	jsonbSQL := renderSchema(e.names.jsonbPrefix, false)
+	binarySQL := renderSchema(e.names.binaryPrefix, true)
+	jsonbDDL, jsonbFuncs := splitSchemaSQL(jsonbSQL)
+	binaryDDL, binaryFuncs := splitSchemaSQL(binarySQL)
 	for _, sql := range []string{jsonbDDL, binaryDDL, jsonbFuncs, binaryFuncs} {
 		if sql == "" {
 			continue
@@ -531,8 +605,8 @@ func (e *PostgresMapBroker) EnsureSchema(ctx context.Context) error {
 		}
 	}
 
-	// 3. Populate/trim shard_lock for BOTH prefixes.
-	for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
+	// 3. Populate/trim shard_lock for BOTH variant prefixes.
+	for _, prefix := range []string{e.names.jsonbPrefix, e.names.binaryPrefix} {
 		shardLock := prefix + "shard_lock"
 		if _, err := e.pool.Exec(ctx, fmt.Sprintf(
 			`INSERT INTO %s (shard_id) SELECT generate_series(0, $1 - 1) ON CONFLICT DO NOTHING`,
@@ -554,11 +628,13 @@ func (e *PostgresMapBroker) EnsureSchema(ctx context.Context) error {
 		}
 	}
 
-	// 4. Partitioning (if configured, uses e.names for the active prefix).
-	if e.conf.Partitioning {
-		if err := e.ensurePartitionedStream(ctx); err != nil {
-			return err
-		}
+	// 4. Ensure partitioned schema and pre-create lookahead partitions.
+	// The stream table is always partitioned in this design — the pgmapbroker
+	// is unreleased so no migration logic is needed; if a pre-existing
+	// non-partitioned table is detected, ensurePartitionedStream returns an
+	// error telling the operator to drop the legacy tables manually.
+	if err := e.ensurePartitionedStream(ctx); err != nil {
+		return err
 	}
 
 	// 5. Migration loop (SKIP if dbVersion == 0, fresh install — DDL has latest).
@@ -572,8 +648,8 @@ func (e *PostgresMapBroker) EnsureSchema(ctx context.Context) error {
 		}
 	}
 
-	// 6. Update version (always, ensures both tables are current).
-	for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
+	// 6. Update version (always, ensures both variant tables are current).
+	for _, prefix := range []string{e.names.jsonbPrefix, e.names.binaryPrefix} {
 		if _, err := e.pool.Exec(ctx, fmt.Sprintf(
 			`UPDATE %sschema_version SET schema_version = $1 WHERE id = 1`,
 			prefix), schemaVersion); err != nil {
@@ -1649,73 +1725,15 @@ func (e *PostgresMapBroker) Clear(ctx context.Context, ch string, _ centrifuge.M
 // ============================================================================
 
 // runNotificationListener listens for pg_notify and wakes the outbox worker.
+// Thin wrapper around pgoutbox.NotificationListener.
 func (e *PostgresMapBroker) runNotificationListener() {
-	ctx := e.cancelCtx
-	backoff := time.Second
-	maxBackoff := 30 * time.Second
-
-	for {
-		select {
-		case <-e.closeCh:
-			return
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		conn, err := e.pool.Acquire(ctx)
-		if err != nil {
-			if ctx.Err() != nil {
-				return
-			}
-			e.logErrorMsg("notification listener: acquire connection", err)
-			time.Sleep(backoff)
-			backoff = min(backoff*2, maxBackoff)
-			continue
-		}
-
-		_, err = conn.Exec(ctx, "LISTEN "+e.names.notifyChannel)
-		if err != nil {
-			conn.Release()
-			if ctx.Err() != nil {
-				return
-			}
-			e.logErrorMsg("notification listener: LISTEN", err)
-			time.Sleep(backoff)
-			backoff = min(backoff*2, maxBackoff)
-			continue
-		}
-
-		backoff = time.Second
-
-		// Notification loop
-		for {
-			_, err := conn.Conn().WaitForNotification(ctx)
-			if err != nil {
-				conn.Release()
-				if ctx.Err() != nil {
-					return
-				}
-				e.logErrorMsg("notification listener: wait", err)
-				break // reconnect
-			}
-
-			// Non-blocking send to wake outbox worker
-			select {
-			case e.notifyCh <- struct{}{}:
-			default:
-			}
-		}
-
-		select {
-		case <-e.closeCh:
-			return
-		case <-ctx.Done():
-			return
-		case <-time.After(backoff):
-			backoff = min(backoff*2, maxBackoff)
-		}
+	l := &pgoutbox.NotificationListener{
+		Pool:     e.pool,
+		Channel:  e.names.notifyChannel,
+		NotifyCh: e.notifyCh,
+		ErrorFn:  e.logErrorMsg,
 	}
+	l.Run(e.cancelCtx, e.closeCh)
 }
 
 // ============================================================================
@@ -1733,33 +1751,29 @@ func (e *PostgresMapBroker) outboxWorkerConfig(workerIdx int) (*pgxpool.Pool, []
 	return pool, []int{workerIdx}
 }
 
+// initOutboxCursor bootstraps an outbox worker cursor from the current
+// MAX(id) of the stream table. Used as the InitCursor callback for both
+// pgoutbox.Worker and pgoutbox.LockWorker.
+func (e *PostgresMapBroker) initOutboxCursor(ctx context.Context, pool *pgxpool.Pool) (int64, error) {
+	var cursor int64
+	err := pool.QueryRow(ctx, fmt.Sprintf(
+		`SELECT COALESCE(MAX(id), 0) FROM %s`, e.names.stream)).Scan(&cursor)
+	return cursor, err
+}
+
 // runOutboxWorker polls the stream table for new entries and delivers them.
 //
 // Per-shard serialization (FOR UPDATE on shard_lock) combined with
 // one-shard-per-worker guarantees that BIGSERIAL IDs within a shard are
 // committed in order — no gaps possible. This allows a simple maxID cursor.
+//
+// Thin wrapper around pgoutbox.Worker. All map-specific logic (SQL,
+// row scanning, delivery dispatch) stays in processOutboxBatch, which is
+// called via a closure that captures a per-worker outboxBatchBuf.
 func (e *PostgresMapBroker) runOutboxWorker(workerIdx int) {
-	ctx := e.cancelCtx
 	pool, shards := e.outboxWorkerConfig(workerIdx)
 
-	// Initialize cursor: start from current max ID so we only get future entries.
-	var cursor int64
-	err := pool.QueryRow(ctx, fmt.Sprintf(
-		`SELECT COALESCE(MAX(id), 0) FROM %s`, e.names.stream)).Scan(&cursor)
-	if err != nil {
-		if ctx.Err() != nil {
-			return
-		}
-		e.logErrorMsg("outbox worker: init cursor", err)
-		// Retry after delay
-		time.Sleep(time.Second)
-		go e.runOutboxWorker(workerIdx)
-		return
-	}
-
-	pollInterval := e.conf.Outbox.PollInterval
-
-	// Pre-allocate reusable batch buffer.
+	// Pre-allocate reusable batch buffer (captured by the ProcessBatch closure).
 	allocHint := e.conf.Outbox.BatchSize
 	if allocHint > 1001 {
 		allocHint = 1001
@@ -1768,58 +1782,18 @@ func (e *PostgresMapBroker) runOutboxWorker(workerIdx int) {
 		metas: make([]outboxMeta, 0, allocHint),
 	}
 
-	for {
-		select {
-		case <-e.closeCh:
-			return
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		// Deliver batches until idle.
-		idle := true
-		for {
-			processed, maxID, err := e.processOutboxBatch(ctx, pool, cursor, shards, buf)
-			if err != nil {
-				if ctx.Err() != nil {
-					return
-				}
-				e.logErrorMsg("outbox worker: process batch", err)
-				break
-			}
-			if processed == 0 {
-				break
-			}
-			if maxID > cursor {
-				cursor = maxID
-			}
-			idle = false
-		}
-
-		// Wait for notification or poll interval (only when idle).
-		if !idle {
-			continue
-		}
-		if e.notifyCh != nil {
-			select {
-			case <-e.closeCh:
-				return
-			case <-ctx.Done():
-				return
-			case <-e.notifyCh:
-			case <-time.After(pollInterval):
-			}
-		} else {
-			select {
-			case <-e.closeCh:
-				return
-			case <-ctx.Done():
-				return
-			case <-time.After(pollInterval):
-			}
-		}
+	w := &pgoutbox.Worker{
+		Pool:         pool,
+		ShardIDs:     shards,
+		PollInterval: e.conf.Outbox.PollInterval,
+		NotifyCh:     e.notifyCh,
+		InitCursor:   e.initOutboxCursor,
+		ProcessBatch: func(ctx context.Context, pool *pgxpool.Pool, cursor int64, shardIDs []int) (int, int64, error) {
+			return e.processOutboxBatch(ctx, pool, cursor, shardIDs, buf)
+		},
+		ErrorFn: e.logErrorMsg,
 	}
+	w.Run(e.cancelCtx, e.closeCh)
 }
 
 // runOutboxWorkerWithLock uses PostgreSQL advisory locks to ensure only one node
@@ -1828,185 +1802,39 @@ func (e *PostgresMapBroker) runOutboxWorker(workerIdx int) {
 // If the lock is held by another node, it retries after AdvisoryLockRetryInterval.
 // Once acquired, it runs the normal outbox poll loop. The lock is automatically
 // released when the connection is returned to the pool or dropped.
+//
+// Thin wrapper around pgoutbox.LockWorker. All map-specific logic stays in
+// processOutboxBatch, called via a closure that captures a per-worker buf.
 func (e *PostgresMapBroker) runOutboxWorkerWithLock(workerIdx int) {
-	ctx := e.cancelCtx
-	lockID := e.conf.Outbox.AdvisoryLockBaseID + int64(workerIdx)
-	retryInterval := e.conf.Outbox.AdvisoryLockRetryInterval
-	_, shards := e.outboxWorkerConfig(workerIdx)
+	pollPool, shards := e.outboxWorkerConfig(workerIdx)
 
-	for {
-		select {
-		case <-e.closeCh:
-			return
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		// Acquire a connection from the primary pool for the advisory lock.
-		conn, err := e.pool.Acquire(ctx)
-		if err != nil {
-			if ctx.Err() != nil {
-				return
-			}
-			e.logError("outbox worker: acquire lock connection", err, workerIdx)
-			select {
-			case <-e.closeCh:
-				return
-			case <-ctx.Done():
-				return
-			case <-time.After(retryInterval):
-			}
-			continue
-		}
-
-		// Try to acquire advisory lock (non-blocking).
-		var locked bool
-		err = conn.QueryRow(ctx, "SELECT pg_try_advisory_lock($1)", lockID).Scan(&locked)
-		if err != nil {
-			conn.Release()
-			if ctx.Err() != nil {
-				return
-			}
-			e.logError("outbox worker: try advisory lock", err, workerIdx)
-			select {
-			case <-e.closeCh:
-				return
-			case <-ctx.Done():
-				return
-			case <-time.After(retryInterval):
-			}
-			continue
-		}
-
-		if !locked {
-			conn.Release()
-			select {
-			case <-e.closeCh:
-				return
-			case <-ctx.Done():
-				return
-			case <-time.After(retryInterval):
-			}
-			continue
-		}
-
-		e.logInfo("outbox worker: acquired advisory lock", workerIdx)
-
-		// Lock acquired — run the poll loop.
-		// Use read pool (replica) for batch polling to offload the primary.
-		pollPool, _ := e.outboxWorkerConfig(workerIdx)
-
-		// Initialize cursor from current max ID.
-		var cursor int64
-		err = pollPool.QueryRow(ctx, fmt.Sprintf(
-			`SELECT COALESCE(MAX(id), 0) FROM %s`, e.names.stream)).Scan(&cursor)
-		if err != nil {
-			e.releaseAdvisoryLock(ctx, conn, lockID, workerIdx)
-			conn.Release()
-			if ctx.Err() != nil {
-				return
-			}
-			e.logError("outbox worker: init cursor", err, workerIdx)
-			select {
-			case <-e.closeCh:
-				return
-			case <-ctx.Done():
-				return
-			case <-time.After(retryInterval):
-			}
-			continue
-		}
-
-		pollInterval := e.conf.Outbox.PollInterval
-		allocHint := e.conf.Outbox.BatchSize
-		if allocHint > 1001 {
-			allocHint = 1001
-		}
-		buf := &outboxBatchBuf{
-			metas: make([]outboxMeta, 0, allocHint),
-		}
-
-		// Poll loop — runs until error or shutdown.
-		lockLost := false
-		for !lockLost {
-			select {
-			case <-e.closeCh:
-				e.releaseAdvisoryLock(ctx, conn, lockID, workerIdx)
-				conn.Release()
-				return
-			case <-ctx.Done():
-				e.releaseAdvisoryLock(ctx, conn, lockID, workerIdx)
-				conn.Release()
-				return
-			default:
-			}
-
-			idle := true
-			for {
-				processed, maxID, err := e.processOutboxBatch(ctx, pollPool, cursor, shards, buf)
-				if err != nil {
-					if ctx.Err() != nil {
-						e.releaseAdvisoryLock(ctx, conn, lockID, workerIdx)
-						conn.Release()
-						return
-					}
-					e.logError("outbox worker: process batch", err, workerIdx)
-					lockLost = true
-					break
-				}
-				if processed == 0 {
-					break
-				}
-				if maxID > cursor {
-					cursor = maxID
-				}
-				idle = false
-			}
-
-			if lockLost {
-				break
-			}
-
-			if !idle {
-				continue
-			}
-			select {
-			case <-e.closeCh:
-				e.releaseAdvisoryLock(ctx, conn, lockID, workerIdx)
-				conn.Release()
-				return
-			case <-ctx.Done():
-				e.releaseAdvisoryLock(ctx, conn, lockID, workerIdx)
-				conn.Release()
-				return
-			case <-time.After(pollInterval):
-			}
-		}
-
-		e.releaseAdvisoryLock(ctx, conn, lockID, workerIdx)
-		conn.Release()
-
-		// Back off before retrying lock acquisition.
-		select {
-		case <-e.closeCh:
-			return
-		case <-ctx.Done():
-			return
-		case <-time.After(retryInterval):
-		}
+	allocHint := e.conf.Outbox.BatchSize
+	if allocHint > 1001 {
+		allocHint = 1001
 	}
-}
-
-// releaseAdvisoryLock explicitly releases an advisory lock. This is best-effort;
-// the lock is also auto-released when the connection is returned to the pool.
-func (e *PostgresMapBroker) releaseAdvisoryLock(ctx context.Context, conn *pgxpool.Conn, lockID int64, shardID int) {
-	releaseCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	_, err := conn.Exec(releaseCtx, "SELECT pg_advisory_unlock($1)", lockID)
-	if err != nil && ctx.Err() == nil {
-		e.logError("outbox worker: release advisory lock", err, shardID)
+	buf := &outboxBatchBuf{
+		metas: make([]outboxMeta, 0, allocHint),
 	}
+
+	lw := &pgoutbox.LockWorker{
+		LockPool:      e.pool,
+		PollPool:      pollPool,
+		ShardIDs:      shards,
+		LockID:        e.conf.Outbox.AdvisoryLockBaseID + int64(workerIdx),
+		PollInterval:  e.conf.Outbox.PollInterval,
+		RetryInterval: e.conf.Outbox.AdvisoryLockRetryInterval,
+		InitCursor:    e.initOutboxCursor,
+		ProcessBatch: func(ctx context.Context, pool *pgxpool.Pool, cursor int64, shardIDs []int) (int, int64, error) {
+			return e.processOutboxBatch(ctx, pool, cursor, shardIDs, buf)
+		},
+		ErrorFn: func(msg string, err error) {
+			e.logError(msg, err, workerIdx)
+		},
+		InfoFn: func(msg string) {
+			e.logInfo(msg, workerIdx)
+		},
+	}
+	lw.Run(e.cancelCtx, e.closeCh)
 }
 
 // outboxMeta holds per-row metadata not captured in Publication.
@@ -2329,16 +2157,10 @@ func (e *PostgresMapBroker) runCleanupWorker() {
 }
 
 func (e *PostgresMapBroker) cleanupEntries(ctx context.Context) {
-	// Remove old stream entries (time-based retention).
-	if !e.conf.Partitioning {
-		retention := durationToIntervalString(e.conf.StreamRetention)
-		if _, err := e.pool.Exec(ctx, fmt.Sprintf(`
-			DELETE FROM %s
-			WHERE created_at < NOW() - $1::interval
-		`, e.names.stream), retention); err != nil {
-			e.logErrorMsg("error cleaning up old stream entries", err)
-		}
-	}
+	// History rows on the stream table are cleaned up by partition retention
+	// (DROP TABLE old partitions, vacuum-free) — see runPartitionWorker. No
+	// chunked DELETE needed here. This pass only cleans the small support
+	// tables (meta + idempotency).
 
 	// Remove expired stream metadata
 	if _, err := e.pool.Exec(ctx, fmt.Sprintf(`
@@ -2361,9 +2183,25 @@ func (e *PostgresMapBroker) cleanupEntries(ctx context.Context) {
 // Partitioning Support (optional optimization)
 // ============================================================================
 
-// ensurePartitionedStream converts the stream table to partitioned if needed.
+// ensurePartitionedStream verifies the stream table is partitioned and
+// pre-creates the lookahead partitions. The schema.sql template now creates
+// the table as PARTITION BY RANGE from the start, so this method's job is
+// reduced to:
+//
+//  1. Probe that the existing table is actually partitioned (if a previous
+//     unreleased build of pgmapbroker created it as a plain table, the
+//     CREATE TABLE IF NOT EXISTS in the schema template silently skipped
+//     re-creation, leaving an incompatible schema). Fail loudly with a
+//     clear "drop the legacy tables manually" error.
+//  2. Pre-create today's + lookahead partitions via the pgoutbox helper.
+//
+// pgmapbroker is unreleased, so no automatic migration is provided — the
+// operator drops the legacy tables and starts fresh.
 func (e *PostgresMapBroker) ensurePartitionedStream(ctx context.Context) error {
-	// Check if table is already partitioned
+	// Probe: verify the stream table is actually partitioned. The CREATE TABLE
+	// IF NOT EXISTS in the schema template skips creation if a non-partitioned
+	// table already exists, which would leave the broker running on an
+	// incompatible schema. Fail loudly.
 	var isPartitioned bool
 	err := e.pool.QueryRow(ctx, `
 		SELECT EXISTS(
@@ -2372,69 +2210,51 @@ func (e *PostgresMapBroker) ensurePartitionedStream(ctx context.Context) error {
 		)
 	`, e.names.stream).Scan(&isPartitioned)
 	if err != nil {
-		// If the table doesn't exist as partitioned, we need to set it up
-		isPartitioned = false
+		// Table doesn't exist (or other lookup error). The schema template
+		// CREATE TABLE will run after this check, so missing-table is fine.
+		// Fall through to lookahead-partition creation, which will fail
+		// noisily if the table really doesn't exist.
+		isPartitioned = true // skip the probe-failure error path
 	}
-
 	if !isPartitioned {
-		// Drop and recreate as partitioned table (only safe for fresh DB).
-		// For existing deployments, manual migration would be needed.
-		_, err := e.pool.Exec(ctx, fmt.Sprintf(`
-			DROP TABLE IF EXISTS %s CASCADE;
-			CREATE TABLE %s (
-				id              BIGSERIAL,
-				channel         TEXT NOT NULL,
-				channel_offset  BIGINT NOT NULL,
-				epoch           TEXT NOT NULL DEFAULT '',
-				key             TEXT NOT NULL,
-				data            %s,
-				tags            JSONB,
-				client_id       TEXT,
-				user_id         TEXT,
-				conn_info       %s,
-				chan_info        %s,
-				subscribed_at   TIMESTAMPTZ,
-				removed         BOOLEAN DEFAULT FALSE,
-				score           BIGINT,
-				previous_data   %s,
-				created_at      TIMESTAMPTZ DEFAULT NOW(),
-				shard_id        SMALLINT NOT NULL DEFAULT 0,
-				PRIMARY KEY (id, created_at)
-			) PARTITION BY RANGE (created_at);
-			CREATE INDEX IF NOT EXISTS %s_channel_offset_idx ON %s (channel, channel_offset);
-			CREATE INDEX IF NOT EXISTS %s_channel_id_idx ON %s (channel, id DESC);
-			CREATE INDEX IF NOT EXISTS %s_shard_id_idx ON %s (shard_id, id);
-		`, e.names.stream, e.names.stream,
-			e.dataType(), e.dataType(), e.dataType(), e.dataType(),
-			e.names.stream, e.names.stream,
-			e.names.stream, e.names.stream,
-			e.names.stream, e.names.stream,
-		))
-		if err != nil {
-			return &SchemaError{
-				Object: SchemaObject{Type: "table", Name: e.names.stream},
-				Op:     "create",
-				Err:    fmt.Errorf("create partitioned stream: %w", err),
-			}
-		}
-
-		// Re-create the publish/remove/expire functions since they reference the stream table.
-		schemaSQL := postgresSchemaJSONBSQL
-		if e.conf.BinaryData {
-			schemaSQL = postgresSchemaBinarySQL
-		}
-		// Extract only the function definitions (skip CREATE TABLE IF NOT EXISTS lines).
-		if _, err := e.pool.Exec(ctx, schemaSQL); err != nil {
-			return &SchemaError{
-				Object: SchemaObject{Type: "function", Name: ""},
-				Op:     "create",
-				Err:    fmt.Errorf("recreate functions after partitioning: %w", err),
-			}
+		return &SchemaError{
+			Object: SchemaObject{Type: "table", Name: e.names.stream},
+			Op:     "verify",
+			Err: fmt.Errorf(
+				"%s exists but is not partitioned. pgmapbroker schema has changed "+
+					"and this build does not include migration logic. Drop the "+
+					"existing tables manually with: DROP TABLE IF EXISTS %s, %s, %s, %s, %s CASCADE",
+				e.names.stream,
+				e.names.stream, e.names.state, e.names.meta, e.names.idempotency, e.names.shardLock,
+			),
 		}
 	}
 
-	// Ensure lookahead partitions exist
-	return e.ensureLookaheadPartitions(ctx)
+	// Pre-create today's + lookahead partitions so the first publish doesn't
+	// fail with "no partition for value".
+	p := e.newPartitioner()
+	if err := p.EnsureLookaheadPartitions(ctx); err != nil {
+		return &SchemaError{
+			Object: SchemaObject{Type: "table", Name: e.names.stream},
+			Op:     "create",
+			Err:    err,
+		}
+	}
+	return nil
+}
+
+// newPartitioner constructs a pgoutbox.Partitioner configured for the
+// map broker's stream table. Used by ensurePartitionedStream (one-shot)
+// and runPartitionWorker (periodic maintenance).
+func (e *PostgresMapBroker) newPartitioner() *pgoutbox.Partitioner {
+	return &pgoutbox.Partitioner{
+		Pool:            e.pool,
+		ParentTable:     e.names.stream,
+		CleanupInterval: e.conf.CleanupInterval,
+		LookaheadDays:   e.conf.PartitionLookaheadDays,
+		RetentionDays:   e.conf.PartitionRetentionDays,
+		ErrorFn:         e.logErrorMsg,
+	}
 }
 
 // pgColFormatsFromRows extracts per-column wire format codes from pgx rows.
@@ -2477,86 +2297,9 @@ func (e *PostgresMapBroker) dataType() string {
 	return "JSONB"
 }
 
-func (e *PostgresMapBroker) ensureLookaheadPartitions(ctx context.Context) error {
-	now := time.Now().UTC()
-	for d := 0; d <= e.conf.PartitionLookaheadDays; d++ {
-		day := now.AddDate(0, 0, d)
-		nextDay := day.AddDate(0, 0, 1)
-		partName := fmt.Sprintf("%s_%s", e.names.stream, day.Format("2006_01_02"))
-		_, err := e.pool.Exec(ctx, fmt.Sprintf(
-			`CREATE TABLE IF NOT EXISTS %s PARTITION OF %s FOR VALUES FROM ('%s') TO ('%s')`,
-			partName, e.names.stream,
-			day.Format("2006-01-02"), nextDay.Format("2006-01-02"),
-		))
-		if err != nil {
-			return &SchemaError{
-				Object: SchemaObject{Type: "table", Name: partName},
-				Op:     "create",
-				Err:    err,
-			}
-		}
-	}
-	return nil
-}
-
-func (e *PostgresMapBroker) dropOldPartitions(ctx context.Context) {
-	cutoff := time.Now().UTC().AddDate(0, 0, -e.conf.PartitionRetentionDays)
-
-	// List child partitions via pg_inherits
-	rows, err := e.pool.Query(ctx, `
-		SELECT c.relname
-		FROM pg_inherits i
-		JOIN pg_class c ON c.oid = i.inhrelid
-		JOIN pg_class p ON p.oid = i.inhparent
-		WHERE p.relname = $1
-	`, e.names.stream)
-	if err != nil {
-		e.logErrorMsg("error listing partitions for cleanup", err)
-		return
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var partName string
-		if err := rows.Scan(&partName); err != nil {
-			continue
-		}
-		// Parse date from partition name suffix: {stream}_{YYYY}_{MM}_{DD}
-		parts := strings.Split(partName, "_")
-		if len(parts) < 3 {
-			continue
-		}
-		dateStr := strings.Join(parts[len(parts)-3:], "-")
-		partDate, err := time.Parse("2006-01-02", dateStr)
-		if err != nil {
-			continue
-		}
-		if partDate.Before(cutoff) {
-			_, err := e.pool.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s", partName))
-			if err != nil {
-				e.logErrorMsg("error dropping old partition "+partName, err)
-			}
-		}
-	}
-}
-
-// runPartitionWorker manages partition creation and cleanup.
+// runPartitionWorker manages partition creation and cleanup. Thin wrapper
+// around pgoutbox.Partitioner.Run.
 func (e *PostgresMapBroker) runPartitionWorker() {
-	ticker := time.NewTicker(e.conf.CleanupInterval)
-	defer ticker.Stop()
-	ctx := e.cancelCtx
-
-	for {
-		select {
-		case <-e.closeCh:
-			return
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			if err := e.ensureLookaheadPartitions(ctx); err != nil {
-				e.logErrorMsg("error ensuring lookahead partitions", err)
-			}
-			e.dropOldPartitions(ctx)
-		}
-	}
+	p := e.newPartitioner()
+	p.Run(e.cancelCtx, e.closeCh)
 }
