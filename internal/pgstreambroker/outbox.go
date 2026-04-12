@@ -285,5 +285,11 @@ func (e *PostgresStreamBroker) processOutboxBatch(
 		}
 	}
 
+	// Update sampler cursor for the lag metric. With one shard per worker
+	// the shardIDs slice has exactly one element.
+	if e.sampler != nil && len(shardIDs) == 1 {
+		e.sampler.storeCursor(shardIDs[0], maxID)
+	}
+
 	return len(entries), maxID, nil
 }

@@ -2,6 +2,7 @@ package pgstreambroker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"time"
@@ -11,61 +12,40 @@ import (
 )
 
 // History reads publications from a channel's history table, applying the
-// per-channel TTL filter at read time. Matches Redis broker semantics:
-//   - Creates the meta row if missing (with a fresh epoch).
-//   - Refreshes meta_expires_at on every read using the effective MetaTTL.
-//   - Returns rows bounded by HistorySize (clamped at read time so even a
-//     forward query with NoLimit on a tight-HistorySize channel returns the
-//     most-recent-N window, matching MAXLEN-trim semantics).
+// per-channel TTL filter at read time. Unlike the Redis broker, the PG stream
+// broker does NOT refresh meta TTL on read — meta TTL is refreshed on Publish
+// (via the 3-tier MetaTTL fallback). This means channels with active readers
+// but no publishers will eventually have their meta expire. This matches the
+// map broker's ReadState/ReadStream behavior, and allows History to use read
+// replicas for scaling.
 //
-// Runs against the primary pool (not replicas) because of the meta UPSERT.
+// If the channel has no meta row (never published, or meta expired), History
+// returns an empty result with a zero StreamPosition — matching the map
+// broker's behavior on ErrNoRows.
 func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions) ([]*centrifuge.Publication, centrifuge.StreamPosition, error) {
 	ctx := context.Background()
+	pool := e.getReadPool(ch, true) // can use replicas — this is a pure read
 
-	// Resolve effective MetaTTL via fallback chain.
-	historyMetaTTL := opts.MetaTTL
-	if historyMetaTTL == 0 {
-		historyMetaTTL = e.node.Config().HistoryMetaTTL
-	}
-	if historyMetaTTL == 0 {
-		historyMetaTTL = e.conf.StreamRetention
-	}
-	metaTTLStr := durationToIntervalString(historyMetaTTL)
-
-	// Open a READ COMMITTED transaction. The UPSERT acquires the meta row
-	// lock atomically and returns the post-update state. The subsequent
-	// rows query uses the returned top_offset as a consistency anchor
-	// (channel_offset <= top_offset) so concurrent publishes don't leak
-	// rows beyond what we already returned.
-	tx, err := e.pool.Begin(ctx)
-	if err != nil {
-		return nil, centrifuge.StreamPosition{}, fmt.Errorf("postgres stream broker: history begin: %w", err)
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-
-	upsert := fmt.Sprintf(`
-		INSERT INTO %s (channel, top_offset, epoch, meta_expires_at, updated_at)
-		VALUES ($1, 0, substr(md5(random()::text || random()::text), 1, 8),
-		        NOW() + $2::interval, NOW())
-		ON CONFLICT (channel) DO UPDATE
-		   SET meta_expires_at = NOW() + $2::interval,
-		       updated_at = NOW()
-		RETURNING top_offset, epoch, history_ttl, history_size
-	`, e.names.meta)
+	// Read meta — pure SELECT, no UPSERT.
+	metaQuery := fmt.Sprintf(
+		`SELECT top_offset, epoch, history_ttl, history_size FROM %s WHERE channel = $1`,
+		e.names.meta,
+	)
 
 	var topOffset int64
 	var epoch string
 	var historyTTL *time.Duration
 	var historySize *int
 
-	// Use *time.Duration scan via interval handling — pgx maps interval to
-	// time.Duration through pgtype/interval (microsecond precision).
-	var historyTTLRaw pgx.Row
-	_ = historyTTLRaw
-
-	row := tx.QueryRow(ctx, upsert, ch, metaTTLStr)
-	if err := row.Scan(&topOffset, &epoch, &historyTTL, &historySize); err != nil {
-		return nil, centrifuge.StreamPosition{}, fmt.Errorf("postgres stream broker: history meta upsert: %w", err)
+	err := pool.QueryRow(ctx, metaQuery, ch).Scan(&topOffset, &epoch, &historyTTL, &historySize)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// Channel never published or meta expired — return empty, matching
+		// map broker behavior. The centrifuge node treats empty epoch as
+		// "don't check epoch" (epochOK := sinceEpoch == "" || sinceEpoch == streamTop.Epoch).
+		return nil, centrifuge.StreamPosition{}, nil
+	}
+	if err != nil {
+		return nil, centrifuge.StreamPosition{}, fmt.Errorf("postgres stream broker: history meta: %w", err)
 	}
 
 	streamPos := centrifuge.StreamPosition{
@@ -73,16 +53,12 @@ func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions
 		Epoch:  epoch,
 	}
 
-	// Filter.Limit == 0 → caller only wants the position. Skip the rows query.
+	// Filter.Limit == 0 → caller only wants the position.
 	if opts.Filter.Limit == 0 {
-		_ = tx.Commit(ctx)
 		return nil, streamPos, nil
 	}
 
 	// Compute effective bounds Go-side.
-	//
-	// window_start: lower bound on channel_offset, clamped to history_size
-	// so a too-old Since position pivots to the most-recent-N window.
 	windowStart := int64(1)
 	if historySize != nil && *historySize > 0 {
 		if topOffset >= int64(*historySize) {
@@ -98,7 +74,6 @@ func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions
 		effectiveStart = windowStart
 	}
 
-	// effective_limit: clamped to min(filter.Limit, history_size).
 	effectiveLimit := math.MaxInt32
 	if opts.Filter.Limit > 0 && opts.Filter.Limit < effectiveLimit {
 		effectiveLimit = opts.Filter.Limit
@@ -107,13 +82,12 @@ func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions
 		effectiveLimit = *historySize
 	}
 
-	// cutoff: read-time TTL filter timestamp.
+	// Read-time TTL filter cutoff.
 	var cutoff time.Time
 	if historyTTL != nil && *historyTTL > 0 {
 		cutoff = time.Now().Add(-*historyTTL)
 	} else {
-		// Sentinel "no filter" — use Unix zero, which is well before any row.
-		cutoff = time.Unix(0, 0)
+		cutoff = time.Unix(0, 0) // sentinel — no filter
 	}
 
 	order := "ASC"
@@ -133,7 +107,7 @@ func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions
 		 LIMIT $5
 	`, e.names.history, order)
 
-	rows, err := tx.Query(ctx, rowsQuery, ch, effectiveStart, topOffset, cutoff, effectiveLimit)
+	rows, err := pool.Query(ctx, rowsQuery, ch, effectiveStart, topOffset, cutoff, effectiveLimit)
 	if err != nil {
 		return nil, centrifuge.StreamPosition{}, fmt.Errorf("postgres stream broker: history query: %w", err)
 	}
@@ -153,9 +127,6 @@ func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions
 			fmts = pgColFormatsFromRows(rows)
 		}
 		raw := rows.RawValues()
-		// Column order:
-		// 0 channel_offset, 1 epoch, 2 data, 3 tags, 4 client_id,
-		// 5 user_id, 6 conn_info, 7 chan_info, 8 key, 9 prev_data
 		backing = append(backing, centrifuge.Publication{})
 		p := &backing[len(backing)-1]
 		p.Offset = pgRawUint64(raw[0], fmts[0])
@@ -171,27 +142,18 @@ func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions
 			}
 		}
 		p.Key = pgRawString(&arena, raw[8])
-		// raw[9] (prev_data) is read but not stored on Publication directly —
-		// it's used by the outbox path for delta computation, not by History.
-		_ = raw[9]
+		_ = raw[9] // prev_data — used by outbox, not by History
 		pubs = append(pubs, p)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, centrifuge.StreamPosition{}, fmt.Errorf("postgres stream broker: history rows: %w", err)
-	}
-	rows.Close()
-
-	if err := tx.Commit(ctx); err != nil {
-		return nil, centrifuge.StreamPosition{}, fmt.Errorf("postgres stream broker: history commit: %w", err)
 	}
 
 	return pubs, streamPos, nil
 }
 
 // RemoveHistory wipes publications (kind=0) for a channel via the
-// __PREFIX__remove_history SQL function. The function acquires the per-shard
-// lock so that any in-progress publish either commits before the DELETE or
-// runs after.
+// __PREFIX__remove_history SQL function.
 func (e *PostgresStreamBroker) RemoveHistory(ch string) error {
 	ctx := context.Background()
 	query := fmt.Sprintf(`SELECT %s($1, $2, $3)`, e.names.removeHistory)

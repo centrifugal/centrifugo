@@ -3589,6 +3589,66 @@ func TestPostgresMapBroker_Partitioning_LookaheadAndDrop(t *testing.T) {
 	require.Contains(t, names, tomorrowName, "cleanup must not drop tomorrow's partition")
 }
 
+// TestPostgresMapBroker_PartitionRetention_RetentionZero_NeverDrops verifies
+// the OSS-equivalent path: with PartitionRetentionDays = 0, the broker creates
+// lookahead partitions but never drops old ones. The pgoutbox.Partitioner
+// guard treats RetentionDays <= 0 as a no-op DROP — old partitions accumulate.
+func TestPostgresMapBroker_PartitionRetention_RetentionZero_NeverDrops(t *testing.T) {
+	connString := getPostgresConnString(t)
+
+	node, _ := centrifuge.New(centrifuge.Config{})
+	broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
+		DSN:                    connString,
+		NumShards:              4,
+		BinaryData:             true,
+		CleanupInterval:        100 * time.Millisecond,
+		PartitionLookaheadDays: 1,
+		PartitionRetentionDays: 0, // explicit zero — unlimited retention
+		Outbox: OutboxConfig{
+			PollInterval: 10 * time.Millisecond,
+			BatchSize:    100,
+		},
+	})
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	require.NoError(t, broker.EnsureSchema(ctx))
+
+	require.NoError(t, broker.RegisterEventHandler(nil))
+
+	t.Cleanup(func() {
+		_ = broker.Close(ctx)
+		_ = node.Shutdown(ctx)
+	})
+
+	// Manually create an old partition (10 days ago).
+	oldDay := time.Now().UTC().AddDate(0, 0, -10)
+	oldName := fmt.Sprintf("%s_%s", broker.names.stream, oldDay.Format("2006_01_02"))
+	oldFrom := oldDay.Format("2006-01-02")
+	oldTo := oldDay.AddDate(0, 0, 1).Format("2006-01-02")
+	_, err = broker.pool.Exec(ctx, fmt.Sprintf(
+		`CREATE TABLE IF NOT EXISTS %s PARTITION OF %s FOR VALUES FROM ('%s') TO ('%s')`,
+		oldName, broker.names.stream, oldFrom, oldTo,
+	))
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, _ = broker.pool.Exec(context.Background(), fmt.Sprintf("DROP TABLE IF EXISTS %s", oldName))
+	})
+
+	// Verify the old partition is listed.
+	names, err := listChildPartitions(ctx, broker)
+	require.NoError(t, err)
+	require.Contains(t, names, oldName)
+
+	// Wait for several cleanup ticks (~500ms with 100ms interval).
+	time.Sleep(500 * time.Millisecond)
+
+	// The old partition should STILL exist — RetentionDays=0 means no drops.
+	names, err = listChildPartitions(ctx, broker)
+	require.NoError(t, err)
+	require.Contains(t, names, oldName, "old partition should NOT be dropped with RetentionDays=0")
+}
+
 // TestPostgresMapBroker_Partitioning_EnsureLookahead_Idempotent verifies that
 // calling ensurePartitionedStream twice is safe and does not duplicate
 // partitions.

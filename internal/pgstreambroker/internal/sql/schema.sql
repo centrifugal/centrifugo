@@ -162,6 +162,7 @@ DROP FUNCTION IF EXISTS __PREFIX__publish_strict;
 DROP FUNCTION IF EXISTS __PREFIX__publish_join;
 DROP FUNCTION IF EXISTS __PREFIX__publish_leave;
 DROP FUNCTION IF EXISTS __PREFIX__remove_history;
+DROP FUNCTION IF EXISTS __PREFIX__top_position;
 
 -- __PREFIX__publish: atomic publish with version, idempotency, and TTL handling.
 --
@@ -462,5 +463,26 @@ BEGIN
     DELETE FROM __PREFIX__history WHERE channel = p_channel AND kind = 0;
     -- Note: meta epoch is NOT reset — matches Redis broker behavior. Joins
     -- and leaves (kind=1/2) are also kept and age out via partition retention.
+END;
+$$ LANGUAGE plpgsql;
+
+-- __PREFIX__top_position: Get current stream top position (top_offset + epoch).
+-- Lightweight read for the external-state pattern: the application calls this
+-- inside the same transaction as reading its own data, capturing the stream
+-- position that covers any mutations during/after the state read. The client
+-- SDK then subscribes with this position and recovers any publications that
+-- arrived between the read and the subscribe.
+DROP FUNCTION IF EXISTS __PREFIX__top_position;
+CREATE OR REPLACE FUNCTION __PREFIX__top_position(
+    p_channel TEXT
+) RETURNS TABLE(
+    out_top_offset BIGINT,
+    out_epoch TEXT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT COALESCE(m.top_offset, 0::BIGINT), COALESCE(m.epoch, ''::TEXT)
+    FROM (SELECT 1) AS _dummy
+    LEFT JOIN __PREFIX__meta m ON m.channel = p_channel;
 END;
 $$ LANGUAGE plpgsql;

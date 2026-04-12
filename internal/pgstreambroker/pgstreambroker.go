@@ -281,10 +281,15 @@ type PostgresStreamBrokerConfig struct {
 
 	// PartitionRetentionDays controls how old a partition can be before
 	// it gets dropped whole by the partition retention worker.
-	// Default: 7. Set to a negative value via setDefaults sentinel handling
-	// for unlimited retention; in practice, callers who want unlimited
-	// should set this very large.
+	//
+	// Set to 0 for unlimited retention (the pgoutbox.Partitioner guard
+	// treats RetentionDays <= 0 as "never drop"; old partitions accumulate).
+	//
+	// The OSS configtypes default is 7 (via the struct-tag default). Direct
+	// Go-level construction (e.g. tests) must set this explicitly — there
+	// is no implicit default in setDefaults so that 0 (unlimited) survives.
 	PartitionRetentionDays int
+
 }
 
 func (c *PostgresStreamBrokerConfig) setDefaults() {
@@ -333,9 +338,13 @@ func (c *PostgresStreamBrokerConfig) setDefaults() {
 	if c.PartitionLookaheadDays <= 0 {
 		c.PartitionLookaheadDays = 2
 	}
-	if c.PartitionRetentionDays <= 0 {
-		c.PartitionRetentionDays = 7
-	}
+	// PartitionRetentionDays is intentionally NOT defaulted here. The
+	// configtypes layer (centrifugo config tag default:"7") handles the
+	// production default. Direct Go-level construction must set this
+	// explicitly: positive = days of retention, 0 = unlimited (the
+	// pgoutbox.Partitioner guard treats 0 as a no-op DROP). Defaulting
+	// to 7 here would make it impossible to express "unlimited retention"
+	// without a sentinel like -1.
 }
 
 // PostgresStreamBroker is a centrifuge.Broker implementation backed by PostgreSQL.
@@ -352,6 +361,7 @@ type PostgresStreamBroker struct {
 	cancelCtx    context.Context
 	cancelFunc   context.CancelFunc
 	notifyCh     chan struct{}
+	sampler      *metricsSampler
 }
 
 var _ centrifuge.Broker = (*PostgresStreamBroker)(nil)
@@ -412,6 +422,7 @@ func NewPostgresStreamBroker(n *centrifuge.Node, conf PostgresStreamBrokerConfig
 		cancelCtx:  cancelCtx,
 		cancelFunc: cancelFunc,
 	}
+	b.sampler = newMetricsSampler(b)
 	if conf.UseNotify {
 		b.notifyCh = make(chan struct{}, 1)
 	}

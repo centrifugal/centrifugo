@@ -14,6 +14,10 @@ import (
 // + history INSERT + NOTIFY) — this Go-side method just marshals options,
 // converts Go zero values to NULL pointers where the SQL function uses
 // COALESCE, and reshapes the result.
+// Publish is the centrifuge.Broker Publish implementation. Publish count and
+// latency metrics are provided by the centrifuge library at the Node level —
+// the PG broker only tracks PG-specific operational metrics (cursor lag,
+// partition count, cleanup rows, orphan rows).
 func (e *PostgresStreamBroker) Publish(ch string, data []byte, opts centrifuge.PublishOptions) (centrifuge.PublishResult, error) {
 	ctx := context.Background()
 

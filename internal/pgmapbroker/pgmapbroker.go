@@ -28,11 +28,7 @@ var postgresSchemaTemplate string
 // schemaVersion is the current schema version. Bump when adding migrations
 // or when the schema.sql template changes in a way that requires re-running
 // the CREATE OR REPLACE on existing installs.
-//
-// v2: F27 race fix — meta INSERT changed from DO NOTHING + SELECT FOR UPDATE
-// to DO UPDATE + RETURNING with qualified column refs (m.top_offset, m.epoch)
-// to disambiguate from the function's RETURNS TABLE epoch column.
-var schemaVersion = 2
+var schemaVersion = 1
 
 // schemaMigrations maps target version to migration SQL.
 // Each migration must handle BOTH prefixes and be idempotent.
@@ -102,8 +98,8 @@ func splitSchemaSQL(sql string) (ddl, funcs string) {
 // pgNames holds precomputed table/function names based on the user-configured
 // TablePrefix and the BinaryData mode. For a given userPrefix P:
 //
-//   jsonbPrefix  = P + "_map_"          (e.g. "cf_map_")
-//   binaryPrefix = P + "_binary_map_"   (e.g. "cf_binary_map_")
+//	jsonbPrefix  = P + "_map_"          (e.g. "cf_map_")
+//	binaryPrefix = P + "_binary_map_"   (e.g. "cf_binary_map_")
 //
 // The stream/state/meta/… fields are computed from the *active* prefix,
 // which is jsonbPrefix when BinaryData is false and binaryPrefix when true.
@@ -358,23 +354,16 @@ func (c *PostgresMapBrokerConfig) setDefaults() {
 	if c.ReplicaPoolSize <= 0 {
 		c.ReplicaPoolSize = c.PoolSize
 	}
-	// PartitionRetentionDays default 7. A negative value is treated as
-	// "use default 7"; explicit 0 means "unlimited retention" and is
-	// preserved (the pgoutbox.Partitioner guard turns it into a no-op).
-	if c.PartitionRetentionDays < 0 {
-		c.PartitionRetentionDays = 7
-	} else if c.PartitionRetentionDays == 0 {
-		// Distinguish "not set" from "explicit zero". We use a sentinel:
-		// callers who construct PostgresMapBrokerConfig{} and don't touch
-		// the field get the default 7. Callers who explicitly want unlimited
-		// retention should set the field to a negative... actually that's
-		// confusing. Simpler: treat 0 as default 7. Users who really want
-		// unlimited can use math.MaxInt or document a sentinel.
-		c.PartitionRetentionDays = 7
-	}
 	if c.PartitionLookaheadDays <= 0 {
 		c.PartitionLookaheadDays = 2
 	}
+	// PartitionRetentionDays is intentionally NOT defaulted here. The
+	// configtypes layer (centrifugo config tag default:"7") handles the
+	// production default. Direct Go-level construction must set this
+	// explicitly: positive = days of retention, 0 = unlimited (the
+	// pgoutbox.Partitioner guard treats 0 as a no-op DROP). Defaulting
+	// to 7 here would make it impossible to express "unlimited retention"
+	// without a sentinel.
 }
 
 // NewPostgresMapBroker creates a new PostgreSQL map broker.

@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/pgoutbox"
 )
 
 // newPartitioner constructs a pgoutbox.Partitioner configured for the
-// stream broker's history table. Used at schema-init time (one-shot
-// EnsureLookaheadPartitions) and by runPartitionWorker (periodic
-// maintenance via pgoutbox.Partitioner.Run).
+// stream broker's history table.
 func (e *PostgresStreamBroker) newPartitioner() *pgoutbox.Partitioner {
 	return &pgoutbox.Partitioner{
 		Pool:            e.pool,
@@ -23,22 +22,13 @@ func (e *PostgresStreamBroker) newPartitioner() *pgoutbox.Partitioner {
 	}
 }
 
-// runPartitionWorker manages partition lookahead creation and (if
-// PartitionRetentionDays > 0) retention drops. Thin wrapper around
-// pgoutbox.Partitioner.Run. Runs unconditionally — the schema is always
-// partitioned and the lookahead pass is required for writes to succeed
-// at the day rollover.
+// runPartitionWorker manages partition lookahead creation and retention drops.
 func (e *PostgresStreamBroker) runPartitionWorker() {
 	p := e.newPartitioner()
 	p.Run(e.cancelCtx, e.closeCh)
 }
 
-// runCleanupWorker runs the cleanup pass on CleanupInterval ticks. The
-// simplified cleanup design only touches the small support tables (meta
-// and idempotency) — history rows are cleaned up by partition retention.
-//
-// When FineGrainedHistoryCleanup is enabled, additionally runs the chunked
-// per-channel history TTL DELETE pass.
+// runCleanupWorker runs the cleanup pass on CleanupInterval ticks.
 func (e *PostgresStreamBroker) runCleanupWorker() {
 	ticker := time.NewTicker(e.conf.CleanupInterval)
 	defer ticker.Stop()
@@ -53,32 +43,41 @@ func (e *PostgresStreamBroker) runCleanupWorker() {
 			if e.conf.FineGrainedHistoryCleanup {
 				e.cleanupHistoryFineGrained(e.cancelCtx)
 			}
+			if e.sampler != nil {
+				e.sampler.sample(e.cancelCtx)
+			}
 		}
 	}
 }
 
+func addCleanupRows(broker, pass string, n int64) {
+	if metrics.PGBrokerCleanupRowsDeletedTotal != nil {
+		metrics.PGBrokerCleanupRowsDeletedTotal.WithLabelValues(broker, pass).Add(float64(n))
+	}
+}
+
 // cleanupSupportTables deletes expired meta and idempotency rows.
-// Single-statement DELETEs — no chunking needed since both tables are small.
 func (e *PostgresStreamBroker) cleanupSupportTables(ctx context.Context) {
-	if _, err := e.pool.Exec(ctx, fmt.Sprintf(
+	if res, err := e.pool.Exec(ctx, fmt.Sprintf(
 		`DELETE FROM %s WHERE meta_expires_at IS NOT NULL AND meta_expires_at < NOW()`,
 		e.names.meta,
 	)); err != nil {
 		e.logErrorMsg("error cleaning up expired meta", err)
+	} else {
+		addCleanupRows(e.conf.Name, "meta", res.RowsAffected())
 	}
-	if _, err := e.pool.Exec(ctx, fmt.Sprintf(
+	if res, err := e.pool.Exec(ctx, fmt.Sprintf(
 		`DELETE FROM %s WHERE expires_at < NOW()`,
 		e.names.idempotency,
 	)); err != nil {
 		e.logErrorMsg("error cleaning up expired idempotency", err)
+	} else {
+		addCleanupRows(e.conf.Name, "idempotency", res.RowsAffected())
 	}
 }
 
 // cleanupHistoryFineGrained runs the chunked DELETE pass for per-channel
 // HistoryTTL precision. Only invoked when FineGrainedHistoryCleanup is true.
-// The JOIN against meta plus the per-channel cutoff filter is more expensive
-// than partition retention, so users only enable this when storage matters
-// more than CPU.
 func (e *PostgresStreamBroker) cleanupHistoryFineGrained(ctx context.Context) {
 	query := fmt.Sprintf(`
 		WITH victims AS (
@@ -101,6 +100,7 @@ func (e *PostgresStreamBroker) cleanupHistoryFineGrained(ctx context.Context) {
 			e.logErrorMsg("error in fine-grained history cleanup", err)
 			return
 		}
+		addCleanupRows(e.conf.Name, "history_ttl_fine_grained", res.RowsAffected())
 		if res.RowsAffected() < int64(e.conf.CleanupBatchSize) {
 			break
 		}

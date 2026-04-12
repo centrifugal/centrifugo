@@ -46,6 +46,12 @@ type Registry struct {
 	// Middleware metrics
 	connLimitReached  prometheus.Counter
 	httpRequestsTotal *prometheus.CounterVec
+
+	// PostgreSQL broker metrics (shared by both map and stream PG brokers)
+	pgBrokerCleanupRowsDeletedTotal *prometheus.CounterVec
+	pgBrokerOutboxCursorLagSeconds  *prometheus.GaugeVec
+	pgBrokerOrphanRows              *prometheus.GaugeVec
+	pgBrokerPartitions              *prometheus.GaugeVec
 }
 
 // Init initializes the metrics registry with the provided configuration.
@@ -77,6 +83,11 @@ func Init(cfg Config) error {
 
 	ConnLimitReached = reg.connLimitReached
 	HTTPRequestsTotal = reg.httpRequestsTotal
+
+	PGBrokerCleanupRowsDeletedTotal = reg.pgBrokerCleanupRowsDeletedTotal
+	PGBrokerOutboxCursorLagSeconds = reg.pgBrokerOutboxCursorLagSeconds
+	PGBrokerOrphanRows = reg.pgBrokerOrphanRows
+	PGBrokerPartitions = reg.pgBrokerPartitions
 
 	return nil
 }
@@ -225,6 +236,39 @@ func newRegistry(cfg Config) (*Registry, error) {
 		[]string{"path", "method", "status"},
 	)
 
+	// PostgreSQL broker metrics (shared by both pg_map_broker and pg_stream_broker).
+	m.pgBrokerCleanupRowsDeletedTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "pg_broker",
+		Name:        "cleanup_rows_deleted_total",
+		Help:        "Total rows deleted by each cleanup pass.",
+		ConstLabels: constLabels,
+	}, []string{"broker", "pass"})
+
+	m.pgBrokerOutboxCursorLagSeconds = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "pg_broker",
+		Name:        "outbox_cursor_lag_seconds",
+		Help:        "Time between the outbox cursor's row created_at and now, per shard.",
+		ConstLabels: constLabels,
+	}, []string{"broker", "shard"})
+
+	m.pgBrokerOrphanRows = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "pg_broker",
+		Name:        "orphan_rows",
+		Help:        "Count of stream/history rows whose channel has no meta row (should be 0 in healthy deployments).",
+		ConstLabels: constLabels,
+	}, []string{"broker"})
+
+	m.pgBrokerPartitions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "pg_broker",
+		Name:        "partitions",
+		Help:        "Count of stream/history table partitions.",
+		ConstLabels: constLabels,
+	}, []string{"broker"})
+
 	// Register all metrics
 	var alreadyRegistered prometheus.AlreadyRegisteredError
 
@@ -243,6 +287,10 @@ func newRegistry(cfg Config) (*Registry, error) {
 		m.sharedPollProxyResponseItems,
 		m.connLimitReached,
 		m.httpRequestsTotal,
+		m.pgBrokerCleanupRowsDeletedTotal,
+		m.pgBrokerOutboxCursorLagSeconds,
+		m.pgBrokerOrphanRows,
+		m.pgBrokerPartitions,
 	}
 
 	for _, collector := range collectors {
