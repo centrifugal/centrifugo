@@ -156,8 +156,8 @@ func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions
 // __PREFIX__remove_history SQL function.
 func (e *PostgresStreamBroker) RemoveHistory(ch string) error {
 	ctx := context.Background()
-	query := fmt.Sprintf(`SELECT %s($1, $2, $3)`, e.names.removeHistory)
-	if _, err := e.pool.Exec(ctx, query, ch, e.conf.NumShards, e.conf.SkipShardLock); err != nil {
+	query := fmt.Sprintf(`SELECT %s($1, $2)`, e.names.removeHistory)
+	if _, err := e.pool.Exec(ctx, query, ch, e.conf.NumShards); err != nil {
 		return fmt.Errorf("postgres stream broker: remove_history: %w", err)
 	}
 	return nil

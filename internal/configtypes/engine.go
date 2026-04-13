@@ -137,8 +137,6 @@ type PostgresMapBroker struct {
 	// UseNotify enables LISTEN/NOTIFY for low-latency outbox wakeup.
 	// When false (default), outbox worker uses polling only.
 	UseNotify bool `mapstructure:"use_notify" json:"use_notify" envconfig:"use_notify" yaml:"use_notify" toml:"use_notify"`
-	// SkipShardLock disables per-shard serialization of stream inserts.
-	SkipShardLock bool `mapstructure:"skip_shard_lock" json:"skip_shard_lock" envconfig:"skip_shard_lock" yaml:"skip_shard_lock" toml:"skip_shard_lock"`
 	// SkipSchemaInit disables automatic schema initialization on startup.
 	// When true, the schema must be managed externally (e.g. via migrations).
 	SkipSchemaInit bool `mapstructure:"skip_schema_init" json:"skip_schema_init" envconfig:"skip_schema_init" yaml:"skip_schema_init" toml:"skip_schema_init"`
@@ -187,8 +185,6 @@ type PostgresStreamBroker struct {
 	StreamRetention Duration `mapstructure:"stream_retention" json:"stream_retention" envconfig:"stream_retention" default:"24h" yaml:"stream_retention" toml:"stream_retention"`
 	// UseNotify enables LISTEN/NOTIFY for low-latency outbox wakeup.
 	UseNotify bool `mapstructure:"use_notify" json:"use_notify" envconfig:"use_notify" yaml:"use_notify" toml:"use_notify"`
-	// SkipShardLock disables per-shard serialization of history inserts.
-	SkipShardLock bool `mapstructure:"skip_shard_lock" json:"skip_shard_lock" envconfig:"skip_shard_lock" yaml:"skip_shard_lock" toml:"skip_shard_lock"`
 	// SkipSchemaInit disables automatic schema initialization on startup.
 	SkipSchemaInit bool `mapstructure:"skip_schema_init" json:"skip_schema_init" envconfig:"skip_schema_init" yaml:"skip_schema_init" toml:"skip_schema_init"`
 	// Outbox configures the outbox-based delivery mode.

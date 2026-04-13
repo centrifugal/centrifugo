@@ -1446,16 +1446,6 @@
             "is_complex_type": false
           },
           {
-            "field": "broker.postgres.skip_shard_lock",
-            "name": "skip_shard_lock",
-            "go_name": "SkipShardLock",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "SkipShardLock disables per-shard serialization of history inserts.",
-            "is_complex_type": false
-          },
-          {
             "field": "broker.postgres.skip_schema_init",
             "name": "skip_schema_init",
             "go_name": "SkipSchemaInit",
@@ -2467,16 +2457,6 @@
             "type": "bool",
             "default": "",
             "comment": "UseNotify enables LISTEN/NOTIFY for low-latency outbox wakeup.\nWhen false (default), outbox worker uses polling only.",
-            "is_complex_type": false
-          },
-          {
-            "field": "map_broker.postgres.skip_shard_lock",
-            "name": "skip_shard_lock",
-            "go_name": "SkipShardLock",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "SkipShardLock disables per-shard serialization of stream inserts.",
             "is_complex_type": false
           },
           {

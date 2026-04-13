@@ -199,8 +199,7 @@ CREATE OR REPLACE FUNCTION __PREFIX__publish(
     p_version BIGINT DEFAULT NULL,
     p_version_epoch TEXT DEFAULT NULL,
     p_use_delta BOOLEAN DEFAULT FALSE,
-    p_num_shards INTEGER DEFAULT NULL,
-    p_skip_shard_lock BOOLEAN DEFAULT FALSE
+    p_num_shards INTEGER DEFAULT NULL
 ) RETURNS TABLE(
     out_result_id BIGINT,
     out_channel_offset BIGINT,
@@ -227,9 +226,7 @@ BEGIN
     v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
 
     -- Per-shard serialization lock (lock order: shard → meta).
-    IF NOT p_skip_shard_lock THEN
-        PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
-    END IF;
+    PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
 
     -- Defensive clamp: effective_meta_ttl = GREATEST(p_meta_ttl, p_history_ttl).
     -- COALESCE NULL → '0'::interval before GREATEST, then convert '0' back to NULL.
@@ -343,8 +340,7 @@ CREATE OR REPLACE FUNCTION __PREFIX__publish_strict(
     p_version BIGINT DEFAULT NULL,
     p_version_epoch TEXT DEFAULT NULL,
     p_use_delta BOOLEAN DEFAULT FALSE,
-    p_num_shards INTEGER DEFAULT NULL,
-    p_skip_shard_lock BOOLEAN DEFAULT FALSE
+    p_num_shards INTEGER DEFAULT NULL
 ) RETURNS TABLE(
     out_result_id BIGINT,
     out_channel_offset BIGINT,
@@ -357,7 +353,7 @@ BEGIN
         p_channel, p_data, p_tags, p_client_id, p_user_id, p_conn_info, p_chan_info,
         p_key, p_history_ttl, p_history_size, p_meta_ttl,
         p_idempotency_key, p_idempotency_ttl,
-        p_version, p_version_epoch, p_use_delta, p_num_shards, p_skip_shard_lock
+        p_version, p_version_epoch, p_use_delta, p_num_shards
     );
     IF v_result.out_suppressed THEN
         RAISE EXCEPTION 'publish suppressed: %', v_result.out_suppress_reason;
@@ -374,8 +370,7 @@ CREATE OR REPLACE FUNCTION __PREFIX__publish_join(
     p_user_id TEXT,
     p_conn_info __DATA_TYPE__ DEFAULT NULL,
     p_chan_info __DATA_TYPE__ DEFAULT NULL,
-    p_num_shards INTEGER DEFAULT NULL,
-    p_skip_shard_lock BOOLEAN DEFAULT FALSE
+    p_num_shards INTEGER DEFAULT NULL
 ) RETURNS BIGINT AS $$
 DECLARE
     v_id BIGINT;
@@ -390,9 +385,7 @@ BEGIN
     -- same shard. Without this, the join's id could be committed before an
     -- in-progress publication's id, causing the outbox worker to advance
     -- past the in-progress row.
-    IF NOT p_skip_shard_lock THEN
-        PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
-    END IF;
+    PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
 
     INSERT INTO __PREFIX__history (
         channel, channel_offset, kind, client_id, user_id, conn_info, chan_info, shard_id
@@ -412,8 +405,7 @@ CREATE OR REPLACE FUNCTION __PREFIX__publish_leave(
     p_user_id TEXT,
     p_conn_info __DATA_TYPE__ DEFAULT NULL,
     p_chan_info __DATA_TYPE__ DEFAULT NULL,
-    p_num_shards INTEGER DEFAULT NULL,
-    p_skip_shard_lock BOOLEAN DEFAULT FALSE
+    p_num_shards INTEGER DEFAULT NULL
 ) RETURNS BIGINT AS $$
 DECLARE
     v_id BIGINT;
@@ -424,9 +416,7 @@ BEGIN
     END IF;
     v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
 
-    IF NOT p_skip_shard_lock THEN
-        PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
-    END IF;
+    PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
 
     INSERT INTO __PREFIX__history (
         channel, channel_offset, kind, client_id, user_id, conn_info, chan_info, shard_id
@@ -445,8 +435,7 @@ $$ LANGUAGE plpgsql;
 -- the wipe semantically.
 CREATE OR REPLACE FUNCTION __PREFIX__remove_history(
     p_channel TEXT,
-    p_num_shards INTEGER DEFAULT NULL,
-    p_skip_shard_lock BOOLEAN DEFAULT FALSE
+    p_num_shards INTEGER DEFAULT NULL
 ) RETURNS VOID AS $$
 DECLARE
     v_shard_id INTEGER;
@@ -456,9 +445,7 @@ BEGIN
     END IF;
     v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
 
-    IF NOT p_skip_shard_lock THEN
-        PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
-    END IF;
+    PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
 
     DELETE FROM __PREFIX__history WHERE channel = p_channel AND kind = 0;
     -- Note: meta epoch is NOT reset — matches Redis broker behavior. Joins

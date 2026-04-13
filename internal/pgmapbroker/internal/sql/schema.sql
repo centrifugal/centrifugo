@@ -154,8 +154,7 @@ CREATE OR REPLACE FUNCTION __PREFIX__publish(
     p_refresh_ttl_on_suppress BOOLEAN DEFAULT FALSE,
     p_use_delta BOOLEAN DEFAULT FALSE,
     p_num_shards INTEGER DEFAULT NULL,
-    p_stream_data __DATA_TYPE__ DEFAULT NULL,
-    p_skip_shard_lock BOOLEAN DEFAULT FALSE
+    p_stream_data __DATA_TYPE__ DEFAULT NULL
 ) RETURNS TABLE(
     result_id BIGINT,
     channel_offset BIGINT,
@@ -186,9 +185,7 @@ BEGIN
     v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
 
     -- 0. Per-shard serialization lock (lock order: shard → meta → state)
-    IF NOT p_skip_shard_lock THEN
-        PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
-    END IF;
+    PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
 
     -- 1. Get or create stream metadata. Atomic UPSERT with no-op write on
     -- conflict acquires the row lock as part of the same statement, avoiding
@@ -334,8 +331,7 @@ CREATE OR REPLACE FUNCTION __PREFIX__publish_strict(
     p_refresh_ttl_on_suppress BOOLEAN DEFAULT FALSE,
     p_use_delta BOOLEAN DEFAULT FALSE,
     p_num_shards INTEGER DEFAULT NULL,
-    p_stream_data __DATA_TYPE__ DEFAULT NULL,
-    p_skip_shard_lock BOOLEAN DEFAULT FALSE
+    p_stream_data __DATA_TYPE__ DEFAULT NULL
 ) RETURNS TABLE(
     result_id BIGINT,
     channel_offset BIGINT,
@@ -352,7 +348,7 @@ BEGIN
         p_expected_offset, p_score, p_version, p_version_epoch,
         p_key_version, p_key_version_epoch,
         p_idempotency_key, p_idempotency_ttl, p_refresh_ttl_on_suppress,
-        p_use_delta, p_num_shards, p_stream_data, p_skip_shard_lock
+        p_use_delta, p_num_shards, p_stream_data
     );
 
     IF v_result.suppressed THEN
@@ -393,8 +389,7 @@ CREATE OR REPLACE FUNCTION __PREFIX__remove(
     p_idempotency_ttl INTERVAL DEFAULT NULL,
     p_meta_ttl INTERVAL DEFAULT NULL,
     p_num_shards INTEGER DEFAULT NULL,
-    p_expected_offset BIGINT DEFAULT NULL,
-    p_skip_shard_lock BOOLEAN DEFAULT FALSE
+    p_expected_offset BIGINT DEFAULT NULL
 ) RETURNS TABLE(
     result_id BIGINT,
     channel_offset BIGINT,
@@ -422,9 +417,7 @@ BEGIN
     v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
 
     -- 0. Per-shard serialization lock (lock order: shard → meta → state)
-    IF NOT p_skip_shard_lock THEN
-        PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
-    END IF;
+    PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
 
     -- 1. Get stream metadata
     SELECT top_offset, m.epoch INTO v_offset, v_epoch
@@ -507,8 +500,7 @@ CREATE OR REPLACE FUNCTION __PREFIX__remove_strict(
     p_idempotency_ttl INTERVAL DEFAULT NULL,
     p_meta_ttl INTERVAL DEFAULT NULL,
     p_num_shards INTEGER DEFAULT NULL,
-    p_expected_offset BIGINT DEFAULT NULL,
-    p_skip_shard_lock BOOLEAN DEFAULT FALSE
+    p_expected_offset BIGINT DEFAULT NULL
 ) RETURNS TABLE(
     result_id BIGINT,
     channel_offset BIGINT,
@@ -520,7 +512,7 @@ BEGIN
     SELECT * INTO v_result FROM __PREFIX__remove(
         p_channel, p_key, p_client_id, p_user_id,
         p_idempotency_key, p_idempotency_ttl, p_meta_ttl,
-        p_num_shards, p_expected_offset, p_skip_shard_lock
+        p_num_shards, p_expected_offset
     );
 
     IF v_result.suppressed THEN
@@ -539,8 +531,7 @@ CREATE OR REPLACE FUNCTION __PREFIX__expire_keys(
     p_batch_size INT DEFAULT 1000,
     p_num_shards INTEGER DEFAULT NULL,
     p_meta_ttl INTERVAL DEFAULT NULL,
-    p_channel TEXT DEFAULT NULL,
-    p_skip_shard_lock BOOLEAN DEFAULT FALSE
+    p_channel TEXT DEFAULT NULL
 ) RETURNS TABLE(
     out_channel TEXT,
     out_key TEXT,
@@ -571,9 +562,7 @@ BEGIN
         -- 0. Calculate shard_id and acquire per-shard serialization lock
         --    (lock order: shard → meta → state).
         v_shard_id := abs(hashtext(v_channel)) % p_num_shards;
-        IF NOT p_skip_shard_lock THEN
-            PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
-        END IF;
+        PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
 
         -- 1. Lock meta (same order as publish: shard → meta → state).
         SELECT top_offset, m.epoch INTO v_base_offset, v_epoch
@@ -650,8 +639,7 @@ CREATE OR REPLACE FUNCTION __PREFIX__stream_publish(
     p_num_shards INTEGER DEFAULT NULL,
     p_stream_data __DATA_TYPE__ DEFAULT NULL,
     p_idempotency_key TEXT DEFAULT NULL,
-    p_idempotency_ttl INTERVAL DEFAULT NULL,
-    p_skip_shard_lock BOOLEAN DEFAULT FALSE
+    p_idempotency_ttl INTERVAL DEFAULT NULL
 ) RETURNS TABLE(
     result_id BIGINT,
     channel_offset BIGINT,
@@ -675,9 +663,7 @@ BEGIN
     v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
 
     -- 0. Per-shard serialization lock
-    IF NOT p_skip_shard_lock THEN
-        PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
-    END IF;
+    PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
 
     -- 1. Get or create stream metadata. Atomic UPSERT with no-op write on
     -- conflict acquires the row lock as part of the same statement, avoiding
@@ -744,8 +730,7 @@ CREATE OR REPLACE FUNCTION __PREFIX__stream_remove(
     p_meta_ttl INTERVAL DEFAULT NULL,
     p_num_shards INTEGER DEFAULT NULL,
     p_idempotency_key TEXT DEFAULT NULL,
-    p_idempotency_ttl INTERVAL DEFAULT NULL,
-    p_skip_shard_lock BOOLEAN DEFAULT FALSE
+    p_idempotency_ttl INTERVAL DEFAULT NULL
 ) RETURNS TABLE(
     result_id BIGINT,
     channel_offset BIGINT,
@@ -769,9 +754,7 @@ BEGIN
     v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
 
     -- 0. Per-shard serialization lock
-    IF NOT p_skip_shard_lock THEN
-        PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
-    END IF;
+    PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
 
     -- 1. Get or create stream metadata. Atomic UPSERT with no-op write on
     -- conflict acquires the row lock as part of the same statement, avoiding

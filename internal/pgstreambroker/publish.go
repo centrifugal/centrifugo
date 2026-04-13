@@ -104,12 +104,11 @@ func (e *PostgresStreamBroker) Publish(ch string, data []byte, opts centrifuge.P
 	}
 
 	numShards := e.conf.NumShards
-	skipShardLock := e.conf.SkipShardLock
 
 	// Call __PREFIX__publish.
 	query := fmt.Sprintf(`
 		SELECT out_result_id, out_channel_offset, out_epoch, out_suppressed, out_suppress_reason
-		FROM %s($1, $2, $3, $4, $5, $6, $7, $8, $9::interval, $10, $11::interval, $12, $13::interval, $14, $15, $16, $17, $18)
+		FROM %s($1, $2, $3, $4, $5, $6, $7, $8, $9::interval, $10, $11::interval, $12, $13::interval, $14, $15, $16, $17)
 	`, e.names.publish)
 
 	var resultID *int64
@@ -136,7 +135,6 @@ func (e *PostgresStreamBroker) Publish(ch string, data []byte, opts centrifuge.P
 		versionEpoch,
 		opts.UseDelta,
 		numShards,
-		skipShardLock,
 	).Scan(&resultID, &channelOffset, &epoch, &suppressed, &suppressReason)
 
 	if err != nil {
@@ -205,7 +203,7 @@ func (e *PostgresStreamBroker) publishJoinLeaveViaHistory(funcName, ch string, i
 	}
 
 	query := fmt.Sprintf(
-		`SELECT %s($1, $2, $3, $4, $5, $6, $7)`,
+		`SELECT %s($1, $2, $3, $4, $5, $6)`,
 		funcName,
 	)
 	var id int64
@@ -216,7 +214,6 @@ func (e *PostgresStreamBroker) publishJoinLeaveViaHistory(funcName, ch string, i
 		e.dataParam(connInfo),
 		e.dataParam(chanInfo),
 		e.conf.NumShards,
-		e.conf.SkipShardLock,
 	).Scan(&id); err != nil {
 		return fmt.Errorf("postgres stream broker: %s: %w", funcName, err)
 	}

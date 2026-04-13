@@ -275,11 +275,6 @@ type PostgresMapBrokerConfig struct {
 	// When true, a listener goroutine wakes the worker immediately on new entries.
 	UseNotify bool
 
-	// SkipShardLock disables per-shard serialization of stream inserts.
-	// Default false: shard locking ensures outbox workers never miss rows.
-	// Set to true when using WAL-based delivery (future).
-	SkipShardLock bool
-
 	// ReplicaDSN is an optional list of read replica connection strings.
 	// When set, ReadState queries with AllowCached=true are distributed
 	// across replicas using shard-based routing for consistency:
@@ -824,7 +819,7 @@ func (e *PostgresMapBroker) Publish(ctx context.Context, ch string, key string, 
 
 	err = e.pool.QueryRow(ctx, fmt.Sprintf(`
 		SELECT result_id, channel_offset, epoch, suppressed, suppress_reason, current_data, current_offset
-		FROM %s($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::interval, $12::interval, $13, $14, $15, $16, $17, $18, $19, $20::interval, $21, $22, $23, $24, $25)
+		FROM %s($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::interval, $12::interval, $13, $14, $15, $16, $17, $18, $19, $20::interval, $21, $22, $23, $24)
 	`, e.names.publish),
 		ch, key, e.dataParam(opts.Data), tagsJSON,
 		clientID, userID, e.dataParam(connInfo), e.dataParam(chanInfo), publishedAt,
@@ -832,7 +827,7 @@ func (e *PostgresMapBroker) Publish(ctx context.Context, ch string, key string, 
 		expectedOffset, score, nil, nil, // p_version, p_version_epoch (unused, per-key version used instead)
 		keyVersion, keyVersionEpoch,
 		idempotencyKey, idempotencyTTL, opts.RefreshTTLOnSuppress,
-		useDelta, numShards, e.dataParam(streamData), e.conf.SkipShardLock,
+		useDelta, numShards, e.dataParam(streamData),
 	).Scan(&id, &channelOffset, &epoch, &suppressed, &suppressReason, &currentData, &currentOffset)
 
 	if err != nil {
@@ -927,10 +922,10 @@ func (e *PostgresMapBroker) Remove(ctx context.Context, ch string, key string, o
 	var clientID, userID *string
 	err = e.pool.QueryRow(ctx, fmt.Sprintf(`
 		SELECT result_id, channel_offset, epoch, suppressed, suppress_reason, current_data, current_offset
-		FROM %s($1, $2, $3, $4, $5, $6::interval, $7::interval, $8, $9, $10)
+		FROM %s($1, $2, $3, $4, $5, $6::interval, $7::interval, $8, $9)
 	`, e.names.remove),
 		ch, key, clientID, userID, idempotencyKey, idempotencyTTL, metaTTL,
-		numShards, expectedOffset, e.conf.SkipShardLock,
+		numShards, expectedOffset,
 	).Scan(&id, &channelOffset, &epoch, &suppressed, &suppressReason, &currentData, &currentOffset)
 
 	if err != nil {
@@ -1021,12 +1016,11 @@ func (e *PostgresMapBroker) publishStream(ctx context.Context, ch string, key st
 
 	err := e.pool.QueryRow(ctx, fmt.Sprintf(`
 		SELECT result_id, channel_offset, epoch, suppressed, suppress_reason
-		FROM %s($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::interval, $11, $12, $13, $14::interval, $15)
+		FROM %s($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::interval, $11, $12, $13, $14::interval)
 	`, e.names.publishStream),
 		ch, key, e.dataParam(opts.Data), tagsJSON,
 		clientID, userID, e.dataParam(connInfo), e.dataParam(chanInfo), publishedAt,
 		metaTTL, numShards, e.dataParam(streamData), idempotencyKey, idempotencyTTL,
-		e.conf.SkipShardLock,
 	).Scan(&id, &channelOffset, &epoch, &suppressed, &suppressReason)
 
 	if err != nil {
@@ -1083,11 +1077,10 @@ func (e *PostgresMapBroker) removeStream(ctx context.Context, ch string, key str
 
 	err := e.pool.QueryRow(ctx, fmt.Sprintf(`
 		SELECT result_id, channel_offset, epoch, suppressed, suppress_reason
-		FROM %s($1, $2, $3, $4, $5::interval, $6, $7, $8::interval, $9)
+		FROM %s($1, $2, $3, $4, $5::interval, $6, $7, $8::interval)
 	`, e.names.removeStream),
 		ch, key, clientID, userID, metaTTL,
 		numShards, idempotencyKey, idempotencyTTL,
-		e.conf.SkipShardLock,
 	).Scan(&id, &channelOffset, &epoch, &suppressed, &suppressReason)
 
 	if err != nil {
@@ -2063,8 +2056,8 @@ func (e *PostgresMapBroker) expireKeys(ctx context.Context) {
 		// duplicate delivery.
 		rows, err := e.pool.Query(ctx, fmt.Sprintf(`
 			SELECT out_channel, out_key, out_offset, out_epoch
-			FROM %s($1, $2, $3::interval, $4, $5)
-		`, e.names.expireKeys), 1000, numShards, metaTTL, ch, e.conf.SkipShardLock)
+			FROM %s($1, $2, $3::interval, $4)
+		`, e.names.expireKeys), 1000, numShards, metaTTL, ch)
 		if err != nil {
 			e.logEvent().Err(err).Str("channel", ch).Msg("error in batch key expiration")
 			e.node.IncMapBrokerCleanupErrors(e.conf.Name)

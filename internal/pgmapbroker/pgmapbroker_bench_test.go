@@ -652,8 +652,8 @@ func BenchmarkPostgresMapBroker_Cleanup(b *testing.B) {
 					numShards := broker.conf.NumShards
 					var metaTTL *string
 					_, err := broker.pool.Exec(ctx, fmt.Sprintf(`
-						SELECT %s($1, $2, $3)
-					`, broker.names.expireKeys), 1000, numShards, metaTTL, channel, broker.conf.SkipShardLock)
+						SELECT %s($1, $2, $3::interval, $4)
+					`, broker.names.expireKeys), 1000, numShards, metaTTL, channel)
 					if err != nil {
 						b.Fatal(err)
 					}

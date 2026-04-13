@@ -142,7 +142,6 @@ func createPostgresStreamBroker(node *centrifuge.Node, pgCfg configtypes.Postgre
 		BinaryData:                pgCfg.BinaryData,
 		StreamRetention:           pgCfg.StreamRetention.ToDuration(),
 		UseNotify:                 pgCfg.UseNotify,
-		SkipShardLock:             pgCfg.SkipShardLock,
 		PartitionLookaheadDays:    pgCfg.PartitionLookaheadDays,
 		PartitionRetentionDays:    pgCfg.PartitionRetentionDays,
 		FineGrainedHistoryCleanup: pgCfg.FineGrainedHistoryCleanup,
@@ -279,7 +278,6 @@ func configureMapBroker(node *centrifuge.Node, cfgContainer *config.Container) e
 			BinaryData:             pgCfg.BinaryData,
 			StreamRetention:        pgCfg.StreamRetention.ToDuration(),
 			UseNotify:              pgCfg.UseNotify,
-			SkipShardLock:          pgCfg.SkipShardLock,
 			PartitionLookaheadDays: pgCfg.PartitionLookaheadDays,
 			PartitionRetentionDays: pgCfg.PartitionRetentionDays,
 			Outbox: pgmapbroker.OutboxConfig{

@@ -232,11 +232,6 @@ type PostgresStreamBrokerConfig struct {
 	// When false (default), outbox worker uses PollInterval-based polling only.
 	UseNotify bool
 
-	// SkipShardLock disables per-shard serialization of history inserts.
-	// Only safe when there's a single publisher process; for multi-node
-	// deployments leave this false (default).
-	SkipShardLock bool
-
 	// SkipSchemaInit disables automatic schema initialization on startup.
 	SkipSchemaInit bool
 
