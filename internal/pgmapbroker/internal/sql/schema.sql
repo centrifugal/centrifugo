@@ -407,6 +407,7 @@ DECLARE
     v_shard_id INTEGER;
     v_current_offset BIGINT;
     v_current_data __DATA_TYPE__;
+    v_tags JSONB;
 BEGIN
     -- Auto-derive num_shards from shard_lock table when not provided.
     IF p_num_shards IS NULL THEN
@@ -466,14 +467,17 @@ BEGIN
     WHERE channel = p_channel
     RETURNING top_offset INTO v_offset;
 
-    -- 6. Delete from snapshot
+    -- 6. Read tags before deletion (for server-side tags filtering on removal events).
+    SELECT tags INTO v_tags FROM __PREFIX__state WHERE channel = p_channel AND key = p_key;
+
+    -- 7. Delete from snapshot
     DELETE FROM __PREFIX__state WHERE channel = p_channel AND key = p_key;
 
-    -- 7. Insert removal into stream (include epoch and shard_id)
-    INSERT INTO __PREFIX__stream (channel, channel_offset, epoch, key, removed, client_id, user_id, shard_id)
+    -- 8. Insert removal into stream with tags from the deleted entry.
+    INSERT INTO __PREFIX__stream (channel, channel_offset, epoch, key, removed, client_id, user_id, shard_id, tags)
     VALUES (
         p_channel, v_offset, v_epoch, p_key, TRUE, p_client_id, p_user_id,
-        v_shard_id
+        v_shard_id, v_tags
     ) RETURNING __PREFIX__stream.id INTO v_id;
 
     -- 8. Save idempotency key
@@ -541,6 +545,7 @@ CREATE OR REPLACE FUNCTION __PREFIX__expire_keys(
 DECLARE
     v_channel TEXT;
     v_keys TEXT[];
+    v_tags_arr JSONB[];
     v_count INT;
     v_base_offset BIGINT;
     v_epoch TEXT;
@@ -574,9 +579,10 @@ BEGIN
             CONTINUE;
         END IF;
 
-        -- 2. Collect expired keys in one query (already under shard + meta locks).
-        SELECT array_agg(key), count(*) INTO v_keys, v_count FROM (
-            SELECT key FROM __PREFIX__state
+        -- 2. Collect expired keys and their tags in one query (already under shard + meta locks).
+        SELECT array_agg(key), array_agg(COALESCE(tags, '{}'::jsonb)), count(*)
+        INTO v_keys, v_tags_arr, v_count FROM (
+            SELECT key, tags FROM __PREFIX__state
             WHERE channel = v_channel
               AND expires_at IS NOT NULL AND expires_at <= NOW()
             LIMIT p_batch_size - v_processed
@@ -598,10 +604,10 @@ BEGIN
         -- Batch delete (1 DELETE instead of N).
         DELETE FROM __PREFIX__state WHERE channel = v_channel AND key = ANY(v_keys);
 
-        -- Batch insert removal events (1 INSERT instead of N).
-        INSERT INTO __PREFIX__stream (channel, channel_offset, epoch, key, removed, shard_id)
-        SELECT v_channel, v_base_offset + rn, v_epoch, k, TRUE, v_shard_id
-        FROM unnest(v_keys) WITH ORDINALITY AS t(k, rn);
+        -- Batch insert removal events with tags (1 INSERT instead of N).
+        INSERT INTO __PREFIX__stream (channel, channel_offset, epoch, key, removed, shard_id, tags)
+        SELECT v_channel, v_base_offset + rn, v_epoch, k, TRUE, v_shard_id, tg
+        FROM unnest(v_keys, v_tags_arr) WITH ORDINALITY AS t(k, tg, rn);
 
         -- Return results.
         RETURN QUERY
@@ -730,7 +736,8 @@ CREATE OR REPLACE FUNCTION __PREFIX__stream_remove(
     p_meta_ttl INTERVAL DEFAULT NULL,
     p_num_shards INTEGER DEFAULT NULL,
     p_idempotency_key TEXT DEFAULT NULL,
-    p_idempotency_ttl INTERVAL DEFAULT NULL
+    p_idempotency_ttl INTERVAL DEFAULT NULL,
+    p_tags JSONB DEFAULT NULL
 ) RETURNS TABLE(
     result_id BIGINT,
     channel_offset BIGINT,
@@ -790,10 +797,10 @@ BEGIN
     RETURNING top_offset INTO v_offset;
 
     -- 4. Insert removal into stream (no state table interaction)
-    INSERT INTO __PREFIX__stream (channel, channel_offset, epoch, key, removed, client_id, user_id, shard_id)
+    INSERT INTO __PREFIX__stream (channel, channel_offset, epoch, key, removed, client_id, user_id, shard_id, tags)
     VALUES (
         p_channel, v_offset, v_epoch, p_key, TRUE, p_client_id, p_user_id,
-        v_shard_id
+        v_shard_id, p_tags
     ) RETURNING __PREFIX__stream.id INTO v_id;
 
     -- 5. Save idempotency key
