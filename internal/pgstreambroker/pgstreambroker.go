@@ -293,7 +293,7 @@ type PostgresStreamBrokerConfig struct {
 
 func (c *PostgresStreamBrokerConfig) setDefaults() {
 	if c.PoolSize <= 0 {
-		c.PoolSize = 32
+		c.PoolSize = 16
 	}
 	if c.NumShards <= 0 {
 		c.NumShards = 16

@@ -308,7 +308,7 @@ type PostgresMapBrokerConfig struct {
 
 func (c *PostgresMapBrokerConfig) setDefaults() {
 	if c.PoolSize <= 0 {
-		c.PoolSize = 32
+		c.PoolSize = 16
 	}
 	if c.NumShards <= 0 {
 		c.NumShards = 16

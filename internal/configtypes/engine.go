@@ -117,8 +117,8 @@ type PostgresMapBroker struct {
 	// DSN is the primary PostgreSQL connection string.
 	// Example: "postgres://user:pass@localhost:5432/dbname?sslmode=disable".
 	DSN string `mapstructure:"dsn" json:"dsn" envconfig:"dsn" yaml:"dsn" toml:"dsn"`
-	// PoolSize sets the maximum number of connections in the pool. Default: 32.
-	PoolSize int `mapstructure:"pool_size" json:"pool_size" envconfig:"pool_size" default:"32" yaml:"pool_size" toml:"pool_size"`
+	// PoolSize sets the maximum number of connections in the pool. Default: 16.
+	PoolSize int `mapstructure:"pool_size" json:"pool_size" envconfig:"pool_size" default:"16" yaml:"pool_size" toml:"pool_size"`
 	// NumShards is the total number of shards for parallel delivery workers.
 	// Channels are distributed across shards using consistent hashing. Default: 16.
 	NumShards int `mapstructure:"num_shards" json:"num_shards" envconfig:"num_shards" default:"16" yaml:"num_shards" toml:"num_shards"`
@@ -167,8 +167,8 @@ type PostgresMapBrokerOutbox struct {
 type PostgresStreamBroker struct {
 	// DSN is the primary PostgreSQL connection string.
 	DSN string `mapstructure:"dsn" json:"dsn" envconfig:"dsn" yaml:"dsn" toml:"dsn"`
-	// PoolSize sets the maximum number of connections in the pool. Default: 32.
-	PoolSize int `mapstructure:"pool_size" json:"pool_size" envconfig:"pool_size" default:"32" yaml:"pool_size" toml:"pool_size"`
+	// PoolSize sets the maximum number of connections in the pool. Default: 16.
+	PoolSize int `mapstructure:"pool_size" json:"pool_size" envconfig:"pool_size" default:"16" yaml:"pool_size" toml:"pool_size"`
 	// NumShards is the total number of shards for parallel delivery workers.
 	// Channels are distributed across shards using consistent hashing. Default: 16.
 	NumShards int `mapstructure:"num_shards" json:"num_shards" envconfig:"num_shards" default:"16" yaml:"num_shards" toml:"num_shards"`
