@@ -105,7 +105,7 @@ func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions
 		   AND created_at > $4
 		 ORDER BY channel_offset %s
 		 LIMIT $5
-	`, e.names.history, order)
+	`, e.names.stream, order)
 
 	rows, err := pool.Query(ctx, rowsQuery, ch, effectiveStart, topOffset, cutoff, effectiveLimit)
 	if err != nil {

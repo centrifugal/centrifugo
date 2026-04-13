@@ -11,9 +11,9 @@
 -- ============================================================================
 
 -- ============================================================================
--- History Table (Publications + Joins/Leaves)
+-- Stream Table (Publications + Joins/Leaves)
 --
--- The history table is always partitioned by created_at (daily). The composite
+-- The stream table is always partitioned by created_at (daily). The composite
 -- primary key (id, created_at) is required because Postgres mandates that the
 -- partition key be part of every unique constraint. Initial partitions
 -- (today + lookahead) are created via pgoutbox.Partitioner.EnsureLookaheadPartitions
@@ -26,7 +26,7 @@
 -- Joins and leaves piggyback on partition retention — no special cleanup pass.
 -- ============================================================================
 
-CREATE TABLE IF NOT EXISTS __PREFIX__history (
+CREATE TABLE IF NOT EXISTS __STREAM_TABLE__ (
     id              BIGSERIAL,
     channel         TEXT NOT NULL,
     channel_offset  BIGINT NOT NULL,
@@ -49,18 +49,18 @@ CREATE TABLE IF NOT EXISTS __PREFIX__history (
 -- and the delta prev_data lookup also filters WHERE kind = 0. A partial
 -- index keeps the index small and the planner happy without scanning over
 -- join/leave rows.
-CREATE INDEX IF NOT EXISTS __PREFIX__history_channel_offset_idx
-    ON __PREFIX__history (channel, channel_offset)
+CREATE INDEX IF NOT EXISTS __STREAM_TABLE___channel_offset_idx
+    ON __STREAM_TABLE__ (channel, channel_offset)
     WHERE kind = 0;
 
 -- Outbox worker batch fetch — polls all kinds (publications, joins, leaves)
 -- and switches in Go.
-CREATE INDEX IF NOT EXISTS __PREFIX__history_shard_id_idx
-    ON __PREFIX__history (shard_id, id);
+CREATE INDEX IF NOT EXISTS __STREAM_TABLE___shard_id_idx
+    ON __STREAM_TABLE__ (shard_id, id);
 
 -- Time-based scans (cleanup, retention, audit). Applies to all kinds.
-CREATE INDEX IF NOT EXISTS __PREFIX__history_created_at_idx
-    ON __PREFIX__history (created_at);
+CREATE INDEX IF NOT EXISTS __STREAM_TABLE___created_at_idx
+    ON __STREAM_TABLE__ (created_at);
 
 -- ============================================================================
 -- Channel Metadata Table
@@ -265,7 +265,7 @@ BEGIN
     -- are monotonic together, so the result is identical.
     IF p_use_delta THEN
         SELECT data INTO v_prev_data
-        FROM __PREFIX__history
+        FROM __STREAM_TABLE__
         WHERE channel = p_channel AND kind = 0
         ORDER BY channel_offset DESC LIMIT 1;
     END IF;
@@ -286,9 +286,9 @@ BEGIN
      WHERE m.channel = p_channel
     RETURNING m.top_offset INTO v_offset;
 
-    -- Insert the history row. created_at defaults to NOW() so partition
+    -- Insert the stream row. created_at defaults to NOW() so partition
     -- routing picks today's partition automatically.
-    INSERT INTO __PREFIX__history (
+    INSERT INTO __STREAM_TABLE__ (
         channel, channel_offset, epoch, kind, data, tags,
         client_id, user_id, conn_info, chan_info, key, prev_data, shard_id
     ) VALUES (
@@ -376,7 +376,7 @@ BEGIN
     -- past the in-progress row.
     PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
 
-    INSERT INTO __PREFIX__history (
+    INSERT INTO __STREAM_TABLE__ (
         channel, channel_offset, kind, client_id, user_id, conn_info, chan_info, shard_id
     ) VALUES (
         p_channel, 0, 1, p_client_id, p_user_id, p_conn_info, p_chan_info, v_shard_id
@@ -407,7 +407,7 @@ BEGIN
 
     PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
 
-    INSERT INTO __PREFIX__history (
+    INSERT INTO __STREAM_TABLE__ (
         channel, channel_offset, kind, client_id, user_id, conn_info, chan_info, shard_id
     ) VALUES (
         p_channel, 0, 2, p_client_id, p_user_id, p_conn_info, p_chan_info, v_shard_id
@@ -436,7 +436,7 @@ BEGIN
 
     PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
 
-    DELETE FROM __PREFIX__history WHERE channel = p_channel AND kind = 0;
+    DELETE FROM __STREAM_TABLE__ WHERE channel = p_channel AND kind = 0;
     -- Note: meta epoch is NOT reset — matches Redis broker behavior. Joins
     -- and leaves (kind=1/2) are also kept and age out via partition retention.
 END;

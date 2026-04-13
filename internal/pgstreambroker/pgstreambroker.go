@@ -47,14 +47,19 @@ var schemaVersion = 1
 // handle BOTH prefixes (jsonb + binary) and be idempotent. Empty for v1.
 var schemaMigrations = map[int]string{}
 
-// renderSchema substitutes the __PREFIX__ and __DATA_TYPE__ placeholders in
-// the embedded schema template with the caller-supplied values.
+// renderSchema substitutes placeholders in the embedded schema template.
+//
+//	__PREFIX__       → e.g. "cf_stream_" (includes trailing underscore)
+//	__DATA_TYPE__    → "JSONB" or "BYTEA"
+//	__STREAM_TABLE__ → e.g. "cf_stream" (prefix without trailing underscore)
 func renderSchema(prefix string, binary bool) string {
 	dataType := "JSONB"
 	if binary {
 		dataType = "BYTEA"
 	}
+	streamTable := strings.TrimRight(prefix, "_")
 	return strings.NewReplacer(
+		"__STREAM_TABLE__", streamTable,
 		"__PREFIX__", prefix,
 		"__DATA_TYPE__", dataType,
 	).Replace(postgresSchemaTemplate)
@@ -103,10 +108,10 @@ func (e *SchemaError) Unwrap() error {
 // The history/meta/idempotency/... fields are computed from the *active*
 // prefix (jsonbPrefix when BinaryData is false, binaryPrefix when true).
 type pgNames struct {
-	history, meta, idempotency, shardLock, schemaVersion string // table names (active variant)
-	publish, publishStrict, publishJoin, publishLeave    string // function names (active variant)
-	removeHistory                                        string
-	notifyChannel                                        string
+	stream, meta, idempotency, shardLock, schemaVersion string // table names (active variant)
+	publish, publishStrict, publishJoin, publishLeave   string // function names (active variant)
+	removeHistory                                       string
+	notifyChannel                                       string
 
 	jsonbPrefix, binaryPrefix string
 }
@@ -120,7 +125,7 @@ func newPgNames(userPrefix string, binary bool) pgNames {
 		p = binaryPrefix
 	}
 	return pgNames{
-		history:       p + "history",
+		stream:        strings.TrimRight(p, "_"), // cf_stream (not cf_stream_history)
 		meta:          p + "meta",
 		idempotency:   p + "idempotency",
 		shardLock:     p + "shard_lock",

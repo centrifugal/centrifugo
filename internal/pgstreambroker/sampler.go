@@ -43,7 +43,7 @@ func (s *metricsSampler) sample(ctx context.Context) {
 		SELECT COUNT(*) FROM pg_inherits i
 		 JOIN pg_class c ON c.oid = i.inhparent
 		 WHERE c.relname = $1
-	`, s.broker.names.history).Scan(&partitionCount)
+	`, s.broker.names.stream).Scan(&partitionCount)
 	if err == nil {
 		metrics.PGBrokerPartitions.WithLabelValues(brokerName).Set(float64(partitionCount))
 	}
@@ -53,7 +53,7 @@ func (s *metricsSampler) sample(ctx context.Context) {
 	err = s.broker.pool.QueryRow(ctx, fmt.Sprintf(`
 		SELECT COUNT(*) FROM %s h
 		 WHERE NOT EXISTS (SELECT 1 FROM %s m WHERE m.channel = h.channel)
-	`, s.broker.names.history, s.broker.names.meta)).Scan(&orphanCount)
+	`, s.broker.names.stream, s.broker.names.meta)).Scan(&orphanCount)
 	if err == nil {
 		metrics.PGBrokerOrphanRows.WithLabelValues(brokerName).Set(float64(orphanCount))
 	}
@@ -69,7 +69,7 @@ func (s *metricsSampler) sample(ctx context.Context) {
 		var createdAt time.Time
 		err := s.broker.pool.QueryRow(ctx, fmt.Sprintf(
 			`SELECT created_at FROM %s WHERE id = $1 LIMIT 1`,
-			s.broker.names.history,
+			s.broker.names.stream,
 		), cursor).Scan(&createdAt)
 		if err != nil {
 			metrics.PGBrokerOutboxCursorLagSeconds.WithLabelValues(brokerName, fmt.Sprintf("%d", shard)).Set(0)

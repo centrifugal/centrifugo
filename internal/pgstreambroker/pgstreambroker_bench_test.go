@@ -173,14 +173,14 @@ func BenchmarkPostgresStreamBroker_RetentionDrop(b *testing.B) {
 	// Stop the timer for the setup phase.
 	b.StopTimer()
 	for i := 0; i < b.N; i++ {
-		partName := fmt.Sprintf("%s_bench_%d_%d", e.names.history, time.Now().UnixNano(), i)
+		partName := fmt.Sprintf("%s_bench_%d_%d", e.names.stream, time.Now().UnixNano(), i)
 		// Use date ranges many years in the past to avoid collisions with
 		// the lookahead-managed partitions.
 		yearsAgo := yesterday.AddDate(-100-i, 0, 0)
 		yearsAgoNext := yearsAgo.AddDate(0, 0, 1)
 		_, err := e.pool.Exec(ctx, fmt.Sprintf(
 			`CREATE TABLE IF NOT EXISTS %s PARTITION OF %s FOR VALUES FROM ('%s') TO ('%s')`,
-			partName, e.names.history,
+			partName, e.names.stream,
 			yearsAgo.Format("2006-01-02"), yearsAgoNext.Format("2006-01-02"),
 		))
 		require.NoError(b, err)
@@ -190,7 +190,7 @@ func BenchmarkPostgresStreamBroker_RetentionDrop(b *testing.B) {
 		for r := 0; r < rowsPerPartition; r++ {
 			_, err := e.pool.Exec(ctx, fmt.Sprintf(
 				`INSERT INTO %s (channel, channel_offset, kind, data, created_at, shard_id) VALUES ($1, $2, 0, '\x'::bytea, $3, 0)`,
-				e.names.history,
+				e.names.stream,
 			), fmt.Sprintf("bench_drop_%d_%d", i, r), int64(r), yearsAgo.Add(time.Duration(r)*time.Microsecond))
 			require.NoError(b, err)
 		}
@@ -261,7 +261,7 @@ func BenchmarkPostgresStreamBroker_FineGrainedDelete(b *testing.B) {
 			_, err := e.pool.Exec(ctx, fmt.Sprintf(
 				`INSERT INTO %s (channel, channel_offset, kind, data, created_at, shard_id)
 				 VALUES ($1, $2, 0, '\x'::bytea, NOW() - INTERVAL '1 hour', 0)`,
-				e.names.history,
+				e.names.stream,
 			), channel, int64(r))
 			require.NoError(b, err)
 		}

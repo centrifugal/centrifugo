@@ -53,7 +53,7 @@ func (e *PostgresStreamBroker) outboxWorkerConfig(workerIdx int) (*pgxpool.Pool,
 func (e *PostgresStreamBroker) initOutboxCursor(ctx context.Context, pool *pgxpool.Pool) (int64, error) {
 	var cursor int64
 	err := pool.QueryRow(ctx, fmt.Sprintf(
-		`SELECT COALESCE(MAX(id), 0) FROM %s`, e.names.history)).Scan(&cursor)
+		`SELECT COALESCE(MAX(id), 0) FROM %s`, e.names.stream)).Scan(&cursor)
 	return cursor, err
 }
 
@@ -147,7 +147,7 @@ func (e *PostgresStreamBroker) processOutboxBatch(
 		 WHERE id > $1 AND shard_id = ANY($2)
 		 ORDER BY id
 		 LIMIT $3
-	`, e.names.history)
+	`, e.names.stream)
 
 	rows, err := pool.Query(ctx, query, cursor, shardIDs, e.conf.Outbox.BatchSize)
 	if err != nil {

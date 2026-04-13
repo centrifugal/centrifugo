@@ -14,7 +14,7 @@ import (
 func (e *PostgresStreamBroker) newPartitioner() *pgoutbox.Partitioner {
 	return &pgoutbox.Partitioner{
 		Pool:            e.pool,
-		ParentTable:     e.names.history,
+		ParentTable:     e.names.stream,
 		CleanupInterval: e.conf.CleanupInterval,
 		LookaheadDays:   e.conf.PartitionLookaheadDays,
 		RetentionDays:   e.conf.PartitionRetentionDays,
@@ -92,7 +92,7 @@ func (e *PostgresStreamBroker) cleanupHistoryFineGrained(ctx context.Context) {
 		DELETE FROM %s h
 		 USING victims v
 		 WHERE h.id = v.id AND h.created_at = v.created_at
-	`, e.names.history, e.names.meta, e.names.history)
+	`, e.names.stream, e.names.meta, e.names.stream)
 
 	for {
 		res, err := e.pool.Exec(ctx, query, e.conf.CleanupBatchSize)

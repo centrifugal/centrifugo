@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -108,7 +109,7 @@ func newTestPostgresStreamBroker(tb testing.TB) (*PostgresStreamBroker, *centrif
 }
 
 func cleanupTestTables(ctx context.Context, e *PostgresStreamBroker) {
-	_, _ = e.pool.Exec(ctx, fmt.Sprintf("DELETE FROM %s WHERE channel LIKE 'test_%%'", e.names.history))
+	_, _ = e.pool.Exec(ctx, fmt.Sprintf("DELETE FROM %s WHERE channel LIKE 'test_%%'", e.names.stream))
 	_, _ = e.pool.Exec(ctx, fmt.Sprintf("DELETE FROM %s WHERE channel LIKE 'test_%%'", e.names.meta))
 	_, _ = e.pool.Exec(ctx, fmt.Sprintf("DELETE FROM %s WHERE channel LIKE 'test_%%'", e.names.idempotency))
 }
@@ -126,7 +127,7 @@ func hardResetTestSchema(tb testing.TB, e *PostgresStreamBroker) {
 			fmt.Sprintf("DROP FUNCTION IF EXISTS %spublish_join CASCADE", prefix),
 			fmt.Sprintf("DROP FUNCTION IF EXISTS %spublish_leave CASCADE", prefix),
 			fmt.Sprintf("DROP FUNCTION IF EXISTS %sremove_history CASCADE", prefix),
-			fmt.Sprintf("DROP TABLE IF EXISTS %shistory CASCADE", prefix),
+			fmt.Sprintf("DROP TABLE IF EXISTS %s CASCADE", strings.TrimRight(prefix, "_")),
 			fmt.Sprintf("DROP TABLE IF EXISTS %smeta CASCADE", prefix),
 			fmt.Sprintf("DROP TABLE IF EXISTS %sidempotency CASCADE", prefix),
 			fmt.Sprintf("DROP TABLE IF EXISTS %sshard_lock CASCADE", prefix),
@@ -511,11 +512,11 @@ func TestPostgresStreamBroker_TablePrefixCustom(t *testing.T) {
 	ctx := context.Background()
 	require.NoError(t, e.EnsureSchema(ctx))
 	// BinaryData=true → active prefix is the binary variant.
-	require.Equal(t, customPrefix+"_binary_stream_history", e.names.history)
+	require.Equal(t, customPrefix+"_binary_stream", e.names.stream)
 
 	t.Cleanup(func() {
 		// Drop custom-prefixed tables.
-		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s CASCADE", e.names.history))
+		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s CASCADE", e.names.stream))
 		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s CASCADE", e.names.meta))
 		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s CASCADE", e.names.idempotency))
 		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s CASCADE", e.names.shardLock))
@@ -736,7 +737,7 @@ func TestPostgresStreamBroker_DeltaCompression(t *testing.T) {
 	var prevData []byte
 	err = e.pool.QueryRow(ctx, fmt.Sprintf(
 		`SELECT prev_data FROM %s WHERE channel = $1 AND channel_offset = 2 AND kind = 0`,
-		e.names.history,
+		e.names.stream,
 	), channel).Scan(&prevData)
 	require.NoError(t, err)
 	require.Equal(t, []byte("first"), prevData)
@@ -866,7 +867,7 @@ func TestPostgresStreamBroker_RedisFanout(t *testing.T) {
 	var count int
 	err = e.pool.QueryRow(ctx, fmt.Sprintf(
 		`SELECT COUNT(*) FROM %s WHERE channel = $1 AND kind = 0`,
-		e.names.history,
+		e.names.stream,
 	), channel).Scan(&count)
 	require.NoError(t, err)
 	require.Equal(t, 1, count)
@@ -877,7 +878,7 @@ func TestPostgresStreamBroker_RedisFanout(t *testing.T) {
 	// Verify NO join row was written to PG.
 	err = e.pool.QueryRow(ctx, fmt.Sprintf(
 		`SELECT COUNT(*) FROM %s WHERE channel = $1 AND kind = 1`,
-		e.names.history,
+		e.names.stream,
 	), channel).Scan(&count)
 	require.NoError(t, err)
 	require.Equal(t, 0, count, "PublishJoin in fanout mode should NOT write to PG")
@@ -929,10 +930,10 @@ func TestPostgresStreamBroker_PartitionRetention_LookaheadAndDrop(t *testing.T) 
 	// worker drops it on the next tick.
 	oldDate := time.Now().UTC().AddDate(0, 0, -3)
 	nextDay := oldDate.AddDate(0, 0, 1)
-	oldPartName := fmt.Sprintf("%s_%s", e.names.history, oldDate.Format("2006_01_02"))
+	oldPartName := fmt.Sprintf("%s_%s", e.names.stream, oldDate.Format("2006_01_02"))
 	_, err := e.pool.Exec(ctx, fmt.Sprintf(
 		`CREATE TABLE IF NOT EXISTS %s PARTITION OF %s FOR VALUES FROM ('%s') TO ('%s')`,
-		oldPartName, e.names.history,
+		oldPartName, e.names.stream,
 		oldDate.Format("2006-01-02"), nextDay.Format("2006-01-02"),
 	))
 	require.NoError(t, err)
@@ -955,7 +956,7 @@ func TestPostgresStreamBroker_PartitionRetention_LookaheadAndDrop(t *testing.T) 
 	}, 5*time.Second, 100*time.Millisecond, "old partition should be dropped")
 
 	// Verify today's partition exists (lookahead worker should have created it).
-	todayPartName := fmt.Sprintf("%s_%s", e.names.history, time.Now().UTC().Format("2006_01_02"))
+	todayPartName := fmt.Sprintf("%s_%s", e.names.stream, time.Now().UTC().Format("2006_01_02"))
 	var todayExists bool
 	err = e.pool.QueryRow(ctx, `
 		SELECT EXISTS(SELECT 1 FROM pg_class WHERE relname = $1)
@@ -1002,10 +1003,10 @@ func TestPostgresStreamBroker_PartitionRetention_RetentionZero_NeverDrops(t *tes
 	// Manually create an old partition.
 	oldDate := time.Now().UTC().AddDate(0, 0, -10)
 	nextDay := oldDate.AddDate(0, 0, 1)
-	oldPartName := fmt.Sprintf("%s_%s", e.names.history, oldDate.Format("2006_01_02"))
+	oldPartName := fmt.Sprintf("%s_%s", e.names.stream, oldDate.Format("2006_01_02"))
 	_, err = e.pool.Exec(ctx, fmt.Sprintf(
 		`CREATE TABLE IF NOT EXISTS %s PARTITION OF %s FOR VALUES FROM ('%s') TO ('%s')`,
-		oldPartName, e.names.history,
+		oldPartName, e.names.stream,
 		oldDate.Format("2006-01-02"), nextDay.Format("2006-01-02"),
 	))
 	require.NoError(t, err)
@@ -1239,7 +1240,7 @@ func TestPostgresStreamBroker_FineGrainedCleanupOptIn(t *testing.T) {
 	var count int
 	err = e.pool.QueryRow(ctx, fmt.Sprintf(
 		`SELECT COUNT(*) FROM %s WHERE channel = $1 AND kind = 0`,
-		e.names.history,
+		e.names.stream,
 	), channel).Scan(&count)
 	require.NoError(t, err)
 	require.Equal(t, 1, count)
@@ -1249,7 +1250,7 @@ func TestPostgresStreamBroker_FineGrainedCleanupOptIn(t *testing.T) {
 		var c int
 		_ = e.pool.QueryRow(ctx, fmt.Sprintf(
 			`SELECT COUNT(*) FROM %s WHERE channel = $1 AND kind = 0`,
-			e.names.history,
+			e.names.stream,
 		), channel).Scan(&c)
 		return c == 0
 	}, 5*time.Second, 100*time.Millisecond,
@@ -1392,7 +1393,7 @@ func TestPostgresStreamBroker_DayRolloverWithLookahead(t *testing.T) {
 	ctx := context.Background()
 
 	tomorrow := time.Now().UTC().AddDate(0, 0, 1)
-	tomorrowPartName := fmt.Sprintf("%s_%s", e.names.history, tomorrow.Format("2006_01_02"))
+	tomorrowPartName := fmt.Sprintf("%s_%s", e.names.stream, tomorrow.Format("2006_01_02"))
 
 	// Verify tomorrow's partition exists (created by EnsureSchema's lookahead).
 	var exists bool
@@ -1406,7 +1407,7 @@ func TestPostgresStreamBroker_DayRolloverWithLookahead(t *testing.T) {
 	_, err = e.pool.Exec(ctx, fmt.Sprintf(`
 		INSERT INTO %s (channel, channel_offset, kind, data, created_at, shard_id)
 		VALUES ($1, 1, 0, '\x'::bytea, $2, 0)
-	`, e.names.history), "test_day_rollover", tomorrow.Add(time.Hour))
+	`, e.names.stream), "test_day_rollover", tomorrow.Add(time.Hour))
 	require.NoError(t, err, "insert into tomorrow's partition should succeed via lookahead")
 }
 
@@ -1442,7 +1443,7 @@ func TestPostgresStreamBroker_OrphanRowsGauge(t *testing.T) {
 	_, err := e.pool.Exec(ctx, fmt.Sprintf(`
 		INSERT INTO %s (channel, channel_offset, kind, data, shard_id)
 		VALUES ($1, 1, 0, '\x'::bytea, 0)
-	`, e.names.history), "test_orphan_synthetic")
+	`, e.names.stream), "test_orphan_synthetic")
 	require.NoError(t, err)
 
 	// Wait for the metrics sampler to fire.

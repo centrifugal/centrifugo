@@ -26,7 +26,7 @@ func (e *PostgresStreamBroker) EnsureSchema(ctx context.Context) error {
 	).Scan(&dbVersion)
 	if err == nil && dbVersion == schemaVersion {
 		if _, probeErr := e.pool.Exec(ctx, fmt.Sprintf(
-			`SELECT 1 FROM %s LIMIT 0`, e.names.history)); probeErr == nil {
+			`SELECT 1 FROM %s LIMIT 0`, e.names.stream)); probeErr == nil {
 			// Also verify partitioned shape — see step 4.
 			if err := e.verifyPartitionedShape(ctx); err != nil {
 				return err
@@ -119,7 +119,7 @@ func (e *PostgresStreamBroker) verifyPartitionedShape(ctx context.Context) error
 			SELECT 1 FROM pg_partitioned_table
 			WHERE partrelid = $1::regclass
 		)
-	`, e.names.history).Scan(&isPartitioned)
+	`, e.names.stream).Scan(&isPartitioned)
 	if err != nil {
 		// Table doesn't exist yet (or other lookup error). Fall through —
 		// the schema template's CREATE TABLE will run later.
@@ -127,14 +127,14 @@ func (e *PostgresStreamBroker) verifyPartitionedShape(ctx context.Context) error
 	}
 	if !isPartitioned {
 		return &SchemaError{
-			Object: SchemaObject{Type: "table", Name: e.names.history},
+			Object: SchemaObject{Type: "table", Name: e.names.stream},
 			Op:     "verify",
 			Err: fmt.Errorf(
 				"%s exists but is not partitioned. pgstreambroker schema requires "+
 					"a partitioned table and this build does not include migration logic. "+
 					"Drop the existing tables manually with: DROP TABLE IF EXISTS %s, %s, %s, %s, %s CASCADE",
-				e.names.history,
-				e.names.history, e.names.meta, e.names.idempotency, e.names.shardLock, e.names.schemaVersion,
+				e.names.stream,
+				e.names.stream, e.names.meta, e.names.idempotency, e.names.shardLock, e.names.schemaVersion,
 			),
 		}
 	}
@@ -147,7 +147,7 @@ func (e *PostgresStreamBroker) ensureInitialPartitions(ctx context.Context) erro
 	p := e.newPartitioner()
 	if err := p.EnsureLookaheadPartitions(ctx); err != nil {
 		return &SchemaError{
-			Object: SchemaObject{Type: "table", Name: e.names.history},
+			Object: SchemaObject{Type: "table", Name: e.names.stream},
 			Op:     "create",
 			Err:    err,
 		}
