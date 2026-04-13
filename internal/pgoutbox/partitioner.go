@@ -36,7 +36,7 @@ import (
 // cleanup.
 type Partitioner struct {
 	// Pool is the pgxpool used for all partition maintenance SQL.
-	// Typically the primary pool (DDL must target the primary).
+	// Typically, the primary pool (DDL must target the primary).
 	Pool *pgxpool.Pool
 
 	// ParentTable is the unquoted name of the parent partitioned table

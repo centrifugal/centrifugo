@@ -153,17 +153,6 @@ INSERT INTO __PREFIX__schema_version (id, schema_version) VALUES (1, 1)
 -- Functions
 -- ============================================================================
 
--- DROP existing functions before CREATE OR REPLACE so signature changes
--- (return type, parameter list) succeed cleanly. PG forbids changing the
--- return type via CREATE OR REPLACE alone. With no-arg DROP IF EXISTS we
--- rely on having no overloads — there's only one function per name.
-DROP FUNCTION IF EXISTS __PREFIX__publish;
-DROP FUNCTION IF EXISTS __PREFIX__publish_strict;
-DROP FUNCTION IF EXISTS __PREFIX__publish_join;
-DROP FUNCTION IF EXISTS __PREFIX__publish_leave;
-DROP FUNCTION IF EXISTS __PREFIX__remove_history;
-DROP FUNCTION IF EXISTS __PREFIX__top_position;
-
 -- __PREFIX__publish: atomic publish with version, idempotency, and TTL handling.
 --
 -- Lock order: shard → meta. Publishes on the same shard serialize via the
@@ -459,7 +448,6 @@ $$ LANGUAGE plpgsql;
 -- position that covers any mutations during/after the state read. The client
 -- SDK then subscribes with this position and recovers any publications that
 -- arrived between the read and the subscribe.
-DROP FUNCTION IF EXISTS __PREFIX__top_position;
 CREATE OR REPLACE FUNCTION __PREFIX__top_position(
     p_channel TEXT
 ) RETURNS TABLE(

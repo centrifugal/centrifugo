@@ -284,7 +284,6 @@ type PostgresStreamBrokerConfig struct {
 	// Go-level construction (e.g. tests) must set this explicitly — there
 	// is no implicit default in setDefaults so that 0 (unlimited) survives.
 	PartitionRetentionDays int
-
 }
 
 func (c *PostgresStreamBrokerConfig) setDefaults() {
