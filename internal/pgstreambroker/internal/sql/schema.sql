@@ -70,14 +70,14 @@ CREATE INDEX IF NOT EXISTS __STREAM_TABLE___created_at_idx
 --
 --   top_offset       — last assigned channel_offset (incremented on publish)
 --   epoch            — monotonic epoch string; new on first publish, persists
---                      until the channel is forgotten via meta_expires_at
+--                      until the channel is forgotten via expires_at
 --   version          — for version-based publish suppression
 --   version_epoch    — companion to version (epoch reset triggers re-comparison)
 --   history_ttl      — from PublishOptions.HistoryTTL; refreshed on each publish.
 --                      Used by History() reads for the read-time TTL filter.
 --   history_size     — from PublishOptions.HistorySize; refreshed on each publish.
 --                      Used by History() reads to clamp the result window.
---   meta_expires_at  — from PublishOptions.HistoryMetaTTL (with 3-tier fallback);
+--   expires_at  — from PublishOptions.HistoryMetaTTL (with 3-tier fallback);
 --                      always non-NULL; when it passes, the meta cleanup pass
 --                      deletes the row and the channel is forgotten.
 -- ============================================================================
@@ -88,16 +88,16 @@ CREATE TABLE IF NOT EXISTS __PREFIX__meta (
     epoch           TEXT NOT NULL DEFAULT '',
     version         BIGINT NOT NULL DEFAULT 0,
     version_epoch   TEXT NOT NULL DEFAULT '',
-    history_ttl     INTERVAL,
-    history_size    INTEGER,
-    meta_expires_at TIMESTAMPTZ,
+    history_ttl     INTERVAL NOT NULL DEFAULT interval '1 minute',
+    history_size    INTEGER NOT NULL DEFAULT 100,
+    expires_at TIMESTAMPTZ NOT NULL DEFAULT NOW() + interval '7 days',
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS __PREFIX__meta_expires_idx
-    ON __PREFIX__meta (meta_expires_at)
-    WHERE meta_expires_at IS NOT NULL;
+    ON __PREFIX__meta (expires_at)
+    WHERE expires_at IS NOT NULL;
 
 -- Per-table autovacuum tuning: meta sees two writes per publish (lock + increment)
 -- plus one write per History() read (TTL refresh). Default autovacuum thresholds
@@ -211,6 +211,9 @@ BEGIN
     IF p_num_shards IS NULL THEN
         SELECT COUNT(*)::INTEGER INTO p_num_shards FROM __PREFIX__shard_lock;
     END IF;
+    IF p_num_shards <= 0 THEN
+        RAISE EXCEPTION 'shard_lock table is empty — run EnsureSchema first';
+    END IF;
 
     v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
 
@@ -218,13 +221,14 @@ BEGIN
     PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
 
     -- Defensive clamp: effective_meta_ttl = GREATEST(p_meta_ttl, p_history_ttl).
-    -- COALESCE NULL → '0'::interval before GREATEST, then convert '0' back to NULL.
+    -- Falls back to 7 days when neither is provided, ensuring meta always expires.
+    -- A negative p_meta_ttl (e.g. interval '-1 second') disables expiration.
     v_effective_meta_ttl := GREATEST(
         COALESCE(p_meta_ttl, '0'::interval),
         COALESCE(p_history_ttl, '0'::interval)
     );
     IF v_effective_meta_ttl = '0'::interval THEN
-        v_effective_meta_ttl := NULL;
+        v_effective_meta_ttl := interval '7 days';
     END IF;
 
     -- Atomic insert-or-lock meta. ON CONFLICT DO UPDATE with a no-op write
@@ -278,9 +282,9 @@ BEGIN
            version_epoch = COALESCE(p_version_epoch, m.version_epoch),
            history_ttl = COALESCE(p_history_ttl, m.history_ttl),
            history_size = COALESCE(p_history_size, m.history_size),
-           meta_expires_at = CASE
-               WHEN v_effective_meta_ttl IS NOT NULL THEN NOW() + v_effective_meta_ttl
-               ELSE m.meta_expires_at
+           expires_at = CASE
+               WHEN v_effective_meta_ttl < '0'::interval THEN 'infinity'::timestamptz
+               ELSE NOW() + v_effective_meta_ttl
            END,
            updated_at = NOW()
      WHERE m.channel = p_channel

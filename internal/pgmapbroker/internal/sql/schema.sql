@@ -176,9 +176,21 @@ DECLARE
     v_current_version_epoch TEXT;
     v_shard_id INTEGER;
 BEGIN
+    -- Validate: meta_ttl must outlive key_ttl. When keys are permanent
+    -- (p_key_ttl IS NULL), meta must also be permanent (p_meta_ttl IS NULL).
+    IF p_meta_ttl IS NOT NULL AND p_key_ttl IS NULL THEN
+        RAISE EXCEPTION 'meta_ttl must be NULL (permanent) when key_ttl is NULL (permanent keys)';
+    END IF;
+    IF p_meta_ttl IS NOT NULL AND p_key_ttl IS NOT NULL AND p_meta_ttl < p_key_ttl THEN
+        RAISE EXCEPTION 'meta_ttl must be >= key_ttl (metadata must outlive keys)';
+    END IF;
+
     -- Auto-derive num_shards from shard_lock table when not provided.
     IF p_num_shards IS NULL THEN
         SELECT COUNT(*)::INTEGER INTO p_num_shards FROM __PREFIX__shard_lock;
+    END IF;
+    IF p_num_shards <= 0 THEN
+        RAISE EXCEPTION 'shard_lock table is empty — run EnsureSchema first';
     END IF;
 
     -- Calculate shard_id from channel hash
@@ -413,6 +425,9 @@ BEGIN
     IF p_num_shards IS NULL THEN
         SELECT COUNT(*)::INTEGER INTO p_num_shards FROM __PREFIX__shard_lock;
     END IF;
+    IF p_num_shards <= 0 THEN
+        RAISE EXCEPTION 'shard_lock table is empty — run EnsureSchema first';
+    END IF;
 
     -- Calculate shard_id from channel hash
     v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
@@ -557,6 +572,9 @@ BEGIN
     IF p_num_shards IS NULL THEN
         SELECT COUNT(*)::INTEGER INTO p_num_shards FROM __PREFIX__shard_lock;
     END IF;
+    IF p_num_shards <= 0 THEN
+        RAISE EXCEPTION 'shard_lock table is empty — run EnsureSchema first';
+    END IF;
 
     -- Process one channel at a time to maintain meta→state lock ordering.
     FOR v_channel IN
@@ -664,6 +682,9 @@ BEGIN
     IF p_num_shards IS NULL THEN
         SELECT COUNT(*)::INTEGER INTO p_num_shards FROM __PREFIX__shard_lock;
     END IF;
+    IF p_num_shards <= 0 THEN
+        RAISE EXCEPTION 'shard_lock table is empty — run EnsureSchema first';
+    END IF;
 
     -- Calculate shard_id from channel hash
     v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
@@ -755,6 +776,9 @@ BEGIN
     -- Auto-derive num_shards from shard_lock table when not provided.
     IF p_num_shards IS NULL THEN
         SELECT COUNT(*)::INTEGER INTO p_num_shards FROM __PREFIX__shard_lock;
+    END IF;
+    IF p_num_shards <= 0 THEN
+        RAISE EXCEPTION 'shard_lock table is empty — run EnsureSchema first';
     END IF;
 
     -- Calculate shard_id from channel hash

@@ -250,7 +250,7 @@ func BenchmarkPostgresStreamBroker_FineGrainedDelete(b *testing.B) {
 		b.StopTimer()
 		// Pre-populate with rows that have an already-expired history_ttl.
 		_, err := e.pool.Exec(ctx, fmt.Sprintf(
-			`INSERT INTO %s (channel, top_offset, epoch, history_ttl, history_size, meta_expires_at, updated_at)
+			`INSERT INTO %s (channel, top_offset, epoch, history_ttl, history_size, expires_at, updated_at)
 			 VALUES ($1, 0, 'e', '1 millisecond', 10000, NOW() + '1 hour', NOW())
 			 ON CONFLICT (channel) DO UPDATE SET history_ttl = EXCLUDED.history_ttl`,
 			e.names.meta,

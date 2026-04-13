@@ -474,10 +474,10 @@ func TestPostgresStreamBroker_DefensiveClampMatrix(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			// Verify meta still has a non-NULL meta_expires_at in the future.
+			// Verify meta still has a non-NULL expires_at in the future.
 			var metaAliveCount int
 			err = e.pool.QueryRow(context.Background(), fmt.Sprintf(
-				`SELECT COUNT(*) FROM %s WHERE channel = $1 AND meta_expires_at > NOW()`,
+				`SELECT COUNT(*) FROM %s WHERE channel = $1 AND expires_at > NOW()`,
 				e.names.meta,
 			), channel).Scan(&metaAliveCount)
 			require.NoError(t, err)
@@ -675,7 +675,7 @@ func TestPostgresStreamBroker_PublishSQL_ClampMatrix(t *testing.T) {
 		name        string
 		historyTTL  time.Duration
 		metaTTL     time.Duration
-		minMetaLife time.Duration // minimum expected meta_expires_at - now
+		minMetaLife time.Duration // minimum expected expires_at - now
 	}
 	cases := []clampCase{
 		{"both_nil", 0, 0, 23 * time.Hour}, // falls back to StreamRetention 24h
@@ -696,7 +696,7 @@ func TestPostgresStreamBroker_PublishSQL_ClampMatrix(t *testing.T) {
 
 			var metaExpiresAt time.Time
 			err = e.pool.QueryRow(ctx, fmt.Sprintf(
-				`SELECT meta_expires_at FROM %s WHERE channel = $1`,
+				`SELECT expires_at FROM %s WHERE channel = $1`,
 				e.names.meta,
 			), channel).Scan(&metaExpiresAt)
 			require.NoError(t, err)
@@ -1105,7 +1105,7 @@ func TestPostgresStreamBroker_UseNotify_WakeupLatency(t *testing.T) {
 }
 
 // TestPostgresStreamBroker_HistoryDoesNotRefreshMetaTTL verifies that History()
-// is a pure read and does NOT refresh meta_expires_at. This is different from
+// is a pure read and does NOT refresh expires_at. This is different from
 // the Redis broker (which refreshes on read) but matches the map broker
 // pattern and allows History to use read replicas.
 func TestPostgresStreamBroker_HistoryDoesNotRefreshMetaTTL(t *testing.T) {
@@ -1124,14 +1124,14 @@ func TestPostgresStreamBroker_HistoryDoesNotRefreshMetaTTL(t *testing.T) {
 
 	var metaExpiresAt1 time.Time
 	err = e.pool.QueryRow(ctx, fmt.Sprintf(
-		`SELECT meta_expires_at FROM %s WHERE channel = $1`,
+		`SELECT expires_at FROM %s WHERE channel = $1`,
 		e.names.meta,
 	), channel).Scan(&metaExpiresAt1)
 	require.NoError(t, err)
 
 	time.Sleep(200 * time.Millisecond)
 
-	// History read — should NOT change meta_expires_at.
+	// History read — should NOT change expires_at.
 	_, _, err = e.History(channel, centrifuge.HistoryOptions{
 		Filter:  centrifuge.HistoryFilter{Limit: 10},
 		MetaTTL: 1 * time.Hour,
@@ -1140,14 +1140,14 @@ func TestPostgresStreamBroker_HistoryDoesNotRefreshMetaTTL(t *testing.T) {
 
 	var metaExpiresAt2 time.Time
 	err = e.pool.QueryRow(ctx, fmt.Sprintf(
-		`SELECT meta_expires_at FROM %s WHERE channel = $1`,
+		`SELECT expires_at FROM %s WHERE channel = $1`,
 		e.names.meta,
 	), channel).Scan(&metaExpiresAt2)
 	require.NoError(t, err)
 
-	// meta_expires_at should be UNCHANGED — History is a pure read.
+	// expires_at should be UNCHANGED — History is a pure read.
 	require.Equal(t, metaExpiresAt1.Unix(), metaExpiresAt2.Unix(),
-		"meta_expires_at should NOT be refreshed by History")
+		"expires_at should NOT be refreshed by History")
 }
 
 // TestPostgresStreamBroker_RemoveHistoryRaceWithPublish runs concurrent
@@ -1307,7 +1307,7 @@ func TestPostgresStreamBroker_HistoryMetaTTL_NodeConfigFallback(t *testing.T) {
 
 	var metaExpiresAt time.Time
 	err = e.pool.QueryRow(ctx, fmt.Sprintf(
-		`SELECT meta_expires_at FROM %s WHERE channel = $1`,
+		`SELECT expires_at FROM %s WHERE channel = $1`,
 		e.names.meta,
 	), channel).Scan(&metaExpiresAt)
 	require.NoError(t, err)

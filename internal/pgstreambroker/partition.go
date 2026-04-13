@@ -59,7 +59,7 @@ func addCleanupRows(broker, pass string, n int64) {
 // cleanupSupportTables deletes expired meta and idempotency rows.
 func (e *PostgresStreamBroker) cleanupSupportTables(ctx context.Context) {
 	if res, err := e.pool.Exec(ctx, fmt.Sprintf(
-		`DELETE FROM %s WHERE meta_expires_at IS NOT NULL AND meta_expires_at < NOW()`,
+		`DELETE FROM %s WHERE expires_at IS NOT NULL AND expires_at < NOW()`,
 		e.names.meta,
 	)); err != nil {
 		e.logErrorMsg("error cleaning up expired meta", err)

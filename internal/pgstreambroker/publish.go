@@ -46,7 +46,7 @@ func (e *PostgresStreamBroker) Publish(ch string, data []byte, opts centrifuge.P
 	}
 
 	// HistoryMetaTTL with 3-tier fallback: opts → node config → StreamRetention.
-	// The third tier guarantees meta_expires_at is always set, so the meta
+	// The third tier guarantees expires_at is always set, so the meta
 	// cleanup pass eventually fires for every channel.
 	historyMetaTTL := opts.HistoryMetaTTL
 	if historyMetaTTL == 0 {

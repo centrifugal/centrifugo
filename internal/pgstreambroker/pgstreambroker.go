@@ -230,7 +230,7 @@ type PostgresStreamBrokerConfig struct {
 
 	// StreamRetention is the safety floor for HistoryMetaTTL when neither
 	// PublishOptions nor node config sets it. Default: 24h. Guarantees that
-	// every channel meta row eventually expires (no NULL meta_expires_at).
+	// every channel meta row eventually expires (no NULL expires_at).
 	StreamRetention time.Duration
 
 	// UseNotify enables LISTEN/NOTIFY for low-latency outbox wakeup.
