@@ -451,7 +451,7 @@ $$ LANGUAGE plpgsql;
 -- inside the same transaction as reading its own data, capturing the stream
 -- position that covers any mutations during/after the state read. The client
 -- SDK then subscribes with this position and recovers any publications that
--- arrived between the read and the subscribe.
+-- arrived between the read and subscribe.
 CREATE OR REPLACE FUNCTION __PREFIX__top_position(
     p_channel TEXT
 ) RETURNS TABLE(

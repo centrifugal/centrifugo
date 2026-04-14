@@ -205,3 +205,29 @@ type PostgresStreamBroker struct {
 	// CleanupChunkPause is the pause between fine-grained cleanup chunks. Default: "100ms".
 	CleanupChunkPause Duration `mapstructure:"cleanup_chunk_pause" json:"cleanup_chunk_pause" envconfig:"cleanup_chunk_pause" default:"100ms" yaml:"cleanup_chunk_pause" toml:"cleanup_chunk_pause"`
 }
+
+// Controller is a configuration for custom Centrifugo Controller.
+// In OSS, only "postgres" type is supported.
+type Controller struct {
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
+	// Type of controller to use. Can be "postgres" in OSS. PRO also supports "redis" and "nats".
+	Type string `mapstructure:"type" json:"type" envconfig:"type" yaml:"type" toml:"type"`
+	// Postgres is a configuration for "postgres" controller.
+	Postgres PostgresController `mapstructure:"postgres" json:"postgres" envconfig:"postgres" toml:"postgres" yaml:"postgres"`
+}
+
+// PostgresController configures the PostgreSQL-based controller for multi-node
+// cluster coordination. Creates tables with the configured prefix
+// (e.g. cf_controller_messages, cf_controller_shard_lock).
+type PostgresController struct {
+	DSN                      string   `mapstructure:"dsn" json:"dsn" envconfig:"dsn" yaml:"dsn" toml:"dsn"`
+	PoolSize                 int      `mapstructure:"pool_size" json:"pool_size" envconfig:"pool_size" yaml:"pool_size" toml:"pool_size"`
+	NumShards                int      `mapstructure:"num_shards" json:"num_shards" envconfig:"num_shards" yaml:"num_shards" toml:"num_shards"`
+	TablePrefix              string   `mapstructure:"table_prefix" json:"table_prefix" envconfig:"table_prefix" yaml:"table_prefix" toml:"table_prefix"`
+	PollInterval             Duration `mapstructure:"poll_interval" json:"poll_interval" envconfig:"poll_interval" yaml:"poll_interval" toml:"poll_interval"`
+	UseNotify                bool     `mapstructure:"use_notify" json:"use_notify" envconfig:"use_notify" yaml:"use_notify" toml:"use_notify"`
+	PartitionRetentionDays   int      `mapstructure:"partition_retention_days" json:"partition_retention_days" envconfig:"partition_retention_days" yaml:"partition_retention_days" toml:"partition_retention_days"`
+	PartitionLookaheadDays   int      `mapstructure:"partition_lookahead_days" json:"partition_lookahead_days" envconfig:"partition_lookahead_days" yaml:"partition_lookahead_days" toml:"partition_lookahead_days"`
+	PartitionCleanupInterval Duration `mapstructure:"partition_cleanup_interval" json:"partition_cleanup_interval" envconfig:"partition_cleanup_interval" yaml:"partition_cleanup_interval" toml:"partition_cleanup_interval"`
+	SkipSchemaInit           bool     `mapstructure:"skip_schema_init" json:"skip_schema_init" envconfig:"skip_schema_init" yaml:"skip_schema_init" toml:"skip_schema_init"`
+}

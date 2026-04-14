@@ -46,6 +46,9 @@ type Config struct {
 	// When enabled, clients can use map subscription types for channels in namespaces
 	// that have a map subscription_type.
 	MapBroker configtypes.MapBroker `mapstructure:"map_broker" json:"map_broker" envconfig:"map_broker" toml:"map_broker" yaml:"map_broker"`
+	// Controller is a configuration for custom Centrifugo Controller used for
+	// cross-node communication in multi-node clusters.
+	Controller configtypes.Controller `mapstructure:"controller" json:"controller" envconfig:"controller" toml:"controller" yaml:"controller"`
 
 	// SharedPoll contains configuration for shared poll subscriptions.
 	SharedPoll configtypes.SharedPoll `mapstructure:"shared_poll" json:"shared_poll" envconfig:"shared_poll" toml:"shared_poll" yaml:"shared_poll"`

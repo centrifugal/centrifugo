@@ -340,7 +340,13 @@ func TestPostgresStreamBroker_PublishJoinLeave(t *testing.T) {
 	e, _, handler := newTestPostgresStreamBroker(t)
 
 	channel := "test_join_leave"
-	var joinCount, leaveCount int32
+	var probeReceived, joinCount, leaveCount int32
+	handler.HandlePublicationFunc = func(ch string, pub *centrifuge.Publication, sp centrifuge.StreamPosition, delta bool, prevPub *centrifuge.Publication) error {
+		if ch == channel+"_probe" {
+			atomic.StoreInt32(&probeReceived, 1)
+		}
+		return nil
+	}
 	handler.HandleJoinFunc = func(ch string, info *centrifuge.ClientInfo) error {
 		if ch == channel {
 			atomic.AddInt32(&joinCount, 1)
@@ -354,14 +360,24 @@ func TestPostgresStreamBroker_PublishJoinLeave(t *testing.T) {
 		return nil
 	}
 
+	// Gate on probe delivery to ensure outbox workers have completed initCursor.
+	_, err := e.Publish(channel+"_probe", []byte("probe"), centrifuge.PublishOptions{
+		HistoryTTL:  10 * time.Minute,
+		HistorySize: 10,
+	})
+	require.NoError(t, err)
+	require.Eventually(t, func() bool {
+		return atomic.LoadInt32(&probeReceived) == 1
+	}, 10*time.Second, 10*time.Millisecond, "outbox workers not ready: probe not delivered")
+
 	require.NoError(t, e.PublishJoin(channel, &centrifuge.ClientInfo{ClientID: "client-1", UserID: "user-1"}))
 	require.NoError(t, e.PublishLeave(channel, &centrifuge.ClientInfo{ClientID: "client-1", UserID: "user-1"}))
 
-	// Wait for outbox to deliver. Use a generous timeout that survives the
-	// race detector overhead.
 	require.Eventually(t, func() bool {
 		return atomic.LoadInt32(&joinCount) >= 1 && atomic.LoadInt32(&leaveCount) >= 1
-	}, 10*time.Second, 20*time.Millisecond)
+	}, 10*time.Second, 10*time.Millisecond,
+		"join/leave not delivered: join=%d leave=%d",
+		atomic.LoadInt32(&joinCount), atomic.LoadInt32(&leaveCount))
 	require.Equal(t, int32(1), atomic.LoadInt32(&joinCount))
 	require.Equal(t, int32(1), atomic.LoadInt32(&leaveCount))
 }
@@ -1032,9 +1048,13 @@ func TestPostgresStreamBroker_UseNotify_WakeupLatency(t *testing.T) {
 		require.NoError(t, err)
 
 		connString := getPostgresConnString(t)
+		// NumShards=1 so the single NotifyCh reliably wakes the only worker.
+		// With multiple shards, a shared NotifyCh only wakes one of N workers
+		// per NOTIFY event, so a specific publication's shard worker may not
+		// receive the wake signal — making wakeup latency flaky for this test.
 		e, err := NewPostgresStreamBroker(node, PostgresStreamBrokerConfig{
 			DSN:                    connString,
-			NumShards:              4,
+			NumShards:              1,
 			BinaryData:             true,
 			CleanupInterval:        500 * time.Millisecond,
 			PartitionLookaheadDays: 1,
@@ -1042,7 +1062,7 @@ func TestPostgresStreamBroker_UseNotify_WakeupLatency(t *testing.T) {
 			UseNotify:              useNotify,
 			Outbox: OutboxConfig{
 				// Long poll interval so we can isolate notify-driven wakeup latency.
-				PollInterval: 200 * time.Millisecond,
+				PollInterval: 500 * time.Millisecond,
 				BatchSize:    100,
 			},
 		})
@@ -1054,11 +1074,14 @@ func TestPostgresStreamBroker_UseNotify_WakeupLatency(t *testing.T) {
 		cleanupTestTables(ctx, e)
 
 		channel := "test_notify_latency"
+		var probeReceived int32
 		var publishedAt int64
 		delivered := make(chan time.Duration, 1)
 		handler := &testBrokerEventHandler{
 			HandlePublicationFunc: func(ch string, pub *centrifuge.Publication, sp centrifuge.StreamPosition, delta bool, prevPub *centrifuge.Publication) error {
-				if ch == channel {
+				if ch == channel+"_probe" {
+					atomic.StoreInt32(&probeReceived, 1)
+				} else if ch == channel {
 					select {
 					case delivered <- time.Since(time.Unix(0, atomic.LoadInt64(&publishedAt))):
 					default:
@@ -1074,8 +1097,16 @@ func TestPostgresStreamBroker_UseNotify_WakeupLatency(t *testing.T) {
 			_ = node.Shutdown(ctx)
 		})
 
-		// Wait for any pre-existing rows in the partition to be drained.
-		time.Sleep(300 * time.Millisecond)
+		// Gate on probe delivery — ensures outbox workers + notification
+		// listener (when enabled) are fully initialized before measuring.
+		_, err = e.Publish(channel+"_probe", []byte("probe"), centrifuge.PublishOptions{
+			HistoryTTL:  10 * time.Minute,
+			HistorySize: 10,
+		})
+		require.NoError(t, err)
+		require.Eventually(t, func() bool {
+			return atomic.LoadInt32(&probeReceived) == 1
+		}, 10*time.Second, 10*time.Millisecond, "workers not ready: probe not delivered")
 
 		atomic.StoreInt64(&publishedAt, time.Now().UnixNano())
 		_, err = e.Publish(channel, []byte("ping"), centrifuge.PublishOptions{
@@ -1087,8 +1118,8 @@ func TestPostgresStreamBroker_UseNotify_WakeupLatency(t *testing.T) {
 		select {
 		case d := <-delivered:
 			return d
-		case <-time.After(5 * time.Second):
-			t.Fatal("publication not delivered within 5s")
+		case <-time.After(10 * time.Second):
+			t.Fatal("publication not delivered within 10s")
 			return 0
 		}
 	}
@@ -1097,11 +1128,15 @@ func TestPostgresStreamBroker_UseNotify_WakeupLatency(t *testing.T) {
 	withoutNotify := measure(t, false)
 	t.Logf("UseNotify=true: %v, UseNotify=false: %v", withNotify, withoutNotify)
 
-	// With UseNotify, latency should be well under PollInterval (200ms).
-	// Without UseNotify, latency is bounded by PollInterval but typically
-	// much closer to it.
-	require.Less(t, withNotify, 150*time.Millisecond,
-		"UseNotify should yield sub-PollInterval latency")
+	// With UseNotify, latency should be noticeably lower than polling. Use a
+	// relative comparison rather than an absolute bound so the test survives
+	// slow CI and the race detector: withNotify should be under half of
+	// PollInterval (500ms → < 250ms), and clearly lower than withoutNotify
+	// which polls on the full interval.
+	require.Less(t, withNotify, 250*time.Millisecond,
+		"UseNotify should yield sub-PollInterval latency (got %v)", withNotify)
+	require.Less(t, withNotify, withoutNotify,
+		"UseNotify should be faster than polling (notify=%v poll=%v)", withNotify, withoutNotify)
 }
 
 // TestPostgresStreamBroker_HistoryDoesNotRefreshMetaTTL verifies that History()

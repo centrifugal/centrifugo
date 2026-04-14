@@ -1381,8 +1381,8 @@
             "go_name": "PoolSize",
             "level": 3,
             "type": "int",
-            "default": "32",
-            "comment": "PoolSize sets the maximum number of connections in the pool. Default: 32.",
+            "default": "16",
+            "comment": "PoolSize sets the maximum number of connections in the pool. Default: 16.",
             "is_complex_type": false
           },
           {
@@ -2385,8 +2385,8 @@
             "go_name": "PoolSize",
             "level": 3,
             "type": "int",
-            "default": "32",
-            "comment": "PoolSize sets the maximum number of connections in the pool. Default: 32.",
+            "default": "16",
+            "comment": "PoolSize sets the maximum number of connections in the pool. Default: 16.",
             "is_complex_type": false
           },
           {
@@ -2519,6 +2519,150 @@
             "type": "int",
             "default": "7",
             "comment": "PartitionRetentionDays controls how old a partition can be before it\ngets dropped whole by the partition retention worker. Default: 7.\nSet to a large value for longer retention; the special value 0 is\ninternally promoted to 7 (treat \"not set\" as default).",
+            "is_complex_type": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "field": "controller",
+    "name": "controller",
+    "go_name": "Controller",
+    "level": 1,
+    "type": "Controller",
+    "default": "",
+    "comment": "Controller is a configuration for custom Centrifugo Controller used for\ncross-node communication in multi-node clusters.",
+    "is_complex_type": true,
+    "children": [
+      {
+        "field": "controller.enabled",
+        "name": "enabled",
+        "go_name": "Enabled",
+        "level": 2,
+        "type": "bool",
+        "default": "",
+        "comment": "",
+        "is_complex_type": false
+      },
+      {
+        "field": "controller.type",
+        "name": "type",
+        "go_name": "Type",
+        "level": 2,
+        "type": "string",
+        "default": "",
+        "comment": "Type of controller to use. Can be \"postgres\" in OSS. PRO also supports \"redis\" and \"nats\".",
+        "is_complex_type": false
+      },
+      {
+        "field": "controller.postgres",
+        "name": "postgres",
+        "go_name": "Postgres",
+        "level": 2,
+        "type": "PostgresController",
+        "default": "",
+        "comment": "Postgres is a configuration for \"postgres\" controller.",
+        "is_complex_type": true,
+        "children": [
+          {
+            "field": "controller.postgres.dsn",
+            "name": "dsn",
+            "go_name": "DSN",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.pool_size",
+            "name": "pool_size",
+            "go_name": "PoolSize",
+            "level": 3,
+            "type": "int",
+            "default": "",
+            "comment": "",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.num_shards",
+            "name": "num_shards",
+            "go_name": "NumShards",
+            "level": 3,
+            "type": "int",
+            "default": "",
+            "comment": "",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.table_prefix",
+            "name": "table_prefix",
+            "go_name": "TablePrefix",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.poll_interval",
+            "name": "poll_interval",
+            "go_name": "PollInterval",
+            "level": 3,
+            "type": "Duration",
+            "default": "",
+            "comment": "",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.use_notify",
+            "name": "use_notify",
+            "go_name": "UseNotify",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.partition_retention_days",
+            "name": "partition_retention_days",
+            "go_name": "PartitionRetentionDays",
+            "level": 3,
+            "type": "int",
+            "default": "",
+            "comment": "",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.partition_lookahead_days",
+            "name": "partition_lookahead_days",
+            "go_name": "PartitionLookaheadDays",
+            "level": 3,
+            "type": "int",
+            "default": "",
+            "comment": "",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.partition_cleanup_interval",
+            "name": "partition_cleanup_interval",
+            "go_name": "PartitionCleanupInterval",
+            "level": 3,
+            "type": "Duration",
+            "default": "",
+            "comment": "",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.skip_schema_init",
+            "name": "skip_schema_init",
+            "go_name": "SkipSchemaInit",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "",
             "is_complex_type": false
           }
         ]

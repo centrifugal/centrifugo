@@ -7,6 +7,7 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 	"github.com/centrifugal/centrifugo/v6/internal/confighelpers"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/controllers"
 	"github.com/centrifugal/centrifugo/v6/internal/natsbroker"
 	"github.com/centrifugal/centrifugo/v6/internal/pgmapbroker"
 	"github.com/centrifugal/centrifugo/v6/internal/pgstreambroker"
@@ -113,6 +114,35 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) err
 		event.Msg("presence manager is enabled, using it instead of presence manager from engine")
 	} else {
 		log.Info().Msgf("explicit presence manager not provided, using the one from engine")
+	}
+
+	if cfg.Controller.Enabled {
+		if cfg.Controller.Type == "postgres" {
+			controller, err := controllers.NewPostgresController(node, controllers.PostgresControllerConfig{
+				DSN:                      cfg.Controller.Postgres.DSN,
+				PoolSize:                 cfg.Controller.Postgres.PoolSize,
+				NumShards:                cfg.Controller.Postgres.NumShards,
+				TablePrefix:              cfg.Controller.Postgres.TablePrefix,
+				PollInterval:             cfg.Controller.Postgres.PollInterval.ToDuration(),
+				UseNotify:                cfg.Controller.Postgres.UseNotify,
+				PartitionRetentionDays:   cfg.Controller.Postgres.PartitionRetentionDays,
+				PartitionLookaheadDays:   cfg.Controller.Postgres.PartitionLookaheadDays,
+				PartitionCleanupInterval: cfg.Controller.Postgres.PartitionCleanupInterval.ToDuration(),
+				SkipSchemaInit:           cfg.Controller.Postgres.SkipSchemaInit,
+			})
+			if err != nil {
+				return fmt.Errorf("error initializing Postgres controller: %w", err)
+			}
+			if !cfg.Controller.Postgres.SkipSchemaInit {
+				if err := controller.EnsureSchema(context.Background()); err != nil {
+					return fmt.Errorf("error initializing Postgres controller schema: %w", err)
+				}
+			}
+			node.SetController(controller)
+			log.Info().Str("controller_type", cfg.Controller.Type).Msg("controller is enabled")
+		} else {
+			return fmt.Errorf("unknown controller type: %s (OSS supports \"postgres\" only; Redis and Nats controllers are available in Centrifugo PRO)", cfg.Controller.Type)
+		}
 	}
 
 	node.SetBroker(broker)

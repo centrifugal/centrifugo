@@ -428,6 +428,15 @@ func NewPostgresStreamBroker(n *centrifuge.Node, conf PostgresStreamBrokerConfig
 	return b, nil
 }
 
+// ReliableDelivery reports whether this broker guarantees no-gaps delivery to
+// local subscribers, so the centrifuge node can skip periodic position sync
+// requests. True when polling the PG outbox directly (shard lock guarantees
+// commit order = id order, cursor-based polling reads every row). False when
+// broker fan-out is enabled — the Redis/Nats fan-out leg can drop messages.
+func (e *PostgresStreamBroker) ReliableDelivery() bool {
+	return e.conf.Broker == nil
+}
+
 // Close shuts down the broker.
 func (e *PostgresStreamBroker) Close(ctx context.Context) error {
 	e.closeOnce.Do(func() {
