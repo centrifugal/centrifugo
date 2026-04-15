@@ -184,6 +184,13 @@ BEGIN
     IF p_meta_ttl IS NOT NULL AND p_key_ttl IS NOT NULL AND p_meta_ttl < p_key_ttl THEN
         RAISE EXCEPTION 'meta_ttl must be >= key_ttl (metadata must outlive keys)';
     END IF;
+    -- Validate: delta encoding reads previous data from the state table, but
+    -- when p_stream_data diverges from p_data the stream carries a different
+    -- payload than the state — so the computed delta (prev_state vs new stream)
+    -- can't be applied correctly on the client side. Disallow the combination.
+    IF p_use_delta AND p_stream_data IS NOT NULL THEN
+        RAISE EXCEPTION 'p_use_delta and p_stream_data are mutually exclusive: delta encoding requires stream payload to match state data';
+    END IF;
 
     -- Auto-derive num_shards from shard_lock table when not provided.
     IF p_num_shards IS NULL THEN
@@ -235,9 +242,12 @@ BEGIN
         END IF;
     END IF;
 
-    -- 4. KeyMode check (exclude expired entries — they are logically deleted)
+    -- 4. KeyMode check — physical existence in state table, matching Redis HEXISTS.
+    -- Zombie entries (TTL passed but cleanup worker hasn't emitted LEAVE yet) still
+    -- count as existing: from the channel's perspective, the key is still "live" until
+    -- the removal publication is written to the stream.
     IF p_key_mode IS NOT NULL THEN
-        SELECT EXISTS(SELECT 1 FROM __PREFIX__state WHERE channel = p_channel AND key = p_key AND (expires_at IS NULL OR expires_at > NOW())) INTO v_exists;
+        SELECT EXISTS(SELECT 1 FROM __PREFIX__state WHERE channel = p_channel AND key = p_key) INTO v_exists;
         IF p_key_mode = 'if_new' AND v_exists THEN
             IF p_refresh_ttl_on_suppress AND p_key_ttl IS NOT NULL THEN
                 UPDATE __PREFIX__state SET expires_at = NOW() + p_key_ttl, updated_at = NOW()
