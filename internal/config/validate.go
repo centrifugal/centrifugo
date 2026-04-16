@@ -15,7 +15,7 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
-var knownBrokers = []string{"memory", "nats", "redis", "redisnats"}
+var knownBrokers = []string{"memory", "nats", "redis", "redisnats", "postgres"}
 
 // Validate validates config and returns error if problems found.
 func (c Config) Validate() error {
@@ -401,17 +401,6 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 			if c.Map.MetaTTL.ToDuration() < effectiveStreamTTL {
 				return fmt.Errorf("map.meta_ttl (%s) must be >= map.stream_ttl (%s) (metadata must outlive stream)", c.Map.MetaTTL, configtypes.Duration(effectiveStreamTTL))
 			}
-		}
-	}
-	if c.Map.ExternalState {
-		if c.Map.Mode != "persistent" {
-			return fmt.Errorf("map.external_state requires map.mode \"persistent\"")
-		}
-		if c.Map.Ordered {
-			return fmt.Errorf("map.external_state is incompatible with map.ordered")
-		}
-		if c.Map.KeyTTL != 0 {
-			return fmt.Errorf("map.external_state is incompatible with map.key_ttl")
 		}
 	}
 	if c.Map.RemoveClientOnUnsubscribe && !hasMapType {

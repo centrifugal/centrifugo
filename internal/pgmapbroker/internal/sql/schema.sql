@@ -231,14 +231,21 @@ BEGIN
         END IF;
     END IF;
 
-    -- 3. CAS check (ExpectedPosition)
-    IF p_expected_offset IS NOT NULL THEN
-        SELECT key_offset, sn.data INTO v_current_offset, v_current_data
+    -- Canonical check order across brokers: Idempotency → Version → KeyMode → CAS.
+    -- Dedup checks (idempotency, version) drop duplicates first; constraint checks
+    -- (KeyMode, CAS) report meaningful intent failures last.
+
+    -- 3. Per-key version check (dedup)
+    IF p_key_version IS NOT NULL AND p_key IS NOT NULL AND p_key != '' THEN
+        SELECT sn.key_version, sn.key_version_epoch
+        INTO v_current_version, v_current_version_epoch
         FROM __PREFIX__state sn WHERE sn.channel = p_channel AND sn.key = p_key;
-        IF NOT FOUND OR v_current_offset != p_expected_offset THEN
-            RETURN QUERY SELECT NULL::BIGINT, v_offset, v_epoch, TRUE,
-                'position_mismatch'::TEXT, v_current_data, v_current_offset;
-            RETURN;
+        IF FOUND AND v_current_version IS NOT NULL AND v_current_version > 0 THEN
+            IF (p_key_version_epoch IS NULL OR p_key_version_epoch = v_current_version_epoch)
+               AND p_key_version <= v_current_version THEN
+                RETURN QUERY SELECT NULL::BIGINT, v_offset, v_epoch, TRUE, 'version'::TEXT, NULL::__DATA_TYPE__, NULL::BIGINT;
+                RETURN;
+            END IF;
         END IF;
     END IF;
 
@@ -262,17 +269,14 @@ BEGIN
         END IF;
     END IF;
 
-    -- 5. Per-key version check
-    IF p_key_version IS NOT NULL AND p_key IS NOT NULL AND p_key != '' THEN
-        SELECT sn.key_version, sn.key_version_epoch
-        INTO v_current_version, v_current_version_epoch
+    -- 5. CAS check (ExpectedPosition)
+    IF p_expected_offset IS NOT NULL THEN
+        SELECT key_offset, sn.data INTO v_current_offset, v_current_data
         FROM __PREFIX__state sn WHERE sn.channel = p_channel AND sn.key = p_key;
-        IF FOUND AND v_current_version IS NOT NULL AND v_current_version > 0 THEN
-            IF (p_key_version_epoch IS NULL OR p_key_version_epoch = v_current_version_epoch)
-               AND p_key_version <= v_current_version THEN
-                RETURN QUERY SELECT NULL::BIGINT, v_offset, v_epoch, TRUE, 'version'::TEXT, NULL::__DATA_TYPE__, NULL::BIGINT;
-                RETURN;
-            END IF;
+        IF NOT FOUND OR v_current_offset != p_expected_offset THEN
+            RETURN QUERY SELECT NULL::BIGINT, v_offset, v_epoch, TRUE,
+                'position_mismatch'::TEXT, v_current_data, v_current_offset;
+            RETURN;
         END IF;
     END IF;
 
@@ -303,7 +307,12 @@ BEGIN
         data = EXCLUDED.data, tags = EXCLUDED.tags,
         client_id = EXCLUDED.client_id, user_id = EXCLUDED.user_id,
         conn_info = EXCLUDED.conn_info, chan_info = EXCLUDED.chan_info, subscribed_at = EXCLUDED.subscribed_at,
-        score = EXCLUDED.score, key_version = EXCLUDED.key_version, key_version_epoch = EXCLUDED.key_version_epoch,
+        score = EXCLUDED.score,
+        -- Preserve stored version when caller publishes without one (matches Redis).
+        -- Overwriting with NULL would erase dedup protection against late-arriving
+        -- older versions from a concurrent producer.
+        key_version = COALESCE(EXCLUDED.key_version, __PREFIX__state.key_version),
+        key_version_epoch = COALESCE(EXCLUDED.key_version_epoch, __PREFIX__state.key_version_epoch),
         key_offset = EXCLUDED.key_offset, expires_at = EXCLUDED.expires_at, updated_at = NOW();
 
     -- 8. Insert into stream (include epoch, shard_id, and previous_data for delta)
@@ -657,213 +666,3 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- __PREFIX__stream_publish: Stream-only publish for ExternalState mode.
--- Skips state table entirely — only writes to stream + meta.
-CREATE OR REPLACE FUNCTION __PREFIX__stream_publish(
-    p_channel TEXT,
-    p_key TEXT,
-    p_data __DATA_TYPE__,
-    p_tags JSONB DEFAULT NULL,
-    p_client_id TEXT DEFAULT NULL,
-    p_user_id TEXT DEFAULT NULL,
-    p_conn_info __DATA_TYPE__ DEFAULT NULL,
-    p_chan_info __DATA_TYPE__ DEFAULT NULL,
-    p_published_at TIMESTAMPTZ DEFAULT NULL,
-    p_meta_ttl INTERVAL DEFAULT NULL,
-    p_num_shards INTEGER DEFAULT NULL,
-    p_stream_data __DATA_TYPE__ DEFAULT NULL,
-    p_idempotency_key TEXT DEFAULT NULL,
-    p_idempotency_ttl INTERVAL DEFAULT NULL
-) RETURNS TABLE(
-    result_id BIGINT,
-    channel_offset BIGINT,
-    epoch TEXT,
-    suppressed BOOLEAN,
-    suppress_reason TEXT
-) AS $$
-DECLARE
-    v_offset BIGINT;
-    v_id BIGINT;
-    v_epoch TEXT;
-    v_current_offset BIGINT;
-    v_shard_id INTEGER;
-BEGIN
-    -- Auto-derive num_shards from shard_lock table when not provided.
-    IF p_num_shards IS NULL THEN
-        SELECT COUNT(*)::INTEGER INTO p_num_shards FROM __PREFIX__shard_lock;
-    END IF;
-    IF p_num_shards <= 0 THEN
-        RAISE EXCEPTION 'shard_lock table is empty — run EnsureSchema first';
-    END IF;
-
-    -- Calculate shard_id from channel hash
-    v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
-
-    -- 0. Per-shard serialization lock
-    PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
-
-    -- 1. Get or create stream metadata. Atomic UPSERT with no-op write on
-    -- conflict acquires the row lock as part of the same statement, avoiding
-    -- the race where DO NOTHING + SELECT FOR UPDATE could return zero rows
-    -- if a concurrent cleanup deleted the meta between the two statements.
-    -- Qualified column references (m.top_offset, m.epoch) disambiguate from
-    -- the function's OUT parameter named "epoch".
-    INSERT INTO __PREFIX__meta AS m (channel, top_offset, epoch, updated_at)
-    VALUES (p_channel, 0, substr(md5(random()::text || random()::text), 1, 8), NOW())
-    ON CONFLICT (channel) DO UPDATE
-        SET updated_at = m.updated_at
-    RETURNING m.top_offset, m.epoch INTO v_offset, v_epoch;
-
-    -- 2. Check idempotency
-    IF p_idempotency_key IS NOT NULL THEN
-        SELECT result_offset INTO v_current_offset
-        FROM __PREFIX__idempotency
-        WHERE channel = p_channel AND idempotency_key = p_idempotency_key
-          AND expires_at > NOW();
-        IF FOUND THEN
-            RETURN QUERY SELECT NULL::BIGINT, v_current_offset, v_epoch, TRUE,
-                'idempotency'::TEXT;
-            RETURN;
-        END IF;
-    END IF;
-
-    -- 3. Increment offset
-    UPDATE __PREFIX__meta SET
-        top_offset = top_offset + 1,
-        expires_at = COALESCE(CASE WHEN p_meta_ttl IS NOT NULL THEN NOW() + p_meta_ttl ELSE NULL END, expires_at),
-        updated_at = NOW()
-    WHERE channel = p_channel
-    RETURNING top_offset INTO v_offset;
-
-    -- 4. Insert into stream (no state table interaction)
-    INSERT INTO __PREFIX__stream (
-        channel, channel_offset, epoch, key, data, tags, client_id, user_id, conn_info, chan_info, subscribed_at, shard_id
-    ) VALUES (
-        p_channel, v_offset, v_epoch, p_key, COALESCE(p_stream_data, p_data), p_tags, p_client_id, p_user_id, p_conn_info, p_chan_info, p_published_at,
-        v_shard_id
-    ) RETURNING __PREFIX__stream.id INTO v_id;
-
-    -- 5. Save idempotency key
-    IF p_idempotency_key IS NOT NULL THEN
-        INSERT INTO __PREFIX__idempotency (channel, idempotency_key, result_offset, result_id, expires_at)
-        VALUES (p_channel, p_idempotency_key, v_offset, v_id, NOW() + COALESCE(p_idempotency_ttl, INTERVAL '5 minutes'))
-        ON CONFLICT DO NOTHING;
-    END IF;
-
-    -- 6. Notify outbox workers
-    PERFORM pg_notify('__PREFIX__stream_notify', '');
-
-    RETURN QUERY SELECT v_id, v_offset, v_epoch, FALSE, NULL::TEXT;
-END;
-$$ LANGUAGE plpgsql;
-
--- __PREFIX__stream_remove: Stream-only remove for ExternalState mode.
--- Skips state table entirely — only writes to stream + meta.
-CREATE OR REPLACE FUNCTION __PREFIX__stream_remove(
-    p_channel TEXT,
-    p_key TEXT,
-    p_client_id TEXT DEFAULT NULL,
-    p_user_id TEXT DEFAULT NULL,
-    p_meta_ttl INTERVAL DEFAULT NULL,
-    p_num_shards INTEGER DEFAULT NULL,
-    p_idempotency_key TEXT DEFAULT NULL,
-    p_idempotency_ttl INTERVAL DEFAULT NULL,
-    p_tags JSONB DEFAULT NULL
-) RETURNS TABLE(
-    result_id BIGINT,
-    channel_offset BIGINT,
-    epoch TEXT,
-    suppressed BOOLEAN,
-    suppress_reason TEXT
-) AS $$
-DECLARE
-    v_offset BIGINT;
-    v_id BIGINT;
-    v_epoch TEXT;
-    v_current_offset BIGINT;
-    v_shard_id INTEGER;
-BEGIN
-    -- Auto-derive num_shards from shard_lock table when not provided.
-    IF p_num_shards IS NULL THEN
-        SELECT COUNT(*)::INTEGER INTO p_num_shards FROM __PREFIX__shard_lock;
-    END IF;
-    IF p_num_shards <= 0 THEN
-        RAISE EXCEPTION 'shard_lock table is empty — run EnsureSchema first';
-    END IF;
-
-    -- Calculate shard_id from channel hash
-    v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
-
-    -- 0. Per-shard serialization lock
-    PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
-
-    -- 1. Get or create stream metadata. Atomic UPSERT with no-op write on
-    -- conflict acquires the row lock as part of the same statement, avoiding
-    -- the race where DO NOTHING + SELECT FOR UPDATE could return zero rows
-    -- if a concurrent cleanup deleted the meta between the two statements.
-    -- Qualified column references (m.top_offset, m.epoch) disambiguate from
-    -- the function's OUT parameter named "epoch".
-    INSERT INTO __PREFIX__meta AS m (channel, top_offset, epoch, updated_at)
-    VALUES (p_channel, 0, substr(md5(random()::text || random()::text), 1, 8), NOW())
-    ON CONFLICT (channel) DO UPDATE
-        SET updated_at = m.updated_at
-    RETURNING m.top_offset, m.epoch INTO v_offset, v_epoch;
-
-    -- 2. Check idempotency
-    IF p_idempotency_key IS NOT NULL THEN
-        SELECT result_offset INTO v_current_offset
-        FROM __PREFIX__idempotency
-        WHERE channel = p_channel AND idempotency_key = p_idempotency_key
-          AND expires_at > NOW();
-        IF FOUND THEN
-            RETURN QUERY SELECT NULL::BIGINT, v_current_offset, v_epoch, TRUE,
-                'idempotency'::TEXT;
-            RETURN;
-        END IF;
-    END IF;
-
-    -- 3. Increment offset
-    UPDATE __PREFIX__meta SET
-        top_offset = top_offset + 1,
-        expires_at = COALESCE(CASE WHEN p_meta_ttl IS NOT NULL THEN NOW() + p_meta_ttl ELSE NULL END, expires_at),
-        updated_at = NOW()
-    WHERE channel = p_channel
-    RETURNING top_offset INTO v_offset;
-
-    -- 4. Insert removal into stream (no state table interaction)
-    INSERT INTO __PREFIX__stream (channel, channel_offset, epoch, key, removed, client_id, user_id, shard_id, tags)
-    VALUES (
-        p_channel, v_offset, v_epoch, p_key, TRUE, p_client_id, p_user_id,
-        v_shard_id, p_tags
-    ) RETURNING __PREFIX__stream.id INTO v_id;
-
-    -- 5. Save idempotency key
-    IF p_idempotency_key IS NOT NULL THEN
-        INSERT INTO __PREFIX__idempotency (channel, idempotency_key, result_offset, result_id, expires_at)
-        VALUES (p_channel, p_idempotency_key, v_offset, v_id, NOW() + COALESCE(p_idempotency_ttl, INTERVAL '5 minutes'))
-        ON CONFLICT DO NOTHING;
-    END IF;
-
-    -- 6. Notify outbox workers
-    PERFORM pg_notify('__PREFIX__stream_notify', '');
-
-    RETURN QUERY SELECT v_id, v_offset, v_epoch, FALSE, NULL::TEXT;
-END;
-$$ LANGUAGE plpgsql;
-
--- __PREFIX__stream_top_position: Get current stream top position (top_offset + epoch).
--- Lightweight read for ExternalState: app calls this before reading its own DB,
--- ensuring the stream position covers any mutations during/after the state read.
-CREATE OR REPLACE FUNCTION __PREFIX__stream_top_position(
-    p_channel TEXT
-) RETURNS TABLE(
-    top_offset BIGINT,
-    epoch TEXT
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT COALESCE(m.top_offset, 0::BIGINT), COALESCE(m.epoch, ''::TEXT)
-    FROM (SELECT 1) AS _dummy
-    LEFT JOIN __PREFIX__meta m ON m.channel = p_channel;
-END;
-$$ LANGUAGE plpgsql;

@@ -54,7 +54,6 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 			StreamSize:                        chOpts.Map.StreamSize,
 			StreamTTL:                         chOpts.Map.StreamTTL.ToDuration(),
 			MetaTTL:                           chOpts.Map.MetaTTL.ToDuration(),
-			ExternalState:                     chOpts.Map.ExternalState,
 			DefaultPageSize:                   chOpts.Map.DefaultPageSize,
 			MinPageSize:                       chOpts.Map.MinPageSize,
 			MaxPageSize:                       chOpts.Map.MaxPageSize,

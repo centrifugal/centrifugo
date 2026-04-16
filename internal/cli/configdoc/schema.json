@@ -7664,16 +7664,6 @@
                 "is_complex_type": false
               },
               {
-                "field": "channel.without_namespace.map.external_state",
-                "name": "external_state",
-                "go_name": "ExternalState",
-                "level": 4,
-                "type": "bool",
-                "default": "",
-                "comment": "",
-                "is_complex_type": false
-              },
-              {
                 "field": "channel.without_namespace.map.default_page_size",
                 "name": "default_page_size",
                 "go_name": "DefaultPageSize",
@@ -8426,16 +8416,6 @@
                 "level": 4,
                 "type": "string",
                 "default": "default",
-                "comment": "",
-                "is_complex_type": false
-              },
-              {
-                "field": "channel.namespaces[].map.external_state",
-                "name": "external_state",
-                "go_name": "ExternalState",
-                "level": 4,
-                "type": "bool",
-                "default": "",
                 "comment": "",
                 "is_complex_type": false
               },

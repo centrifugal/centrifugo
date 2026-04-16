@@ -3706,3 +3706,140 @@ func TestPostgresMapBroker_Partitioning_DropOldPartitions_IgnoresInvalidNames(t 
 	require.Contains(t, names, malformedName,
 		"partition with non-standard name should not be dropped by automatic cleanup")
 }
+
+// TestPostgresMapBroker_CheckOrder verifies the canonical check order across
+// brokers: Idempotency → Version → KeyMode → CAS. Mirrors the Centrifuge
+// shared conformance tests so PG semantics stay aligned with Memory and Redis.
+func TestPostgresMapBroker_CheckOrder(t *testing.T) {
+	makeBroker := func(t *testing.T) *PostgresMapBroker {
+		node, _ := centrifuge.New(centrifuge.Config{
+			Map: centrifuge.MapConfig{
+				GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+					return centrifuge.MapChannelOptions{
+						Mode:   centrifuge.MapModeDurable,
+						KeyTTL: 60 * time.Second,
+					}
+				},
+			},
+		})
+		return newTestPostgresMapBroker(t, node)
+	}
+	ctx := context.Background()
+
+	t.Run("Version_runs_before_KeyMode", func(t *testing.T) {
+		broker := makeBroker(t)
+		ch := "order_v_before_km_" + strconv.FormatInt(time.Now().UnixNano(), 36)
+
+		_, err := broker.Publish(ctx, ch, "k", centrifuge.MapPublishOptions{
+			Data:    []byte("v1"),
+			Version: 10,
+		})
+		require.NoError(t, err)
+
+		res, err := broker.Publish(ctx, ch, "k", centrifuge.MapPublishOptions{
+			Data:    []byte("v2"),
+			Version: 5,
+			KeyMode: centrifuge.KeyModeIfNew,
+		})
+		require.NoError(t, err)
+		require.True(t, res.Suppressed)
+		require.Equal(t, centrifuge.SuppressReasonVersion, res.SuppressReason,
+			"Version check must run before KeyMode")
+	})
+
+	t.Run("KeyMode_runs_before_CAS", func(t *testing.T) {
+		broker := makeBroker(t)
+		ch := "order_km_before_cas_" + strconv.FormatInt(time.Now().UnixNano(), 36)
+
+		res1, err := broker.Publish(ctx, ch, "k", centrifuge.MapPublishOptions{
+			Data: []byte("v1"),
+		})
+		require.NoError(t, err)
+		require.False(t, res1.Suppressed)
+
+		res, err := broker.Publish(ctx, ch, "k", centrifuge.MapPublishOptions{
+			Data:    []byte("v2"),
+			KeyMode: centrifuge.KeyModeIfNew,
+			ExpectedPosition: &centrifuge.StreamPosition{
+				Offset: 999,
+				Epoch:  res1.Position.Epoch,
+			},
+		})
+		require.NoError(t, err)
+		require.True(t, res.Suppressed)
+		require.Equal(t, centrifuge.SuppressReasonKeyExists, res.SuppressReason,
+			"KeyMode check must run before CAS")
+	})
+
+	t.Run("Version_runs_before_CAS", func(t *testing.T) {
+		broker := makeBroker(t)
+		ch := "order_v_before_cas_" + strconv.FormatInt(time.Now().UnixNano(), 36)
+
+		res1, err := broker.Publish(ctx, ch, "k", centrifuge.MapPublishOptions{
+			Data:    []byte("v1"),
+			Version: 10,
+		})
+		require.NoError(t, err)
+
+		res, err := broker.Publish(ctx, ch, "k", centrifuge.MapPublishOptions{
+			Data:    []byte("v2"),
+			Version: 5,
+			ExpectedPosition: &centrifuge.StreamPosition{
+				Offset: 999,
+				Epoch:  res1.Position.Epoch,
+			},
+		})
+		require.NoError(t, err)
+		require.True(t, res.Suppressed)
+		require.Equal(t, centrifuge.SuppressReasonVersion, res.SuppressReason,
+			"Version check must run before CAS")
+	})
+}
+
+// TestPostgresMapBroker_VersionPreserved verifies that publishing a key
+// without a version does NOT reset the stored version (matches Redis +
+// Memory). Mirrors the Centrifuge shared conformance test.
+func TestPostgresMapBroker_VersionPreserved(t *testing.T) {
+	node, _ := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode:   centrifuge.MapModeDurable,
+					KeyTTL: 60 * time.Second,
+				}
+			},
+		},
+	})
+	broker := newTestPostgresMapBroker(t, node)
+
+	ctx := context.Background()
+	ch := "version_preserved_" + strconv.FormatInt(time.Now().UnixNano(), 36)
+
+	_, err := broker.Publish(ctx, ch, "k", centrifuge.MapPublishOptions{
+		Data:    []byte("v10"),
+		Version: 10,
+	})
+	require.NoError(t, err)
+
+	_, err = broker.Publish(ctx, ch, "k", centrifuge.MapPublishOptions{
+		Data: []byte("unversioned"),
+	})
+	require.NoError(t, err)
+
+	res, err := broker.Publish(ctx, ch, "k", centrifuge.MapPublishOptions{
+		Data:    []byte("v5_should_be_dropped"),
+		Version: 5,
+	})
+	require.NoError(t, err)
+	require.True(t, res.Suppressed,
+		"stale version should still be suppressed after unversioned publish")
+	require.Equal(t, centrifuge.SuppressReasonVersion, res.SuppressReason)
+
+	res, err = broker.Publish(ctx, ch, "k", centrifuge.MapPublishOptions{
+		Data:    []byte("v11"),
+		Version: 11,
+	})
+	require.NoError(t, err)
+	require.False(t, res.Suppressed,
+		"newer version should still be accepted after unversioned publish")
+}
