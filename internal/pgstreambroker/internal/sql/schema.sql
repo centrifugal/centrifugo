@@ -34,6 +34,11 @@ CREATE TABLE IF NOT EXISTS __STREAM_TABLE__ (
     kind            SMALLINT NOT NULL DEFAULT 0,
     data            __DATA_TYPE__,
     tags            JSONB,
+    -- meta is server-only metadata, NEVER delivered to SDK clients.
+    -- Set by callers using cf_*_publish() with p_meta. Centrifugo's own
+    -- Go publish/read paths don't reference this column today; intended
+    -- for application-level transactional publishes from app SQL code.
+    meta            JSONB,
     client_id       TEXT,
     user_id         TEXT,
     conn_info       __DATA_TYPE__,
@@ -188,7 +193,11 @@ CREATE OR REPLACE FUNCTION __PREFIX__publish(
     p_version BIGINT DEFAULT NULL,
     p_version_epoch TEXT DEFAULT NULL,
     p_use_delta BOOLEAN DEFAULT FALSE,
-    p_num_shards INTEGER DEFAULT NULL
+    p_num_shards INTEGER DEFAULT NULL,
+    -- Server-only metadata, NEVER delivered to SDK clients. Stored as-is in the
+    -- stream row's `meta` column. Centrifugo's Go publish path does not pass
+    -- this argument; intended for app-level transactional publishes from SQL.
+    p_meta JSONB DEFAULT NULL
 ) RETURNS TABLE(
     out_result_id BIGINT,
     out_channel_offset BIGINT,
@@ -293,10 +302,10 @@ BEGIN
     -- Insert the stream row. created_at defaults to NOW() so partition
     -- routing picks today's partition automatically.
     INSERT INTO __STREAM_TABLE__ (
-        channel, channel_offset, epoch, kind, data, tags,
+        channel, channel_offset, epoch, kind, data, tags, meta,
         client_id, user_id, conn_info, chan_info, key, prev_data, shard_id
     ) VALUES (
-        p_channel, v_offset, v_epoch, 0, p_data, p_tags,
+        p_channel, v_offset, v_epoch, 0, p_data, p_tags, p_meta,
         p_client_id, p_user_id, p_conn_info, p_chan_info, p_key, v_prev_data, v_shard_id
     ) RETURNING id INTO v_id;
 
@@ -333,7 +342,8 @@ CREATE OR REPLACE FUNCTION __PREFIX__publish_strict(
     p_version BIGINT DEFAULT NULL,
     p_version_epoch TEXT DEFAULT NULL,
     p_use_delta BOOLEAN DEFAULT FALSE,
-    p_num_shards INTEGER DEFAULT NULL
+    p_num_shards INTEGER DEFAULT NULL,
+    p_meta JSONB DEFAULT NULL
 ) RETURNS TABLE(
     out_result_id BIGINT,
     out_channel_offset BIGINT,
@@ -346,7 +356,7 @@ BEGIN
         p_channel, p_data, p_tags, p_client_id, p_user_id, p_conn_info, p_chan_info,
         p_key, p_history_ttl, p_history_size, p_meta_ttl,
         p_idempotency_key, p_idempotency_ttl,
-        p_version, p_version_epoch, p_use_delta, p_num_shards
+        p_version, p_version_epoch, p_use_delta, p_num_shards, p_meta
     );
     IF v_result.out_suppressed THEN
         RAISE EXCEPTION 'publish suppressed: %', v_result.out_suppress_reason;
