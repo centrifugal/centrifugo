@@ -2,6 +2,10 @@ module github.com/centrifugal/centrifugo/v6
 
 go 1.26
 
+replace (
+	github.com/centrifugal/centrifuge => ../centrifuge
+)
+
 require (
 	cloud.google.com/go/pubsub/v2 v2.4.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1
@@ -145,3 +149,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260311181403-84a4fc48630c // indirect
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+replace github.com/centrifugal/centrifuge => ../centrifuge

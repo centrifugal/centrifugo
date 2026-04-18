@@ -46,7 +46,7 @@ func setupBench(b *testing.B) (*PostgresMapBroker, func()) {
 	}
 }
 
-// setupBenchOrdered creates a broker with Durable+Ordered mode.
+// setupBenchOrdered creates a broker with Recoverable+Ordered mode.
 func setupBenchOrdered(b *testing.B) (*PostgresMapBroker, func()) {
 	b.Helper()
 	connString := getPostgresConnString(b)
@@ -55,7 +55,7 @@ func setupBenchOrdered(b *testing.B) (*PostgresMapBroker, func()) {
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 				return centrifuge.MapChannelOptions{
 					Ordered: true,
-					Mode:    centrifuge.MapModeDurable,
+					Mode:    centrifuge.MapModeRecoverable,
 					KeyTTL:  time.Minute,
 				}
 			},
@@ -605,7 +605,7 @@ func BenchmarkPostgresMapBroker_Cleanup(b *testing.B) {
 					Map: centrifuge.MapConfig{
 						GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 							return centrifuge.MapChannelOptions{
-								Mode:    centrifuge.MapModeDurable,
+								Mode:    centrifuge.MapModeRecoverable,
 								KeyTTL:  time.Millisecond,
 								Ordered: ordered,
 							}

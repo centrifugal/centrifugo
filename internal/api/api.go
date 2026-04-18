@@ -569,6 +569,7 @@ func (h *Executor) Presence(_ context.Context, cmd *PresenceRequest) *PresenceRe
 	}
 
 	if !chOpts.Presence {
+		log.Warn().Str("channel", ch).Msg("presence is not enabled for channel in Centrifugo configuration")
 		resp.Error = ErrorNotAvailable
 		return resp
 	}
@@ -620,6 +621,7 @@ func (h *Executor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest) *
 	}
 
 	if !chOpts.Presence {
+		log.Warn().Str("channel", ch).Msg("presence is not enabled for channel in Centrifugo configuration")
 		resp.Error = ErrorNotAvailable
 		return resp
 	}
@@ -663,6 +665,7 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 	}
 
 	if chOpts.HistorySize <= 0 || chOpts.HistoryTTL <= 0 {
+		log.Warn().Str("channel", ch).Msg("history is not enabled for channel in Centrifugo configuration (history_size and history_ttl must both be > 0)")
 		resp.Error = ErrorNotAvailable
 		return resp
 	}
@@ -745,6 +748,7 @@ func (h *Executor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest) *
 	}
 
 	if chOpts.HistorySize <= 0 || chOpts.HistoryTTL <= 0 {
+		log.Warn().Str("channel", ch).Msg("history is not enabled for channel in Centrifugo configuration (history_size and history_ttl must both be > 0)")
 		resp.Error = ErrorNotAvailable
 		return resp
 	}
@@ -1163,6 +1167,11 @@ func (h *Executor) SharedPollPublish(ctx context.Context, cmd *SharedPollPublish
 	}
 	if chOpts.SubscriptionType != "shared_poll" {
 		resp.Error = ErrorBadRequest
+		return resp
+	}
+	if !chOpts.SharedPoll.PublishEnabled {
+		log.Warn().Str("channel", ch).Msg("shared_poll publish_enabled is not enabled for channel in Centrifugo configuration")
+		resp.Error = ErrorNotAvailable
 		return resp
 	}
 

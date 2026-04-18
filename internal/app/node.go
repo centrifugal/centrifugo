@@ -42,8 +42,8 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 		switch chOpts.Map.Mode {
 		case "ephemeral":
 			mode = centrifuge.MapModeEphemeral
-		case "durable":
-			mode = centrifuge.MapModeDurable
+		case "recoverable":
+			mode = centrifuge.MapModeRecoverable
 		case "persistent":
 			mode = centrifuge.MapModePersistent
 		}

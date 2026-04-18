@@ -699,10 +699,10 @@ func (e *PostgresMapBroker) Publish(ctx context.Context, ch string, key string, 
 	// Reject CAS and Version in ephemeral mode.
 	if chOpts.Mode.IsEphemeral() {
 		if opts.ExpectedPosition != nil {
-			return centrifuge.MapUpdateResult{}, errors.New("CAS (ExpectedPosition) requires durable or persistent mode")
+			return centrifuge.MapUpdateResult{}, errors.New("CAS (ExpectedPosition) requires recoverable or persistent mode")
 		}
 		if opts.Version > 0 {
-			return centrifuge.MapUpdateResult{}, errors.New("version-based dedup requires durable or persistent mode")
+			return centrifuge.MapUpdateResult{}, errors.New("version-based dedup requires recoverable or persistent mode")
 		}
 	}
 
@@ -856,7 +856,7 @@ func (e *PostgresMapBroker) Remove(ctx context.Context, ch string, key string, o
 	// Reject CAS in ephemeral mode.
 	if chOpts.Mode.IsEphemeral() {
 		if opts.ExpectedPosition != nil {
-			return centrifuge.MapUpdateResult{}, errors.New("CAS (ExpectedPosition) requires durable or persistent mode")
+			return centrifuge.MapUpdateResult{}, errors.New("CAS (ExpectedPosition) requires recoverable or persistent mode")
 		}
 	}
 

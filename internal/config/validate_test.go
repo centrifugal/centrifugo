@@ -228,12 +228,12 @@ func TestValidateMapNamespace_Ephemeral(t *testing.T) {
 	})
 }
 
-func TestValidateMapNamespace_Durable(t *testing.T) {
+func TestValidateMapNamespace_Recoverable(t *testing.T) {
 	t.Run("valid_minimal_defaults_zero", func(t *testing.T) {
-		// Durable with all stream options at zero is valid
+		// Recoverable with all stream options at zero is valid
 		// because centrifuge auto-derives defaults at runtime.
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "durable")
+		ns := mapNamespace("ce", "recoverable")
 		ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
 		require.NoError(t, cfg.Validate())
@@ -241,7 +241,7 @@ func TestValidateMapNamespace_Durable(t *testing.T) {
 
 	t.Run("valid_explicit_stream_options", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "durable")
+		ns := mapNamespace("ce", "recoverable")
 		ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
 		ns.Map.StreamSize = 200
 		ns.Map.StreamTTL = configtypes.Duration(2 * time.Minute)
@@ -252,7 +252,7 @@ func TestValidateMapNamespace_Durable(t *testing.T) {
 
 	t.Run("missing_key_ttl", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "durable")
+		ns := mapNamespace("ce", "recoverable")
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
 		err := cfg.Validate()
 		require.Error(t, err)
@@ -261,7 +261,7 @@ func TestValidateMapNamespace_Durable(t *testing.T) {
 
 	t.Run("meta_ttl_less_than_stream_ttl", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "durable")
+		ns := mapNamespace("ce", "recoverable")
 		ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
 		ns.Map.StreamTTL = configtypes.Duration(10 * time.Minute)
 		ns.Map.MetaTTL = configtypes.Duration(5 * time.Minute) // less than stream_ttl
@@ -273,7 +273,7 @@ func TestValidateMapNamespace_Durable(t *testing.T) {
 
 	t.Run("meta_ttl_equals_stream_ttl_ok", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "durable")
+		ns := mapNamespace("ce", "recoverable")
 		ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
 		ns.Map.StreamTTL = configtypes.Duration(5 * time.Minute)
 		ns.Map.MetaTTL = configtypes.Duration(5 * time.Minute) // equals stream_ttl
@@ -284,7 +284,7 @@ func TestValidateMapNamespace_Durable(t *testing.T) {
 	t.Run("only_stream_ttl_set_meta_ttl_zero_ok", func(t *testing.T) {
 		// When only stream_ttl is set, meta_ttl=0 means auto-derived by centrifuge.
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "durable")
+		ns := mapNamespace("ce", "recoverable")
 		ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
 		ns.Map.StreamTTL = configtypes.Duration(5 * time.Minute)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
@@ -293,7 +293,7 @@ func TestValidateMapNamespace_Durable(t *testing.T) {
 
 	t.Run("only_meta_ttl_set_stream_ttl_zero_ok", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "durable")
+		ns := mapNamespace("ce", "recoverable")
 		ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
 		ns.Map.MetaTTL = configtypes.Duration(10 * time.Minute)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
@@ -304,7 +304,7 @@ func TestValidateMapNamespace_Durable(t *testing.T) {
 		// StreamTTL=0 will be auto-derived to 1min by centrifuge.
 		// MetaTTL=30s is less than that — must be caught at config time.
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "durable")
+		ns := mapNamespace("ce", "recoverable")
 		ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
 		ns.Map.MetaTTL = configtypes.Duration(30 * time.Second) // < auto-derived 1min
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
@@ -315,7 +315,7 @@ func TestValidateMapNamespace_Durable(t *testing.T) {
 
 	t.Run("meta_ttl_equals_auto_derived_stream_ttl_ok", func(t *testing.T) {
 		cfg := mapDefaultConfig()
-		ns := mapNamespace("ce", "durable")
+		ns := mapNamespace("ce", "recoverable")
 		ns.Map.KeyTTL = configtypes.Duration(30 * time.Second)
 		ns.Map.MetaTTL = configtypes.Duration(1 * time.Minute) // == auto-derived 1min
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}

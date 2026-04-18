@@ -350,8 +350,8 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 			return fmt.Errorf("shared_poll publish_enabled is incompatible with versionless mode (requires explicit versions)")
 		}
 	}
-	if c.Map.Mode != "" && !slices.Contains([]string{"ephemeral", "durable", "persistent"}, c.Map.Mode) {
-		return fmt.Errorf("unknown map.mode: %q (valid: \"ephemeral\", \"durable\", \"persistent\")", c.Map.Mode)
+	if c.Map.Mode != "" && !slices.Contains([]string{"ephemeral", "recoverable", "persistent"}, c.Map.Mode) {
+		return fmt.Errorf("unknown map.mode: %q (valid: \"ephemeral\", \"recoverable\", \"persistent\")", c.Map.Mode)
 	}
 	hasMapType := c.SubscriptionType == "map" || c.SubscriptionType == "map_clients" || c.SubscriptionType == "map_users"
 	if hasMapType {
@@ -359,7 +359,7 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 			return fmt.Errorf("map.mode is required when subscription_type is a map type")
 		}
 	}
-	mapHasExpiry := c.Map.Mode == "ephemeral" || c.Map.Mode == "durable"
+	mapHasExpiry := c.Map.Mode == "ephemeral" || c.Map.Mode == "recoverable"
 	if mapHasExpiry {
 		if c.Map.KeyTTL == 0 {
 			return fmt.Errorf("map.key_ttl is required when map.mode is %q", c.Map.Mode)
@@ -382,7 +382,7 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 			return fmt.Errorf("map.meta_ttl must be 0 for map.mode \"ephemeral\"")
 		}
 	}
-	mapHasStream := c.Map.Mode == "durable" || c.Map.Mode == "persistent"
+	mapHasStream := c.Map.Mode == "recoverable" || c.Map.Mode == "persistent"
 	if mapHasStream {
 		if c.Map.StreamSize < 0 {
 			return fmt.Errorf("map.stream_size must be non-negative")
