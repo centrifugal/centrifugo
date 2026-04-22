@@ -1446,6 +1446,16 @@
             "is_complex_type": false
           },
           {
+            "field": "broker.postgres.notify_dsn",
+            "name": "notify_dsn",
+            "go_name": "NotifyDSN",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "NotifyDSN is an optional separate DSN for the LISTEN connection.\nRequired when DSN points at PGBouncer (transaction pooling mode is\nincompatible with LISTEN/NOTIFY). Must be a direct PostgreSQL URL.",
+            "is_complex_type": false
+          },
+          {
             "field": "broker.postgres.skip_schema_init",
             "name": "skip_schema_init",
             "go_name": "SkipSchemaInit",
@@ -2460,6 +2470,16 @@
             "is_complex_type": false
           },
           {
+            "field": "map_broker.postgres.notify_dsn",
+            "name": "notify_dsn",
+            "go_name": "NotifyDSN",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "NotifyDSN is an optional separate DSN for the LISTEN connection.\nRequired when DSN points at PGBouncer (transaction pooling mode is\nincompatible with LISTEN/NOTIFY). Must be a direct PostgreSQL URL.",
+            "is_complex_type": false
+          },
+          {
             "field": "map_broker.postgres.skip_schema_init",
             "name": "skip_schema_init",
             "go_name": "SkipSchemaInit",
@@ -2621,6 +2641,16 @@
             "go_name": "UseNotify",
             "level": 3,
             "type": "bool",
+            "default": "",
+            "comment": "",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.notify_dsn",
+            "name": "notify_dsn",
+            "go_name": "NotifyDSN",
+            "level": 3,
+            "type": "string",
             "default": "",
             "comment": "",
             "is_complex_type": false
@@ -9931,6 +9961,16 @@
             "type": "string",
             "default": "",
             "comment": "",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].postgresql.partition_notification_dsn",
+            "name": "partition_notification_dsn",
+            "go_name": "PartitionNotificationDSN",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "PartitionNotificationDSN is an optional separate DSN used exclusively for\nthe LISTEN connection. Set this to a direct PostgreSQL URL (bypassing\nPGBouncer) when DSN points at a PGBouncer endpoint — PGBouncer transaction\npooling mode is incompatible with LISTEN/NOTIFY. If empty, the primary\nDSN pool is used (fine for direct PostgreSQL connections).",
             "is_complex_type": false
           },
           {
