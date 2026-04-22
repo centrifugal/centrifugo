@@ -115,8 +115,12 @@ func (e *PostgresStreamBroker) runOutboxWorkerWithLock(workerIdx int) {
 // runNotificationListener listens for pg_notify on the broker's notify channel
 // and wakes the outbox worker(s). Thin wrapper around pgoutbox.NotificationListener.
 func (e *PostgresStreamBroker) runNotificationListener() {
+	pool := e.pool
+	if e.notifyPool != nil {
+		pool = e.notifyPool
+	}
 	l := &pgoutbox.NotificationListener{
-		Pool:     e.pool,
+		Pool:     pool,
 		Channel:  e.names.notifyChannel,
 		NotifyCh: e.notifyCh,
 		ErrorFn:  e.logErrorMsg,

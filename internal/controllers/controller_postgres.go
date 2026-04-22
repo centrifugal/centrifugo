@@ -43,6 +43,12 @@ type PostgresControllerConfig struct {
 	// UseNotify enables LISTEN/NOTIFY for low-latency wakeup.
 	// Default: true.
 	UseNotify bool
+	// NotifyDSN is an optional separate connection string used exclusively for
+	// the LISTEN connection when UseNotify is true. Set this to a direct
+	// PostgreSQL URL (bypassing PGBouncer) when DSN points at a PGBouncer
+	// endpoint — PGBouncer transaction pooling mode is incompatible with
+	// LISTEN/NOTIFY. If empty, the primary DSN pool is used.
+	NotifyDSN string
 	// PartitionRetentionDays controls how old a partition must be before
 	// it is dropped. Default: 1 (control messages are ephemeral).
 	PartitionRetentionDays int
@@ -112,6 +118,7 @@ type PostgresController struct {
 	node         *centrifuge.Node
 	conf         PostgresControllerConfig
 	pool         *pgxpool.Pool
+	notifyPool   *pgxpool.Pool // Dedicated single-conn pool for LISTEN; nil = use pool
 	names        controllerNames
 	eventHandler centrifuge.ControlEventHandler
 	myNodeID     string
@@ -151,6 +158,24 @@ func NewPostgresController(node *centrifuge.Node, conf PostgresControllerConfig)
 		cancelFunc: cancelFunc,
 		notifyCh:   make(chan struct{}, 1),
 	}
+
+	if conf.NotifyDSN != "" {
+		nCfg, err := pgxpool.ParseConfig(conf.NotifyDSN)
+		if err != nil {
+			pool.Close()
+			cancelFunc()
+			return nil, fmt.Errorf("error parsing notify DSN: %w", err)
+		}
+		nCfg.MaxConns = 1
+		nPool, err := pgxpool.NewWithConfig(ctx, nCfg)
+		if err != nil {
+			pool.Close()
+			cancelFunc()
+			return nil, fmt.Errorf("error creating notify pool: %w", err)
+		}
+		c.notifyPool = nPool
+	}
+
 	return c, nil
 }
 
@@ -331,6 +356,9 @@ func (c *PostgresController) Run(ctx context.Context) error {
 	c.closeOnce.Do(func() {
 		close(c.closeCh)
 		c.cancelFunc()
+		if c.notifyPool != nil {
+			c.notifyPool.Close()
+		}
 		c.pool.Close()
 	})
 	return ctx.Err()
@@ -361,8 +389,12 @@ func (c *PostgresController) runOutboxWorker(shardIdx int) {
 
 // runNotificationListener listens for NOTIFY on the controller channel.
 func (c *PostgresController) runNotificationListener() {
+	pool := c.pool
+	if c.notifyPool != nil {
+		pool = c.notifyPool
+	}
 	l := &pgoutbox.NotificationListener{
-		Pool:     c.pool, // LISTEN only works on primary.
+		Pool:     pool,
 		Channel:  c.names.notifyChannel,
 		NotifyCh: c.notifyCh,
 		ErrorFn:  c.logError,

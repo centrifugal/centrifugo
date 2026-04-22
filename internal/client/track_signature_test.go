@@ -48,7 +48,7 @@ func TestTrackSignature_ExpiredSignature(t *testing.T) {
 	expiry := now - 3600 // Expired 1 hour ago.
 	sig := makeTestSignature(testSecret, "test:channel", []string{"key1"}, "user1", iat, expiry)
 
-	// Signature is valid HMAC-wise but the caller (OnKeyedTrack) would check expiry.
+	// Signature is valid HMAC-wise but the caller (OnTrack) would check expiry.
 	// verifyTrackSignature itself only checks HMAC, not expiry.
 	require.True(t, verifyTrackSignature(testSecret, "test:channel", sig, []string{"key1"}, "user1"))
 

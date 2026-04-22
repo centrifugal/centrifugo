@@ -59,19 +59,37 @@ func NewPostgresConsumer(
 	if err != nil {
 		return nil, err
 	}
-	return &PostgresConsumer{
+	c := &PostgresConsumer{
 		pool:       pool,
 		dispatcher: dispatcher,
 		config:     config,
 		lockPrefix: "centrifugo_partition_lock_" + common.name,
 		common:     common,
-	}, nil
+	}
+
+	if config.PartitionNotificationChannel != "" && config.PartitionNotificationDSN != "" {
+		nCfg, err := pgxpool.ParseConfig(config.PartitionNotificationDSN)
+		if err != nil {
+			pool.Close()
+			return nil, fmt.Errorf("error parsing partition notification DSN: %w", err)
+		}
+		nCfg.MaxConns = 1
+		nPool, err := pgxpool.NewWithConfig(context.Background(), nCfg)
+		if err != nil {
+			pool.Close()
+			return nil, fmt.Errorf("error creating partition notification pool: %w", err)
+		}
+		c.notifyPool = nPool
+	}
+
+	return c, nil
 }
 
 type PostgresConfig = configtypes.PostgresConsumerConfig
 
 type PostgresConsumer struct {
 	pool       *pgxpool.Pool
+	notifyPool *pgxpool.Pool // Dedicated single-conn pool for LISTEN; nil = use pool
 	config     PostgresConfig
 	dispatcher Dispatcher
 	lockPrefix string
@@ -86,7 +104,11 @@ type PostgresEvent struct {
 }
 
 func (c *PostgresConsumer) listenForNotifications(ctx context.Context, triggerChannels []chan struct{}) error {
-	conn, err := c.pool.Acquire(ctx)
+	pool := c.pool
+	if c.notifyPool != nil {
+		pool = c.notifyPool
+	}
+	conn, err := pool.Acquire(ctx)
 	if err != nil {
 		return fmt.Errorf("error acquiring connection: %w", err)
 	}
@@ -218,6 +240,9 @@ func (c *PostgresConsumer) processOnce(ctx context.Context, partition int) (int,
 
 func (c *PostgresConsumer) Run(ctx context.Context) error {
 	defer c.pool.Close()
+	if c.notifyPool != nil {
+		defer c.notifyPool.Close()
+	}
 
 	eg, ctx := errgroup.WithContext(ctx)
 

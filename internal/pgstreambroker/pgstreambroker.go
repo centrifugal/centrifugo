@@ -237,6 +237,14 @@ type PostgresStreamBrokerConfig struct {
 	// When false (default), outbox worker uses PollInterval-based polling only.
 	UseNotify bool
 
+	// NotifyDSN is an optional separate connection string used exclusively for
+	// the LISTEN connection when UseNotify is true. Set this to a direct
+	// PostgreSQL URL (bypassing PGBouncer) when DSN points at a PGBouncer
+	// endpoint — PGBouncer transaction pooling mode is incompatible with
+	// LISTEN/NOTIFY. If empty, the primary DSN pool is used (fine for direct
+	// PostgreSQL connections).
+	NotifyDSN string
+
 	// SkipSchemaInit disables automatic schema initialization on startup.
 	SkipSchemaInit bool
 
@@ -353,6 +361,7 @@ type PostgresStreamBroker struct {
 	names        pgNames
 	pool         *pgxpool.Pool
 	readPools    []*pgxpool.Pool
+	notifyPool   *pgxpool.Pool // Dedicated single-conn pool for LISTEN; nil = use pool
 	eventHandler centrifuge.BrokerEventHandler
 	closeCh      chan struct{}
 	closeOnce    sync.Once
@@ -424,6 +433,28 @@ func NewPostgresStreamBroker(n *centrifuge.Node, conf PostgresStreamBrokerConfig
 	b.sampler = newMetricsSampler(b)
 	if conf.UseNotify {
 		b.notifyCh = make(chan struct{}, 1)
+		if conf.NotifyDSN != "" {
+			nCfg, err := pgxpool.ParseConfig(conf.NotifyDSN)
+			if err != nil {
+				pool.Close()
+				for _, rp := range readPools {
+					rp.Close()
+				}
+				cancelFunc()
+				return nil, fmt.Errorf("postgres stream broker: parse notify DSN: %w", err)
+			}
+			nCfg.MaxConns = 1
+			nPool, err := pgxpool.NewWithConfig(ctx, nCfg)
+			if err != nil {
+				pool.Close()
+				for _, rp := range readPools {
+					rp.Close()
+				}
+				cancelFunc()
+				return nil, fmt.Errorf("postgres stream broker: connect notify: %w", err)
+			}
+			b.notifyPool = nPool
+		}
 	}
 	return b, nil
 }
@@ -449,6 +480,9 @@ func (e *PostgresStreamBroker) Close(ctx context.Context) error {
 		}
 		for _, rp := range e.readPools {
 			rp.Close()
+		}
+		if e.notifyPool != nil {
+			e.notifyPool.Close()
 		}
 		e.pool.Close()
 	})

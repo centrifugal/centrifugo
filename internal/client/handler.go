@@ -27,16 +27,16 @@ type RPCExtensionFunc func(c Client, e centrifuge.RPCEvent) (centrifuge.RPCReply
 // ProxyMap is a structure which contains all configured and already initialized
 // proxies which can be used from inside client event handlers.
 type ProxyMap struct {
-	ConnectProxy           proxy.ConnectProxy
-	RefreshProxy           proxy.RefreshProxy
-	RpcProxies             map[string]proxy.RPCProxy
-	PublishProxies         map[string]proxy.PublishProxy
-	SubscribeProxies       map[string]proxy.SubscribeProxy
-	SubRefreshProxies      map[string]proxy.SubRefreshProxy
-	SubscribeStreamProxies map[string]*proxy.SubscribeStreamProxy
-	MapPublishProxies          map[string]proxy.MapPublishProxy
-	MapRemoveProxies           map[string]proxy.MapRemoveProxy
-	SharedPollRefreshProxies   map[string]*proxy.SharedPollRefreshHandler
+	ConnectProxy             proxy.ConnectProxy
+	RefreshProxy             proxy.RefreshProxy
+	RpcProxies               map[string]proxy.RPCProxy
+	PublishProxies           map[string]proxy.PublishProxy
+	SubscribeProxies         map[string]proxy.SubscribeProxy
+	SubRefreshProxies        map[string]proxy.SubRefreshProxy
+	SubscribeStreamProxies   map[string]*proxy.SubscribeStreamProxy
+	MapPublishProxies        map[string]proxy.MapPublishProxy
+	MapRemoveProxies         map[string]proxy.MapRemoveProxy
+	SharedPollRefreshProxies map[string]*proxy.SharedPollRefreshHandler
 }
 
 // Handler for client connections.
@@ -48,9 +48,9 @@ type Handler struct {
 	proxyMap         *ProxyMap
 	rpcExtension     map[string]RPCExtensionFunc
 
-	trackSigMu          sync.RWMutex
-	trackSigVerifier    *trackSignatureVerifier
-	trackSigVerifierKey string
+	trackSigMu              sync.RWMutex
+	trackSigVerifier        *trackSignatureVerifier
+	trackSigVerifierKey     string
 	trackSigPrevVerifier    *trackSignatureVerifier
 	trackSigPrevVerifierKey string
 }
@@ -249,9 +249,9 @@ func (h *Handler) Setup() error {
 			})
 		})
 
-		client.OnKeyedTrack(func(event centrifuge.KeyedTrackEvent, cb centrifuge.KeyedTrackCallback) {
+		client.OnTrack(func(event centrifuge.TrackEvent, cb centrifuge.TrackCallback) {
 			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-				reply, err := h.OnKeyedTrack(client, event)
+				reply, err := h.OnTrack(client, event)
 				cb(reply, err)
 			})
 		})
@@ -1039,26 +1039,26 @@ func (h *Handler) OnMapRemove(c Client, e centrifuge.MapRemoveEvent, mapRemovePr
 	return reply, nil
 }
 
-// OnKeyedTrack handles track requests for shared poll channels.
-func (h *Handler) OnKeyedTrack(c Client, e centrifuge.KeyedTrackEvent) (centrifuge.KeyedTrackReply, error) {
+// OnTrack handles track requests for shared poll channels.
+func (h *Handler) OnTrack(c Client, e centrifuge.TrackEvent) (centrifuge.TrackReply, error) {
 	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		log.Error().Err(err).Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("error getting channel options")
-		return centrifuge.KeyedTrackReply{}, err
+		return centrifuge.TrackReply{}, err
 	}
 	if !found {
 		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("keyed track unknown channel")
-		return centrifuge.KeyedTrackReply{}, centrifuge.ErrorUnknownChannel
+		return centrifuge.TrackReply{}, centrifuge.ErrorUnknownChannel
 	}
 	if chOpts.SubscriptionType != "shared_poll" {
 		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("keyed track not allowed for non-shared_poll channel")
-		return centrifuge.KeyedTrackReply{}, centrifuge.ErrorPermissionDenied
+		return centrifuge.TrackReply{}, centrifuge.ErrorPermissionDenied
 	}
 
 	sharedPollCfg := h.cfgContainer.Config().SharedPoll
 	if sharedPollCfg.HMACSecretKey == "" {
 		log.Error().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("shared poll hmac_secret_key not configured")
-		return centrifuge.KeyedTrackReply{}, centrifuge.ErrorInternal
+		return centrifuge.TrackReply{}, centrifuge.ErrorInternal
 	}
 
 	keys := make([]string, len(e.Items))
@@ -1067,29 +1067,29 @@ func (h *Handler) OnKeyedTrack(c Client, e centrifuge.KeyedTrackEvent) (centrifu
 	}
 
 	verifier, prevVerifier := h.getTrackSignatureVerifiers(sharedPollCfg)
-	verified := verifier.verify(e.Channel, e.Signature, keys, e.UserID)
+	verified := verifier.verify(e.Channel, e.Signature, keys, c.UserID())
 	if !verified && prevVerifier != nil {
 		if sharedPollCfg.HMACPreviousSecretKeyValidUntil > 0 {
 			iat, _ := parseSignatureTimestamps(e.Signature)
 			if iat > sharedPollCfg.HMACPreviousSecretKeyValidUntil {
 				log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("track signature issued after previous secret key expiry")
-				return centrifuge.KeyedTrackReply{}, centrifuge.ErrorPermissionDenied
+				return centrifuge.TrackReply{}, centrifuge.ErrorPermissionDenied
 			}
 		}
-		verified = prevVerifier.verify(e.Channel, e.Signature, keys, e.UserID)
+		verified = prevVerifier.verify(e.Channel, e.Signature, keys, c.UserID())
 	}
 	if !verified {
 		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("invalid track signature")
-		return centrifuge.KeyedTrackReply{}, centrifuge.ErrorPermissionDenied
+		return centrifuge.TrackReply{}, centrifuge.ErrorPermissionDenied
 	}
 
 	_, expiry := parseSignatureTimestamps(e.Signature)
 	if expiry > 0 && expiry+gracePeriodSeconds < time.Now().Unix() {
 		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("track signature expired")
-		return centrifuge.KeyedTrackReply{}, centrifuge.ErrorTokenExpired
+		return centrifuge.TrackReply{}, centrifuge.ErrorTokenExpired
 	}
 
-	return centrifuge.KeyedTrackReply{
+	return centrifuge.TrackReply{
 		ExpireAt: expiry,
 	}, nil
 }

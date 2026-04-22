@@ -793,6 +793,12 @@ type PostgresConsumerConfig struct {
 	PartitionSelectLimit         int       `mapstructure:"partition_select_limit" json:"partition_select_limit" envconfig:"partition_select_limit" default:"100" yaml:"partition_select_limit" toml:"partition_select_limit"`
 	PartitionPollInterval        Duration  `mapstructure:"partition_poll_interval" json:"partition_poll_interval" envconfig:"partition_poll_interval" default:"300ms" yaml:"partition_poll_interval" toml:"partition_poll_interval"`
 	PartitionNotificationChannel string    `mapstructure:"partition_notification_channel" json:"partition_notification_channel" envconfig:"partition_notification_channel" yaml:"partition_notification_channel" toml:"partition_notification_channel"`
+	// PartitionNotificationDSN is an optional separate DSN used exclusively for
+	// the LISTEN connection. Set this to a direct PostgreSQL URL (bypassing
+	// PGBouncer) when DSN points at a PGBouncer endpoint — PGBouncer transaction
+	// pooling mode is incompatible with LISTEN/NOTIFY. If empty, the primary
+	// DSN pool is used (fine for direct PostgreSQL connections).
+	PartitionNotificationDSN string `mapstructure:"partition_notification_dsn" json:"partition_notification_dsn" envconfig:"partition_notification_dsn" yaml:"partition_notification_dsn" toml:"partition_notification_dsn"`
 	TLS                          TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
 	// UseTryLock when enabled tells Centrifugo to use pg_try_advisory_xact_lock instead of pg_advisory_xact_lock.
 	UseTryLock bool `mapstructure:"use_try_lock" json:"use_try_lock" envconfig:"use_try_lock" default:"false" yaml:"use_try_lock" toml:"use_try_lock"`

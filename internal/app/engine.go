@@ -125,6 +125,7 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) err
 				TablePrefix:              cfg.Controller.Postgres.TablePrefix,
 				PollInterval:             cfg.Controller.Postgres.PollInterval.ToDuration(),
 				UseNotify:                cfg.Controller.Postgres.UseNotify,
+				NotifyDSN:                cfg.Controller.Postgres.NotifyDSN,
 				PartitionRetentionDays:   cfg.Controller.Postgres.PartitionRetentionDays,
 				PartitionLookaheadDays:   cfg.Controller.Postgres.PartitionLookaheadDays,
 				PartitionCleanupInterval: cfg.Controller.Postgres.PartitionCleanupInterval.ToDuration(),
@@ -172,6 +173,7 @@ func createPostgresStreamBroker(node *centrifuge.Node, pgCfg configtypes.Postgre
 		BinaryData:                pgCfg.BinaryData,
 		StreamRetention:           pgCfg.StreamRetention.ToDuration(),
 		UseNotify:                 pgCfg.UseNotify,
+		NotifyDSN:                 pgCfg.NotifyDSN,
 		PartitionLookaheadDays:    pgCfg.PartitionLookaheadDays,
 		PartitionRetentionDays:    pgCfg.PartitionRetentionDays,
 		FineGrainedHistoryCleanup: pgCfg.FineGrainedHistoryCleanup,
@@ -308,6 +310,7 @@ func configureMapBroker(node *centrifuge.Node, cfgContainer *config.Container) e
 			BinaryData:             pgCfg.BinaryData,
 			StreamRetention:        pgCfg.StreamRetention.ToDuration(),
 			UseNotify:              pgCfg.UseNotify,
+			NotifyDSN:              pgCfg.NotifyDSN,
 			PartitionLookaheadDays: pgCfg.PartitionLookaheadDays,
 			PartitionRetentionDays: pgCfg.PartitionRetentionDays,
 			Outbox: pgmapbroker.OutboxConfig{

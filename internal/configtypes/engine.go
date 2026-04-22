@@ -137,6 +137,10 @@ type PostgresMapBroker struct {
 	// UseNotify enables LISTEN/NOTIFY for low-latency outbox wakeup.
 	// When false (default), outbox worker uses polling only.
 	UseNotify bool `mapstructure:"use_notify" json:"use_notify" envconfig:"use_notify" yaml:"use_notify" toml:"use_notify"`
+	// NotifyDSN is an optional separate DSN for the LISTEN connection.
+	// Required when DSN points at PGBouncer (transaction pooling mode is
+	// incompatible with LISTEN/NOTIFY). Must be a direct PostgreSQL URL.
+	NotifyDSN string `mapstructure:"notify_dsn" json:"notify_dsn" envconfig:"notify_dsn" yaml:"notify_dsn" toml:"notify_dsn"`
 	// SkipSchemaInit disables automatic schema initialization on startup.
 	// When true, the schema must be managed externally (e.g. via migrations).
 	SkipSchemaInit bool `mapstructure:"skip_schema_init" json:"skip_schema_init" envconfig:"skip_schema_init" yaml:"skip_schema_init" toml:"skip_schema_init"`
@@ -185,6 +189,10 @@ type PostgresStreamBroker struct {
 	StreamRetention Duration `mapstructure:"stream_retention" json:"stream_retention" envconfig:"stream_retention" default:"24h" yaml:"stream_retention" toml:"stream_retention"`
 	// UseNotify enables LISTEN/NOTIFY for low-latency outbox wakeup.
 	UseNotify bool `mapstructure:"use_notify" json:"use_notify" envconfig:"use_notify" yaml:"use_notify" toml:"use_notify"`
+	// NotifyDSN is an optional separate DSN for the LISTEN connection.
+	// Required when DSN points at PGBouncer (transaction pooling mode is
+	// incompatible with LISTEN/NOTIFY). Must be a direct PostgreSQL URL.
+	NotifyDSN string `mapstructure:"notify_dsn" json:"notify_dsn" envconfig:"notify_dsn" yaml:"notify_dsn" toml:"notify_dsn"`
 	// SkipSchemaInit disables automatic schema initialization on startup.
 	SkipSchemaInit bool `mapstructure:"skip_schema_init" json:"skip_schema_init" envconfig:"skip_schema_init" yaml:"skip_schema_init" toml:"skip_schema_init"`
 	// Outbox configures the outbox-based delivery mode.
@@ -226,6 +234,7 @@ type PostgresController struct {
 	TablePrefix              string   `mapstructure:"table_prefix" json:"table_prefix" envconfig:"table_prefix" yaml:"table_prefix" toml:"table_prefix"`
 	PollInterval             Duration `mapstructure:"poll_interval" json:"poll_interval" envconfig:"poll_interval" yaml:"poll_interval" toml:"poll_interval"`
 	UseNotify                bool     `mapstructure:"use_notify" json:"use_notify" envconfig:"use_notify" yaml:"use_notify" toml:"use_notify"`
+	NotifyDSN                string   `mapstructure:"notify_dsn" json:"notify_dsn" envconfig:"notify_dsn" yaml:"notify_dsn" toml:"notify_dsn"`
 	PartitionRetentionDays   int      `mapstructure:"partition_retention_days" json:"partition_retention_days" envconfig:"partition_retention_days" yaml:"partition_retention_days" toml:"partition_retention_days"`
 	PartitionLookaheadDays   int      `mapstructure:"partition_lookahead_days" json:"partition_lookahead_days" envconfig:"partition_lookahead_days" yaml:"partition_lookahead_days" toml:"partition_lookahead_days"`
 	PartitionCleanupInterval Duration `mapstructure:"partition_cleanup_interval" json:"partition_cleanup_interval" envconfig:"partition_cleanup_interval" yaml:"partition_cleanup_interval" toml:"partition_cleanup_interval"`
