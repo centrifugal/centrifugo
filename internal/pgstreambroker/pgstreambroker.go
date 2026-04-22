@@ -251,9 +251,6 @@ type PostgresStreamBrokerConfig struct {
 	// PostgreSQL connections).
 	NotifyDSN string
 
-	// SkipSchemaInit disables automatic schema initialization on startup.
-	SkipSchemaInit bool
-
 	// FineGrainedHistoryCleanup enables an opt-in chunked DELETE pass that
 	// removes history rows past their channel's history_ttl, instead of
 	// waiting for partition retention. Use this for tight-storage deployments
@@ -381,7 +378,7 @@ type PostgresStreamBroker struct {
 var _ centrifuge.Broker = (*PostgresStreamBroker)(nil)
 
 // NewPostgresStreamBroker constructs a new PostgresStreamBroker. Call EnsureSchema
-// after construction (unless SkipSchemaInit is set) and then RegisterBrokerEventHandler.
+// after construction and then RegisterBrokerEventHandler.
 func NewPostgresStreamBroker(n *centrifuge.Node, conf PostgresStreamBrokerConfig) (*PostgresStreamBroker, error) {
 	conf.setDefaults()
 

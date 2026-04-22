@@ -201,7 +201,6 @@ func TestPostgresController_BroadcastReachesAll(t *testing.T) {
 	_ = newTestPostgresController(t, PostgresControllerConfig{
 		DSN:            connString,
 		TablePrefix:    prefix,
-		SkipSchemaInit: true,
 	}, h2)
 
 	time.Sleep(50 * time.Millisecond)
@@ -246,7 +245,6 @@ func TestPostgresController_TargetedMessage(t *testing.T) {
 	c2 := newTestPostgresController(t, PostgresControllerConfig{
 		DSN:            connString,
 		TablePrefix:    prefix,
-		SkipSchemaInit: true,
 	}, h2)
 
 	time.Sleep(50 * time.Millisecond)
@@ -456,7 +454,6 @@ func TestPostgresController_ReconnectResumesFromCursor(t *testing.T) {
 	_ = newTestPostgresController(t, PostgresControllerConfig{
 		DSN:            connString,
 		TablePrefix:    prefix,
-		SkipSchemaInit: true,
 	}, h2)
 
 	time.Sleep(200 * time.Millisecond)

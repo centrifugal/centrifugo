@@ -62,8 +62,6 @@ type PostgresControllerConfig struct {
 	// PartitionCleanupInterval is the ticker interval for the partitioner.
 	// Default: 1m.
 	PartitionCleanupInterval time.Duration
-	// SkipSchemaInit skips automatic schema creation.
-	SkipSchemaInit bool
 	// BatchSize is the maximum number of rows to process per batch.
 	// Default: 1000.
 	BatchSize int

@@ -30,7 +30,7 @@ func New(node *centrifuge.Node, config configtypes.Controller) (centrifuge.Contr
 			PartitionRetentionDays:   config.Postgres.PartitionRetentionDays,
 			PartitionLookaheadDays:   config.Postgres.PartitionLookaheadDays,
 			PartitionCleanupInterval: config.Postgres.PartitionCleanupInterval.ToDuration(),
-			SkipSchemaInit:           config.Postgres.SkipSchemaInit,
+			BatchSize:                config.Postgres.BatchSize,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("error initializing Postgres controller: %w", err)

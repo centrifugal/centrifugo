@@ -145,6 +145,10 @@ type PostgresMapBroker struct {
 	// Required when DSN points at PGBouncer (transaction pooling mode is
 	// incompatible with LISTEN/NOTIFY). Must be a direct PostgreSQL URL.
 	NotifyDSN string `mapstructure:"notify_dsn" json:"notify_dsn" envconfig:"notify_dsn" yaml:"notify_dsn" toml:"notify_dsn"`
+	// TablePrefix is the namespace prefix for all tables created by this broker.
+	// Default: "cf". Multi-tenant deployments sharing one PostgreSQL instance
+	// use distinct prefixes per Centrifugo cluster (e.g. "prod_us_cf").
+	TablePrefix string `mapstructure:"table_prefix" json:"table_prefix" envconfig:"table_prefix" yaml:"table_prefix" toml:"table_prefix"`
 	// SkipSchemaInit disables automatic schema initialization on startup.
 	// When true, the schema must be managed externally (e.g. via migrations).
 	SkipSchemaInit bool `mapstructure:"skip_schema_init" json:"skip_schema_init" envconfig:"skip_schema_init" yaml:"skip_schema_init" toml:"skip_schema_init"`
@@ -201,6 +205,10 @@ type PostgresStreamBroker struct {
 	// Required when DSN points at PGBouncer (transaction pooling mode is
 	// incompatible with LISTEN/NOTIFY). Must be a direct PostgreSQL URL.
 	NotifyDSN string `mapstructure:"notify_dsn" json:"notify_dsn" envconfig:"notify_dsn" yaml:"notify_dsn" toml:"notify_dsn"`
+	// TablePrefix is the namespace prefix for all tables created by this broker.
+	// Default: "cf". Multi-tenant deployments sharing one PostgreSQL instance
+	// use distinct prefixes per Centrifugo cluster (e.g. "prod_us_cf").
+	TablePrefix string `mapstructure:"table_prefix" json:"table_prefix" envconfig:"table_prefix" yaml:"table_prefix" toml:"table_prefix"`
 	// SkipSchemaInit disables automatic schema initialization on startup.
 	SkipSchemaInit bool `mapstructure:"skip_schema_init" json:"skip_schema_init" envconfig:"skip_schema_init" yaml:"skip_schema_init" toml:"skip_schema_init"`
 	// Outbox configures the outbox-based delivery mode.
@@ -236,17 +244,37 @@ type Controller struct {
 // cluster coordination. Creates tables with the configured prefix
 // (e.g. cf_controller_messages, cf_controller_shard_lock).
 type PostgresController struct {
+	// DSN is the primary PostgreSQL connection string.
+	// Example: "postgres://user:pass@localhost:5432/dbname?sslmode=disable".
 	DSN string `mapstructure:"dsn" json:"dsn" envconfig:"dsn" yaml:"dsn" toml:"dsn"`
 	// TLS is an optional TLS configuration for all PostgreSQL connections.
 	TLS TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
-	PoolSize                 int      `mapstructure:"pool_size" json:"pool_size" envconfig:"pool_size" yaml:"pool_size" toml:"pool_size"`
-	NumShards                int      `mapstructure:"num_shards" json:"num_shards" envconfig:"num_shards" yaml:"num_shards" toml:"num_shards"`
-	TablePrefix              string   `mapstructure:"table_prefix" json:"table_prefix" envconfig:"table_prefix" yaml:"table_prefix" toml:"table_prefix"`
-	PollInterval             Duration `mapstructure:"poll_interval" json:"poll_interval" envconfig:"poll_interval" yaml:"poll_interval" toml:"poll_interval"`
-	UseNotify                bool     `mapstructure:"use_notify" json:"use_notify" envconfig:"use_notify" yaml:"use_notify" toml:"use_notify"`
-	NotifyDSN                string   `mapstructure:"notify_dsn" json:"notify_dsn" envconfig:"notify_dsn" yaml:"notify_dsn" toml:"notify_dsn"`
-	PartitionRetentionDays   int      `mapstructure:"partition_retention_days" json:"partition_retention_days" envconfig:"partition_retention_days" yaml:"partition_retention_days" toml:"partition_retention_days"`
-	PartitionLookaheadDays   int      `mapstructure:"partition_lookahead_days" json:"partition_lookahead_days" envconfig:"partition_lookahead_days" yaml:"partition_lookahead_days" toml:"partition_lookahead_days"`
-	PartitionCleanupInterval Duration `mapstructure:"partition_cleanup_interval" json:"partition_cleanup_interval" envconfig:"partition_cleanup_interval" yaml:"partition_cleanup_interval" toml:"partition_cleanup_interval"`
-	SkipSchemaInit           bool     `mapstructure:"skip_schema_init" json:"skip_schema_init" envconfig:"skip_schema_init" yaml:"skip_schema_init" toml:"skip_schema_init"`
+	// PoolSize sets the maximum number of connections in the pool. Default: 8.
+	PoolSize int `mapstructure:"pool_size" json:"pool_size" envconfig:"pool_size" default:"8" yaml:"pool_size" toml:"pool_size"`
+	// NumShards is the number of shards for serialized publishing. Default: 1.
+	NumShards int `mapstructure:"num_shards" json:"num_shards" envconfig:"num_shards" default:"1" yaml:"num_shards" toml:"num_shards"`
+	// TablePrefix is the namespace prefix for all tables created by this controller.
+	// Default: "cf". Produces names like cf_controller_messages.
+	TablePrefix string `mapstructure:"table_prefix" json:"table_prefix" envconfig:"table_prefix" yaml:"table_prefix" toml:"table_prefix"`
+	// PollInterval is how often to poll for new control messages when idle. Default: "50ms".
+	PollInterval Duration `mapstructure:"poll_interval" json:"poll_interval" envconfig:"poll_interval" default:"50ms" yaml:"poll_interval" toml:"poll_interval"`
+	// UseNotify enables LISTEN/NOTIFY for low-latency wakeup. Default: true.
+	UseNotify bool `mapstructure:"use_notify" json:"use_notify" envconfig:"use_notify" yaml:"use_notify" toml:"use_notify"`
+	// NotifyDSN is an optional separate DSN for the LISTEN connection.
+	// Required when DSN points at PGBouncer (transaction pooling mode is
+	// incompatible with LISTEN/NOTIFY). Must be a direct PostgreSQL URL.
+	NotifyDSN string `mapstructure:"notify_dsn" json:"notify_dsn" envconfig:"notify_dsn" yaml:"notify_dsn" toml:"notify_dsn"`
+	// PartitionRetentionDays controls how old a partition must be before it is
+	// dropped. Default: 1 (control messages are ephemeral).
+	PartitionRetentionDays int `mapstructure:"partition_retention_days" json:"partition_retention_days" envconfig:"partition_retention_days" default:"1" yaml:"partition_retention_days" toml:"partition_retention_days"`
+	// PartitionLookaheadDays controls how many future daily partitions to
+	// pre-create. Default: 2.
+	PartitionLookaheadDays int `mapstructure:"partition_lookahead_days" json:"partition_lookahead_days" envconfig:"partition_lookahead_days" default:"2" yaml:"partition_lookahead_days" toml:"partition_lookahead_days"`
+	// PartitionCleanupInterval is how often the partition worker ticks. Default: "1m".
+	PartitionCleanupInterval Duration `mapstructure:"partition_cleanup_interval" json:"partition_cleanup_interval" envconfig:"partition_cleanup_interval" default:"1m" yaml:"partition_cleanup_interval" toml:"partition_cleanup_interval"`
+	// BatchSize is the maximum number of rows to process per poll batch. Default: 1000.
+	BatchSize int `mapstructure:"batch_size" json:"batch_size" envconfig:"batch_size" default:"1000" yaml:"batch_size" toml:"batch_size"`
+	// SkipSchemaInit disables automatic schema initialization on startup.
+	// When true, the schema must be managed externally (e.g. via migrations).
+	SkipSchemaInit bool `mapstructure:"skip_schema_init" json:"skip_schema_init" envconfig:"skip_schema_init" yaml:"skip_schema_init" toml:"skip_schema_init"`
 }
