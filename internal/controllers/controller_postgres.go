@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/pgoutbox"
 
 	"github.com/centrifugal/centrifuge"
@@ -26,6 +27,9 @@ var controllerSchemaVersion = 1
 type PostgresControllerConfig struct {
 	// DSN is the primary PostgreSQL connection string.
 	DSN string
+
+	// TLS is an optional TLS configuration applied to all pools.
+	TLS configtypes.TLSConfig
 	// PoolSize sets the maximum number of connections in the primary pool.
 	// Default: 8.
 	PoolSize int
@@ -141,6 +145,13 @@ func NewPostgresController(node *centrifuge.Node, conf PostgresControllerConfig)
 		return nil, fmt.Errorf("error parsing postgres DSN: %w", err)
 	}
 	poolConfig.MaxConns = int32(conf.PoolSize)
+	if conf.TLS.Enabled {
+		tlsCfg, err := conf.TLS.ToGoTLSConfig("postgres-controller")
+		if err != nil {
+			return nil, fmt.Errorf("postgres controller: TLS config: %w", err)
+		}
+		poolConfig.ConnConfig.TLSConfig = tlsCfg
+	}
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		return nil, fmt.Errorf("error creating postgres pool: %w", err)
@@ -167,6 +178,15 @@ func NewPostgresController(node *centrifuge.Node, conf PostgresControllerConfig)
 			return nil, fmt.Errorf("error parsing notify DSN: %w", err)
 		}
 		nCfg.MaxConns = 1
+		if conf.TLS.Enabled {
+			tlsCfg, err := conf.TLS.ToGoTLSConfig("postgres-controller")
+			if err != nil {
+				pool.Close()
+				cancelFunc()
+				return nil, fmt.Errorf("postgres controller: notify TLS config: %w", err)
+			}
+			nCfg.ConnConfig.TLSConfig = tlsCfg
+		}
 		nPool, err := pgxpool.NewWithConfig(ctx, nCfg)
 		if err != nil {
 			pool.Close()

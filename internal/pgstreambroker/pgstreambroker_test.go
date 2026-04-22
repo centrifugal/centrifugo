@@ -1465,27 +1465,8 @@ func TestPostgresStreamBroker_Metrics(t *testing.T) {
 
 	// Verify PG-specific gauges are populated (initialized by TestMain).
 	require.NotNil(t, metrics.PGBrokerPartitions)
-	require.NotNil(t, metrics.PGBrokerOrphanRows)
 }
 
-// TestPostgresStreamBroker_OrphanRowsGauge verifies the orphan rows audit
-// gauge fires non-zero when a history row exists without a meta row.
-func TestPostgresStreamBroker_OrphanRowsGauge(t *testing.T) {
-	e, _, _ := newTestPostgresStreamBroker(t)
-	ctx := context.Background()
-
-	// Manually insert an orphan row (no corresponding meta).
-	_, err := e.pool.Exec(ctx, fmt.Sprintf(`
-		INSERT INTO %s (channel, channel_offset, kind, data, shard_id)
-		VALUES ($1, 1, 0, '\x'::bytea, 0)
-	`, e.names.stream), "test_orphan_synthetic")
-	require.NoError(t, err)
-
-	// Wait for the metrics sampler to fire.
-	require.Eventually(t, func() bool {
-		return testutilGaugeValue(t, metrics.PGBrokerOrphanRows, "") > 0
-	}, 2*time.Second, 100*time.Millisecond, "orphan gauge should be non-zero")
-}
 
 // TestPostgresStreamBroker_OutboxCursorLag verifies the outbox cursor lag
 // gauge is sampled without panicking after publications are processed.

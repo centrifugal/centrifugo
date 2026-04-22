@@ -50,7 +50,6 @@ type Registry struct {
 	// PostgreSQL broker metrics (shared by both map and stream PG brokers)
 	pgBrokerCleanupRowsDeletedTotal *prometheus.CounterVec
 	pgBrokerOutboxCursorLagSeconds  *prometheus.GaugeVec
-	pgBrokerOrphanRows              *prometheus.GaugeVec
 	pgBrokerPartitions              *prometheus.GaugeVec
 }
 
@@ -86,7 +85,6 @@ func Init(cfg Config) error {
 
 	PGBrokerCleanupRowsDeletedTotal = reg.pgBrokerCleanupRowsDeletedTotal
 	PGBrokerOutboxCursorLagSeconds = reg.pgBrokerOutboxCursorLagSeconds
-	PGBrokerOrphanRows = reg.pgBrokerOrphanRows
 	PGBrokerPartitions = reg.pgBrokerPartitions
 
 	return nil
@@ -253,14 +251,6 @@ func newRegistry(cfg Config) (*Registry, error) {
 		ConstLabels: constLabels,
 	}, []string{"broker", "shard"})
 
-	m.pgBrokerOrphanRows = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace:   metricsNamespace,
-		Subsystem:   "pg_broker",
-		Name:        "orphan_rows",
-		Help:        "Count of stream/history rows whose channel has no meta row (should be 0 in healthy deployments).",
-		ConstLabels: constLabels,
-	}, []string{"broker"})
-
 	m.pgBrokerPartitions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   metricsNamespace,
 		Subsystem:   "pg_broker",
@@ -289,7 +279,6 @@ func newRegistry(cfg Config) (*Registry, error) {
 		m.httpRequestsTotal,
 		m.pgBrokerCleanupRowsDeletedTotal,
 		m.pgBrokerOutboxCursorLagSeconds,
-		m.pgBrokerOrphanRows,
 		m.pgBrokerPartitions,
 	}
 

@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/pgoutbox"
 
 	"github.com/centrifugal/centrifuge"
@@ -175,6 +176,7 @@ type PostgresMapBroker struct {
 	pool         *pgxpool.Pool   // Primary pool for writes
 	readPools    []*pgxpool.Pool // One per replica; empty = use primary
 	notifyPool   *pgxpool.Pool   // Dedicated single-conn pool for LISTEN; nil = use pool
+	sampler      *mapMetricsSampler
 	eventHandler centrifuge.BrokerEventHandler
 	closeCh      chan struct{}
 	closeOnce    sync.Once
@@ -216,6 +218,10 @@ type PostgresMapBrokerConfig struct {
 	// DSN is the primary PostgreSQL connection string for writes.
 	// Example: "postgres://user:pass@localhost:5432/dbname?sslmode=disable"
 	DSN string
+
+	// TLS is an optional TLS configuration applied to all pools (primary,
+	// replicas, notify). Use instead of embedding TLS params in the DSN.
+	TLS configtypes.TLSConfig
 
 	// PoolSize sets the maximum number of connections in the pool.
 	// Default: 32
@@ -383,6 +389,13 @@ func NewPostgresMapBroker(n *centrifuge.Node, conf PostgresMapBrokerConfig) (*Po
 		return nil, fmt.Errorf("postgres map broker: parse config: %w", err)
 	}
 	poolConfig.MaxConns = int32(conf.PoolSize)
+	if conf.TLS.Enabled {
+		tlsCfg, err := conf.TLS.ToGoTLSConfig("postgres-map-broker")
+		if err != nil {
+			return nil, fmt.Errorf("postgres map broker: TLS config: %w", err)
+		}
+		poolConfig.ConnConfig.TLSConfig = tlsCfg
+	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
@@ -406,6 +419,7 @@ func NewPostgresMapBroker(n *centrifuge.Node, conf PostgresMapBrokerConfig) (*Po
 		cancelCtx:  ctx,
 		cancelFunc: cancel,
 	}
+	e.sampler = newMapMetricsSampler(e)
 
 	if conf.UseNotify {
 		e.notifyCh = make(chan struct{}, 1)
@@ -417,6 +431,15 @@ func NewPostgresMapBroker(n *centrifuge.Node, conf PostgresMapBrokerConfig) (*Po
 				return nil, fmt.Errorf("postgres map broker: parse notify DSN: %w", err)
 			}
 			nCfg.MaxConns = 1
+			if conf.TLS.Enabled {
+				tlsCfg, err := conf.TLS.ToGoTLSConfig("postgres-map-broker")
+				if err != nil {
+					pool.Close()
+					cancel()
+					return nil, fmt.Errorf("postgres map broker: notify TLS config: %w", err)
+				}
+				nCfg.ConnConfig.TLSConfig = tlsCfg
+			}
 			nPool, err := pgxpool.NewWithConfig(ctx, nCfg)
 			if err != nil {
 				pool.Close()
@@ -440,6 +463,18 @@ func NewPostgresMapBroker(n *centrifuge.Node, conf PostgresMapBrokerConfig) (*Po
 				return nil, fmt.Errorf("postgres map broker: parse replica config: %w", err)
 			}
 			replicaConfig.MaxConns = int32(conf.ReplicaPoolSize)
+			if conf.TLS.Enabled {
+				tlsCfg, err := conf.TLS.ToGoTLSConfig("postgres-map-broker")
+				if err != nil {
+					pool.Close()
+					for _, rp := range e.readPools {
+						rp.Close()
+					}
+					cancel()
+					return nil, fmt.Errorf("postgres map broker: replica TLS config: %w", err)
+				}
+				replicaConfig.ConnConfig.TLSConfig = tlsCfg
+			}
 
 			rp, err := pgxpool.NewWithConfig(context.Background(), replicaConfig)
 			if err != nil {
@@ -1719,6 +1754,10 @@ func (e *PostgresMapBroker) processOutboxBatch(ctx context.Context, pool *pgxpoo
 		return 0, cursor, nil
 	}
 
+	if e.sampler != nil && len(shardIDs) == 1 {
+		e.sampler.storeCursor(shardIDs[0], maxID)
+	}
+
 	// Deliver each entry.
 	for i := range buf.metas {
 		m := &buf.metas[i]
@@ -1926,6 +1965,9 @@ func (e *PostgresMapBroker) runCleanupWorker() {
 			return
 		case <-ticker.C:
 			e.cleanupEntries(ctx)
+			if e.sampler != nil {
+				e.sampler.sample(ctx)
+			}
 		}
 	}
 }

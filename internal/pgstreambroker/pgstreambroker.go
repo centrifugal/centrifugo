@@ -30,6 +30,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+
 	"github.com/centrifugal/centrifuge"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -194,6 +196,10 @@ type PostgresStreamBrokerConfig struct {
 
 	// DSN is the primary PostgreSQL connection string for writes.
 	DSN string
+
+	// TLS is an optional TLS configuration applied to all pools (primary,
+	// replicas, notify). Use instead of embedding TLS params in the DSN.
+	TLS configtypes.TLSConfig
 
 	// PoolSize sets the maximum number of connections in the primary pool.
 	// Default: 32.
@@ -390,6 +396,13 @@ func NewPostgresStreamBroker(n *centrifuge.Node, conf PostgresStreamBrokerConfig
 		return nil, fmt.Errorf("postgres stream broker: parse config: %w", err)
 	}
 	poolConfig.MaxConns = int32(conf.PoolSize)
+	if conf.TLS.Enabled {
+		tlsCfg, err := conf.TLS.ToGoTLSConfig("postgres-stream-broker")
+		if err != nil {
+			return nil, fmt.Errorf("postgres stream broker: TLS config: %w", err)
+		}
+		poolConfig.ConnConfig.TLSConfig = tlsCfg
+	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
@@ -407,6 +420,17 @@ func NewPostgresStreamBroker(n *centrifuge.Node, conf PostgresStreamBrokerConfig
 			return nil, fmt.Errorf("postgres stream broker: parse replica %d config: %w", i, err)
 		}
 		rcfg.MaxConns = int32(conf.ReplicaPoolSize)
+		if conf.TLS.Enabled {
+			tlsCfg, err := conf.TLS.ToGoTLSConfig("postgres-stream-broker")
+			if err != nil {
+				pool.Close()
+				for _, rp := range readPools {
+					rp.Close()
+				}
+				return nil, fmt.Errorf("postgres stream broker: replica TLS config: %w", err)
+			}
+			rcfg.ConnConfig.TLSConfig = tlsCfg
+		}
 		rp, err := pgxpool.NewWithConfig(ctx, rcfg)
 		if err != nil {
 			pool.Close()
@@ -444,6 +468,18 @@ func NewPostgresStreamBroker(n *centrifuge.Node, conf PostgresStreamBrokerConfig
 				return nil, fmt.Errorf("postgres stream broker: parse notify DSN: %w", err)
 			}
 			nCfg.MaxConns = 1
+			if conf.TLS.Enabled {
+				tlsCfg, err := conf.TLS.ToGoTLSConfig("postgres-stream-broker")
+				if err != nil {
+					pool.Close()
+					for _, rp := range readPools {
+						rp.Close()
+					}
+					cancelFunc()
+					return nil, fmt.Errorf("postgres stream broker: notify TLS config: %w", err)
+				}
+				nCfg.ConnConfig.TLSConfig = tlsCfg
+			}
 			nPool, err := pgxpool.NewWithConfig(ctx, nCfg)
 			if err != nil {
 				pool.Close()

@@ -41,6 +41,5 @@ var (
 var (
 	PGBrokerCleanupRowsDeletedTotal *prometheus.CounterVec
 	PGBrokerOutboxCursorLagSeconds  *prometheus.GaugeVec
-	PGBrokerOrphanRows              *prometheus.GaugeVec
 	PGBrokerPartitions              *prometheus.GaugeVec
 )

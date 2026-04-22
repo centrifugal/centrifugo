@@ -117,6 +117,10 @@ type PostgresMapBroker struct {
 	// DSN is the primary PostgreSQL connection string.
 	// Example: "postgres://user:pass@localhost:5432/dbname?sslmode=disable".
 	DSN string `mapstructure:"dsn" json:"dsn" envconfig:"dsn" yaml:"dsn" toml:"dsn"`
+	// TLS is an optional TLS configuration for all PostgreSQL connections
+	// (primary, replicas, and notify). Use instead of embedding TLS parameters
+	// in the DSN when certificate files are managed outside the connection string.
+	TLS TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
 	// PoolSize sets the maximum number of connections in the pool. Default: 16.
 	PoolSize int `mapstructure:"pool_size" json:"pool_size" envconfig:"pool_size" default:"16" yaml:"pool_size" toml:"pool_size"`
 	// NumShards is the total number of shards for parallel delivery workers.
@@ -171,6 +175,10 @@ type PostgresMapBrokerOutbox struct {
 type PostgresStreamBroker struct {
 	// DSN is the primary PostgreSQL connection string.
 	DSN string `mapstructure:"dsn" json:"dsn" envconfig:"dsn" yaml:"dsn" toml:"dsn"`
+	// TLS is an optional TLS configuration for all PostgreSQL connections
+	// (primary, replicas, and notify). Use instead of embedding TLS parameters
+	// in the DSN when certificate files are managed outside the connection string.
+	TLS TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
 	// PoolSize sets the maximum number of connections in the pool. Default: 16.
 	PoolSize int `mapstructure:"pool_size" json:"pool_size" envconfig:"pool_size" default:"16" yaml:"pool_size" toml:"pool_size"`
 	// NumShards is the total number of shards for parallel delivery workers.
@@ -228,7 +236,9 @@ type Controller struct {
 // cluster coordination. Creates tables with the configured prefix
 // (e.g. cf_controller_messages, cf_controller_shard_lock).
 type PostgresController struct {
-	DSN                      string   `mapstructure:"dsn" json:"dsn" envconfig:"dsn" yaml:"dsn" toml:"dsn"`
+	DSN string `mapstructure:"dsn" json:"dsn" envconfig:"dsn" yaml:"dsn" toml:"dsn"`
+	// TLS is an optional TLS configuration for all PostgreSQL connections.
+	TLS TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
 	PoolSize                 int      `mapstructure:"pool_size" json:"pool_size" envconfig:"pool_size" yaml:"pool_size" toml:"pool_size"`
 	NumShards                int      `mapstructure:"num_shards" json:"num_shards" envconfig:"num_shards" yaml:"num_shards" toml:"num_shards"`
 	TablePrefix              string   `mapstructure:"table_prefix" json:"table_prefix" envconfig:"table_prefix" yaml:"table_prefix" toml:"table_prefix"`

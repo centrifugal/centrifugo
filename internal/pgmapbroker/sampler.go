@@ -1,4 +1,4 @@
-package pgstreambroker
+package pgmapbroker
 
 import (
 	"context"
@@ -9,35 +9,34 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 )
 
-// metricsSampler periodically samples PG-specific gauge metrics: outbox cursor
-// lag, partition count, orphan rows. Uses the centralized metrics from
-// internal/metrics package.
-type metricsSampler struct {
-	broker        *PostgresStreamBroker
+// mapMetricsSampler periodically samples PG-specific gauge metrics: outbox
+// cursor lag per shard and partition count on the stream table.
+type mapMetricsSampler struct {
+	broker        *PostgresMapBroker
 	mu            sync.Mutex
 	cursorByShard map[int]int64
 }
 
-func newMetricsSampler(b *PostgresStreamBroker) *metricsSampler {
-	return &metricsSampler{
+func newMapMetricsSampler(b *PostgresMapBroker) *mapMetricsSampler {
+	return &mapMetricsSampler{
 		broker:        b,
 		cursorByShard: make(map[int]int64),
 	}
 }
 
-func (s *metricsSampler) storeCursor(shard int, cursor int64) {
+func (s *mapMetricsSampler) storeCursor(shard int, cursor int64) {
 	s.mu.Lock()
 	s.cursorByShard[shard] = cursor
 	s.mu.Unlock()
 }
 
-func (s *metricsSampler) sample(ctx context.Context) {
+func (s *mapMetricsSampler) sample(ctx context.Context) {
 	if metrics.PGBrokerPartitions == nil {
 		return
 	}
 	brokerName := s.broker.conf.Name
 
-	// Sample partition count.
+	// Sample partition count on the stream table.
 	var partitionCount int
 	err := s.broker.pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM pg_inherits i

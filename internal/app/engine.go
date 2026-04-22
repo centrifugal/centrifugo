@@ -120,6 +120,7 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) err
 		if cfg.Controller.Type == "postgres" {
 			controller, err := controllers.NewPostgresController(node, controllers.PostgresControllerConfig{
 				DSN:                      cfg.Controller.Postgres.DSN,
+				TLS:                      cfg.Controller.Postgres.TLS,
 				PoolSize:                 cfg.Controller.Postgres.PoolSize,
 				NumShards:                cfg.Controller.Postgres.NumShards,
 				TablePrefix:              cfg.Controller.Postgres.TablePrefix,
@@ -166,6 +167,7 @@ func createMemoryBroker(n *centrifuge.Node) (centrifuge.Broker, error) {
 func createPostgresStreamBroker(node *centrifuge.Node, pgCfg configtypes.PostgresStreamBroker) (centrifuge.Broker, error) {
 	pgBrokerCfg := pgstreambroker.PostgresStreamBrokerConfig{
 		DSN:                       pgCfg.DSN,
+		TLS:                       pgCfg.TLS,
 		PoolSize:                  pgCfg.PoolSize,
 		NumShards:                 pgCfg.NumShards,
 		CleanupInterval:           pgCfg.CleanupInterval.ToDuration(),
@@ -302,6 +304,7 @@ func configureMapBroker(node *centrifuge.Node, cfgContainer *config.Container) e
 		pgCfg := cfg.MapBroker.Postgres
 		pgBrokerCfg := pgmapbroker.PostgresMapBrokerConfig{
 			DSN:                    pgCfg.DSN,
+			TLS:                    pgCfg.TLS,
 			PoolSize:               pgCfg.PoolSize,
 			NumShards:              pgCfg.NumShards,
 			TTLCheckInterval:       pgCfg.TTLCheckInterval.ToDuration(),
