@@ -58,18 +58,6 @@ func (e *PostgresStreamBroker) Publish(ch string, data []byte, opts centrifuge.P
 	metaTTLStr := durationToIntervalString(historyMetaTTL)
 	metaTTL := &metaTTLStr
 
-	// Version handling — convert Go zero values to nil so the SQL function's
-	// COALESCE preserves the existing meta value instead of overwriting with 0/''.
-	var version *int64
-	var versionEpoch *string
-	if opts.Version > 0 {
-		v := int64(opts.Version)
-		version = &v
-		if opts.VersionEpoch != "" {
-			versionEpoch = &opts.VersionEpoch
-		}
-	}
-
 	// Idempotency key — convert empty string to nil.
 	var idempotencyKey *string
 	var idempotencyTTL *string
@@ -97,18 +85,12 @@ func (e *PostgresStreamBroker) Publish(ch string, data []byte, opts centrifuge.P
 		chanInfo = opts.ClientInfo.ChanInfo
 	}
 
-	// Key handling.
-	var key *string
-	if opts.Key != "" {
-		key = &opts.Key
-	}
-
 	numShards := e.conf.NumShards
 
 	// Call __PREFIX__publish.
 	query := fmt.Sprintf(`
 		SELECT out_result_id, out_channel_offset, out_epoch, out_suppressed, out_suppress_reason
-		FROM %s($1, $2, $3, $4, $5, $6, $7, $8, $9::interval, $10, $11::interval, $12, $13::interval, $14, $15, $16, $17)
+		FROM %s($1, $2, $3, $4::interval, $5, $6::interval, $7, $8::interval, $9, $10, $11, $12, $13, $14)
 	`, e.names.publish)
 
 	var resultID *int64
@@ -121,19 +103,16 @@ func (e *PostgresStreamBroker) Publish(ch string, data []byte, opts centrifuge.P
 		ch,
 		e.dataParam(data),
 		tagsJSON,
-		clientID,
-		userID,
-		e.dataParam(connInfo),
-		e.dataParam(chanInfo),
-		key,
 		historyTTL,
 		historySize,
 		metaTTL,
 		idempotencyKey,
 		idempotencyTTL,
-		version,
-		versionEpoch,
 		opts.UseDelta,
+		clientID,
+		userID,
+		e.dataParam(connInfo),
+		e.dataParam(chanInfo),
 		numShards,
 	).Scan(&resultID, &channelOffset, &epoch, &suppressed, &suppressReason)
 

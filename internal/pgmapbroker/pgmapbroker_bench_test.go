@@ -54,7 +54,6 @@ func setupBenchOrdered(b *testing.B) (*PostgresMapBroker, func()) {
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 				return centrifuge.MapChannelOptions{
-					Ordered: true,
 					Mode:    centrifuge.MapModeRecoverable,
 					KeyTTL:  time.Minute,
 				}
@@ -167,7 +166,7 @@ func BenchmarkPostgresMapBroker_PublishOrdered(b *testing.B) {
 			key := fmt.Sprintf("key%d", i%1000)
 			_, err := broker.Publish(ctx, ch, key, centrifuge.MapPublishOptions{
 				Data:  []byte("x"),
-				Score: i,
+				
 			})
 			if err != nil {
 				b.Fatal(err)
@@ -345,7 +344,7 @@ func BenchmarkPostgresMapBroker_ReadStateOrdered(b *testing.B) {
 	for i := 0; i < 100; i++ {
 		_, err := broker.Publish(ctx, channel, fmt.Sprintf("k%d", i), centrifuge.MapPublishOptions{
 			Data:  []byte("data"),
-			Score: int64(i),
+			
 		})
 		if err != nil {
 			b.Fatal(err)
@@ -607,7 +606,6 @@ func BenchmarkPostgresMapBroker_Cleanup(b *testing.B) {
 							return centrifuge.MapChannelOptions{
 								Mode:    centrifuge.MapModeRecoverable,
 								KeyTTL:  time.Millisecond,
-								Ordered: ordered,
 							}
 						},
 					},

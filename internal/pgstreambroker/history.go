@@ -96,7 +96,7 @@ func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions
 	}
 
 	rowsQuery := fmt.Sprintf(`
-		SELECT channel_offset, epoch, data, tags, client_id, user_id, conn_info, chan_info, key, prev_data
+		SELECT channel_offset, epoch, data, tags, client_id, user_id, conn_info, chan_info, prev_data
 		  FROM %s
 		 WHERE channel = $1
 		   AND kind = 0
@@ -141,8 +141,7 @@ func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions
 				ChanInfo: e.rawDataBytes(&arena, raw[7], fmts[7]),
 			}
 		}
-		p.Key = pgRawString(&arena, raw[8])
-		_ = raw[9] // prev_data — used by outbox, not by History
+		_ = raw[8] // prev_data — used by outbox, not by History
 		pubs = append(pubs, p)
 	}
 	if err := rows.Err(); err != nil {

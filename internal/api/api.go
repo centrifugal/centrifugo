@@ -897,18 +897,6 @@ func (h *Executor) MapPublish(ctx context.Context, cmd *MapPublishRequest) *MapP
 		data = cmd.Data
 	}
 
-	var streamData []byte
-	if cmd.B64StreamData != "" {
-		byteInfo, err := base64.StdEncoding.DecodeString(cmd.B64StreamData)
-		if err != nil {
-			resp.Error = ErrorBadRequest
-			return resp
-		}
-		streamData = byteInfo
-	} else {
-		streamData = cmd.StreamData
-	}
-
 	delta := cmd.Delta
 	if chOpts.DeltaPublish {
 		delta = true
@@ -916,11 +904,9 @@ func (h *Executor) MapPublish(ctx context.Context, cmd *MapPublishRequest) *MapP
 
 	opts := centrifuge.MapPublishOptions{
 		Data:           data,
-		StreamData:     streamData,
 		Tags:           cmd.GetTags(),
 		IdempotencyKey: cmd.GetIdempotencyKey(),
 		UseDelta:       delta,
-		Score:          cmd.Score,
 	}
 	opts.Version = cmd.Version
 	opts.VersionEpoch = cmd.VersionEpoch

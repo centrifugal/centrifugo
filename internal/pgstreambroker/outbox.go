@@ -142,7 +142,7 @@ func (e *PostgresStreamBroker) processOutboxBatch(
 
 	query := fmt.Sprintf(`
 		SELECT id, shard_id, channel, channel_offset, epoch, kind, data, tags,
-		       client_id, user_id, conn_info, chan_info, key, prev_data
+		       client_id, user_id, conn_info, chan_info, prev_data
 		  FROM %s
 		 WHERE id > $1 AND shard_id = ANY($2)
 		 ORDER BY id
@@ -183,7 +183,7 @@ func (e *PostgresStreamBroker) processOutboxBatch(
 		// Column order:
 		// 0 id, 1 shard_id, 2 channel, 3 channel_offset, 4 epoch, 5 kind,
 		// 6 data, 7 tags, 8 client_id, 9 user_id, 10 conn_info, 11 chan_info,
-		// 12 key, 13 prev_data
+		// 12 prev_data
 		id := pgRawInt64(raw[0], fmts[0])
 		channel := pgRawString(&arena, raw[2])
 		channelOffset := pgRawUint64(raw[3], fmts[3])
@@ -214,7 +214,6 @@ func (e *PostgresStreamBroker) processOutboxBatch(
 				})
 				p.Info = &infoBacking[len(infoBacking)-1]
 			}
-			p.Key = pgRawString(&arena, raw[12])
 			entry.pub = p
 		case kindJoin, kindLeave:
 			if raw[8] != nil {
@@ -248,7 +247,6 @@ func (e *PostgresStreamBroker) processOutboxBatch(
 				_, err := e.conf.Broker.Publish(en.channel, en.pub.Data, centrifuge.PublishOptions{
 					ClientInfo: en.pub.Info,
 					Tags:       en.pub.Tags,
-					Key:        en.pub.Key,
 					Offset:     en.pub.Offset,
 					Epoch:      en.epoch,
 				})

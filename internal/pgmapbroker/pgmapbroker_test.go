@@ -177,7 +177,6 @@ func TestPostgresMapBroker_StatefulChannelOrdered(t *testing.T) {
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 				return centrifuge.MapChannelOptions{
-					Ordered:    true,
 					StreamSize: 100,
 					StreamTTL:  300 * time.Second,
 					KeyTTL:     300 * time.Second,
@@ -195,7 +194,7 @@ func TestPostgresMapBroker_StatefulChannelOrdered(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		_, err := broker.Publish(ctx, channel, fmt.Sprintf("key%d", i), centrifuge.MapPublishOptions{
 			Data:  []byte(fmt.Sprintf("data%d", i)),
-			Score: int64(i * 10), // Scores: 0, 10, 20, 30, 40
+			
 		})
 		require.NoError(t, err)
 	}
@@ -1303,19 +1302,7 @@ func TestPostgresMapBroker_Delta_Outbox(t *testing.T) {
 	require.Nil(t, ev.prevPub, "no previous state for key2")
 	require.Equal(t, []byte("data2"), ev.pub.Data)
 
-	// 4. StreamData present - no delta.
-	_, err = e.Publish(ctx, channel, "key1", centrifuge.MapPublishOptions{
-		Data:       []byte("data1_full"),
-		StreamData: []byte("data1_stream"),
-		UseDelta:   true,
-	})
-	require.NoError(t, err)
-
-	ev = waitEvent(t)
-	require.False(t, ev.delta, "StreamData disables delta")
-	require.Nil(t, ev.prevPub, "StreamData disables key-based delta")
-
-	// 5. UseDelta=false - no delta.
+	// 4. UseDelta=false - no delta.
 	_, err = e.Publish(ctx, channel, "key2", centrifuge.MapPublishOptions{
 		Data:     []byte("data2_updated"),
 		UseDelta: false,
@@ -1326,7 +1313,7 @@ func TestPostgresMapBroker_Delta_Outbox(t *testing.T) {
 	require.False(t, ev.delta)
 	require.Nil(t, ev.prevPub, "UseDelta=false means no delta")
 
-	// 6. Third publish to key1 after StreamData update - prevPub should have data1_full.
+	// 6. Third publish to key1 - prevPub should have previous data.
 	_, err = e.Publish(ctx, channel, "key1", centrifuge.MapPublishOptions{
 		Data:     []byte("data1_v3"),
 		UseDelta: true,
@@ -2204,7 +2191,6 @@ func TestPostgresMapBroker_OrderedStateAsc(t *testing.T) {
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 				return centrifuge.MapChannelOptions{
-					Ordered:    true,
 					StreamSize: 100,
 					StreamTTL:  300 * time.Second,
 					KeyTTL:     300 * time.Second,
@@ -2233,7 +2219,7 @@ func TestPostgresMapBroker_OrderedStateAsc(t *testing.T) {
 	for _, tc := range testCases {
 		_, err := broker.Publish(ctx, channel, tc.key, centrifuge.MapPublishOptions{
 			Data:  []byte(tc.data),
-			Score: tc.score,
+			
 		})
 		require.NoError(t, err)
 	}
@@ -2271,7 +2257,6 @@ func TestPostgresMapBroker_OrderedStatePaginationAsc(t *testing.T) {
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 				return centrifuge.MapChannelOptions{
-					Ordered:    true,
 					StreamSize: 100,
 					StreamTTL:  300 * time.Second,
 					KeyTTL:     300 * time.Second,
@@ -2289,7 +2274,7 @@ func TestPostgresMapBroker_OrderedStatePaginationAsc(t *testing.T) {
 	for i := 1; i <= 10; i++ {
 		_, err := broker.Publish(ctx, channel, fmt.Sprintf("key_%02d", i), centrifuge.MapPublishOptions{
 			Data:  []byte(fmt.Sprintf("data_%02d", i)),
-			Score: int64(i * 100),
+			
 		})
 		require.NoError(t, err)
 	}
@@ -2344,7 +2329,6 @@ func TestPostgresMapBroker_OrderedStateAscSameScores(t *testing.T) {
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 				return centrifuge.MapChannelOptions{
-					Ordered:    true,
 					StreamSize: 100,
 					StreamTTL:  300 * time.Second,
 					KeyTTL:     300 * time.Second,
@@ -2362,7 +2346,7 @@ func TestPostgresMapBroker_OrderedStateAscSameScores(t *testing.T) {
 	for _, key := range []string{"zebra", "apple", "mango", "banana"} {
 		_, err := broker.Publish(ctx, channel, key, centrifuge.MapPublishOptions{
 			Data:  []byte("data"),
-			Score: 100,
+			
 		})
 		require.NoError(t, err)
 	}
@@ -2615,7 +2599,6 @@ func TestPostgresMapBroker_AllColumnTypes(t *testing.T) {
 				return centrifuge.MapChannelOptions{
 					Mode:    centrifuge.MapModeRecoverable,
 					KeyTTL:  60 * time.Second,
-					Ordered: true,
 				}
 			},
 		},
@@ -2675,7 +2658,7 @@ func TestPostgresMapBroker_AllColumnTypes(t *testing.T) {
 	_, err = e.Publish(ctx, channel, "k1", centrifuge.MapPublishOptions{
 		Data:       []byte(`{"price":100}`),
 		Tags:       tags,
-		Score:      42,
+		
 		ClientInfo: info,
 	})
 	require.NoError(t, err)
@@ -2696,7 +2679,6 @@ func TestPostgresMapBroker_AllColumnTypes(t *testing.T) {
 	require.Equal(t, "k1", sp.Key)
 	require.Equal(t, []byte(`{"price":100}`), sp.Data)
 	require.Equal(t, tags, sp.Tags)
-	require.Equal(t, int64(42), sp.Score)
 	require.False(t, sp.Removed)
 	require.NotZero(t, sp.Offset)
 	require.NotNil(t, sp.Info, "ClientInfo must be present in stream")
@@ -2731,7 +2713,6 @@ func TestPostgresMapBroker_AllColumnTypes(t *testing.T) {
 	require.Equal(t, "k1", op.Key)
 	require.Equal(t, []byte(`{"price":100}`), op.Data)
 	require.Equal(t, tags, op.Tags)
-	require.Equal(t, int64(42), op.Score)
 	require.False(t, op.Removed)
 	require.NotZero(t, op.Offset)
 	require.NotNil(t, op.Info, "ClientInfo must be present in outbox delivery")
@@ -2750,7 +2731,7 @@ func TestPostgresMapBroker_AllColumnTypes(t *testing.T) {
 	_, err = e.Publish(ctx, channel, "k2", centrifuge.MapPublishOptions{
 		Data:       []byte(`{"price":200}`),
 		Tags:       map[string]string{"sector": "finance"},
-		Score:      99,
+		
 		ClientInfo: info,
 	})
 	require.NoError(t, err)
@@ -2765,7 +2746,6 @@ func TestPostgresMapBroker_AllColumnTypes(t *testing.T) {
 	require.Equal(t, "k2", sk.Key)
 	require.Equal(t, []byte(`{"price":200}`), sk.Data)
 	require.Equal(t, map[string]string{"sector": "finance"}, sk.Tags)
-	require.Equal(t, int64(99), sk.Score)
 	require.NotZero(t, sk.Offset)
 	require.NotNil(t, sk.Info, "ClientInfo must be present in state")
 	require.Equal(t, "client1", sk.Info.ClientID)

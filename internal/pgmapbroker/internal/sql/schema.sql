@@ -24,19 +24,12 @@ CREATE TABLE IF NOT EXISTS __PREFIX__stream (
     key             TEXT NOT NULL,
     data            __DATA_TYPE__,
     tags            JSONB,
-    -- meta is server-only metadata, NEVER delivered to SDK clients.
-    -- Set by callers using cf_map_publish() with p_meta. Carried through
-    -- to remove/expire stream events from the state row, parallel to tags.
-    -- Centrifugo's Go publish/read paths don't reference this column today.
-    meta            JSONB,
     client_id       TEXT,
     user_id         TEXT,
     conn_info       __DATA_TYPE__,
     chan_info        __DATA_TYPE__,
-    subscribed_at   TIMESTAMPTZ,
     removed         BOOLEAN DEFAULT FALSE,
-    score           BIGINT,
-    previous_data   __DATA_TYPE__,
+    prev_data       __DATA_TYPE__,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     shard_id        SMALLINT NOT NULL DEFAULT 0,
     PRIMARY KEY (id, created_at)
@@ -56,16 +49,10 @@ CREATE TABLE IF NOT EXISTS __PREFIX__state (
     key                 TEXT NOT NULL,
     data                __DATA_TYPE__,
     tags                JSONB,
-    -- meta is server-only metadata, NEVER delivered to SDK clients.
-    -- See cf_map_publish.p_meta. Preserved across publishes when caller
-    -- omits p_meta (COALESCE on UPSERT).
-    meta                JSONB,
     client_id           TEXT,
     user_id             TEXT,
     conn_info           __DATA_TYPE__,
     chan_info            __DATA_TYPE__,
-    subscribed_at       TIMESTAMPTZ,
-    score               BIGINT,
     key_version         BIGINT DEFAULT 0,
     key_version_epoch   TEXT,
     key_offset          BIGINT NOT NULL,
@@ -75,9 +62,6 @@ CREATE TABLE IF NOT EXISTS __PREFIX__state (
     PRIMARY KEY (channel, key)
 );
 
-CREATE INDEX IF NOT EXISTS __PREFIX__state_ordered_idx
-    ON __PREFIX__state (channel, score DESC, key)
-    WHERE score IS NOT NULL;
 CREATE INDEX IF NOT EXISTS __PREFIX__state_expires_idx
     ON __PREFIX__state (expires_at)
     WHERE expires_at IS NOT NULL;
@@ -90,8 +74,6 @@ CREATE TABLE IF NOT EXISTS __PREFIX__meta (
     channel         TEXT PRIMARY KEY,
     top_offset      BIGINT NOT NULL DEFAULT 0,
     epoch           TEXT NOT NULL DEFAULT '',
-    version         BIGINT DEFAULT 0,
-    version_epoch   TEXT,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW(),
     expires_at      TIMESTAMPTZ
@@ -144,30 +126,21 @@ CREATE OR REPLACE FUNCTION __PREFIX__publish(
     p_key TEXT,
     p_data __DATA_TYPE__,
     p_tags JSONB DEFAULT NULL,
-    p_client_id TEXT DEFAULT NULL,
-    p_user_id TEXT DEFAULT NULL,
-    p_conn_info __DATA_TYPE__ DEFAULT NULL,
-    p_chan_info __DATA_TYPE__ DEFAULT NULL,
-    p_subscribed_at TIMESTAMPTZ DEFAULT NULL,
-    p_key_mode TEXT DEFAULT NULL,
     p_key_ttl INTERVAL DEFAULT NULL,
     p_meta_ttl INTERVAL DEFAULT NULL,
+    p_key_mode TEXT DEFAULT NULL,
     p_expected_offset BIGINT DEFAULT NULL,
-    p_score BIGINT DEFAULT NULL,
-    p_version BIGINT DEFAULT NULL,
-    p_version_epoch TEXT DEFAULT NULL,
     p_key_version BIGINT DEFAULT NULL,
     p_key_version_epoch TEXT DEFAULT NULL,
     p_idempotency_key TEXT DEFAULT NULL,
     p_idempotency_ttl INTERVAL DEFAULT NULL,
-    p_refresh_ttl_on_suppress BOOLEAN DEFAULT FALSE,
     p_use_delta BOOLEAN DEFAULT FALSE,
-    p_num_shards INTEGER DEFAULT NULL,
-    p_stream_data __DATA_TYPE__ DEFAULT NULL,
-    -- Server-only metadata, NEVER delivered to SDK clients. Stored in
-    -- __PREFIX__state.meta and __PREFIX__stream.meta. On UPSERT, preserved
-    -- when caller publishes without p_meta (COALESCE pattern below).
-    p_meta JSONB DEFAULT NULL
+    p_client_id TEXT DEFAULT NULL,
+    p_user_id TEXT DEFAULT NULL,
+    p_conn_info __DATA_TYPE__ DEFAULT NULL,
+    p_chan_info __DATA_TYPE__ DEFAULT NULL,
+    p_refresh_ttl_on_suppress BOOLEAN DEFAULT FALSE,
+    p_num_shards INTEGER DEFAULT NULL
 ) RETURNS TABLE(
     result_id BIGINT,
     channel_offset BIGINT,
@@ -196,13 +169,6 @@ BEGIN
     END IF;
     IF p_meta_ttl IS NOT NULL AND p_key_ttl IS NOT NULL AND p_meta_ttl < p_key_ttl THEN
         RAISE EXCEPTION 'meta_ttl must be >= key_ttl (metadata must outlive keys)';
-    END IF;
-    -- Validate: delta encoding reads previous data from the state table, but
-    -- when p_stream_data diverges from p_data the stream carries a different
-    -- payload than the state — so the computed delta (prev_state vs new stream)
-    -- can't be applied correctly on the client side. Disallow the combination.
-    IF p_use_delta AND p_stream_data IS NOT NULL THEN
-        RAISE EXCEPTION 'p_use_delta and p_stream_data are mutually exclusive: delta encoding requires stream payload to match state data';
     END IF;
 
     -- Auto-derive num_shards from shard_lock table when not provided.
@@ -309,22 +275,17 @@ BEGIN
 
     -- 7. Update snapshot
     INSERT INTO __PREFIX__state (
-        channel, key, data, tags, meta, client_id, user_id, conn_info, chan_info, subscribed_at,
-        score, key_version, key_version_epoch, key_offset, expires_at, updated_at
+        channel, key, data, tags, client_id, user_id, conn_info, chan_info,
+        key_version, key_version_epoch, key_offset, expires_at, updated_at
     ) VALUES (
-        p_channel, p_key, p_data, p_tags, p_meta, p_client_id, p_user_id, p_conn_info, p_chan_info, p_subscribed_at,
-        p_score, p_key_version, p_key_version_epoch, v_offset,
+        p_channel, p_key, p_data, p_tags, p_client_id, p_user_id, p_conn_info, p_chan_info,
+        p_key_version, p_key_version_epoch, v_offset,
         CASE WHEN p_key_ttl IS NOT NULL THEN NOW() + p_key_ttl ELSE NULL END, NOW()
     )
     ON CONFLICT (channel, key) DO UPDATE SET
         data = EXCLUDED.data, tags = EXCLUDED.tags,
-        -- Preserve stored meta when caller publishes without p_meta. Same
-        -- preservation pattern as key_version below — avoids erasing
-        -- server-side metadata on subsequent publishes that don't set it.
-        meta = COALESCE(EXCLUDED.meta, __PREFIX__state.meta),
         client_id = EXCLUDED.client_id, user_id = EXCLUDED.user_id,
-        conn_info = EXCLUDED.conn_info, chan_info = EXCLUDED.chan_info, subscribed_at = EXCLUDED.subscribed_at,
-        score = EXCLUDED.score,
+        conn_info = EXCLUDED.conn_info, chan_info = EXCLUDED.chan_info,
         -- Preserve stored version when caller publishes without one (matches Redis).
         -- Overwriting with NULL would erase dedup protection against late-arriving
         -- older versions from a concurrent producer.
@@ -332,11 +293,11 @@ BEGIN
         key_version_epoch = COALESCE(EXCLUDED.key_version_epoch, __PREFIX__state.key_version_epoch),
         key_offset = EXCLUDED.key_offset, expires_at = EXCLUDED.expires_at, updated_at = NOW();
 
-    -- 8. Insert into stream (include epoch, shard_id, and previous_data for delta)
+    -- 8. Insert into stream (include epoch, shard_id, and prev_data for delta)
     INSERT INTO __PREFIX__stream (
-        channel, channel_offset, epoch, key, data, tags, meta, client_id, user_id, conn_info, chan_info, subscribed_at, score, previous_data, shard_id
+        channel, channel_offset, epoch, key, data, tags, client_id, user_id, conn_info, chan_info, prev_data, shard_id
     ) VALUES (
-        p_channel, v_offset, v_epoch, p_key, COALESCE(p_stream_data, p_data), p_tags, p_meta, p_client_id, p_user_id, p_conn_info, p_chan_info, p_subscribed_at, p_score, v_previous_data,
+        p_channel, v_offset, v_epoch, p_key, p_data, p_tags, p_client_id, p_user_id, p_conn_info, p_chan_info, v_previous_data,
         v_shard_id
     ) RETURNING __PREFIX__stream.id INTO v_id;
 
@@ -360,27 +321,21 @@ CREATE OR REPLACE FUNCTION __PREFIX__publish_strict(
     p_key TEXT,
     p_data __DATA_TYPE__,
     p_tags JSONB DEFAULT NULL,
-    p_client_id TEXT DEFAULT NULL,
-    p_user_id TEXT DEFAULT NULL,
-    p_conn_info __DATA_TYPE__ DEFAULT NULL,
-    p_chan_info __DATA_TYPE__ DEFAULT NULL,
-    p_subscribed_at TIMESTAMPTZ DEFAULT NULL,
-    p_key_mode TEXT DEFAULT NULL,
     p_key_ttl INTERVAL DEFAULT NULL,
     p_meta_ttl INTERVAL DEFAULT NULL,
+    p_key_mode TEXT DEFAULT NULL,
     p_expected_offset BIGINT DEFAULT NULL,
-    p_score BIGINT DEFAULT NULL,
-    p_version BIGINT DEFAULT NULL,
-    p_version_epoch TEXT DEFAULT NULL,
     p_key_version BIGINT DEFAULT NULL,
     p_key_version_epoch TEXT DEFAULT NULL,
     p_idempotency_key TEXT DEFAULT NULL,
     p_idempotency_ttl INTERVAL DEFAULT NULL,
-    p_refresh_ttl_on_suppress BOOLEAN DEFAULT FALSE,
     p_use_delta BOOLEAN DEFAULT FALSE,
-    p_num_shards INTEGER DEFAULT NULL,
-    p_stream_data __DATA_TYPE__ DEFAULT NULL,
-    p_meta JSONB DEFAULT NULL
+    p_client_id TEXT DEFAULT NULL,
+    p_user_id TEXT DEFAULT NULL,
+    p_conn_info __DATA_TYPE__ DEFAULT NULL,
+    p_chan_info __DATA_TYPE__ DEFAULT NULL,
+    p_refresh_ttl_on_suppress BOOLEAN DEFAULT FALSE,
+    p_num_shards INTEGER DEFAULT NULL
 ) RETURNS TABLE(
     result_id BIGINT,
     channel_offset BIGINT,
@@ -392,12 +347,11 @@ BEGIN
     SELECT * INTO v_result
     FROM __PREFIX__publish(
         p_channel, p_key, p_data, p_tags,
-        p_client_id, p_user_id, p_conn_info, p_chan_info, p_subscribed_at,
-        p_key_mode, p_key_ttl, p_meta_ttl,
-        p_expected_offset, p_score, p_version, p_version_epoch,
-        p_key_version, p_key_version_epoch,
-        p_idempotency_key, p_idempotency_ttl, p_refresh_ttl_on_suppress,
-        p_use_delta, p_num_shards, p_stream_data, p_meta
+        p_key_ttl, p_meta_ttl, p_key_mode,
+        p_expected_offset, p_key_version, p_key_version_epoch,
+        p_idempotency_key, p_idempotency_ttl, p_use_delta,
+        p_client_id, p_user_id, p_conn_info, p_chan_info,
+        p_refresh_ttl_on_suppress, p_num_shards
     );
 
     IF v_result.suppressed THEN
@@ -432,13 +386,13 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION __PREFIX__remove(
     p_channel TEXT,
     p_key TEXT,
-    p_client_id TEXT DEFAULT NULL,
-    p_user_id TEXT DEFAULT NULL,
+    p_meta_ttl INTERVAL DEFAULT NULL,
+    p_expected_offset BIGINT DEFAULT NULL,
     p_idempotency_key TEXT DEFAULT NULL,
     p_idempotency_ttl INTERVAL DEFAULT NULL,
-    p_meta_ttl INTERVAL DEFAULT NULL,
-    p_num_shards INTEGER DEFAULT NULL,
-    p_expected_offset BIGINT DEFAULT NULL
+    p_client_id TEXT DEFAULT NULL,
+    p_user_id TEXT DEFAULT NULL,
+    p_num_shards INTEGER DEFAULT NULL
 ) RETURNS TABLE(
     result_id BIGINT,
     channel_offset BIGINT,
@@ -457,7 +411,6 @@ DECLARE
     v_current_offset BIGINT;
     v_current_data __DATA_TYPE__;
     v_tags JSONB;
-    v_meta JSONB;
 BEGIN
     -- Auto-derive num_shards from shard_lock table when not provided.
     IF p_num_shards IS NULL THEN
@@ -520,18 +473,17 @@ BEGIN
     WHERE channel = p_channel
     RETURNING top_offset INTO v_offset;
 
-    -- 6. Read tags + meta before deletion (for server-side filtering on removal events
-    --    and to preserve server-only metadata in the stream removal record).
-    SELECT tags, meta INTO v_tags, v_meta FROM __PREFIX__state WHERE channel = p_channel AND key = p_key;
+    -- 6. Read tags before deletion (for server-side filtering on removal events).
+    SELECT tags INTO v_tags FROM __PREFIX__state WHERE channel = p_channel AND key = p_key;
 
     -- 7. Delete from snapshot
     DELETE FROM __PREFIX__state WHERE channel = p_channel AND key = p_key;
 
-    -- 8. Insert removal into stream with tags + meta from the deleted entry.
-    INSERT INTO __PREFIX__stream (channel, channel_offset, epoch, key, removed, client_id, user_id, shard_id, tags, meta)
+    -- 8. Insert removal into stream with tags from the deleted entry.
+    INSERT INTO __PREFIX__stream (channel, channel_offset, epoch, key, removed, client_id, user_id, shard_id, tags)
     VALUES (
         p_channel, v_offset, v_epoch, p_key, TRUE, p_client_id, p_user_id,
-        v_shard_id, v_tags, v_meta
+        v_shard_id, v_tags
     ) RETURNING __PREFIX__stream.id INTO v_id;
 
     -- 8. Save idempotency key
@@ -552,13 +504,13 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION __PREFIX__remove_strict(
     p_channel TEXT,
     p_key TEXT,
-    p_client_id TEXT DEFAULT NULL,
-    p_user_id TEXT DEFAULT NULL,
+    p_meta_ttl INTERVAL DEFAULT NULL,
+    p_expected_offset BIGINT DEFAULT NULL,
     p_idempotency_key TEXT DEFAULT NULL,
     p_idempotency_ttl INTERVAL DEFAULT NULL,
-    p_meta_ttl INTERVAL DEFAULT NULL,
-    p_num_shards INTEGER DEFAULT NULL,
-    p_expected_offset BIGINT DEFAULT NULL
+    p_client_id TEXT DEFAULT NULL,
+    p_user_id TEXT DEFAULT NULL,
+    p_num_shards INTEGER DEFAULT NULL
 ) RETURNS TABLE(
     result_id BIGINT,
     channel_offset BIGINT,
@@ -568,9 +520,9 @@ DECLARE
     v_result RECORD;
 BEGIN
     SELECT * INTO v_result FROM __PREFIX__remove(
-        p_channel, p_key, p_client_id, p_user_id,
-        p_idempotency_key, p_idempotency_ttl, p_meta_ttl,
-        p_num_shards, p_expected_offset
+        p_channel, p_key, p_meta_ttl,
+        p_expected_offset, p_idempotency_key, p_idempotency_ttl,
+        p_client_id, p_user_id, p_num_shards
     );
 
     IF v_result.suppressed THEN
@@ -600,7 +552,6 @@ DECLARE
     v_channel TEXT;
     v_keys TEXT[];
     v_tags_arr JSONB[];
-    v_meta_arr JSONB[];
     v_count INT;
     v_base_offset BIGINT;
     v_epoch TEXT;
@@ -637,10 +588,10 @@ BEGIN
             CONTINUE;
         END IF;
 
-        -- 2. Collect expired keys, their tags, and meta in one query (already under shard + meta locks).
-        SELECT array_agg(key), array_agg(COALESCE(tags, '{}'::jsonb)), array_agg(meta), count(*)
-        INTO v_keys, v_tags_arr, v_meta_arr, v_count FROM (
-            SELECT key, tags, meta FROM __PREFIX__state
+        -- 2. Collect expired keys and their tags in one query (already under shard + meta locks).
+        SELECT array_agg(key), array_agg(COALESCE(tags, '{}'::jsonb)), count(*)
+        INTO v_keys, v_tags_arr, v_count FROM (
+            SELECT key, tags FROM __PREFIX__state
             WHERE channel = v_channel
               AND expires_at IS NOT NULL AND expires_at <= NOW()
             LIMIT p_batch_size - v_processed
@@ -662,10 +613,10 @@ BEGIN
         -- Batch delete (1 DELETE instead of N).
         DELETE FROM __PREFIX__state WHERE channel = v_channel AND key = ANY(v_keys);
 
-        -- Batch insert removal events with tags + meta (1 INSERT instead of N).
-        INSERT INTO __PREFIX__stream (channel, channel_offset, epoch, key, removed, shard_id, tags, meta)
-        SELECT v_channel, v_base_offset + rn, v_epoch, k, TRUE, v_shard_id, tg, mt
-        FROM unnest(v_keys, v_tags_arr, v_meta_arr) WITH ORDINALITY AS t(k, tg, mt, rn);
+        -- Batch insert removal events with tags (1 INSERT instead of N).
+        INSERT INTO __PREFIX__stream (channel, channel_offset, epoch, key, removed, shard_id, tags)
+        SELECT v_channel, v_base_offset + rn, v_epoch, k, TRUE, v_shard_id, tg
+        FROM unnest(v_keys, v_tags_arr) WITH ORDINALITY AS t(k, tg, rn);
 
         -- Return results.
         RETURN QUERY

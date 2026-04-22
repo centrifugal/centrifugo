@@ -50,7 +50,6 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 		return centrifuge.MapChannelOptions{
 			Mode:                              mode,
 			KeyTTL:                            chOpts.Map.KeyTTL.ToDuration(),
-			Ordered:                           chOpts.Map.Ordered,
 			StreamSize:                        chOpts.Map.StreamSize,
 			StreamTTL:                         chOpts.Map.StreamTTL.ToDuration(),
 			MetaTTL:                           chOpts.Map.MetaTTL.ToDuration(),

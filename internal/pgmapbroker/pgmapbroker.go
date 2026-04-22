@@ -709,7 +709,6 @@ func (e *PostgresMapBroker) Publish(ctx context.Context, ch string, key string, 
 	// Prepare client info fields
 	var clientID, userID *string
 	var connInfo, chanInfo []byte
-	var publishedAt *time.Time
 	if opts.ClientInfo != nil {
 		if opts.ClientInfo.ClientID != "" {
 			clientID = &opts.ClientInfo.ClientID
@@ -719,8 +718,6 @@ func (e *PostgresMapBroker) Publish(ctx context.Context, ch string, key string, 
 		}
 		connInfo = opts.ClientInfo.ConnInfo
 		chanInfo = opts.ClientInfo.ChanInfo
-		now := time.Now()
-		publishedAt = &now
 	}
 
 	// Prepare tags as json.RawMessage so pgx encodes it as JSON (not hex bytea)
@@ -763,13 +760,6 @@ func (e *PostgresMapBroker) Publish(ctx context.Context, ch string, key string, 
 		expectedOffset = &eo
 	}
 
-	// Prepare score
-	var score *int64
-	ordered := chOpts.Ordered
-	if ordered || opts.Score != 0 {
-		score = &opts.Score
-	}
-
 	// Prepare per-key version (stored in state, used for per-key version check)
 	var keyVersion *int64
 	var keyVersionEpoch *string
@@ -798,25 +788,16 @@ func (e *PostgresMapBroker) Publish(ctx context.Context, ch string, key string, 
 	var currentData []byte
 	var currentOffset *int64
 
-	useDelta := opts.UseDelta && len(opts.StreamData) == 0
-
-	// StreamData is stored in stream; state always uses Data.
-	var streamData []byte
-	if len(opts.StreamData) > 0 {
-		streamData = opts.StreamData
-	}
-
 	err = e.pool.QueryRow(ctx, fmt.Sprintf(`
 		SELECT result_id, channel_offset, epoch, suppressed, suppress_reason, current_data, current_offset
-		FROM %s($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::interval, $12::interval, $13, $14, $15, $16, $17, $18, $19, $20::interval, $21, $22, $23, $24)
+		FROM %s($1, $2, $3, $4, $5::interval, $6::interval, $7, $8, $9, $10, $11, $12::interval, $13, $14, $15, $16, $17, $18, $19)
 	`, e.names.publish),
 		ch, key, e.dataParam(opts.Data), tagsJSON,
-		clientID, userID, e.dataParam(connInfo), e.dataParam(chanInfo), publishedAt,
-		keyMode, keyTTL, metaTTL,
-		expectedOffset, score, nil, nil, // p_version, p_version_epoch (unused, per-key version used instead)
-		keyVersion, keyVersionEpoch,
-		idempotencyKey, idempotencyTTL, opts.RefreshTTLOnSuppress,
-		useDelta, numShards, e.dataParam(streamData),
+		keyTTL, metaTTL, keyMode,
+		expectedOffset, keyVersion, keyVersionEpoch,
+		idempotencyKey, idempotencyTTL, opts.UseDelta,
+		clientID, userID, e.dataParam(connInfo), e.dataParam(chanInfo),
+		opts.RefreshTTLOnSuppress, numShards,
 	).Scan(&id, &channelOffset, &epoch, &suppressed, &suppressReason, &currentData, &currentOffset)
 
 	if err != nil {
@@ -899,14 +880,15 @@ func (e *PostgresMapBroker) Remove(ctx context.Context, ch string, key string, o
 	var currentData []byte
 	var currentOffset *int64
 
-	// Client info is not available in remove options
 	var clientID, userID *string
 	err = e.pool.QueryRow(ctx, fmt.Sprintf(`
 		SELECT result_id, channel_offset, epoch, suppressed, suppress_reason, current_data, current_offset
-		FROM %s($1, $2, $3, $4, $5, $6::interval, $7::interval, $8, $9)
+		FROM %s($1, $2, $3::interval, $4, $5, $6::interval, $7, $8, $9)
 	`, e.names.remove),
-		ch, key, clientID, userID, idempotencyKey, idempotencyTTL, metaTTL,
-		numShards, expectedOffset,
+		ch, key, metaTTL, expectedOffset,
+		idempotencyKey, idempotencyTTL,
+		clientID, userID,
+		numShards,
 	).Scan(&id, &channelOffset, &epoch, &suppressed, &suppressReason, &currentData, &currentOffset)
 
 	if err != nil {
@@ -938,7 +920,7 @@ func (e *PostgresMapBroker) Remove(ctx context.Context, ch string, key string, o
 func (e *PostgresMapBroker) ReadState(ctx context.Context, ch string, opts centrifuge.MapReadStateOptions) (centrifuge.MapStateResult, error) {
 	pool := e.getReadPool(ch, opts.AllowCached)
 
-	chOpts, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().Map.GetMapChannelOptions, ch)
+	_, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().Map.GetMapChannelOptions, ch)
 	if err != nil {
 		return centrifuge.MapStateResult{}, err
 	}
@@ -959,76 +941,34 @@ func (e *PostgresMapBroker) ReadState(ctx context.Context, ch string, opts centr
 		limit = 100000
 	}
 
-	// Build state query based on ordering and cursor.
+	// Build state query with key-based cursor pagination.
+	// NOTE: Score-based ordered pagination was removed before initial release.
+	// To restore ordered mode: add score column back to state table, add
+	// __PREFIX__state_ordered_idx (channel, score DESC, key), re-export Ordered
+	// on MapChannelOptions, and branch here on chOpts.IsOrdered() with
+	// ORDER BY score ASC/DESC, key ASC/DESC and composite cursor via
+	// centrifuge.MakeOrderedCursor / ParseOrderedCursor.
 	stateTable := e.names.state
-	ordered := chOpts.Ordered
-	asc := opts.Asc
 	var stateQuery string
 	var stateArgs []any
-	if ordered {
-		if opts.Cursor == "" {
-			if asc {
-				stateQuery = fmt.Sprintf(`
-					SELECT key, data, tags, key_offset, score, client_id, user_id, conn_info, chan_info
-					FROM %s
-					WHERE channel = $1
-					ORDER BY score ASC, key ASC
-					LIMIT $2
-				`, stateTable)
-			} else {
-				stateQuery = fmt.Sprintf(`
-					SELECT key, data, tags, key_offset, score, client_id, user_id, conn_info, chan_info
-					FROM %s
-					WHERE channel = $1
-					ORDER BY score DESC, key DESC
-					LIMIT $2
-				`, stateTable)
-			}
-			stateArgs = []any{ch, limit + 1}
-		} else {
-			cursorScore, cursorKey := centrifuge.ParseOrderedCursor(opts.Cursor)
-			cursorScoreInt, _ := strconv.ParseInt(cursorScore, 10, 64)
-			if asc {
-				stateQuery = fmt.Sprintf(`
-					SELECT key, data, tags, key_offset, score, client_id, user_id, conn_info, chan_info
-					FROM %s
-					WHERE channel = $1
-					  AND (score > $3 OR (score = $3 AND key > $4))
-					ORDER BY score ASC, key ASC
-					LIMIT $2
-				`, stateTable)
-			} else {
-				stateQuery = fmt.Sprintf(`
-					SELECT key, data, tags, key_offset, score, client_id, user_id, conn_info, chan_info
-					FROM %s
-					WHERE channel = $1
-					  AND (score < $3 OR (score = $3 AND key < $4))
-					ORDER BY score DESC, key DESC
-					LIMIT $2
-				`, stateTable)
-			}
-			stateArgs = []any{ch, limit + 1, cursorScoreInt, cursorKey}
-		}
+	if opts.Cursor == "" {
+		stateQuery = fmt.Sprintf(`
+			SELECT key, data, tags, key_offset, client_id, user_id, conn_info, chan_info
+			FROM %s
+			WHERE channel = $1
+			ORDER BY key
+			LIMIT $2
+		`, stateTable)
+		stateArgs = []any{ch, limit + 1}
 	} else {
-		if opts.Cursor == "" {
-			stateQuery = fmt.Sprintf(`
-				SELECT key, data, tags, key_offset, score, client_id, user_id, conn_info, chan_info
-				FROM %s
-				WHERE channel = $1
-				ORDER BY key
-				LIMIT $2
-			`, stateTable)
-			stateArgs = []any{ch, limit + 1}
-		} else {
-			stateQuery = fmt.Sprintf(`
-				SELECT key, data, tags, key_offset, score, client_id, user_id, conn_info, chan_info
-				FROM %s
-				WHERE channel = $1 AND key > $3
-				ORDER BY key
-				LIMIT $2
-			`, stateTable)
-			stateArgs = []any{ch, limit + 1, opts.Cursor}
-		}
+		stateQuery = fmt.Sprintf(`
+			SELECT key, data, tags, key_offset, client_id, user_id, conn_info, chan_info
+			FROM %s
+			WHERE channel = $1 AND key > $3
+			ORDER BY key
+			LIMIT $2
+		`, stateTable)
+		stateArgs = []any{ch, limit + 1, opts.Cursor}
 	}
 
 	// Pipelined batch: meta + state in a single round trip with REPEATABLE READ.
@@ -1085,8 +1025,8 @@ func (e *PostgresMapBroker) ReadState(ctx context.Context, ch string, opts centr
 	backing := make([]centrifuge.Publication, 0, allocHint)
 	pubs := make([]*centrifuge.Publication, 0, allocHint)
 	// Use RawValues + arena to avoid per-row allocations.
-	// Column order: key(0), data(1), tags(2), key_offset(3), score(4),
-	//               client_id(5), user_id(6), conn_info(7), chan_info(8).
+	// Column order: key(0), data(1), tags(2), key_offset(3),
+	//               client_id(4), user_id(5), conn_info(6), chan_info(7).
 	var fmts pgColFormats
 	for rows.Next() {
 		if fmts == nil {
@@ -1099,13 +1039,12 @@ func (e *PostgresMapBroker) ReadState(ctx context.Context, ch string, opts centr
 		p.Data = e.rawDataBytes(&arena, raw[1], fmts[1])
 		p.Tags = pgRawJSONBMap(raw[2])
 		p.Offset = pgRawUint64(raw[3], fmts[3])
-		p.Score = pgRawInt64(raw[4], fmts[4])
-		if raw[5] != nil {
+		if raw[4] != nil {
 			p.Info = &centrifuge.ClientInfo{
-				ClientID: pgRawString(&arena, raw[5]),
-				UserID:   pgRawString(&arena, raw[6]),
-				ConnInfo: e.rawDataBytes(&arena, raw[7], fmts[7]),
-				ChanInfo: e.rawDataBytes(&arena, raw[8], fmts[8]),
+				ClientID: pgRawString(&arena, raw[4]),
+				UserID:   pgRawString(&arena, raw[5]),
+				ConnInfo: e.rawDataBytes(&arena, raw[6], fmts[6]),
+				ChanInfo: e.rawDataBytes(&arena, raw[7], fmts[7]),
 			}
 		}
 		pubs = append(pubs, p)
@@ -1123,12 +1062,7 @@ func (e *PostgresMapBroker) ReadState(ctx context.Context, ch string, opts centr
 	var nextCursor string
 	if len(pubs) > limit {
 		pubs = pubs[:limit]
-		lastPub := pubs[limit-1]
-		if ordered {
-			nextCursor = centrifuge.MakeOrderedCursor(strconv.FormatInt(lastPub.Score, 10), lastPub.Key)
-		} else {
-			nextCursor = lastPub.Key
-		}
+		nextCursor = pubs[limit-1].Key
 	}
 
 	return centrifuge.MapStateResult{Publications: pubs, Position: streamPos, Cursor: nextCursor}, nil
@@ -1678,8 +1612,8 @@ func (e *PostgresMapBroker) processOutboxBatch(ctx context.Context, pool *pgxpoo
 	batchSize := e.conf.Outbox.BatchSize
 
 	rows, err := pool.Query(ctx, fmt.Sprintf(`
-		SELECT id, shard_id, channel, channel_offset, epoch, key, data, tags, removed, score,
-			   client_id, user_id, conn_info, chan_info, previous_data, created_at
+		SELECT id, shard_id, channel, channel_offset, epoch, key, data, tags, removed,
+			   client_id, user_id, conn_info, chan_info, prev_data, created_at
 		FROM %s
 		WHERE id > $1 AND shard_id = ANY($2)
 		ORDER BY id
@@ -1702,9 +1636,9 @@ func (e *PostgresMapBroker) processOutboxBatch(ctx context.Context, pool *pgxpoo
 
 	// Use RawValues + arena to avoid per-row allocations.
 	// Column order: id(0), shard_id(1), channel(2), channel_offset(3), epoch(4),
-	//              key(5), data(6), tags(7), removed(8), score(9),
-	//              client_id(10), user_id(11), conn_info(12), chan_info(13),
-	//              previous_data(14), created_at(15).
+	//              key(5), data(6), tags(7), removed(8),
+	//              client_id(9), user_id(10), conn_info(11), chan_info(12),
+	//              prev_data(13), created_at(14).
 	var fmts pgColFormats
 	for rows.Next() {
 		if fmts == nil {
@@ -1725,14 +1659,13 @@ func (e *PostgresMapBroker) processOutboxBatch(ctx context.Context, pool *pgxpoo
 		p.Data = e.rawDataBytes(&arena, raw[6], fmts[6])
 		p.Tags = pgRawJSONBMap(raw[7])
 		p.Removed = pgRawBool(raw[8], fmts[8])
-		p.Score = pgRawInt64(raw[9], fmts[9])
-		p.Time = pgRawTimestampMillis(raw[15], fmts[15])
-		if raw[10] != nil {
+		p.Time = pgRawTimestampMillis(raw[14], fmts[14])
+		if raw[9] != nil {
 			infoBacking = append(infoBacking, centrifuge.ClientInfo{
-				ClientID: pgRawString(&arena, raw[10]),
-				UserID:   pgRawString(&arena, raw[11]),
-				ConnInfo: e.rawDataBytes(&arena, raw[12], fmts[12]),
-				ChanInfo: e.rawDataBytes(&arena, raw[13], fmts[13]),
+				ClientID: pgRawString(&arena, raw[9]),
+				UserID:   pgRawString(&arena, raw[10]),
+				ConnInfo: e.rawDataBytes(&arena, raw[11], fmts[11]),
+				ChanInfo: e.rawDataBytes(&arena, raw[12], fmts[12]),
 			})
 			p.Info = &infoBacking[len(infoBacking)-1]
 		}
@@ -1741,7 +1674,7 @@ func (e *PostgresMapBroker) processOutboxBatch(ctx context.Context, pool *pgxpoo
 			id:           id,
 			channel:      pgRawString(&arena, raw[2]),
 			epoch:        pgRawString(&arena, raw[4]),
-			previousData: e.rawDataBytes(&arena, raw[14], fmts[14]),
+			previousData: e.rawDataBytes(&arena, raw[13], fmts[13]),
 		}
 		buf.metas = append(buf.metas, m)
 	}
@@ -1772,7 +1705,6 @@ func (e *PostgresMapBroker) processOutboxBatch(ctx context.Context, pool *pgxpoo
 				ClientInfo: pub.Info,
 				Key:        pub.Key,
 				Removed:    pub.Removed,
-				Score:      pub.Score,
 				Tags:       pub.Tags,
 				Offset:     pub.Offset,
 				Epoch:      m.epoch,

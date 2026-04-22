@@ -34,16 +34,10 @@ CREATE TABLE IF NOT EXISTS __STREAM_TABLE__ (
     kind            SMALLINT NOT NULL DEFAULT 0,
     data            __DATA_TYPE__,
     tags            JSONB,
-    -- meta is server-only metadata, NEVER delivered to SDK clients.
-    -- Set by callers using cf_*_publish() with p_meta. Centrifugo's own
-    -- Go publish/read paths don't reference this column today; intended
-    -- for application-level transactional publishes from app SQL code.
-    meta            JSONB,
     client_id       TEXT,
     user_id         TEXT,
     conn_info       __DATA_TYPE__,
     chan_info       __DATA_TYPE__,
-    key             TEXT,
     prev_data       __DATA_TYPE__,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     shard_id        SMALLINT NOT NULL DEFAULT 0,
@@ -76,8 +70,6 @@ CREATE INDEX IF NOT EXISTS __STREAM_TABLE___created_at_idx
 --   top_offset       — last assigned channel_offset (incremented on publish)
 --   epoch            — monotonic epoch string; new on first publish, persists
 --                      until the channel is forgotten via expires_at
---   version          — for version-based publish suppression
---   version_epoch    — companion to version (epoch reset triggers re-comparison)
 --   history_ttl      — from PublishOptions.HistoryTTL; refreshed on each publish.
 --                      Used by History() reads for the read-time TTL filter.
 --   history_size     — from PublishOptions.HistorySize; refreshed on each publish.
@@ -91,8 +83,6 @@ CREATE TABLE IF NOT EXISTS __PREFIX__meta (
     channel         TEXT PRIMARY KEY,
     top_offset      BIGINT NOT NULL DEFAULT 0,
     epoch           TEXT NOT NULL DEFAULT '',
-    version         BIGINT NOT NULL DEFAULT 0,
-    version_epoch   TEXT NOT NULL DEFAULT '',
     history_ttl     INTERVAL NOT NULL DEFAULT interval '1 minute',
     history_size    INTEGER NOT NULL DEFAULT 100,
     expires_at TIMESTAMPTZ NOT NULL DEFAULT NOW() + interval '7 days',
@@ -158,7 +148,7 @@ INSERT INTO __PREFIX__schema_version (id, schema_version) VALUES (1, 1)
 -- Functions
 -- ============================================================================
 
--- __PREFIX__publish: atomic publish with version, idempotency, and TTL handling.
+-- __PREFIX__publish: atomic publish with idempotency and TTL handling.
 --
 -- Lock order: shard → meta. Publishes on the same shard serialize via the
 -- shard_lock row, ensuring BIGSERIAL id assignment matches commit order
@@ -168,9 +158,9 @@ INSERT INTO __PREFIX__schema_version (id, schema_version) VALUES (1, 1)
 -- so the meta row always survives at least as long as the recoverable history,
 -- preventing the foot-gun of metaTTL < historyTTL.
 --
--- Suppression: idempotency key match or version-too-low return early without
--- incrementing top_offset (the publish is treated as a no-op except for the
--- returned position).
+-- Suppression: idempotency key match returns early without incrementing
+-- top_offset (the publish is treated as a no-op except for the returned
+-- position).
 --
 -- The function uses INSERT ON CONFLICT DO UPDATE with a no-op write to acquire
 -- the meta row lock atomically — the DO NOTHING + SELECT FOR UPDATE pattern
@@ -180,24 +170,17 @@ CREATE OR REPLACE FUNCTION __PREFIX__publish(
     p_channel TEXT,
     p_data __DATA_TYPE__,
     p_tags JSONB DEFAULT NULL,
-    p_client_id TEXT DEFAULT NULL,
-    p_user_id TEXT DEFAULT NULL,
-    p_conn_info __DATA_TYPE__ DEFAULT NULL,
-    p_chan_info __DATA_TYPE__ DEFAULT NULL,
-    p_key TEXT DEFAULT NULL,
     p_history_ttl INTERVAL DEFAULT NULL,
     p_history_size INTEGER DEFAULT NULL,
     p_meta_ttl INTERVAL DEFAULT NULL,
     p_idempotency_key TEXT DEFAULT NULL,
     p_idempotency_ttl INTERVAL DEFAULT NULL,
-    p_version BIGINT DEFAULT NULL,
-    p_version_epoch TEXT DEFAULT NULL,
     p_use_delta BOOLEAN DEFAULT FALSE,
-    p_num_shards INTEGER DEFAULT NULL,
-    -- Server-only metadata, NEVER delivered to SDK clients. Stored as-is in the
-    -- stream row's `meta` column. Centrifugo's Go publish path does not pass
-    -- this argument; intended for app-level transactional publishes from SQL.
-    p_meta JSONB DEFAULT NULL
+    p_client_id TEXT DEFAULT NULL,
+    p_user_id TEXT DEFAULT NULL,
+    p_conn_info __DATA_TYPE__ DEFAULT NULL,
+    p_chan_info __DATA_TYPE__ DEFAULT NULL,
+    p_num_shards INTEGER DEFAULT NULL
 ) RETURNS TABLE(
     out_result_id BIGINT,
     out_channel_offset BIGINT,
@@ -209,8 +192,6 @@ DECLARE
     v_offset BIGINT;
     v_id BIGINT;
     v_epoch TEXT;
-    v_prev_ver BIGINT;
-    v_prev_ver_epoch TEXT;
     v_prev_data __DATA_TYPE__;
     v_shard_id INTEGER;
     v_effective_meta_ttl INTERVAL;
@@ -247,8 +228,8 @@ BEGIN
     VALUES (p_channel, 0, substr(md5(random()::text || random()::text), 1, 8), NOW())
     ON CONFLICT (channel) DO UPDATE
         SET updated_at = m.updated_at
-    RETURNING m.top_offset, m.epoch, m.version, m.version_epoch
-    INTO v_offset, v_epoch, v_prev_ver, v_prev_ver_epoch;
+    RETURNING m.top_offset, m.epoch
+    INTO v_offset, v_epoch;
 
     -- Idempotency check.
     IF p_idempotency_key IS NOT NULL THEN
@@ -258,16 +239,6 @@ BEGIN
           AND expires_at > NOW();
         IF FOUND THEN
             RETURN QUERY SELECT NULL::BIGINT, v_cached_offset, v_epoch, TRUE, 'idempotency'::TEXT;
-            RETURN;
-        END IF;
-    END IF;
-
-    -- Version check (publication-level, not key-based since stream broker
-    -- has no key state).
-    IF p_version IS NOT NULL AND p_version > 0 THEN
-        IF (p_version_epoch IS NULL OR p_version_epoch = '' OR p_version_epoch = v_prev_ver_epoch)
-           AND v_prev_ver >= p_version THEN
-            RETURN QUERY SELECT NULL::BIGINT, v_offset, v_epoch, TRUE, 'version'::TEXT;
             RETURN;
         END IF;
     END IF;
@@ -287,8 +258,6 @@ BEGIN
     -- pattern preserves existing values when the parameter is NULL.
     UPDATE __PREFIX__meta AS m
        SET top_offset = m.top_offset + 1,
-           version = COALESCE(p_version, m.version),
-           version_epoch = COALESCE(p_version_epoch, m.version_epoch),
            history_ttl = COALESCE(p_history_ttl, m.history_ttl),
            history_size = COALESCE(p_history_size, m.history_size),
            expires_at = CASE
@@ -302,11 +271,11 @@ BEGIN
     -- Insert the stream row. created_at defaults to NOW() so partition
     -- routing picks today's partition automatically.
     INSERT INTO __STREAM_TABLE__ (
-        channel, channel_offset, epoch, kind, data, tags, meta,
-        client_id, user_id, conn_info, chan_info, key, prev_data, shard_id
+        channel, channel_offset, epoch, kind, data, tags,
+        client_id, user_id, conn_info, chan_info, prev_data, shard_id
     ) VALUES (
-        p_channel, v_offset, v_epoch, 0, p_data, p_tags, p_meta,
-        p_client_id, p_user_id, p_conn_info, p_chan_info, p_key, v_prev_data, v_shard_id
+        p_channel, v_offset, v_epoch, 0, p_data, p_tags,
+        p_client_id, p_user_id, p_conn_info, p_chan_info, v_prev_data, v_shard_id
     ) RETURNING id INTO v_id;
 
     -- Save idempotency result for replay.
@@ -329,21 +298,17 @@ CREATE OR REPLACE FUNCTION __PREFIX__publish_strict(
     p_channel TEXT,
     p_data __DATA_TYPE__,
     p_tags JSONB DEFAULT NULL,
-    p_client_id TEXT DEFAULT NULL,
-    p_user_id TEXT DEFAULT NULL,
-    p_conn_info __DATA_TYPE__ DEFAULT NULL,
-    p_chan_info __DATA_TYPE__ DEFAULT NULL,
-    p_key TEXT DEFAULT NULL,
     p_history_ttl INTERVAL DEFAULT NULL,
     p_history_size INTEGER DEFAULT NULL,
     p_meta_ttl INTERVAL DEFAULT NULL,
     p_idempotency_key TEXT DEFAULT NULL,
     p_idempotency_ttl INTERVAL DEFAULT NULL,
-    p_version BIGINT DEFAULT NULL,
-    p_version_epoch TEXT DEFAULT NULL,
     p_use_delta BOOLEAN DEFAULT FALSE,
-    p_num_shards INTEGER DEFAULT NULL,
-    p_meta JSONB DEFAULT NULL
+    p_client_id TEXT DEFAULT NULL,
+    p_user_id TEXT DEFAULT NULL,
+    p_conn_info __DATA_TYPE__ DEFAULT NULL,
+    p_chan_info __DATA_TYPE__ DEFAULT NULL,
+    p_num_shards INTEGER DEFAULT NULL
 ) RETURNS TABLE(
     out_result_id BIGINT,
     out_channel_offset BIGINT,
@@ -353,10 +318,11 @@ DECLARE
     v_result RECORD;
 BEGIN
     SELECT * INTO v_result FROM __PREFIX__publish(
-        p_channel, p_data, p_tags, p_client_id, p_user_id, p_conn_info, p_chan_info,
-        p_key, p_history_ttl, p_history_size, p_meta_ttl,
+        p_channel, p_data, p_tags,
+        p_history_ttl, p_history_size, p_meta_ttl,
         p_idempotency_key, p_idempotency_ttl,
-        p_version, p_version_epoch, p_use_delta, p_num_shards, p_meta
+        p_use_delta, p_client_id, p_user_id, p_conn_info, p_chan_info,
+        p_num_shards
     );
     IF v_result.out_suppressed THEN
         RAISE EXCEPTION 'publish suppressed: %', v_result.out_suppress_reason;
