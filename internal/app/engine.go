@@ -117,33 +117,12 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) err
 	}
 
 	if cfg.Controller.Enabled {
-		if cfg.Controller.Type == "postgres" {
-			controller, err := controllers.NewPostgresController(node, controllers.PostgresControllerConfig{
-				DSN:                      cfg.Controller.Postgres.DSN,
-				TLS:                      cfg.Controller.Postgres.TLS,
-				PoolSize:                 cfg.Controller.Postgres.PoolSize,
-				NumShards:                cfg.Controller.Postgres.NumShards,
-				TablePrefix:              cfg.Controller.Postgres.TablePrefix,
-				PollInterval:             cfg.Controller.Postgres.PollInterval.ToDuration(),
-				UseNotify:                cfg.Controller.Postgres.UseNotify,
-				NotifyDSN:                cfg.Controller.Postgres.NotifyDSN,
-				PartitionRetentionDays:   cfg.Controller.Postgres.PartitionRetentionDays,
-				PartitionLookaheadDays:   cfg.Controller.Postgres.PartitionLookaheadDays,
-				PartitionCleanupInterval: cfg.Controller.Postgres.PartitionCleanupInterval.ToDuration(),
-				SkipSchemaInit:           cfg.Controller.Postgres.SkipSchemaInit,
-			})
-			if err != nil {
-				return fmt.Errorf("error initializing Postgres controller: %w", err)
-			}
-			if !cfg.Controller.Postgres.SkipSchemaInit {
-				if err := controller.EnsureSchema(context.Background()); err != nil {
-					return fmt.Errorf("error initializing Postgres controller schema: %w", err)
-				}
-			}
+		controller, err := controllers.New(node, cfg.Controller)
+		if err != nil {
+			return fmt.Errorf("error creating controller: %v", err)
+		}
+		if controller != nil {
 			node.SetController(controller)
-			log.Info().Str("controller_type", cfg.Controller.Type).Msg("controller is enabled")
-		} else {
-			return fmt.Errorf("unknown controller type: %s (OSS supports \"postgres\" only; Redis and Nats controllers are available in Centrifugo PRO)", cfg.Controller.Type)
 		}
 	}
 
