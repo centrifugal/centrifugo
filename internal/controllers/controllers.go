@@ -44,5 +44,5 @@ func New(node *centrifuge.Node, config configtypes.Controller) (centrifuge.Contr
 		return controller, nil
 	}
 
-	return nil, fmt.Errorf("unknown controller type: %s (OSS supports \"postgres\" only; Redis and Nats controllers are available in Centrifugo PRO)", config.Type)
+	return nil, fmt.Errorf("unknown controller type: %s", config.Type)
 }
