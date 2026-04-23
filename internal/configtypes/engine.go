@@ -148,7 +148,7 @@ type PostgresMapBroker struct {
 	// TablePrefix is the namespace prefix for all tables created by this broker.
 	// Default: "cf". Multi-tenant deployments sharing one PostgreSQL instance
 	// use distinct prefixes per Centrifugo cluster (e.g. "prod_us_cf").
-	TablePrefix string `mapstructure:"table_prefix" json:"table_prefix" envconfig:"table_prefix" yaml:"table_prefix" toml:"table_prefix"`
+	TablePrefix string `mapstructure:"table_prefix" json:"table_prefix" envconfig:"table_prefix" default:"cf" yaml:"table_prefix" toml:"table_prefix"`
 	// SkipSchemaInit disables automatic schema initialization on startup.
 	// When true, the schema must be managed externally (e.g. via migrations).
 	SkipSchemaInit bool `mapstructure:"skip_schema_init" json:"skip_schema_init" envconfig:"skip_schema_init" yaml:"skip_schema_init" toml:"skip_schema_init"`
@@ -208,7 +208,7 @@ type PostgresStreamBroker struct {
 	// TablePrefix is the namespace prefix for all tables created by this broker.
 	// Default: "cf". Multi-tenant deployments sharing one PostgreSQL instance
 	// use distinct prefixes per Centrifugo cluster (e.g. "prod_us_cf").
-	TablePrefix string `mapstructure:"table_prefix" json:"table_prefix" envconfig:"table_prefix" yaml:"table_prefix" toml:"table_prefix"`
+	TablePrefix string `mapstructure:"table_prefix" json:"table_prefix" envconfig:"table_prefix" default:"cf" yaml:"table_prefix" toml:"table_prefix"`
 	// SkipSchemaInit disables automatic schema initialization on startup.
 	SkipSchemaInit bool `mapstructure:"skip_schema_init" json:"skip_schema_init" envconfig:"skip_schema_init" yaml:"skip_schema_init" toml:"skip_schema_init"`
 	// Outbox configures the outbox-based delivery mode.
@@ -255,7 +255,7 @@ type PostgresController struct {
 	NumShards int `mapstructure:"num_shards" json:"num_shards" envconfig:"num_shards" default:"1" yaml:"num_shards" toml:"num_shards"`
 	// TablePrefix is the namespace prefix for all tables created by this controller.
 	// Default: "cf". Produces names like cf_controller_messages.
-	TablePrefix string `mapstructure:"table_prefix" json:"table_prefix" envconfig:"table_prefix" yaml:"table_prefix" toml:"table_prefix"`
+	TablePrefix string `mapstructure:"table_prefix" json:"table_prefix" envconfig:"table_prefix" default:"cf" yaml:"table_prefix" toml:"table_prefix"`
 	// PollInterval is how often to poll for new control messages when idle. Default: "50ms".
 	PollInterval Duration `mapstructure:"poll_interval" json:"poll_interval" envconfig:"poll_interval" default:"50ms" yaml:"poll_interval" toml:"poll_interval"`
 	// UseNotify enables LISTEN/NOTIFY for low-latency wakeup. Default: true.
