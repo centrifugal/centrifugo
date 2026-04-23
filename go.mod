@@ -2,10 +2,6 @@ module github.com/centrifugal/centrifugo/v6
 
 go 1.26
 
-replace (
-	github.com/centrifugal/centrifuge => ../centrifuge
-)
-
 require (
 	cloud.google.com/go/pubsub/v2 v2.4.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1
@@ -18,7 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.23
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.8
 	github.com/aws/smithy-go v1.24.2
-	github.com/centrifugal/centrifuge v0.38.1-0.20260414045000-44c9b4153a47
+	github.com/centrifugal/centrifuge v0.38.1-0.20260422153034-46f47c94a6db
 	github.com/centrifugal/protocol v0.18.3-0.20260409150120-4909dc22a607
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.5.0
