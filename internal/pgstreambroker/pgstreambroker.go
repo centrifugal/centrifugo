@@ -612,13 +612,6 @@ func (e *PostgresStreamBroker) rawDataBytes(a *byteArena, b []byte, format int16
 	return pgRawJSONBBytes(a, b, format)
 }
 
-func (e *PostgresStreamBroker) dataType() string {
-	if e.conf.BinaryData {
-		return "BYTEA"
-	}
-	return "JSONB"
-}
-
 func (e *PostgresStreamBroker) logErrorMsg(msg string, err error) {
 	log.Error().Err(err).Str("broker", e.conf.Name).Msg("postgres stream broker: " + msg)
 }

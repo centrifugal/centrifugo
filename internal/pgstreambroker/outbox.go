@@ -17,25 +17,6 @@ const (
 	kindLeave       int16 = 2
 )
 
-// outboxBatchBuf holds reusable buffers for processOutboxBatch.
-type outboxBatchBuf struct {
-	// metas is reused across batches; pubs/infos are allocated fresh because
-	// the broker handlers may retain pointers asynchronously.
-	metas []outboxMeta
-}
-
-func (b *outboxBatchBuf) reset() {
-	clear(b.metas[:cap(b.metas)])
-	b.metas = b.metas[:0]
-}
-
-type outboxMeta struct {
-	id       int64
-	channel  string
-	kind     int16
-	prevData []byte
-}
-
 // outboxWorkerConfig returns (pool, shardIDs) for outbox worker workerIdx.
 // One shard per worker — the standard pgmapbroker pattern. With replicas,
 // the worker reads from readPools[workerIdx % len(readPools)].
@@ -63,12 +44,6 @@ func (e *PostgresStreamBroker) initOutboxCursor(ctx context.Context, pool *pgxpo
 func (e *PostgresStreamBroker) runOutboxWorker(workerIdx int, initialCursor int64) {
 	pool, shards := e.outboxWorkerConfig(workerIdx)
 
-	allocHint := e.conf.Outbox.BatchSize
-	if allocHint > 1001 {
-		allocHint = 1001
-	}
-	buf := &outboxBatchBuf{metas: make([]outboxMeta, 0, allocHint)}
-
 	w := &pgoutbox.Worker{
 		Pool:         pool,
 		ShardIDs:     shards,
@@ -78,7 +53,7 @@ func (e *PostgresStreamBroker) runOutboxWorker(workerIdx int, initialCursor int6
 			return initialCursor, nil
 		},
 		ProcessBatch: func(ctx context.Context, p *pgxpool.Pool, cursor int64, sids []int) (int, int64, error) {
-			return e.processOutboxBatch(ctx, p, cursor, sids, buf)
+			return e.processOutboxBatch(ctx, p, cursor, sids)
 		},
 		ErrorFn: e.logErrorMsg,
 	}
@@ -91,12 +66,6 @@ func (e *PostgresStreamBroker) runOutboxWorker(workerIdx int, initialCursor int6
 func (e *PostgresStreamBroker) runOutboxWorkerWithLock(workerIdx int, initialCursor int64) {
 	pollPool, shards := e.outboxWorkerConfig(workerIdx)
 
-	allocHint := e.conf.Outbox.BatchSize
-	if allocHint > 1001 {
-		allocHint = 1001
-	}
-	buf := &outboxBatchBuf{metas: make([]outboxMeta, 0, allocHint)}
-
 	lw := &pgoutbox.LockWorker{
 		LockPool:      e.pool,
 		PollPool:      pollPool,
@@ -108,7 +77,7 @@ func (e *PostgresStreamBroker) runOutboxWorkerWithLock(workerIdx int, initialCur
 			return initialCursor, nil
 		},
 		ProcessBatch: func(ctx context.Context, p *pgxpool.Pool, cursor int64, sids []int) (int, int64, error) {
-			return e.processOutboxBatch(ctx, p, cursor, sids, buf)
+			return e.processOutboxBatch(ctx, p, cursor, sids)
 		},
 		ErrorFn: func(msg string, err error) { e.logErrorMsg(msg, err) },
 		InfoFn:  func(msg string) { /* TODO: info logging */ },
@@ -144,10 +113,8 @@ func (e *PostgresStreamBroker) runNotificationListener() {
 // Returns (rowsProcessed, newCursor, error).
 func (e *PostgresStreamBroker) processOutboxBatch(
 	ctx context.Context, pool *pgxpool.Pool,
-	cursor int64, shardIDs []int, buf *outboxBatchBuf,
+	cursor int64, shardIDs []int,
 ) (int, int64, error) {
-	buf.reset()
-
 	query := fmt.Sprintf(`
 		SELECT id, shard_id, channel, channel_offset, epoch, kind, data, tags,
 		       client_id, user_id, conn_info, chan_info, prev_data

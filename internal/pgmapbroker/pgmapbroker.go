@@ -2142,13 +2142,6 @@ func (e *PostgresMapBroker) dataParam(b []byte) any {
 	return b
 }
 
-func (e *PostgresMapBroker) dataType() string {
-	if e.conf.BinaryData {
-		return "BYTEA"
-	}
-	return "JSONB"
-}
-
 // runPartitionWorker manages partition creation and cleanup. Thin wrapper
 // around pgoutbox.Partitioner.Run.
 func (e *PostgresMapBroker) runPartitionWorker() {

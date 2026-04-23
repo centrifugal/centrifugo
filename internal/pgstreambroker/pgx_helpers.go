@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"strconv"
-	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/convert"
 )
@@ -82,18 +81,6 @@ func pgRawUint64(b []byte, format int16) uint64 {
 	return binary.BigEndian.Uint64(b)
 }
 
-// pgRawInt32 parses a pgx int4 value as int32.
-func pgRawInt32(b []byte, format int16) int32 {
-	if b == nil {
-		return 0
-	}
-	if format == pgTextFormat {
-		v, _ := strconv.ParseInt(convert.BytesToString(b), 10, 32)
-		return int32(v)
-	}
-	return int32(binary.BigEndian.Uint32(b))
-}
-
 // pgRawInt16 parses a pgx int2 (SMALLINT) value as int16.
 // Handles both binary wire format (2-byte big-endian) and text (decimal string).
 func pgRawInt16(b []byte, format int16) int16 {
@@ -146,26 +133,6 @@ func pgRawJSONBBytes(a *byteArena, b []byte, format int16) []byte {
 
 // pgColFormats holds per-column wire format codes extracted from pgx rows.
 type pgColFormats []int16
-
-// pgEpochDeltaUsec is the difference in microseconds between the Unix epoch
-// (1970-01-01) and the PostgreSQL epoch (2000-01-01).
-const pgEpochDeltaUsec = 946684800_000_000
-
-// pgRawTimestampMillis parses a pgx TIMESTAMPTZ value as Unix milliseconds.
-func pgRawTimestampMillis(b []byte, format int16) int64 {
-	if b == nil {
-		return 0
-	}
-	if format == pgTextFormat {
-		t, err := time.Parse("2006-01-02 15:04:05.999999Z07:00:00", convert.BytesToString(b))
-		if err != nil {
-			return 0
-		}
-		return t.UnixMilli()
-	}
-	usec := int64(binary.BigEndian.Uint64(b))
-	return (usec + pgEpochDeltaUsec) / 1000
-}
 
 // pgRawJSONBMap parses a JSONB value into a map[string]string.
 func pgRawJSONBMap(b []byte) map[string]string {
