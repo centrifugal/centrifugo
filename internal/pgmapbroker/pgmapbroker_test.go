@@ -171,50 +171,6 @@ func TestPostgresMapBroker_StatefulChannel(t *testing.T) {
 	require.Len(t, streamResult.Publications, 3) // All 3 publications in stream
 }
 
-// TestPostgresMapBroker_StatefulChannelOrdered tests ordered stateful channel.
-func TestPostgresMapBroker_StatefulChannelOrdered(t *testing.T) {
-	node, _ := centrifuge.New(centrifuge.Config{
-		Map: centrifuge.MapConfig{
-			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
-				return centrifuge.MapChannelOptions{
-					StreamSize: 100,
-					StreamTTL:  300 * time.Second,
-					KeyTTL:     300 * time.Second,
-					Mode:       centrifuge.MapModeRecoverable,
-				}
-			},
-		},
-	})
-	broker := newTestPostgresMapBroker(t, node)
-
-	ctx := context.Background()
-	channel := "test_ordered"
-
-	// Publish with scores for ordering
-	for i := 0; i < 5; i++ {
-		_, err := broker.Publish(ctx, channel, fmt.Sprintf("key%d", i), centrifuge.MapPublishOptions{
-			Data:  []byte(fmt.Sprintf("data%d", i)),
-			
-		})
-		require.NoError(t, err)
-	}
-
-	// Read ordered state (descending by score)
-	stateRes, err := broker.ReadState(ctx, channel, centrifuge.MapReadStateOptions{
-		Limit: 100,
-	})
-	entries, _, _ := stateRes.Publications, stateRes.Position, stateRes.Cursor
-	require.NoError(t, err)
-	require.Len(t, entries, 5)
-
-	// Verify all keys present
-	state := stateToMapPostgres(entries)
-	for i := 0; i < 5; i++ {
-		key := fmt.Sprintf("key%d", i)
-		require.Contains(t, state, key)
-	}
-}
-
 // TestPostgresMapBroker_StateRevision tests that state values include revisions.
 func TestPostgresMapBroker_StateRevision(t *testing.T) {
 	node, _ := centrifuge.New(centrifuge.Config{
@@ -1323,7 +1279,7 @@ func TestPostgresMapBroker_Delta_Outbox(t *testing.T) {
 	ev = waitEvent(t)
 	require.True(t, ev.delta)
 	require.NotNil(t, ev.prevPub)
-	require.Equal(t, []byte("data1_full"), ev.prevPub.Data, "prevPub should have state data, not stream data")
+	require.Equal(t, []byte("data1_updated"), ev.prevPub.Data, "prevPub should have current state data for key1")
 }
 
 func TestPostgresMapBroker_Clear(t *testing.T) {
@@ -1471,7 +1427,6 @@ func verifySchemaComplete(t *testing.T, ctx context.Context, pool *pgxpool.Pool,
 		"stream_channel_id_idx",
 		"stream_created_at_idx",
 		"stream_shard_id_idx",
-		"state_ordered_idx",
 		"state_expires_idx",
 		"meta_expires_idx",
 		"idempotency_expires_idx",
@@ -1505,7 +1460,7 @@ func verifySchemaComplete(t *testing.T, ctx context.Context, pool *pgxpool.Pool,
 		column string
 	}{
 		{prefix + "stream", "data"},
-		{prefix + "stream", "previous_data"},
+		{prefix + "stream", "prev_data"},
 		{prefix + "stream", "conn_info"},
 		{prefix + "stream", "chan_info"},
 		{prefix + "state", "data"},
@@ -2182,215 +2137,6 @@ func TestPostgresMapBroker_EnsureSchema_FunctionalAfterMigration(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Len(t, streamRes.Publications, 1)
-}
-
-// TestPostgresMapBroker_OrderedStateAsc tests that ASC ordering returns entries
-// in ascending score order (lowest score first).
-func TestPostgresMapBroker_OrderedStateAsc(t *testing.T) {
-	node, _ := centrifuge.New(centrifuge.Config{
-		Map: centrifuge.MapConfig{
-			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
-				return centrifuge.MapChannelOptions{
-					StreamSize: 100,
-					StreamTTL:  300 * time.Second,
-					KeyTTL:     300 * time.Second,
-					Mode:       centrifuge.MapModeRecoverable,
-				}
-			},
-		},
-	})
-	broker := newTestPostgresMapBroker(t, node)
-
-	ctx := context.Background()
-	channel := fmt.Sprintf("test_ordered_asc_%d", time.Now().UnixNano())
-
-	testCases := []struct {
-		key   string
-		score int64
-		data  string
-	}{
-		{"key_c", 30, "data_c"},
-		{"key_a", 10, "data_a"},
-		{"key_e", 50, "data_e"},
-		{"key_b", 20, "data_b"},
-		{"key_d", 40, "data_d"},
-	}
-
-	for _, tc := range testCases {
-		_, err := broker.Publish(ctx, channel, tc.key, centrifuge.MapPublishOptions{
-			Data:  []byte(tc.data),
-			
-		})
-		require.NoError(t, err)
-	}
-
-	// ASC: lowest score first.
-	stateRes, err := broker.ReadState(ctx, channel, centrifuge.MapReadStateOptions{
-		Limit: 100,
-		Asc:   true,
-	})
-	require.NoError(t, err)
-	require.Len(t, stateRes.Publications, 5)
-
-	expectedAsc := []string{"key_a", "key_b", "key_c", "key_d", "key_e"}
-	for i, entry := range stateRes.Publications {
-		require.Equal(t, expectedAsc[i], entry.Key, "ASC entry %d", i)
-	}
-
-	// DESC (default): highest score first.
-	stateRes, err = broker.ReadState(ctx, channel, centrifuge.MapReadStateOptions{
-		Limit: 100,
-	})
-	require.NoError(t, err)
-	require.Len(t, stateRes.Publications, 5)
-
-	expectedDesc := []string{"key_e", "key_d", "key_c", "key_b", "key_a"}
-	for i, entry := range stateRes.Publications {
-		require.Equal(t, expectedDesc[i], entry.Key, "DESC entry %d", i)
-	}
-}
-
-// TestPostgresMapBroker_OrderedStatePaginationAsc tests cursor-based pagination
-// with ASC ordering across multiple pages.
-func TestPostgresMapBroker_OrderedStatePaginationAsc(t *testing.T) {
-	node, _ := centrifuge.New(centrifuge.Config{
-		Map: centrifuge.MapConfig{
-			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
-				return centrifuge.MapChannelOptions{
-					StreamSize: 100,
-					StreamTTL:  300 * time.Second,
-					KeyTTL:     300 * time.Second,
-					Mode:       centrifuge.MapModeRecoverable,
-				}
-			},
-		},
-	})
-	broker := newTestPostgresMapBroker(t, node)
-
-	ctx := context.Background()
-	channel := fmt.Sprintf("test_ordered_pagination_asc_%d", time.Now().UnixNano())
-
-	// Publish 10 entries with scores 100..1000.
-	for i := 1; i <= 10; i++ {
-		_, err := broker.Publish(ctx, channel, fmt.Sprintf("key_%02d", i), centrifuge.MapPublishOptions{
-			Data:  []byte(fmt.Sprintf("data_%02d", i)),
-			
-		})
-		require.NoError(t, err)
-	}
-
-	// Page 1.
-	stateRes, err := broker.ReadState(ctx, channel, centrifuge.MapReadStateOptions{
-		Limit: 3, Asc: true,
-	})
-	require.NoError(t, err)
-	require.Len(t, stateRes.Publications, 3)
-	require.NotEmpty(t, stateRes.Cursor)
-	require.Equal(t, "key_01", stateRes.Publications[0].Key)
-	require.Equal(t, "key_02", stateRes.Publications[1].Key)
-	require.Equal(t, "key_03", stateRes.Publications[2].Key)
-
-	// Page 2.
-	stateRes2, err := broker.ReadState(ctx, channel, centrifuge.MapReadStateOptions{
-		Cursor: stateRes.Cursor, Limit: 3, Asc: true,
-	})
-	require.NoError(t, err)
-	require.Len(t, stateRes2.Publications, 3)
-	require.NotEmpty(t, stateRes2.Cursor)
-	require.Equal(t, "key_04", stateRes2.Publications[0].Key)
-	require.Equal(t, "key_05", stateRes2.Publications[1].Key)
-	require.Equal(t, "key_06", stateRes2.Publications[2].Key)
-
-	// Page 3.
-	stateRes3, err := broker.ReadState(ctx, channel, centrifuge.MapReadStateOptions{
-		Cursor: stateRes2.Cursor, Limit: 3, Asc: true,
-	})
-	require.NoError(t, err)
-	require.Len(t, stateRes3.Publications, 3)
-	require.NotEmpty(t, stateRes3.Cursor)
-	require.Equal(t, "key_07", stateRes3.Publications[0].Key)
-	require.Equal(t, "key_08", stateRes3.Publications[1].Key)
-	require.Equal(t, "key_09", stateRes3.Publications[2].Key)
-
-	// Page 4: last entry.
-	stateRes4, err := broker.ReadState(ctx, channel, centrifuge.MapReadStateOptions{
-		Cursor: stateRes3.Cursor, Limit: 3, Asc: true,
-	})
-	require.NoError(t, err)
-	require.Len(t, stateRes4.Publications, 1)
-	require.Empty(t, stateRes4.Cursor, "No more pages")
-	require.Equal(t, "key_10", stateRes4.Publications[0].Key)
-}
-
-// TestPostgresMapBroker_OrderedStateAscSameScores tests ASC ordering with
-// same-score entries — secondary sort by key ascending.
-func TestPostgresMapBroker_OrderedStateAscSameScores(t *testing.T) {
-	node, _ := centrifuge.New(centrifuge.Config{
-		Map: centrifuge.MapConfig{
-			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
-				return centrifuge.MapChannelOptions{
-					StreamSize: 100,
-					StreamTTL:  300 * time.Second,
-					KeyTTL:     300 * time.Second,
-					Mode:       centrifuge.MapModeRecoverable,
-				}
-			},
-		},
-	})
-	broker := newTestPostgresMapBroker(t, node)
-
-	ctx := context.Background()
-	channel := fmt.Sprintf("test_ordered_asc_same_scores_%d", time.Now().UnixNano())
-
-	// All entries have score=100.
-	for _, key := range []string{"zebra", "apple", "mango", "banana"} {
-		_, err := broker.Publish(ctx, channel, key, centrifuge.MapPublishOptions{
-			Data:  []byte("data"),
-			
-		})
-		require.NoError(t, err)
-	}
-
-	// ASC with same scores → key ASC.
-	stateRes, err := broker.ReadState(ctx, channel, centrifuge.MapReadStateOptions{
-		Limit: 100, Asc: true,
-	})
-	require.NoError(t, err)
-	require.Len(t, stateRes.Publications, 4)
-	require.Equal(t, "apple", stateRes.Publications[0].Key)
-	require.Equal(t, "banana", stateRes.Publications[1].Key)
-	require.Equal(t, "mango", stateRes.Publications[2].Key)
-	require.Equal(t, "zebra", stateRes.Publications[3].Key)
-
-	// DESC with same scores → key DESC.
-	stateRes, err = broker.ReadState(ctx, channel, centrifuge.MapReadStateOptions{
-		Limit: 100,
-	})
-	require.NoError(t, err)
-	require.Len(t, stateRes.Publications, 4)
-	require.Equal(t, "zebra", stateRes.Publications[0].Key)
-	require.Equal(t, "mango", stateRes.Publications[1].Key)
-	require.Equal(t, "banana", stateRes.Publications[2].Key)
-	require.Equal(t, "apple", stateRes.Publications[3].Key)
-
-	// Paginate ASC with limit=2.
-	stateRes, err = broker.ReadState(ctx, channel, centrifuge.MapReadStateOptions{
-		Limit: 2, Asc: true,
-	})
-	require.NoError(t, err)
-	require.Len(t, stateRes.Publications, 2)
-	require.NotEmpty(t, stateRes.Cursor)
-	require.Equal(t, "apple", stateRes.Publications[0].Key)
-	require.Equal(t, "banana", stateRes.Publications[1].Key)
-
-	stateRes, err = broker.ReadState(ctx, channel, centrifuge.MapReadStateOptions{
-		Cursor: stateRes.Cursor, Limit: 2, Asc: true,
-	})
-	require.NoError(t, err)
-	require.Len(t, stateRes.Publications, 2)
-	require.Empty(t, stateRes.Cursor)
-	require.Equal(t, "mango", stateRes.Publications[0].Key)
-	require.Equal(t, "zebra", stateRes.Publications[1].Key)
 }
 
 func TestPostgresMapBroker_ClientInfoInState(t *testing.T) {

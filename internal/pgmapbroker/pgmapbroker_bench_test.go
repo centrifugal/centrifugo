@@ -46,40 +46,6 @@ func setupBench(b *testing.B) (*PostgresMapBroker, func()) {
 	}
 }
 
-// setupBenchOrdered creates a broker with Recoverable+Ordered mode.
-func setupBenchOrdered(b *testing.B) (*PostgresMapBroker, func()) {
-	b.Helper()
-	connString := getPostgresConnString(b)
-	node, _ := centrifuge.New(centrifuge.Config{
-		Map: centrifuge.MapConfig{
-			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
-				return centrifuge.MapChannelOptions{
-					Mode:    centrifuge.MapModeRecoverable,
-					KeyTTL:  time.Minute,
-				}
-			},
-		},
-	})
-	broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
-		DSN:                    connString,
-		BinaryData:             true,
-		PartitionRetentionDays: 7,
-	})
-	if err != nil {
-		b.Fatal(err)
-	}
-	ctx := context.Background()
-	if err := broker.EnsureSchema(ctx); err != nil {
-		b.Fatal(err)
-	}
-	_ = broker.RegisterEventHandler(nil)
-	cleanupTestTables(ctx, broker)
-	return broker, func() {
-		_ = broker.Close(context.Background())
-		_ = node.Shutdown(context.Background())
-	}
-}
-
 // setupBenchOutbox creates a broker with outbox workers running.
 func setupBenchOutbox(b *testing.B, handler centrifuge.BrokerEventHandler) (*PostgresMapBroker, func()) {
 	b.Helper()
@@ -93,6 +59,9 @@ func setupBenchOutbox(b *testing.B, handler centrifuge.BrokerEventHandler) (*Pos
 			},
 		},
 	})
+	if err := node.Run(); err != nil {
+		b.Fatal(err)
+	}
 	broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
 		DSN:                    connString,
 		BinaryData:             true,
@@ -141,32 +110,6 @@ func BenchmarkPostgresMapBroker_Publish(b *testing.B) {
 			key := fmt.Sprintf("key%d", i%1000)
 			_, err := broker.Publish(ctx, ch, key, centrifuge.MapPublishOptions{
 				Data: []byte("x"),
-			})
-			if err != nil {
-				b.Fatal(err)
-			}
-		}
-	})
-}
-
-// BenchmarkPostgresMapBroker_PublishOrdered measures publish with score-based
-// ordering (sorted set maintenance in the state table).
-func BenchmarkPostgresMapBroker_PublishOrdered(b *testing.B) {
-	broker, cleanup := setupBenchOrdered(b)
-	defer cleanup()
-	ctx := context.Background()
-
-	b.ReportAllocs()
-	b.ResetTimer()
-	var counter int64
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			i := atomic.AddInt64(&counter, 1)
-			ch := fmt.Sprintf("bench_ordered_%d", i%1000)
-			key := fmt.Sprintf("key%d", i%1000)
-			_, err := broker.Publish(ctx, ch, key, centrifuge.MapPublishOptions{
-				Data:  []byte("x"),
-				
 			})
 			if err != nil {
 				b.Fatal(err)
@@ -333,36 +276,6 @@ func BenchmarkPostgresMapBroker_ReadStatePaginated(b *testing.B) {
 	}
 }
 
-// BenchmarkPostgresMapBroker_ReadStateOrdered measures reading ordered state
-// (sorted by score — the leaderboard/ranking access pattern).
-func BenchmarkPostgresMapBroker_ReadStateOrdered(b *testing.B) {
-	broker, cleanup := setupBenchOrdered(b)
-	defer cleanup()
-	ctx := context.Background()
-	channel := "bench_read_state_ordered"
-
-	for i := 0; i < 100; i++ {
-		_, err := broker.Publish(ctx, channel, fmt.Sprintf("k%d", i), centrifuge.MapPublishOptions{
-			Data:  []byte("data"),
-			
-		})
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, err := broker.ReadState(ctx, channel, centrifuge.MapReadStateOptions{
-			Limit: 50,
-		})
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
 // BenchmarkPostgresMapBroker_Stats measures the channel statistics query.
 func BenchmarkPostgresMapBroker_Stats(b *testing.B) {
 	broker, cleanup := setupBench(b)
@@ -449,22 +362,14 @@ func BenchmarkPostgresMapBroker_OutboxThroughput(b *testing.B) {
 	prefix := fmt.Sprintf("bench_tp_%d_", time.Now().UnixNano())
 
 	var delivered int64
-	doneCh := make(chan struct{})
-	var mu sync.Mutex
-	perChannelOffsets := make(map[string]uint64)
 
 	broker, cleanup := setupBenchOutbox(b, &testBrokerEventHandler{
 		HandlePublicationFunc: func(ch string, pub *centrifuge.Publication, sp centrifuge.StreamPosition, delta bool, prevPub *centrifuge.Publication) error {
-			mu.Lock()
-			perChannelOffsets[ch] = sp.Offset
-			mu.Unlock()
-			if atomic.AddInt64(&delivered, 1) >= int64(b.N) {
-				select {
-				case <-doneCh:
-				default:
-					close(doneCh)
-				}
+			// Only count publications from this bench run's channels.
+			if len(ch) < len(prefix) || ch[:len(prefix)] != prefix {
+				return nil
 			}
+			atomic.AddInt64(&delivered, 1)
 			return nil
 		},
 	})
@@ -474,6 +379,7 @@ func BenchmarkPostgresMapBroker_OutboxThroughput(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
+	var published int64
 	var counter int64
 	var wg sync.WaitGroup
 	const numPublishers = 8
@@ -501,15 +407,25 @@ func BenchmarkPostgresMapBroker_OutboxThroughput(b *testing.B) {
 					b.Error(err)
 					return
 				}
+				atomic.AddInt64(&published, 1)
 			}
 		}(n)
 	}
 	wg.Wait()
 
-	select {
-	case <-doneCh:
-	case <-time.After(30 * time.Second):
-		b.Fatalf("timeout: delivered %d/%d", atomic.LoadInt64(&delivered), b.N)
+	want := atomic.LoadInt64(&published)
+	deadline := time.NewTimer(5 * time.Second)
+	defer deadline.Stop()
+	for {
+		if atomic.LoadInt64(&delivered) >= want {
+			break
+		}
+		select {
+		case <-deadline.C:
+			b.Fatalf("timeout: delivered %d/%d", atomic.LoadInt64(&delivered), want)
+		default:
+			time.Sleep(time.Millisecond)
+		}
 	}
 	b.StopTimer()
 }
@@ -590,74 +506,65 @@ func BenchmarkPostgresMapBroker_OutboxLatency(b *testing.B) {
 
 // BenchmarkPostgresMapBroker_Cleanup measures TTL-based key expiration
 // throughput via the expire_keys SQL function. Sub-benchmarks cover
-// different key counts and ordered/unordered modes.
+// different key counts.
 func BenchmarkPostgresMapBroker_Cleanup(b *testing.B) {
-	for _, ordered := range []bool{false, true} {
-		orderLabel := "unordered"
-		if ordered {
-			orderLabel = "ordered"
-		}
-		for _, numKeys := range []int{100, 1000} {
-			b.Run(fmt.Sprintf("%s/keys_%d", orderLabel, numKeys), func(b *testing.B) {
-				connString := getPostgresConnString(b)
-				node, _ := centrifuge.New(centrifuge.Config{
-					Map: centrifuge.MapConfig{
-						GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
-							return centrifuge.MapChannelOptions{
-								Mode:    centrifuge.MapModeRecoverable,
-								KeyTTL:  time.Millisecond,
-							}
-						},
-					},
-				})
-				broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
-					DSN:                    connString,
-					BinaryData:             true,
-					PartitionRetentionDays: 7,
-				})
-				if err != nil {
-					b.Fatal(err)
-				}
-				ctx := context.Background()
-				if err := broker.EnsureSchema(ctx); err != nil {
-					b.Fatal(err)
-				}
-				_ = broker.RegisterEventHandler(nil)
-				defer func() {
-					_ = broker.Close(context.Background())
-					_ = node.Shutdown(context.Background())
-				}()
-
-				b.ReportAllocs()
-				b.ResetTimer()
-				for i := 0; i < b.N; i++ {
-					b.StopTimer()
-					channel := fmt.Sprintf("bench_cleanup_%d_%d", time.Now().UnixNano(), i)
-					// Insert keys with already-expired TTL.
-					for k := 0; k < numKeys; k++ {
-						_, err := broker.Publish(ctx, channel, fmt.Sprintf("key_%d", k), centrifuge.MapPublishOptions{
-							Data: []byte("data"),
-						})
-						if err != nil {
-							b.Fatal(err)
+	for _, numKeys := range []int{100, 1000} {
+		b.Run(fmt.Sprintf("keys_%d", numKeys), func(b *testing.B) {
+			connString := getPostgresConnString(b)
+			node, _ := centrifuge.New(centrifuge.Config{
+				Map: centrifuge.MapConfig{
+					GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+						return centrifuge.MapChannelOptions{
+							Mode:   centrifuge.MapModeRecoverable,
+							KeyTTL: time.Millisecond,
 						}
-					}
-					// Wait for TTL to expire.
-					time.Sleep(5 * time.Millisecond)
-					b.StartTimer()
+					},
+				},
+			})
+			broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
+				DSN:                    connString,
+				BinaryData:             true,
+				PartitionRetentionDays: 7,
+			})
+			if err != nil {
+				b.Fatal(err)
+			}
+			ctx := context.Background()
+			if err := broker.EnsureSchema(ctx); err != nil {
+				b.Fatal(err)
+			}
+			_ = broker.RegisterEventHandler(nil)
+			defer func() {
+				_ = broker.Close(context.Background())
+				_ = node.Shutdown(context.Background())
+			}()
 
-					// Run expire_keys.
-					numShards := broker.conf.NumShards
-					var metaTTL *string
-					_, err := broker.pool.Exec(ctx, fmt.Sprintf(`
-						SELECT %s($1, $2, $3::interval, $4)
-					`, broker.names.expireKeys), 1000, numShards, metaTTL, channel)
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				b.StopTimer()
+				channel := fmt.Sprintf("bench_cleanup_%d_%d", time.Now().UnixNano(), i)
+				for k := 0; k < numKeys; k++ {
+					_, err := broker.Publish(ctx, channel, fmt.Sprintf("key_%d", k), centrifuge.MapPublishOptions{
+						Data: []byte("data"),
+					})
 					if err != nil {
 						b.Fatal(err)
 					}
 				}
-				b.ReportMetric(float64(numKeys), "keys/op")
-			})
-		}
+				time.Sleep(5 * time.Millisecond)
+				b.StartTimer()
+
+				numShards := broker.conf.NumShards
+				var metaTTL *string
+				_, err := broker.pool.Exec(ctx, fmt.Sprintf(`
+					SELECT %s($1, $2, $3::interval, $4)
+				`, broker.names.expireKeys), 1000, numShards, metaTTL, channel)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+			b.ReportMetric(float64(numKeys), "keys/op")
+		})
 	}
 }

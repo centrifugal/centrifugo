@@ -64,6 +64,14 @@ type Partitioner struct {
 // EnsureLookaheadPartitions creates today's daily partition and up to
 // LookaheadDays future daily partitions as PARTITION OF ParentTable.
 // The CREATE TABLE IF NOT EXISTS form makes this safe to call repeatedly.
+//
+// Boundaries are written as fully-qualified UTC timestamps (e.g.
+// '2026-04-23 00:00:00+00'). Using a bare DATE/date-text literal would
+// bind the boundary to the PostgreSQL session's timezone: a server
+// configured for Asia/Nicosia would treat '2026-04-23' as
+// 2026-04-22 21:00 UTC, producing partitions that are offset from the
+// UTC calendar day and don't cover rows inserted in the last hours of a
+// UTC day.
 func (p *Partitioner) EnsureLookaheadPartitions(ctx context.Context) error {
 	now := time.Now().UTC()
 	for d := 0; d <= p.LookaheadDays; d++ {
@@ -73,7 +81,8 @@ func (p *Partitioner) EnsureLookaheadPartitions(ctx context.Context) error {
 		_, err := p.Pool.Exec(ctx, fmt.Sprintf(
 			`CREATE TABLE IF NOT EXISTS %s PARTITION OF %s FOR VALUES FROM ('%s') TO ('%s')`,
 			partName, p.ParentTable,
-			day.Format("2006-01-02"), nextDay.Format("2006-01-02"),
+			day.Format("2006-01-02 00:00:00+00"),
+			nextDay.Format("2006-01-02 00:00:00+00"),
 		))
 		if err != nil {
 			return fmt.Errorf("create partition %s: %w", partName, err)

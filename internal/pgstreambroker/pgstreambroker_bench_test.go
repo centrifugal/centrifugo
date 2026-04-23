@@ -181,7 +181,8 @@ func BenchmarkPostgresStreamBroker_RetentionDrop(b *testing.B) {
 		_, err := e.pool.Exec(ctx, fmt.Sprintf(
 			`CREATE TABLE IF NOT EXISTS %s PARTITION OF %s FOR VALUES FROM ('%s') TO ('%s')`,
 			partName, e.names.stream,
-			yearsAgo.Format("2006-01-02"), yearsAgoNext.Format("2006-01-02"),
+			yearsAgo.Format("2006-01-02 00:00:00+00"),
+			yearsAgoNext.Format("2006-01-02 00:00:00+00"),
 		))
 		require.NoError(b, err)
 		partNames[i] = partName

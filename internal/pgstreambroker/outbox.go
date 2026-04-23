@@ -60,7 +60,7 @@ func (e *PostgresStreamBroker) initOutboxCursor(ctx context.Context, pool *pgxpo
 // runOutboxWorker is the per-shard outbox poller for the non-fanout case.
 // Wraps pgoutbox.Worker; the broker-specific row scanning + dispatch lives
 // in processOutboxBatch.
-func (e *PostgresStreamBroker) runOutboxWorker(workerIdx int) {
+func (e *PostgresStreamBroker) runOutboxWorker(workerIdx int, initialCursor int64) {
 	pool, shards := e.outboxWorkerConfig(workerIdx)
 
 	allocHint := e.conf.Outbox.BatchSize
@@ -74,7 +74,9 @@ func (e *PostgresStreamBroker) runOutboxWorker(workerIdx int) {
 		ShardIDs:     shards,
 		PollInterval: e.conf.Outbox.PollInterval,
 		NotifyCh:     e.notifyCh,
-		InitCursor:   e.initOutboxCursor,
+		InitCursor: func(ctx context.Context, p *pgxpool.Pool) (int64, error) {
+			return initialCursor, nil
+		},
 		ProcessBatch: func(ctx context.Context, p *pgxpool.Pool, cursor int64, sids []int) (int, int64, error) {
 			return e.processOutboxBatch(ctx, p, cursor, sids, buf)
 		},
@@ -86,7 +88,7 @@ func (e *PostgresStreamBroker) runOutboxWorker(workerIdx int) {
 // runOutboxWorkerWithLock is the per-shard outbox poller for fanout mode.
 // Wraps pgoutbox.LockWorker which uses a session-level advisory lock so only
 // one node per shard polls at a time.
-func (e *PostgresStreamBroker) runOutboxWorkerWithLock(workerIdx int) {
+func (e *PostgresStreamBroker) runOutboxWorkerWithLock(workerIdx int, initialCursor int64) {
 	pollPool, shards := e.outboxWorkerConfig(workerIdx)
 
 	allocHint := e.conf.Outbox.BatchSize
@@ -102,7 +104,9 @@ func (e *PostgresStreamBroker) runOutboxWorkerWithLock(workerIdx int) {
 		LockID:        e.conf.Outbox.AdvisoryLockBaseID + int64(workerIdx),
 		PollInterval:  e.conf.Outbox.PollInterval,
 		RetryInterval: e.conf.Outbox.AdvisoryLockRetryInterval,
-		InitCursor:    e.initOutboxCursor,
+		InitCursor: func(ctx context.Context, p *pgxpool.Pool) (int64, error) {
+			return initialCursor, nil
+		},
 		ProcessBatch: func(ctx context.Context, p *pgxpool.Pool, cursor int64, sids []int) (int, int64, error) {
 			return e.processOutboxBatch(ctx, p, cursor, sids, buf)
 		},

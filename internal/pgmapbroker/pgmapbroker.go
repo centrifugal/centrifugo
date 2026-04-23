@@ -531,6 +531,17 @@ func (e *PostgresMapBroker) RegisterEventHandler(h centrifuge.BrokerEventHandler
 		return errors.New("postgres map broker: already running")
 	}
 
+	// Pre-initialize the outbox cursor before launching worker goroutines so
+	// that any message published after RegisterEventHandler returns is
+	// guaranteed to be delivered. Without this, a goroutine scheduled late
+	// could call initOutboxCursor after a message was already inserted, see
+	// that ID as MAX(id), and silently skip it.
+	initialCursor, err := e.initOutboxCursor(e.cancelCtx, e.pool)
+	if err != nil {
+		e.logErrorMsg("pre-init outbox cursor", err)
+		initialCursor = 0
+	}
+
 	if e.conf.Broker != nil {
 		// When inner Broker is configured, register it for PUB/SUB fan-out
 		// and use advisory lock workers to ensure only one node per shard polls.
@@ -538,7 +549,7 @@ func (e *PostgresMapBroker) RegisterEventHandler(h centrifuge.BrokerEventHandler
 			return fmt.Errorf("postgres map broker: register inner broker: %w", err)
 		}
 		for i := 0; i < e.conf.NumShards; i++ {
-			go e.runOutboxWorkerWithLock(i)
+			go e.runOutboxWorkerWithLock(i, initialCursor)
 		}
 	} else {
 		if e.conf.UseNotify {
@@ -547,7 +558,7 @@ func (e *PostgresMapBroker) RegisterEventHandler(h centrifuge.BrokerEventHandler
 		// Start outbox workers: one per shard. Per-shard serialization (FOR UPDATE
 		// on shard_lock) + one-shard-per-worker eliminates BIGSERIAL gaps.
 		for i := 0; i < e.conf.NumShards; i++ {
-			go e.runOutboxWorker(i)
+			go e.runOutboxWorker(i, initialCursor)
 		}
 	}
 
@@ -623,6 +634,37 @@ func (e *SchemaError) Unwrap() error {
 // This method is safe to call concurrently from multiple nodes — all DDL
 // uses CREATE IF NOT EXISTS / CREATE OR REPLACE, and all migrations must
 // be idempotent (e.g. ADD COLUMN IF NOT EXISTS).
+// reconcileShardLock ensures the shard_lock table contains exactly one row for
+// each shard in [0, NumShards). Called on every EnsureSchema (including the
+// fast path) so a NumShards change between runs is picked up. Running with a
+// stale shard_lock is not merely a perf issue — missing rows silently break
+// per-shard publish serialization, which in turn lets stream IDs commit out
+// of order and lets the outbox cursor skip rows.
+func (e *PostgresMapBroker) reconcileShardLock(ctx context.Context) error {
+	for _, prefix := range []string{e.names.jsonbPrefix, e.names.binaryPrefix} {
+		shardLock := prefix + "shard_lock"
+		if _, err := e.pool.Exec(ctx, fmt.Sprintf(
+			`INSERT INTO %s (shard_id) SELECT generate_series(0, $1 - 1) ON CONFLICT DO NOTHING`,
+			shardLock), e.conf.NumShards); err != nil {
+			return &SchemaError{
+				Object: SchemaObject{Type: "table", Name: shardLock},
+				Op:     "create",
+				Err:    fmt.Errorf("populate shard_lock: %w", err),
+			}
+		}
+		if _, err := e.pool.Exec(ctx, fmt.Sprintf(
+			`DELETE FROM %s WHERE shard_id >= $1`,
+			shardLock), e.conf.NumShards); err != nil {
+			return &SchemaError{
+				Object: SchemaObject{Type: "table", Name: shardLock},
+				Op:     "create",
+				Err:    fmt.Errorf("trim shard_lock: %w", err),
+			}
+		}
+	}
+	return nil
+}
+
 func (e *PostgresMapBroker) EnsureSchema(ctx context.Context) error {
 	// 1. Read version: fast path if version matches and probe succeeds.
 	var dbVersion int
@@ -634,6 +676,16 @@ func (e *PostgresMapBroker) EnsureSchema(ctx context.Context) error {
 		// schema loss (e.g. schema_version survived but tables were dropped).
 		if _, probeErr := e.pool.Exec(ctx, fmt.Sprintf(
 			`SELECT 1 FROM %s LIMIT 0`, e.names.stream)); probeErr == nil {
+			// Schema itself is current, but NumShards may have changed since
+			// the last EnsureSchema. The shard_lock table is load-bearing for
+			// per-shard publish serialization — if a row for v_shard_id is
+			// missing, `SELECT ... FOR UPDATE` locks nothing and concurrent
+			// publishes on that shard interleave, violating the per-shard
+			// monotonic-id invariant the outbox cursor depends on. Reconcile
+			// it on every call.
+			if err := e.reconcileShardLock(ctx); err != nil {
+				return err
+			}
 			return nil
 		}
 	}
@@ -659,26 +711,8 @@ func (e *PostgresMapBroker) EnsureSchema(ctx context.Context) error {
 	}
 
 	// 3. Populate/trim shard_lock for BOTH variant prefixes.
-	for _, prefix := range []string{e.names.jsonbPrefix, e.names.binaryPrefix} {
-		shardLock := prefix + "shard_lock"
-		if _, err := e.pool.Exec(ctx, fmt.Sprintf(
-			`INSERT INTO %s (shard_id) SELECT generate_series(0, $1 - 1) ON CONFLICT DO NOTHING`,
-			shardLock), e.conf.NumShards); err != nil {
-			return &SchemaError{
-				Object: SchemaObject{Type: "table", Name: shardLock},
-				Op:     "create",
-				Err:    fmt.Errorf("populate shard_lock: %w", err),
-			}
-		}
-		if _, err := e.pool.Exec(ctx, fmt.Sprintf(
-			`DELETE FROM %s WHERE shard_id >= $1`,
-			shardLock), e.conf.NumShards); err != nil {
-			return &SchemaError{
-				Object: SchemaObject{Type: "table", Name: shardLock},
-				Op:     "create",
-				Err:    fmt.Errorf("trim shard_lock: %w", err),
-			}
-		}
+	if err := e.reconcileShardLock(ctx); err != nil {
+		return err
 	}
 
 	// 4. Ensure partitioned schema and pre-create lookahead partitions.
@@ -1263,14 +1297,14 @@ func (e *PostgresMapBroker) ReadStream(ctx context.Context, ch string, opts cent
 		}
 		if unlimited {
 			streamQuery = fmt.Sprintf(`
-				SELECT key, data, tags, channel_offset, removed, score, client_id, user_id, conn_info, chan_info
+				SELECT key, data, tags, channel_offset, removed, client_id, user_id, conn_info, chan_info
 				FROM %s
 				WHERE channel = $1 AND channel_offset < $2
 				ORDER BY channel_offset DESC
 			`, streamTable)
 		} else {
 			streamQuery = fmt.Sprintf(`
-				SELECT key, data, tags, channel_offset, removed, score, client_id, user_id, conn_info, chan_info
+				SELECT key, data, tags, channel_offset, removed, client_id, user_id, conn_info, chan_info
 				FROM %s
 				WHERE channel = $1 AND channel_offset < $2
 				ORDER BY channel_offset DESC
@@ -1280,14 +1314,14 @@ func (e *PostgresMapBroker) ReadStream(ctx context.Context, ch string, opts cent
 	} else {
 		if unlimited {
 			streamQuery = fmt.Sprintf(`
-				SELECT key, data, tags, channel_offset, removed, score, client_id, user_id, conn_info, chan_info
+				SELECT key, data, tags, channel_offset, removed, client_id, user_id, conn_info, chan_info
 				FROM %s
 				WHERE channel = $1 AND channel_offset > $2
 				ORDER BY channel_offset ASC
 			`, streamTable)
 		} else {
 			streamQuery = fmt.Sprintf(`
-				SELECT key, data, tags, channel_offset, removed, score, client_id, user_id, conn_info, chan_info
+				SELECT key, data, tags, channel_offset, removed, client_id, user_id, conn_info, chan_info
 				FROM %s
 				WHERE channel = $1 AND channel_offset > $2
 				ORDER BY channel_offset ASC
@@ -1358,7 +1392,7 @@ func (e *PostgresMapBroker) ReadStream(ctx context.Context, ch string, opts cent
 	backing := make([]centrifuge.Publication, 0, allocHint)
 	pubs := make([]*centrifuge.Publication, 0, allocHint)
 	// Column order: key(0), data(1), tags(2), channel_offset(3), removed(4),
-	//               score(5), client_id(6), user_id(7), conn_info(8), chan_info(9).
+	//               client_id(5), user_id(6), conn_info(7), chan_info(8).
 	var fmts pgColFormats
 	for rows.Next() {
 		if fmts == nil {
@@ -1372,13 +1406,12 @@ func (e *PostgresMapBroker) ReadStream(ctx context.Context, ch string, opts cent
 		p.Tags = pgRawJSONBMap(raw[2])
 		p.Offset = pgRawUint64(raw[3], fmts[3])
 		p.Removed = pgRawBool(raw[4], fmts[4])
-		p.Score = pgRawInt64(raw[5], fmts[5])
-		if raw[6] != nil {
+		if raw[5] != nil {
 			p.Info = &centrifuge.ClientInfo{
-				ClientID: pgRawString(&arena, raw[6]),
-				UserID:   pgRawString(&arena, raw[7]),
-				ConnInfo: e.rawDataBytes(&arena, raw[8], fmts[8]),
-				ChanInfo: e.rawDataBytes(&arena, raw[9], fmts[9]),
+				ClientID: pgRawString(&arena, raw[5]),
+				UserID:   pgRawString(&arena, raw[6]),
+				ConnInfo: e.rawDataBytes(&arena, raw[7], fmts[7]),
+				ChanInfo: e.rawDataBytes(&arena, raw[8], fmts[8]),
 			}
 		}
 		pubs = append(pubs, p)
@@ -1451,13 +1484,12 @@ func (e *PostgresMapBroker) readStreamTx(ctx context.Context, pool *pgxpool.Pool
 		p.Tags = pgRawJSONBMap(raw[2])
 		p.Offset = pgRawUint64(raw[3], fmts[3])
 		p.Removed = pgRawBool(raw[4], fmts[4])
-		p.Score = pgRawInt64(raw[5], fmts[5])
-		if raw[6] != nil {
+		if raw[5] != nil {
 			p.Info = &centrifuge.ClientInfo{
-				ClientID: pgRawString(&arena, raw[6]),
-				UserID:   pgRawString(&arena, raw[7]),
-				ConnInfo: e.rawDataBytes(&arena, raw[8], fmts[8]),
-				ChanInfo: e.rawDataBytes(&arena, raw[9], fmts[9]),
+				ClientID: pgRawString(&arena, raw[5]),
+				UserID:   pgRawString(&arena, raw[6]),
+				ConnInfo: e.rawDataBytes(&arena, raw[7], fmts[7]),
+				ChanInfo: e.rawDataBytes(&arena, raw[8], fmts[8]),
 			}
 		}
 		pubs = append(pubs, p)
@@ -1581,7 +1613,7 @@ func (e *PostgresMapBroker) initOutboxCursor(ctx context.Context, pool *pgxpool.
 // Thin wrapper around pgoutbox.Worker. All map-specific logic (SQL,
 // row scanning, delivery dispatch) stays in processOutboxBatch, which is
 // called via a closure that captures a per-worker outboxBatchBuf.
-func (e *PostgresMapBroker) runOutboxWorker(workerIdx int) {
+func (e *PostgresMapBroker) runOutboxWorker(workerIdx int, initialCursor int64) {
 	pool, shards := e.outboxWorkerConfig(workerIdx)
 
 	// Pre-allocate reusable batch buffer (captured by the ProcessBatch closure).
@@ -1598,7 +1630,9 @@ func (e *PostgresMapBroker) runOutboxWorker(workerIdx int) {
 		ShardIDs:     shards,
 		PollInterval: e.conf.Outbox.PollInterval,
 		NotifyCh:     e.notifyCh,
-		InitCursor:   e.initOutboxCursor,
+		InitCursor: func(ctx context.Context, p *pgxpool.Pool) (int64, error) {
+			return initialCursor, nil
+		},
 		ProcessBatch: func(ctx context.Context, pool *pgxpool.Pool, cursor int64, shardIDs []int) (int, int64, error) {
 			return e.processOutboxBatch(ctx, pool, cursor, shardIDs, buf)
 		},
@@ -1616,7 +1650,7 @@ func (e *PostgresMapBroker) runOutboxWorker(workerIdx int) {
 //
 // Thin wrapper around pgoutbox.LockWorker. All map-specific logic stays in
 // processOutboxBatch, called via a closure that captures a per-worker buf.
-func (e *PostgresMapBroker) runOutboxWorkerWithLock(workerIdx int) {
+func (e *PostgresMapBroker) runOutboxWorkerWithLock(workerIdx int, initialCursor int64) {
 	pollPool, shards := e.outboxWorkerConfig(workerIdx)
 
 	allocHint := e.conf.Outbox.BatchSize
@@ -1634,7 +1668,9 @@ func (e *PostgresMapBroker) runOutboxWorkerWithLock(workerIdx int) {
 		LockID:        e.conf.Outbox.AdvisoryLockBaseID + int64(workerIdx),
 		PollInterval:  e.conf.Outbox.PollInterval,
 		RetryInterval: e.conf.Outbox.AdvisoryLockRetryInterval,
-		InitCursor:    e.initOutboxCursor,
+		InitCursor: func(ctx context.Context, p *pgxpool.Pool) (int64, error) {
+			return initialCursor, nil
+		},
 		ProcessBatch: func(ctx context.Context, pool *pgxpool.Pool, cursor int64, shardIDs []int) (int, int64, error) {
 			return e.processOutboxBatch(ctx, pool, cursor, shardIDs, buf)
 		},

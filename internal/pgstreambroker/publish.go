@@ -87,10 +87,25 @@ func (e *PostgresStreamBroker) Publish(ch string, data []byte, opts centrifuge.P
 
 	numShards := e.conf.NumShards
 
-	// Call __PREFIX__publish.
+	// Version / VersionEpoch: pointers so the SQL function sees NULL when the
+	// caller didn't request versioned dedup. Zero Version also maps to NULL
+	// so a bare publish can't accidentally clobber the stored baseline.
+	var versionArg *int64
+	var versionEpochArg *string
+	if opts.Version > 0 {
+		v := int64(opts.Version)
+		versionArg = &v
+		if opts.VersionEpoch != "" {
+			versionEpochArg = &opts.VersionEpoch
+		}
+	}
+
+	// Call __PREFIX__publish. Parameter order mirrors pgmapbroker's publish:
+	// channel, data, tags, TTLs, version/epoch, idempotency, delta flag,
+	// client info, num_shards.
 	query := fmt.Sprintf(`
 		SELECT out_result_id, out_channel_offset, out_epoch, out_suppressed, out_suppress_reason
-		FROM %s($1, $2, $3, $4::interval, $5, $6::interval, $7, $8::interval, $9, $10, $11, $12, $13, $14)
+		FROM %s($1, $2, $3, $4::interval, $5, $6::interval, $7, $8, $9, $10::interval, $11, $12, $13, $14, $15, $16)
 	`, e.names.publish)
 
 	var resultID *int64
@@ -106,6 +121,8 @@ func (e *PostgresStreamBroker) Publish(ch string, data []byte, opts centrifuge.P
 		historyTTL,
 		historySize,
 		metaTTL,
+		versionArg,
+		versionEpochArg,
 		idempotencyKey,
 		idempotencyTTL,
 		opts.UseDelta,

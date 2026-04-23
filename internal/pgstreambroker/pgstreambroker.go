@@ -530,19 +530,30 @@ func (e *PostgresStreamBroker) RegisterBrokerEventHandler(h centrifuge.BrokerEve
 		return errors.New("postgres stream broker: already running")
 	}
 
+	// Pre-initialize the outbox cursor before launching worker goroutines so
+	// that any message published after RegisterBrokerEventHandler returns is
+	// guaranteed to be delivered. Without this, a goroutine scheduled late
+	// could call initOutboxCursor after a message was already inserted, see
+	// that ID as MAX(id), and silently skip it.
+	initialCursor, err := e.initOutboxCursor(e.cancelCtx, e.pool)
+	if err != nil {
+		e.logErrorMsg("pre-init outbox cursor", err)
+		initialCursor = 0
+	}
+
 	if e.conf.Broker != nil {
 		if err := e.conf.Broker.RegisterBrokerEventHandler(h); err != nil {
 			return fmt.Errorf("postgres stream broker: register inner broker: %w", err)
 		}
 		for i := 0; i < e.conf.NumShards; i++ {
-			go e.runOutboxWorkerWithLock(i)
+			go e.runOutboxWorkerWithLock(i, initialCursor)
 		}
 	} else {
 		if e.conf.UseNotify {
 			go e.runNotificationListener()
 		}
 		for i := 0; i < e.conf.NumShards; i++ {
-			go e.runOutboxWorker(i)
+			go e.runOutboxWorker(i, initialCursor)
 		}
 	}
 

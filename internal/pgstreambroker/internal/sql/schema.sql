@@ -67,27 +67,43 @@ CREATE INDEX IF NOT EXISTS __STREAM_TABLE___created_at_idx
 -- Tracks per-channel state needed for publish ordering, recovery, and the
 -- read-time TTL filter:
 --
---   top_offset       — last assigned channel_offset (incremented on publish)
---   epoch            — monotonic epoch string; new on first publish, persists
---                      until the channel is forgotten via expires_at
---   history_ttl      — from PublishOptions.HistoryTTL; refreshed on each publish.
---                      Used by History() reads for the read-time TTL filter.
---   history_size     — from PublishOptions.HistorySize; refreshed on each publish.
---                      Used by History() reads to clamp the result window.
---   expires_at  — from PublishOptions.HistoryMetaTTL (with 3-tier fallback);
---                      always non-NULL; when it passes, the meta cleanup pass
---                      deletes the row and the channel is forgotten.
+--   top_offset         — last assigned channel_offset (incremented on publish)
+--   epoch              — monotonic epoch string; new on first publish, persists
+--                        until the channel is forgotten via expires_at
+--   history_ttl        — from PublishOptions.HistoryTTL; refreshed on each publish.
+--                        Used by History() reads for the read-time TTL filter.
+--   history_size       — from PublishOptions.HistorySize; refreshed on each publish.
+--                        Used by History() reads to clamp the result window.
+--   top_version        — highest PublishOptions.Version accepted under
+--                        top_version_epoch. An incoming publish with
+--                        version<=top_version under the same epoch is
+--                        suppressed with SuppressReasonVersion. Zero means
+--                        "no versioned publish has been seen yet", so the
+--                        first versioned publish always establishes the
+--                        baseline without being compared.
+--   top_version_epoch  — epoch string associated with top_version. When the
+--                        caller supplies a different VersionEpoch the version
+--                        comparison is reset — the new epoch's first publish
+--                        becomes the fresh baseline even if its numeric
+--                        version is lower. A non-versioned publish never
+--                        clobbers these two fields.
+--   expires_at         — from PublishOptions.HistoryMetaTTL (with 3-tier
+--                        fallback); always non-NULL; when it passes, the
+--                        meta cleanup pass deletes the row and the channel
+--                        is forgotten.
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS __PREFIX__meta (
-    channel         TEXT PRIMARY KEY,
-    top_offset      BIGINT NOT NULL DEFAULT 0,
-    epoch           TEXT NOT NULL DEFAULT '',
-    history_ttl     INTERVAL NOT NULL DEFAULT interval '1 minute',
-    history_size    INTEGER NOT NULL DEFAULT 100,
-    expires_at TIMESTAMPTZ NOT NULL DEFAULT NOW() + interval '7 days',
-    created_at      TIMESTAMPTZ DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ DEFAULT NOW()
+    channel            TEXT PRIMARY KEY,
+    top_offset         BIGINT NOT NULL DEFAULT 0,
+    epoch              TEXT NOT NULL DEFAULT '',
+    history_ttl        INTERVAL NOT NULL DEFAULT interval '1 minute',
+    history_size       INTEGER NOT NULL DEFAULT 100,
+    top_version        BIGINT NOT NULL DEFAULT 0,
+    top_version_epoch  TEXT NOT NULL DEFAULT '',
+    expires_at         TIMESTAMPTZ NOT NULL DEFAULT NOW() + interval '7 days',
+    created_at         TIMESTAMPTZ DEFAULT NOW(),
+    updated_at         TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS __PREFIX__meta_expires_idx
@@ -173,6 +189,8 @@ CREATE OR REPLACE FUNCTION __PREFIX__publish(
     p_history_ttl INTERVAL DEFAULT NULL,
     p_history_size INTEGER DEFAULT NULL,
     p_meta_ttl INTERVAL DEFAULT NULL,
+    p_version BIGINT DEFAULT NULL,
+    p_version_epoch TEXT DEFAULT NULL,
     p_idempotency_key TEXT DEFAULT NULL,
     p_idempotency_ttl INTERVAL DEFAULT NULL,
     p_use_delta BOOLEAN DEFAULT FALSE,
@@ -196,6 +214,8 @@ DECLARE
     v_shard_id INTEGER;
     v_effective_meta_ttl INTERVAL;
     v_cached_offset BIGINT;
+    v_current_version BIGINT;
+    v_current_version_epoch TEXT;
 BEGIN
     -- Auto-derive num_shards from shard_lock table when not provided.
     IF p_num_shards IS NULL THEN
@@ -228,8 +248,8 @@ BEGIN
     VALUES (p_channel, 0, substr(md5(random()::text || random()::text), 1, 8), NOW())
     ON CONFLICT (channel) DO UPDATE
         SET updated_at = m.updated_at
-    RETURNING m.top_offset, m.epoch
-    INTO v_offset, v_epoch;
+    RETURNING m.top_offset, m.epoch, m.top_version, m.top_version_epoch
+    INTO v_offset, v_epoch, v_current_version, v_current_version_epoch;
 
     -- Idempotency check.
     IF p_idempotency_key IS NOT NULL THEN
@@ -239,6 +259,20 @@ BEGIN
           AND expires_at > NOW();
         IF FOUND THEN
             RETURN QUERY SELECT NULL::BIGINT, v_cached_offset, v_epoch, TRUE, 'idempotency'::TEXT;
+            RETURN;
+        END IF;
+    END IF;
+
+    -- Per-stream version dedup. Suppress when the caller supplied a version
+    -- that isn't strictly greater than the one already stored under the same
+    -- epoch. An empty p_version_epoch matches any stored epoch (callers that
+    -- don't care about epoch boundaries); a non-empty p_version_epoch that
+    -- differs from the stored one resets the comparison (new epoch = fresh
+    -- baseline, not suppressed even with lower numeric version).
+    IF p_version IS NOT NULL AND p_version > 0 AND v_current_version > 0 THEN
+        IF (p_version_epoch IS NULL OR p_version_epoch = '' OR p_version_epoch = v_current_version_epoch)
+           AND p_version <= v_current_version THEN
+            RETURN QUERY SELECT NULL::BIGINT, v_offset, v_epoch, TRUE, 'version'::TEXT;
             RETURN;
         END IF;
     END IF;
@@ -255,11 +289,23 @@ BEGIN
     END IF;
 
     -- Increment offset + refresh meta TTLs and HistorySize. The COALESCE
-    -- pattern preserves existing values when the parameter is NULL.
+    -- pattern preserves existing values when the parameter is NULL. Version
+    -- fields advance only when the caller supplied a version: a bare publish
+    -- must not clobber the stored version baseline (otherwise a non-versioned
+    -- publish after versioned ones would erase dedup protection).
     UPDATE __PREFIX__meta AS m
        SET top_offset = m.top_offset + 1,
            history_ttl = COALESCE(p_history_ttl, m.history_ttl),
            history_size = COALESCE(p_history_size, m.history_size),
+           top_version = CASE
+               WHEN p_version IS NOT NULL AND p_version > 0 THEN p_version
+               ELSE m.top_version
+           END,
+           top_version_epoch = CASE
+               WHEN p_version IS NOT NULL AND p_version > 0
+                    THEN COALESCE(p_version_epoch, m.top_version_epoch)
+               ELSE m.top_version_epoch
+           END,
            expires_at = CASE
                WHEN v_effective_meta_ttl < '0'::interval THEN 'infinity'::timestamptz
                ELSE NOW() + v_effective_meta_ttl
@@ -301,6 +347,8 @@ CREATE OR REPLACE FUNCTION __PREFIX__publish_strict(
     p_history_ttl INTERVAL DEFAULT NULL,
     p_history_size INTEGER DEFAULT NULL,
     p_meta_ttl INTERVAL DEFAULT NULL,
+    p_version BIGINT DEFAULT NULL,
+    p_version_epoch TEXT DEFAULT NULL,
     p_idempotency_key TEXT DEFAULT NULL,
     p_idempotency_ttl INTERVAL DEFAULT NULL,
     p_use_delta BOOLEAN DEFAULT FALSE,
@@ -320,6 +368,7 @@ BEGIN
     SELECT * INTO v_result FROM __PREFIX__publish(
         p_channel, p_data, p_tags,
         p_history_ttl, p_history_size, p_meta_ttl,
+        p_version, p_version_epoch,
         p_idempotency_key, p_idempotency_ttl,
         p_use_delta, p_client_id, p_user_id, p_conn_info, p_chan_info,
         p_num_shards

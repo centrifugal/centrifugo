@@ -5,11 +5,43 @@ import (
 	"fmt"
 )
 
+// reconcileShardLock ensures the shard_lock table (for both variants) has
+// exactly one row for each shard in [0, NumShards). Called on every
+// EnsureSchema including the fast path so a NumShards change between runs
+// is picked up. A stale shard_lock is load-bearing, not cosmetic: a missing
+// row makes `PERFORM 1 FROM shard_lock WHERE shard_id = X FOR UPDATE`
+// lock nothing, breaking per-shard publish serialization, which in turn
+// lets stream IDs commit out of order and the outbox cursor skip rows.
+func (e *PostgresStreamBroker) reconcileShardLock(ctx context.Context) error {
+	for _, prefix := range []string{e.names.jsonbPrefix, e.names.binaryPrefix} {
+		shardLock := prefix + "shard_lock"
+		if _, err := e.pool.Exec(ctx, fmt.Sprintf(
+			`INSERT INTO %s (shard_id) SELECT generate_series(0, $1 - 1) ON CONFLICT DO NOTHING`,
+			shardLock), e.conf.NumShards); err != nil {
+			return &SchemaError{
+				Object: SchemaObject{Type: "table", Name: shardLock},
+				Op:     "create",
+				Err:    fmt.Errorf("populate shard_lock: %w", err),
+			}
+		}
+		if _, err := e.pool.Exec(ctx, fmt.Sprintf(
+			`DELETE FROM %s WHERE shard_id >= $1`,
+			shardLock), e.conf.NumShards); err != nil {
+			return &SchemaError{
+				Object: SchemaObject{Type: "table", Name: shardLock},
+				Op:     "create",
+				Err:    fmt.Errorf("trim shard_lock: %w", err),
+			}
+		}
+	}
+	return nil
+}
+
 // EnsureSchema creates all required database objects idempotently.
 //
 // Flow:
 //  1. Fast path: query schema_version. If current and the history table
-//     exists AND is partitioned, return.
+//     exists AND is partitioned, reconcile shard_lock and return.
 //  2. Render both variant schemas (jsonb + binary), execute the DDL part
 //     and the function part separately under retry.
 //  3. Populate shard_lock for both variants.
@@ -29,6 +61,11 @@ func (e *PostgresStreamBroker) EnsureSchema(ctx context.Context) error {
 			`SELECT 1 FROM %s LIMIT 0`, e.names.stream)); probeErr == nil {
 			// Also verify partitioned shape — see step 4.
 			if err := e.verifyPartitionedShape(ctx); err != nil {
+				return err
+			}
+			// Reconcile shard_lock before returning: NumShards may have
+			// changed since the last EnsureSchema call.
+			if err := e.reconcileShardLock(ctx); err != nil {
 				return err
 			}
 			// Ensure lookahead partitions exist (idempotent).
@@ -54,26 +91,8 @@ func (e *PostgresStreamBroker) EnsureSchema(ctx context.Context) error {
 	}
 
 	// Populate/trim shard_lock for both variants.
-	for _, prefix := range []string{e.names.jsonbPrefix, e.names.binaryPrefix} {
-		shardLock := prefix + "shard_lock"
-		if _, err := e.pool.Exec(ctx, fmt.Sprintf(
-			`INSERT INTO %s (shard_id) SELECT generate_series(0, $1 - 1) ON CONFLICT DO NOTHING`,
-			shardLock), e.conf.NumShards); err != nil {
-			return &SchemaError{
-				Object: SchemaObject{Type: "table", Name: shardLock},
-				Op:     "create",
-				Err:    fmt.Errorf("populate shard_lock: %w", err),
-			}
-		}
-		if _, err := e.pool.Exec(ctx, fmt.Sprintf(
-			`DELETE FROM %s WHERE shard_id >= $1`,
-			shardLock), e.conf.NumShards); err != nil {
-			return &SchemaError{
-				Object: SchemaObject{Type: "table", Name: shardLock},
-				Op:     "create",
-				Err:    fmt.Errorf("trim shard_lock: %w", err),
-			}
-		}
+	if err := e.reconcileShardLock(ctx); err != nil {
+		return err
 	}
 
 	// Wrong-shape probe: ensure the history table is actually partitioned.

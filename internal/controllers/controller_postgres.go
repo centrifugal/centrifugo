@@ -202,6 +202,27 @@ func (c *PostgresController) logError(msg string, err error) {
 }
 
 // EnsureSchema creates the required database objects idempotently.
+// reconcileShardLock ensures the shard_lock table has exactly one row for
+// each shard in [0, NumShards). Called on every EnsureSchema including the
+// fast path so a NumShards change between runs is picked up. A stale
+// shard_lock is load-bearing, not cosmetic: a missing row makes
+// `PERFORM 1 FROM shard_lock WHERE shard_id = X FOR UPDATE` lock nothing,
+// breaking per-shard publish serialization and letting the outbox cursor
+// skip rows whose transactions committed out of BIGSERIAL id order.
+func (c *PostgresController) reconcileShardLock(ctx context.Context) error {
+	if _, err := c.pool.Exec(ctx, fmt.Sprintf(
+		`INSERT INTO %s (shard_id) SELECT generate_series(0, $1 - 1) ON CONFLICT DO NOTHING`,
+		c.names.shardLock), c.conf.NumShards); err != nil {
+		return fmt.Errorf("postgres controller: populate shard_lock: %w", err)
+	}
+	if _, err := c.pool.Exec(ctx, fmt.Sprintf(
+		`DELETE FROM %s WHERE shard_id >= $1`,
+		c.names.shardLock), c.conf.NumShards); err != nil {
+		return fmt.Errorf("postgres controller: trim shard_lock: %w", err)
+	}
+	return nil
+}
+
 func (c *PostgresController) EnsureSchema(ctx context.Context) error {
 	// Fast path: version already current and messages table exists.
 	var dbVersion int
@@ -213,6 +234,11 @@ func (c *PostgresController) EnsureSchema(ctx context.Context) error {
 			`SELECT 1 FROM %s LIMIT 0`, c.names.messages)); probeErr == nil {
 			// Verify partitioned shape.
 			if err := c.verifyPartitionedShape(ctx); err != nil {
+				return err
+			}
+			// Reconcile shard_lock before returning: NumShards may have
+			// changed since the last EnsureSchema call.
+			if err := c.reconcileShardLock(ctx); err != nil {
 				return err
 			}
 			return c.ensureInitialPartitions(ctx)
@@ -235,15 +261,8 @@ func (c *PostgresController) EnsureSchema(ctx context.Context) error {
 	}
 
 	// Populate/trim shard_lock rows.
-	if _, err := c.pool.Exec(ctx, fmt.Sprintf(
-		`INSERT INTO %s (shard_id) SELECT generate_series(0, $1 - 1) ON CONFLICT DO NOTHING`,
-		c.names.shardLock), c.conf.NumShards); err != nil {
-		return fmt.Errorf("postgres controller: populate shard_lock: %w", err)
-	}
-	if _, err := c.pool.Exec(ctx, fmt.Sprintf(
-		`DELETE FROM %s WHERE shard_id >= $1`,
-		c.names.shardLock), c.conf.NumShards); err != nil {
-		return fmt.Errorf("postgres controller: trim shard_lock: %w", err)
+	if err := c.reconcileShardLock(ctx); err != nil {
+		return err
 	}
 
 	// Verify partitioned shape.
