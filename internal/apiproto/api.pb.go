@@ -9557,6 +9557,7 @@ type SharedPollPublishRequest struct {
 	Data          Raw                    `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
 	B64Data       string                 `protobuf:"bytes,4,opt,name=b64data,proto3" json:"b64data,omitempty"`
 	Version       uint64                 `protobuf:"varint,5,opt,name=version,proto3" json:"version,omitempty"`
+	Epoch         string                 `protobuf:"bytes,6,opt,name=epoch,proto3" json:"epoch,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9624,6 +9625,13 @@ func (x *SharedPollPublishRequest) GetVersion() uint64 {
 		return x.Version
 	}
 	return 0
+}
+
+func (x *SharedPollPublishRequest) GetEpoch() string {
+	if x != nil {
+		return x.Epoch
+	}
+	return ""
 }
 
 type SharedPollPublishResponse struct {
@@ -10472,13 +10480,14 @@ const file_api_proto_rawDesc = "" +
 	"\x10MapClearResponse\x127\n" +
 	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12B\n" +
 	"\x06result\x18\x02 \x01(\v2*.centrifugal.centrifugo.api.MapClearResultR\x06result\"\x10\n" +
-	"\x0eMapClearResult\"\x8e\x01\n" +
+	"\x0eMapClearResult\"\xa4\x01\n" +
 	"\x18SharedPollPublishRequest\x12\x18\n" +
 	"\achannel\x18\x01 \x01(\tR\achannel\x12\x10\n" +
 	"\x03key\x18\x02 \x01(\tR\x03key\x12\x12\n" +
 	"\x04data\x18\x03 \x01(\fR\x04data\x12\x18\n" +
 	"\ab64data\x18\x04 \x01(\tR\ab64data\x12\x18\n" +
-	"\aversion\x18\x05 \x01(\x04R\aversion\"\xa1\x01\n" +
+	"\aversion\x18\x05 \x01(\x04R\aversion\x12\x14\n" +
+	"\x05epoch\x18\x06 \x01(\tR\x05epoch\"\xa1\x01\n" +
 	"\x19SharedPollPublishResponse\x127\n" +
 	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12K\n" +
 	"\x06result\x18\x02 \x01(\v23.centrifugal.centrifugo.api.SharedPollPublishResultR\x06result\"\x19\n" +

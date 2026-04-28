@@ -1015,6 +1015,7 @@ message SharedPollPublishRequest {
     bytes data = 3;
     string b64data = 4;
     uint64 version = 5;
+    string epoch = 6;
 }
 
 message SharedPollPublishResponse {

@@ -3153,6 +3153,7 @@ func (x *SharedPollRefreshItem) GetVersion() uint64 {
 type SharedPollRefreshResult struct {
 	state         protoimpl.MessageState         `protogen:"open.v1"`
 	Items         []*SharedPollRefreshResultItem `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	Epoch         string                         `protobuf:"bytes,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3192,6 +3193,13 @@ func (x *SharedPollRefreshResult) GetItems() []*SharedPollRefreshResultItem {
 		return x.Items
 	}
 	return nil
+}
+
+func (x *SharedPollRefreshResult) GetEpoch() string {
+	if x != nil {
+		return x.Epoch
+	}
+	return ""
 }
 
 type SharedPollRefreshResultItem struct {
@@ -3609,9 +3617,10 @@ const file_proxy_proto_rawDesc = "" +
 	"\x05items\x18\x02 \x03(\v23.centrifugal.centrifugo.proxy.SharedPollRefreshItemR\x05items\"C\n" +
 	"\x15SharedPollRefreshItem\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x18\n" +
-	"\aversion\x18\x02 \x01(\x04R\aversion\"j\n" +
+	"\aversion\x18\x02 \x01(\x04R\aversion\"\x80\x01\n" +
 	"\x17SharedPollRefreshResult\x12O\n" +
-	"\x05items\x18\x01 \x03(\v29.centrifugal.centrifugo.proxy.SharedPollRefreshResultItemR\x05items\"\x94\x01\n" +
+	"\x05items\x18\x01 \x03(\v29.centrifugal.centrifugo.proxy.SharedPollRefreshResultItemR\x05items\x12\x14\n" +
+	"\x05epoch\x18\x02 \x01(\tR\x05epoch\"\x94\x01\n" +
 	"\x1bSharedPollRefreshResultItem\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x12\n" +
 	"\x04data\x18\x02 \x01(\fR\x04data\x12\x18\n" +

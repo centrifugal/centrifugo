@@ -87,6 +87,6 @@ func (h *SharedPollRefreshHandler) Handle(node *centrifuge.Node) centrifuge.Shar
 				Removed:  item.Removed,
 			}
 		}
-		return centrifuge.SharedPollResult{Items: items}, nil
+		return centrifuge.SharedPollResult{Items: items, Epoch: resp.Result.Epoch}, nil
 	}
 }

@@ -384,6 +384,7 @@ message SharedPollRefreshItem {
 
 message SharedPollRefreshResult {
   repeated SharedPollRefreshResultItem items = 1;
+  string epoch = 2;
 }
 
 message SharedPollRefreshResultItem {

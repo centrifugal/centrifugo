@@ -1173,7 +1173,7 @@ func (h *Executor) SharedPollPublish(ctx context.Context, cmd *SharedPollPublish
 		data = cmd.Data
 	}
 
-	err = h.node.SharedPollPublish(ctx, ch, cmd.Key, cmd.Version, data)
+	err = h.node.SharedPollPublish(ctx, ch, cmd.Key, cmd.Version, cmd.Epoch, data)
 	if err != nil {
 		log.Error().Err(err).Str("channel", ch).Msg("error in shared poll publish")
 		resp.Error = ErrorInternal
