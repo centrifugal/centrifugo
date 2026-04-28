@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -16,10 +15,7 @@ import (
 const testSecret = "test-secret-key"
 
 func makeTestSignature(secret, channel string, keys []string, userID string, iat, expiry int64) string {
-	sortedKeys := make([]string, len(keys))
-	copy(sortedKeys, keys)
-	sort.Strings(sortedKeys)
-	keysHash := sha256.Sum256([]byte(strings.Join(sortedKeys, "\x00")))
+	keysHash := sha256.Sum256([]byte(strings.Join(keys, "\x00")))
 	payload := fmt.Sprintf("%d:%d:%s:%s:%x", iat, expiry, userID, channel, keysHash)
 	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write([]byte(payload))
@@ -80,13 +76,15 @@ func TestTrackSignature_AnonymousUser(t *testing.T) {
 	require.True(t, verifyTrackSignature(testSecret, "test:channel", sig, []string{"key1"}, ""))
 }
 
-func TestTrackSignature_KeyOrderIndependent(t *testing.T) {
+func TestTrackSignature_KeyOrderSensitive(t *testing.T) {
 	now := time.Now().Unix()
 	expiry := now + 3600
 	// Sign with keys [B, A].
 	sig := makeTestSignature(testSecret, "test:channel", []string{"keyB", "keyA"}, "user1", now, expiry)
-	// Verify with keys [A, B] — should succeed because both sides sort.
-	require.True(t, verifyTrackSignature(testSecret, "test:channel", sig, []string{"keyA", "keyB"}, "user1"))
+	// Verify with keys in the same order — succeeds.
+	require.True(t, verifyTrackSignature(testSecret, "test:channel", sig, []string{"keyB", "keyA"}, "user1"))
+	// Verify with keys in a different order — fails. Signature is bound to wire order, not set membership.
+	require.False(t, verifyTrackSignature(testSecret, "test:channel", sig, []string{"keyA", "keyB"}, "user1"))
 }
 
 func TestTrackSignature_EmptySignature(t *testing.T) {
@@ -190,10 +188,7 @@ func TestVerifyTrackSignature_HexEncoding(t *testing.T) {
 	now := time.Now().Unix()
 	expiry := now + 3600
 	keys := []string{"key1"}
-	sortedKeys := make([]string, len(keys))
-	copy(sortedKeys, keys)
-	sort.Strings(sortedKeys)
-	keysHash := sha256.Sum256([]byte(strings.Join(sortedKeys, "\x00")))
+	keysHash := sha256.Sum256([]byte(strings.Join(keys, "\x00")))
 	payload := fmt.Sprintf("%d:%d:%s:%s:%x", now, expiry, "u", "ch", keysHash)
 	mac := hmac.New(sha256.New, []byte(testSecret))
 	mac.Write([]byte(payload))

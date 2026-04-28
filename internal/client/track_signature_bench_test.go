@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -25,10 +24,7 @@ func generateKeys(n int) []string {
 
 // HMAC signature: create.
 func createTrackSignature(secret, channel string, keys []string, userID string, iat, expiry int64) string {
-	sortedKeys := make([]string, len(keys))
-	copy(sortedKeys, keys)
-	sort.Strings(sortedKeys)
-	keysHash := sha256.Sum256([]byte(strings.Join(sortedKeys, "\x00")))
+	keysHash := sha256.Sum256([]byte(strings.Join(keys, "\x00")))
 	payload := fmt.Sprintf("%d:%d:%s:%s:%x", iat, expiry, userID, channel, keysHash)
 	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write([]byte(payload))
@@ -64,11 +60,8 @@ func BenchmarkTrackSignature_HMAC_Create_Reuse_10kKeys(b *testing.B) {
 	now := time.Now().Unix()
 	expiry := now + 3600
 
-	// Pre-sort and pre-compute keys hash.
-	sortedKeys := make([]string, len(keys))
-	copy(sortedKeys, keys)
-	sort.Strings(sortedKeys)
-	keysHash := sha256.Sum256([]byte(strings.Join(sortedKeys, "\x00")))
+	// Pre-compute keys hash.
+	keysHash := sha256.Sum256([]byte(strings.Join(keys, "\x00")))
 
 	// Reuse HMAC hasher and buffers.
 	mac := hmac.New(sha256.New, []byte(secret))
@@ -129,11 +122,8 @@ func BenchmarkTrackSignature_HMAC_Verify_Reuse_10kKeys(b *testing.B) {
 	expiry := now + 3600
 	sig := createTrackSignature(secret, channel, keys, userID, now, expiry)
 
-	// Pre-sort and pre-compute keys hash.
-	sortedKeys := make([]string, len(keys))
-	copy(sortedKeys, keys)
-	sort.Strings(sortedKeys)
-	keysHash := sha256.Sum256([]byte(strings.Join(sortedKeys, "\x00")))
+	// Pre-compute keys hash.
+	keysHash := sha256.Sum256([]byte(strings.Join(keys, "\x00")))
 
 	// Reuse HMAC hasher and buffers.
 	mac := hmac.New(sha256.New, []byte(secret))

@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"hash"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -84,10 +83,7 @@ func (v *trackSignatureVerifier) verify(channel string, sig string, keys []strin
 	expiryStr := rest[:second]
 	hmacHex := rest[second+1:]
 
-	sortedKeys := make([]string, len(keys))
-	copy(sortedKeys, keys)
-	sort.Strings(sortedKeys)
-	keysHash := sha256.Sum256([]byte(strings.Join(sortedKeys, "\x00")))
+	keysHash := sha256.Sum256([]byte(strings.Join(keys, "\x00")))
 
 	mac := v.macPool.Get().(hash.Hash)
 	bufs := v.bufPool.Get().(*verifyBufs)
