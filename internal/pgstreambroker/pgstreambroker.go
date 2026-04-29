@@ -172,7 +172,7 @@ func abs32(n int32) int {
 // OutboxConfig configures outbox-based delivery.
 type OutboxConfig struct {
 	// PollInterval is how often to poll for new history rows when idle.
-	// Default: 50ms.
+	// Default: 100ms.
 	PollInterval time.Duration
 
 	// BatchSize is the maximum number of rows to process per batch.
@@ -207,7 +207,7 @@ type PostgresStreamBrokerConfig struct {
 
 	// NumShards is the total number of shards for parallel delivery workers.
 	// Channels are distributed via hash(channel) % NumShards.
-	// Default: 16.
+	// Default: 8.
 	NumShards int
 
 	// CleanupInterval is how often the cleanup worker and partition worker tick.
@@ -307,7 +307,7 @@ func (c *PostgresStreamBrokerConfig) setDefaults() {
 		c.PoolSize = 16
 	}
 	if c.NumShards <= 0 {
-		c.NumShards = 16
+		c.NumShards = 8
 	}
 	if c.CleanupInterval <= 0 {
 		c.CleanupInterval = time.Minute
@@ -331,7 +331,7 @@ func (c *PostgresStreamBrokerConfig) setDefaults() {
 	}
 
 	if c.Outbox.PollInterval <= 0 {
-		c.Outbox.PollInterval = 50 * time.Millisecond
+		c.Outbox.PollInterval = 100 * time.Millisecond
 	}
 	if c.Outbox.BatchSize <= 0 {
 		c.Outbox.BatchSize = 1000

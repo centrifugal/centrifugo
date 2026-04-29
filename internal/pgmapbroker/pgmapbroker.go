@@ -192,7 +192,7 @@ var _ centrifuge.MapBroker = (*PostgresMapBroker)(nil)
 // Every node independently polls cf_map_stream — no advisory locks needed.
 type OutboxConfig struct {
 	// PollInterval is how often to poll for new stream entries when idle.
-	// Default: 50ms
+	// Default: 100ms
 	PollInterval time.Duration
 
 	// BatchSize is the maximum number of rows to process per batch.
@@ -229,7 +229,7 @@ type PostgresMapBrokerConfig struct {
 
 	// NumShards is the total number of shards for parallel delivery workers.
 	// Channels are distributed across shards using hash(channel) % NumShards.
-	// Default: 16
+	// Default: 8
 	NumShards int
 
 	// TTLCheckInterval is how often to check for expired keys.
@@ -323,7 +323,7 @@ func (c *PostgresMapBrokerConfig) setDefaults() {
 		c.PoolSize = 16
 	}
 	if c.NumShards <= 0 {
-		c.NumShards = 16
+		c.NumShards = 8
 	}
 	if c.TTLCheckInterval <= 0 {
 		c.TTLCheckInterval = time.Second
@@ -346,7 +346,7 @@ func (c *PostgresMapBrokerConfig) setDefaults() {
 
 	// Outbox config defaults
 	if c.Outbox.PollInterval <= 0 {
-		c.Outbox.PollInterval = 50 * time.Millisecond
+		c.Outbox.PollInterval = 100 * time.Millisecond
 	}
 	if c.Outbox.BatchSize <= 0 {
 		c.Outbox.BatchSize = 1000

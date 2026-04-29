@@ -124,8 +124,8 @@ type PostgresMapBroker struct {
 	// PoolSize sets the maximum number of connections in the pool. Default: 16.
 	PoolSize int `mapstructure:"pool_size" json:"pool_size" envconfig:"pool_size" default:"16" yaml:"pool_size" toml:"pool_size"`
 	// NumShards is the total number of shards for parallel delivery workers.
-	// Channels are distributed across shards using consistent hashing. Default: 16.
-	NumShards int `mapstructure:"num_shards" json:"num_shards" envconfig:"num_shards" default:"16" yaml:"num_shards" toml:"num_shards"`
+	// Channels are distributed across shards using consistent hashing. Default: 8.
+	NumShards int `mapstructure:"num_shards" json:"num_shards" envconfig:"num_shards" default:"8" yaml:"num_shards" toml:"num_shards"`
 	// TTLCheckInterval is how often to check for expired keys. Default: "1s".
 	TTLCheckInterval Duration `mapstructure:"ttl_check_interval" json:"ttl_check_interval" envconfig:"ttl_check_interval" default:"1s" yaml:"ttl_check_interval" toml:"ttl_check_interval"`
 	// CleanupInterval is how often to clean up expired stream/meta/idempotency entries.
@@ -167,8 +167,8 @@ type PostgresMapBroker struct {
 
 // PostgresMapBrokerOutbox configures the outbox-based delivery for PostgreSQL map broker.
 type PostgresMapBrokerOutbox struct {
-	// PollInterval is how often to poll for new stream entries when idle. Default: "50ms".
-	PollInterval Duration `mapstructure:"poll_interval" json:"poll_interval" envconfig:"poll_interval" default:"50ms" yaml:"poll_interval" toml:"poll_interval"`
+	// PollInterval is how often to poll for new stream entries when idle. Default: "100ms".
+	PollInterval Duration `mapstructure:"poll_interval" json:"poll_interval" envconfig:"poll_interval" default:"100ms" yaml:"poll_interval" toml:"poll_interval"`
 	// BatchSize is the maximum number of rows to process per batch. Default: 1000.
 	BatchSize int `mapstructure:"batch_size" json:"batch_size" envconfig:"batch_size" default:"1000" yaml:"batch_size" toml:"batch_size"`
 }
@@ -186,8 +186,8 @@ type PostgresStreamBroker struct {
 	// PoolSize sets the maximum number of connections in the pool. Default: 16.
 	PoolSize int `mapstructure:"pool_size" json:"pool_size" envconfig:"pool_size" default:"16" yaml:"pool_size" toml:"pool_size"`
 	// NumShards is the total number of shards for parallel delivery workers.
-	// Channels are distributed across shards using consistent hashing. Default: 16.
-	NumShards int `mapstructure:"num_shards" json:"num_shards" envconfig:"num_shards" default:"16" yaml:"num_shards" toml:"num_shards"`
+	// Channels are distributed across shards using consistent hashing. Default: 8.
+	NumShards int `mapstructure:"num_shards" json:"num_shards" envconfig:"num_shards" default:"8" yaml:"num_shards" toml:"num_shards"`
 	// CleanupInterval is how often the cleanup and partition workers tick. Default: "1m".
 	CleanupInterval Duration `mapstructure:"cleanup_interval" json:"cleanup_interval" envconfig:"cleanup_interval" default:"1m" yaml:"cleanup_interval" toml:"cleanup_interval"`
 	// IdempotentResultTTL is the default TTL for idempotency cache entries. Default: "5m".
