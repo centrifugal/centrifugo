@@ -527,21 +527,32 @@ func TestPostgresMapBroker_CleanupMetrics(t *testing.T) {
 	// Wait for TTL to expire.
 	time.Sleep(3 * time.Second)
 
-	// Trigger TTL check directly.
-	broker.expireKeys(ctx)
-
-	// Verify keys_removed counter was incremented.
-	families, err := registry.Gather()
-	require.NoError(t, err)
-	var removedCount float64
-	for _, f := range families {
-		if f.GetName() == "centrifuge_map_broker_cleanup_keys_removed_count" {
-			for _, m := range f.GetMetric() {
-				removedCount += m.GetCounter().GetValue()
+	// Poll until the cleanup metric reflects both removals. Both the
+	// background TTL worker (every TTLCheckInterval=1s) and our explicit
+	// expireKeys call contribute to the counter; Eventually handles timing
+	// variations on slow CI where:
+	//   - the second publish's expires_at is barely past NOW() when a
+	//     cleanup pass runs, so only the first key is captured;
+	//   - or the manual call races with a background pass that already
+	//     removed one of the keys, leaving a single in-flight delete
+	//     visible to the next pass.
+	// In any timing, the counter must converge to >= 2.
+	require.Eventually(t, func() bool {
+		broker.expireKeys(ctx)
+		families, err := registry.Gather()
+		if err != nil {
+			return false
+		}
+		var removedCount float64
+		for _, f := range families {
+			if f.GetName() == "centrifuge_map_broker_cleanup_keys_removed_count" {
+				for _, m := range f.GetMetric() {
+					removedCount += m.GetCounter().GetValue()
+				}
 			}
 		}
-	}
-	require.GreaterOrEqual(t, removedCount, float64(2), "cleanup_keys_removed_count should be at least 2")
+		return removedCount >= 2
+	}, 10*time.Second, 200*time.Millisecond, "cleanup_keys_removed_count should reach >= 2")
 }
 
 // TestPostgresMapBroker_KeyTTL tests key TTL (this is a slower test).
@@ -2879,19 +2890,24 @@ func TestPostgresMapBroker_RedisFanout_AdvisoryLockExclusion(t *testing.T) {
 		_ = node2.Shutdown(context.Background())
 	})
 
-	// Give advisory lock workers time to acquire locks.
-	time.Sleep(2 * time.Second)
-
-	// Check advisory locks — for each shard, exactly one session should hold the lock.
-	for i := 0; i < numShards; i++ {
-		lockID := lockBaseID + int64(i)
-		var count int
-		err := broker1.pool.QueryRow(ctx,
-			"SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' AND objid = $1 AND granted = true",
-			lockID).Scan(&count)
-		require.NoError(t, err)
-		require.Equal(t, 1, count, "shard %d should have exactly one lock holder", i)
-	}
+	// Wait until every shard's advisory lock is held by exactly one session.
+	// Acquisition is asynchronous (worker goroutines acquire on startup);
+	// polling avoids a fixed-duration sleep that flakes on slow CI.
+	require.Eventually(t, func() bool {
+		for i := 0; i < numShards; i++ {
+			lockID := lockBaseID + int64(i)
+			var count int
+			if err := broker1.pool.QueryRow(ctx,
+				"SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' AND objid = $1 AND granted = true",
+				lockID).Scan(&count); err != nil {
+				return false
+			}
+			if count != 1 {
+				return false
+			}
+		}
+		return true
+	}, 10*time.Second, 100*time.Millisecond, "each shard should have exactly one advisory lock holder")
 
 	// Publish some data and verify it arrives via one of the handlers.
 	const numMessages = 5
