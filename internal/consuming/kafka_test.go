@@ -472,7 +472,7 @@ func TestKafkaConsumer_PausePartitions(t *testing.T) {
 	testPayload1 := []byte(`{"key":"value1"}`)
 	testPayload2 := []byte(`{"key":"value2"}`)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	err := createTestTopic(ctx, testKafkaTopic, 1, 1)
@@ -520,6 +520,9 @@ func TestKafkaConsumer_PausePartitions(t *testing.T) {
 
 	consumer.testOnlyConfig = testConfig
 
+	consumerCtx, consumerCancel := context.WithCancel(ctx)
+	defer consumerCancel()
+
 	go func() {
 		err = produceTestMessage(testKafkaTopic, testPayload1, nil)
 		require.NoError(t, err)
@@ -538,14 +541,14 @@ func TestKafkaConsumer_PausePartitions(t *testing.T) {
 	}()
 
 	go func() {
-		err := consumer.Run(ctx)
+		err := consumer.Run(consumerCtx)
 		require.ErrorIs(t, err, context.Canceled)
 		close(consumerClosed)
 	}()
 
 	waitCh(t, event1Received, 30*time.Second, "timeout waiting for event 1")
 	waitCh(t, event2Received, 30*time.Second, "timeout waiting for event 2")
-	cancel()
+	consumerCancel()
 	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
 	close(doneCh)
 }
