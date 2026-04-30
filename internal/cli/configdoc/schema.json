@@ -1473,8 +1473,8 @@
             "go_name": "NumShards",
             "level": 3,
             "type": "int",
-            "default": "16",
-            "comment": "NumShards is the total number of shards for parallel delivery workers.\nChannels are distributed across shards using consistent hashing. Default: 16.",
+            "default": "8",
+            "comment": "NumShards is the total number of shards for parallel delivery workers.\nChannels are distributed across shards using consistent hashing. Default: 8.",
             "is_complex_type": false
           },
           {
@@ -1573,8 +1573,8 @@
                 "go_name": "PollInterval",
                 "level": 4,
                 "type": "Duration",
-                "default": "50ms",
-                "comment": "PollInterval is how often to poll for new stream entries when idle. Default: \"50ms\".",
+                "default": "100ms",
+                "comment": "PollInterval is how often to poll for new stream entries when idle. Default: \"100ms\".",
                 "is_complex_type": false
               },
               {
@@ -2579,8 +2579,8 @@
             "go_name": "NumShards",
             "level": 3,
             "type": "int",
-            "default": "16",
-            "comment": "NumShards is the total number of shards for parallel delivery workers.\nChannels are distributed across shards using consistent hashing. Default: 16.",
+            "default": "8",
+            "comment": "NumShards is the total number of shards for parallel delivery workers.\nChannels are distributed across shards using consistent hashing. Default: 8.",
             "is_complex_type": false
           },
           {
@@ -2689,8 +2689,8 @@
                 "go_name": "PollInterval",
                 "level": 4,
                 "type": "Duration",
-                "default": "50ms",
-                "comment": "PollInterval is how often to poll for new stream entries when idle. Default: \"50ms\".",
+                "default": "100ms",
+                "comment": "PollInterval is how often to poll for new stream entries when idle. Default: \"100ms\".",
                 "is_complex_type": false
               },
               {
