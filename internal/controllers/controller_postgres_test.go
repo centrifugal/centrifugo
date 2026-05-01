@@ -35,6 +35,16 @@ func (h *testControlEventHandler) HandleControl(data []byte) error {
 	return nil
 }
 
+// initializedPrefixes tracks table prefixes already dropped+created in this
+// test process. Tests that share a prefix between two controllers (e.g.
+// broadcast-style tests) must not have the second helper drop tables that
+// the first controller's outbox worker is already polling — doing so causes
+// transient `relation does not exist` errors and lost messages.
+var (
+	initializedPrefixesMu sync.Mutex
+	initializedPrefixes   = map[string]bool{}
+)
+
 // newTestPostgresController creates a controller with a unique table prefix
 // for test isolation, runs EnsureSchema, and registers the handler to start
 // background workers. Does NOT call node.Run() to avoid the node's internal
@@ -62,8 +72,19 @@ func newTestPostgresController(tb testing.TB, conf PostgresControllerConfig, han
 
 	ctx := context.Background()
 
-	// Drop and re-create schema for clean state.
-	dropTestControllerSchema(tb, c)
+	// Drop schema only the first time we see this prefix in the test process.
+	// Subsequent controllers for the same prefix attach to the existing schema
+	// via EnsureSchema (idempotent fast-path) so we don't yank tables out from
+	// under another controller's running workers.
+	initializedPrefixesMu.Lock()
+	firstForPrefix := !initializedPrefixes[conf.TablePrefix]
+	if firstForPrefix {
+		initializedPrefixes[conf.TablePrefix] = true
+	}
+	initializedPrefixesMu.Unlock()
+	if firstForPrefix {
+		dropTestControllerSchema(tb, c)
+	}
 	require.NoError(tb, c.EnsureSchema(ctx))
 	cleanupTestControllerMessages(ctx, c)
 
