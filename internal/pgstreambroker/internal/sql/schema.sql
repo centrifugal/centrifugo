@@ -47,9 +47,10 @@ CREATE TABLE IF NOT EXISTS __STREAM_TABLE__ (
 -- Publications-only partial index. History() reads filter WHERE kind = 0,
 -- and the delta prev_data lookup also filters WHERE kind = 0. A partial
 -- index keeps the index small and the planner happy without scanning over
--- join/leave rows.
-CREATE INDEX IF NOT EXISTS __STREAM_TABLE___channel_offset_idx
-    ON __STREAM_TABLE__ (channel, channel_offset)
+-- join/leave rows. Including epoch lets History() seek directly past
+-- dead-epoch rows that linger between meta TTL expiry and partition retention.
+CREATE INDEX IF NOT EXISTS __STREAM_TABLE___channel_epoch_offset_idx
+    ON __STREAM_TABLE__ (channel, epoch, channel_offset)
     WHERE kind = 0;
 
 -- Outbox worker batch fetch — polls all kinds (publications, joins, leaves)
@@ -278,13 +279,14 @@ BEGIN
     END IF;
 
     -- Delta lookup: fetch the most recent publication's data for this channel.
-    -- Order by channel_offset (not id) so the partial index can serve it.
-    -- Within a single channel under the shard lock, channel_offset and id
-    -- are monotonic together, so the result is identical.
+    -- Filter by epoch so a stale dead-epoch row with a higher channel_offset
+    -- (e.g. old epoch was at 1000, new epoch just started at 1) doesn't get
+    -- picked as the "previous" publication. Order by channel_offset (not id)
+    -- so the partial index can serve it.
     IF p_use_delta THEN
         SELECT data INTO v_prev_data
         FROM __STREAM_TABLE__
-        WHERE channel = p_channel AND kind = 0
+        WHERE channel = p_channel AND epoch = v_epoch AND kind = 0
         ORDER BY channel_offset DESC LIMIT 1;
     END IF;
 

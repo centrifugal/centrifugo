@@ -1504,3 +1504,134 @@ func testutilGaugeValue(t *testing.T, vec *prometheus.GaugeVec, lvs ...string) f
 	}
 	return m.Gauge.GetValue()
 }
+
+// TestPostgresStreamBroker_History_FiltersDeadEpoch verifies that History
+// rejects rows from a previous epoch that linger in the partitioned stream
+// table after meta TTL expiry + recreation. The time-based `created_at >
+// cutoff` filter alone fails when history_ttl is widened between the dead
+// epoch's last publish and the read; this test reproduces that scenario and
+// confirms the new `epoch =` predicate closes it.
+func TestPostgresStreamBroker_History_FiltersDeadEpoch(t *testing.T) {
+	e, _, _ := newTestPostgresStreamBroker(t)
+	ctx := context.Background()
+
+	channel := "test_dead_epoch_history"
+
+	// Build the dead epoch under a short history_ttl. Three publishes leave
+	// three stream rows tagged with epoch1.
+	for i := 0; i < 3; i++ {
+		_, err := e.Publish(channel, []byte(fmt.Sprintf(`{"dead":%d}`, i)), centrifuge.PublishOptions{
+			HistoryTTL:  1 * time.Minute,
+			HistorySize: 10,
+		})
+		require.NoError(t, err)
+	}
+
+	// Capture the dead epoch and drop the meta row to simulate meta TTL expiry.
+	// Doing it directly avoids waiting for HistoryMetaTTL in a real test.
+	var deadEpoch string
+	err := e.pool.QueryRow(ctx, fmt.Sprintf(
+		`SELECT epoch FROM %s WHERE channel = $1`, e.names.meta), channel,
+	).Scan(&deadEpoch)
+	require.NoError(t, err)
+	_, err = e.pool.Exec(ctx, fmt.Sprintf(
+		`DELETE FROM %s WHERE channel = $1`, e.names.meta), channel)
+	require.NoError(t, err)
+
+	// The next publish picks a much wider history_ttl. Without the epoch
+	// predicate, the read-time `created_at > NOW - 1h` cutoff would let the
+	// dead-epoch rows back in.
+	res, err := e.Publish(channel, []byte(`{"alive":0}`), centrifuge.PublishOptions{
+		HistoryTTL:  1 * time.Hour,
+		HistorySize: 10,
+	})
+	require.NoError(t, err)
+	require.NotEqual(t, deadEpoch, res.Epoch, "fresh meta must have a new epoch")
+	require.Equal(t, uint64(1), res.Offset, "fresh meta starts at offset 1")
+
+	// Sanity: dead-epoch rows still in the stream table.
+	var totalRows int
+	err = e.pool.QueryRow(ctx, fmt.Sprintf(
+		`SELECT COUNT(*) FROM %s WHERE channel = $1 AND kind = 0`, e.names.stream),
+		channel,
+	).Scan(&totalRows)
+	require.NoError(t, err)
+	require.Equal(t, 4, totalRows, "stream must still hold dead-epoch rows for the test premise")
+
+	// History must return only the live-epoch row, even though dead rows
+	// share channel_offset=1 and fall inside the new wider cutoff window.
+	pubs, sp, err := e.History(channel, centrifuge.HistoryOptions{
+		Filter: centrifuge.HistoryFilter{
+			Since: &centrifuge.StreamPosition{Offset: 0},
+			Limit: 100,
+		},
+		MetaTTL: time.Hour,
+	})
+	require.NoError(t, err)
+	require.Equal(t, res.Epoch, sp.Epoch)
+	require.Len(t, pubs, 1, "History must filter out dead-epoch rows")
+	require.Equal(t, []byte(`{"alive":0}`), pubs[0].Data)
+	require.Equal(t, uint64(1), pubs[0].Offset)
+
+	// Reverse read enforces the predicate too.
+	pubs, _, err = e.History(channel, centrifuge.HistoryOptions{
+		Filter: centrifuge.HistoryFilter{
+			Since:   &centrifuge.StreamPosition{Offset: 0},
+			Limit:   100,
+			Reverse: true,
+		},
+		MetaTTL: time.Hour,
+	})
+	require.NoError(t, err)
+	require.Len(t, pubs, 1, "reverse History must also filter dead-epoch rows")
+	require.Equal(t, []byte(`{"alive":0}`), pubs[0].Data)
+}
+
+// TestPostgresStreamBroker_DeltaPrev_FiltersDeadEpoch verifies that the delta
+// prev_data lookup inside the publish function ignores dead-epoch rows. If a
+// dead epoch had a higher channel_offset than the freshly recreated meta,
+// without the epoch filter the delta would point at a stale row's payload —
+// poisoning the delta sent to subscribers.
+func TestPostgresStreamBroker_DeltaPrev_FiltersDeadEpoch(t *testing.T) {
+	e, _, _ := newTestPostgresStreamBroker(t)
+	ctx := context.Background()
+
+	channel := "test_dead_epoch_delta"
+
+	// Drive the dead epoch to channel_offset=5 so it dominates the new
+	// epoch's first publish on channel_offset=1.
+	for i := 0; i < 5; i++ {
+		_, err := e.Publish(channel, []byte(fmt.Sprintf(`{"dead":%d}`, i)), centrifuge.PublishOptions{
+			HistoryTTL:  1 * time.Minute,
+			HistorySize: 10,
+			UseDelta:    true,
+		})
+		require.NoError(t, err)
+	}
+
+	_, err := e.pool.Exec(ctx, fmt.Sprintf(
+		`DELETE FROM %s WHERE channel = $1`, e.names.meta), channel)
+	require.NoError(t, err)
+
+	// Fresh epoch: top_offset starts at 1. Delta lookup for the very first
+	// publish should find no prev row (this is the new epoch's bootstrap),
+	// not the dead-epoch row at channel_offset=5.
+	res, err := e.Publish(channel, []byte(`{"alive":0}`), centrifuge.PublishOptions{
+		HistoryTTL:  1 * time.Hour,
+		HistorySize: 10,
+		UseDelta:    true,
+	})
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), res.Offset)
+
+	// Inspect the row we just inserted: prev_data must be NULL since this
+	// is the first publish under the new epoch.
+	var prevData []byte
+	err = e.pool.QueryRow(ctx, fmt.Sprintf(
+		`SELECT prev_data FROM %s WHERE channel = $1 AND epoch = $2 AND kind = 0 AND channel_offset = 1`,
+		e.names.stream),
+		channel, res.Epoch,
+	).Scan(&prevData)
+	require.NoError(t, err)
+	require.Nil(t, prevData, "prev_data must be NULL on the fresh epoch's first publish — dead-epoch row must not leak in")
+}

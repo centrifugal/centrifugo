@@ -95,6 +95,13 @@ func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions
 		order = "DESC"
 	}
 
+	// The `epoch = $5` predicate rejects rows from prior epochs that linger
+	// between meta TTL expiry and the next partition retention drop. The
+	// time-based `created_at > cutoff` filter usually catches them too, but
+	// fails when history_ttl is increased between the dead epoch's last
+	// publish and the read — the new wider cutoff lets old rows through.
+	// The new (channel, epoch, channel_offset) WHERE kind=0 partial index
+	// resolves the predicate without scanning dead-epoch rows.
 	rowsQuery := fmt.Sprintf(`
 		SELECT channel_offset, epoch, data, tags, client_id, user_id, conn_info, chan_info, prev_data
 		  FROM %s
@@ -103,11 +110,12 @@ func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions
 		   AND channel_offset >= $2
 		   AND channel_offset <= $3
 		   AND created_at > $4
+		   AND epoch = $5
 		 ORDER BY channel_offset %s
-		 LIMIT $5
+		 LIMIT $6
 	`, e.names.stream, order)
 
-	rows, err := pool.Query(ctx, rowsQuery, ch, effectiveStart, topOffset, cutoff, effectiveLimit)
+	rows, err := pool.Query(ctx, rowsQuery, ch, effectiveStart, topOffset, cutoff, epoch, effectiveLimit)
 	if err != nil {
 		return nil, centrifuge.StreamPosition{}, fmt.Errorf("postgres stream broker: history query: %w", err)
 	}

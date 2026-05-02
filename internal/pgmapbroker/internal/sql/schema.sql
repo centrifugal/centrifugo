@@ -35,7 +35,10 @@ CREATE TABLE IF NOT EXISTS __PREFIX__stream (
     PRIMARY KEY (id, created_at)
 ) PARTITION BY RANGE (created_at);
 
-CREATE INDEX IF NOT EXISTS __PREFIX__stream_channel_offset_idx ON __PREFIX__stream (channel, channel_offset);
+-- (channel, epoch, channel_offset) lets ReadStream seek directly past dead-epoch
+-- rows that linger between meta TTL expiry and the next partition retention
+-- drop, instead of fetching them and discarding by filter.
+CREATE INDEX IF NOT EXISTS __PREFIX__stream_channel_epoch_offset_idx ON __PREFIX__stream (channel, epoch, channel_offset);
 CREATE INDEX IF NOT EXISTS __PREFIX__stream_channel_id_idx ON __PREFIX__stream (channel, id DESC);
 CREATE INDEX IF NOT EXISTS __PREFIX__stream_shard_id_idx ON __PREFIX__stream (shard_id, id);
 CREATE INDEX IF NOT EXISTS __PREFIX__stream_created_at_idx ON __PREFIX__stream (created_at);
@@ -161,6 +164,7 @@ DECLARE
     v_current_version BIGINT;
     v_current_version_epoch TEXT;
     v_shard_id INTEGER;
+    v_meta_inserted BOOLEAN;
 BEGIN
     -- Validate: meta_ttl must outlive key_ttl. When keys are permanent
     -- (p_key_ttl IS NULL), meta must also be permanent (p_meta_ttl IS NULL).
@@ -191,11 +195,22 @@ BEGIN
     -- if a concurrent cleanup deleted the meta between the two statements.
     -- Qualified column references (m.top_offset, m.epoch) disambiguate from
     -- the function's OUT parameter named "epoch".
+    --
+    -- (xmax = 0) distinguishes a fresh INSERT from a CONFLICT-DO-UPDATE: when
+    -- the meta row was just created (e.g. cleanupEntries dropped the prior
+    -- one), we wipe the channel's state below — otherwise zombie state rows
+    -- from the dead epoch would be returned by ReadState/Stats with stale
+    -- key_offset values until expire_keys catches up. Mirrors the Redis
+    -- broker's `if top_offset == 1 then del stream_key` safety net.
     INSERT INTO __PREFIX__meta AS m (channel, top_offset, epoch, updated_at)
     VALUES (p_channel, 0, substr(md5(random()::text || random()::text), 1, 8), NOW())
     ON CONFLICT (channel) DO UPDATE
         SET updated_at = m.updated_at
-    RETURNING m.top_offset, m.epoch INTO v_offset, v_epoch;
+    RETURNING m.top_offset, m.epoch, (xmax = 0) INTO v_offset, v_epoch, v_meta_inserted;
+
+    IF v_meta_inserted THEN
+        DELETE FROM __PREFIX__state WHERE channel = p_channel;
+    END IF;
 
     -- 2. Check idempotency
     IF p_idempotency_key IS NOT NULL THEN
@@ -238,6 +253,13 @@ BEGIN
             IF p_refresh_ttl_on_suppress AND p_key_ttl IS NOT NULL THEN
                 UPDATE __PREFIX__state SET expires_at = NOW() + p_key_ttl, updated_at = NOW()
                 WHERE channel = p_channel AND key = p_key;
+                -- Keepalive must extend meta TTL too, otherwise meta expires while
+                -- keys are being refreshed and the next publish creates a new epoch
+                -- (channel "blinks" — clients see ErrorUnrecoverablePosition).
+                IF p_meta_ttl IS NOT NULL THEN
+                    UPDATE __PREFIX__meta SET expires_at = NOW() + p_meta_ttl, updated_at = NOW()
+                    WHERE channel = p_channel;
+                END IF;
             END IF;
             RETURN QUERY SELECT NULL::BIGINT, v_offset, v_epoch, TRUE, 'key_exists'::TEXT, NULL::__DATA_TYPE__, NULL::BIGINT;
             RETURN;
@@ -426,9 +448,15 @@ BEGIN
     -- 0. Per-shard serialization lock (lock order: shard → meta → state)
     PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
 
-    -- 1. Get stream metadata
+    -- 1. Get stream metadata under FOR UPDATE so cleanupEntries (which doesn't
+    -- take the shard lock) can't delete the meta row between this read and
+    -- the UPDATE in step 5. Without the lock, a concurrent cleanup could leave
+    -- this function inserting a stream row under a dead epoch with a stale
+    -- v_offset (the UPDATE would match 0 rows but RETURNING ... INTO doesn't
+    -- reset v_offset on no-match).
     SELECT top_offset, m.epoch INTO v_offset, v_epoch
-    FROM __PREFIX__meta m WHERE m.channel = p_channel;
+    FROM __PREFIX__meta m WHERE m.channel = p_channel
+    FOR UPDATE;
 
     IF NOT FOUND THEN
         RETURN QUERY SELECT NULL::BIGINT, 0::BIGINT, ''::TEXT, TRUE, 'key_not_found'::TEXT, NULL::__DATA_TYPE__, NULL::BIGINT;

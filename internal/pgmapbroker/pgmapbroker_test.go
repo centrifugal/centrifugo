@@ -1434,7 +1434,7 @@ func verifySchemaComplete(t *testing.T, ctx context.Context, pool *pgxpool.Pool,
 
 	// Check indexes exist.
 	for _, suffix := range []string{
-		"stream_channel_offset_idx",
+		"stream_channel_epoch_offset_idx",
 		"stream_channel_id_idx",
 		"stream_created_at_idx",
 		"stream_shard_id_idx",
@@ -3584,4 +3584,358 @@ func TestPostgresMapBroker_VersionPreserved(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, res.Suppressed,
 		"newer version should still be accepted after unversioned publish")
+}
+
+// TestPostgresMapBroker_RefreshTTLOnSuppress_RefreshesMetaTTL verifies that a
+// suppressed if_new+refresh_ttl_on_suppress publish (the periodic presence
+// keepalive path) extends meta.expires_at. Without this, meta dies under quiet
+// steady-state and the next publish creates a new epoch — clients see a
+// spurious ErrorUnrecoverablePosition.
+func TestPostgresMapBroker_RefreshTTLOnSuppress_RefreshesMetaTTL(t *testing.T) {
+	node, _ := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode:      centrifuge.MapModeRecoverable,
+					KeyTTL:    60 * time.Second,
+					StreamTTL: 60 * time.Second,
+					MetaTTL:   120 * time.Second,
+				}
+			},
+		},
+	})
+	broker := newTestPostgresMapBroker(t, node)
+	ctx := context.Background()
+	ch := fmt.Sprintf("test_meta_ttl_refresh_%d", time.Now().UnixNano())
+
+	// First publish creates meta with expires_at = NOW() + MetaTTL.
+	_, err := broker.Publish(ctx, ch, "k", centrifuge.MapPublishOptions{
+		Data:    []byte("v1"),
+		KeyMode: centrifuge.KeyModeIfNew,
+	})
+	require.NoError(t, err)
+
+	var firstExpiresAt time.Time
+	err = broker.pool.QueryRow(ctx, fmt.Sprintf(
+		`SELECT expires_at FROM %s WHERE channel = $1`, broker.names.meta), ch,
+	).Scan(&firstExpiresAt)
+	require.NoError(t, err)
+	require.False(t, firstExpiresAt.IsZero(), "meta expires_at must be set when MetaTTL > 0")
+
+	// Wait long enough for NOW()+MetaTTL on the second call to clearly exceed
+	// the first expires_at; needs to be larger than clock resolution.
+	time.Sleep(1100 * time.Millisecond)
+
+	// Suppressed keepalive: same key, if_new + refresh_ttl_on_suppress.
+	res, err := broker.Publish(ctx, ch, "k", centrifuge.MapPublishOptions{
+		Data:                 []byte("v1"),
+		KeyMode:              centrifuge.KeyModeIfNew,
+		RefreshTTLOnSuppress: true,
+	})
+	require.NoError(t, err)
+	require.True(t, res.Suppressed)
+	require.Equal(t, centrifuge.SuppressReasonKeyExists, res.SuppressReason)
+
+	var secondExpiresAt time.Time
+	err = broker.pool.QueryRow(ctx, fmt.Sprintf(
+		`SELECT expires_at FROM %s WHERE channel = $1`, broker.names.meta), ch,
+	).Scan(&secondExpiresAt)
+	require.NoError(t, err)
+	require.True(t, secondExpiresAt.After(firstExpiresAt),
+		"suppressed keepalive must extend meta.expires_at: was %s, now %s",
+		firstExpiresAt, secondExpiresAt)
+}
+
+// TestPostgresMapBroker_RefreshTTLOnSuppress_DoesNotExtendWhenFlagOff verifies
+// the negative case — without RefreshTTLOnSuppress, meta TTL is unchanged.
+// Guards against accidentally bumping meta on every suppressed publish.
+func TestPostgresMapBroker_RefreshTTLOnSuppress_DoesNotExtendWhenFlagOff(t *testing.T) {
+	node, _ := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode:      centrifuge.MapModeRecoverable,
+					KeyTTL:    60 * time.Second,
+					StreamTTL: 60 * time.Second,
+					MetaTTL:   120 * time.Second,
+				}
+			},
+		},
+	})
+	broker := newTestPostgresMapBroker(t, node)
+	ctx := context.Background()
+	ch := fmt.Sprintf("test_meta_ttl_no_refresh_%d", time.Now().UnixNano())
+
+	_, err := broker.Publish(ctx, ch, "k", centrifuge.MapPublishOptions{
+		Data:    []byte("v1"),
+		KeyMode: centrifuge.KeyModeIfNew,
+	})
+	require.NoError(t, err)
+
+	var firstExpiresAt time.Time
+	err = broker.pool.QueryRow(ctx, fmt.Sprintf(
+		`SELECT expires_at FROM %s WHERE channel = $1`, broker.names.meta), ch,
+	).Scan(&firstExpiresAt)
+	require.NoError(t, err)
+
+	time.Sleep(1100 * time.Millisecond)
+
+	// Suppressed publish without RefreshTTLOnSuppress.
+	res, err := broker.Publish(ctx, ch, "k", centrifuge.MapPublishOptions{
+		Data:    []byte("v1"),
+		KeyMode: centrifuge.KeyModeIfNew,
+	})
+	require.NoError(t, err)
+	require.True(t, res.Suppressed)
+
+	var secondExpiresAt time.Time
+	err = broker.pool.QueryRow(ctx, fmt.Sprintf(
+		`SELECT expires_at FROM %s WHERE channel = $1`, broker.names.meta), ch,
+	).Scan(&secondExpiresAt)
+	require.NoError(t, err)
+	require.True(t, secondExpiresAt.Equal(firstExpiresAt),
+		"suppressed publish without RefreshTTLOnSuppress must not change meta.expires_at")
+}
+
+// TestPostgresMapBroker_ReadStream_FiltersDeadEpoch verifies that ReadStream
+// rejects rows from a previous epoch that linger in the partitioned stream
+// table after meta TTL expiry + recreation. Reproduces the bug where a fresh
+// subscriber received hundreds of stale publications.
+func TestPostgresMapBroker_ReadStream_FiltersDeadEpoch(t *testing.T) {
+	node, _ := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode:   centrifuge.MapModeRecoverable,
+					KeyTTL: 60 * time.Second,
+				}
+			},
+		},
+	})
+	broker := newTestPostgresMapBroker(t, node)
+	ctx := context.Background()
+	ch := fmt.Sprintf("test_dead_epoch_%d", time.Now().UnixNano())
+
+	// Build the dead epoch: 3 publishes leave 3 stream rows tagged with epoch1.
+	for i := 0; i < 3; i++ {
+		_, err := broker.Publish(ctx, ch, fmt.Sprintf("k%d", i), centrifuge.MapPublishOptions{
+			Data: []byte(fmt.Sprintf("dead-%d", i)),
+		})
+		require.NoError(t, err)
+	}
+
+	// Capture the dead epoch and drop the meta row. This is what
+	// cleanupEntries would do when meta.expires_at < NOW(); we do it
+	// directly so the test doesn't depend on TTL timing.
+	var deadEpoch string
+	err := broker.pool.QueryRow(ctx, fmt.Sprintf(
+		`SELECT epoch FROM %s WHERE channel = $1`, broker.names.meta), ch,
+	).Scan(&deadEpoch)
+	require.NoError(t, err)
+	_, err = broker.pool.Exec(ctx, fmt.Sprintf(
+		`DELETE FROM %s WHERE channel = $1`, broker.names.meta), ch)
+	require.NoError(t, err)
+
+	// Next publish creates fresh meta with a new random epoch + top_offset=0.
+	res, err := broker.Publish(ctx, ch, "k0", centrifuge.MapPublishOptions{
+		Data: []byte("alive-0"),
+	})
+	require.NoError(t, err)
+	require.False(t, res.Suppressed)
+	require.NotEqual(t, deadEpoch, res.Position.Epoch, "new meta must have a fresh epoch")
+	require.Equal(t, uint64(1), res.Position.Offset, "fresh meta starts at offset 1")
+
+	// Sanity: the partitioned stream table still contains rows from the dead
+	// epoch (partition retention hasn't run). Without the epoch predicate
+	// fix, ReadStream would return all 4 rows; with the fix, only the
+	// current-epoch row is returned.
+	var totalRows int
+	err = broker.pool.QueryRow(ctx, fmt.Sprintf(
+		`SELECT COUNT(*) FROM %s WHERE channel = $1`, broker.names.stream), ch,
+	).Scan(&totalRows)
+	require.NoError(t, err)
+	require.Equal(t, 4, totalRows, "stream must still contain dead-epoch rows for the test premise to hold")
+
+	// Forward read from offset 0 must return only the live-epoch row.
+	streamRes, err := broker.ReadStream(ctx, ch, centrifuge.MapReadStreamOptions{
+		Filter: centrifuge.StreamFilter{
+			Since: &centrifuge.StreamPosition{Offset: 0},
+			Limit: 100,
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, streamRes.Publications, 1, "ReadStream must filter out dead-epoch rows")
+	require.Equal(t, []byte("alive-0"), streamRes.Publications[0].Data)
+	require.Equal(t, uint64(1), streamRes.Publications[0].Offset)
+	require.Equal(t, res.Position.Epoch, streamRes.Position.Epoch)
+
+	// Reverse read also enforces the predicate.
+	since := centrifuge.StreamPosition{Offset: uint64(1 << 62)}
+	streamRes, err = broker.ReadStream(ctx, ch, centrifuge.MapReadStreamOptions{
+		Filter: centrifuge.StreamFilter{
+			Since:   &since,
+			Limit:   100,
+			Reverse: true,
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, streamRes.Publications, 1, "reverse ReadStream must also filter dead-epoch rows")
+	require.Equal(t, []byte("alive-0"), streamRes.Publications[0].Data)
+}
+
+// TestPostgresMapBroker_PublishWipesStateOnEpochReset verifies that when
+// cf_map_publish creates a fresh meta row (UPSERT inserted, not updated), the
+// channel's prior state rows are wiped. Without this, ReadState/Stats would
+// return zombie keys with stale key_offsets under the new meta's epoch — a
+// transient inconsistency that lasts until expire_keys cleans them up.
+func TestPostgresMapBroker_PublishWipesStateOnEpochReset(t *testing.T) {
+	node, _ := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode:   centrifuge.MapModeRecoverable,
+					KeyTTL: 60 * time.Second,
+				}
+			},
+		},
+	})
+	broker := newTestPostgresMapBroker(t, node)
+	ctx := context.Background()
+	ch := fmt.Sprintf("test_state_wipe_%d", time.Now().UnixNano())
+
+	// Build state under epoch_old: three keys.
+	for _, k := range []string{"k1", "k2", "k3"} {
+		_, err := broker.Publish(ctx, ch, k, centrifuge.MapPublishOptions{
+			Data: []byte("dead"),
+		})
+		require.NoError(t, err)
+	}
+
+	// Drop meta to simulate cleanupEntries firing while state rows linger
+	// (their expires_at hasn't been reaped by expire_keys yet).
+	var deadEpoch string
+	err := broker.pool.QueryRow(ctx, fmt.Sprintf(
+		`SELECT epoch FROM %s WHERE channel = $1`, broker.names.meta), ch,
+	).Scan(&deadEpoch)
+	require.NoError(t, err)
+	_, err = broker.pool.Exec(ctx, fmt.Sprintf(
+		`DELETE FROM %s WHERE channel = $1`, broker.names.meta), ch)
+	require.NoError(t, err)
+
+	// Pre-fix: the three k1/k2/k3 rows would still be in cf_map_state.
+	var preCount int
+	err = broker.pool.QueryRow(ctx, fmt.Sprintf(
+		`SELECT COUNT(*) FROM %s WHERE channel = $1`, broker.names.state), ch,
+	).Scan(&preCount)
+	require.NoError(t, err)
+	require.Equal(t, 3, preCount, "test premise: zombie state rows must exist before fresh publish")
+
+	// Fresh publish creates new meta + new epoch + new state row for "k4".
+	res, err := broker.Publish(ctx, ch, "k4", centrifuge.MapPublishOptions{
+		Data: []byte("alive"),
+	})
+	require.NoError(t, err)
+	require.NotEqual(t, deadEpoch, res.Position.Epoch)
+	require.Equal(t, uint64(1), res.Position.Offset)
+
+	// Only the new key must remain; the three zombies must be gone.
+	stateRes, err := broker.ReadState(ctx, ch, centrifuge.MapReadStateOptions{Limit: 100})
+	require.NoError(t, err)
+	require.Len(t, stateRes.Publications, 1, "ReadState must return only the new-epoch row")
+	require.Equal(t, "k4", stateRes.Publications[0].Key)
+	require.Equal(t, []byte("alive"), stateRes.Publications[0].Data)
+	require.Equal(t, uint64(1), stateRes.Publications[0].Offset)
+
+	stats, err := broker.Stats(ctx, ch)
+	require.NoError(t, err)
+	require.Equal(t, 1, stats.NumKeys, "Stats must reflect wiped zombies")
+}
+
+// TestPostgresMapBroker_PublishDoesNotWipeStateOnNormalPublish guards against
+// the wipe firing when meta already exists — every subsequent publish must
+// preserve other keys' state, only the conflict path runs.
+func TestPostgresMapBroker_PublishDoesNotWipeStateOnNormalPublish(t *testing.T) {
+	node, _ := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode:   centrifuge.MapModeRecoverable,
+					KeyTTL: 60 * time.Second,
+				}
+			},
+		},
+	})
+	broker := newTestPostgresMapBroker(t, node)
+	ctx := context.Background()
+	ch := fmt.Sprintf("test_state_no_wipe_%d", time.Now().UnixNano())
+
+	for _, k := range []string{"k1", "k2", "k3"} {
+		_, err := broker.Publish(ctx, ch, k, centrifuge.MapPublishOptions{
+			Data: []byte("v"),
+		})
+		require.NoError(t, err)
+	}
+
+	// Subsequent publish hits the CONFLICT path (xmax != 0), so state must
+	// NOT be wiped.
+	_, err := broker.Publish(ctx, ch, "k4", centrifuge.MapPublishOptions{
+		Data: []byte("v"),
+	})
+	require.NoError(t, err)
+
+	stateRes, err := broker.ReadState(ctx, ch, centrifuge.MapReadStateOptions{Limit: 100})
+	require.NoError(t, err)
+	require.Len(t, stateRes.Publications, 4, "all four keys must remain after a normal publish")
+}
+
+// TestPostgresMapBroker_RemoveAtomicVsCleanup reproduces the race where
+// cf_map_remove's SELECT was not FOR UPDATE: a concurrent meta DELETE
+// (simulating cleanupEntries) between the SELECT and the UPDATE would let
+// remove insert a stream row under a dead epoch with a stale v_offset. With
+// the FOR UPDATE fix the meta delete blocks until remove commits, so when we
+// DELETE the meta row first and then call Remove the function correctly
+// returns key_not_found instead of leaving a phantom stream row.
+func TestPostgresMapBroker_RemoveAtomicVsCleanup(t *testing.T) {
+	node, _ := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode:   centrifuge.MapModeRecoverable,
+					KeyTTL: 60 * time.Second,
+				}
+			},
+		},
+	})
+	broker := newTestPostgresMapBroker(t, node)
+	ctx := context.Background()
+	ch := fmt.Sprintf("test_remove_race_%d", time.Now().UnixNano())
+
+	_, err := broker.Publish(ctx, ch, "k", centrifuge.MapPublishOptions{
+		Data: []byte("v"),
+	})
+	require.NoError(t, err)
+
+	// Simulate cleanupEntries deleting the meta row before the remove call.
+	// We also drop the state row — otherwise the wiping fix from
+	// PublishWipesStateOnEpochReset would have removed it on the next
+	// publish, but here we want to test the remove path specifically.
+	_, err = broker.pool.Exec(ctx, fmt.Sprintf(
+		`DELETE FROM %s WHERE channel = $1`, broker.names.meta), ch)
+	require.NoError(t, err)
+
+	// Remove must observe meta is gone and report key_not_found, not silently
+	// proceed with a stale v_offset and insert a phantom stream row.
+	res, err := broker.Remove(ctx, ch, "k", centrifuge.MapRemoveOptions{})
+	require.NoError(t, err)
+	require.True(t, res.Suppressed, "Remove must be suppressed when meta is missing")
+	require.Equal(t, centrifuge.SuppressReasonKeyNotFound, res.SuppressReason)
+
+	// Stream must NOT contain a removal row inserted by the racing remove
+	// (channel had 1 publication; with the fix, no further row is appended).
+	var streamCount int
+	err = broker.pool.QueryRow(ctx, fmt.Sprintf(
+		`SELECT COUNT(*) FROM %s WHERE channel = $1`, broker.names.stream), ch,
+	).Scan(&streamCount)
+	require.NoError(t, err)
+	require.Equal(t, 1, streamCount, "no phantom removal row may be inserted under a dead epoch")
 }

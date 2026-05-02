@@ -1286,8 +1286,13 @@ func (e *PostgresMapBroker) ReadStream(ctx context.Context, ch string, opts cent
 	limit := opts.Filter.Limit
 	unlimited := limit < 0
 
-	// Build stream query.
+	// Build stream query. The `epoch = (SELECT epoch FROM meta ...)` correlation
+	// rejects rows from prior epochs that linger between meta TTL expiry and the
+	// next partition retention drop. Inside REPEATABLE READ both reads see the
+	// same snapshot, and the new (channel, epoch, channel_offset) index resolves
+	// the predicate without scanning dead-epoch rows.
 	streamTable := e.names.stream
+	metaTable := e.names.meta
 	var streamQuery string
 	if opts.Filter.Reverse {
 		if opts.Filter.Since == nil {
@@ -1300,16 +1305,18 @@ func (e *PostgresMapBroker) ReadStream(ctx context.Context, ch string, opts cent
 				SELECT key, data, tags, channel_offset, removed, client_id, user_id, conn_info, chan_info
 				FROM %s
 				WHERE channel = $1 AND channel_offset < $2
+				  AND epoch = (SELECT epoch FROM %s WHERE channel = $1)
 				ORDER BY channel_offset DESC
-			`, streamTable)
+			`, streamTable, metaTable)
 		} else {
 			streamQuery = fmt.Sprintf(`
 				SELECT key, data, tags, channel_offset, removed, client_id, user_id, conn_info, chan_info
 				FROM %s
 				WHERE channel = $1 AND channel_offset < $2
+				  AND epoch = (SELECT epoch FROM %s WHERE channel = $1)
 				ORDER BY channel_offset DESC
 				LIMIT $3
-			`, streamTable)
+			`, streamTable, metaTable)
 		}
 	} else {
 		if unlimited {
@@ -1317,16 +1324,18 @@ func (e *PostgresMapBroker) ReadStream(ctx context.Context, ch string, opts cent
 				SELECT key, data, tags, channel_offset, removed, client_id, user_id, conn_info, chan_info
 				FROM %s
 				WHERE channel = $1 AND channel_offset > $2
+				  AND epoch = (SELECT epoch FROM %s WHERE channel = $1)
 				ORDER BY channel_offset ASC
-			`, streamTable)
+			`, streamTable, metaTable)
 		} else {
 			streamQuery = fmt.Sprintf(`
 				SELECT key, data, tags, channel_offset, removed, client_id, user_id, conn_info, chan_info
 				FROM %s
 				WHERE channel = $1 AND channel_offset > $2
+				  AND epoch = (SELECT epoch FROM %s WHERE channel = $1)
 				ORDER BY channel_offset ASC
 				LIMIT $3
-			`, streamTable)
+			`, streamTable, metaTable)
 		}
 	}
 
