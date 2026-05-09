@@ -32,8 +32,6 @@ import (
 	"github.com/quic-go/webtransport-go"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 )
 
 // HandlerFlag is a bit mask of handlers that must be enabled in mux.
@@ -549,9 +547,6 @@ func runHTTPServers(
 				_ = h3Server.SetQUICHeaders(w.Header())
 				mux.ServeHTTP(w, r)
 			})
-		} else if useH2C {
-			h2s := &http2.Server{}
-			handler = h2c.NewHandler(mux, h2s)
 		}
 
 		server := &http.Server{
@@ -562,6 +557,12 @@ func runHTTPServers(
 			ReadHeaderTimeout: 10 * time.Second,
 			ReadTimeout:       30 * time.Second,
 			WriteTimeout:      10 * time.Second,
+		}
+		if useH2C {
+			protocols := new(http.Protocols)
+			protocols.SetHTTP1(true)
+			protocols.SetUnencryptedHTTP2(true)
+			server.Protocols = protocols
 		}
 
 		servers = append(servers, server)
