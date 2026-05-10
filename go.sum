@@ -71,8 +71,8 @@ github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6r
 github.com/cenkalti/backoff/v5 v5.0.3 h1:ZN+IMa753KfX5hd8vVaMixjnqRZ3y8CuJKRKj1xcsSM=
 github.com/cenkalti/backoff/v5 v5.0.3/go.mod h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F97BxZthm/crw=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
-github.com/centrifugal/centrifuge v0.38.1-0.20260509163426-1ff5442f01e0 h1:G9bIE7KPV9g9SAIklMRm2l7Hr5b8yGTFJTjKlYPBao4=
-github.com/centrifugal/centrifuge v0.38.1-0.20260509163426-1ff5442f01e0/go.mod h1:2ST+W3RbUcm62vLlzLeHPnjnhKjuiINpqLlT1xEDSvw=
+github.com/centrifugal/centrifuge v0.38.1-0.20260510064234-0af8de06daad h1:7UfuWwrW13V/+pW9F2iO5ypJFtdoDU/m8A3GddUhEZg=
+github.com/centrifugal/centrifuge v0.38.1-0.20260510064234-0af8de06daad/go.mod h1:ZiPxuXNZaHRbl3MN87kQfBzWFOKU8Bsqw9HHYrcblio=
 github.com/centrifugal/protocol v0.19.0 h1:xG3dwnnM0PNsLrqWiNB6b9129rXQBOEfdQRHV4icJdg=
 github.com/centrifugal/protocol v0.19.0/go.mod h1:zFsp4f1ZRejq1dkyNUbabdPj4dMYOpK8RRXDwHGVpVY=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
@@ -253,8 +253,8 @@ github.com/quic-go/webtransport-go v0.10.0 h1:LqXXPOXuETY5Xe8ITdGisBzTYmUOy5eSj+
 github.com/quic-go/webtransport-go v0.10.0/go.mod h1:LeGIXr5BQKE3UsynwVBeQrU1TPrbh73MGoC6jd+V7ow=
 github.com/rakutentech/jwk-go v1.2.0 h1:vNJwedPkRR+32V5WGNj0JP4COes93BGERvzQLBjLy4c=
 github.com/rakutentech/jwk-go v1.2.0/go.mod h1:pI0bYVntqaJ27RCpaC75MTUacheW0Rk4+8XzWWe1OWM=
-github.com/redis/rueidis v1.0.73 h1:0Enrg0VuMdaYyNDDj0lLIheWY0uybCeQOh+jTp2GG3M=
-github.com/redis/rueidis v1.0.73/go.mod h1:lfdcZzJ1oKGKL37vh9fO3ymwt+0TdjkkUCJxbgpmcgQ=
+github.com/redis/rueidis v1.0.74 h1:J5ZNyxMqX+sDQxQztRI928W6TrERpo+pHSwhftnX7NA=
+github.com/redis/rueidis v1.0.74/go.mod h1:lfdcZzJ1oKGKL37vh9fO3ymwt+0TdjkkUCJxbgpmcgQ=
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
 github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
 github.com/rs/xid v1.6.0/go.mod h1:7XoLgs4eV+QndskICGsho+ADou8ySMSjJKDIan90Nz0=
@@ -389,8 +389,8 @@ golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.1.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.6.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.12.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.42.0 h1:omrd2nAlyT5ESRdCLYdm3+fMfNFE/+Rf4bDIQImRJeo=
-golang.org/x/sys v0.42.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
+golang.org/x/sys v0.44.0 h1:ildZl3J4uzeKP07r2F++Op7E9B29JRUy+a27EibtBTQ=
+golang.org/x/sys v0.44.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.3/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
 golang.org/x/text v0.35.0 h1:JOVx6vVDFokkpaq1AEptVzLTpDe9KGpj5tR4/X+ybL8=
