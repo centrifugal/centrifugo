@@ -840,6 +840,11 @@ type KafkaConsumerConfig struct {
 	SASLMechanism string `mapstructure:"sasl_mechanism" json:"sasl_mechanism" envconfig:"sasl_mechanism" yaml:"sasl_mechanism" toml:"sasl_mechanism"`
 	SASLUser      string `mapstructure:"sasl_user" json:"sasl_user" envconfig:"sasl_user" yaml:"sasl_user" toml:"sasl_user"`
 	SASLPassword  string `mapstructure:"sasl_password" json:"sasl_password" envconfig:"sasl_password" yaml:"sasl_password" toml:"sasl_password"`
+	// AssumeRoleARN, when set with sasl_mechanism aws-msk-iam, uses AWS STS AssumeRole to obtain
+	// temporary credentials for MSK IAM authentication (e.g. cross-account MSK). Base credentials
+	// and region come from the default AWS SDK chain (AWS_REGION, instance metadata, etc.).
+	// When set, sasl_user and sasl_password are ignored. When empty, static keys from sasl_user/sasl_password are used.
+	AssumeRoleARN string `mapstructure:"assume_role_arn" json:"assume_role_arn" envconfig:"assume_role_arn" yaml:"assume_role_arn" toml:"assume_role_arn"`
 
 	// InstanceID sets a stable consumer group instance ID for Kafka static membership.
 	// When set, enables the static membership protocol: during rolling restarts, a replacement
@@ -869,6 +874,9 @@ func (c KafkaConsumerConfig) Validate() error {
 	}
 	if c.PublicationDataMode.Enabled && c.PublicationDataMode.ChannelsHeader == "" {
 		return errors.New("no Kafka channels_header_name provided for publication data mode")
+	}
+	if c.AssumeRoleARN != "" && c.SASLMechanism != "aws-msk-iam" {
+		return errors.New("assume_role_arn requires sasl_mechanism aws-msk-iam")
 	}
 	return nil
 }

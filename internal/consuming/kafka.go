@@ -16,10 +16,14 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
 	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsv2cfg "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/rs/zerolog"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/kmsg"
-	"github.com/twmb/franz-go/pkg/sasl/aws"
+	mskaws "github.com/twmb/franz-go/pkg/sasl/aws"
 	"github.com/twmb/franz-go/pkg/sasl/plain"
 	"github.com/twmb/franz-go/pkg/sasl/scram"
 )
@@ -159,6 +163,17 @@ func (c *KafkaConsumer) leaveGroup(ctx context.Context, client *kgo.Client) erro
 	return err
 }
 
+func loadAWSConfigForKafkaAssumeRole(ctx context.Context, roleARN string) (aws.Config, error) {
+	awsCfg, err := awsv2cfg.LoadDefaultConfig(ctx)
+	if err != nil {
+		return aws.Config{}, err
+	}
+	stsClient := sts.NewFromConfig(awsCfg)
+	assumeRoleProvider := stscreds.NewAssumeRoleProvider(stsClient, roleARN)
+	awsCfg.Credentials = aws.NewCredentialsCache(assumeRoleProvider)
+	return awsCfg, nil
+}
+
 func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 	opts := []kgo.Opt{
 		kgo.SeedBrokers(c.config.Brokers...),
@@ -214,10 +229,30 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 				Pass: c.config.SASLPassword,
 			}.AsSha512Mechanism()))
 		case "aws-msk-iam":
-			opts = append(opts, kgo.SASL(aws.Auth{
-				AccessKey: c.config.SASLUser,
-				SecretKey: c.config.SASLPassword,
-			}.AsManagedStreamingIAMMechanism()))
+			if c.config.AssumeRoleARN != "" {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				awsCfg, err := loadAWSConfigForKafkaAssumeRole(ctx, c.config.AssumeRoleARN)
+				cancel()
+				if err != nil {
+					return nil, fmt.Errorf("load AWS config for MSK IAM assume role: %w", err)
+				}
+				opts = append(opts, kgo.SASL(mskaws.ManagedStreamingIAM(func(ctx context.Context) (mskaws.Auth, error) {
+					v, err := awsCfg.Credentials.Retrieve(ctx)
+					if err != nil {
+						return mskaws.Auth{}, err
+					}
+					return mskaws.Auth{
+						AccessKey:    v.AccessKeyID,
+						SecretKey:    v.SecretAccessKey,
+						SessionToken: v.SessionToken,
+					}, nil
+				})))
+			} else {
+				opts = append(opts, kgo.SASL(mskaws.Auth{
+					AccessKey: c.config.SASLUser,
+					SecretKey: c.config.SASLPassword,
+				}.AsManagedStreamingIAMMechanism()))
+			}
 		default:
 			return nil, fmt.Errorf("unsupported SASL mechanism: %s", c.config.SASLMechanism)
 		}
