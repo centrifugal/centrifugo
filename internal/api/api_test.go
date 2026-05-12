@@ -432,9 +432,16 @@ func configWithNamespace(name, subscriptionType string) config.Config {
 		SubscriptionType: subscriptionType,
 	}
 	switch subscriptionType {
-	case "map", "map_clients", "map_users":
+	case "map":
 		// Persistent mode requires no key_ttl and is the simplest minimum.
 		chOpts.Map = configtypes.MapConfig{Mode: "persistent"}
+	case "map_clients", "map_users":
+		// Persistent mode is forbidden here (presence entries need TTL-based
+		// cleanup), so use ephemeral with a key_ttl.
+		chOpts.Map = configtypes.MapConfig{
+			Mode:   "ephemeral",
+			KeyTTL: configtypes.Duration(time.Minute),
+		}
 	case "shared_poll":
 		// Global HMAC secret required for any shared_poll namespace.
 		cfg.SharedPoll.HMACSecretKey = "test-secret"
