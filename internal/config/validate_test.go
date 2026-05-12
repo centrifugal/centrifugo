@@ -431,6 +431,50 @@ func TestValidateMapNamespace_SubscriptionType(t *testing.T) {
 		}}
 		require.NoError(t, cfg.Validate())
 	})
+
+	t.Run("map_clients_persistent_rejected", func(t *testing.T) {
+		cfg := mapDefaultConfig()
+		ns := mapNamespace("ns", "persistent")
+		ns.SubscriptionType = "map_clients"
+		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
+		err := cfg.Validate()
+		require.Error(t, err)
+		require.Contains(t, err.Error(), `map.mode "persistent" is not allowed with subscription_type "map_clients"`)
+	})
+
+	t.Run("map_users_persistent_rejected", func(t *testing.T) {
+		cfg := mapDefaultConfig()
+		ns := mapNamespace("ns", "persistent")
+		ns.SubscriptionType = "map_users"
+		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
+		err := cfg.Validate()
+		require.Error(t, err)
+		require.Contains(t, err.Error(), `map.mode "persistent" is not allowed with subscription_type "map_users"`)
+	})
+
+	t.Run("client_key_with_publish_proxy_rejected", func(t *testing.T) {
+		cfg := mapDefaultConfig()
+		ns := mapNamespace("ns", "ephemeral")
+		ns.Map.KeyTTL = configtypes.Duration(60 * time.Second)
+		ns.Map.ClientKey = "client_id"
+		ns.Map.PublishProxyEnabled = true
+		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
+		err := cfg.Validate()
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "map.client_key is not compatible with map.publish_proxy_enabled")
+	})
+
+	t.Run("client_key_with_remove_proxy_rejected", func(t *testing.T) {
+		cfg := mapDefaultConfig()
+		ns := mapNamespace("ns", "ephemeral")
+		ns.Map.KeyTTL = configtypes.Duration(60 * time.Second)
+		ns.Map.ClientKey = "user_id"
+		ns.Map.RemoveProxyEnabled = true
+		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
+		err := cfg.Validate()
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "map.client_key is not compatible with")
+	})
 }
 
 func TestValidateMapNamespace_PresenceAndRemoveOptions(t *testing.T) {
@@ -463,6 +507,7 @@ func TestValidateMapNamespace_PresenceAndRemoveOptions(t *testing.T) {
 		ns.Map.KeyTTL = configtypes.Duration(60 * time.Second)
 		ns.MapClientsPresenceChannelPrefix = "clients:"
 		clients := mapNamespace("clients", "ephemeral")
+		clients.SubscriptionType = "map_clients"
 		clients.Map.KeyTTL = configtypes.Duration(60 * time.Second)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns, clients}
 		require.NoError(t, cfg.Validate())
@@ -495,11 +540,12 @@ func TestValidateMapNamespace_PresenceAndRemoveOptions(t *testing.T) {
 	t.Run("presence_channel_prefix_works_with_stream_type", func(t *testing.T) {
 		cfg := mapDefaultConfig()
 		clients := mapNamespace("clients", "ephemeral")
+		clients.SubscriptionType = "map_clients"
 		clients.Map.KeyTTL = configtypes.Duration(60 * time.Second)
 		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{{
 			Name: "ns",
 			ChannelOptions: configtypes.ChannelOptions{
-				SubscriptionType:            "stream",
+				SubscriptionType:                "stream",
 				MapClientsPresenceChannelPrefix: "clients:",
 			},
 		}, clients}

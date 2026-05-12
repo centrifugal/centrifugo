@@ -323,6 +323,18 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 	if c.Map.ClientKey != "" && !slices.Contains([]string{"client_id", "user_id"}, c.Map.ClientKey) {
 		return fmt.Errorf("unknown map.client_key: %q (valid: \"client_id\", \"user_id\")", c.Map.ClientKey)
 	}
+	// map.client_key and the publish/remove proxy both decide the final key.
+	// When a proxy is configured, it is solely responsible for keying (it may
+	// echo the client's key or override). Allowing both at once silently lets
+	// the proxy win over client_key, which surprises users who expect
+	// client_key to force the keying. Reject the combination at config-load,
+	// naming the actually-conflicting proxy field.
+	if c.Map.ClientKey != "" && c.Map.PublishProxyEnabled {
+		return fmt.Errorf("map.client_key is not compatible with map.publish_proxy_enabled: the proxy is responsible for keying when enabled")
+	}
+	if c.Map.ClientKey != "" && c.Map.RemoveProxyEnabled {
+		return fmt.Errorf("map.client_key is not compatible with map.remove_proxy_enabled: the proxy is responsible for keying when enabled")
+	}
 
 	if c.SubscriptionType != "" && !slices.Contains([]string{"stream", "map", "map_clients", "map_users", "shared_poll"}, c.SubscriptionType) {
 		return fmt.Errorf("unknown subscription_type: %q", c.SubscriptionType)
@@ -370,6 +382,14 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 	}
 	if c.Map.Mode == "persistent" && c.Map.KeyTTL != 0 {
 		return fmt.Errorf("map.key_ttl must not be set when map.mode is \"persistent\" (entries don't expire)")
+	}
+	// map_clients and map_users rely on TTL as the cleanup fallback: map_clients
+	// uses MapRemove on disconnect with TTL as the safety net for transient
+	// remove failures; map_users is *only* cleaned up by TTL (no remove on
+	// disconnect by design). Persistent mode disables TTL, which means stale
+	// presence entries can linger indefinitely. Refuse the combination.
+	if c.Map.Mode == "persistent" && (c.SubscriptionType == "map_clients" || c.SubscriptionType == "map_users") {
+		return fmt.Errorf("map.mode %q is not allowed with subscription_type %q (presence entries require TTL-based cleanup; use \"ephemeral\" or \"recoverable\")", c.Map.Mode, c.SubscriptionType)
 	}
 	if c.Map.Mode == "ephemeral" {
 		if c.Map.StreamSize > 0 {
