@@ -486,8 +486,61 @@ func TestPostgresMapBroker_CAS(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, res3.Suppressed)
 	require.Equal(t, centrifuge.SuppressReasonPositionMismatch, res3.SuppressReason)
-	require.NotNil(t, res3.CurrentPublication)
-	require.Equal(t, []byte(`{"stock": 9}`), res3.CurrentPublication.Data)
+	require.NotNil(t, res3.CurrentEntry)
+	require.Equal(t, []byte(`{"stock": 9}`), res3.CurrentEntry.Data)
+}
+
+// TestPostgresMapBroker_CAS_StaleEpoch verifies that a CAS attempt using a
+// position from a dead epoch is rejected even when offsets coincidentally
+// match. Clear flips the channel epoch and resets the offset counter; a
+// republish reaches the same offset under a new epoch. A naive offset-only
+// CAS check would let the stale-epoch caller through. Memory and Redis
+// brokers already compare epoch — this test pins PostgreSQL to the same
+// behavior.
+func TestPostgresMapBroker_CAS_StaleEpoch(t *testing.T) {
+	node, _ := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode:   centrifuge.MapModeRecoverable,
+					KeyTTL: 60 * time.Second,
+				}
+			},
+		},
+	})
+	broker := newTestPostgresMapBroker(t, node)
+
+	ctx := context.Background()
+	channel := fmt.Sprintf("test_cas_epoch_%d", time.Now().UnixNano())
+
+	// Initial publish under epoch E1.
+	res1, err := broker.Publish(ctx, channel, "k", centrifuge.MapPublishOptions{
+		Data: []byte(`{"v": 1}`),
+	})
+	require.NoError(t, err)
+	stalePos := res1.Position // {Offset: 1, Epoch: E1}
+
+	// Clear the channel — this drops state and flips epoch on next publish.
+	require.NoError(t, broker.Clear(ctx, channel, centrifuge.MapClearOptions{}))
+
+	// Republish under a fresh epoch E2. Offset starts back at 1, so a
+	// pure-offset CAS using stalePos would falsely succeed.
+	res2, err := broker.Publish(ctx, channel, "k", centrifuge.MapPublishOptions{
+		Data: []byte(`{"v": 2}`),
+	})
+	require.NoError(t, err)
+	require.NotEqual(t, stalePos.Epoch, res2.Position.Epoch, "epoch should have flipped after Clear")
+
+	// CAS using the old (E1, offset=1) position must be rejected — even though
+	// the current offset is also 1, the epoch differs.
+	stale := stalePos
+	res3, err := broker.Publish(ctx, channel, "k", centrifuge.MapPublishOptions{
+		Data:             []byte(`{"v": 99}`),
+		ExpectedPosition: &stale,
+	})
+	require.NoError(t, err)
+	require.True(t, res3.Suppressed, "CAS with stale epoch must be rejected")
+	require.Equal(t, centrifuge.SuppressReasonPositionMismatch, res3.SuppressReason)
 }
 
 func TestPostgresMapBroker_CleanupMetrics(t *testing.T) {

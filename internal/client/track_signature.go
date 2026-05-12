@@ -88,16 +88,21 @@ func (v *trackSignatureVerifier) verify(channel string, sig string, keys []strin
 	mac := v.macPool.Get().(hash.Hash)
 	bufs := v.bufPool.Get().(*verifyBufs)
 
+	// Payload fields are NUL-separated rather than ':'-separated so colons
+	// inside userID or channel (e.g. "news:tech", "alice:org") can't shift
+	// between fields and yield a colliding HMAC for a different (userID,
+	// channel) tuple. The outer signature string itself stays ':'-separated
+	// because its fields (iat / exp / hmac_hex) are colon-free by construction.
 	mac.Reset()
 	bufs.payload = bufs.payload[:0]
 	bufs.payload = append(bufs.payload, iatStr...)
-	bufs.payload = append(bufs.payload, ':')
+	bufs.payload = append(bufs.payload, 0)
 	bufs.payload = append(bufs.payload, expiryStr...)
-	bufs.payload = append(bufs.payload, ':')
+	bufs.payload = append(bufs.payload, 0)
 	bufs.payload = append(bufs.payload, userID...)
-	bufs.payload = append(bufs.payload, ':')
+	bufs.payload = append(bufs.payload, 0)
 	bufs.payload = append(bufs.payload, channel...)
-	bufs.payload = append(bufs.payload, ':')
+	bufs.payload = append(bufs.payload, 0)
 	hex.Encode(bufs.hexBuf, keysHash[:])
 	bufs.payload = append(bufs.payload, bufs.hexBuf...)
 	mac.Write(bufs.payload)

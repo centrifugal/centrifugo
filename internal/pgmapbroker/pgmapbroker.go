@@ -850,11 +850,17 @@ func (e *PostgresMapBroker) Publish(ctx context.Context, ch string, key string, 
 		idempotencyTTL = &s
 	}
 
-	// Prepare expected offset
+	// Prepare expected offset and epoch for CAS. Compare epoch too so a stale
+	// position from a dead epoch (e.g. after Clear+republish) can't match.
 	var expectedOffset *int64
+	var expectedEpoch *string
 	if opts.ExpectedPosition != nil {
 		eo := int64(opts.ExpectedPosition.Offset)
 		expectedOffset = &eo
+		if opts.ExpectedPosition.Epoch != "" {
+			ee := opts.ExpectedPosition.Epoch
+			expectedEpoch = &ee
+		}
 	}
 
 	// Prepare per-key version (stored in state, used for per-key version check)
@@ -887,11 +893,11 @@ func (e *PostgresMapBroker) Publish(ctx context.Context, ch string, key string, 
 
 	err = e.pool.QueryRow(ctx, fmt.Sprintf(`
 		SELECT result_id, channel_offset, epoch, suppressed, suppress_reason, current_data, current_offset
-		FROM %s($1, $2, $3, $4, $5::interval, $6::interval, $7, $8, $9, $10, $11, $12::interval, $13, $14, $15, $16, $17, $18, $19)
+		FROM %s($1, $2, $3, $4, $5::interval, $6::interval, $7, $8, $9, $10, $11, $12, $13::interval, $14, $15, $16, $17, $18, $19, $20)
 	`, e.names.publish),
 		ch, key, e.dataParam(opts.Data), tagsJSON,
 		keyTTL, metaTTL, keyMode,
-		expectedOffset, keyVersion, keyVersionEpoch,
+		expectedOffset, expectedEpoch, keyVersion, keyVersionEpoch,
 		idempotencyKey, idempotencyTTL, opts.UseDelta,
 		clientID, userID, e.dataParam(connInfo), e.dataParam(chanInfo),
 		opts.RefreshTTLOnSuppress, numShards,
@@ -909,11 +915,10 @@ func (e *PostgresMapBroker) Publish(ctx context.Context, ch string, key string, 
 			Suppressed:     true,
 			SuppressReason: parseSuppressReason(suppressReason),
 		}
-		// For position_mismatch, include current publication data
+		// For position_mismatch, include current key state for immediate retry.
 		if suppressReason != nil && *suppressReason == "position_mismatch" && currentOffset != nil {
-			result.CurrentPublication = &centrifuge.Publication{
+			result.CurrentEntry = &centrifuge.MapCurrentEntry{
 				Offset: uint64(*currentOffset),
-				Key:    key,
 				Data:   currentData,
 			}
 		}
@@ -959,11 +964,17 @@ func (e *PostgresMapBroker) Remove(ctx context.Context, ch string, key string, o
 		idempotencyKey = &opts.IdempotencyKey
 	}
 
-	// Prepare expected position for CAS
+	// Prepare expected position for CAS. Compare epoch too — see Publish for
+	// the rationale.
 	var expectedOffset *int64
+	var expectedEpoch *string
 	if opts.ExpectedPosition != nil {
 		eo := int64(opts.ExpectedPosition.Offset)
 		expectedOffset = &eo
+		if opts.ExpectedPosition.Epoch != "" {
+			ee := opts.ExpectedPosition.Epoch
+			expectedEpoch = &ee
+		}
 	}
 
 	// Call cf_map_remove function
@@ -980,9 +991,9 @@ func (e *PostgresMapBroker) Remove(ctx context.Context, ch string, key string, o
 	var clientID, userID *string
 	err = e.pool.QueryRow(ctx, fmt.Sprintf(`
 		SELECT result_id, channel_offset, epoch, suppressed, suppress_reason, current_data, current_offset
-		FROM %s($1, $2, $3::interval, $4, $5, $6::interval, $7, $8, $9)
+		FROM %s($1, $2, $3::interval, $4, $5, $6, $7::interval, $8, $9, $10)
 	`, e.names.remove),
-		ch, key, metaTTL, expectedOffset,
+		ch, key, metaTTL, expectedOffset, expectedEpoch,
 		idempotencyKey, idempotencyTTL,
 		clientID, userID,
 		numShards,
@@ -1001,9 +1012,8 @@ func (e *PostgresMapBroker) Remove(ctx context.Context, ch string, key string, o
 			SuppressReason: parseSuppressReason(suppressReason),
 		}
 		if suppressReason != nil && *suppressReason == "position_mismatch" && currentOffset != nil {
-			result.CurrentPublication = &centrifuge.Publication{
+			result.CurrentEntry = &centrifuge.MapCurrentEntry{
 				Offset: uint64(*currentOffset),
-				Key:    key,
 				Data:   currentData,
 			}
 		}

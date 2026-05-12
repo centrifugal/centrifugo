@@ -133,6 +133,7 @@ CREATE OR REPLACE FUNCTION __PREFIX__publish(
     p_meta_ttl INTERVAL DEFAULT NULL,
     p_key_mode TEXT DEFAULT NULL,
     p_expected_offset BIGINT DEFAULT NULL,
+    p_expected_epoch TEXT DEFAULT NULL,
     p_key_version BIGINT DEFAULT NULL,
     p_key_version_epoch TEXT DEFAULT NULL,
     p_idempotency_key TEXT DEFAULT NULL,
@@ -270,11 +271,18 @@ BEGIN
         END IF;
     END IF;
 
-    -- 5. CAS check (ExpectedPosition)
+    -- 5. CAS check (ExpectedPosition). Compare BOTH offset and epoch (when
+    -- the caller supplies an expected epoch) so that a CAS using a position
+    -- from a dead epoch — e.g. after a Clear+republish that flips the channel
+    -- epoch but produces matching offsets — is correctly rejected. Memory and
+    -- Redis brokers compare both; PostgreSQL must match for cross-broker
+    -- consistency.
     IF p_expected_offset IS NOT NULL THEN
         SELECT key_offset, sn.data INTO v_current_offset, v_current_data
         FROM __PREFIX__state sn WHERE sn.channel = p_channel AND sn.key = p_key;
-        IF NOT FOUND OR v_current_offset != p_expected_offset THEN
+        IF NOT FOUND
+           OR v_current_offset != p_expected_offset
+           OR (p_expected_epoch IS NOT NULL AND v_epoch != p_expected_epoch) THEN
             RETURN QUERY SELECT NULL::BIGINT, v_offset, v_epoch, TRUE,
                 'position_mismatch'::TEXT, v_current_data, v_current_offset;
             RETURN;
@@ -347,6 +355,7 @@ CREATE OR REPLACE FUNCTION __PREFIX__publish_strict(
     p_meta_ttl INTERVAL DEFAULT NULL,
     p_key_mode TEXT DEFAULT NULL,
     p_expected_offset BIGINT DEFAULT NULL,
+    p_expected_epoch TEXT DEFAULT NULL,
     p_key_version BIGINT DEFAULT NULL,
     p_key_version_epoch TEXT DEFAULT NULL,
     p_idempotency_key TEXT DEFAULT NULL,
@@ -370,7 +379,7 @@ BEGIN
     FROM __PREFIX__publish(
         p_channel, p_key, p_data, p_tags,
         p_key_ttl, p_meta_ttl, p_key_mode,
-        p_expected_offset, p_key_version, p_key_version_epoch,
+        p_expected_offset, p_expected_epoch, p_key_version, p_key_version_epoch,
         p_idempotency_key, p_idempotency_ttl, p_use_delta,
         p_client_id, p_user_id, p_conn_info, p_chan_info,
         p_refresh_ttl_on_suppress, p_num_shards
@@ -410,6 +419,7 @@ CREATE OR REPLACE FUNCTION __PREFIX__remove(
     p_key TEXT,
     p_meta_ttl INTERVAL DEFAULT NULL,
     p_expected_offset BIGINT DEFAULT NULL,
+    p_expected_epoch TEXT DEFAULT NULL,
     p_idempotency_key TEXT DEFAULT NULL,
     p_idempotency_ttl INTERVAL DEFAULT NULL,
     p_client_id TEXT DEFAULT NULL,
@@ -475,11 +485,13 @@ BEGIN
         END IF;
     END IF;
 
-    -- 3. CAS check (ExpectedPosition)
+    -- 3. CAS check (ExpectedPosition). Same epoch-aware compare as publish.
     IF p_expected_offset IS NOT NULL THEN
         SELECT key_offset, sn.data INTO v_current_offset, v_current_data
         FROM __PREFIX__state sn WHERE sn.channel = p_channel AND sn.key = p_key;
-        IF NOT FOUND OR v_current_offset != p_expected_offset THEN
+        IF NOT FOUND
+           OR v_current_offset != p_expected_offset
+           OR (p_expected_epoch IS NOT NULL AND v_epoch != p_expected_epoch) THEN
             RETURN QUERY SELECT NULL::BIGINT, v_offset, v_epoch, TRUE,
                 'position_mismatch'::TEXT, v_current_data, v_current_offset;
             RETURN;
@@ -534,6 +546,7 @@ CREATE OR REPLACE FUNCTION __PREFIX__remove_strict(
     p_key TEXT,
     p_meta_ttl INTERVAL DEFAULT NULL,
     p_expected_offset BIGINT DEFAULT NULL,
+    p_expected_epoch TEXT DEFAULT NULL,
     p_idempotency_key TEXT DEFAULT NULL,
     p_idempotency_ttl INTERVAL DEFAULT NULL,
     p_client_id TEXT DEFAULT NULL,
@@ -549,7 +562,7 @@ DECLARE
 BEGIN
     SELECT * INTO v_result FROM __PREFIX__remove(
         p_channel, p_key, p_meta_ttl,
-        p_expected_offset, p_idempotency_key, p_idempotency_ttl,
+        p_expected_offset, p_expected_epoch, p_idempotency_key, p_idempotency_ttl,
         p_client_id, p_user_id, p_num_shards
     );
 

@@ -16,7 +16,9 @@ const testSecret = "test-secret-key"
 
 func makeTestSignature(secret, channel string, keys []string, userID string, iat, expiry int64) string {
 	keysHash := sha256.Sum256([]byte(strings.Join(keys, "\x00")))
-	payload := fmt.Sprintf("%d:%d:%s:%s:%x", iat, expiry, userID, channel, keysHash)
+	// Inner payload uses NUL separators so colons in userID/channel can't
+	// shift fields. Outer signature stays ':'-separated (colon-free fields).
+	payload := fmt.Sprintf("%d\x00%d\x00%s\x00%s\x00%x", iat, expiry, userID, channel, keysHash)
 	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write([]byte(payload))
 	return fmt.Sprintf("%d:%d:%x", iat, expiry, mac.Sum(nil))
@@ -189,11 +191,32 @@ func TestVerifyTrackSignature_HexEncoding(t *testing.T) {
 	expiry := now + 3600
 	keys := []string{"key1"}
 	keysHash := sha256.Sum256([]byte(strings.Join(keys, "\x00")))
-	payload := fmt.Sprintf("%d:%d:%s:%s:%x", now, expiry, "u", "ch", keysHash)
+	payload := fmt.Sprintf("%d\x00%d\x00%s\x00%s\x00%x", now, expiry, "u", "ch", keysHash)
 	mac := hmac.New(sha256.New, []byte(testSecret))
 	mac.Write([]byte(payload))
 	expectedHex := hex.EncodeToString(mac.Sum(nil))
 
 	sig := fmt.Sprintf("%d:%d:%s", now, expiry, expectedHex)
 	require.True(t, verifyTrackSignature(testSecret, "ch", sig, keys, "u"))
+}
+
+// TestTrackSignature_ColonNoAmbiguity is a regression test for the previous
+// payload format that used ':' between every field. Under that format, a
+// signature issued for (user="alice", channel="news:tech") and one issued
+// for (user="alice:news", channel="tech") produced byte-identical payloads
+// and therefore interchangeable signatures. NUL separation eliminates this.
+func TestTrackSignature_ColonNoAmbiguity(t *testing.T) {
+	now := time.Now().Unix()
+	expiry := now + 3600
+	keys := []string{"key1"}
+
+	sigA := makeTestSignature(testSecret, "news:tech", keys, "alice", now, expiry)
+	sigB := makeTestSignature(testSecret, "tech", keys, "alice:news", now, expiry)
+	require.NotEqual(t, sigA, sigB, "colon-overlap signatures must differ under NUL-separated payload")
+
+	// Signature A must NOT verify against B's (user, channel) tuple — proves
+	// the two are independent under the new format.
+	require.False(t, verifyTrackSignature(testSecret, "tech", sigA, keys, "alice:news"))
+	// And vice versa.
+	require.False(t, verifyTrackSignature(testSecret, "news:tech", sigB, keys, "alice"))
 }

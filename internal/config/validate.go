@@ -407,6 +407,68 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 		return fmt.Errorf("map.remove_client_on_unsubscribe requires subscription_type to be a map type")
 	}
 
+	// Map presence prefixes must resolve to a namespace whose subscription_type
+	// is the matching map-presence flavour. Otherwise publishes to those
+	// channels would silently fail at runtime.
+	if c.MapClientsPresenceChannelPrefix != "" {
+		if err := validatePresenceChannelPrefix(cfg, "map_clients_presence_channel_prefix", c.MapClientsPresenceChannelPrefix, "map_clients"); err != nil {
+			return err
+		}
+	}
+	if c.MapUsersPresenceChannelPrefix != "" {
+		if err := validatePresenceChannelPrefix(cfg, "map_users_presence_channel_prefix", c.MapUsersPresenceChannelPrefix, "map_users"); err != nil {
+			return err
+		}
+	}
+
+	// Map page-size invariants. Zero means "use default" — the runtime path
+	// fills in sensible values — but any non-zero combination must satisfy
+	// min <= default <= max so clamping never produces surprising results.
+	if c.Map.MinPageSize < 0 {
+		return fmt.Errorf("map.min_page_size must not be negative")
+	}
+	if c.Map.MaxPageSize < 0 {
+		return fmt.Errorf("map.max_page_size must not be negative")
+	}
+	if c.Map.DefaultPageSize < 0 {
+		return fmt.Errorf("map.default_page_size must not be negative")
+	}
+	if c.Map.MinPageSize > 0 && c.Map.MaxPageSize > 0 && c.Map.MinPageSize > c.Map.MaxPageSize {
+		return fmt.Errorf("map.min_page_size (%d) must not exceed map.max_page_size (%d)", c.Map.MinPageSize, c.Map.MaxPageSize)
+	}
+	if c.Map.DefaultPageSize > 0 && c.Map.MaxPageSize > 0 && c.Map.DefaultPageSize > c.Map.MaxPageSize {
+		return fmt.Errorf("map.default_page_size (%d) must not exceed map.max_page_size (%d)", c.Map.DefaultPageSize, c.Map.MaxPageSize)
+	}
+	if c.Map.DefaultPageSize > 0 && c.Map.MinPageSize > 0 && c.Map.DefaultPageSize < c.Map.MinPageSize {
+		return fmt.Errorf("map.default_page_size (%d) must not be below map.min_page_size (%d)", c.Map.DefaultPageSize, c.Map.MinPageSize)
+	}
+
+	return nil
+}
+
+// validatePresenceChannelPrefix checks that prefix, when prepended to a
+// channel name, resolves under the configured NamespaceBoundary to a namespace
+// whose subscription_type is `expectedType`. Caught at config-load so typos
+// in the prefix don't surface only when the first map_publish fails.
+func validatePresenceChannelPrefix(cfg Config, fieldName, prefix, expectedType string) error {
+	boundary := cfg.Channel.NamespaceBoundary
+	var nsName string
+	if boundary != "" {
+		idx := strings.Index(prefix, boundary)
+		if idx >= 0 {
+			nsName = prefix[:idx]
+		}
+	}
+	opts, ok, err := channelOpts(&cfg, nsName)
+	if err != nil {
+		return fmt.Errorf("%s: %v", fieldName, err)
+	}
+	if !ok {
+		return fmt.Errorf("%s %q: namespace %q does not exist", fieldName, prefix, nsName)
+	}
+	if opts.SubscriptionType != expectedType {
+		return fmt.Errorf("%s %q: target namespace %q must have subscription_type=%q (got %q)", fieldName, prefix, nsName, expectedType, opts.SubscriptionType)
+	}
 	return nil
 }
 

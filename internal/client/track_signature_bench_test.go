@@ -25,7 +25,8 @@ func generateKeys(n int) []string {
 // HMAC signature: create.
 func createTrackSignature(secret, channel string, keys []string, userID string, iat, expiry int64) string {
 	keysHash := sha256.Sum256([]byte(strings.Join(keys, "\x00")))
-	payload := fmt.Sprintf("%d:%d:%s:%s:%x", iat, expiry, userID, channel, keysHash)
+	// Inner payload uses NUL separators; outer signature stays ':'-separated.
+	payload := fmt.Sprintf("%d\x00%d\x00%s\x00%s\x00%x", iat, expiry, userID, channel, keysHash)
 	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write([]byte(payload))
 	return fmt.Sprintf("%d:%d:%x", iat, expiry, mac.Sum(nil))
@@ -72,15 +73,16 @@ func BenchmarkTrackSignature_HMAC_Create_Reuse_10kKeys(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		mac.Reset()
+		// Inner payload uses NUL separators; outer signature stays ':'-separated.
 		payload = payload[:0]
 		payload = strconv.AppendInt(payload, now, 10)
-		payload = append(payload, ':')
+		payload = append(payload, 0)
 		payload = strconv.AppendInt(payload, expiry, 10)
-		payload = append(payload, ':')
+		payload = append(payload, 0)
 		payload = append(payload, userID...)
-		payload = append(payload, ':')
+		payload = append(payload, 0)
 		payload = append(payload, channel...)
-		payload = append(payload, ':')
+		payload = append(payload, 0)
 		hex.Encode(hexBuf, keysHash[:])
 		payload = append(payload, hexBuf...)
 		mac.Write(payload)
@@ -142,15 +144,16 @@ func BenchmarkTrackSignature_HMAC_Verify_Reuse_10kKeys(b *testing.B) {
 		hmacHex := rest[second+1:]
 
 		mac.Reset()
+		// Inner payload uses NUL separators; outer signature parsed with ':' above.
 		payload = payload[:0]
 		payload = append(payload, iatStr...)
-		payload = append(payload, ':')
+		payload = append(payload, 0)
 		payload = append(payload, expiryStr...)
-		payload = append(payload, ':')
+		payload = append(payload, 0)
 		payload = append(payload, userID...)
-		payload = append(payload, ':')
+		payload = append(payload, 0)
 		payload = append(payload, channel...)
-		payload = append(payload, ':')
+		payload = append(payload, 0)
 		hex.Encode(hexBuf, keysHash[:])
 		payload = append(payload, hexBuf...)
 		mac.Write(payload)

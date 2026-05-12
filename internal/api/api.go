@@ -220,6 +220,16 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 		resp.Error = ErrorUnknownChannel
 		return resp
 	}
+	// Stream-only API. Map channels must use map_publish; shared poll channels
+	// must use shared_poll_publish. Empty subscription_type defaults to stream.
+	switch chOpts.SubscriptionType {
+	case "", "stream":
+		// ok
+	default:
+		log.Warn().Str("channel", ch).Str("subscription_type", chOpts.SubscriptionType).Msg("publish called on non-stream namespace")
+		resp.Error = ErrorBadRequest
+		return resp
+	}
 
 	// Data format validation
 	if err := config.ValidatePublicationData(data, chOpts.PublicationDataFormat); err != nil {
@@ -884,6 +894,11 @@ func (h *Executor) MapPublish(ctx context.Context, cmd *MapPublishRequest) *MapP
 		resp.Error = ErrorUnknownChannel
 		return resp
 	}
+	if chOpts.SubscriptionType != "map" && chOpts.SubscriptionType != "map_clients" && chOpts.SubscriptionType != "map_users" {
+		log.Warn().Str("channel", ch).Str("subscription_type", chOpts.SubscriptionType).Msg("map_publish called on non-map namespace")
+		resp.Error = ErrorBadRequest
+		return resp
+	}
 
 	var data []byte
 	if cmd.B64Data != "" {
@@ -911,7 +926,14 @@ func (h *Executor) MapPublish(ctx context.Context, cmd *MapPublishRequest) *MapP
 	opts.Version = cmd.Version
 	opts.VersionEpoch = cmd.VersionEpoch
 	if cmd.KeyMode != "" {
-		opts.KeyMode = centrifuge.KeyMode(cmd.KeyMode)
+		switch cmd.KeyMode {
+		case "if_new", "if_exists":
+			opts.KeyMode = centrifuge.KeyMode(cmd.KeyMode)
+		default:
+			log.Warn().Str("channel", ch).Str("key_mode", cmd.KeyMode).Msg("map_publish: invalid key_mode")
+			resp.Error = ErrorBadRequest
+			return resp
+		}
 	}
 
 	result, err := h.node.MapPublish(ctx, ch, cmd.Key, opts)
@@ -941,6 +963,21 @@ func (h *Executor) MapRemove(ctx context.Context, cmd *MapRemoveRequest) *MapRem
 
 	resp := &MapRemoveResponse{}
 	if ch == "" || cmd.Key == "" {
+		resp.Error = ErrorBadRequest
+		return resp
+	}
+
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
+	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
+		resp.Error = ErrorUnknownChannel
+		return resp
+	}
+	if chOpts.SubscriptionType != "map" && chOpts.SubscriptionType != "map_clients" && chOpts.SubscriptionType != "map_users" {
+		log.Warn().Str("channel", ch).Str("subscription_type", chOpts.SubscriptionType).Msg("map_remove called on non-map namespace")
 		resp.Error = ErrorBadRequest
 		return resp
 	}
@@ -976,6 +1013,21 @@ func (h *Executor) MapReadState(ctx context.Context, cmd *MapReadStateRequest) *
 
 	resp := &MapReadStateResponse{}
 	if ch == "" {
+		resp.Error = ErrorBadRequest
+		return resp
+	}
+
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
+	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
+		resp.Error = ErrorUnknownChannel
+		return resp
+	}
+	if chOpts.SubscriptionType != "map" && chOpts.SubscriptionType != "map_clients" && chOpts.SubscriptionType != "map_users" {
+		log.Warn().Str("channel", ch).Str("subscription_type", chOpts.SubscriptionType).Msg("map_read_state called on non-map namespace")
 		resp.Error = ErrorBadRequest
 		return resp
 	}
@@ -1035,6 +1087,21 @@ func (h *Executor) MapReadStream(ctx context.Context, cmd *MapReadStreamRequest)
 		return resp
 	}
 
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
+	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
+		resp.Error = ErrorUnknownChannel
+		return resp
+	}
+	if chOpts.SubscriptionType != "map" && chOpts.SubscriptionType != "map_clients" && chOpts.SubscriptionType != "map_users" {
+		log.Warn().Str("channel", ch).Str("subscription_type", chOpts.SubscriptionType).Msg("map_read_stream called on non-map namespace")
+		resp.Error = ErrorBadRequest
+		return resp
+	}
+
 	opts := centrifuge.MapReadStreamOptions{
 		Filter: centrifuge.StreamFilter{
 			Limit:   int(cmd.Limit),
@@ -1089,6 +1156,21 @@ func (h *Executor) MapStats(ctx context.Context, cmd *MapStatsRequest) *MapStats
 		return resp
 	}
 
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
+	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
+		resp.Error = ErrorUnknownChannel
+		return resp
+	}
+	if chOpts.SubscriptionType != "map" && chOpts.SubscriptionType != "map_clients" && chOpts.SubscriptionType != "map_users" {
+		log.Warn().Str("channel", ch).Str("subscription_type", chOpts.SubscriptionType).Msg("map_stats called on non-map namespace")
+		resp.Error = ErrorBadRequest
+		return resp
+	}
+
 	result, err := h.node.MapStats(ctx, ch)
 	if err != nil {
 		log.Error().Err(err).Str("channel", ch).Msg("error in map stats")
@@ -1117,7 +1199,22 @@ func (h *Executor) MapClear(ctx context.Context, cmd *MapClearRequest) *MapClear
 		return resp
 	}
 
-	err := h.node.MapClear(ctx, ch, centrifuge.MapClearOptions{})
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
+	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
+		resp.Error = ErrorUnknownChannel
+		return resp
+	}
+	if chOpts.SubscriptionType != "map" && chOpts.SubscriptionType != "map_clients" && chOpts.SubscriptionType != "map_users" {
+		log.Warn().Str("channel", ch).Str("subscription_type", chOpts.SubscriptionType).Msg("map_clear called on non-map namespace")
+		resp.Error = ErrorBadRequest
+		return resp
+	}
+
+	err = h.node.MapClear(ctx, ch, centrifuge.MapClearOptions{})
 	if err != nil {
 		log.Error().Err(err).Str("channel", ch).Msg("error in map clear")
 		resp.Error = ErrorInternal

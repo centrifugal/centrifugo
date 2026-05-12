@@ -979,11 +979,23 @@ func (h *Handler) OnMapPublish(c Client, e centrifuge.MapPublishEvent, mapPublis
 	if chOpts.DeltaPublish {
 		reply.Options.UseDelta = true
 	}
+	// The library no longer falls back to the client-supplied event key, so we
+	// always set reply.Key explicitly. For server-driven keying (client_id /
+	// user_id) we resolve to a server-known identifier; for the default we
+	// pass the client-supplied key through.
 	switch chOpts.Map.ClientKey {
 	case "client_id":
 		reply.Key = c.ID()
 	case "user_id":
+		// Anonymous users have no user ID — reject rather than silently
+		// allowing the client to pick the key.
+		if c.UserID() == "" {
+			log.Info().Str("channel", e.Channel).Str("client", c.ID()).Msg("map publish rejected: client_key=user_id but client is anonymous")
+			return centrifuge.MapPublishReply{}, centrifuge.ErrorPermissionDenied
+		}
 		reply.Key = c.UserID()
+	default:
+		reply.Key = e.Key
 	}
 
 	return reply, nil
@@ -1029,17 +1041,28 @@ func (h *Handler) OnMapRemove(c Client, e centrifuge.MapRemoveEvent, mapRemovePr
 	}
 
 	reply := centrifuge.MapRemoveReply{}
+	// See OnMapPublish for the rationale — set reply.Key explicitly in all
+	// cases, reject anonymous when client_key: user_id.
 	switch chOpts.Map.ClientKey {
 	case "client_id":
 		reply.Key = c.ID()
 	case "user_id":
+		if c.UserID() == "" {
+			log.Info().Str("channel", e.Channel).Str("client", c.ID()).Msg("map remove rejected: client_key=user_id but client is anonymous")
+			return centrifuge.MapRemoveReply{}, centrifuge.ErrorPermissionDenied
+		}
 		reply.Key = c.UserID()
+	default:
+		reply.Key = e.Key
 	}
 
 	return reply, nil
 }
 
-// OnTrack handles track requests for shared poll channels.
+// OnTrack handles track requests for shared poll channels. A request can
+// carry multiple signed batches (centrifuge-js packs every cached signature
+// into a single sub_refresh frame on reconnect replay) — every batch's
+// signature must verify independently or the whole request is rejected.
 func (h *Handler) OnTrack(c Client, e centrifuge.TrackEvent) (centrifuge.TrackReply, error) {
 	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(e.Channel)
 	if err != nil {
@@ -1061,37 +1084,38 @@ func (h *Handler) OnTrack(c Client, e centrifuge.TrackEvent) (centrifuge.TrackRe
 		return centrifuge.TrackReply{}, centrifuge.ErrorInternal
 	}
 
-	keys := make([]string, len(e.Items))
-	for i, item := range e.Items {
-		keys[i] = item.Key
-	}
-
 	verifier, prevVerifier := h.getTrackSignatureVerifiers(sharedPollCfg)
-	verified := verifier.verify(e.Channel, e.Signature, keys, c.UserID())
-	if !verified && prevVerifier != nil {
-		if sharedPollCfg.HMACPreviousSecretKeyValidUntil > 0 {
-			iat, _ := parseSignatureTimestamps(e.Signature)
-			if iat > sharedPollCfg.HMACPreviousSecretKeyValidUntil {
-				log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("track signature issued after previous secret key expiry")
-				return centrifuge.TrackReply{}, centrifuge.ErrorPermissionDenied
-			}
+	now := time.Now().Unix()
+	batchReplies := make([]centrifuge.TrackBatchReply, len(e.Batches))
+	for i, b := range e.Batches {
+		keys := make([]string, len(b.Items))
+		for j, item := range b.Items {
+			keys[j] = item.Key
 		}
-		verified = prevVerifier.verify(e.Channel, e.Signature, keys, c.UserID())
-	}
-	if !verified {
-		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("invalid track signature")
-		return centrifuge.TrackReply{}, centrifuge.ErrorPermissionDenied
+		verified := verifier.verify(e.Channel, b.Signature, keys, c.UserID())
+		if !verified && prevVerifier != nil {
+			if sharedPollCfg.HMACPreviousSecretKeyValidUntil > 0 {
+				iat, _ := parseSignatureTimestamps(b.Signature)
+				if iat > sharedPollCfg.HMACPreviousSecretKeyValidUntil {
+					log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("track signature issued after previous secret key expiry")
+					return centrifuge.TrackReply{}, centrifuge.ErrorPermissionDenied
+				}
+			}
+			verified = prevVerifier.verify(e.Channel, b.Signature, keys, c.UserID())
+		}
+		if !verified {
+			log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("invalid track signature")
+			return centrifuge.TrackReply{}, centrifuge.ErrorPermissionDenied
+		}
+		_, expiry := parseSignatureTimestamps(b.Signature)
+		if expiry > 0 && expiry+gracePeriodSeconds < now {
+			log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("track signature expired")
+			return centrifuge.TrackReply{}, centrifuge.ErrorTokenExpired
+		}
+		batchReplies[i] = centrifuge.TrackBatchReply{ExpireAt: expiry}
 	}
 
-	_, expiry := parseSignatureTimestamps(e.Signature)
-	if expiry > 0 && expiry+gracePeriodSeconds < time.Now().Unix() {
-		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("track signature expired")
-		return centrifuge.TrackReply{}, centrifuge.ErrorTokenExpired
-	}
-
-	return centrifuge.TrackReply{
-		ExpireAt: expiry,
-	}, nil
+	return centrifuge.TrackReply{Batches: batchReplies}, nil
 }
 
 func (h *Handler) getTrackSignatureVerifiers(cfg configtypes.SharedPoll) (*trackSignatureVerifier, *trackSignatureVerifier) {
