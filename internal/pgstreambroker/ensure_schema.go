@@ -3,6 +3,8 @@ package pgstreambroker
 import (
 	"context"
 	"fmt"
+
+	"github.com/centrifugal/centrifugo/v6/internal/pgschema"
 )
 
 // reconcileShardLock ensures the shard_lock table (for both variants) has
@@ -37,43 +39,112 @@ func (e *PostgresStreamBroker) reconcileShardLock(ctx context.Context) error {
 	return nil
 }
 
+// versionTables returns the per-variant schema_version table names — used as
+// the targets for every UPDATE schema_version performed during the schema
+// lifecycle (specifically the final SetSchemaVersion after DDL).
+func (e *PostgresStreamBroker) versionTables() []string {
+	return []string{
+		e.names.jsonbPrefix + "schema_version",
+		e.names.binaryPrefix + "schema_version",
+	}
+}
+
+// migrationVariants renders `template` once per variant (jsonb + binary) and
+// pairs each rendered SQL with its variant's schema_version table.
+func (e *PostgresStreamBroker) migrationVariants(template string) []pgschema.MigrationVariant {
+	return []pgschema.MigrationVariant{
+		{
+			SQL:          renderSchemaTemplate(template, e.names.jsonbPrefix, false),
+			VersionTable: e.names.jsonbPrefix + "schema_version",
+		},
+		{
+			SQL:          renderSchemaTemplate(template, e.names.binaryPrefix, true),
+			VersionTable: e.names.binaryPrefix + "schema_version",
+		},
+	}
+}
+
+// runMigrationsUnderLock — see pgmapbroker.runMigrationsUnderLock; identical
+// shape and rationale, scoped to this broker's prefix tables.
+func (e *PostgresStreamBroker) runMigrationsUnderLock(ctx context.Context, label string) error {
+	release, err := pgschema.AcquireMigrationLock(ctx, e.pool, label)
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	dbVersion, isFresh, err := pgschema.ReadSchemaVersion(ctx, e.pool, e.names.schemaVersion)
+	if err != nil {
+		return err
+	}
+	if isFresh {
+		return nil
+	}
+	if err := pgschema.CheckDowngrade(label, dbVersion, schemaVersion); err != nil {
+		return err
+	}
+	for v := dbVersion + 1; v <= schemaVersion; v++ {
+		sql, ok := schemaMigrations[v]
+		if !ok {
+			return fmt.Errorf("%s: missing schemaMigrations[%d] at runtime (schemaVersion=%d)", label, v, schemaVersion)
+		}
+		if err := pgschema.ApplyMigrationInTx(ctx, e.pool, label, v, e.migrationVariants(sql)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // EnsureSchema creates all required database objects idempotently.
 //
 // Flow:
-//  1. Fast path: query schema_version. If current and the history table
-//     exists AND is partitioned, reconcile shard_lock and return.
-//  2. Render both variant schemas (jsonb + binary), execute the DDL part
-//     and the function part separately under retry.
-//  3. Populate shard_lock for both variants.
-//  4. Verify the history table is partitioned for the active variant
-//     (wrong-shape probe — fails loudly if a non-partitioned table exists
-//     from a previous build).
-//  5. Pre-create today's + lookahead partitions via the partitioner.
-//  6. Update schema_version row.
+//  1. Read schema_version with error discrimination (transient errors must
+//     propagate — see pgschema.ReadSchemaVersion).
+//  2. Fast path: version matches AND probe ok AND partitioned shape verified
+//     → reconcile shard_lock + lookahead partitions and return.
+//  3. Reject downgrade.
+//  4. Run pending migrations BEFORE DDL, each in its own transaction with
+//     atomic schema_version bump.
+//  5. Render and run DDL for both variants (CREATE OR REPLACE picks up the
+//     latest function bodies; CREATE TABLE IF NOT EXISTS is a no-op when
+//     migrations have already brought the shape current).
+//  6. Reconcile shard_lock; verify partitioned shape; pre-create partitions.
+//  7. Final schema_version write — fatal on failure.
 func (e *PostgresStreamBroker) EnsureSchema(ctx context.Context) error {
-	// Fast path: version already current and history table exists.
-	var dbVersion int
-	err := e.pool.QueryRow(ctx, fmt.Sprintf(
-		`SELECT schema_version FROM %s WHERE id = 1`, e.names.schemaVersion),
-	).Scan(&dbVersion)
-	if err == nil && dbVersion == schemaVersion {
+	const label = "pgstreambroker"
+
+	dbVersion, isFresh, err := pgschema.ReadSchemaVersion(ctx, e.pool, e.names.schemaVersion)
+	if err != nil {
+		return err
+	}
+
+	// Fast path: version current, history table exists, partition shape ok.
+	if !isFresh && dbVersion == schemaVersion {
 		if _, probeErr := e.pool.Exec(ctx, fmt.Sprintf(
 			`SELECT 1 FROM %s LIMIT 0`, e.names.stream)); probeErr == nil {
-			// Also verify partitioned shape — see step 4.
 			if err := e.verifyPartitionedShape(ctx); err != nil {
 				return err
 			}
-			// Reconcile shard_lock before returning: NumShards may have
-			// changed since the last EnsureSchema call.
 			if err := e.reconcileShardLock(ctx); err != nil {
 				return err
 			}
-			// Ensure lookahead partitions exist (idempotent).
 			return e.ensureInitialPartitions(ctx)
 		}
 	}
-	if err != nil {
-		dbVersion = 0
+
+	if !isFresh {
+		if err := pgschema.CheckDowngrade(label, dbVersion, schemaVersion); err != nil {
+			return err
+		}
+	}
+
+	// Migrations run BEFORE DDL, under a Postgres advisory lock so concurrent
+	// rolling-deploy upgrades can't run the same migration chain twice.
+	// See pgmapbroker.EnsureSchema for the full rationale.
+	if !isFresh {
+		if err := e.runMigrationsUnderLock(ctx, label); err != nil {
+			return err
+		}
 	}
 
 	// Render and run DDL for both variants.
@@ -90,42 +161,19 @@ func (e *PostgresStreamBroker) EnsureSchema(ctx context.Context) error {
 		}
 	}
 
-	// Populate/trim shard_lock for both variants.
 	if err := e.reconcileShardLock(ctx); err != nil {
 		return err
 	}
-
-	// Wrong-shape probe: ensure the history table is actually partitioned.
 	if err := e.verifyPartitionedShape(ctx); err != nil {
 		return err
 	}
-
-	// Pre-create today's + lookahead partitions for the active variant.
 	if err := e.ensureInitialPartitions(ctx); err != nil {
 		return err
 	}
 
-	// Run schema migrations (empty for v1).
-	if dbVersion > 0 {
-		for v := dbVersion + 1; v <= schemaVersion; v++ {
-			if sql, ok := schemaMigrations[v]; ok {
-				if err := e.execSchemaWithRetry(ctx, sql); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	// Update version row.
-	for _, prefix := range []string{e.names.jsonbPrefix, e.names.binaryPrefix} {
-		if _, err := e.pool.Exec(ctx, fmt.Sprintf(
-			`UPDATE %sschema_version SET schema_version = $1 WHERE id = 1`,
-			prefix), schemaVersion); err != nil {
-			e.logErrorMsg("schema version update", err)
-		}
-	}
-
-	return nil
+	// Final schema_version write — see pgmapbroker for the rationale on
+	// "fatal on failure".
+	return pgschema.SetSchemaVersion(ctx, e.pool, label, schemaVersion, e.versionTables())
 }
 
 // verifyPartitionedShape probes pg_partitioned_table for the active variant's

@@ -13,6 +13,7 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/pgoutbox"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/centrifugal/centrifugo/v6/internal/pgschema"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
@@ -20,6 +21,20 @@ import (
 
 //go:embed controller_postgres_schema.sql
 var postgresControllerSchemaTemplate string
+
+// renderControllerTemplate substitutes the placeholders the controller schema
+// recognises. Used by both the DDL render path (baseline) and (when the first
+// migration ships) the migration render path — so migrations work with any
+// user-configured TablePrefix without manual string-juggling per call site.
+func renderControllerTemplate(template, prefix string) string {
+	return strings.NewReplacer("__PREFIX__", prefix).Replace(template)
+}
+
+// tablePrefix returns the normalised `<user-prefix>_` used in this controller's
+// table and function names.
+func (c *PostgresController) tablePrefix() string {
+	return strings.TrimRight(c.conf.TablePrefix, "_") + "_"
+}
 
 var controllerSchemaVersion = 1
 
@@ -224,20 +239,21 @@ func (c *PostgresController) reconcileShardLock(ctx context.Context) error {
 }
 
 func (c *PostgresController) EnsureSchema(ctx context.Context) error {
-	// Fast path: version already current and messages table exists.
-	var dbVersion int
-	err := c.pool.QueryRow(ctx, fmt.Sprintf(
-		`SELECT schema_version FROM %s WHERE id = 1`, c.names.schemaVersion),
-	).Scan(&dbVersion)
-	if err == nil && dbVersion == controllerSchemaVersion {
+	const label = "postgres-controller"
+
+	// Read schema_version with error discrimination — see pgschema.ReadSchemaVersion.
+	dbVersion, isFresh, err := pgschema.ReadSchemaVersion(ctx, c.pool, c.names.schemaVersion)
+	if err != nil {
+		return err
+	}
+
+	// Fast path: version current AND messages table exists AND partition shape ok.
+	if !isFresh && dbVersion == controllerSchemaVersion {
 		if _, probeErr := c.pool.Exec(ctx, fmt.Sprintf(
 			`SELECT 1 FROM %s LIMIT 0`, c.names.messages)); probeErr == nil {
-			// Verify partitioned shape.
 			if err := c.verifyPartitionedShape(ctx); err != nil {
 				return err
 			}
-			// Reconcile shard_lock before returning: NumShards may have
-			// changed since the last EnsureSchema call.
 			if err := c.reconcileShardLock(ctx); err != nil {
 				return err
 			}
@@ -245,9 +261,23 @@ func (c *PostgresController) EnsureSchema(ctx context.Context) error {
 		}
 	}
 
+	// Reject downgrade.
+	if !isFresh {
+		if err := pgschema.CheckDowngrade(label, dbVersion, controllerSchemaVersion); err != nil {
+			return err
+		}
+	}
+
+	// The controller has no migrations registered today (controllerSchemaVersion=1).
+	// When the first one ships it goes here, mirroring pgmapbroker/pgstreambroker
+	// — pgschema.ApplyMigrationInTx per version with a single MigrationVariant
+	// (controller has just one prefix), before the DDL render below. Migration
+	// SQL should use the same __PREFIX__ placeholder as the schema template
+	// so it works with any user-configured TablePrefix.
+
 	// Render schema template.
-	prefix := strings.TrimRight(c.conf.TablePrefix, "_") + "_"
-	schemaSQL := strings.NewReplacer("__PREFIX__", prefix).Replace(postgresControllerSchemaTemplate)
+	prefix := c.tablePrefix()
+	schemaSQL := renderControllerTemplate(postgresControllerSchemaTemplate, prefix)
 
 	// Split DDL from functions.
 	ddl, funcs := splitControllerSchemaSQL(schemaSQL)
@@ -260,29 +290,18 @@ func (c *PostgresController) EnsureSchema(ctx context.Context) error {
 		}
 	}
 
-	// Populate/trim shard_lock rows.
 	if err := c.reconcileShardLock(ctx); err != nil {
 		return err
 	}
-
-	// Verify partitioned shape.
 	if err := c.verifyPartitionedShape(ctx); err != nil {
 		return err
 	}
-
-	// Pre-create partitions.
 	if err := c.ensureInitialPartitions(ctx); err != nil {
 		return err
 	}
 
-	// Update version row.
-	if _, err := c.pool.Exec(ctx, fmt.Sprintf(
-		`UPDATE %s SET schema_version = $1 WHERE id = 1`,
-		c.names.schemaVersion), controllerSchemaVersion); err != nil {
-		c.logError("schema version update", err)
-	}
-
-	return nil
+	// Final schema_version write — fatal on failure (see pgmapbroker for why).
+	return pgschema.SetSchemaVersion(ctx, c.pool, label, controllerSchemaVersion, []string{c.names.schemaVersion})
 }
 
 // splitControllerSchemaSQL separates DDL from function definitions.

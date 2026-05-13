@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/pgschema"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/jackc/pgx/v5"
@@ -45,16 +46,29 @@ var postgresSchemaTemplate string
 // schemaVersion is the current schema version. Bump when adding migrations.
 var schemaVersion = 1
 
-// schemaMigrations maps target version to migration SQL. Each migration must
-// handle BOTH prefixes (jsonb + binary) and be idempotent. Empty for v1.
+// schemaMigrations maps target version to a migration SQL TEMPLATE using the
+// same placeholders as `schema.sql` (`__PREFIX__`, `__DATA_TYPE__`,
+// `__STREAM_TABLE__`). EnsureSchema renders the template once per variant
+// (jsonb + binary) and runs both rendered SQLs in a single transaction with
+// atomic schema_version bumps across both prefix tables — see
+// pgmapbroker.schemaMigrations for the full contract. Empty for v1.
 var schemaMigrations = map[int]string{}
 
-// renderSchema substitutes placeholders in the embedded schema template.
+func init() {
+	pgschema.ValidateMigrationMap("pgstreambroker", schemaVersion, schemaMigrations)
+}
+
+// renderSchemaTemplate substitutes the placeholders this broker recognises
+// in any template string. Reused by renderSchema (for the embedded baseline)
+// and by migrationVariants (for each registered migration). Keeping this in
+// one place means migration SQL works for any user-configured TablePrefix
+// and for both jsonb/binary variants without the migration author writing
+// the same statement twice.
 //
 //	__PREFIX__       → e.g. "cf_stream_" (includes trailing underscore)
 //	__DATA_TYPE__    → "JSONB" or "BYTEA"
 //	__STREAM_TABLE__ → e.g. "cf_stream" (prefix without trailing underscore)
-func renderSchema(prefix string, binary bool) string {
+func renderSchemaTemplate(template, prefix string, binary bool) string {
 	dataType := "JSONB"
 	if binary {
 		dataType = "BYTEA"
@@ -64,7 +78,11 @@ func renderSchema(prefix string, binary bool) string {
 		"__STREAM_TABLE__", streamTable,
 		"__PREFIX__", prefix,
 		"__DATA_TYPE__", dataType,
-	).Replace(postgresSchemaTemplate)
+	).Replace(template)
+}
+
+func renderSchema(prefix string, binary bool) string {
+	return renderSchemaTemplate(postgresSchemaTemplate, prefix, binary)
 }
 
 // splitSchemaSQL splits the schema SQL into DDL (tables+indexes) and function

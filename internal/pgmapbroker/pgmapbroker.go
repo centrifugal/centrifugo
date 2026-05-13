@@ -14,6 +14,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/pgoutbox"
+	"github.com/centrifugal/centrifugo/v6/internal/pgschema"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/jackc/pgx/v5"
@@ -31,17 +32,39 @@ var postgresSchemaTemplate string
 // the CREATE OR REPLACE on existing installs.
 var schemaVersion = 1
 
-// schemaMigrations maps target version to migration SQL.
-// Each migration must handle BOTH prefixes and be idempotent.
+// schemaMigrations maps target version to a migration SQL TEMPLATE. Each
+// template uses the same placeholders as `schema.sql`:
+//
+//	__PREFIX__     → e.g. "cf_map_" or a user-configured custom prefix
+//	__DATA_TYPE__  → "JSONB" or "BYTEA" depending on broker variant
+//
+// EnsureSchema renders the template once per variant (jsonb + binary) and
+// executes both rendered SQLs inside a SINGLE transaction that also bumps
+// schema_version atomically across both prefix tables. Authors therefore
+// write the migration once — neither variant nor the user's `table_prefix`
+// option needs to be spelled out manually.
+//
+// Idempotent constructs (`ALTER ... IF NOT EXISTS`, `CREATE OR REPLACE`) are
+// still preferred so that a partial deploy or operator-side rerun is safe.
 // Version 1 is the baseline (applied via full DDL). Migrations start at 2.
+//
+// When adding a migration you MUST ALSO update `internal/sql/schema.sql` to
+// reflect the latest shape — fresh installs run only the DDL, not the
+// migration chain. Migrations and `schema.sql` must converge on the same
+// end state; CI tests pin this invariant per release.
 var schemaMigrations = map[int]string{}
 
-// renderSchema substitutes the __PREFIX__ and __DATA_TYPE__ placeholders in
-// the embedded schema template with the caller-supplied values. Used both by
-// EnsureSchema (to create tables+functions for JSONB and binary variants) and
-// by ensurePartitionedStream (to recreate functions after dropping and
-// recreating the stream table as partitioned).
-func renderSchema(prefix string, binary bool) string {
+func init() {
+	pgschema.ValidateMigrationMap("pgmapbroker", schemaVersion, schemaMigrations)
+}
+
+// renderSchemaTemplate substitutes the placeholders this broker recognises
+// (__PREFIX__, __DATA_TYPE__) in any template string. Reused by renderSchema
+// (for the embedded baseline) and by migrationVariants (for each registered
+// migration). Keeping this in one place means migration SQL works for any
+// user-configured TablePrefix and for both jsonb/binary variants without the
+// migration author having to write the same statement twice.
+func renderSchemaTemplate(template, prefix string, binary bool) string {
 	dataType := "JSONB"
 	if binary {
 		dataType = "BYTEA"
@@ -49,7 +72,16 @@ func renderSchema(prefix string, binary bool) string {
 	return strings.NewReplacer(
 		"__PREFIX__", prefix,
 		"__DATA_TYPE__", dataType,
-	).Replace(postgresSchemaTemplate)
+	).Replace(template)
+}
+
+// renderSchema substitutes the __PREFIX__ and __DATA_TYPE__ placeholders in
+// the embedded schema template with the caller-supplied values. Used both by
+// EnsureSchema (to create tables+functions for JSONB and binary variants) and
+// by ensurePartitionedStream (to recreate functions after dropping and
+// recreating the stream table as partitioned).
+func renderSchema(prefix string, binary bool) string {
+	return renderSchemaTemplate(postgresSchemaTemplate, prefix, binary)
 }
 
 // execSchemaWithRetry executes idempotent schema SQL, retrying on transient
@@ -665,38 +697,139 @@ func (e *PostgresMapBroker) reconcileShardLock(ctx context.Context) error {
 	return nil
 }
 
+// versionTables returns the fully-qualified `<prefix>schema_version` table
+// names for both broker variants (jsonb + binary). Used as the targets for
+// every UPDATE schema_version performed by the schema lifecycle code that
+// doesn't carry SQL (the final SetSchemaVersion after DDL).
+func (e *PostgresMapBroker) versionTables() []string {
+	return []string{
+		e.names.jsonbPrefix + "schema_version",
+		e.names.binaryPrefix + "schema_version",
+	}
+}
+
+// migrationVariants renders `template` once per variant (jsonb + binary) and
+// pairs each rendered SQL with its variant's schema_version table, ready to
+// hand to pgschema.ApplyMigrationInTx. All variants run inside ONE
+// transaction so a migration is atomic across both variants.
+func (e *PostgresMapBroker) migrationVariants(template string) []pgschema.MigrationVariant {
+	return []pgschema.MigrationVariant{
+		{
+			SQL:          renderSchemaTemplate(template, e.names.jsonbPrefix, false),
+			VersionTable: e.names.jsonbPrefix + "schema_version",
+		},
+		{
+			SQL:          renderSchemaTemplate(template, e.names.binaryPrefix, true),
+			VersionTable: e.names.binaryPrefix + "schema_version",
+		},
+	}
+}
+
+// runMigrationsUnderLock acquires the migration advisory lock, re-reads
+// schema_version inside the lock (in case another node finished the upgrade
+// while we were waiting), and applies pending migrations sequentially. Each
+// migration runs in its own transaction with an atomic version bump; failure
+// of any migration rolls back its tx and returns the error, leaving the DB
+// at the last successfully-committed version.
+func (e *PostgresMapBroker) runMigrationsUnderLock(ctx context.Context, label string) error {
+	release, err := pgschema.AcquireMigrationLock(ctx, e.pool, label)
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	dbVersion, isFresh, err := pgschema.ReadSchemaVersion(ctx, e.pool, e.names.schemaVersion)
+	if err != nil {
+		return err
+	}
+	if isFresh {
+		// Another node dropped the schema while we were waiting (operator
+		// intervention). Bail out — the outer EnsureSchema's DDL path will
+		// rebuild from scratch.
+		return nil
+	}
+	// Recheck downgrade inside the lock: the dbVersion may have advanced past
+	// schemaVersion while we waited (the other migrator was running a newer
+	// binary).
+	if err := pgschema.CheckDowngrade(label, dbVersion, schemaVersion); err != nil {
+		return err
+	}
+	for v := dbVersion + 1; v <= schemaVersion; v++ {
+		sql, ok := schemaMigrations[v]
+		if !ok {
+			// init() already validated contiguity — reaching here means a
+			// concurrent map mutation in a test forgot cleanup. Fail loud.
+			return fmt.Errorf("%s: missing schemaMigrations[%d] at runtime (schemaVersion=%d)", label, v, schemaVersion)
+		}
+		if err := pgschema.ApplyMigrationInTx(ctx, e.pool, label, v, e.migrationVariants(sql)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (e *PostgresMapBroker) EnsureSchema(ctx context.Context) error {
-	// 1. Read version: fast path if version matches and probe succeeds.
-	var dbVersion int
-	err := e.pool.QueryRow(ctx, fmt.Sprintf(
-		`SELECT schema_version FROM %s WHERE id = 1`, e.names.schemaVersion),
-	).Scan(&dbVersion)
-	if err == nil && dbVersion == schemaVersion {
-		// Verify a critical table actually exists — guards against partial
-		// schema loss (e.g. schema_version survived but tables were dropped).
+	const label = "pgmapbroker"
+
+	// 1. Read schema_version with error discrimination. A transient/permission
+	//    failure must propagate — silently treating it as "fresh install"
+	//    would skip migrations and force schema_version forward, leaving the
+	//    DB at the old shape while the row claims the new version.
+	dbVersion, isFresh, err := pgschema.ReadSchemaVersion(ctx, e.pool, e.names.schemaVersion)
+	if err != nil {
+		return err
+	}
+
+	// 2. Fast path: version matches AND the primary table exists. Reconcile
+	//    shard_lock (load-bearing, see comment in reconcileShardLock) and
+	//    return without touching DDL.
+	if !isFresh && dbVersion == schemaVersion {
 		if _, probeErr := e.pool.Exec(ctx, fmt.Sprintf(
 			`SELECT 1 FROM %s LIMIT 0`, e.names.stream)); probeErr == nil {
-			// Schema itself is current, but NumShards may have changed since
-			// the last EnsureSchema. The shard_lock table is load-bearing for
-			// per-shard publish serialization — if a row for v_shard_id is
-			// missing, `SELECT ... FOR UPDATE` locks nothing and concurrent
-			// publishes on that shard interleave, violating the per-shard
-			// monotonic-id invariant the outbox cursor depends on. Reconcile
-			// it on every call.
 			if err := e.reconcileShardLock(ctx); err != nil {
 				return err
 			}
 			return nil
 		}
-	}
-	if err != nil {
-		dbVersion = 0 // Table doesn't exist or other error — treat as fresh.
+		// Probe failed → schema_version survived but primary table is missing
+		// (manual drop or partial restore). Fall through and re-apply DDL.
 	}
 
-	// 2. Render and run DDL for both variants. Template is substituted at
-	//    runtime with the user-configured prefix and the variant data type.
-	//    DDL and functions are executed as separate transactions to reduce
-	//    lock scope. Each part retries on deadlock/conflict.
+	// 3. Reject downgrade. A binary running schemaVersion=N against a DB at
+	//    M>N has no way to roll back the M-only migrations that may have
+	//    altered table shapes.
+	if !isFresh {
+		if err := pgschema.CheckDowngrade(label, dbVersion, schemaVersion); err != nil {
+			return err
+		}
+	}
+
+	// 4. Run pending migrations BEFORE DDL, under a Postgres advisory lock so
+	//    a rolling deploy can't race two nodes through the same migration
+	//    chain. Within the lock we RE-READ schema_version — another node may
+	//    have completed the upgrade while we were waiting on the lock, in
+	//    which case the migration loop is a no-op for us. The lock is
+	//    released before DDL, which is idempotent and safely concurrent.
+	//
+	//      (a) Migrations before DDL because the DDL template (`schema.sql`)
+	//          reflects the LATEST shape and may contain
+	//          `CREATE INDEX IF NOT EXISTS idx ON tbl(newcol)` — parsing
+	//          requires `newcol` to already exist on the table. Migrations
+	//          run first guarantees columns referenced by DDL are present.
+	//      (b) Each migration is wrapped in a transaction together with its
+	//          own `UPDATE schema_version = v`, so a failed migration rolls
+	//          back to the previous version on retry — never partial.
+	//    Fresh-install case (isFresh=true) skips this loop: there's nothing
+	//    to upgrade from, and DDL produces the baseline at the latest shape.
+	if !isFresh {
+		if err := e.runMigrationsUnderLock(ctx, label); err != nil {
+			return err
+		}
+	}
+
+	// 5. Render and run DDL for both variants. Fresh install creates
+	//    everything at the latest shape; upgrade is idempotent and picks up
+	//    new functions / indexes from schema.sql.
 	jsonbSQL := renderSchema(e.names.jsonbPrefix, false)
 	binarySQL := renderSchema(e.names.binaryPrefix, true)
 	jsonbDDL, jsonbFuncs := splitSchemaSQL(jsonbSQL)
@@ -710,42 +843,20 @@ func (e *PostgresMapBroker) EnsureSchema(ctx context.Context) error {
 		}
 	}
 
-	// 3. Populate/trim shard_lock for BOTH variant prefixes.
+	// 6. Populate/trim shard_lock and ensure the partitioned stream is set up.
 	if err := e.reconcileShardLock(ctx); err != nil {
 		return err
 	}
-
-	// 4. Ensure partitioned schema and pre-create lookahead partitions.
-	// The stream table is always partitioned in this design — the pgmapbroker
-	// is unreleased so no migration logic is needed; if a pre-existing
-	// non-partitioned table is detected, ensurePartitionedStream returns an
-	// error telling the operator to drop the legacy tables manually.
 	if err := e.ensurePartitionedStream(ctx); err != nil {
 		return err
 	}
 
-	// 5. Migration loop (SKIP if dbVersion == 0, fresh install — DDL has latest).
-	if dbVersion > 0 {
-		for v := dbVersion + 1; v <= schemaVersion; v++ {
-			if sql, ok := schemaMigrations[v]; ok {
-				if err := e.execSchemaWithRetry(ctx, sql); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	// 6. Update version (always, ensures both variant tables are current).
-	for _, prefix := range []string{e.names.jsonbPrefix, e.names.binaryPrefix} {
-		if _, err := e.pool.Exec(ctx, fmt.Sprintf(
-			`UPDATE %sschema_version SET schema_version = $1 WHERE id = 1`,
-			prefix), schemaVersion); err != nil {
-			// Non-fatal: schema was created successfully, just version tracking failed.
-			e.logErrorMsg("schema version update", err)
-		}
-	}
-
-	return nil
+	// 7. Final schema_version write. For an upgrade, the migration txs have
+	//    already set it; this UPDATE is a no-op. For a fresh install the
+	//    schema.sql DDL inserted (1, 1), and this UPDATE bumps it to the
+	//    current schemaVersion. Fatal on failure — leaving a fresh install
+	//    stuck at version=1 would re-run the migration chain on next start.
+	return pgschema.SetSchemaVersion(ctx, e.pool, label, schemaVersion, e.versionTables())
 }
 
 // Subscribe delegates to inner Broker when configured, otherwise no-op.

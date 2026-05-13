@@ -1888,13 +1888,14 @@ func TestPostgresMapBroker_EnsureSchema_MigrationExecution(t *testing.T) {
 	// the migration loop. Save the original value so cleanup can restore it.
 	origSchemaVersion := schemaVersion
 	t.Cleanup(func() {
+		// Drop the whole schema before restoring the binary's schemaVersion:
+		// this test leaves the DB at baseVersion+1, while the binary returns
+		// to the lower origSchemaVersion. Any subsequent test that calls
+		// EnsureSchema without first dropping the schema would correctly hit
+		// the downgrade rejection.
+		dropAllSchemaObjects(ctx, broker.pool)
 		_ = broker.Close(ctx)
 		_ = node.Shutdown(ctx)
-		// Cleanup: drop test columns and restore version.
-		for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
-			_, _ = broker.pool.Exec(ctx, fmt.Sprintf(
-				`ALTER TABLE %sstate DROP COLUMN IF EXISTS test_col`, prefix))
-		}
 		schemaVersion = origSchemaVersion
 		delete(schemaMigrations, origSchemaVersion+1)
 	})
@@ -1913,10 +1914,11 @@ func TestPostgresMapBroker_EnsureSchema_MigrationExecution(t *testing.T) {
 	err = broker.EnsureSchema(ctx)
 	require.NoError(t, err)
 
-	// Register migration baseline+1: add test_col to both prefixes.
+	// Register migration baseline+1: template uses __PREFIX__, the framework
+	// renders it once per variant (jsonb + binary) and runs both in the same
+	// transaction with atomic version bumps.
 	schemaMigrations[baseVersion+1] = `
-		ALTER TABLE cf_map_state ADD COLUMN IF NOT EXISTS test_col TEXT;
-		ALTER TABLE cf_binary_map_state ADD COLUMN IF NOT EXISTS test_col TEXT;
+		ALTER TABLE __PREFIX__state ADD COLUMN IF NOT EXISTS test_col TEXT;
 	`
 	schemaVersion = baseVersion + 1
 
@@ -1967,12 +1969,10 @@ func TestPostgresMapBroker_EnsureSchema_MigrationIdempotent(t *testing.T) {
 
 	origSchemaVersion := schemaVersion
 	t.Cleanup(func() {
+		// Drop the whole schema — see MigrationExecution test for rationale.
+		dropAllSchemaObjects(ctx, broker.pool)
 		_ = broker.Close(ctx)
 		_ = node.Shutdown(ctx)
-		for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
-			_, _ = broker.pool.Exec(ctx, fmt.Sprintf(
-				`ALTER TABLE %sstate DROP COLUMN IF EXISTS test_col`, prefix))
-		}
 		schemaVersion = origSchemaVersion
 		delete(schemaMigrations, origSchemaVersion+1)
 	})
@@ -1990,10 +1990,9 @@ func TestPostgresMapBroker_EnsureSchema_MigrationIdempotent(t *testing.T) {
 	err = broker.EnsureSchema(ctx)
 	require.NoError(t, err)
 
-	// Register migration baseline+1.
+	// Register migration baseline+1 with the standard template syntax.
 	schemaMigrations[baseVersion+1] = `
-		ALTER TABLE cf_map_state ADD COLUMN IF NOT EXISTS test_col TEXT;
-		ALTER TABLE cf_binary_map_state ADD COLUMN IF NOT EXISTS test_col TEXT;
+		ALTER TABLE __PREFIX__state ADD COLUMN IF NOT EXISTS test_col TEXT;
 	`
 	schemaVersion = baseVersion + 1
 
@@ -2035,22 +2034,21 @@ func TestPostgresMapBroker_EnsureSchema_FreshInstallSkipsMigrations(t *testing.T
 
 	origSchemaVersion := schemaVersion
 	t.Cleanup(func() {
+		// Drop the whole schema — this test bumps schema_version above the
+		// binary's restored origSchemaVersion, which any later test running
+		// EnsureSchema would (correctly) reject as a downgrade.
+		dropAllSchemaObjects(ctx, broker.pool)
 		_ = broker.Close(ctx)
 		_ = node.Shutdown(ctx)
-		for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
-			_, _ = broker.pool.Exec(ctx, fmt.Sprintf(
-				`ALTER TABLE %sstate DROP COLUMN IF EXISTS test_col`, prefix))
-		}
 		schemaVersion = origSchemaVersion
 		delete(schemaMigrations, origSchemaVersion+1)
 	})
 
 	dropAllSchemaObjects(ctx, broker.pool)
 
-	// Set up baseline+1 with a migration that adds a column.
+	// Set up baseline+1 with a migration template that adds a column.
 	schemaMigrations[origSchemaVersion+1] = `
-		ALTER TABLE cf_map_state ADD COLUMN IF NOT EXISTS test_col TEXT;
-		ALTER TABLE cf_binary_map_state ADD COLUMN IF NOT EXISTS test_col TEXT;
+		ALTER TABLE __PREFIX__state ADD COLUMN IF NOT EXISTS test_col TEXT;
 	`
 	targetVersion := origSchemaVersion + 1
 	schemaVersion = targetVersion
@@ -2091,6 +2089,11 @@ func TestPostgresMapBroker_EnsureSchema_VersionPreservedOnDDLRerun(t *testing.T)
 
 	origSchemaVersion := schemaVersion
 	t.Cleanup(func() {
+		// Drop the whole schema — this test bumps DB schema_version above
+		// origSchemaVersion to test the fast-path "DO NOTHING preserves
+		// version" property; a subsequent EnsureSchema would correctly
+		// reject the ahead-of-binary DB as a downgrade.
+		dropAllSchemaObjects(ctx, broker.pool)
 		_ = broker.Close(ctx)
 		_ = node.Shutdown(ctx)
 		schemaVersion = origSchemaVersion
@@ -2152,12 +2155,10 @@ func TestPostgresMapBroker_EnsureSchema_FunctionalAfterMigration(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
+		// Drop the whole schema — see MigrationExecution for the rationale.
+		dropAllSchemaObjects(ctx, broker.pool)
 		_ = broker.Close(ctx)
 		_ = node.Shutdown(ctx)
-		for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
-			_, _ = broker.pool.Exec(ctx, fmt.Sprintf(
-				`ALTER TABLE %sstate DROP COLUMN IF EXISTS test_col`, prefix))
-		}
 		schemaVersion = 1
 		delete(schemaMigrations, 2)
 	})
@@ -2168,10 +2169,9 @@ func TestPostgresMapBroker_EnsureSchema_FunctionalAfterMigration(t *testing.T) {
 	err = broker.EnsureSchema(ctx)
 	require.NoError(t, err)
 
-	// Register and apply v2 migration.
+	// Register and apply v2 migration via the standard template syntax.
 	schemaMigrations[2] = `
-		ALTER TABLE cf_map_state ADD COLUMN IF NOT EXISTS test_col TEXT;
-		ALTER TABLE cf_binary_map_state ADD COLUMN IF NOT EXISTS test_col TEXT;
+		ALTER TABLE __PREFIX__state ADD COLUMN IF NOT EXISTS test_col TEXT;
 	`
 	schemaVersion = 2
 	err = broker.EnsureSchema(ctx)
@@ -3991,4 +3991,581 @@ func TestPostgresMapBroker_RemoveAtomicVsCleanup(t *testing.T) {
 	).Scan(&streamCount)
 	require.NoError(t, err)
 	require.Equal(t, 1, streamCount, "no phantom removal row may be inserted under a dead epoch")
+}
+
+// TestPostgresMapBroker_EnsureSchema_DowngradeRejected verifies the EnsureSchema
+// safety property: when the DB's schema_version is NEWER than the binary's
+// schemaVersion (e.g. an operator rolled back the binary without restoring an
+// older DB snapshot), EnsureSchema must REFUSE rather than silently rewrite
+// the row backward and leave columns from the newer migrations stranded.
+func TestPostgresMapBroker_EnsureSchema_DowngradeRejected(t *testing.T) {
+	connString := getPostgresConnString(t)
+	ctx := context.Background()
+
+	node, _ := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode:   centrifuge.MapModeRecoverable,
+					KeyTTL: 60 * time.Second,
+				}
+			},
+		},
+	})
+	broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
+		DSN:       connString,
+		NumShards: 4,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		// Reset the schema completely — this test intentionally leaves
+		// schema_version in a state that no subsequent EnsureSchema can run on.
+		dropAllSchemaObjects(ctx, broker.pool)
+		_ = broker.Close(ctx)
+		_ = node.Shutdown(ctx)
+	})
+
+	dropAllSchemaObjects(ctx, broker.pool)
+
+	// First, create baseline schema at the current binary's schemaVersion.
+	require.NoError(t, broker.EnsureSchema(ctx))
+
+	// Simulate a future DB: set schema_version to one past the current binary.
+	futureVersion := schemaVersion + 1
+	for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
+		_, err = broker.pool.Exec(ctx, fmt.Sprintf(
+			`UPDATE %sschema_version SET schema_version = $1 WHERE id = 1`,
+			prefix), futureVersion)
+		require.NoError(t, err)
+	}
+
+	// EnsureSchema must reject — not silently rewrite the row backward.
+	err = broker.EnsureSchema(ctx)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "downgrade not supported")
+
+	// Verify the schema_version row is unchanged (binary didn't quietly roll it back).
+	for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
+		var v int
+		err = broker.pool.QueryRow(ctx, fmt.Sprintf(
+			`SELECT schema_version FROM %sschema_version WHERE id = 1`,
+			prefix)).Scan(&v)
+		require.NoError(t, err)
+		require.Equal(t, futureVersion, v, "downgrade attempt must not mutate %sschema_version", prefix)
+	}
+}
+
+// TestPostgresMapBroker_EnsureSchema_TransientReadPropagates is the critical
+// safety test for the read-discrimination change: a SELECT failure that is NOT
+// "table missing" or "row missing" must propagate as an error, NOT be silently
+// treated as a fresh install. The pre-fix code path would have skipped
+// migrations and forced schema_version forward, leaving the DB at the old
+// shape while the row claimed the new version (silent corruption).
+//
+// We simulate the transient-read class by replacing schema_version with a
+// table that lacks the `schema_version` column — SELECT then errors with
+// 42703 (undefined_column), the same propagation path as a permission denied
+// or timeout would take.
+func TestPostgresMapBroker_EnsureSchema_TransientReadPropagates(t *testing.T) {
+	connString := getPostgresConnString(t)
+	ctx := context.Background()
+
+	node, _ := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode:   centrifuge.MapModeRecoverable,
+					KeyTTL: 60 * time.Second,
+				}
+			},
+		},
+	})
+	broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
+		DSN:       connString,
+		NumShards: 4,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		// The schema_version table this test creates has the wrong shape —
+		// no subsequent EnsureSchema can read it. Reset before exit.
+		dropAllSchemaObjects(ctx, broker.pool)
+		_ = broker.Close(ctx)
+		_ = node.Shutdown(ctx)
+	})
+
+	dropAllSchemaObjects(ctx, broker.pool)
+
+	// Build the active variant's schema_version table with the WRONG column name.
+	// EnsureSchema will SELECT schema_version, get 42703 — must NOT silently
+	// proceed as fresh install.
+	_, err = broker.pool.Exec(ctx, `
+		CREATE TABLE cf_map_schema_version (
+			id INTEGER PRIMARY KEY,
+			wrong_column INTEGER NOT NULL
+		)`)
+	require.NoError(t, err)
+	_, err = broker.pool.Exec(ctx,
+		`INSERT INTO cf_map_schema_version (id, wrong_column) VALUES (1, 42)`)
+	require.NoError(t, err)
+
+	err = broker.EnsureSchema(ctx)
+	require.Error(t, err, "non-fresh non-NoRows error must propagate")
+	require.Contains(t, err.Error(), "read schema_version")
+}
+
+// TestPostgresMapBroker_EnsureSchema_MigrationFailureRollsBackVersion
+// verifies that a failing migration leaves the version row at the previous
+// value AND the partial DDL changes are rolled back. Atomic migration + version
+// bump is the whole point of running them in a single transaction.
+func TestPostgresMapBroker_EnsureSchema_MigrationFailureRollsBackVersion(t *testing.T) {
+	connString := getPostgresConnString(t)
+	ctx := context.Background()
+
+	node, _ := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode:   centrifuge.MapModeRecoverable,
+					KeyTTL: 60 * time.Second,
+				}
+			},
+		},
+	})
+	broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
+		DSN:       connString,
+		NumShards: 4,
+	})
+	require.NoError(t, err)
+
+	origSchemaVersion := schemaVersion
+	t.Cleanup(func() {
+		_ = broker.Close(ctx)
+		_ = node.Shutdown(ctx)
+		schemaVersion = origSchemaVersion
+		delete(schemaMigrations, origSchemaVersion+1)
+		for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
+			_, _ = broker.pool.Exec(ctx, fmt.Sprintf(
+				`ALTER TABLE %sstate DROP COLUMN IF EXISTS rollback_probe_col`, prefix))
+		}
+	})
+
+	dropAllSchemaObjects(ctx, broker.pool)
+
+	// Start at baseline.
+	schemaVersion = origSchemaVersion
+	require.NoError(t, broker.EnsureSchema(ctx))
+
+	// Register a migration that ADDs a column then errors. Both effects must
+	// roll back: column must not exist AND schema_version stays at baseline.
+	baseVersion := schemaVersion
+	schemaMigrations[baseVersion+1] = `
+		ALTER TABLE __PREFIX__state ADD COLUMN rollback_probe_col TEXT;
+		-- Now force a failure inside the same tx.
+		SELECT undefined_function_that_does_not_exist();
+	`
+	schemaVersion = baseVersion + 1
+
+	err = broker.EnsureSchema(ctx)
+	require.Error(t, err, "migration with failing statement must abort EnsureSchema")
+
+	// Verify column does NOT exist (full migration rolled back).
+	for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
+		var exists bool
+		err := broker.pool.QueryRow(ctx,
+			`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = 'rollback_probe_col')`,
+			prefix+"state",
+		).Scan(&exists)
+		require.NoError(t, err)
+		require.False(t, exists, "rollback_probe_col must not exist on %sstate after failed migration", prefix)
+	}
+
+	// Verify schema_version is STILL at baseline (no partial commit).
+	for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
+		var v int
+		err = broker.pool.QueryRow(ctx, fmt.Sprintf(
+			`SELECT schema_version FROM %sschema_version WHERE id = 1`,
+			prefix)).Scan(&v)
+		require.NoError(t, err)
+		require.Equal(t, baseVersion, v, "schema_version must not have advanced past baseline")
+	}
+}
+
+// TestPostgresMapBroker_EnsureSchema_MultiStepMigrationChain verifies that
+// migrations are applied in order, each in its own committed transaction.
+// We bump schemaVersion by two steps with both migrations registered and
+// confirm both columns were added and schema_version ends at the new top.
+func TestPostgresMapBroker_EnsureSchema_MultiStepMigrationChain(t *testing.T) {
+	connString := getPostgresConnString(t)
+	ctx := context.Background()
+
+	node, _ := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode:   centrifuge.MapModeRecoverable,
+					KeyTTL: 60 * time.Second,
+				}
+			},
+		},
+	})
+	broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
+		DSN:       connString,
+		NumShards: 4,
+	})
+	require.NoError(t, err)
+
+	origSchemaVersion := schemaVersion
+	t.Cleanup(func() {
+		// This test leaves schema_version=origSchemaVersion+2 in the DB while
+		// the package-level schemaVersion is restored to origSchemaVersion —
+		// a downgrade situation for any subsequent EnsureSchema. Drop the
+		// whole schema so the next test starts fresh.
+		dropAllSchemaObjects(ctx, broker.pool)
+		_ = broker.Close(ctx)
+		_ = node.Shutdown(ctx)
+		schemaVersion = origSchemaVersion
+		delete(schemaMigrations, origSchemaVersion+1)
+		delete(schemaMigrations, origSchemaVersion+2)
+	})
+
+	dropAllSchemaObjects(ctx, broker.pool)
+	require.NoError(t, broker.EnsureSchema(ctx))
+
+	baseVersion := schemaVersion
+	schemaMigrations[baseVersion+1] = `
+		ALTER TABLE __PREFIX__state ADD COLUMN chain_col_a TEXT;
+	`
+	schemaMigrations[baseVersion+2] = `
+		ALTER TABLE __PREFIX__state ADD COLUMN chain_col_b TEXT;
+	`
+	schemaVersion = baseVersion + 2
+
+	require.NoError(t, broker.EnsureSchema(ctx))
+
+	// Both columns present.
+	for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
+		for _, col := range []string{"chain_col_a", "chain_col_b"} {
+			var exists bool
+			err = broker.pool.QueryRow(ctx,
+				`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = $2)`,
+				prefix+"state", col,
+			).Scan(&exists)
+			require.NoError(t, err)
+			require.True(t, exists, "%s should exist on %sstate", col, prefix)
+		}
+	}
+
+	// schema_version landed at the new top.
+	for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
+		var v int
+		err = broker.pool.QueryRow(ctx, fmt.Sprintf(
+			`SELECT schema_version FROM %sschema_version WHERE id = 1`,
+			prefix)).Scan(&v)
+		require.NoError(t, err)
+		require.Equal(t, baseVersion+2, v)
+	}
+}
+
+// TestPostgresMapBroker_EnsureSchema_LargeVersionJump simulates a user who
+// ran Centrifugo at schema_version=1, then upgraded several releases later to
+// a binary at schema_version=4. The migration framework must apply v2, v3,
+// AND v4 in order on a single EnsureSchema call — never skip a step, never
+// run them out of order. This is the realistic "Centrifugo evolved a lot"
+// upgrade path the user explicitly called out.
+func TestPostgresMapBroker_EnsureSchema_LargeVersionJump(t *testing.T) {
+	connString := getPostgresConnString(t)
+	ctx := context.Background()
+
+	node, _ := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode:   centrifuge.MapModeRecoverable,
+					KeyTTL: 60 * time.Second,
+				}
+			},
+		},
+	})
+	broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
+		DSN:       connString,
+		NumShards: 4,
+	})
+	require.NoError(t, err)
+
+	origSchemaVersion := schemaVersion
+	t.Cleanup(func() {
+		dropAllSchemaObjects(ctx, broker.pool)
+		_ = broker.Close(ctx)
+		_ = node.Shutdown(ctx)
+		schemaVersion = origSchemaVersion
+		for v := origSchemaVersion + 1; v <= origSchemaVersion+3; v++ {
+			delete(schemaMigrations, v)
+		}
+	})
+
+	dropAllSchemaObjects(ctx, broker.pool)
+
+	// Pin baseline at 1 so we can simulate the "user is at v1" scenario,
+	// regardless of what the current production schemaVersion is. Then bring
+	// the binary up to v=baseline+3 with three registered migrations.
+	schemaVersion = origSchemaVersion
+	if origSchemaVersion > 1 {
+		// Run baseline first using the current value, then force-reset to 1.
+		require.NoError(t, broker.EnsureSchema(ctx))
+		for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
+			_, err = broker.pool.Exec(ctx, fmt.Sprintf(
+				`UPDATE %sschema_version SET schema_version = 1 WHERE id = 1`, prefix))
+			require.NoError(t, err)
+		}
+	} else {
+		require.NoError(t, broker.EnsureSchema(ctx))
+	}
+
+	// Three migrations as TEMPLATES — the framework renders each once per
+	// variant (jsonb + binary) inside a single transaction.
+	schemaMigrations[origSchemaVersion+1] = `
+		ALTER TABLE __PREFIX__state ADD COLUMN IF NOT EXISTS jump_col_v2 TEXT;
+	`
+	schemaMigrations[origSchemaVersion+2] = `
+		ALTER TABLE __PREFIX__state ADD COLUMN IF NOT EXISTS jump_col_v3 TEXT;
+	`
+	schemaMigrations[origSchemaVersion+3] = `
+		ALTER TABLE __PREFIX__state ADD COLUMN IF NOT EXISTS jump_col_v4 TEXT;
+	`
+	t.Cleanup(func() {
+		for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
+			for _, col := range []string{"jump_col_v2", "jump_col_v3", "jump_col_v4"} {
+				_, _ = broker.pool.Exec(ctx, fmt.Sprintf(
+					`ALTER TABLE %sstate DROP COLUMN IF EXISTS %s`, prefix, col))
+			}
+		}
+	})
+
+	schemaVersion = origSchemaVersion + 3
+
+	// Single EnsureSchema call must apply all three migrations.
+	require.NoError(t, broker.EnsureSchema(ctx))
+
+	// All three columns present on both variants.
+	for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
+		for _, col := range []string{"jump_col_v2", "jump_col_v3", "jump_col_v4"} {
+			var exists bool
+			err = broker.pool.QueryRow(ctx,
+				`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = $2)`,
+				prefix+"state", col,
+			).Scan(&exists)
+			require.NoError(t, err)
+			require.True(t, exists, "%s should exist on %sstate after large-jump upgrade", col, prefix)
+		}
+	}
+
+	// Final schema_version = top.
+	for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
+		var v int
+		err = broker.pool.QueryRow(ctx, fmt.Sprintf(
+			`SELECT schema_version FROM %sschema_version WHERE id = 1`,
+			prefix)).Scan(&v)
+		require.NoError(t, err)
+		require.Equal(t, origSchemaVersion+3, v)
+	}
+}
+
+// TestPostgresMapBroker_EnsureSchema_ConcurrentMigratorsLockSerialised
+// exercises the advisory-lock serialisation guarantee: two EnsureSchema calls
+// running concurrently against the same DB must run the migration chain
+// exactly once between them. We register a NON-IDEMPOTENT migration (INSERT
+// without ON CONFLICT) so a missing lock would produce two rows and the test
+// would catch it.
+func TestPostgresMapBroker_EnsureSchema_ConcurrentMigratorsLockSerialised(t *testing.T) {
+	connString := getPostgresConnString(t)
+	ctx := context.Background()
+
+	node, _ := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode:   centrifuge.MapModeRecoverable,
+					KeyTTL: 60 * time.Second,
+				}
+			},
+		},
+	})
+	broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
+		DSN:       connString,
+		NumShards: 4,
+	})
+	require.NoError(t, err)
+
+	origSchemaVersion := schemaVersion
+	t.Cleanup(func() {
+		dropAllSchemaObjects(ctx, broker.pool)
+		_, _ = broker.pool.Exec(ctx, `DROP TABLE IF EXISTS cf_lock_test_probe CASCADE`)
+		_ = broker.Close(ctx)
+		_ = node.Shutdown(ctx)
+		schemaVersion = origSchemaVersion
+		delete(schemaMigrations, origSchemaVersion+1)
+	})
+
+	dropAllSchemaObjects(ctx, broker.pool)
+	_, err = broker.pool.Exec(ctx, `DROP TABLE IF EXISTS cf_lock_test_probe CASCADE`)
+	require.NoError(t, err)
+
+	// Baseline.
+	require.NoError(t, broker.EnsureSchema(ctx))
+
+	// Reset DB version to baseline-1 so the new migration we register has
+	// somewhere to apply against. Probe table for counting migration runs.
+	for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
+		_, err = broker.pool.Exec(ctx, fmt.Sprintf(
+			`UPDATE %sschema_version SET schema_version = $1 WHERE id = 1`,
+			prefix), origSchemaVersion)
+		require.NoError(t, err)
+	}
+	_, err = broker.pool.Exec(ctx,
+		`CREATE TABLE cf_lock_test_probe (n SERIAL PRIMARY KEY)`)
+	require.NoError(t, err)
+
+	// Non-idempotent migration: a plain INSERT. The framework renders the
+	// migration once per variant (jsonb + binary) inside a SINGLE transaction,
+	// so ONE successful migration cycle yields 2 rows. Without the advisory
+	// lock serialising the migration loop, two concurrent EnsureSchema calls
+	// would both pass the initial version check, both enter the loop, both
+	// commit → 4 rows. With the lock + re-read inside the lock, only one
+	// migrator runs the chain → 2 rows.
+	schemaMigrations[origSchemaVersion+1] = `
+		INSERT INTO cf_lock_test_probe DEFAULT VALUES;
+	`
+	schemaVersion = origSchemaVersion + 1
+
+	// Run two EnsureSchema goroutines that start nearly together.
+	const N = 2
+	errCh := make(chan error, N)
+	startGate := make(chan struct{})
+	for i := 0; i < N; i++ {
+		go func() {
+			<-startGate
+			errCh <- broker.EnsureSchema(ctx)
+		}()
+	}
+	close(startGate)
+	for i := 0; i < N; i++ {
+		require.NoError(t, <-errCh)
+	}
+
+	// Probe table must have exactly two rows — one per variant in the single
+	// migration cycle that the advisory lock allowed to run.
+	var rows int
+	err = broker.pool.QueryRow(ctx, `SELECT COUNT(*) FROM cf_lock_test_probe`).Scan(&rows)
+	require.NoError(t, err)
+	require.Equal(t, 2, rows, "advisory lock must serialise migrations so the non-idempotent INSERT runs exactly once per variant (2 variants × 1 cycle)")
+
+	// Final schema_version reflects success on both variants.
+	for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
+		var v int
+		err = broker.pool.QueryRow(ctx, fmt.Sprintf(
+			`SELECT schema_version FROM %sschema_version WHERE id = 1`,
+			prefix)).Scan(&v)
+		require.NoError(t, err)
+		require.Equal(t, origSchemaVersion+1, v)
+	}
+}
+
+// TestPostgresMapBroker_EnsureSchema_MigrationTemplateUsesCustomTablePrefix
+// proves the templating path: a migration written with __PREFIX__ works
+// against a non-default TablePrefix. Pre-templating, migration authors
+// would have to hardcode `cf_map_` / `cf_binary_map_` in every migration,
+// silently breaking any operator who set `table_prefix: <something else>`.
+func TestPostgresMapBroker_EnsureSchema_MigrationTemplateUsesCustomTablePrefix(t *testing.T) {
+	connString := getPostgresConnString(t)
+	ctx := context.Background()
+
+	node, _ := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				return centrifuge.MapChannelOptions{
+					Mode:   centrifuge.MapModeRecoverable,
+					KeyTTL: 60 * time.Second,
+				}
+			},
+		},
+	})
+	const customPrefix = "tplprobe"
+	broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
+		DSN:         connString,
+		NumShards:   4,
+		TablePrefix: customPrefix,
+	})
+	require.NoError(t, err)
+
+	origSchemaVersion := schemaVersion
+	cleanup := func() {
+		// Drop all objects created with the custom prefix.
+		for _, prefix := range []string{customPrefix + "_map_", customPrefix + "_binary_map_"} {
+			for _, fn := range []string{"publish", "publish_strict", "remove", "remove_strict", "expire_keys"} {
+				_, _ = broker.pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %s%s CASCADE", prefix, fn))
+			}
+			for _, tbl := range []string{"idempotency", "stream", "state", "meta", "shard_lock", "schema_version"} {
+				_, _ = broker.pool.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s%s CASCADE", prefix, tbl))
+			}
+		}
+	}
+	t.Cleanup(func() {
+		cleanup()
+		_ = broker.Close(ctx)
+		_ = node.Shutdown(ctx)
+		schemaVersion = origSchemaVersion
+		delete(schemaMigrations, origSchemaVersion+1)
+	})
+	cleanup()
+
+	// Install baseline at current schemaVersion.
+	require.NoError(t, broker.EnsureSchema(ctx))
+
+	// Reset to one below current and add a templated migration.
+	baseVersion := origSchemaVersion
+	for _, prefix := range []string{customPrefix + "_map_", customPrefix + "_binary_map_"} {
+		_, err = broker.pool.Exec(ctx, fmt.Sprintf(
+			`UPDATE %sschema_version SET schema_version = $1 WHERE id = 1`, prefix), baseVersion)
+		require.NoError(t, err)
+	}
+
+	// Migration uses __PREFIX__ placeholder — must resolve to the user's
+	// custom prefix, NOT the default `cf_map_`.
+	schemaMigrations[baseVersion+1] = `
+		ALTER TABLE __PREFIX__state ADD COLUMN IF NOT EXISTS template_probe_col TEXT;
+	`
+	schemaVersion = baseVersion + 1
+
+	require.NoError(t, broker.EnsureSchema(ctx))
+
+	// Verify the column landed on BOTH custom-prefixed variant tables.
+	for _, prefix := range []string{customPrefix + "_map_", customPrefix + "_binary_map_"} {
+		var exists bool
+		err = broker.pool.QueryRow(ctx,
+			`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = 'template_probe_col')`,
+			prefix+"state",
+		).Scan(&exists)
+		require.NoError(t, err)
+		require.True(t, exists, "template_probe_col should exist on %sstate under custom TablePrefix", prefix)
+	}
+
+	// Verify the default cf_-prefixed tables were NOT touched (proves the
+	// custom prefix really was used in the migration SQL).
+	var defaultExists bool
+	err = broker.pool.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = 'template_probe_col')`,
+		"cf_map_state",
+	).Scan(&defaultExists)
+	require.NoError(t, err)
+	require.False(t, defaultExists, "default cf_map_ tables must NOT be touched when migration uses __PREFIX__ under a custom TablePrefix")
+
+	// Final schema_version reflects success on both custom-prefixed variants.
+	for _, prefix := range []string{customPrefix + "_map_", customPrefix + "_binary_map_"} {
+		var v int
+		err = broker.pool.QueryRow(ctx, fmt.Sprintf(
+			`SELECT schema_version FROM %sschema_version WHERE id = 1`,
+			prefix)).Scan(&v)
+		require.NoError(t, err)
+		require.Equal(t, baseVersion+1, v)
+	}
 }
