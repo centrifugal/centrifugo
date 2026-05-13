@@ -939,57 +939,57 @@ func (c RedisStreamConsumerConfig) Validate() error {
 // NatsJetStreamConsumerConfig holds configuration for the NATS JetStream consumer.
 type NatsJetStreamConsumerConfig struct {
 	// URL is the address of the NATS server.
-	URL string `mapstructure:"url" default:"nats://127.0.0.1:4222" json:"url" toml:"url" yaml:"url"`
+	URL string `mapstructure:"url" default:"nats://127.0.0.1:4222" json:"url" envconfig:"url" toml:"url" yaml:"url"`
 	// CredentialsFile is the path to a NATS credentials file used for authentication (nats.UserCredentials).
 	// If provided, it overrides username/password and token.
-	CredentialsFile string `mapstructure:"credentials_file" json:"credentials_file" toml:"credentials_file" yaml:"credentials_file"`
+	CredentialsFile string `mapstructure:"credentials_file" json:"credentials_file" envconfig:"credentials_file" toml:"credentials_file" yaml:"credentials_file"`
 	// Username is used for basic authentication (along with Password) if CredentialsFile is not provided.
-	Username string `mapstructure:"username" json:"username" toml:"username" yaml:"username"`
+	Username string `mapstructure:"username" json:"username" envconfig:"username" toml:"username" yaml:"username"`
 	// Password is used with Username for basic authentication.
-	Password string `mapstructure:"password" json:"password" toml:"password" yaml:"password"`
+	Password string `mapstructure:"password" json:"password" envconfig:"password" toml:"password" yaml:"password"`
 	// Token is an alternative authentication mechanism if CredentialsFile and Username are not provided.
-	Token string `mapstructure:"token" json:"token" toml:"token" yaml:"token"`
+	Token string `mapstructure:"token" json:"token" envconfig:"token" toml:"token" yaml:"token"`
 	// StreamName is the name of the NATS JetStream stream to use.
-	StreamName string `mapstructure:"stream_name" json:"stream_name" toml:"stream_name" yaml:"stream_name"`
+	StreamName string `mapstructure:"stream_name" json:"stream_name" envconfig:"stream_name" toml:"stream_name" yaml:"stream_name"`
 	// UseExistingConsumer when enabled tells Centrifugo to use an existing consumer with
 	// durable_consumer_name instead of creating a new one. When on, these fields are ignored:
 	// deliver_policy, subjects, max_ack_pending, and all other consumer-creation-related options
 	// which may be added later (like ack wait, etc.). The existing consumer's configuration defines
 	// all behavior, and Centrifugo will fail to start if the consumer does not already exist.
-	UseExistingConsumer bool `mapstructure:"use_existing_consumer" default:"false" json:"use_existing_consumer" toml:"use_existing_consumer" yaml:"use_existing_consumer"`
+	UseExistingConsumer bool `mapstructure:"use_existing_consumer" default:"false" json:"use_existing_consumer" envconfig:"use_existing_consumer" toml:"use_existing_consumer" yaml:"use_existing_consumer"`
 	// Subjects is the list of NATS subjects (topics) to filter.
-	Subjects []string `mapstructure:"subjects" json:"subjects" toml:"subjects" yaml:"subjects"`
+	Subjects []string `mapstructure:"subjects" json:"subjects" envconfig:"subjects" toml:"subjects" yaml:"subjects"`
 	// DurableConsumerName sets the name of the durable JetStream consumer to use.
-	DurableConsumerName string `mapstructure:"durable_consumer_name" json:"durable_consumer_name" toml:"durable_consumer_name" yaml:"durable_consumer_name"`
+	DurableConsumerName string `mapstructure:"durable_consumer_name" json:"durable_consumer_name" envconfig:"durable_consumer_name" toml:"durable_consumer_name" yaml:"durable_consumer_name"`
 	// DeliverPolicy is the NATS JetStream delivery policy for the consumer. By default, it is set to "new". Possible values: `new`, `all`.
-	DeliverPolicy string `mapstructure:"deliver_policy" default:"new" json:"deliver_policy" toml:"deliver_policy" yaml:"deliver_policy"`
+	DeliverPolicy string `mapstructure:"deliver_policy" default:"new" json:"deliver_policy" envconfig:"deliver_policy" toml:"deliver_policy" yaml:"deliver_policy"`
 	// MaxAckPending is the maximum number of unacknowledged messages that can be pending for the consumer.
-	MaxAckPending int `mapstructure:"max_ack_pending" default:"100" json:"max_ack_pending" toml:"max_ack_pending" yaml:"max_ack_pending"`
+	MaxAckPending int `mapstructure:"max_ack_pending" default:"100" json:"max_ack_pending" envconfig:"max_ack_pending" toml:"max_ack_pending" yaml:"max_ack_pending"`
 	// MethodHeader is the NATS message header used to extract the method name for dispatching commands.
 	// If provided in message, then payload must be just a serialized API request object.
-	MethodHeader string `mapstructure:"method_header" default:"centrifugo-method" json:"method_header" toml:"method_header" yaml:"method_header"`
+	MethodHeader string `mapstructure:"method_header" default:"centrifugo-method" json:"method_header" envconfig:"method_header" toml:"method_header" yaml:"method_header"`
 	// PublicationDataMode configures extraction of pre-formatted publication data from message headers.
-	PublicationDataMode NatsJetStreamPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" toml:"publication_data_mode" yaml:"publication_data_mode"`
+	PublicationDataMode NatsJetStreamPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" envconfig:"publication_data_mode" toml:"publication_data_mode" yaml:"publication_data_mode"`
 	// TLS is the configuration for TLS.
-	TLS TLSConfig `mapstructure:"tls" json:"tls" toml:"tls" yaml:"tls"`
+	TLS TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" toml:"tls" yaml:"tls"`
 }
 
 // NatsJetStreamPublicationDataModeConfig holds settings for publication data mode.
 type NatsJetStreamPublicationDataModeConfig struct {
 	// Enabled toggles publication data mode.
-	Enabled bool `mapstructure:"enabled" json:"enabled" toml:"enabled" yaml:"enabled"`
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" toml:"enabled" yaml:"enabled"`
 	// ChannelsHeader is the name of the header that contains comma-separated channel names.
-	ChannelsHeader string `mapstructure:"channels_header" default:"centrifugo-channels" json:"channels_header" toml:"channels_header" yaml:"channels_header"`
+	ChannelsHeader string `mapstructure:"channels_header" default:"centrifugo-channels" json:"channels_header" envconfig:"channels_header" toml:"channels_header" yaml:"channels_header"`
 	// IdempotencyKeyHeader is the name of the header that contains an idempotency key for deduplication.
-	IdempotencyKeyHeader string `mapstructure:"idempotency_key_header" default:"centrifugo-idempotency-key"  json:"idempotency_key_header" toml:"idempotency_key_header" yaml:"idempotency_key_header"`
+	IdempotencyKeyHeader string `mapstructure:"idempotency_key_header" default:"centrifugo-idempotency-key" json:"idempotency_key_header" envconfig:"idempotency_key_header" toml:"idempotency_key_header" yaml:"idempotency_key_header"`
 	// DeltaHeader is the name of the header indicating whether the message represents a delta (partial update).
-	DeltaHeader string `mapstructure:"delta_header" default:"centrifugo-delta" json:"delta_header" toml:"delta_header" yaml:"delta_header"`
+	DeltaHeader string `mapstructure:"delta_header" default:"centrifugo-delta" json:"delta_header" envconfig:"delta_header" toml:"delta_header" yaml:"delta_header"`
 	// VersionHeader is the name of the header that contains the version of the message.
-	VersionHeader string `mapstructure:"version_header" default:"centrifugo-version" json:"version_header" toml:"version_header" yaml:"version_header"`
+	VersionHeader string `mapstructure:"version_header" default:"centrifugo-version" json:"version_header" envconfig:"version_header" toml:"version_header" yaml:"version_header"`
 	// VersionEpochHeader is the name of the header that contains the version epoch of the message.
-	VersionEpochHeader string `mapstructure:"version_epoch_header" default:"centrifugo-version-epoch" json:"version_epoch_header" toml:"version_epoch_header" yaml:"version_epoch_header"`
+	VersionEpochHeader string `mapstructure:"version_epoch_header" default:"centrifugo-version-epoch" json:"version_epoch_header" envconfig:"version_epoch_header" toml:"version_epoch_header" yaml:"version_epoch_header"`
 	// TagsHeaderPrefix is the prefix used to extract dynamic tags from message headers.
-	TagsHeaderPrefix string `mapstructure:"tags_header_prefix" default:"centrifugo-tag-" json:"tags_header_prefix" toml:"tags_header_prefix" yaml:"tags_header_prefix"`
+	TagsHeaderPrefix string `mapstructure:"tags_header_prefix" default:"centrifugo-tag-" json:"tags_header_prefix" envconfig:"tags_header_prefix" toml:"tags_header_prefix" yaml:"tags_header_prefix"`
 }
 
 // Validate validates the required fields.
