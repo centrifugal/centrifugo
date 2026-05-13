@@ -147,9 +147,11 @@ func (lw *LockWorker) Run(ctx context.Context, closeCh <-chan struct{}) {
 // the caller should exit Run (ctx cancelled or closeCh closed); false if
 // the caller should retry lock acquisition.
 //
-// The conn is owned by the caller and released AFTER this method returns
-// (via releaseAdvisoryLock + conn.Release); this method never releases it.
-func (lw *LockWorker) runLockedSession(ctx context.Context, closeCh <-chan struct{}, _ *pgxpool.Conn) bool {
+// The lock-holding conn is owned by the caller and released AFTER this
+// method returns (via releaseAdvisoryLock + conn.Release); this method
+// never releases it. We DO ping it during idle waits — see comment on the
+// idle-wait branch below for why.
+func (lw *LockWorker) runLockedSession(ctx context.Context, closeCh <-chan struct{}, lockConn *pgxpool.Conn) bool {
 	// Initialize cursor from PollPool. Cursor is re-initialized on every
 	// acquisition because the stream may have advanced while another node
 	// held the lock.
@@ -203,7 +205,28 @@ func (lw *LockWorker) runLockedSession(ctx context.Context, closeCh <-chan struc
 			continue
 		}
 
-		// Idle wait.
+		// Idle wait. While waiting, periodically ping the lock-holding
+		// connection so we detect silent session loss (pgbouncer reaping the
+		// idle conn, kernel TCP timeout, transient network partition
+		// affecting only this conn). If the lock conn dies, Postgres
+		// releases the advisory lock automatically on session end and
+		// another node could acquire it — leading to dual-leader processing
+		// of the same outbox region. The ping turns that into an explicit
+		// "lock lost" → release and re-acquire, restoring single-writer
+		// semantics. Cost is one round-trip per PollInterval during idle
+		// periods; during active batching the PollPool path already
+		// exercises the broader connection state.
+		pingCtx, cancel := context.WithTimeout(ctx, lw.PollInterval)
+		err := lockConn.Conn().Ping(pingCtx)
+		cancel()
+		if err != nil {
+			if ctx.Err() != nil {
+				return true
+			}
+			lw.ErrorFn("outbox worker: lock connection ping failed — releasing lock", err)
+			return false
+		}
+
 		select {
 		case <-closeCh:
 			return true
