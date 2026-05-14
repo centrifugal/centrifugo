@@ -941,28 +941,40 @@ func TestPostgresStreamBroker_PartitionRetention_LookaheadAndDrop(t *testing.T) 
 	e, _, _ := newTestPostgresStreamBroker(t)
 	ctx := context.Background()
 
-	// The test broker has PartitionRetentionDays=1, PartitionLookaheadDays=1.
-	// Manually create an old partition (3 days ago) and verify the partition
-	// worker drops it on the next tick.
+	// The test broker has PartitionRetentionDays=1, PartitionLookaheadDays=1,
+	// and CleanupInterval=100ms — the retention worker fires aggressively, so
+	// any past-retention partition can be dropped within a single tick of
+	// being created. We therefore can't assert "exists immediately after
+	// CREATE" reliably (the worker can race the SELECT). Instead:
+	//
+	//   1. Assert the partition doesn't exist at test start (catches leftover
+	//      from a previous test run — without this, a stale partition would
+	//      let step 3 trivially pass).
+	//   2. CREATE the past-retention partition.
+	//   3. Wait for the worker to drop it.
+	//
+	// Either step 3 sees the partition (briefly) exist and then disappear,
+	// or the worker beats us to the punch and the partition was already
+	// gone — both outcomes prove the retention worker is functioning.
 	oldDate := time.Now().UTC().AddDate(0, 0, -3)
 	nextDay := oldDate.AddDate(0, 0, 1)
 	oldPartName := fmt.Sprintf("%s_%s", e.names.stream, oldDate.Format("2006_01_02"))
-	_, err := e.pool.Exec(ctx, fmt.Sprintf(
+
+	var existsBefore bool
+	err := e.pool.QueryRow(ctx, `
+		SELECT EXISTS(SELECT 1 FROM pg_class WHERE relname = $1)
+	`, oldPartName).Scan(&existsBefore)
+	require.NoError(t, err)
+	require.Falsef(t, existsBefore,
+		"%s already exists at test start — previous test cleanup likely failed, this test cannot prove drop behaviour on stale state", oldPartName)
+
+	_, err = e.pool.Exec(ctx, fmt.Sprintf(
 		`CREATE TABLE IF NOT EXISTS %s PARTITION OF %s FOR VALUES FROM ('%s') TO ('%s')`,
 		oldPartName, e.names.stream,
 		oldDate.Format("2006-01-02"), nextDay.Format("2006-01-02"),
 	))
 	require.NoError(t, err)
 
-	// Verify the old partition exists.
-	var existsBefore bool
-	err = e.pool.QueryRow(ctx, `
-		SELECT EXISTS(SELECT 1 FROM pg_class WHERE relname = $1)
-	`, oldPartName).Scan(&existsBefore)
-	require.NoError(t, err)
-	require.True(t, existsBefore)
-
-	// Wait for the partition worker to tick (CleanupInterval=100ms in test config).
 	require.Eventually(t, func() bool {
 		var exists bool
 		_ = e.pool.QueryRow(ctx, `

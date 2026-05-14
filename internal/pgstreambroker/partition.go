@@ -2,12 +2,21 @@ package pgstreambroker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/pgoutbox"
 )
+
+// isShutdownErr reports whether err is a normal-shutdown signal — context
+// cancellation surfacing because the broker is being closed mid-tick. Those
+// aren't real failures and shouldn't be logged at error level, since they
+// would otherwise pollute CI logs and mask genuine cleanup errors.
+func isShutdownErr(err error) bool {
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
+}
 
 // newPartitioner constructs a pgoutbox.Partitioner configured for the
 // stream broker's history table.
@@ -56,13 +65,17 @@ func addCleanupRows(broker, pass string, n int64) {
 	}
 }
 
-// cleanupSupportTables deletes expired meta and idempotency rows.
+// cleanupSupportTables deletes expired meta and idempotency rows. Context
+// cancellation (broker shutting down mid-tick) is treated as normal and not
+// logged — only genuine query failures surface as errors.
 func (e *PostgresStreamBroker) cleanupSupportTables(ctx context.Context) {
 	if res, err := e.pool.Exec(ctx, fmt.Sprintf(
 		`DELETE FROM %s WHERE expires_at IS NOT NULL AND expires_at < NOW()`,
 		e.names.meta,
 	)); err != nil {
-		e.logErrorMsg("error cleaning up expired meta", err)
+		if !isShutdownErr(err) {
+			e.logErrorMsg("error cleaning up expired meta", err)
+		}
 	} else {
 		addCleanupRows(e.conf.Name, "meta", res.RowsAffected())
 	}
@@ -70,7 +83,9 @@ func (e *PostgresStreamBroker) cleanupSupportTables(ctx context.Context) {
 		`DELETE FROM %s WHERE expires_at < NOW()`,
 		e.names.idempotency,
 	)); err != nil {
-		e.logErrorMsg("error cleaning up expired idempotency", err)
+		if !isShutdownErr(err) {
+			e.logErrorMsg("error cleaning up expired idempotency", err)
+		}
 	} else {
 		addCleanupRows(e.conf.Name, "idempotency", res.RowsAffected())
 	}
@@ -97,7 +112,9 @@ func (e *PostgresStreamBroker) cleanupHistoryFineGrained(ctx context.Context) {
 	for {
 		res, err := e.pool.Exec(ctx, query, e.conf.CleanupBatchSize)
 		if err != nil {
-			e.logErrorMsg("error in fine-grained history cleanup", err)
+			if !isShutdownErr(err) {
+				e.logErrorMsg("error in fine-grained history cleanup", err)
+			}
 			return
 		}
 		addCleanupRows(e.conf.Name, "history_ttl_fine_grained", res.RowsAffected())

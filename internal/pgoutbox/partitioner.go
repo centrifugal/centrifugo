@@ -2,12 +2,21 @@ package pgoutbox
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// isShutdownErr reports whether err is a normal-shutdown signal — context
+// cancellation surfacing because the broker is being closed mid-tick. Those
+// aren't real failures and shouldn't be logged at error level, since they
+// would otherwise pollute CI logs and mask genuine cleanup errors.
+func isShutdownErr(err error) bool {
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
+}
 
 // Partitioner manages daily time-based partition maintenance for an
 // existing PARTITION BY RANGE (created_at) parent table.
@@ -115,7 +124,11 @@ func (p *Partitioner) DropOldPartitions(ctx context.Context) {
 		WHERE pp.relname = $1
 	`, p.ParentTable)
 	if err != nil {
-		p.ErrorFn("error listing partitions for cleanup", err)
+		// Context cancellation (shutdown mid-cleanup) is normal; only genuine
+		// query failures should surface as errors.
+		if !isShutdownErr(err) {
+			p.ErrorFn("error listing partitions for cleanup", err)
+		}
 		return
 	}
 	defer rows.Close()
@@ -138,7 +151,9 @@ func (p *Partitioner) DropOldPartitions(ctx context.Context) {
 		}
 		if partDate.Before(cutoff) {
 			if _, err := p.Pool.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s", partName)); err != nil {
-				p.ErrorFn("error dropping old partition "+partName, err)
+				if !isShutdownErr(err) {
+					p.ErrorFn("error dropping old partition "+partName, err)
+				}
 			}
 		}
 	}
@@ -159,7 +174,9 @@ func (p *Partitioner) Run(ctx context.Context, closeCh <-chan struct{}) {
 			return
 		case <-ticker.C:
 			if err := p.EnsureLookaheadPartitions(ctx); err != nil {
-				p.ErrorFn("error ensuring lookahead partitions", err)
+				if !isShutdownErr(err) {
+					p.ErrorFn("error ensuring lookahead partitions", err)
+				}
 			}
 			p.DropOldPartitions(ctx)
 		}
