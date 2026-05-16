@@ -219,15 +219,6 @@ type PostgresStreamBroker struct {
 	// PartitionRetentionDays controls how old a partition can be before it
 	// gets dropped whole by the partition retention worker. Default: 7.
 	PartitionRetentionDays int `mapstructure:"partition_retention_days" json:"partition_retention_days" envconfig:"partition_retention_days" default:"7" yaml:"partition_retention_days" toml:"partition_retention_days"`
-	// FineGrainedHistoryCleanup enables an opt-in chunked DELETE pass that
-	// removes history rows past their channel's history_ttl, instead of
-	// waiting for partition retention. Use for tight-storage deployments
-	// where HistoryTTL is much smaller than PartitionRetentionDays.
-	FineGrainedHistoryCleanup bool `mapstructure:"fine_grained_history_cleanup" json:"fine_grained_history_cleanup" envconfig:"fine_grained_history_cleanup" yaml:"fine_grained_history_cleanup" toml:"fine_grained_history_cleanup"`
-	// CleanupBatchSize bounds each fine-grained cleanup DELETE chunk. Default: 1000.
-	CleanupBatchSize int `mapstructure:"cleanup_batch_size" json:"cleanup_batch_size" envconfig:"cleanup_batch_size" default:"1000" yaml:"cleanup_batch_size" toml:"cleanup_batch_size"`
-	// CleanupChunkPause is the pause between fine-grained cleanup chunks. Default: "100ms".
-	CleanupChunkPause Duration `mapstructure:"cleanup_chunk_pause" json:"cleanup_chunk_pause" envconfig:"cleanup_chunk_pause" default:"100ms" yaml:"cleanup_chunk_pause" toml:"cleanup_chunk_pause"`
 }
 
 // Controller is a configuration for custom Centrifugo Controller.

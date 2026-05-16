@@ -269,24 +269,6 @@ type PostgresStreamBrokerConfig struct {
 	// PostgreSQL connections).
 	NotifyDSN string
 
-	// FineGrainedHistoryCleanup enables an opt-in chunked DELETE pass that
-	// removes history rows past their channel's history_ttl, instead of
-	// waiting for partition retention. Use this for tight-storage deployments
-	// where HistoryTTL is much smaller than PartitionRetentionDays. Default: false
-	// (rows live up to PartitionRetentionDays; the read-time TTL filter
-	// guarantees correctness regardless).
-	FineGrainedHistoryCleanup bool
-
-	// CleanupBatchSize bounds each fine-grained cleanup DELETE to this many
-	// rows per transaction. Default: 1000. Only used when
-	// FineGrainedHistoryCleanup is true.
-	CleanupBatchSize int
-
-	// CleanupChunkPause is the pause between fine-grained cleanup chunks,
-	// giving autovacuum room between batches. Default: 100ms. Only used
-	// when FineGrainedHistoryCleanup is true.
-	CleanupChunkPause time.Duration
-
 	// ReplicaDSN is a list of read-replica connection strings. When set,
 	// outbox cursor bootstraps go to the replica routing instead of the
 	// primary. Default: empty (all reads go to primary).
@@ -336,13 +318,6 @@ func (c *PostgresStreamBrokerConfig) setDefaults() {
 	if c.StreamRetention <= 0 {
 		c.StreamRetention = 24 * time.Hour
 	}
-	if c.CleanupBatchSize <= 0 {
-		c.CleanupBatchSize = 1000
-	}
-	if c.CleanupChunkPause <= 0 {
-		c.CleanupChunkPause = 100 * time.Millisecond
-	}
-
 	c.TablePrefix = strings.TrimRight(c.TablePrefix, "_")
 	if c.TablePrefix == "" {
 		c.TablePrefix = "cf"
@@ -355,7 +330,10 @@ func (c *PostgresStreamBrokerConfig) setDefaults() {
 		c.Outbox.BatchSize = 1000
 	}
 	if c.Outbox.AdvisoryLockBaseID == 0 {
-		c.Outbox.AdvisoryLockBaseID = 726966531
+		// Stream broker occupies [5_067_067_000, 5_067_067_000+NumShards).
+		// Map broker uses    [4_067_067_000, 4_067_067_000+NumShards).
+		// Non-round bases reduce the chance of collision with other software.
+		c.Outbox.AdvisoryLockBaseID = 5_067_067_000
 	}
 	if c.Outbox.AdvisoryLockRetryInterval <= 0 {
 		c.Outbox.AdvisoryLockRetryInterval = 5 * time.Second

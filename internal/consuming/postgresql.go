@@ -114,7 +114,7 @@ func (c *PostgresConsumer) listenForNotifications(ctx context.Context, triggerCh
 	}
 	defer conn.Release()
 
-	_, err = conn.Exec(ctx, "LISTEN "+c.config.PartitionNotificationChannel)
+	_, err = conn.Exec(ctx, "LISTEN "+pgx.Identifier{c.config.PartitionNotificationChannel}.Sanitize())
 	if err != nil {
 		return fmt.Errorf("error executing LISTEN command: %w", err)
 	}
@@ -135,8 +135,8 @@ func (c *PostgresConsumer) listenForNotifications(ctx context.Context, triggerCh
 			continue
 		}
 
-		if partition > len(triggerChannels)-1 {
-			c.common.log.Error().Int("partition", partition).Msg("outbox partition is larger than configured number")
+		if partition < 0 || partition > len(triggerChannels)-1 {
+			c.common.log.Error().Int("partition", partition).Msg("outbox partition is out of range")
 			continue
 		}
 		select {

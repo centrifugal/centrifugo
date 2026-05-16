@@ -49,9 +49,6 @@ func (e *PostgresStreamBroker) runCleanupWorker() {
 			return
 		case <-ticker.C:
 			e.cleanupSupportTables(e.cancelCtx)
-			if e.conf.FineGrainedHistoryCleanup {
-				e.cleanupHistoryFineGrained(e.cancelCtx)
-			}
 			if e.sampler != nil {
 				e.sampler.sample(e.cancelCtx)
 			}
@@ -65,68 +62,52 @@ func addCleanupRows(broker, pass string, n int64) {
 	}
 }
 
-// cleanupSupportTables deletes expired meta and idempotency rows. Context
-// cancellation (broker shutting down mid-tick) is treated as normal and not
-// logged — only genuine query failures surface as errors.
+// cleanupSupportTables deletes expired meta and idempotency rows in bounded
+// batches to avoid long-running DELETE locks on busy tables. Each batch is
+// capped at cleanupBatchSize rows; passes repeat with a cleanupChunkPause gap
+// until fewer than a full batch is deleted. Context cancellation (broker
+// shutting down mid-tick) is treated as normal and not logged.
 func (e *PostgresStreamBroker) cleanupSupportTables(ctx context.Context) {
-	if res, err := e.pool.Exec(ctx, fmt.Sprintf(
-		`DELETE FROM %s WHERE expires_at IS NOT NULL AND expires_at < NOW()`,
-		e.names.meta,
-	)); err != nil {
-		if !isShutdownErr(err) {
-			e.logErrorMsg("error cleaning up expired meta", err)
-		}
-	} else {
-		addCleanupRows(e.conf.Name, "meta", res.RowsAffected())
-	}
-	if res, err := e.pool.Exec(ctx, fmt.Sprintf(
-		`DELETE FROM %s WHERE expires_at < NOW()`,
-		e.names.idempotency,
-	)); err != nil {
-		if !isShutdownErr(err) {
-			e.logErrorMsg("error cleaning up expired idempotency", err)
-		}
-	} else {
-		addCleanupRows(e.conf.Name, "idempotency", res.RowsAffected())
-	}
+	e.cleanupExpiredBatched(ctx, "meta", fmt.Sprintf(
+		`DELETE FROM %[1]s WHERE channel IN (
+			SELECT channel FROM %[1]s
+			WHERE expires_at IS NOT NULL AND expires_at < NOW()
+			LIMIT $1
+		)`, e.names.meta))
+	e.cleanupExpiredBatched(ctx, "idempotency", fmt.Sprintf(
+		`DELETE FROM %[1]s WHERE (channel, idempotency_key) IN (
+			SELECT channel, idempotency_key FROM %[1]s
+			WHERE expires_at < NOW()
+			LIMIT $1
+		)`, e.names.idempotency))
 }
 
-// cleanupHistoryFineGrained runs the chunked DELETE pass for per-channel
-// HistoryTTL precision. Only invoked when FineGrainedHistoryCleanup is true.
-func (e *PostgresStreamBroker) cleanupHistoryFineGrained(ctx context.Context) {
-	query := fmt.Sprintf(`
-		WITH victims AS (
-			SELECT h.id, h.created_at
-			  FROM %s h
-			  JOIN %s m ON m.channel = h.channel
-			 WHERE h.kind = 0
-			   AND m.history_ttl IS NOT NULL
-			   AND h.created_at < NOW() - m.history_ttl
-			 LIMIT $1
-		)
-		DELETE FROM %s h
-		 USING victims v
-		 WHERE h.id = v.id AND h.created_at = v.created_at
-	`, e.names.stream, e.names.meta, e.names.stream)
+const (
+	cleanupBatchSize  = 1000
+	cleanupChunkPause = 100 * time.Millisecond
+)
 
+// cleanupExpiredBatched runs a chunked DELETE loop for the given table.
+// Stops when a batch deletes fewer rows than cleanupBatchSize or ctx is done.
+func (e *PostgresStreamBroker) cleanupExpiredBatched(ctx context.Context, passName, query string) {
 	for {
-		res, err := e.pool.Exec(ctx, query, e.conf.CleanupBatchSize)
+		res, err := e.pool.Exec(ctx, query, cleanupBatchSize)
 		if err != nil {
 			if !isShutdownErr(err) {
-				e.logErrorMsg("error in fine-grained history cleanup", err)
+				e.logErrorMsg("error cleaning up expired "+passName, err)
 			}
 			return
 		}
-		addCleanupRows(e.conf.Name, "history_ttl_fine_grained", res.RowsAffected())
-		if res.RowsAffected() < int64(e.conf.CleanupBatchSize) {
-			break
+		addCleanupRows(e.conf.Name, passName, res.RowsAffected())
+		if res.RowsAffected() < cleanupBatchSize {
+			return
 		}
 		select {
 		case <-ctx.Done():
 			return
 		case <-e.closeCh:
 			return
-		case <-time.After(e.conf.CleanupChunkPause):
+		case <-time.After(cleanupChunkPause):
 		}
 	}
 }

@@ -82,7 +82,6 @@ func newTestPostgresStreamBroker(tb testing.TB) (*PostgresStreamBroker, *centrif
 		StreamRetention:           24 * time.Hour,
 		PartitionLookaheadDays:    1,
 		PartitionRetentionDays:    1,
-		FineGrainedHistoryCleanup: false,
 		Outbox: OutboxConfig{
 			PollInterval: 10 * time.Millisecond,
 			BatchSize:    100,
@@ -1237,72 +1236,6 @@ func TestPostgresStreamBroker_RemoveHistoryRaceWithPublish(t *testing.T) {
 	require.Empty(t, pubs)
 }
 
-// TestPostgresStreamBroker_FineGrainedCleanupOptIn verifies that when
-// FineGrainedHistoryCleanup is enabled, the chunked DELETE pass removes rows
-// past their channel's history_ttl before partition retention catches them.
-func TestPostgresStreamBroker_FineGrainedCleanupOptIn(t *testing.T) {
-	node, err := centrifuge.New(centrifuge.Config{})
-	require.NoError(t, err)
-
-	connString := getPostgresConnString(t)
-	e, err := NewPostgresStreamBroker(node, PostgresStreamBrokerConfig{
-		DSN:                       connString,
-		NumShards:                 4,
-		BinaryData:                true,
-		CleanupInterval:           100 * time.Millisecond,
-		PartitionLookaheadDays:    1,
-		PartitionRetentionDays:    7, // long retention
-		FineGrainedHistoryCleanup: true,
-		CleanupBatchSize:          100,
-		CleanupChunkPause:         10 * time.Millisecond,
-		Outbox: OutboxConfig{
-			PollInterval:              10 * time.Millisecond,
-			BatchSize:                 100,
-			AdvisoryLockBaseID:        929292929,
-			AdvisoryLockRetryInterval: 50 * time.Millisecond,
-		},
-	})
-	require.NoError(t, err)
-
-	ctx := context.Background()
-	hardResetTestSchema(t, e)
-	require.NoError(t, e.EnsureSchema(ctx))
-	cleanupTestTables(ctx, e)
-
-	require.NoError(t, e.RegisterBrokerEventHandler(&testBrokerEventHandler{}))
-	require.NoError(t, node.Run())
-	t.Cleanup(func() {
-		_ = e.Close(ctx)
-		_ = node.Shutdown(ctx)
-	})
-
-	channel := "test_finegrained"
-	_, err = e.Publish(channel, []byte("x"), centrifuge.PublishOptions{
-		HistoryTTL:  500 * time.Millisecond,
-		HistorySize: 10,
-	})
-	require.NoError(t, err)
-
-	// Verify row exists immediately.
-	var count int
-	err = e.pool.QueryRow(ctx, fmt.Sprintf(
-		`SELECT COUNT(*) FROM %s WHERE channel = $1 AND kind = 0`,
-		e.names.stream,
-	), channel).Scan(&count)
-	require.NoError(t, err)
-	require.Equal(t, 1, count)
-
-	// Wait for fine-grained cleanup to physically remove the row.
-	require.Eventually(t, func() bool {
-		var c int
-		_ = e.pool.QueryRow(ctx, fmt.Sprintf(
-			`SELECT COUNT(*) FROM %s WHERE channel = $1 AND kind = 0`,
-			e.names.stream,
-		), channel).Scan(&c)
-		return c == 0
-	}, 5*time.Second, 100*time.Millisecond,
-		"fine-grained cleanup should physically remove row past history_ttl")
-}
 
 // TestPostgresStreamBroker_HistoryMetaTTL_NodeConfigFallback verifies the
 // 3-tier fallback for meta TTL: when opts.HistoryMetaTTL is 0, the broker

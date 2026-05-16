@@ -348,6 +348,14 @@ type PostgresMapBrokerConfig struct {
 	// pre-create. Required > 0 so writes don't fail at the day rollover.
 	// Default: 2 (gives a 48-hour safety window if the lookahead worker stalls).
 	PartitionLookaheadDays int
+
+	// CleanupBatchSize bounds each support-table (meta + idempotency) DELETE
+	// to this many rows per transaction. Default: 1000.
+	CleanupBatchSize int
+
+	// CleanupChunkPause is the pause between cleanup batches, giving
+	// autovacuum room between chunked deletes. Default: 100ms.
+	CleanupChunkPause time.Duration
 }
 
 func (c *PostgresMapBrokerConfig) setDefaults() {
@@ -369,6 +377,12 @@ func (c *PostgresMapBrokerConfig) setDefaults() {
 	if c.StreamRetention <= 0 {
 		c.StreamRetention = 24 * time.Hour
 	}
+	if c.CleanupBatchSize <= 0 {
+		c.CleanupBatchSize = 1000
+	}
+	if c.CleanupChunkPause <= 0 {
+		c.CleanupChunkPause = 100 * time.Millisecond
+	}
 
 	// TablePrefix: default "cf"; allow/normalize trailing underscore.
 	c.TablePrefix = strings.TrimRight(c.TablePrefix, "_")
@@ -384,7 +398,10 @@ func (c *PostgresMapBrokerConfig) setDefaults() {
 		c.Outbox.BatchSize = 1000
 	}
 	if c.Outbox.AdvisoryLockBaseID == 0 {
-		c.Outbox.AdvisoryLockBaseID = 726966530
+		// Map broker occupies    [4_067_067_000, 4_067_067_000+NumShards).
+		// Stream broker uses [5_067_067_000, 5_067_067_000+NumShards).
+		// Non-round bases reduce the chance of collision with other software.
+		c.Outbox.AdvisoryLockBaseID = 4_067_067_000
 	}
 	if c.Outbox.AdvisoryLockRetryInterval <= 0 {
 		c.Outbox.AdvisoryLockRetryInterval = 5 * time.Second
@@ -536,11 +553,12 @@ func (e *PostgresMapBroker) getReadPool(channel string, allowCached bool) *pgxpo
 	return e.readPools[replicaIdx]
 }
 
-// hashtext approximates PostgreSQL hashtext() for shard routing.
+// hashtext is a simple polynomial hash used for shard/replica routing.
+// It does NOT match PostgreSQL's hashtext() (which uses Jenkins lookup3) —
+// values differ for the same input. That is intentional: we only need
+// consistent routing within a single process; the PostgreSQL function is used
+// inside SQL for shard assignment, which is independent of this Go path.
 func hashtext(s string) int32 {
-	// Use FNV-like hash matching PostgreSQL hashtext behavior.
-	// We only need consistency within a process, not cross-process compatibility with PG,
-	// since shard routing is for outbox/replica selection, not for correctness.
 	var h int32
 	for i := 0; i < len(s); i++ {
 		h = h*31 + int32(s[i])
@@ -2032,6 +2050,12 @@ func (e *PostgresMapBroker) expireKeys(ctx context.Context) {
 		}
 		channels = append(channels, ch)
 	}
+	if err := channelRows.Err(); err != nil {
+		e.logErrorMsg("error scanning channels for key expiration", err)
+		e.node.IncMapBrokerCleanupErrors(e.conf.Name)
+		channelRows.Close()
+		return
+	}
 	channelRows.Close()
 
 	// Process each channel with its own resolved options.
@@ -2067,6 +2091,10 @@ func (e *PostgresMapBroker) expireKeys(ctx context.Context) {
 		var removedCount int64
 		for rows.Next() {
 			removedCount++
+		}
+		if err := rows.Err(); err != nil {
+			e.logEvent().Err(err).Str("channel", ch).Msg("error reading key expiration results")
+			e.node.IncMapBrokerCleanupErrors(e.conf.Name)
 		}
 		rows.Close()
 		if removedCount > 0 {
@@ -2141,26 +2169,46 @@ func (e *PostgresMapBroker) runCleanupWorker() {
 	}
 }
 
+// cleanupEntries deletes expired meta and idempotency rows in bounded batches
+// to avoid long-running DELETE locks on busy tables. History rows on the stream
+// table are cleaned up by partition retention (DROP TABLE, vacuum-free) — no
+// chunked DELETE is needed there.
 func (e *PostgresMapBroker) cleanupEntries(ctx context.Context) {
-	// History rows on the stream table are cleaned up by partition retention
-	// (DROP TABLE old partitions, vacuum-free) — see runPartitionWorker. No
-	// chunked DELETE needed here. This pass only cleans the small support
-	// tables (meta + idempotency).
+	e.cleanupExpiredBatched(ctx, fmt.Sprintf(
+		`DELETE FROM %[1]s WHERE channel IN (
+			SELECT channel FROM %[1]s
+			WHERE expires_at IS NOT NULL AND expires_at < NOW()
+			LIMIT $1
+		)`, e.names.meta))
+	e.cleanupExpiredBatched(ctx, fmt.Sprintf(
+		`DELETE FROM %[1]s WHERE (channel, idempotency_key) IN (
+			SELECT channel, idempotency_key FROM %[1]s
+			WHERE expires_at < NOW()
+			LIMIT $1
+		)`, e.names.idempotency))
+}
 
-	// Remove expired stream metadata
-	if _, err := e.pool.Exec(ctx, fmt.Sprintf(`
-		DELETE FROM %s
-		WHERE expires_at IS NOT NULL AND expires_at < NOW()
-	`, e.names.meta)); err != nil {
-		e.logErrorMsg("error cleaning up expired stream metadata", err)
-	}
-
-	// Remove expired idempotency keys
-	if _, err := e.pool.Exec(ctx, fmt.Sprintf(`
-		DELETE FROM %s
-		WHERE expires_at < NOW()
-	`, e.names.idempotency)); err != nil {
-		e.logErrorMsg("error cleaning up expired idempotency keys", err)
+// cleanupExpiredBatched runs a chunked DELETE loop, pausing between batches
+// to give autovacuum room. Stops when a batch is under the batch size or ctx is done.
+func (e *PostgresMapBroker) cleanupExpiredBatched(ctx context.Context, query string) {
+	for {
+		res, err := e.pool.Exec(ctx, query, e.conf.CleanupBatchSize)
+		if err != nil {
+			if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+				e.logErrorMsg("error cleaning up expired rows", err)
+			}
+			return
+		}
+		if res.RowsAffected() < int64(e.conf.CleanupBatchSize) {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-e.closeCh:
+			return
+		case <-time.After(e.conf.CleanupChunkPause):
+		}
 	}
 }
 

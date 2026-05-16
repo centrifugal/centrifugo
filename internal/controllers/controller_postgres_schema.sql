@@ -19,9 +19,6 @@ CREATE TABLE IF NOT EXISTS __PREFIX__controller_messages (
     PRIMARY KEY (id, created_at)
 ) PARTITION BY RANGE (created_at);
 
-CREATE INDEX IF NOT EXISTS __PREFIX__controller_messages_id_idx
-    ON __PREFIX__controller_messages (id);
-
 CREATE INDEX IF NOT EXISTS __PREFIX__controller_messages_shard_id_idx
     ON __PREFIX__controller_messages (shard_id, id);
 

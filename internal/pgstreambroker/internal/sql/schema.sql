@@ -62,6 +62,7 @@ CREATE INDEX IF NOT EXISTS __STREAM_TABLE___shard_id_idx
 CREATE INDEX IF NOT EXISTS __STREAM_TABLE___created_at_idx
     ON __STREAM_TABLE__ (created_at);
 
+
 -- ============================================================================
 -- Channel Metadata Table
 --
@@ -108,8 +109,7 @@ CREATE TABLE IF NOT EXISTS __PREFIX__meta (
 );
 
 CREATE INDEX IF NOT EXISTS __PREFIX__meta_expires_idx
-    ON __PREFIX__meta (expires_at)
-    WHERE expires_at IS NOT NULL;
+    ON __PREFIX__meta (expires_at);
 
 -- Per-table autovacuum tuning: meta sees two writes per publish (lock + increment)
 -- plus one write per History() read (TTL refresh). Default autovacuum thresholds

@@ -116,12 +116,16 @@ func (p *Partitioner) DropOldPartitions(ctx context.Context) {
 	}
 	cutoff := time.Now().UTC().AddDate(0, 0, -p.RetentionDays)
 
+	// Filter by current_schema() so that two Centrifugo clusters (or other
+	// software) sharing the same PostgreSQL instance but using different
+	// search_path schemas don't accidentally drop each other's partitions.
 	rows, err := p.Pool.Query(ctx, `
-		SELECT c.relname
+		SELECT n.nspname, c.relname
 		FROM pg_inherits i
 		JOIN pg_class c ON c.oid = i.inhrelid
 		JOIN pg_class pp ON pp.oid = i.inhparent
-		WHERE pp.relname = $1
+		JOIN pg_namespace n ON n.oid = c.relnamespace
+		WHERE pp.relname = $1 AND n.nspname = current_schema()
 	`, p.ParentTable)
 	if err != nil {
 		// Context cancellation (shutdown mid-cleanup) is normal; only genuine
@@ -133,30 +137,38 @@ func (p *Partitioner) DropOldPartitions(ctx context.Context) {
 	}
 	defer rows.Close()
 
-	var partNames []string
+	type partition struct{ schema, name string }
+	var partitions []partition
 	for rows.Next() {
-		var partName string
-		if err := rows.Scan(&partName); err != nil {
+		var pt partition
+		if err := rows.Scan(&pt.schema, &pt.name); err != nil {
 			continue
 		}
-		partNames = append(partNames, partName)
+		partitions = append(partitions, pt)
 	}
 	// Close rows before issuing further queries on the same pool.
 	rows.Close()
 
-	for _, partName := range partNames {
-		partDate, ok := parsePartitionDate(partName, p.ParentTable)
+	for _, pt := range partitions {
+		partDate, ok := parsePartitionDate(pt.name, p.ParentTable)
 		if !ok {
 			continue
 		}
 		if partDate.Before(cutoff) {
-			if _, err := p.Pool.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s", partName)); err != nil {
+			qualified := quoteIdent(pt.schema) + "." + quoteIdent(pt.name)
+			if _, err := p.Pool.Exec(ctx, "DROP TABLE IF EXISTS "+qualified); err != nil {
 				if !isShutdownErr(err) {
-					p.ErrorFn("error dropping old partition "+partName, err)
+					p.ErrorFn("error dropping old partition "+qualified, err)
 				}
 			}
 		}
 	}
+}
+
+// quoteIdent returns a double-quoted PostgreSQL identifier with any embedded
+// double-quotes escaped by doubling them, per the SQL standard.
+func quoteIdent(s string) string {
+	return `"` + strings.ReplaceAll(s, `"`, `""`) + `"`
 }
 
 // Run starts a ticker that calls EnsureLookaheadPartitions and

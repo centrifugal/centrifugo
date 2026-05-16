@@ -157,10 +157,7 @@ func createPostgresStreamBroker(node *centrifuge.Node, pgCfg configtypes.Postgre
 		NotifyDSN:                 pgCfg.NotifyDSN,
 		TablePrefix:               pgCfg.TablePrefix,
 		PartitionLookaheadDays:    pgCfg.PartitionLookaheadDays,
-		PartitionRetentionDays:    pgCfg.PartitionRetentionDays,
-		FineGrainedHistoryCleanup: pgCfg.FineGrainedHistoryCleanup,
-		CleanupBatchSize:          pgCfg.CleanupBatchSize,
-		CleanupChunkPause:         pgCfg.CleanupChunkPause.ToDuration(),
+		PartitionRetentionDays: pgCfg.PartitionRetentionDays,
 		Outbox: pgstreambroker.OutboxConfig{
 			PollInterval: pgCfg.Outbox.PollInterval.ToDuration(),
 			BatchSize:    pgCfg.Outbox.BatchSize,

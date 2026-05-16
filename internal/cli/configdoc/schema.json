@@ -1609,36 +1609,6 @@
             "comment": "PartitionRetentionDays controls how old a partition can be before it\ngets dropped whole by the partition retention worker. Default: 7.",
             "is_complex_type": false
           },
-          {
-            "field": "broker.postgres.fine_grained_history_cleanup",
-            "name": "fine_grained_history_cleanup",
-            "go_name": "FineGrainedHistoryCleanup",
-            "level": 3,
-            "type": "bool",
-            "default": "",
-            "comment": "FineGrainedHistoryCleanup enables an opt-in chunked DELETE pass that\nremoves history rows past their channel's history_ttl, instead of\nwaiting for partition retention. Use for tight-storage deployments\nwhere HistoryTTL is much smaller than PartitionRetentionDays.",
-            "is_complex_type": false
-          },
-          {
-            "field": "broker.postgres.cleanup_batch_size",
-            "name": "cleanup_batch_size",
-            "go_name": "CleanupBatchSize",
-            "level": 3,
-            "type": "int",
-            "default": "1000",
-            "comment": "CleanupBatchSize bounds each fine-grained cleanup DELETE chunk. Default: 1000.",
-            "is_complex_type": false
-          },
-          {
-            "field": "broker.postgres.cleanup_chunk_pause",
-            "name": "cleanup_chunk_pause",
-            "go_name": "CleanupChunkPause",
-            "level": 3,
-            "type": "Duration",
-            "default": "100ms",
-            "comment": "CleanupChunkPause is the pause between fine-grained cleanup chunks. Default: \"100ms\".",
-            "is_complex_type": false
-          }
         ]
       }
     ]
