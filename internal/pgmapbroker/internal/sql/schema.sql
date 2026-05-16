@@ -94,6 +94,13 @@ CREATE TABLE IF NOT EXISTS __PREFIX__idempotency (
     channel         TEXT NOT NULL,
     idempotency_key TEXT NOT NULL,
     result_offset   BIGINT NOT NULL,
+    -- result_epoch captures the meta epoch at the time the original publish
+    -- committed. Returned on idempotent replay so callers reading history from
+    -- the replied position can find it — otherwise, if the meta row had been
+    -- TTL-evicted and recreated under a fresh random epoch by the time of the
+    -- replay, the suppressed reply would return the live (new) epoch and the
+    -- caller's recovery would fail to locate the publication.
+    result_epoch    TEXT   NOT NULL,
     result_id       BIGINT NOT NULL,
     expires_at      TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (channel, idempotency_key)
@@ -164,6 +171,7 @@ DECLARE
     v_previous_data __DATA_TYPE__;
     v_current_version BIGINT;
     v_current_version_epoch TEXT;
+    v_idempotent_epoch TEXT;
     v_shard_id INTEGER;
     v_meta_inserted BOOLEAN;
 BEGIN
@@ -213,14 +221,17 @@ BEGIN
         DELETE FROM __PREFIX__state WHERE channel = p_channel;
     END IF;
 
-    -- 2. Check idempotency
+    -- 2. Check idempotency. Return the epoch the publication was committed
+    -- under (stored in the idempotency row), NOT the current meta epoch —
+    -- those can differ if meta was TTL-evicted and recreated between the
+    -- original publish and this replay.
     IF p_idempotency_key IS NOT NULL THEN
-        SELECT result_offset INTO v_current_offset
+        SELECT result_offset, result_epoch INTO v_current_offset, v_idempotent_epoch
         FROM __PREFIX__idempotency
         WHERE channel = p_channel AND idempotency_key = p_idempotency_key
           AND expires_at > NOW();
         IF FOUND THEN
-            RETURN QUERY SELECT NULL::BIGINT, v_current_offset, v_epoch, TRUE,
+            RETURN QUERY SELECT NULL::BIGINT, v_current_offset, v_idempotent_epoch, TRUE,
                 'idempotency'::TEXT, NULL::__DATA_TYPE__, NULL::BIGINT;
             RETURN;
         END IF;
@@ -236,7 +247,12 @@ BEGIN
         INTO v_current_version, v_current_version_epoch
         FROM __PREFIX__state sn WHERE sn.channel = p_channel AND sn.key = p_key;
         IF FOUND AND v_current_version IS NOT NULL AND v_current_version > 0 THEN
-            IF (p_key_version_epoch IS NULL OR p_key_version_epoch = v_current_version_epoch)
+            -- Empty p_key_version_epoch matches any stored epoch (matches the
+            -- stream broker contract: "I don't care about epoch boundaries,
+            -- just compare versions"). A non-empty value that differs resets
+            -- the comparison so a new epoch isn't suppressed by a stale
+            -- higher version under a previous epoch.
+            IF (p_key_version_epoch IS NULL OR p_key_version_epoch = '' OR p_key_version_epoch = v_current_version_epoch)
                AND p_key_version <= v_current_version THEN
                 RETURN QUERY SELECT NULL::BIGINT, v_offset, v_epoch, TRUE, 'version'::TEXT, NULL::__DATA_TYPE__, NULL::BIGINT;
                 RETURN;
@@ -331,10 +347,12 @@ BEGIN
         v_shard_id
     ) RETURNING __PREFIX__stream.id INTO v_id;
 
-    -- 9. Save idempotency key
+    -- 9. Save idempotency key. Persist the epoch alongside the offset so
+    -- replays return the (offset, epoch) tuple this publish committed under,
+    -- not whatever epoch happens to live in meta at replay time.
     IF p_idempotency_key IS NOT NULL THEN
-        INSERT INTO __PREFIX__idempotency (channel, idempotency_key, result_offset, result_id, expires_at)
-        VALUES (p_channel, p_idempotency_key, v_offset, v_id, NOW() + COALESCE(p_idempotency_ttl, INTERVAL '5 minutes'))
+        INSERT INTO __PREFIX__idempotency (channel, idempotency_key, result_offset, result_epoch, result_id, expires_at)
+        VALUES (p_channel, p_idempotency_key, v_offset, v_epoch, v_id, NOW() + COALESCE(p_idempotency_ttl, INTERVAL '5 minutes'))
         ON CONFLICT DO NOTHING;
     END IF;
 
@@ -443,6 +461,7 @@ DECLARE
     v_current_offset BIGINT;
     v_current_data __DATA_TYPE__;
     v_tags JSONB;
+    v_idempotent_epoch TEXT;
 BEGIN
     -- Auto-derive num_shards from shard_lock table when not provided.
     IF p_num_shards IS NULL THEN
@@ -473,14 +492,16 @@ BEGIN
         RETURN;
     END IF;
 
-    -- 2. Check idempotency
+    -- 2. Check idempotency. Return the epoch the removal was committed under
+    -- (stored in the idempotency row), not the live meta epoch — see publish
+    -- for the same rationale.
     IF p_idempotency_key IS NOT NULL THEN
-        SELECT result_offset INTO v_offset
+        SELECT result_offset, result_epoch INTO v_offset, v_idempotent_epoch
         FROM __PREFIX__idempotency
         WHERE channel = p_channel AND idempotency_key = p_idempotency_key
           AND expires_at > NOW();
         IF FOUND THEN
-            RETURN QUERY SELECT NULL::BIGINT, v_offset, v_epoch, TRUE, 'idempotency'::TEXT, NULL::__DATA_TYPE__, NULL::BIGINT;
+            RETURN QUERY SELECT NULL::BIGINT, v_offset, v_idempotent_epoch, TRUE, 'idempotency'::TEXT, NULL::__DATA_TYPE__, NULL::BIGINT;
             RETURN;
         END IF;
     END IF;
@@ -526,10 +547,11 @@ BEGIN
         v_shard_id, v_tags
     ) RETURNING __PREFIX__stream.id INTO v_id;
 
-    -- 8. Save idempotency key
+    -- 8. Save idempotency key. Persist the epoch alongside the offset — see
+    -- publish for rationale.
     IF p_idempotency_key IS NOT NULL THEN
-        INSERT INTO __PREFIX__idempotency (channel, idempotency_key, result_offset, result_id, expires_at)
-        VALUES (p_channel, p_idempotency_key, v_offset, v_id, NOW() + COALESCE(p_idempotency_ttl, INTERVAL '5 minutes'))
+        INSERT INTO __PREFIX__idempotency (channel, idempotency_key, result_offset, result_epoch, result_id, expires_at)
+        VALUES (p_channel, p_idempotency_key, v_offset, v_epoch, v_id, NOW() + COALESCE(p_idempotency_ttl, INTERVAL '5 minutes'))
         ON CONFLICT DO NOTHING;
     END IF;
 

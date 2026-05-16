@@ -63,7 +63,15 @@ func (e *PostgresStreamBroker) runOutboxWorker(workerIdx int, initialCursor int6
 // runOutboxWorkerWithLock is the per-shard outbox poller for fanout mode.
 // Wraps pgoutbox.LockWorker which uses a session-level advisory lock so only
 // one node per shard polls at a time.
-func (e *PostgresStreamBroker) runOutboxWorkerWithLock(workerIdx int, initialCursor int64) {
+//
+// The initialCursor parameter is intentionally unused — pgoutbox.LockWorker
+// calls InitCursor on every lock acquisition (not just at startup) so the
+// cursor can catch up to MAX(id) after another node held the lock. Returning
+// a fixed startup value here is not a correctness bug (subscribers dedup by
+// offset; the position-check loop + history recovery close any live gap) but
+// it costs O(rows_since_startup) of re-fanout work on every re-acquisition.
+// Querying fresh MAX(id) each time keeps the steady-state cost bounded.
+func (e *PostgresStreamBroker) runOutboxWorkerWithLock(workerIdx int, _ int64) {
 	pollPool, shards := e.outboxWorkerConfig(workerIdx)
 
 	lw := &pgoutbox.LockWorker{
@@ -73,9 +81,7 @@ func (e *PostgresStreamBroker) runOutboxWorkerWithLock(workerIdx int, initialCur
 		LockID:        e.conf.Outbox.AdvisoryLockBaseID + int64(workerIdx),
 		PollInterval:  e.conf.Outbox.PollInterval,
 		RetryInterval: e.conf.Outbox.AdvisoryLockRetryInterval,
-		InitCursor: func(ctx context.Context, p *pgxpool.Pool) (int64, error) {
-			return initialCursor, nil
-		},
+		InitCursor:    e.initOutboxCursor,
 		ProcessBatch: func(ctx context.Context, p *pgxpool.Pool, cursor int64, sids []int) (int, int64, error) {
 			return e.processOutboxBatch(ctx, p, cursor, sids)
 		},

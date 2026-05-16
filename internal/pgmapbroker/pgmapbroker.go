@@ -1798,9 +1798,12 @@ func (e *PostgresMapBroker) runOutboxWorkerWithLock(workerIdx int, initialCursor
 		LockID:        e.conf.Outbox.AdvisoryLockBaseID + int64(workerIdx),
 		PollInterval:  e.conf.Outbox.PollInterval,
 		RetryInterval: e.conf.Outbox.AdvisoryLockRetryInterval,
-		InitCursor: func(ctx context.Context, p *pgxpool.Pool) (int64, error) {
-			return initialCursor, nil
-		},
+		// InitCursor is called on every lock acquisition (see lock_worker.go)
+		// so we re-query MAX(id) each time. Returning a fixed startup value
+		// is not a correctness bug (subscribers dedup by offset) but would
+		// re-fanout every row already forwarded by a previous lock holder,
+		// growing linearly with broker uptime.
+		InitCursor: e.initOutboxCursor,
 		ProcessBatch: func(ctx context.Context, pool *pgxpool.Pool, cursor int64, shardIDs []int) (int, int64, error) {
 			return e.processOutboxBatch(ctx, pool, cursor, shardIDs, buf)
 		},

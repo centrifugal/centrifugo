@@ -128,6 +128,13 @@ CREATE TABLE IF NOT EXISTS __PREFIX__idempotency (
     channel         TEXT NOT NULL,
     idempotency_key TEXT NOT NULL,
     result_offset   BIGINT NOT NULL,
+    -- result_epoch captures the meta epoch at the time the original publish
+    -- committed. Returned on idempotent replay so callers reading history
+    -- from the replied position can find it — otherwise, if the meta row had
+    -- been TTL-evicted and recreated under a fresh random epoch by the time
+    -- of the replay, the suppressed reply would return the live (new) epoch
+    -- and the caller's recovery would fail to locate the publication.
+    result_epoch    TEXT   NOT NULL,
     result_id       BIGINT NOT NULL,
     expires_at      TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (channel, idempotency_key)
@@ -215,6 +222,7 @@ DECLARE
     v_shard_id INTEGER;
     v_effective_meta_ttl INTERVAL;
     v_cached_offset BIGINT;
+    v_cached_epoch TEXT;
     v_current_version BIGINT;
     v_current_version_epoch TEXT;
 BEGIN
@@ -252,14 +260,19 @@ BEGIN
     RETURNING m.top_offset, m.epoch, m.top_version, m.top_version_epoch
     INTO v_offset, v_epoch, v_current_version, v_current_version_epoch;
 
-    -- Idempotency check.
+    -- Idempotency check. Return the epoch the publication was committed
+    -- under (stored in the idempotency row), NOT the current meta epoch —
+    -- those can differ if meta was TTL-evicted and recreated between the
+    -- original publish and this replay. Mirror of the Redis broker's
+    -- broker_history_add_stream.lua, which stores both epoch and offset
+    -- on the result key.
     IF p_idempotency_key IS NOT NULL THEN
-        SELECT result_offset INTO v_cached_offset
+        SELECT result_offset, result_epoch INTO v_cached_offset, v_cached_epoch
         FROM __PREFIX__idempotency
         WHERE channel = p_channel AND idempotency_key = p_idempotency_key
           AND expires_at > NOW();
         IF FOUND THEN
-            RETURN QUERY SELECT NULL::BIGINT, v_cached_offset, v_epoch, TRUE, 'idempotency'::TEXT;
+            RETURN QUERY SELECT NULL::BIGINT, v_cached_offset, v_cached_epoch, TRUE, 'idempotency'::TEXT;
             RETURN;
         END IF;
     END IF;
@@ -326,10 +339,14 @@ BEGIN
         p_client_id, p_user_id, p_conn_info, p_chan_info, v_prev_data, v_shard_id
     ) RETURNING id INTO v_id;
 
-    -- Save idempotency result for replay.
+    -- Save idempotency result for replay. Persist the epoch alongside the
+    -- offset so replays return the (offset, epoch) tuple this publish
+    -- committed under, not whatever epoch happens to live in meta at replay
+    -- time. See the idempotency check above for the failure mode this
+    -- prevents.
     IF p_idempotency_key IS NOT NULL THEN
-        INSERT INTO __PREFIX__idempotency (channel, idempotency_key, result_offset, result_id, expires_at)
-        VALUES (p_channel, p_idempotency_key, v_offset, v_id, NOW() + COALESCE(p_idempotency_ttl, INTERVAL '5 minutes'))
+        INSERT INTO __PREFIX__idempotency (channel, idempotency_key, result_offset, result_epoch, result_id, expires_at)
+        VALUES (p_channel, p_idempotency_key, v_offset, v_epoch, v_id, NOW() + COALESCE(p_idempotency_ttl, INTERVAL '5 minutes'))
         ON CONFLICT (channel, idempotency_key) DO NOTHING;
     END IF;
 
