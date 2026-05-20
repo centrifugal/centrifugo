@@ -7,6 +7,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// lockPingMinTimeout is the floor for the lock-connection ping timeout.
+// PollInterval can be set very small (sub-second) to make idle polling
+// responsive, but a healthy ping must still tolerate transient latency
+// spikes — otherwise we spuriously release and re-acquire the lock.
+const lockPingMinTimeout = 2 * time.Second
+
 // LockWorker runs the advisory-lock variant of the outbox poll loop.
 //
 // Unlike Worker, LockWorker holds a session-scoped PostgreSQL advisory
@@ -216,7 +222,16 @@ func (lw *LockWorker) runLockedSession(ctx context.Context, closeCh <-chan struc
 		// semantics. Cost is one round-trip per PollInterval during idle
 		// periods; during active batching the PollPool path already
 		// exercises the broader connection state.
-		pingCtx, cancel := context.WithTimeout(ctx, lw.PollInterval)
+		//
+		// The ping timeout is decoupled from PollInterval: PollInterval
+		// controls idle cadence (often sub-second), but a ping is a TCP
+		// RTT liveness probe that must tolerate transient latency spikes
+		// without spuriously dropping the lock.
+		pingTimeout := lw.PollInterval
+		if pingTimeout < lockPingMinTimeout {
+			pingTimeout = lockPingMinTimeout
+		}
+		pingCtx, cancel := context.WithTimeout(ctx, pingTimeout)
 		err := lockConn.Conn().Ping(pingCtx)
 		cancel()
 		if err != nil {

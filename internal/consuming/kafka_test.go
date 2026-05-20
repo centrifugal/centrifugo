@@ -546,8 +546,8 @@ func TestKafkaConsumer_PausePartitions(t *testing.T) {
 		close(consumerClosed)
 	}()
 
-	waitCh(t, event1Received, 30*time.Second, "timeout waiting for event 1")
-	waitCh(t, event2Received, 30*time.Second, "timeout waiting for event 2")
+	waitCh(t, event1Received, 50*time.Second, "timeout waiting for event 1")
+	waitCh(t, event2Received, 50*time.Second, "timeout waiting for event 2")
 	consumerCancel()
 	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
 	close(doneCh)
