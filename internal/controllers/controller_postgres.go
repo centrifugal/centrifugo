@@ -375,10 +375,22 @@ func (c *PostgresController) RegisterControlEventHandler(h centrifuge.ControlEve
 	c.eventHandler = h
 	c.myNodeID = c.node.ID()
 
+	// Pre-initialize the outbox cursor before launching worker goroutines so
+	// that any message published after RegisterControlEventHandler returns is
+	// guaranteed to be delivered. Without this, a goroutine scheduled late
+	// could call initCursor after a message was already inserted, see that ID
+	// as MAX(id), and silently skip it (observed as flaky broadcast tests in
+	// CI). Same pattern as pgmapbroker/pgstreambroker.
+	initialCursor, err := c.initCursor(c.cancelCtx, c.pool)
+	if err != nil {
+		c.logError("pre-init outbox cursor", err)
+		initialCursor = 0
+	}
+
 	// Start one outbox worker per shard. With NumShards=1 (default),
 	// a single worker polls all messages.
 	for i := 0; i < c.conf.NumShards; i++ {
-		go c.runOutboxWorker(i)
+		go c.runOutboxWorker(i, initialCursor)
 	}
 
 	// Start notification listener if enabled.
@@ -429,14 +441,18 @@ func (c *PostgresController) initCursor(ctx context.Context, pool *pgxpool.Pool)
 }
 
 // runOutboxWorker polls the messages table for new control messages
-// belonging to the given shard.
-func (c *PostgresController) runOutboxWorker(shardIdx int) {
+// belonging to the given shard. initialCursor is captured by the InitCursor
+// closure so the worker does not re-query MAX(id) inside its goroutine —
+// see RegisterControlEventHandler for the race this avoids.
+func (c *PostgresController) runOutboxWorker(shardIdx int, initialCursor int64) {
 	w := &pgoutbox.Worker{
 		Pool:         c.pool,
 		ShardIDs:     []int{shardIdx},
 		PollInterval: c.conf.PollInterval,
 		NotifyCh:     c.notifyCh,
-		InitCursor:   c.initCursor,
+		InitCursor: func(ctx context.Context, p *pgxpool.Pool) (int64, error) {
+			return initialCursor, nil
+		},
 		ProcessBatch: c.processControlBatch,
 		ErrorFn:      c.logError,
 	}
