@@ -1608,7 +1608,7 @@
             "default": "7",
             "comment": "PartitionRetentionDays controls how old a partition can be before it\ngets dropped whole by the partition retention worker. Default: 7.",
             "is_complex_type": false
-          },
+          }
         ]
       }
     ]
