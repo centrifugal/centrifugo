@@ -72,6 +72,14 @@ type SubscriptionToken struct {
 	Token   `mapstructure:",squash" yaml:",inline"`
 }
 
+// SharedPoll contains configuration for shared poll subscriptions.
+type SharedPoll struct {
+	HMACSecretKey                   string `mapstructure:"hmac_secret_key" json:"hmac_secret_key" envconfig:"hmac_secret_key" yaml:"hmac_secret_key" toml:"hmac_secret_key"`
+	HMACPreviousSecretKey           string `mapstructure:"hmac_previous_secret_key" json:"hmac_previous_secret_key" envconfig:"hmac_previous_secret_key" yaml:"hmac_previous_secret_key" toml:"hmac_previous_secret_key"`
+	HMACPreviousSecretKeyValidUntil int64  `mapstructure:"hmac_previous_secret_key_valid_until" json:"hmac_previous_secret_key_valid_until" envconfig:"hmac_previous_secret_key_valid_until" yaml:"hmac_previous_secret_key_valid_until" toml:"hmac_previous_secret_key_valid_until"`
+	ConcurrencyLimit                int    `mapstructure:"concurrency_limit" json:"concurrency_limit" envconfig:"concurrency_limit" yaml:"concurrency_limit" toml:"concurrency_limit"`
+}
+
 // HTTP3 is EXPERIMENTAL.
 type HTTP3 struct {
 	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
@@ -216,6 +224,13 @@ type NatsPrefixed struct {
 	// unrelated Centrifugo setups.
 	Prefix string `mapstructure:"prefix" default:"centrifugo" json:"prefix" envconfig:"prefix" yaml:"prefix" toml:"prefix"`
 	// NatsCommon contains common Nats configuration.
+	NatsCommon `mapstructure:",squash" yaml:",inline"`
+}
+
+// NatsEmptyPrefixed is like NatsPrefixed but defaults to an empty prefix.
+// Useful for standalone pub/sub channels where a prefix is not needed by default.
+type NatsEmptyPrefixed struct {
+	Prefix     string `mapstructure:"prefix" json:"prefix" envconfig:"prefix" yaml:"prefix" toml:"prefix"`
 	NatsCommon `mapstructure:",squash" yaml:",inline"`
 }
 
@@ -472,6 +487,12 @@ type ChannelProxyContainer struct {
 	SubRefresh Proxy `mapstructure:"sub_refresh" json:"sub_refresh" envconfig:"sub_refresh" yaml:"sub_refresh" toml:"sub_refresh"`
 	// SubscribeStream proxy configuration.
 	SubscribeStream Proxy `mapstructure:"subscribe_stream" json:"subscribe_stream" envconfig:"subscribe_stream" yaml:"subscribe_stream" toml:"subscribe_stream"`
+	// MapPublish proxy configuration.
+	MapPublish Proxy `mapstructure:"map_publish" json:"map_publish" envconfig:"map_publish" yaml:"map_publish" toml:"map_publish"`
+	// MapRemove proxy configuration.
+	MapRemove Proxy `mapstructure:"map_remove" json:"map_remove" envconfig:"map_remove" yaml:"map_remove" toml:"map_remove"`
+	// SharedPollRefresh proxy configuration.
+	SharedPollRefresh Proxy `mapstructure:"shared_poll_refresh" json:"shared_poll_refresh" envconfig:"shared_poll_refresh" yaml:"shared_poll_refresh" toml:"shared_poll_refresh"`
 }
 
 type Channel struct {
@@ -772,6 +793,12 @@ type PostgresConsumerConfig struct {
 	PartitionSelectLimit         int       `mapstructure:"partition_select_limit" json:"partition_select_limit" envconfig:"partition_select_limit" default:"100" yaml:"partition_select_limit" toml:"partition_select_limit"`
 	PartitionPollInterval        Duration  `mapstructure:"partition_poll_interval" json:"partition_poll_interval" envconfig:"partition_poll_interval" default:"300ms" yaml:"partition_poll_interval" toml:"partition_poll_interval"`
 	PartitionNotificationChannel string    `mapstructure:"partition_notification_channel" json:"partition_notification_channel" envconfig:"partition_notification_channel" yaml:"partition_notification_channel" toml:"partition_notification_channel"`
+	// PartitionNotificationDSN is an optional separate DSN used exclusively for
+	// the LISTEN connection. Set this to a direct PostgreSQL URL (bypassing
+	// PGBouncer) when DSN points at a PGBouncer endpoint — PGBouncer transaction
+	// pooling mode is incompatible with LISTEN/NOTIFY. If empty, the primary
+	// DSN pool is used (fine for direct PostgreSQL connections).
+	PartitionNotificationDSN string `mapstructure:"partition_notification_dsn" json:"partition_notification_dsn" envconfig:"partition_notification_dsn" yaml:"partition_notification_dsn" toml:"partition_notification_dsn"`
 	TLS                          TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
 	// UseTryLock when enabled tells Centrifugo to use pg_try_advisory_xact_lock instead of pg_advisory_xact_lock.
 	UseTryLock bool `mapstructure:"use_try_lock" json:"use_try_lock" envconfig:"use_try_lock" default:"false" yaml:"use_try_lock" toml:"use_try_lock"`

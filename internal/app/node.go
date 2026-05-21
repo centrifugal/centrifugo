@@ -33,6 +33,63 @@ func centrifugeNodeConfig(version string, edition string, cfgContainer *config.C
 	cfg.NodeInfoMetricsAggregateInterval = appCfg.Node.InfoMetricsAggregateInterval.ToDuration()
 	cfg.HistoryMaxPublicationLimit = appCfg.Client.HistoryMaxPublicationLimit
 	cfg.RecoveryMaxPublicationLimit = appCfg.Client.RecoveryMaxPublicationLimit
+	cfg.Map.GetMapChannelOptions = func(channel string) centrifuge.MapChannelOptions {
+		_, _, chOpts, ok, err := cfgContainer.ChannelOptions(channel)
+		if err != nil || !ok {
+			return centrifuge.MapChannelOptions{}
+		}
+		var mode centrifuge.MapMode
+		switch chOpts.Map.Mode {
+		case "ephemeral":
+			mode = centrifuge.MapModeEphemeral
+		case "recoverable":
+			mode = centrifuge.MapModeRecoverable
+		case "persistent":
+			mode = centrifuge.MapModePersistent
+		}
+		return centrifuge.MapChannelOptions{
+			Mode:                              mode,
+			KeyTTL:                            chOpts.Map.KeyTTL.ToDuration(),
+			StreamSize:                        chOpts.Map.StreamSize,
+			StreamTTL:                         chOpts.Map.StreamTTL.ToDuration(),
+			MetaTTL:                           chOpts.Map.MetaTTL.ToDuration(),
+			DefaultPageSize:                   chOpts.Map.DefaultPageSize,
+			MinPageSize:                       chOpts.Map.MinPageSize,
+			MaxPageSize:                       chOpts.Map.MaxPageSize,
+			LiveTransitionMaxPublicationLimit: chOpts.Map.LiveTransitionMaxPublicationLimit,
+			SubscribeCatchUpTimeout:           chOpts.Map.SubscribeCatchUpTimeout.ToDuration(),
+		}
+	}
+	hasSharedPoll := appCfg.Channel.WithoutNamespace.SubscriptionType == "shared_poll"
+	if !hasSharedPoll {
+		for _, ns := range appCfg.Channel.Namespaces {
+			if ns.SubscriptionType == "shared_poll" {
+				hasSharedPoll = true
+				break
+			}
+		}
+	}
+	if hasSharedPoll {
+		cfg.SharedPoll.ConcurrencyLimit = appCfg.SharedPoll.ConcurrencyLimit
+		cfg.SharedPoll.GetSharedPollChannelOptions = func(channel string) (centrifuge.SharedPollChannelOptions, bool) {
+			_, _, chOpts, ok, err := cfgContainer.ChannelOptions(channel)
+			if err != nil || !ok {
+				return centrifuge.SharedPollChannelOptions{}, false
+			}
+			if chOpts.SubscriptionType != "shared_poll" {
+				return centrifuge.SharedPollChannelOptions{}, false
+			}
+			return centrifuge.SharedPollChannelOptions{
+				MaxKeysPerConnection:   chOpts.SharedPoll.MaxKeysPerConnection,
+				RefreshInterval:        chOpts.SharedPoll.RefreshInterval.ToDuration(),
+				RefreshBatchSize:       chOpts.SharedPoll.RefreshBatchSize,
+				Mode:                   chOpts.SharedPoll.Mode,
+				ChannelShutdownDelay:   chOpts.SharedPoll.ChannelShutdownDelay.ToDuration(),
+				TrackExpiredExtraDelay: chOpts.SharedPoll.TrackExpiredExtraDelay.ToDuration(),
+				PublishEnabled:         chOpts.SharedPoll.PublishEnabled,
+			}, true
+		}
+	}
 	cfg.HistoryMetaTTL = appCfg.Channel.HistoryMetaTTL.ToDuration()
 	cfg.ClientConnectIncludeServerTime = appCfg.Client.ConnectIncludeServerTime
 	cfg.LogLevel = logging.CentrifugeLogLevel(strings.ToLower(appCfg.Log.Level))

@@ -124,6 +124,11 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 		historyMetaTTL := chOpts.HistoryMetaTTL
 
 		data := e.Data
+		var tags map[string]string
+		var idempotencyKey string
+		var useDelta bool
+		var version uint64
+		var versionEpoch string
 		if publishRep.Result != nil {
 			if publishRep.Result.Data != nil {
 				data = publishRep.Result.Data
@@ -140,12 +145,22 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 				historySize = 0
 				historyTTL = 0
 			}
+
+			tags = publishRep.Result.Tags
+			idempotencyKey = publishRep.Result.IdempotencyKey
+			useDelta = publishRep.Result.Delta
+			version = publishRep.Result.Version
+			versionEpoch = publishRep.Result.VersionEpoch
 		}
 
 		result, err := node.Publish(
 			e.Channel, data,
 			centrifuge.WithClientInfo(e.ClientInfo),
 			centrifuge.WithHistory(historySize, historyTTL.ToDuration(), historyMetaTTL.ToDuration()),
+			centrifuge.WithTags(tags),
+			centrifuge.WithIdempotencyKey(idempotencyKey),
+			centrifuge.WithDelta(useDelta),
+			centrifuge.WithVersion(version, versionEpoch),
 		)
 		return centrifuge.PublishReply{Result: &result}, err
 	}

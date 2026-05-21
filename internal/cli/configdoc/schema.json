@@ -808,7 +808,7 @@
         "level": 2,
         "type": "string",
         "default": "memory",
-        "comment": "Type of broker to use. Can be \"memory\", \"redis\", \"nats\" at this point.",
+        "comment": "Type of broker to use. Can be \"memory\", \"redis\", \"nats\", \"postgres\" at this point.",
         "is_complex_type": false
       },
       {
@@ -1354,6 +1354,262 @@
             ]
           }
         ]
+      },
+      {
+        "field": "broker.postgres",
+        "name": "postgres",
+        "go_name": "Postgres",
+        "level": 2,
+        "type": "PostgresStreamBroker",
+        "default": "",
+        "comment": "Postgres is a configuration for \"postgres\" stream broker (PG-backed\nimplementation of centrifuge.Broker for stream subscriptions).",
+        "is_complex_type": true,
+        "children": [
+          {
+            "field": "broker.postgres.dsn",
+            "name": "dsn",
+            "go_name": "DSN",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "DSN is the primary PostgreSQL connection string.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.tls",
+            "name": "tls",
+            "go_name": "TLS",
+            "level": 3,
+            "type": "TLSConfig",
+            "default": "",
+            "comment": "TLS is an optional TLS configuration for all PostgreSQL connections\n(primary, replicas, and notify). Use instead of embedding TLS parameters\nin the DSN when certificate files are managed outside the connection string.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "broker.postgres.tls.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled turns on using TLS.",
+                "is_complex_type": false
+              },
+              {
+                "field": "broker.postgres.tls.cert_pem",
+                "name": "cert_pem",
+                "go_name": "CertPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "CertPem is a PEM certificate.",
+                "is_complex_type": false
+              },
+              {
+                "field": "broker.postgres.tls.key_pem",
+                "name": "key_pem",
+                "go_name": "KeyPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "KeyPem is a path to a file with key in PEM format.",
+                "is_complex_type": false
+              },
+              {
+                "field": "broker.postgres.tls.server_ca_pem",
+                "name": "server_ca_pem",
+                "go_name": "ServerCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "broker.postgres.tls.client_ca_pem",
+                "name": "client_ca_pem",
+                "go_name": "ClientCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "broker.postgres.tls.insecure_skip_verify",
+                "name": "insecure_skip_verify",
+                "go_name": "InsecureSkipVerify",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "InsecureSkipVerify turns off server certificate verification.",
+                "is_complex_type": false
+              },
+              {
+                "field": "broker.postgres.tls.server_name",
+                "name": "server_name",
+                "go_name": "ServerName",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "broker.postgres.pool_size",
+            "name": "pool_size",
+            "go_name": "PoolSize",
+            "level": 3,
+            "type": "int",
+            "default": "16",
+            "comment": "PoolSize sets the maximum number of connections in the pool. Default: 16.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.num_shards",
+            "name": "num_shards",
+            "go_name": "NumShards",
+            "level": 3,
+            "type": "int",
+            "default": "8",
+            "comment": "NumShards is the total number of shards for parallel delivery workers.\nChannels are distributed across shards using consistent hashing. Default: 8.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.cleanup_interval",
+            "name": "cleanup_interval",
+            "go_name": "CleanupInterval",
+            "level": 3,
+            "type": "Duration",
+            "default": "1m",
+            "comment": "CleanupInterval is how often the cleanup and partition workers tick. Default: \"1m\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.idempotent_result_ttl",
+            "name": "idempotent_result_ttl",
+            "go_name": "IdempotentResultTTL",
+            "level": 3,
+            "type": "Duration",
+            "default": "5m",
+            "comment": "IdempotentResultTTL is the default TTL for idempotency cache entries. Default: \"5m\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.binary_data",
+            "name": "binary_data",
+            "go_name": "BinaryData",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "BinaryData uses BYTEA columns instead of JSONB for data fields.\nSet to true if data payloads are not valid JSON.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.stream_retention",
+            "name": "stream_retention",
+            "go_name": "StreamRetention",
+            "level": 3,
+            "type": "Duration",
+            "default": "24h",
+            "comment": "StreamRetention is the safety floor for HistoryMetaTTL when neither\nPublishOptions nor node config sets it. Default: \"24h\". Guarantees\nevery channel meta row eventually expires.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.use_notify",
+            "name": "use_notify",
+            "go_name": "UseNotify",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "UseNotify enables LISTEN/NOTIFY for low-latency outbox wakeup.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.notify_dsn",
+            "name": "notify_dsn",
+            "go_name": "NotifyDSN",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "NotifyDSN is an optional separate DSN for the LISTEN connection.\nRequired when DSN points at PGBouncer (transaction pooling mode is\nincompatible with LISTEN/NOTIFY). Must be a direct PostgreSQL URL.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.table_prefix",
+            "name": "table_prefix",
+            "go_name": "TablePrefix",
+            "level": 3,
+            "type": "string",
+            "default": "cf",
+            "comment": "TablePrefix is the namespace prefix for all tables created by this broker.\nDefault: \"cf\". Multi-tenant deployments sharing one PostgreSQL instance\nuse distinct prefixes per Centrifugo cluster (e.g. \"prod_us_cf\").",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.skip_schema_init",
+            "name": "skip_schema_init",
+            "go_name": "SkipSchemaInit",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "SkipSchemaInit disables automatic schema initialization on startup.",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.outbox",
+            "name": "outbox",
+            "go_name": "Outbox",
+            "level": 3,
+            "type": "PostgresMapBrokerOutbox",
+            "default": "",
+            "comment": "Outbox configures the outbox-based delivery mode.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "broker.postgres.outbox.poll_interval",
+                "name": "poll_interval",
+                "go_name": "PollInterval",
+                "level": 4,
+                "type": "Duration",
+                "default": "100ms",
+                "comment": "PollInterval is how often to poll for new stream entries when idle. Default: \"100ms\".",
+                "is_complex_type": false
+              },
+              {
+                "field": "broker.postgres.outbox.batch_size",
+                "name": "batch_size",
+                "go_name": "BatchSize",
+                "level": 4,
+                "type": "int",
+                "default": "1000",
+                "comment": "BatchSize is the maximum number of rows to process per batch. Default: 1000.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "broker.postgres.partition_lookahead_days",
+            "name": "partition_lookahead_days",
+            "go_name": "PartitionLookaheadDays",
+            "level": 3,
+            "type": "int",
+            "default": "2",
+            "comment": "PartitionLookaheadDays controls how many future daily partitions to\npre-create. Default: 2 (gives a 48-hour safety window).",
+            "is_complex_type": false
+          },
+          {
+            "field": "broker.postgres.partition_retention_days",
+            "name": "partition_retention_days",
+            "go_name": "PartitionRetentionDays",
+            "level": 3,
+            "type": "int",
+            "default": "7",
+            "comment": "PartitionRetentionDays controls how old a partition can be before it\ngets dropped whole by the partition retention worker. Default: 7.",
+            "is_complex_type": false
+          },
+        ]
       }
     ]
   },
@@ -1764,6 +2020,980 @@
             "is_complex_type": false
           }
         ]
+      }
+    ]
+  },
+  {
+    "field": "map_broker",
+    "name": "map_broker",
+    "go_name": "MapBroker",
+    "level": 1,
+    "type": "MapBroker",
+    "default": "",
+    "comment": "MapBroker allows to configure a map broker for synchronized keyed state channels.\nWhen enabled, clients can use map subscription types for channels in namespaces\nthat have a map subscription_type.",
+    "is_complex_type": true,
+    "children": [
+      {
+        "field": "map_broker.type",
+        "name": "type",
+        "go_name": "Type",
+        "level": 2,
+        "type": "string",
+        "default": "memory",
+        "comment": "Type of map broker to use. Can be \"memory\", \"redis\", or \"postgres\".",
+        "is_complex_type": false
+      },
+      {
+        "field": "map_broker.redis",
+        "name": "redis",
+        "go_name": "Redis",
+        "level": 2,
+        "type": "RedisMapBroker",
+        "default": "",
+        "comment": "Redis is a configuration for \"redis\" map broker.",
+        "is_complex_type": true,
+        "children": [
+          {
+            "field": "map_broker.redis.prefix",
+            "name": "prefix",
+            "go_name": "Prefix",
+            "level": 3,
+            "type": "string",
+            "default": "centrifugo",
+            "comment": "Prefix for all Redis keys and channels.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.address",
+            "name": "address",
+            "go_name": "Address",
+            "level": 3,
+            "type": "[]string",
+            "default": "redis://127.0.0.1:6379",
+            "comment": "Address is a list of Redis shard addresses. In most cases a single shard is used. But when many\naddresses provided Centrifugo will distribute keys between shards using consistent hashing.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.connect_timeout",
+            "name": "connect_timeout",
+            "go_name": "ConnectTimeout",
+            "level": 3,
+            "type": "Duration",
+            "default": "1s",
+            "comment": "ConnectTimeout is a timeout for establishing connection to Redis.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.io_timeout",
+            "name": "io_timeout",
+            "go_name": "IOTimeout",
+            "level": 3,
+            "type": "Duration",
+            "default": "4s",
+            "comment": "IOTimeout is a timeout for all read/write operations against Redis (can be considered as a request timeout).",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.db",
+            "name": "db",
+            "go_name": "DB",
+            "level": 3,
+            "type": "int",
+            "default": "0",
+            "comment": "DB is a Redis database to use. Generally it's not recommended to use non-zero DB. Note, that Redis\nPUB/SUB is global for all databases in a single Redis instance. So when using non-zero DB make sure\nthat different Centrifugo setups use different prefixes.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.user",
+            "name": "user",
+            "go_name": "User",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "User is a Redis user.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.password",
+            "name": "password",
+            "go_name": "Password",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "Password is a Redis password.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.client_name",
+            "name": "client_name",
+            "go_name": "ClientName",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "ClientName allows changing a Redis client name used when connecting.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.force_resp2",
+            "name": "force_resp2",
+            "go_name": "ForceResp2",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "ForceResp2 forces use of Redis Resp2 protocol for communication.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.cluster_address",
+            "name": "cluster_address",
+            "go_name": "ClusterAddress",
+            "level": 3,
+            "type": "[]string",
+            "default": "",
+            "comment": "ClusterAddress is a list of Redis cluster addresses. When several provided - data will be sharded\nbetween them using consistent hashing. Several Cluster addresses within one shard may be passed\ncomma-separated.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.tls",
+            "name": "tls",
+            "go_name": "TLS",
+            "level": 3,
+            "type": "TLSConfig",
+            "default": "",
+            "comment": "TLS is a configuration for Redis TLS support.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "map_broker.redis.tls.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled turns on using TLS.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.tls.cert_pem",
+                "name": "cert_pem",
+                "go_name": "CertPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "CertPem is a PEM certificate.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.tls.key_pem",
+                "name": "key_pem",
+                "go_name": "KeyPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "KeyPem is a path to a file with key in PEM format.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.tls.server_ca_pem",
+                "name": "server_ca_pem",
+                "go_name": "ServerCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.tls.client_ca_pem",
+                "name": "client_ca_pem",
+                "go_name": "ClientCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.tls.insecure_skip_verify",
+                "name": "insecure_skip_verify",
+                "go_name": "InsecureSkipVerify",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "InsecureSkipVerify turns off server certificate verification.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.tls.server_name",
+                "name": "server_name",
+                "go_name": "ServerName",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "map_broker.redis.sentinel_address",
+            "name": "sentinel_address",
+            "go_name": "SentinelAddress",
+            "level": 3,
+            "type": "[]string",
+            "default": "",
+            "comment": "SentinelAddress allows setting Redis Sentinel addresses. When provided - Sentinel will be used.\nWhen multiple addresses provided - data will be sharded between them using consistent hashing.\nSeveral Sentinel addresses within one shard may be passed comma-separated.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.sentinel_user",
+            "name": "sentinel_user",
+            "go_name": "SentinelUser",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "SentinelUser is a Redis Sentinel user.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.sentinel_password",
+            "name": "sentinel_password",
+            "go_name": "SentinelPassword",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "SentinelPassword is a Redis Sentinel password.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.sentinel_master_name",
+            "name": "sentinel_master_name",
+            "go_name": "SentinelMasterName",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "SentinelMasterName is a Redis master name in Sentinel setup.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.sentinel_client_name",
+            "name": "sentinel_client_name",
+            "go_name": "SentinelClientName",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "SentinelClientName is a Redis Sentinel client name used when connecting.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.sentinel_tls",
+            "name": "sentinel_tls",
+            "go_name": "SentinelTLS",
+            "level": 3,
+            "type": "TLSConfig",
+            "default": "",
+            "comment": "SentinelTLS is a configuration for Redis Sentinel TLS support.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "map_broker.redis.sentinel_tls.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled turns on using TLS.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.sentinel_tls.cert_pem",
+                "name": "cert_pem",
+                "go_name": "CertPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "CertPem is a PEM certificate.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.sentinel_tls.key_pem",
+                "name": "key_pem",
+                "go_name": "KeyPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "KeyPem is a path to a file with key in PEM format.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.sentinel_tls.server_ca_pem",
+                "name": "server_ca_pem",
+                "go_name": "ServerCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.sentinel_tls.client_ca_pem",
+                "name": "client_ca_pem",
+                "go_name": "ClientCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.sentinel_tls.insecure_skip_verify",
+                "name": "insecure_skip_verify",
+                "go_name": "InsecureSkipVerify",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "InsecureSkipVerify turns off server certificate verification.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.redis.sentinel_tls.server_name",
+                "name": "server_name",
+                "go_name": "ServerName",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "map_broker.redis.replica_client",
+            "name": "replica_client",
+            "go_name": "ReplicaClient",
+            "level": 3,
+            "type": "RedisReplicaClient",
+            "default": "",
+            "comment": "ReplicaClient is a configuration for Redis replica client.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "map_broker.redis.replica_client.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled enables replica client.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "map_broker.redis.cleanup_interval",
+            "name": "cleanup_interval",
+            "go_name": "CleanupInterval",
+            "level": 3,
+            "type": "Duration",
+            "default": "1s",
+            "comment": "CleanupInterval defines how often to run the cleanup worker that generates\nremove events for expired keyed state entries. Default: \"1s\".\nSet to \"-1\" to disable cleanup.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.cleanup_batch_size",
+            "name": "cleanup_batch_size",
+            "go_name": "CleanupBatchSize",
+            "level": 3,
+            "type": "int",
+            "default": "100",
+            "comment": "CleanupBatchSize defines max entries to process per channel per cleanup cycle.\nDefault: 100.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.idempotent_result_ttl",
+            "name": "idempotent_result_ttl",
+            "go_name": "IdempotentResultTTL",
+            "level": 3,
+            "type": "Duration",
+            "default": "5m",
+            "comment": "IdempotentResultTTL is a time-to-live for idempotent publish results.\nDefault: \"5m\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.redis.skip_pub_sub",
+            "name": "skip_pub_sub",
+            "go_name": "SkipPubSub",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "SkipPubSub disables PUB/SUB for the map broker. When true, the broker only works\nwith data structures without publishing to channels. Useful when PUB/SUB is handled\nby another component.",
+            "is_complex_type": false
+          }
+        ]
+      },
+      {
+        "field": "map_broker.postgres",
+        "name": "postgres",
+        "go_name": "Postgres",
+        "level": 2,
+        "type": "PostgresMapBroker",
+        "default": "",
+        "comment": "Postgres is a configuration for \"postgres\" map broker.",
+        "is_complex_type": true,
+        "children": [
+          {
+            "field": "map_broker.postgres.dsn",
+            "name": "dsn",
+            "go_name": "DSN",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "DSN is the primary PostgreSQL connection string.\nExample: \"postgres://user:pass@localhost:5432/dbname?sslmode=disable\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.tls",
+            "name": "tls",
+            "go_name": "TLS",
+            "level": 3,
+            "type": "TLSConfig",
+            "default": "",
+            "comment": "TLS is an optional TLS configuration for all PostgreSQL connections\n(primary, replicas, and notify). Use instead of embedding TLS parameters\nin the DSN when certificate files are managed outside the connection string.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "map_broker.postgres.tls.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled turns on using TLS.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.postgres.tls.cert_pem",
+                "name": "cert_pem",
+                "go_name": "CertPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "CertPem is a PEM certificate.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.postgres.tls.key_pem",
+                "name": "key_pem",
+                "go_name": "KeyPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "KeyPem is a path to a file with key in PEM format.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.postgres.tls.server_ca_pem",
+                "name": "server_ca_pem",
+                "go_name": "ServerCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.postgres.tls.client_ca_pem",
+                "name": "client_ca_pem",
+                "go_name": "ClientCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.postgres.tls.insecure_skip_verify",
+                "name": "insecure_skip_verify",
+                "go_name": "InsecureSkipVerify",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "InsecureSkipVerify turns off server certificate verification.",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.postgres.tls.server_name",
+                "name": "server_name",
+                "go_name": "ServerName",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "map_broker.postgres.pool_size",
+            "name": "pool_size",
+            "go_name": "PoolSize",
+            "level": 3,
+            "type": "int",
+            "default": "16",
+            "comment": "PoolSize sets the maximum number of connections in the pool. Default: 16.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.num_shards",
+            "name": "num_shards",
+            "go_name": "NumShards",
+            "level": 3,
+            "type": "int",
+            "default": "8",
+            "comment": "NumShards is the total number of shards for parallel delivery workers.\nChannels are distributed across shards using consistent hashing. Default: 8.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.ttl_check_interval",
+            "name": "ttl_check_interval",
+            "go_name": "TTLCheckInterval",
+            "level": 3,
+            "type": "Duration",
+            "default": "1s",
+            "comment": "TTLCheckInterval is how often to check for expired keys. Default: \"1s\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.cleanup_interval",
+            "name": "cleanup_interval",
+            "go_name": "CleanupInterval",
+            "level": 3,
+            "type": "Duration",
+            "default": "1m",
+            "comment": "CleanupInterval is how often to clean up expired stream/meta/idempotency entries.\nDefault: \"1m\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.idempotent_result_ttl",
+            "name": "idempotent_result_ttl",
+            "go_name": "IdempotentResultTTL",
+            "level": 3,
+            "type": "Duration",
+            "default": "5m",
+            "comment": "IdempotentResultTTL is the default TTL for idempotency keys. Default: \"5m\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.binary_data",
+            "name": "binary_data",
+            "go_name": "BinaryData",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "BinaryData uses BYTEA columns instead of JSONB for data fields.\nSet to true if data payloads are not valid JSON (e.g. binary/protobuf).",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.stream_retention",
+            "name": "stream_retention",
+            "go_name": "StreamRetention",
+            "level": 3,
+            "type": "Duration",
+            "default": "24h",
+            "comment": "StreamRetention controls how long stream entries are kept. Default: \"24h\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.use_notify",
+            "name": "use_notify",
+            "go_name": "UseNotify",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "UseNotify enables LISTEN/NOTIFY for low-latency outbox wakeup.\nWhen false (default), outbox worker uses polling only.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.notify_dsn",
+            "name": "notify_dsn",
+            "go_name": "NotifyDSN",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "NotifyDSN is an optional separate DSN for the LISTEN connection.\nRequired when DSN points at PGBouncer (transaction pooling mode is\nincompatible with LISTEN/NOTIFY). Must be a direct PostgreSQL URL.",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.table_prefix",
+            "name": "table_prefix",
+            "go_name": "TablePrefix",
+            "level": 3,
+            "type": "string",
+            "default": "cf",
+            "comment": "TablePrefix is the namespace prefix for all tables created by this broker.\nDefault: \"cf\". Multi-tenant deployments sharing one PostgreSQL instance\nuse distinct prefixes per Centrifugo cluster (e.g. \"prod_us_cf\").",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.skip_schema_init",
+            "name": "skip_schema_init",
+            "go_name": "SkipSchemaInit",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "SkipSchemaInit disables automatic schema initialization on startup.\nWhen true, the schema must be managed externally (e.g. via migrations).",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.outbox",
+            "name": "outbox",
+            "go_name": "Outbox",
+            "level": 3,
+            "type": "PostgresMapBrokerOutbox",
+            "default": "",
+            "comment": "Outbox configures the outbox-based delivery mode.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "map_broker.postgres.outbox.poll_interval",
+                "name": "poll_interval",
+                "go_name": "PollInterval",
+                "level": 4,
+                "type": "Duration",
+                "default": "100ms",
+                "comment": "PollInterval is how often to poll for new stream entries when idle. Default: \"100ms\".",
+                "is_complex_type": false
+              },
+              {
+                "field": "map_broker.postgres.outbox.batch_size",
+                "name": "batch_size",
+                "go_name": "BatchSize",
+                "level": 4,
+                "type": "int",
+                "default": "1000",
+                "comment": "BatchSize is the maximum number of rows to process per batch. Default: 1000.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "map_broker.postgres.partition_lookahead_days",
+            "name": "partition_lookahead_days",
+            "go_name": "PartitionLookaheadDays",
+            "level": 3,
+            "type": "int",
+            "default": "2",
+            "comment": "PartitionLookaheadDays controls how many future daily partitions to\npre-create. Required \u003e 0 so writes don't fail at the day rollover.\nDefault: 2 (gives a 48-hour safety window if the lookahead worker stalls).",
+            "is_complex_type": false
+          },
+          {
+            "field": "map_broker.postgres.partition_retention_days",
+            "name": "partition_retention_days",
+            "go_name": "PartitionRetentionDays",
+            "level": 3,
+            "type": "int",
+            "default": "7",
+            "comment": "PartitionRetentionDays controls how old a partition can be before it\ngets dropped whole by the partition retention worker. Default: 7.\nSet to a large value for longer retention; the special value 0 is\ninternally promoted to 7 (treat \"not set\" as default).",
+            "is_complex_type": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "field": "controller",
+    "name": "controller",
+    "go_name": "Controller",
+    "level": 1,
+    "type": "Controller",
+    "default": "",
+    "comment": "Controller is a configuration for custom Centrifugo Controller used for\ncross-node communication in multi-node clusters.",
+    "is_complex_type": true,
+    "children": [
+      {
+        "field": "controller.enabled",
+        "name": "enabled",
+        "go_name": "Enabled",
+        "level": 2,
+        "type": "bool",
+        "default": "",
+        "comment": "",
+        "is_complex_type": false
+      },
+      {
+        "field": "controller.type",
+        "name": "type",
+        "go_name": "Type",
+        "level": 2,
+        "type": "string",
+        "default": "",
+        "comment": "Type of controller to use. Can be \"postgres\" in OSS. PRO also supports \"redis\" and \"nats\".",
+        "is_complex_type": false
+      },
+      {
+        "field": "controller.postgres",
+        "name": "postgres",
+        "go_name": "Postgres",
+        "level": 2,
+        "type": "PostgresController",
+        "default": "",
+        "comment": "Postgres is a configuration for \"postgres\" controller.",
+        "is_complex_type": true,
+        "children": [
+          {
+            "field": "controller.postgres.dsn",
+            "name": "dsn",
+            "go_name": "DSN",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "DSN is the primary PostgreSQL connection string.\nExample: \"postgres://user:pass@localhost:5432/dbname?sslmode=disable\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.tls",
+            "name": "tls",
+            "go_name": "TLS",
+            "level": 3,
+            "type": "TLSConfig",
+            "default": "",
+            "comment": "TLS is an optional TLS configuration for all PostgreSQL connections.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "controller.postgres.tls.enabled",
+                "name": "enabled",
+                "go_name": "Enabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "Enabled turns on using TLS.",
+                "is_complex_type": false
+              },
+              {
+                "field": "controller.postgres.tls.cert_pem",
+                "name": "cert_pem",
+                "go_name": "CertPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "CertPem is a PEM certificate.",
+                "is_complex_type": false
+              },
+              {
+                "field": "controller.postgres.tls.key_pem",
+                "name": "key_pem",
+                "go_name": "KeyPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "KeyPem is a path to a file with key in PEM format.",
+                "is_complex_type": false
+              },
+              {
+                "field": "controller.postgres.tls.server_ca_pem",
+                "name": "server_ca_pem",
+                "go_name": "ServerCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "controller.postgres.tls.client_ca_pem",
+                "name": "client_ca_pem",
+                "go_name": "ClientCAPem",
+                "level": 4,
+                "type": "PEMData",
+                "default": "",
+                "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                "is_complex_type": false
+              },
+              {
+                "field": "controller.postgres.tls.insecure_skip_verify",
+                "name": "insecure_skip_verify",
+                "go_name": "InsecureSkipVerify",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "InsecureSkipVerify turns off server certificate verification.",
+                "is_complex_type": false
+              },
+              {
+                "field": "controller.postgres.tls.server_name",
+                "name": "server_name",
+                "go_name": "ServerName",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "controller.postgres.pool_size",
+            "name": "pool_size",
+            "go_name": "PoolSize",
+            "level": 3,
+            "type": "int",
+            "default": "8",
+            "comment": "PoolSize sets the maximum number of connections in the pool. Default: 8.",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.num_shards",
+            "name": "num_shards",
+            "go_name": "NumShards",
+            "level": 3,
+            "type": "int",
+            "default": "1",
+            "comment": "NumShards is the number of shards for serialized publishing. Default: 1.",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.table_prefix",
+            "name": "table_prefix",
+            "go_name": "TablePrefix",
+            "level": 3,
+            "type": "string",
+            "default": "cf",
+            "comment": "TablePrefix is the namespace prefix for all tables created by this controller.\nDefault: \"cf\". Produces names like cf_controller_messages.",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.poll_interval",
+            "name": "poll_interval",
+            "go_name": "PollInterval",
+            "level": 3,
+            "type": "Duration",
+            "default": "50ms",
+            "comment": "PollInterval is how often to poll for new control messages when idle. Default: \"50ms\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.use_notify",
+            "name": "use_notify",
+            "go_name": "UseNotify",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "UseNotify enables LISTEN/NOTIFY for low-latency wakeup. Default: true.",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.notify_dsn",
+            "name": "notify_dsn",
+            "go_name": "NotifyDSN",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "NotifyDSN is an optional separate DSN for the LISTEN connection.\nRequired when DSN points at PGBouncer (transaction pooling mode is\nincompatible with LISTEN/NOTIFY). Must be a direct PostgreSQL URL.",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.partition_retention_days",
+            "name": "partition_retention_days",
+            "go_name": "PartitionRetentionDays",
+            "level": 3,
+            "type": "int",
+            "default": "1",
+            "comment": "PartitionRetentionDays controls how old a partition must be before it is\ndropped. Default: 1 (control messages are ephemeral).",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.partition_lookahead_days",
+            "name": "partition_lookahead_days",
+            "go_name": "PartitionLookaheadDays",
+            "level": 3,
+            "type": "int",
+            "default": "2",
+            "comment": "PartitionLookaheadDays controls how many future daily partitions to\npre-create. Default: 2.",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.partition_cleanup_interval",
+            "name": "partition_cleanup_interval",
+            "go_name": "PartitionCleanupInterval",
+            "level": 3,
+            "type": "Duration",
+            "default": "1m",
+            "comment": "PartitionCleanupInterval is how often the partition worker ticks. Default: \"1m\".",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.batch_size",
+            "name": "batch_size",
+            "go_name": "BatchSize",
+            "level": 3,
+            "type": "int",
+            "default": "1000",
+            "comment": "BatchSize is the maximum number of rows to process per poll batch. Default: 1000.",
+            "is_complex_type": false
+          },
+          {
+            "field": "controller.postgres.skip_schema_init",
+            "name": "skip_schema_init",
+            "go_name": "SkipSchemaInit",
+            "level": 3,
+            "type": "bool",
+            "default": "",
+            "comment": "SkipSchemaInit disables automatic schema initialization on startup.\nWhen true, the schema must be managed externally (e.g. via migrations).",
+            "is_complex_type": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "field": "shared_poll",
+    "name": "shared_poll",
+    "go_name": "SharedPoll",
+    "level": 1,
+    "type": "SharedPoll",
+    "default": "",
+    "comment": "SharedPoll contains configuration for shared poll subscriptions.",
+    "is_complex_type": true,
+    "children": [
+      {
+        "field": "shared_poll.hmac_secret_key",
+        "name": "hmac_secret_key",
+        "go_name": "HMACSecretKey",
+        "level": 2,
+        "type": "string",
+        "default": "",
+        "comment": "",
+        "is_complex_type": false
+      },
+      {
+        "field": "shared_poll.hmac_previous_secret_key",
+        "name": "hmac_previous_secret_key",
+        "go_name": "HMACPreviousSecretKey",
+        "level": 2,
+        "type": "string",
+        "default": "",
+        "comment": "",
+        "is_complex_type": false
+      },
+      {
+        "field": "shared_poll.hmac_previous_secret_key_valid_until",
+        "name": "hmac_previous_secret_key_valid_until",
+        "go_name": "HMACPreviousSecretKeyValidUntil",
+        "level": 2,
+        "type": "int64",
+        "default": "",
+        "comment": "",
+        "is_complex_type": false
+      },
+      {
+        "field": "shared_poll.concurrency_limit",
+        "name": "concurrency_limit",
+        "go_name": "ConcurrencyLimit",
+        "level": 2,
+        "type": "int",
+        "default": "",
+        "comment": "",
+        "is_complex_type": false
       }
     ]
   },
@@ -4888,6 +6118,1224 @@
                 ]
               }
             ]
+          },
+          {
+            "field": "channel.proxy.map_publish",
+            "name": "map_publish",
+            "go_name": "MapPublish",
+            "level": 3,
+            "type": "Proxy",
+            "default": "",
+            "comment": "MapPublish proxy configuration.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "channel.proxy.map_publish.endpoint",
+                "name": "endpoint",
+                "go_name": "Endpoint",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "Endpoint - HTTP address or GRPC service endpoint.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_publish.timeout",
+                "name": "timeout",
+                "go_name": "Timeout",
+                "level": 4,
+                "type": "Duration",
+                "default": "1s",
+                "comment": "Timeout for proxy request.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_publish.http_headers",
+                "name": "http_headers",
+                "go_name": "HttpHeaders",
+                "level": 4,
+                "type": "[]string",
+                "default": "",
+                "comment": "HttpHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.\nIf GRPC proxy is used then request HTTP headers set to outgoing request metadata.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_publish.grpc_metadata",
+                "name": "grpc_metadata",
+                "go_name": "GrpcMetadata",
+                "level": 4,
+                "type": "[]string",
+                "default": "",
+                "comment": "GrpcMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by\ndefault. If HTTP proxy is used then these keys become outgoing request HTTP headers.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_publish.binary_encoding",
+                "name": "binary_encoding",
+                "go_name": "BinaryEncoding",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "BinaryEncoding makes proxy send data as base64 string (assuming it contains custom\nnon-JSON payload).",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_publish.include_connection_meta",
+                "name": "include_connection_meta",
+                "go_name": "IncludeConnectionMeta",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "IncludeConnectionMeta to each proxy request (except connect proxy where it's obtained).",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_publish.http",
+                "name": "http",
+                "go_name": "HTTP",
+                "level": 4,
+                "type": "ProxyCommonHTTP",
+                "default": "",
+                "comment": "",
+                "is_complex_type": true,
+                "children": [
+                  {
+                    "field": "channel.proxy.map_publish.http.tls",
+                    "name": "tls",
+                    "go_name": "TLS",
+                    "level": 5,
+                    "type": "TLSConfig",
+                    "default": "",
+                    "comment": "TLS for HTTP client.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.map_publish.http.tls.enabled",
+                        "name": "enabled",
+                        "go_name": "Enabled",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "Enabled turns on using TLS.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.http.tls.cert_pem",
+                        "name": "cert_pem",
+                        "go_name": "CertPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "CertPem is a PEM certificate.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.http.tls.key_pem",
+                        "name": "key_pem",
+                        "go_name": "KeyPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "KeyPem is a path to a file with key in PEM format.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.http.tls.server_ca_pem",
+                        "name": "server_ca_pem",
+                        "go_name": "ServerCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.http.tls.client_ca_pem",
+                        "name": "client_ca_pem",
+                        "go_name": "ClientCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.http.tls.insecure_skip_verify",
+                        "name": "insecure_skip_verify",
+                        "go_name": "InsecureSkipVerify",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "InsecureSkipVerify turns off server certificate verification.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.http.tls.server_name",
+                        "name": "server_name",
+                        "go_name": "ServerName",
+                        "level": 6,
+                        "type": "string",
+                        "default": "",
+                        "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                        "is_complex_type": false
+                      }
+                    ]
+                  },
+                  {
+                    "field": "channel.proxy.map_publish.http.static_headers",
+                    "name": "static_headers",
+                    "go_name": "StaticHeaders",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticHeaders is a static set of key/value pairs to attach to HTTP proxy request as\nheaders. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticHttpHeaders map.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.map_publish.http.status_to_code_transforms",
+                    "name": "status_to_code_transforms",
+                    "go_name": "StatusToCodeTransforms",
+                    "level": 5,
+                    "type": "[]HttpStatusToCodeTransform",
+                    "default": "[]",
+                    "comment": "StatusToCodeTransforms allow to map HTTP status codes from proxy to Disconnect or Error messages.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.map_publish.http.status_to_code_transforms[].status_code",
+                        "name": "status_code",
+                        "go_name": "StatusCode",
+                        "level": 6,
+                        "type": "int",
+                        "default": "",
+                        "comment": "StatusCode is an HTTP status code to transform.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.http.status_to_code_transforms[].to_error",
+                        "name": "to_error",
+                        "go_name": "ToError",
+                        "level": 6,
+                        "type": "TransformError",
+                        "default": "",
+                        "comment": "ToError is a transform to protocol error.",
+                        "is_complex_type": true,
+                        "children": [
+                          {
+                            "field": "channel.proxy.map_publish.http.status_to_code_transforms[].to_error.code",
+                            "name": "code",
+                            "go_name": "Code",
+                            "level": 7,
+                            "type": "uint32",
+                            "default": "",
+                            "comment": "Code of error.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.map_publish.http.status_to_code_transforms[].to_error.message",
+                            "name": "message",
+                            "go_name": "Message",
+                            "level": 7,
+                            "type": "string",
+                            "default": "",
+                            "comment": "Message is a human-readable message of error.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.map_publish.http.status_to_code_transforms[].to_error.temporary",
+                            "name": "temporary",
+                            "go_name": "Temporary",
+                            "level": 7,
+                            "type": "bool",
+                            "default": "",
+                            "comment": "Temporary is a flag to mark error as temporary.",
+                            "is_complex_type": false
+                          }
+                        ]
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.http.status_to_code_transforms[].to_disconnect",
+                        "name": "to_disconnect",
+                        "go_name": "ToDisconnect",
+                        "level": 6,
+                        "type": "TransformDisconnect",
+                        "default": "",
+                        "comment": "ToDisconnect is a transform to protocol disconnect.",
+                        "is_complex_type": true,
+                        "children": [
+                          {
+                            "field": "channel.proxy.map_publish.http.status_to_code_transforms[].to_disconnect.code",
+                            "name": "code",
+                            "go_name": "Code",
+                            "level": 7,
+                            "type": "uint32",
+                            "default": "",
+                            "comment": "Code of disconnect.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.map_publish.http.status_to_code_transforms[].to_disconnect.reason",
+                            "name": "reason",
+                            "go_name": "Reason",
+                            "level": 7,
+                            "type": "string",
+                            "default": "",
+                            "comment": "Reason is a human-readable reason of disconnect.",
+                            "is_complex_type": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "field": "channel.proxy.map_publish.grpc",
+                "name": "grpc",
+                "go_name": "GRPC",
+                "level": 4,
+                "type": "ProxyCommonGRPC",
+                "default": "",
+                "comment": "",
+                "is_complex_type": true,
+                "children": [
+                  {
+                    "field": "channel.proxy.map_publish.grpc.tls",
+                    "name": "tls",
+                    "go_name": "TLS",
+                    "level": 5,
+                    "type": "TLSConfig",
+                    "default": "",
+                    "comment": "TLS is a common configuration for GRPC client TLS.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.map_publish.grpc.tls.enabled",
+                        "name": "enabled",
+                        "go_name": "Enabled",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "Enabled turns on using TLS.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.grpc.tls.cert_pem",
+                        "name": "cert_pem",
+                        "go_name": "CertPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "CertPem is a PEM certificate.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.grpc.tls.key_pem",
+                        "name": "key_pem",
+                        "go_name": "KeyPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "KeyPem is a path to a file with key in PEM format.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.grpc.tls.server_ca_pem",
+                        "name": "server_ca_pem",
+                        "go_name": "ServerCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.grpc.tls.client_ca_pem",
+                        "name": "client_ca_pem",
+                        "go_name": "ClientCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.grpc.tls.insecure_skip_verify",
+                        "name": "insecure_skip_verify",
+                        "go_name": "InsecureSkipVerify",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "InsecureSkipVerify turns off server certificate verification.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_publish.grpc.tls.server_name",
+                        "name": "server_name",
+                        "go_name": "ServerName",
+                        "level": 6,
+                        "type": "string",
+                        "default": "",
+                        "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                        "is_complex_type": false
+                      }
+                    ]
+                  },
+                  {
+                    "field": "channel.proxy.map_publish.grpc.credentials_key",
+                    "name": "credentials_key",
+                    "go_name": "CredentialsKey",
+                    "level": 5,
+                    "type": "string",
+                    "default": "",
+                    "comment": "CredentialsKey is a custom key to add into per-RPC credentials.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.map_publish.grpc.credentials_value",
+                    "name": "credentials_value",
+                    "go_name": "CredentialsValue",
+                    "level": 5,
+                    "type": "string",
+                    "default": "",
+                    "comment": "CredentialsValue is a custom value for GrpcCredentialsKey.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.map_publish.grpc.compression",
+                    "name": "compression",
+                    "go_name": "Compression",
+                    "level": 5,
+                    "type": "bool",
+                    "default": "",
+                    "comment": "Compression enables compression for outgoing calls (gzip).",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.map_publish.grpc.static_metadata",
+                    "name": "static_metadata",
+                    "go_name": "StaticMetadata",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticMetadata is a static set of key/value pairs to attach to GRPC proxy request as\nmetadata. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticMetadata map (but only if explicitly allowed).",
+                    "is_complex_type": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "field": "channel.proxy.map_remove",
+            "name": "map_remove",
+            "go_name": "MapRemove",
+            "level": 3,
+            "type": "Proxy",
+            "default": "",
+            "comment": "MapRemove proxy configuration.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "channel.proxy.map_remove.endpoint",
+                "name": "endpoint",
+                "go_name": "Endpoint",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "Endpoint - HTTP address or GRPC service endpoint.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_remove.timeout",
+                "name": "timeout",
+                "go_name": "Timeout",
+                "level": 4,
+                "type": "Duration",
+                "default": "1s",
+                "comment": "Timeout for proxy request.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_remove.http_headers",
+                "name": "http_headers",
+                "go_name": "HttpHeaders",
+                "level": 4,
+                "type": "[]string",
+                "default": "",
+                "comment": "HttpHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.\nIf GRPC proxy is used then request HTTP headers set to outgoing request metadata.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_remove.grpc_metadata",
+                "name": "grpc_metadata",
+                "go_name": "GrpcMetadata",
+                "level": 4,
+                "type": "[]string",
+                "default": "",
+                "comment": "GrpcMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by\ndefault. If HTTP proxy is used then these keys become outgoing request HTTP headers.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_remove.binary_encoding",
+                "name": "binary_encoding",
+                "go_name": "BinaryEncoding",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "BinaryEncoding makes proxy send data as base64 string (assuming it contains custom\nnon-JSON payload).",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_remove.include_connection_meta",
+                "name": "include_connection_meta",
+                "go_name": "IncludeConnectionMeta",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "IncludeConnectionMeta to each proxy request (except connect proxy where it's obtained).",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.map_remove.http",
+                "name": "http",
+                "go_name": "HTTP",
+                "level": 4,
+                "type": "ProxyCommonHTTP",
+                "default": "",
+                "comment": "",
+                "is_complex_type": true,
+                "children": [
+                  {
+                    "field": "channel.proxy.map_remove.http.tls",
+                    "name": "tls",
+                    "go_name": "TLS",
+                    "level": 5,
+                    "type": "TLSConfig",
+                    "default": "",
+                    "comment": "TLS for HTTP client.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.map_remove.http.tls.enabled",
+                        "name": "enabled",
+                        "go_name": "Enabled",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "Enabled turns on using TLS.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.http.tls.cert_pem",
+                        "name": "cert_pem",
+                        "go_name": "CertPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "CertPem is a PEM certificate.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.http.tls.key_pem",
+                        "name": "key_pem",
+                        "go_name": "KeyPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "KeyPem is a path to a file with key in PEM format.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.http.tls.server_ca_pem",
+                        "name": "server_ca_pem",
+                        "go_name": "ServerCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.http.tls.client_ca_pem",
+                        "name": "client_ca_pem",
+                        "go_name": "ClientCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.http.tls.insecure_skip_verify",
+                        "name": "insecure_skip_verify",
+                        "go_name": "InsecureSkipVerify",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "InsecureSkipVerify turns off server certificate verification.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.http.tls.server_name",
+                        "name": "server_name",
+                        "go_name": "ServerName",
+                        "level": 6,
+                        "type": "string",
+                        "default": "",
+                        "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                        "is_complex_type": false
+                      }
+                    ]
+                  },
+                  {
+                    "field": "channel.proxy.map_remove.http.static_headers",
+                    "name": "static_headers",
+                    "go_name": "StaticHeaders",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticHeaders is a static set of key/value pairs to attach to HTTP proxy request as\nheaders. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticHttpHeaders map.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.map_remove.http.status_to_code_transforms",
+                    "name": "status_to_code_transforms",
+                    "go_name": "StatusToCodeTransforms",
+                    "level": 5,
+                    "type": "[]HttpStatusToCodeTransform",
+                    "default": "[]",
+                    "comment": "StatusToCodeTransforms allow to map HTTP status codes from proxy to Disconnect or Error messages.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.map_remove.http.status_to_code_transforms[].status_code",
+                        "name": "status_code",
+                        "go_name": "StatusCode",
+                        "level": 6,
+                        "type": "int",
+                        "default": "",
+                        "comment": "StatusCode is an HTTP status code to transform.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.http.status_to_code_transforms[].to_error",
+                        "name": "to_error",
+                        "go_name": "ToError",
+                        "level": 6,
+                        "type": "TransformError",
+                        "default": "",
+                        "comment": "ToError is a transform to protocol error.",
+                        "is_complex_type": true,
+                        "children": [
+                          {
+                            "field": "channel.proxy.map_remove.http.status_to_code_transforms[].to_error.code",
+                            "name": "code",
+                            "go_name": "Code",
+                            "level": 7,
+                            "type": "uint32",
+                            "default": "",
+                            "comment": "Code of error.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.map_remove.http.status_to_code_transforms[].to_error.message",
+                            "name": "message",
+                            "go_name": "Message",
+                            "level": 7,
+                            "type": "string",
+                            "default": "",
+                            "comment": "Message is a human-readable message of error.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.map_remove.http.status_to_code_transforms[].to_error.temporary",
+                            "name": "temporary",
+                            "go_name": "Temporary",
+                            "level": 7,
+                            "type": "bool",
+                            "default": "",
+                            "comment": "Temporary is a flag to mark error as temporary.",
+                            "is_complex_type": false
+                          }
+                        ]
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.http.status_to_code_transforms[].to_disconnect",
+                        "name": "to_disconnect",
+                        "go_name": "ToDisconnect",
+                        "level": 6,
+                        "type": "TransformDisconnect",
+                        "default": "",
+                        "comment": "ToDisconnect is a transform to protocol disconnect.",
+                        "is_complex_type": true,
+                        "children": [
+                          {
+                            "field": "channel.proxy.map_remove.http.status_to_code_transforms[].to_disconnect.code",
+                            "name": "code",
+                            "go_name": "Code",
+                            "level": 7,
+                            "type": "uint32",
+                            "default": "",
+                            "comment": "Code of disconnect.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.map_remove.http.status_to_code_transforms[].to_disconnect.reason",
+                            "name": "reason",
+                            "go_name": "Reason",
+                            "level": 7,
+                            "type": "string",
+                            "default": "",
+                            "comment": "Reason is a human-readable reason of disconnect.",
+                            "is_complex_type": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "field": "channel.proxy.map_remove.grpc",
+                "name": "grpc",
+                "go_name": "GRPC",
+                "level": 4,
+                "type": "ProxyCommonGRPC",
+                "default": "",
+                "comment": "",
+                "is_complex_type": true,
+                "children": [
+                  {
+                    "field": "channel.proxy.map_remove.grpc.tls",
+                    "name": "tls",
+                    "go_name": "TLS",
+                    "level": 5,
+                    "type": "TLSConfig",
+                    "default": "",
+                    "comment": "TLS is a common configuration for GRPC client TLS.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.map_remove.grpc.tls.enabled",
+                        "name": "enabled",
+                        "go_name": "Enabled",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "Enabled turns on using TLS.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.grpc.tls.cert_pem",
+                        "name": "cert_pem",
+                        "go_name": "CertPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "CertPem is a PEM certificate.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.grpc.tls.key_pem",
+                        "name": "key_pem",
+                        "go_name": "KeyPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "KeyPem is a path to a file with key in PEM format.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.grpc.tls.server_ca_pem",
+                        "name": "server_ca_pem",
+                        "go_name": "ServerCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.grpc.tls.client_ca_pem",
+                        "name": "client_ca_pem",
+                        "go_name": "ClientCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.grpc.tls.insecure_skip_verify",
+                        "name": "insecure_skip_verify",
+                        "go_name": "InsecureSkipVerify",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "InsecureSkipVerify turns off server certificate verification.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.map_remove.grpc.tls.server_name",
+                        "name": "server_name",
+                        "go_name": "ServerName",
+                        "level": 6,
+                        "type": "string",
+                        "default": "",
+                        "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                        "is_complex_type": false
+                      }
+                    ]
+                  },
+                  {
+                    "field": "channel.proxy.map_remove.grpc.credentials_key",
+                    "name": "credentials_key",
+                    "go_name": "CredentialsKey",
+                    "level": 5,
+                    "type": "string",
+                    "default": "",
+                    "comment": "CredentialsKey is a custom key to add into per-RPC credentials.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.map_remove.grpc.credentials_value",
+                    "name": "credentials_value",
+                    "go_name": "CredentialsValue",
+                    "level": 5,
+                    "type": "string",
+                    "default": "",
+                    "comment": "CredentialsValue is a custom value for GrpcCredentialsKey.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.map_remove.grpc.compression",
+                    "name": "compression",
+                    "go_name": "Compression",
+                    "level": 5,
+                    "type": "bool",
+                    "default": "",
+                    "comment": "Compression enables compression for outgoing calls (gzip).",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.map_remove.grpc.static_metadata",
+                    "name": "static_metadata",
+                    "go_name": "StaticMetadata",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticMetadata is a static set of key/value pairs to attach to GRPC proxy request as\nmetadata. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticMetadata map (but only if explicitly allowed).",
+                    "is_complex_type": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "field": "channel.proxy.shared_poll_refresh",
+            "name": "shared_poll_refresh",
+            "go_name": "SharedPollRefresh",
+            "level": 3,
+            "type": "Proxy",
+            "default": "",
+            "comment": "SharedPollRefresh proxy configuration.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "channel.proxy.shared_poll_refresh.endpoint",
+                "name": "endpoint",
+                "go_name": "Endpoint",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "Endpoint - HTTP address or GRPC service endpoint.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.shared_poll_refresh.timeout",
+                "name": "timeout",
+                "go_name": "Timeout",
+                "level": 4,
+                "type": "Duration",
+                "default": "1s",
+                "comment": "Timeout for proxy request.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.shared_poll_refresh.http_headers",
+                "name": "http_headers",
+                "go_name": "HttpHeaders",
+                "level": 4,
+                "type": "[]string",
+                "default": "",
+                "comment": "HttpHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.\nIf GRPC proxy is used then request HTTP headers set to outgoing request metadata.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.shared_poll_refresh.grpc_metadata",
+                "name": "grpc_metadata",
+                "go_name": "GrpcMetadata",
+                "level": 4,
+                "type": "[]string",
+                "default": "",
+                "comment": "GrpcMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by\ndefault. If HTTP proxy is used then these keys become outgoing request HTTP headers.",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.shared_poll_refresh.binary_encoding",
+                "name": "binary_encoding",
+                "go_name": "BinaryEncoding",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "BinaryEncoding makes proxy send data as base64 string (assuming it contains custom\nnon-JSON payload).",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.shared_poll_refresh.include_connection_meta",
+                "name": "include_connection_meta",
+                "go_name": "IncludeConnectionMeta",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "IncludeConnectionMeta to each proxy request (except connect proxy where it's obtained).",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.proxy.shared_poll_refresh.http",
+                "name": "http",
+                "go_name": "HTTP",
+                "level": 4,
+                "type": "ProxyCommonHTTP",
+                "default": "",
+                "comment": "",
+                "is_complex_type": true,
+                "children": [
+                  {
+                    "field": "channel.proxy.shared_poll_refresh.http.tls",
+                    "name": "tls",
+                    "go_name": "TLS",
+                    "level": 5,
+                    "type": "TLSConfig",
+                    "default": "",
+                    "comment": "TLS for HTTP client.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.tls.enabled",
+                        "name": "enabled",
+                        "go_name": "Enabled",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "Enabled turns on using TLS.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.tls.cert_pem",
+                        "name": "cert_pem",
+                        "go_name": "CertPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "CertPem is a PEM certificate.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.tls.key_pem",
+                        "name": "key_pem",
+                        "go_name": "KeyPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "KeyPem is a path to a file with key in PEM format.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.tls.server_ca_pem",
+                        "name": "server_ca_pem",
+                        "go_name": "ServerCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.tls.client_ca_pem",
+                        "name": "client_ca_pem",
+                        "go_name": "ClientCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.tls.insecure_skip_verify",
+                        "name": "insecure_skip_verify",
+                        "go_name": "InsecureSkipVerify",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "InsecureSkipVerify turns off server certificate verification.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.tls.server_name",
+                        "name": "server_name",
+                        "go_name": "ServerName",
+                        "level": 6,
+                        "type": "string",
+                        "default": "",
+                        "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                        "is_complex_type": false
+                      }
+                    ]
+                  },
+                  {
+                    "field": "channel.proxy.shared_poll_refresh.http.static_headers",
+                    "name": "static_headers",
+                    "go_name": "StaticHeaders",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticHeaders is a static set of key/value pairs to attach to HTTP proxy request as\nheaders. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticHttpHeaders map.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms",
+                    "name": "status_to_code_transforms",
+                    "go_name": "StatusToCodeTransforms",
+                    "level": 5,
+                    "type": "[]HttpStatusToCodeTransform",
+                    "default": "[]",
+                    "comment": "StatusToCodeTransforms allow to map HTTP status codes from proxy to Disconnect or Error messages.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms[].status_code",
+                        "name": "status_code",
+                        "go_name": "StatusCode",
+                        "level": 6,
+                        "type": "int",
+                        "default": "",
+                        "comment": "StatusCode is an HTTP status code to transform.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms[].to_error",
+                        "name": "to_error",
+                        "go_name": "ToError",
+                        "level": 6,
+                        "type": "TransformError",
+                        "default": "",
+                        "comment": "ToError is a transform to protocol error.",
+                        "is_complex_type": true,
+                        "children": [
+                          {
+                            "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms[].to_error.code",
+                            "name": "code",
+                            "go_name": "Code",
+                            "level": 7,
+                            "type": "uint32",
+                            "default": "",
+                            "comment": "Code of error.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms[].to_error.message",
+                            "name": "message",
+                            "go_name": "Message",
+                            "level": 7,
+                            "type": "string",
+                            "default": "",
+                            "comment": "Message is a human-readable message of error.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms[].to_error.temporary",
+                            "name": "temporary",
+                            "go_name": "Temporary",
+                            "level": 7,
+                            "type": "bool",
+                            "default": "",
+                            "comment": "Temporary is a flag to mark error as temporary.",
+                            "is_complex_type": false
+                          }
+                        ]
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms[].to_disconnect",
+                        "name": "to_disconnect",
+                        "go_name": "ToDisconnect",
+                        "level": 6,
+                        "type": "TransformDisconnect",
+                        "default": "",
+                        "comment": "ToDisconnect is a transform to protocol disconnect.",
+                        "is_complex_type": true,
+                        "children": [
+                          {
+                            "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms[].to_disconnect.code",
+                            "name": "code",
+                            "go_name": "Code",
+                            "level": 7,
+                            "type": "uint32",
+                            "default": "",
+                            "comment": "Code of disconnect.",
+                            "is_complex_type": false
+                          },
+                          {
+                            "field": "channel.proxy.shared_poll_refresh.http.status_to_code_transforms[].to_disconnect.reason",
+                            "name": "reason",
+                            "go_name": "Reason",
+                            "level": 7,
+                            "type": "string",
+                            "default": "",
+                            "comment": "Reason is a human-readable reason of disconnect.",
+                            "is_complex_type": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "field": "channel.proxy.shared_poll_refresh.grpc",
+                "name": "grpc",
+                "go_name": "GRPC",
+                "level": 4,
+                "type": "ProxyCommonGRPC",
+                "default": "",
+                "comment": "",
+                "is_complex_type": true,
+                "children": [
+                  {
+                    "field": "channel.proxy.shared_poll_refresh.grpc.tls",
+                    "name": "tls",
+                    "go_name": "TLS",
+                    "level": 5,
+                    "type": "TLSConfig",
+                    "default": "",
+                    "comment": "TLS is a common configuration for GRPC client TLS.",
+                    "is_complex_type": true,
+                    "children": [
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.grpc.tls.enabled",
+                        "name": "enabled",
+                        "go_name": "Enabled",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "Enabled turns on using TLS.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.grpc.tls.cert_pem",
+                        "name": "cert_pem",
+                        "go_name": "CertPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "CertPem is a PEM certificate.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.grpc.tls.key_pem",
+                        "name": "key_pem",
+                        "go_name": "KeyPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "KeyPem is a path to a file with key in PEM format.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.grpc.tls.server_ca_pem",
+                        "name": "server_ca_pem",
+                        "go_name": "ServerCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ServerCAPem is a server root CA certificate in PEM format.\nThe client uses this certificate to verify the server's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.grpc.tls.client_ca_pem",
+                        "name": "client_ca_pem",
+                        "go_name": "ClientCAPem",
+                        "level": 6,
+                        "type": "PEMData",
+                        "default": "",
+                        "comment": "ClientCAPem is a client CA certificate in PEM format.\nThe server uses this certificate to verify the client's certificate during the TLS handshake.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.grpc.tls.insecure_skip_verify",
+                        "name": "insecure_skip_verify",
+                        "go_name": "InsecureSkipVerify",
+                        "level": 6,
+                        "type": "bool",
+                        "default": "",
+                        "comment": "InsecureSkipVerify turns off server certificate verification.",
+                        "is_complex_type": false
+                      },
+                      {
+                        "field": "channel.proxy.shared_poll_refresh.grpc.tls.server_name",
+                        "name": "server_name",
+                        "go_name": "ServerName",
+                        "level": 6,
+                        "type": "string",
+                        "default": "",
+                        "comment": "ServerName is used to verify the hostname on the returned certificates.",
+                        "is_complex_type": false
+                      }
+                    ]
+                  },
+                  {
+                    "field": "channel.proxy.shared_poll_refresh.grpc.credentials_key",
+                    "name": "credentials_key",
+                    "go_name": "CredentialsKey",
+                    "level": 5,
+                    "type": "string",
+                    "default": "",
+                    "comment": "CredentialsKey is a custom key to add into per-RPC credentials.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.shared_poll_refresh.grpc.credentials_value",
+                    "name": "credentials_value",
+                    "go_name": "CredentialsValue",
+                    "level": 5,
+                    "type": "string",
+                    "default": "",
+                    "comment": "CredentialsValue is a custom value for GrpcCredentialsKey.",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.shared_poll_refresh.grpc.compression",
+                    "name": "compression",
+                    "go_name": "Compression",
+                    "level": 5,
+                    "type": "bool",
+                    "default": "",
+                    "comment": "Compression enables compression for outgoing calls (gzip).",
+                    "is_complex_type": false
+                  },
+                  {
+                    "field": "channel.proxy.shared_poll_refresh.grpc.static_metadata",
+                    "name": "static_metadata",
+                    "go_name": "StaticMetadata",
+                    "level": 5,
+                    "type": "MapStringString",
+                    "default": "{}",
+                    "comment": "StaticMetadata is a static set of key/value pairs to attach to GRPC proxy request as\nmetadata. Headers received from HTTP client request or metadata from GRPC client request\nboth have priority over values set in StaticMetadata map (but only if explicitly allowed).",
+                    "is_complex_type": false
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -4929,6 +7377,26 @@
             "type": "bool",
             "default": "",
             "comment": "ForcePushJoinLeave forces sending join/leave messages towards subscribers.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_clients_presence_channel_prefix",
+            "name": "map_clients_presence_channel_prefix",
+            "go_name": "MapClientsPresenceChannelPrefix",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapClientsPresenceChannelPrefix is a prefix for map-based client presence channel.\nWhen set, client presence is tracked via MapBroker in a channel formed by this prefix + original channel name.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map_users_presence_channel_prefix",
+            "name": "map_users_presence_channel_prefix",
+            "go_name": "MapUsersPresenceChannelPrefix",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapUsersPresenceChannelPrefix is a prefix for map-based user presence channel.\nWhen set, user presence is tracked via MapBroker in a channel formed by this prefix + original channel name.",
             "is_complex_type": false
           },
           {
@@ -5270,6 +7738,350 @@
             "default": "",
             "comment": "SubscribeStreamBidirectional enables using bidirectional stream proxy for the namespace.",
             "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.subscription_type",
+            "name": "subscription_type",
+            "go_name": "SubscriptionType",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "SubscriptionType defines the subscription type for the namespace.\nValid values: \"stream\", \"map\", \"map_clients\", \"map_users\", \"shared_poll\".\nDefault: \"stream\" (traditional PUB/SUB with history).",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.without_namespace.map",
+            "name": "map",
+            "go_name": "Map",
+            "level": 3,
+            "type": "MapConfig",
+            "default": "",
+            "comment": "Map contains configuration for map subscription types (map, map_clients, map_users).",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "channel.without_namespace.map.mode",
+                "name": "mode",
+                "go_name": "Mode",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.key_ttl",
+                "name": "key_ttl",
+                "go_name": "KeyTTL",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.ordered",
+                "name": "ordered",
+                "go_name": "Ordered",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.stream_size",
+                "name": "stream_size",
+                "go_name": "StreamSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.stream_ttl",
+                "name": "stream_ttl",
+                "go_name": "StreamTTL",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.meta_ttl",
+                "name": "meta_ttl",
+                "go_name": "MetaTTL",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.remove_client_on_unsubscribe",
+                "name": "remove_client_on_unsubscribe",
+                "go_name": "RemoveClientOnUnsubscribe",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.client_key",
+                "name": "client_key",
+                "go_name": "ClientKey",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.allow_publish_for_client",
+                "name": "allow_publish_for_client",
+                "go_name": "AllowPublishForClient",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.allow_publish_for_subscriber",
+                "name": "allow_publish_for_subscriber",
+                "go_name": "AllowPublishForSubscriber",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.allow_publish_for_anonymous",
+                "name": "allow_publish_for_anonymous",
+                "go_name": "AllowPublishForAnonymous",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.allow_remove_for_client",
+                "name": "allow_remove_for_client",
+                "go_name": "AllowRemoveForClient",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.allow_remove_for_subscriber",
+                "name": "allow_remove_for_subscriber",
+                "go_name": "AllowRemoveForSubscriber",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.allow_remove_for_anonymous",
+                "name": "allow_remove_for_anonymous",
+                "go_name": "AllowRemoveForAnonymous",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.publish_proxy_enabled",
+                "name": "publish_proxy_enabled",
+                "go_name": "PublishProxyEnabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.publish_proxy_name",
+                "name": "publish_proxy_name",
+                "go_name": "PublishProxyName",
+                "level": 4,
+                "type": "string",
+                "default": "default",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.remove_proxy_enabled",
+                "name": "remove_proxy_enabled",
+                "go_name": "RemoveProxyEnabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.remove_proxy_name",
+                "name": "remove_proxy_name",
+                "go_name": "RemoveProxyName",
+                "level": 4,
+                "type": "string",
+                "default": "default",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.default_page_size",
+                "name": "default_page_size",
+                "go_name": "DefaultPageSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.min_page_size",
+                "name": "min_page_size",
+                "go_name": "MinPageSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.max_page_size",
+                "name": "max_page_size",
+                "go_name": "MaxPageSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.live_transition_max_publication_limit",
+                "name": "live_transition_max_publication_limit",
+                "go_name": "LiveTransitionMaxPublicationLimit",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.map.subscribe_catch_up_timeout",
+                "name": "subscribe_catch_up_timeout",
+                "go_name": "SubscribeCatchUpTimeout",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "channel.without_namespace.shared_poll",
+            "name": "shared_poll",
+            "go_name": "SharedPoll",
+            "level": 3,
+            "type": "SharedPollConfig",
+            "default": "",
+            "comment": "SharedPoll contains configuration for shared poll subscription type.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "channel.without_namespace.shared_poll.proxy_name",
+                "name": "proxy_name",
+                "go_name": "ProxyName",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.refresh_interval",
+                "name": "refresh_interval",
+                "go_name": "RefreshInterval",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.refresh_batch_size",
+                "name": "refresh_batch_size",
+                "go_name": "RefreshBatchSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.max_keys_per_connection",
+                "name": "max_keys_per_connection",
+                "go_name": "MaxKeysPerConnection",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.mode",
+                "name": "mode",
+                "go_name": "Mode",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.channel_shutdown_delay",
+                "name": "channel_shutdown_delay",
+                "go_name": "ChannelShutdownDelay",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.track_expired_extra_delay",
+                "name": "track_expired_extra_delay",
+                "go_name": "TrackExpiredExtraDelay",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.without_namespace.shared_poll.publish_enabled",
+                "name": "publish_enabled",
+                "go_name": "PublishEnabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              }
+            ]
           }
         ]
       },
@@ -5321,6 +8133,26 @@
             "type": "bool",
             "default": "",
             "comment": "ForcePushJoinLeave forces sending join/leave messages towards subscribers.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_clients_presence_channel_prefix",
+            "name": "map_clients_presence_channel_prefix",
+            "go_name": "MapClientsPresenceChannelPrefix",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapClientsPresenceChannelPrefix is a prefix for map-based client presence channel.\nWhen set, client presence is tracked via MapBroker in a channel formed by this prefix + original channel name.",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map_users_presence_channel_prefix",
+            "name": "map_users_presence_channel_prefix",
+            "go_name": "MapUsersPresenceChannelPrefix",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "MapUsersPresenceChannelPrefix is a prefix for map-based user presence channel.\nWhen set, user presence is tracked via MapBroker in a channel formed by this prefix + original channel name.",
             "is_complex_type": false
           },
           {
@@ -5662,6 +8494,350 @@
             "default": "",
             "comment": "SubscribeStreamBidirectional enables using bidirectional stream proxy for the namespace.",
             "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].subscription_type",
+            "name": "subscription_type",
+            "go_name": "SubscriptionType",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "SubscriptionType defines the subscription type for the namespace.\nValid values: \"stream\", \"map\", \"map_clients\", \"map_users\", \"shared_poll\".\nDefault: \"stream\" (traditional PUB/SUB with history).",
+            "is_complex_type": false
+          },
+          {
+            "field": "channel.namespaces[].map",
+            "name": "map",
+            "go_name": "Map",
+            "level": 3,
+            "type": "MapConfig",
+            "default": "",
+            "comment": "Map contains configuration for map subscription types (map, map_clients, map_users).",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "channel.namespaces[].map.mode",
+                "name": "mode",
+                "go_name": "Mode",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.key_ttl",
+                "name": "key_ttl",
+                "go_name": "KeyTTL",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.ordered",
+                "name": "ordered",
+                "go_name": "Ordered",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.stream_size",
+                "name": "stream_size",
+                "go_name": "StreamSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.stream_ttl",
+                "name": "stream_ttl",
+                "go_name": "StreamTTL",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.meta_ttl",
+                "name": "meta_ttl",
+                "go_name": "MetaTTL",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.remove_client_on_unsubscribe",
+                "name": "remove_client_on_unsubscribe",
+                "go_name": "RemoveClientOnUnsubscribe",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.client_key",
+                "name": "client_key",
+                "go_name": "ClientKey",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.allow_publish_for_client",
+                "name": "allow_publish_for_client",
+                "go_name": "AllowPublishForClient",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.allow_publish_for_subscriber",
+                "name": "allow_publish_for_subscriber",
+                "go_name": "AllowPublishForSubscriber",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.allow_publish_for_anonymous",
+                "name": "allow_publish_for_anonymous",
+                "go_name": "AllowPublishForAnonymous",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.allow_remove_for_client",
+                "name": "allow_remove_for_client",
+                "go_name": "AllowRemoveForClient",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.allow_remove_for_subscriber",
+                "name": "allow_remove_for_subscriber",
+                "go_name": "AllowRemoveForSubscriber",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.allow_remove_for_anonymous",
+                "name": "allow_remove_for_anonymous",
+                "go_name": "AllowRemoveForAnonymous",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.publish_proxy_enabled",
+                "name": "publish_proxy_enabled",
+                "go_name": "PublishProxyEnabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.publish_proxy_name",
+                "name": "publish_proxy_name",
+                "go_name": "PublishProxyName",
+                "level": 4,
+                "type": "string",
+                "default": "default",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.remove_proxy_enabled",
+                "name": "remove_proxy_enabled",
+                "go_name": "RemoveProxyEnabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.remove_proxy_name",
+                "name": "remove_proxy_name",
+                "go_name": "RemoveProxyName",
+                "level": 4,
+                "type": "string",
+                "default": "default",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.default_page_size",
+                "name": "default_page_size",
+                "go_name": "DefaultPageSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.min_page_size",
+                "name": "min_page_size",
+                "go_name": "MinPageSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.max_page_size",
+                "name": "max_page_size",
+                "go_name": "MaxPageSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.live_transition_max_publication_limit",
+                "name": "live_transition_max_publication_limit",
+                "go_name": "LiveTransitionMaxPublicationLimit",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].map.subscribe_catch_up_timeout",
+                "name": "subscribe_catch_up_timeout",
+                "go_name": "SubscribeCatchUpTimeout",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              }
+            ]
+          },
+          {
+            "field": "channel.namespaces[].shared_poll",
+            "name": "shared_poll",
+            "go_name": "SharedPoll",
+            "level": 3,
+            "type": "SharedPollConfig",
+            "default": "",
+            "comment": "SharedPoll contains configuration for shared poll subscription type.",
+            "is_complex_type": true,
+            "children": [
+              {
+                "field": "channel.namespaces[].shared_poll.proxy_name",
+                "name": "proxy_name",
+                "go_name": "ProxyName",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.refresh_interval",
+                "name": "refresh_interval",
+                "go_name": "RefreshInterval",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.refresh_batch_size",
+                "name": "refresh_batch_size",
+                "go_name": "RefreshBatchSize",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.max_keys_per_connection",
+                "name": "max_keys_per_connection",
+                "go_name": "MaxKeysPerConnection",
+                "level": 4,
+                "type": "int",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.mode",
+                "name": "mode",
+                "go_name": "Mode",
+                "level": 4,
+                "type": "string",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.channel_shutdown_delay",
+                "name": "channel_shutdown_delay",
+                "go_name": "ChannelShutdownDelay",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.track_expired_extra_delay",
+                "name": "track_expired_extra_delay",
+                "go_name": "TrackExpiredExtraDelay",
+                "level": 4,
+                "type": "Duration",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              },
+              {
+                "field": "channel.namespaces[].shared_poll.publish_enabled",
+                "name": "publish_enabled",
+                "go_name": "PublishEnabled",
+                "level": 4,
+                "type": "bool",
+                "default": "",
+                "comment": "",
+                "is_complex_type": false
+              }
+            ]
           }
         ]
       },
@@ -7031,6 +10207,16 @@
             "type": "string",
             "default": "",
             "comment": "",
+            "is_complex_type": false
+          },
+          {
+            "field": "consumers[].postgresql.partition_notification_dsn",
+            "name": "partition_notification_dsn",
+            "go_name": "PartitionNotificationDSN",
+            "level": 3,
+            "type": "string",
+            "default": "",
+            "comment": "PartitionNotificationDSN is an optional separate DSN used exclusively for\nthe LISTEN connection. Set this to a direct PostgreSQL URL (bypassing\nPGBouncer) when DSN points at a PGBouncer endpoint — PGBouncer transaction\npooling mode is incompatible with LISTEN/NOTIFY. If empty, the primary\nDSN pool is used (fine for direct PostgreSQL connections).",
             "is_complex_type": false
           },
           {

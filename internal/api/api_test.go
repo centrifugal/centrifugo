@@ -420,3 +420,185 @@ func TestInfoAPI(t *testing.T) {
 	resp := api.Info(context.Background(), &InfoRequest{})
 	require.Nil(t, resp.Error)
 }
+
+// configWithNamespace returns a DefaultConfig with a single namespace having the
+// given name and subscription_type. Used to test the subscription_type gates on
+// publish/map_*/shared_poll_* API endpoints. Fills the minimum mandatory fields
+// (map.mode for map types, global shared_poll.hmac_secret_key for shared_poll)
+// so the config passes Validate().
+func configWithNamespace(name, subscriptionType string) config.Config {
+	cfg := config.DefaultConfig()
+	chOpts := configtypes.ChannelOptions{
+		SubscriptionType: subscriptionType,
+	}
+	switch subscriptionType {
+	case "map":
+		// Persistent mode requires no key_ttl and is the simplest minimum.
+		chOpts.Map = configtypes.MapConfig{Mode: "persistent"}
+	case "map_clients", "map_users":
+		// Persistent mode is forbidden here (presence entries need TTL-based
+		// cleanup), so use ephemeral with a key_ttl.
+		chOpts.Map = configtypes.MapConfig{
+			Mode:   "ephemeral",
+			KeyTTL: configtypes.Duration(time.Minute),
+		}
+	case "shared_poll":
+		// Global HMAC secret required for any shared_poll namespace.
+		cfg.SharedPoll.HMACSecretKey = "test-secret"
+		// Default refresh proxy must have an endpoint when no explicit
+		// proxy_name is set on the namespace.
+		cfg.Channel.Proxy.SharedPollRefresh = configtypes.Proxy{
+			Endpoint: "http://127.0.0.1:0/test",
+			Timeout:  configtypes.Duration(time.Second),
+		}
+		chOpts.SharedPoll = configtypes.SharedPollConfig{Mode: "versioned"}
+	}
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
+		{
+			Name:           name,
+			ChannelOptions: chOpts,
+		},
+	}
+	return cfg
+}
+
+// TestPublishAPI_RejectsMapAndSharedPollNamespaces ensures the stream Publish
+// endpoint rejects calls aimed at namespaces configured for map or shared poll
+// subscriptions — those have their own dedicated APIs.
+func TestPublishAPI_RejectsMapAndSharedPollNamespaces(t *testing.T) {
+	cases := []struct {
+		subscriptionType string
+	}{
+		{"map"},
+		{"map_clients"},
+		{"map_users"},
+		{"shared_poll"},
+	}
+	for _, c := range cases {
+		t.Run(c.subscriptionType, func(t *testing.T) {
+			node := nodeWithMemoryEngine()
+			defer func() { _ = node.Shutdown(context.Background()) }()
+
+			cfg := configWithNamespace("ns", c.subscriptionType)
+			cfgContainer, err := config.NewContainer(cfg)
+			require.NoError(t, err)
+
+			api := NewExecutor(node, cfgContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test", UseOpenTelemetry: false})
+			resp := api.Publish(context.Background(), &PublishRequest{Channel: "ns:test", Data: []byte("data")})
+			require.Equal(t, ErrorBadRequest, resp.Error)
+		})
+	}
+}
+
+// TestMapPublishAPI_RejectsNonMapNamespaces ensures map_publish rejects calls
+// against namespaces that aren't configured for map subscriptions.
+func TestMapPublishAPI_RejectsNonMapNamespaces(t *testing.T) {
+	cases := []struct {
+		subscriptionType string
+	}{
+		{""},
+		{"stream"},
+		{"shared_poll"},
+	}
+	for _, c := range cases {
+		t.Run("type="+c.subscriptionType, func(t *testing.T) {
+			node := nodeWithMemoryEngine()
+			defer func() { _ = node.Shutdown(context.Background()) }()
+
+			cfg := configWithNamespace("ns", c.subscriptionType)
+			cfgContainer, err := config.NewContainer(cfg)
+			require.NoError(t, err)
+
+			api := NewExecutor(node, cfgContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test", UseOpenTelemetry: false})
+			resp := api.MapPublish(context.Background(), &MapPublishRequest{
+				Channel: "ns:test",
+				Key:     "k",
+				Data:    []byte(`{"v":1}`),
+			})
+			require.Equal(t, ErrorBadRequest, resp.Error)
+		})
+	}
+}
+
+// TestMapPublishAPI_RejectsInvalidKeyMode ensures key_mode is validated against
+// the allowed set ("", "if_new", "if_exists").
+func TestMapPublishAPI_RejectsInvalidKeyMode(t *testing.T) {
+	node := nodeWithMemoryEngine()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := configWithNamespace("ns", "map")
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	api := NewExecutor(node, cfgContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test", UseOpenTelemetry: false})
+	resp := api.MapPublish(context.Background(), &MapPublishRequest{
+		Channel: "ns:test",
+		Key:     "k",
+		Data:    []byte(`{"v":1}`),
+		KeyMode: "bogus",
+	})
+	require.Equal(t, ErrorBadRequest, resp.Error)
+}
+
+// TestMapAPIs_RejectNonMapNamespaces ensures the other map API endpoints
+// (remove / read_state / read_stream / stats / clear) reject calls against
+// namespaces that aren't configured for map subscriptions, instead of leaking
+// internal errors from the broker.
+func TestMapAPIs_RejectNonMapNamespaces(t *testing.T) {
+	node := nodeWithMemoryEngine()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := configWithNamespace("ns", "") // default = stream
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	api := NewExecutor(node, cfgContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test", UseOpenTelemetry: false})
+
+	rmResp := api.MapRemove(context.Background(), &MapRemoveRequest{Channel: "ns:test", Key: "k"})
+	require.Equal(t, ErrorBadRequest, rmResp.Error)
+
+	rsResp := api.MapReadState(context.Background(), &MapReadStateRequest{Channel: "ns:test"})
+	require.Equal(t, ErrorBadRequest, rsResp.Error)
+
+	rstrResp := api.MapReadStream(context.Background(), &MapReadStreamRequest{Channel: "ns:test"})
+	require.Equal(t, ErrorBadRequest, rstrResp.Error)
+
+	stResp := api.MapStats(context.Background(), &MapStatsRequest{Channel: "ns:test"})
+	require.Equal(t, ErrorBadRequest, stResp.Error)
+
+	clResp := api.MapClear(context.Background(), &MapClearRequest{Channel: "ns:test"})
+	require.Equal(t, ErrorBadRequest, clResp.Error)
+}
+
+// TestMapAPIs_RejectUnknownChannel ensures the map API endpoints return
+// ErrorUnknownChannel instead of leaking internal errors when the channel's
+// namespace doesn't exist.
+func TestMapAPIs_RejectUnknownChannel(t *testing.T) {
+	node := nodeWithMemoryEngine()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	api := NewExecutor(node, cfgContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test", UseOpenTelemetry: false})
+
+	// "missing:test" — namespace "missing" not configured.
+	pubResp := api.MapPublish(context.Background(), &MapPublishRequest{Channel: "missing:test", Key: "k", Data: []byte(`{}`)})
+	require.Equal(t, ErrorUnknownChannel, pubResp.Error)
+
+	rmResp := api.MapRemove(context.Background(), &MapRemoveRequest{Channel: "missing:test", Key: "k"})
+	require.Equal(t, ErrorUnknownChannel, rmResp.Error)
+
+	rsResp := api.MapReadState(context.Background(), &MapReadStateRequest{Channel: "missing:test"})
+	require.Equal(t, ErrorUnknownChannel, rsResp.Error)
+
+	rstrResp := api.MapReadStream(context.Background(), &MapReadStreamRequest{Channel: "missing:test"})
+	require.Equal(t, ErrorUnknownChannel, rstrResp.Error)
+
+	stResp := api.MapStats(context.Background(), &MapStatsRequest{Channel: "missing:test"})
+	require.Equal(t, ErrorUnknownChannel, stResp.Error)
+
+	clResp := api.MapClear(context.Background(), &MapClearRequest{Channel: "missing:test"})
+	require.Equal(t, ErrorUnknownChannel, clResp.Error)
+}

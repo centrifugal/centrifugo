@@ -1,0 +1,703 @@
+-- ============================================================================
+-- PostgreSQL MapBroker Schema and Functions (template).
+-- Auto-created by EnsureSchema(). All statements are idempotent.
+-- Placeholders are replaced at runtime by PostgresMapBroker.renderSchema:
+--   __DATA_TYPE__ → JSONB (default) or BYTEA (when BinaryData is true)
+--   __PREFIX__    → <TablePrefix>_map_ or <TablePrefix>_binary_map_
+--                   where TablePrefix is user-configurable (default "cf").
+-- EnsureSchema renders this template once per variant (JSONB + binary) and
+-- executes both, so a broker always creates both sets of tables regardless
+-- of the BinaryData runtime flag.
+-- ============================================================================
+
+-- Stream Table (Change History + Fan-out)
+-- Stream table is always partitioned by created_at (daily). The composite
+-- primary key (id, created_at) is required because Postgres mandates that
+-- the partition key be part of every unique constraint. Initial partitions
+-- (today + lookahead) are created via pgoutbox.Partitioner.EnsureLookaheadPartitions
+-- after this DDL runs; the partition retention worker drops old partitions.
+CREATE TABLE IF NOT EXISTS __PREFIX__stream (
+    id              BIGSERIAL,
+    channel         TEXT NOT NULL,
+    channel_offset  BIGINT NOT NULL,
+    epoch           TEXT NOT NULL DEFAULT '',
+    key             TEXT NOT NULL,
+    data            __DATA_TYPE__,
+    tags            JSONB,
+    client_id       TEXT,
+    user_id         TEXT,
+    conn_info       __DATA_TYPE__,
+    chan_info        __DATA_TYPE__,
+    removed         BOOLEAN DEFAULT FALSE,
+    prev_data       __DATA_TYPE__,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    shard_id        SMALLINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (id, created_at)
+) PARTITION BY RANGE (created_at);
+
+-- (channel, epoch, channel_offset) lets ReadStream seek directly past dead-epoch
+-- rows that linger between meta TTL expiry and the next partition retention
+-- drop, instead of fetching them and discarding by filter.
+CREATE INDEX IF NOT EXISTS __PREFIX__stream_channel_epoch_offset_idx ON __PREFIX__stream (channel, epoch, channel_offset);
+CREATE INDEX IF NOT EXISTS __PREFIX__stream_channel_id_idx ON __PREFIX__stream (channel, id DESC);
+CREATE INDEX IF NOT EXISTS __PREFIX__stream_shard_id_idx ON __PREFIX__stream (shard_id, id);
+CREATE INDEX IF NOT EXISTS __PREFIX__stream_created_at_idx ON __PREFIX__stream (created_at);
+
+-- ============================================================================
+-- Snapshot Table (Current State)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS __PREFIX__state (
+    channel             TEXT NOT NULL,
+    key                 TEXT NOT NULL,
+    data                __DATA_TYPE__,
+    tags                JSONB,
+    client_id           TEXT,
+    user_id             TEXT,
+    conn_info           __DATA_TYPE__,
+    chan_info            __DATA_TYPE__,
+    key_version         BIGINT DEFAULT 0,
+    key_version_epoch   TEXT,
+    key_offset          BIGINT NOT NULL,
+    expires_at          TIMESTAMPTZ,
+    created_at          TIMESTAMPTZ DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (channel, key)
+);
+
+CREATE INDEX IF NOT EXISTS __PREFIX__state_expires_idx
+    ON __PREFIX__state (expires_at)
+    WHERE expires_at IS NOT NULL;
+
+-- ============================================================================
+-- Stream Metadata Table
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS __PREFIX__meta (
+    channel         TEXT PRIMARY KEY,
+    top_offset      BIGINT NOT NULL DEFAULT 0,
+    epoch           TEXT NOT NULL DEFAULT '',
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW(),
+    expires_at      TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS __PREFIX__meta_expires_idx
+    ON __PREFIX__meta (expires_at)
+    WHERE expires_at IS NOT NULL;
+
+-- ============================================================================
+-- Idempotency Table
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS __PREFIX__idempotency (
+    channel         TEXT NOT NULL,
+    idempotency_key TEXT NOT NULL,
+    result_offset   BIGINT NOT NULL,
+    -- result_epoch captures the meta epoch at the time the original publish
+    -- committed. Returned on idempotent replay so callers reading history from
+    -- the replied position can find it — otherwise, if the meta row had been
+    -- TTL-evicted and recreated under a fresh random epoch by the time of the
+    -- replay, the suppressed reply would return the live (new) epoch and the
+    -- caller's recovery would fail to locate the publication.
+    result_epoch    TEXT   NOT NULL,
+    result_id       BIGINT NOT NULL,
+    expires_at      TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (channel, idempotency_key)
+);
+
+CREATE INDEX IF NOT EXISTS __PREFIX__idempotency_expires_idx ON __PREFIX__idempotency (expires_at);
+
+-- ============================================================================
+-- Shard Lock Table
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS __PREFIX__shard_lock (
+    shard_id SMALLINT PRIMARY KEY
+);
+
+-- ============================================================================
+-- Schema Version
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS __PREFIX__schema_version (
+    id              INTEGER PRIMARY KEY,
+    schema_version  INTEGER NOT NULL
+);
+INSERT INTO __PREFIX__schema_version (id, schema_version) VALUES (1, 1)
+    ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
+-- Functions
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION __PREFIX__publish(
+    p_channel TEXT,
+    p_key TEXT,
+    p_data __DATA_TYPE__,
+    p_tags JSONB DEFAULT NULL,
+    p_key_ttl INTERVAL DEFAULT NULL,
+    p_meta_ttl INTERVAL DEFAULT NULL,
+    p_key_mode TEXT DEFAULT NULL,
+    p_expected_offset BIGINT DEFAULT NULL,
+    p_expected_epoch TEXT DEFAULT NULL,
+    p_key_version BIGINT DEFAULT NULL,
+    p_key_version_epoch TEXT DEFAULT NULL,
+    p_idempotency_key TEXT DEFAULT NULL,
+    p_idempotency_ttl INTERVAL DEFAULT NULL,
+    p_use_delta BOOLEAN DEFAULT FALSE,
+    p_client_id TEXT DEFAULT NULL,
+    p_user_id TEXT DEFAULT NULL,
+    p_conn_info __DATA_TYPE__ DEFAULT NULL,
+    p_chan_info __DATA_TYPE__ DEFAULT NULL,
+    p_refresh_ttl_on_suppress BOOLEAN DEFAULT FALSE,
+    p_num_shards INTEGER DEFAULT NULL
+) RETURNS TABLE(
+    result_id BIGINT,
+    channel_offset BIGINT,
+    epoch TEXT,
+    suppressed BOOLEAN,
+    suppress_reason TEXT,
+    current_data __DATA_TYPE__,
+    current_offset BIGINT
+) AS $$
+DECLARE
+    v_offset BIGINT;
+    v_id BIGINT;
+    v_epoch TEXT;
+    v_exists BOOLEAN;
+    v_current_offset BIGINT;
+    v_current_data __DATA_TYPE__;
+    v_previous_data __DATA_TYPE__;
+    v_current_version BIGINT;
+    v_current_version_epoch TEXT;
+    v_idempotent_epoch TEXT;
+    v_shard_id INTEGER;
+    v_meta_inserted BOOLEAN;
+BEGIN
+    -- Validate: meta_ttl must outlive key_ttl. When keys are permanent
+    -- (p_key_ttl IS NULL), meta must also be permanent (p_meta_ttl IS NULL).
+    IF p_meta_ttl IS NOT NULL AND p_key_ttl IS NULL THEN
+        RAISE EXCEPTION 'meta_ttl must be NULL (permanent) when key_ttl is NULL (permanent keys)';
+    END IF;
+    IF p_meta_ttl IS NOT NULL AND p_key_ttl IS NOT NULL AND p_meta_ttl < p_key_ttl THEN
+        RAISE EXCEPTION 'meta_ttl must be >= key_ttl (metadata must outlive keys)';
+    END IF;
+
+    -- Auto-derive num_shards from shard_lock table when not provided.
+    IF p_num_shards IS NULL THEN
+        SELECT COUNT(*)::INTEGER INTO p_num_shards FROM __PREFIX__shard_lock;
+    END IF;
+    IF p_num_shards <= 0 THEN
+        RAISE EXCEPTION 'shard_lock table is empty — run EnsureSchema first';
+    END IF;
+
+    -- Calculate shard_id from channel hash
+    v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
+
+    -- 0. Per-shard serialization lock (lock order: shard → meta → state)
+    PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
+
+    -- 1. Get or create stream metadata. Atomic UPSERT with no-op write on
+    -- conflict acquires the row lock as part of the same statement, avoiding
+    -- the race where DO NOTHING + SELECT FOR UPDATE could return zero rows
+    -- if a concurrent cleanup deleted the meta between the two statements.
+    -- Qualified column references (m.top_offset, m.epoch) disambiguate from
+    -- the function's OUT parameter named "epoch".
+    --
+    -- (xmax = 0) distinguishes a fresh INSERT from a CONFLICT-DO-UPDATE: when
+    -- the meta row was just created (e.g. cleanupEntries dropped the prior
+    -- one), we wipe the channel's state below — otherwise zombie state rows
+    -- from the dead epoch would be returned by ReadState/Stats with stale
+    -- key_offset values until expire_keys catches up. Mirrors the Redis
+    -- broker's `if top_offset == 1 then del stream_key` safety net.
+    INSERT INTO __PREFIX__meta AS m (channel, top_offset, epoch, updated_at)
+    VALUES (p_channel, 0, substr(md5(random()::text || random()::text), 1, 8), NOW())
+    ON CONFLICT (channel) DO UPDATE
+        SET updated_at = m.updated_at
+    RETURNING m.top_offset, m.epoch, (xmax = 0) INTO v_offset, v_epoch, v_meta_inserted;
+
+    IF v_meta_inserted THEN
+        DELETE FROM __PREFIX__state WHERE channel = p_channel;
+    END IF;
+
+    -- 2. Check idempotency. Return the epoch the publication was committed
+    -- under (stored in the idempotency row), NOT the current meta epoch —
+    -- those can differ if meta was TTL-evicted and recreated between the
+    -- original publish and this replay.
+    IF p_idempotency_key IS NOT NULL THEN
+        SELECT result_offset, result_epoch INTO v_current_offset, v_idempotent_epoch
+        FROM __PREFIX__idempotency
+        WHERE channel = p_channel AND idempotency_key = p_idempotency_key
+          AND expires_at > NOW();
+        IF FOUND THEN
+            RETURN QUERY SELECT NULL::BIGINT, v_current_offset, v_idempotent_epoch, TRUE,
+                'idempotency'::TEXT, NULL::__DATA_TYPE__, NULL::BIGINT;
+            RETURN;
+        END IF;
+    END IF;
+
+    -- Canonical check order across brokers: Idempotency → Version → KeyMode → CAS.
+    -- Dedup checks (idempotency, version) drop duplicates first; constraint checks
+    -- (KeyMode, CAS) report meaningful intent failures last.
+
+    -- 3. Per-key version check (dedup)
+    IF p_key_version IS NOT NULL AND p_key IS NOT NULL AND p_key != '' THEN
+        SELECT sn.key_version, sn.key_version_epoch
+        INTO v_current_version, v_current_version_epoch
+        FROM __PREFIX__state sn WHERE sn.channel = p_channel AND sn.key = p_key;
+        IF FOUND AND v_current_version IS NOT NULL AND v_current_version > 0 THEN
+            -- Empty p_key_version_epoch matches any stored epoch (matches the
+            -- stream broker contract: "I don't care about epoch boundaries,
+            -- just compare versions"). A non-empty value that differs resets
+            -- the comparison so a new epoch isn't suppressed by a stale
+            -- higher version under a previous epoch.
+            IF (p_key_version_epoch IS NULL OR p_key_version_epoch = '' OR p_key_version_epoch = v_current_version_epoch)
+               AND p_key_version <= v_current_version THEN
+                RETURN QUERY SELECT NULL::BIGINT, v_offset, v_epoch, TRUE, 'version'::TEXT, NULL::__DATA_TYPE__, NULL::BIGINT;
+                RETURN;
+            END IF;
+        END IF;
+    END IF;
+
+    -- 4. KeyMode check — physical existence in state table, matching Redis HEXISTS.
+    -- Zombie entries (TTL passed but cleanup worker hasn't emitted LEAVE yet) still
+    -- count as existing: from the channel's perspective, the key is still "live" until
+    -- the removal publication is written to the stream.
+    IF p_key_mode IS NOT NULL THEN
+        SELECT EXISTS(SELECT 1 FROM __PREFIX__state WHERE channel = p_channel AND key = p_key) INTO v_exists;
+        IF p_key_mode = 'if_new' AND v_exists THEN
+            IF p_refresh_ttl_on_suppress AND p_key_ttl IS NOT NULL THEN
+                UPDATE __PREFIX__state SET expires_at = NOW() + p_key_ttl, updated_at = NOW()
+                WHERE channel = p_channel AND key = p_key;
+                -- Keepalive must extend meta TTL too, otherwise meta expires while
+                -- keys are being refreshed and the next publish creates a new epoch
+                -- (channel "blinks" — clients see ErrorUnrecoverablePosition).
+                IF p_meta_ttl IS NOT NULL THEN
+                    UPDATE __PREFIX__meta SET expires_at = NOW() + p_meta_ttl, updated_at = NOW()
+                    WHERE channel = p_channel;
+                END IF;
+            END IF;
+            RETURN QUERY SELECT NULL::BIGINT, v_offset, v_epoch, TRUE, 'key_exists'::TEXT, NULL::__DATA_TYPE__, NULL::BIGINT;
+            RETURN;
+        END IF;
+        IF p_key_mode = 'if_exists' AND NOT v_exists THEN
+            RETURN QUERY SELECT NULL::BIGINT, v_offset, v_epoch, TRUE, 'key_not_found'::TEXT, NULL::__DATA_TYPE__, NULL::BIGINT;
+            RETURN;
+        END IF;
+    END IF;
+
+    -- 5. CAS check (ExpectedPosition). Compare BOTH offset and epoch (when
+    -- the caller supplies an expected epoch) so that a CAS using a position
+    -- from a dead epoch — e.g. after a Clear+republish that flips the channel
+    -- epoch but produces matching offsets — is correctly rejected. Memory and
+    -- Redis brokers compare both; PostgreSQL must match for cross-broker
+    -- consistency.
+    IF p_expected_offset IS NOT NULL THEN
+        SELECT key_offset, sn.data INTO v_current_offset, v_current_data
+        FROM __PREFIX__state sn WHERE sn.channel = p_channel AND sn.key = p_key;
+        IF NOT FOUND
+           OR v_current_offset != p_expected_offset
+           OR (p_expected_epoch IS NOT NULL AND v_epoch != p_expected_epoch) THEN
+            RETURN QUERY SELECT NULL::BIGINT, v_offset, v_epoch, TRUE,
+                'position_mismatch'::TEXT, v_current_data, v_current_offset;
+            RETURN;
+        END IF;
+    END IF;
+
+    -- 6. All checks passed - increment offset
+    UPDATE __PREFIX__meta SET
+        top_offset = top_offset + 1,
+        expires_at = COALESCE(CASE WHEN p_meta_ttl IS NOT NULL THEN NOW() + p_meta_ttl ELSE NULL END, expires_at),
+        updated_at = NOW()
+    WHERE channel = p_channel
+    RETURNING top_offset INTO v_offset;
+
+    -- 6b. Fetch previous data for key-based delta (before UPSERT overwrites it)
+    IF p_use_delta AND p_key IS NOT NULL AND p_key != '' THEN
+        SELECT sn.data INTO v_previous_data
+        FROM __PREFIX__state sn WHERE sn.channel = p_channel AND sn.key = p_key;
+    END IF;
+
+    -- 7. Update snapshot
+    INSERT INTO __PREFIX__state (
+        channel, key, data, tags, client_id, user_id, conn_info, chan_info,
+        key_version, key_version_epoch, key_offset, expires_at, updated_at
+    ) VALUES (
+        p_channel, p_key, p_data, p_tags, p_client_id, p_user_id, p_conn_info, p_chan_info,
+        p_key_version, p_key_version_epoch, v_offset,
+        CASE WHEN p_key_ttl IS NOT NULL THEN NOW() + p_key_ttl ELSE NULL END, NOW()
+    )
+    ON CONFLICT (channel, key) DO UPDATE SET
+        data = EXCLUDED.data, tags = EXCLUDED.tags,
+        client_id = EXCLUDED.client_id, user_id = EXCLUDED.user_id,
+        conn_info = EXCLUDED.conn_info, chan_info = EXCLUDED.chan_info,
+        -- Preserve stored version when caller publishes without one (matches Redis).
+        -- Overwriting with NULL would erase dedup protection against late-arriving
+        -- older versions from a concurrent producer.
+        key_version = COALESCE(EXCLUDED.key_version, __PREFIX__state.key_version),
+        key_version_epoch = COALESCE(EXCLUDED.key_version_epoch, __PREFIX__state.key_version_epoch),
+        key_offset = EXCLUDED.key_offset, expires_at = EXCLUDED.expires_at, updated_at = NOW();
+
+    -- 8. Insert into stream (include epoch, shard_id, and prev_data for delta)
+    INSERT INTO __PREFIX__stream (
+        channel, channel_offset, epoch, key, data, tags, client_id, user_id, conn_info, chan_info, prev_data, shard_id
+    ) VALUES (
+        p_channel, v_offset, v_epoch, p_key, p_data, p_tags, p_client_id, p_user_id, p_conn_info, p_chan_info, v_previous_data,
+        v_shard_id
+    ) RETURNING __PREFIX__stream.id INTO v_id;
+
+    -- 9. Save idempotency key. Persist the epoch alongside the offset so
+    -- replays return the (offset, epoch) tuple this publish committed under,
+    -- not whatever epoch happens to live in meta at replay time.
+    IF p_idempotency_key IS NOT NULL THEN
+        INSERT INTO __PREFIX__idempotency (channel, idempotency_key, result_offset, result_epoch, result_id, expires_at)
+        VALUES (p_channel, p_idempotency_key, v_offset, v_epoch, v_id, NOW() + COALESCE(p_idempotency_ttl, INTERVAL '5 minutes'))
+        ON CONFLICT DO NOTHING;
+    END IF;
+
+    -- 10. Notify outbox workers
+    PERFORM pg_notify('__PREFIX__stream_notify', '');
+
+    RETURN QUERY SELECT v_id, v_offset, v_epoch, FALSE, NULL::TEXT, NULL::__DATA_TYPE__, NULL::BIGINT;
+END;
+$$ LANGUAGE plpgsql;
+
+-- __PREFIX__publish_strict: Auto-rollback on suppression
+CREATE OR REPLACE FUNCTION __PREFIX__publish_strict(
+    p_channel TEXT,
+    p_key TEXT,
+    p_data __DATA_TYPE__,
+    p_tags JSONB DEFAULT NULL,
+    p_key_ttl INTERVAL DEFAULT NULL,
+    p_meta_ttl INTERVAL DEFAULT NULL,
+    p_key_mode TEXT DEFAULT NULL,
+    p_expected_offset BIGINT DEFAULT NULL,
+    p_expected_epoch TEXT DEFAULT NULL,
+    p_key_version BIGINT DEFAULT NULL,
+    p_key_version_epoch TEXT DEFAULT NULL,
+    p_idempotency_key TEXT DEFAULT NULL,
+    p_idempotency_ttl INTERVAL DEFAULT NULL,
+    p_use_delta BOOLEAN DEFAULT FALSE,
+    p_client_id TEXT DEFAULT NULL,
+    p_user_id TEXT DEFAULT NULL,
+    p_conn_info __DATA_TYPE__ DEFAULT NULL,
+    p_chan_info __DATA_TYPE__ DEFAULT NULL,
+    p_refresh_ttl_on_suppress BOOLEAN DEFAULT FALSE,
+    p_num_shards INTEGER DEFAULT NULL
+) RETURNS TABLE(
+    result_id BIGINT,
+    channel_offset BIGINT,
+    epoch TEXT
+) AS $$
+DECLARE
+    v_result RECORD;
+BEGIN
+    SELECT * INTO v_result
+    FROM __PREFIX__publish(
+        p_channel, p_key, p_data, p_tags,
+        p_key_ttl, p_meta_ttl, p_key_mode,
+        p_expected_offset, p_expected_epoch, p_key_version, p_key_version_epoch,
+        p_idempotency_key, p_idempotency_ttl, p_use_delta,
+        p_client_id, p_user_id, p_conn_info, p_chan_info,
+        p_refresh_ttl_on_suppress, p_num_shards
+    );
+
+    IF v_result.suppressed THEN
+        CASE v_result.suppress_reason
+            WHEN 'key_exists' THEN
+                RAISE EXCEPTION '__PREFIX__publish: key already exists: %.%', p_channel, p_key
+                    USING ERRCODE = 'unique_violation';
+            WHEN 'key_not_found' THEN
+                RAISE EXCEPTION '__PREFIX__publish: key not found: %.%', p_channel, p_key
+                    USING ERRCODE = 'no_data_found';
+            WHEN 'position_mismatch' THEN
+                RAISE EXCEPTION '__PREFIX__publish: CAS conflict on %.%', p_channel, p_key
+                    USING ERRCODE = 'serialization_failure',
+                          DETAIL = v_result.current_data::TEXT;
+            WHEN 'version' THEN
+                RAISE EXCEPTION '__PREFIX__publish: version conflict on %.%', p_channel, p_key
+                    USING ERRCODE = 'serialization_failure';
+            WHEN 'idempotency' THEN
+                RAISE EXCEPTION '__PREFIX__publish: duplicate idempotency key: %.%', p_channel, p_key
+                    USING ERRCODE = 'unique_violation';
+            ELSE
+                RAISE EXCEPTION '__PREFIX__publish: suppressed: %', v_result.suppress_reason
+                    USING ERRCODE = 'raise_exception';
+        END CASE;
+    END IF;
+
+    RETURN QUERY SELECT v_result.result_id, v_result.channel_offset, v_result.epoch;
+END;
+$$ LANGUAGE plpgsql;
+
+-- __PREFIX__remove: Remove a key
+CREATE OR REPLACE FUNCTION __PREFIX__remove(
+    p_channel TEXT,
+    p_key TEXT,
+    p_meta_ttl INTERVAL DEFAULT NULL,
+    p_expected_offset BIGINT DEFAULT NULL,
+    p_expected_epoch TEXT DEFAULT NULL,
+    p_idempotency_key TEXT DEFAULT NULL,
+    p_idempotency_ttl INTERVAL DEFAULT NULL,
+    p_client_id TEXT DEFAULT NULL,
+    p_user_id TEXT DEFAULT NULL,
+    p_num_shards INTEGER DEFAULT NULL
+) RETURNS TABLE(
+    result_id BIGINT,
+    channel_offset BIGINT,
+    epoch TEXT,
+    suppressed BOOLEAN,
+    suppress_reason TEXT,
+    current_data __DATA_TYPE__,
+    current_offset BIGINT
+) AS $$
+DECLARE
+    v_offset BIGINT;
+    v_id BIGINT;
+    v_epoch TEXT;
+    v_exists BOOLEAN;
+    v_shard_id INTEGER;
+    v_current_offset BIGINT;
+    v_current_data __DATA_TYPE__;
+    v_tags JSONB;
+    v_idempotent_epoch TEXT;
+BEGIN
+    -- Auto-derive num_shards from shard_lock table when not provided.
+    IF p_num_shards IS NULL THEN
+        SELECT COUNT(*)::INTEGER INTO p_num_shards FROM __PREFIX__shard_lock;
+    END IF;
+    IF p_num_shards <= 0 THEN
+        RAISE EXCEPTION 'shard_lock table is empty — run EnsureSchema first';
+    END IF;
+
+    -- Calculate shard_id from channel hash
+    v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
+
+    -- 0. Per-shard serialization lock (lock order: shard → meta → state)
+    PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
+
+    -- 1. Get stream metadata under FOR UPDATE so cleanupEntries (which doesn't
+    -- take the shard lock) can't delete the meta row between this read and
+    -- the UPDATE in step 5. Without the lock, a concurrent cleanup could leave
+    -- this function inserting a stream row under a dead epoch with a stale
+    -- v_offset (the UPDATE would match 0 rows but RETURNING ... INTO doesn't
+    -- reset v_offset on no-match).
+    SELECT top_offset, m.epoch INTO v_offset, v_epoch
+    FROM __PREFIX__meta m WHERE m.channel = p_channel
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RETURN QUERY SELECT NULL::BIGINT, 0::BIGINT, ''::TEXT, TRUE, 'key_not_found'::TEXT, NULL::__DATA_TYPE__, NULL::BIGINT;
+        RETURN;
+    END IF;
+
+    -- 2. Check idempotency. Return the epoch the removal was committed under
+    -- (stored in the idempotency row), not the live meta epoch — see publish
+    -- for the same rationale.
+    IF p_idempotency_key IS NOT NULL THEN
+        SELECT result_offset, result_epoch INTO v_offset, v_idempotent_epoch
+        FROM __PREFIX__idempotency
+        WHERE channel = p_channel AND idempotency_key = p_idempotency_key
+          AND expires_at > NOW();
+        IF FOUND THEN
+            RETURN QUERY SELECT NULL::BIGINT, v_offset, v_idempotent_epoch, TRUE, 'idempotency'::TEXT, NULL::__DATA_TYPE__, NULL::BIGINT;
+            RETURN;
+        END IF;
+    END IF;
+
+    -- 3. CAS check (ExpectedPosition). Same epoch-aware compare as publish.
+    IF p_expected_offset IS NOT NULL THEN
+        SELECT key_offset, sn.data INTO v_current_offset, v_current_data
+        FROM __PREFIX__state sn WHERE sn.channel = p_channel AND sn.key = p_key;
+        IF NOT FOUND
+           OR v_current_offset != p_expected_offset
+           OR (p_expected_epoch IS NOT NULL AND v_epoch != p_expected_epoch) THEN
+            RETURN QUERY SELECT NULL::BIGINT, v_offset, v_epoch, TRUE,
+                'position_mismatch'::TEXT, v_current_data, v_current_offset;
+            RETURN;
+        END IF;
+    END IF;
+
+    -- 4. Check if key exists (exclude expired entries — they are logically deleted)
+    SELECT EXISTS(SELECT 1 FROM __PREFIX__state WHERE channel = p_channel AND key = p_key AND (expires_at IS NULL OR expires_at > NOW())) INTO v_exists;
+    IF NOT v_exists THEN
+        RETURN QUERY SELECT NULL::BIGINT, v_offset, v_epoch, TRUE, 'key_not_found'::TEXT, NULL::__DATA_TYPE__, NULL::BIGINT;
+        RETURN;
+    END IF;
+
+    -- 5. Increment offset
+    UPDATE __PREFIX__meta SET
+        top_offset = top_offset + 1,
+        expires_at = COALESCE(CASE WHEN p_meta_ttl IS NOT NULL THEN NOW() + p_meta_ttl ELSE NULL END, expires_at),
+        updated_at = NOW()
+    WHERE channel = p_channel
+    RETURNING top_offset INTO v_offset;
+
+    -- 6. Read tags before deletion (for server-side filtering on removal events).
+    SELECT tags INTO v_tags FROM __PREFIX__state WHERE channel = p_channel AND key = p_key;
+
+    -- 7. Delete from snapshot
+    DELETE FROM __PREFIX__state WHERE channel = p_channel AND key = p_key;
+
+    -- 8. Insert removal into stream with tags from the deleted entry.
+    INSERT INTO __PREFIX__stream (channel, channel_offset, epoch, key, removed, client_id, user_id, shard_id, tags)
+    VALUES (
+        p_channel, v_offset, v_epoch, p_key, TRUE, p_client_id, p_user_id,
+        v_shard_id, v_tags
+    ) RETURNING __PREFIX__stream.id INTO v_id;
+
+    -- 8. Save idempotency key. Persist the epoch alongside the offset — see
+    -- publish for rationale.
+    IF p_idempotency_key IS NOT NULL THEN
+        INSERT INTO __PREFIX__idempotency (channel, idempotency_key, result_offset, result_epoch, result_id, expires_at)
+        VALUES (p_channel, p_idempotency_key, v_offset, v_epoch, v_id, NOW() + COALESCE(p_idempotency_ttl, INTERVAL '5 minutes'))
+        ON CONFLICT DO NOTHING;
+    END IF;
+
+    -- 9. Notify outbox workers
+    PERFORM pg_notify('__PREFIX__stream_notify', '');
+
+    RETURN QUERY SELECT v_id, v_offset, v_epoch, FALSE, NULL::TEXT, NULL::__DATA_TYPE__, NULL::BIGINT;
+END;
+$$ LANGUAGE plpgsql;
+
+-- __PREFIX__remove_strict: Auto-rollback if key not found
+CREATE OR REPLACE FUNCTION __PREFIX__remove_strict(
+    p_channel TEXT,
+    p_key TEXT,
+    p_meta_ttl INTERVAL DEFAULT NULL,
+    p_expected_offset BIGINT DEFAULT NULL,
+    p_expected_epoch TEXT DEFAULT NULL,
+    p_idempotency_key TEXT DEFAULT NULL,
+    p_idempotency_ttl INTERVAL DEFAULT NULL,
+    p_client_id TEXT DEFAULT NULL,
+    p_user_id TEXT DEFAULT NULL,
+    p_num_shards INTEGER DEFAULT NULL
+) RETURNS TABLE(
+    result_id BIGINT,
+    channel_offset BIGINT,
+    epoch TEXT
+) AS $$
+DECLARE
+    v_result RECORD;
+BEGIN
+    SELECT * INTO v_result FROM __PREFIX__remove(
+        p_channel, p_key, p_meta_ttl,
+        p_expected_offset, p_expected_epoch, p_idempotency_key, p_idempotency_ttl,
+        p_client_id, p_user_id, p_num_shards
+    );
+
+    IF v_result.suppressed THEN
+        RAISE EXCEPTION '__PREFIX__remove: key not found: %.%', p_channel, p_key
+            USING ERRCODE = 'no_data_found';
+    END IF;
+
+    RETURN QUERY SELECT v_result.result_id, v_result.channel_offset, v_result.epoch;
+END;
+$$ LANGUAGE plpgsql;
+
+-- __PREFIX__expire_keys: Atomically expire keys that have passed their TTL.
+-- Lock ordering: shard_lock → meta FOR UPDATE → state FOR UPDATE SKIP LOCKED.
+-- This matches publish's lock order (shard → meta → state), preventing deadlocks.
+CREATE OR REPLACE FUNCTION __PREFIX__expire_keys(
+    p_batch_size INT DEFAULT 1000,
+    p_num_shards INTEGER DEFAULT NULL,
+    p_meta_ttl INTERVAL DEFAULT NULL,
+    p_channel TEXT DEFAULT NULL
+) RETURNS TABLE(
+    out_channel TEXT,
+    out_key TEXT,
+    out_offset BIGINT,
+    out_epoch TEXT
+) AS $$
+DECLARE
+    v_channel TEXT;
+    v_keys TEXT[];
+    v_tags_arr JSONB[];
+    v_count INT;
+    v_base_offset BIGINT;
+    v_epoch TEXT;
+    v_shard_id INTEGER;
+    v_processed INT := 0;
+    v_notified BOOLEAN := FALSE;
+BEGIN
+    -- Auto-derive num_shards from shard_lock table when not provided.
+    IF p_num_shards IS NULL THEN
+        SELECT COUNT(*)::INTEGER INTO p_num_shards FROM __PREFIX__shard_lock;
+    END IF;
+    IF p_num_shards <= 0 THEN
+        RAISE EXCEPTION 'shard_lock table is empty — run EnsureSchema first';
+    END IF;
+
+    -- Process one channel at a time to maintain meta→state lock ordering.
+    FOR v_channel IN
+        SELECT DISTINCT s.channel FROM __PREFIX__state s
+        WHERE s.expires_at IS NOT NULL AND s.expires_at <= NOW()
+          AND (p_channel IS NULL OR s.channel = p_channel)
+    LOOP
+        -- 0. Calculate shard_id and acquire per-shard serialization lock
+        --    (lock order: shard → meta → state).
+        v_shard_id := abs(hashtext(v_channel)) % p_num_shards;
+        PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
+
+        -- 1. Lock meta (same order as publish: shard → meta → state).
+        SELECT top_offset, m.epoch INTO v_base_offset, v_epoch
+        FROM __PREFIX__meta m WHERE m.channel = v_channel FOR UPDATE;
+
+        IF NOT FOUND THEN
+            DELETE FROM __PREFIX__state WHERE channel = v_channel
+              AND expires_at IS NOT NULL AND expires_at <= NOW();
+            CONTINUE;
+        END IF;
+
+        -- 2. Collect expired keys and their tags in one query (already under shard + meta locks).
+        SELECT array_agg(key), array_agg(COALESCE(tags, '{}'::jsonb)), count(*)
+        INTO v_keys, v_tags_arr, v_count FROM (
+            SELECT key, tags FROM __PREFIX__state
+            WHERE channel = v_channel
+              AND expires_at IS NOT NULL AND expires_at <= NOW()
+            LIMIT p_batch_size - v_processed
+            FOR UPDATE SKIP LOCKED
+        ) t;
+
+        IF v_count IS NULL OR v_count = 0 THEN
+            CONTINUE;
+        END IF;
+
+        -- Bump offset by count (1 UPDATE instead of N).
+        UPDATE __PREFIX__meta SET
+            top_offset = top_offset + v_count,
+            expires_at = COALESCE(CASE WHEN p_meta_ttl IS NOT NULL THEN NOW() + p_meta_ttl ELSE NULL END, expires_at),
+            updated_at = NOW()
+        WHERE channel = v_channel
+        RETURNING top_offset - v_count INTO v_base_offset;
+
+        -- Batch delete (1 DELETE instead of N).
+        DELETE FROM __PREFIX__state WHERE channel = v_channel AND key = ANY(v_keys);
+
+        -- Batch insert removal events with tags (1 INSERT instead of N).
+        INSERT INTO __PREFIX__stream (channel, channel_offset, epoch, key, removed, shard_id, tags)
+        SELECT v_channel, v_base_offset + rn, v_epoch, k, TRUE, v_shard_id, tg
+        FROM unnest(v_keys, v_tags_arr) WITH ORDINALITY AS t(k, tg, rn);
+
+        -- Return results.
+        RETURN QUERY
+        SELECT v_channel, k, (v_base_offset + rn)::BIGINT, v_epoch
+        FROM unnest(v_keys) WITH ORDINALITY AS t(k, rn);
+
+        v_notified := TRUE;
+        v_processed := v_processed + v_count;
+        IF v_processed >= p_batch_size THEN
+            PERFORM pg_notify('__PREFIX__stream_notify', '');
+            RETURN;
+        END IF;
+    END LOOP;
+
+    -- Notify outbox workers if any entries were expired.
+    IF v_notified THEN
+        PERFORM pg_notify('__PREFIX__stream_notify', '');
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+

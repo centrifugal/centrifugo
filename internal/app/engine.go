@@ -1,11 +1,16 @@
 package app
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 	"github.com/centrifugal/centrifugo/v6/internal/confighelpers"
+	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/controllers"
 	"github.com/centrifugal/centrifugo/v6/internal/natsbroker"
+	"github.com/centrifugal/centrifugo/v6/internal/pgmapbroker"
+	"github.com/centrifugal/centrifugo/v6/internal/pgstreambroker"
 	"github.com/centrifugal/centrifugo/v6/internal/redisnatsbroker"
 
 	"github.com/centrifugal/centrifuge"
@@ -52,6 +57,9 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) err
 		case "nats":
 			broker, err = NatsBroker(node, cfg)
 			brokerMode = "nats"
+		case "postgres":
+			broker, err = createPostgresStreamBroker(node, cfg.Broker.Postgres)
+			brokerMode = "postgres"
 		case "redisnats":
 			if !cfg.EnableUnreleasedFeatures {
 				return fmt.Errorf("redisnats broker requires enable_unreleased_features on")
@@ -108,6 +116,16 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) err
 		log.Info().Msgf("explicit presence manager not provided, using the one from engine")
 	}
 
+	if cfg.Controller.Enabled {
+		controller, err := controllers.New(node, cfg.Controller)
+		if err != nil {
+			return fmt.Errorf("error creating controller: %v", err)
+		}
+		if controller != nil {
+			node.SetController(controller)
+		}
+	}
+
 	node.SetBroker(broker)
 	node.SetPresenceManager(presenceManager)
 	return nil
@@ -121,6 +139,38 @@ func createMemoryBroker(n *centrifuge.Node) (centrifuge.Broker, error) {
 	broker, err := centrifuge.NewMemoryBroker(n, *brokerConf)
 	if err != nil {
 		return nil, err
+	}
+	return broker, nil
+}
+
+func createPostgresStreamBroker(node *centrifuge.Node, pgCfg configtypes.PostgresStreamBroker) (centrifuge.Broker, error) {
+	pgBrokerCfg := pgstreambroker.PostgresStreamBrokerConfig{
+		DSN:                       pgCfg.DSN,
+		TLS:                       pgCfg.TLS,
+		PoolSize:                  pgCfg.PoolSize,
+		NumShards:                 pgCfg.NumShards,
+		CleanupInterval:           pgCfg.CleanupInterval.ToDuration(),
+		IdempotentResultTTL:       pgCfg.IdempotentResultTTL.ToDuration(),
+		BinaryData:                pgCfg.BinaryData,
+		StreamRetention:           pgCfg.StreamRetention.ToDuration(),
+		UseNotify:                 pgCfg.UseNotify,
+		NotifyDSN:                 pgCfg.NotifyDSN,
+		TablePrefix:               pgCfg.TablePrefix,
+		PartitionLookaheadDays:    pgCfg.PartitionLookaheadDays,
+		PartitionRetentionDays: pgCfg.PartitionRetentionDays,
+		Outbox: pgstreambroker.OutboxConfig{
+			PollInterval: pgCfg.Outbox.PollInterval.ToDuration(),
+			BatchSize:    pgCfg.Outbox.BatchSize,
+		},
+	}
+	broker, err := pgstreambroker.NewPostgresStreamBroker(node, pgBrokerCfg)
+	if err != nil {
+		return nil, fmt.Errorf("error creating Postgres stream broker: %w", err)
+	}
+	if !pgCfg.SkipSchemaInit {
+		if schemaErr := broker.EnsureSchema(context.Background()); schemaErr != nil {
+			return nil, fmt.Errorf("error initializing Postgres stream broker schema: %w", schemaErr)
+		}
 	}
 	return broker, nil
 }
@@ -209,4 +259,68 @@ func createRedisPresenceManager(n *centrifuge.Node, cfgContainer *config.Contain
 		return nil, mode, fmt.Errorf("error creating Redis presence manager: %w", err)
 	}
 	return presenceManager, mode, nil
+}
+
+func configureMapBroker(node *centrifuge.Node, cfgContainer *config.Container) error {
+	cfg := cfgContainer.Config()
+	var mapBroker centrifuge.MapBroker
+	var mapBrokerMode string
+	var err error
+	switch cfg.MapBroker.Type {
+	case "memory":
+		mapBroker, err = centrifuge.NewMemoryMapBroker(node, centrifuge.MemoryMapBrokerConfig{})
+	case "redis":
+		var redisShards []*centrifuge.RedisShard
+		redisShards, mapBrokerMode, err = confighelpers.CentrifugeRedisShards(node, cfg.MapBroker.Redis.Redis)
+		if err != nil {
+			return fmt.Errorf("error creating Redis shards for map broker: %w", err)
+		}
+		mapBroker, err = confighelpers.CentrifugeRedisMapBroker(
+			node, cfg.MapBroker.Redis.Prefix, redisShards, cfg.MapBroker.Redis.RedisMapBrokerCommon)
+	case "postgres":
+		pgCfg := cfg.MapBroker.Postgres
+		pgBrokerCfg := pgmapbroker.PostgresMapBrokerConfig{
+			DSN:                    pgCfg.DSN,
+			TLS:                    pgCfg.TLS,
+			PoolSize:               pgCfg.PoolSize,
+			NumShards:              pgCfg.NumShards,
+			TTLCheckInterval:       pgCfg.TTLCheckInterval.ToDuration(),
+			CleanupInterval:        pgCfg.CleanupInterval.ToDuration(),
+			IdempotentResultTTL:    pgCfg.IdempotentResultTTL.ToDuration(),
+			BinaryData:             pgCfg.BinaryData,
+			StreamRetention:        pgCfg.StreamRetention.ToDuration(),
+			UseNotify:              pgCfg.UseNotify,
+			NotifyDSN:              pgCfg.NotifyDSN,
+			TablePrefix:            pgCfg.TablePrefix,
+			PartitionLookaheadDays: pgCfg.PartitionLookaheadDays,
+			PartitionRetentionDays: pgCfg.PartitionRetentionDays,
+			Outbox: pgmapbroker.OutboxConfig{
+				PollInterval: pgCfg.Outbox.PollInterval.ToDuration(),
+				BatchSize:    pgCfg.Outbox.BatchSize,
+			},
+		}
+		mapBroker, err = pgmapbroker.NewPostgresMapBroker(node, pgBrokerCfg)
+		if err != nil {
+			return fmt.Errorf("error creating Postgres map broker: %w", err)
+		}
+		if !pgCfg.SkipSchemaInit {
+			pgBroker := mapBroker.(*pgmapbroker.PostgresMapBroker)
+			if schemaErr := pgBroker.EnsureSchema(context.Background()); schemaErr != nil {
+				return fmt.Errorf("error initializing Postgres map broker schema: %w", schemaErr)
+			}
+		}
+		mapBrokerMode = "postgres"
+	default:
+		return fmt.Errorf("unknown map broker type: %s", cfg.MapBroker.Type)
+	}
+	if err != nil {
+		return fmt.Errorf("error creating map broker: %v", err)
+	}
+	event := log.Info().Str("map_broker_type", cfg.MapBroker.Type)
+	if mapBrokerMode != "" {
+		event.Str("map_broker_mode", mapBrokerMode)
+	}
+	event.Msg("initializing map broker")
+	node.SetMapBroker(mapBroker)
+	return nil
 }

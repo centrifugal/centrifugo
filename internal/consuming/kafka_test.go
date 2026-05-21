@@ -121,7 +121,38 @@ func createTestTopic(ctx context.Context, topicName string, numPartitions int32,
 			return fmt.Errorf("failed to create topic '%s': %v", topic.Topic, topic.Err)
 		}
 	}
-	return nil
+
+	// CreateTopics returns once the controller has accepted the create, but
+	// partition leader election and metadata propagation are async. Poll
+	// until all expected partitions have a valid leader, otherwise a fresh
+	// producer/consumer client can hit UNKNOWN_TOPIC_OR_PARTITION.
+	deadline := time.Now().Add(15 * time.Second)
+	for {
+		details, err := client.ListTopics(ctx, topicName)
+		if err == nil {
+			td, ok := details[topicName]
+			if ok && td.Err == nil && int32(len(td.Partitions)) == numPartitions {
+				ready := true
+				for _, p := range td.Partitions {
+					if p.Err != nil || p.Leader < 0 {
+						ready = false
+						break
+					}
+				}
+				if ready {
+					return nil
+				}
+			}
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timeout waiting for topic '%s' partitions to become ready", topicName)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
 }
 
 func waitCh(t *testing.T, ch chan struct{}, timeout time.Duration, failureMessage string) {
@@ -472,7 +503,7 @@ func TestKafkaConsumer_PausePartitions(t *testing.T) {
 	testPayload1 := []byte(`{"key":"value1"}`)
 	testPayload2 := []byte(`{"key":"value2"}`)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	err := createTestTopic(ctx, testKafkaTopic, 1, 1)
@@ -520,6 +551,9 @@ func TestKafkaConsumer_PausePartitions(t *testing.T) {
 
 	consumer.testOnlyConfig = testConfig
 
+	consumerCtx, consumerCancel := context.WithCancel(ctx)
+	defer consumerCancel()
+
 	go func() {
 		err = produceTestMessage(testKafkaTopic, testPayload1, nil)
 		require.NoError(t, err)
@@ -538,14 +572,14 @@ func TestKafkaConsumer_PausePartitions(t *testing.T) {
 	}()
 
 	go func() {
-		err := consumer.Run(ctx)
+		err := consumer.Run(consumerCtx)
 		require.ErrorIs(t, err, context.Canceled)
 		close(consumerClosed)
 	}()
 
-	waitCh(t, event1Received, 30*time.Second, "timeout waiting for event 1")
-	waitCh(t, event2Received, 30*time.Second, "timeout waiting for event 2")
-	cancel()
+	waitCh(t, event1Received, 50*time.Second, "timeout waiting for event 1")
+	waitCh(t, event2Received, 50*time.Second, "timeout waiting for event 2")
+	consumerCancel()
 	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
 	close(doneCh)
 }

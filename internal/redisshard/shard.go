@@ -1,6 +1,7 @@
 package redisshard
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -392,4 +393,78 @@ type MultiOp func(client rueidis.Client) []rueidis.RedisResult
 // RunMulti allows executing multiple commands.
 func (s *RedisShard) RunMulti(op MultiOp) []rueidis.RedisResult {
 	return op(s.client)
+}
+
+// Publish sends data to a Redis PUB/SUB channel.
+// Uses SPUBLISH for cluster mode, PUBLISH otherwise.
+func (s *RedisShard) Publish(ctx context.Context, channel string, data []byte) error {
+	var cmd rueidis.Completed
+	if s.isCluster {
+		cmd = s.client.B().Spublish().Channel(channel).Message(string(data)).Build()
+	} else {
+		cmd = s.client.B().Publish().Channel(channel).Message(string(data)).Build()
+	}
+	return s.client.Do(ctx, cmd).Error()
+}
+
+// Subscribe listens on a Redis PUB/SUB channel and calls handler for each message.
+// Uses SSUBSCRIBE for cluster mode, SUBSCRIBE otherwise.
+// Blocks until ctx is cancelled. Handles reconnections automatically.
+func (s *RedisShard) Subscribe(ctx context.Context, channel string, handler func(data []byte)) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+		err := s.runSubscribeLoop(ctx, channel, handler)
+		if err != nil && ctx.Err() != nil {
+			return ctx.Err()
+		}
+		// Reconnect after a short delay.
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(300 * time.Millisecond):
+		}
+	}
+}
+
+func (s *RedisShard) runSubscribeLoop(ctx context.Context, channel string, handler func(data []byte)) error {
+	conn, cancel := s.client.Dedicate()
+	defer cancel()
+	defer conn.Close()
+
+	done := make(chan struct{})
+	var doneOnce sync.Once
+
+	wait := conn.SetPubSubHooks(rueidis.PubSubHooks{
+		OnMessage: func(msg rueidis.PubSubMessage) {
+			handler([]byte(msg.Message))
+		},
+		OnSubscription: func(ps rueidis.PubSubSubscription) {
+			if s.isCluster && ps.Kind == "sunsubscribe" && ps.Channel == channel {
+				doneOnce.Do(func() { close(done) })
+			}
+		},
+	})
+
+	var err error
+	if s.isCluster {
+		err = conn.Do(ctx, conn.B().Ssubscribe().Channel(channel).Build()).Error()
+	} else {
+		err = conn.Do(ctx, conn.B().Subscribe().Channel(channel).Build()).Error()
+	}
+	if err != nil {
+		return err
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-done:
+		return errors.New("subscription lost due to slot migration")
+	case err = <-wait:
+		return err
+	}
 }

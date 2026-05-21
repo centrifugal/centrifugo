@@ -70,3 +70,25 @@ func transformRefreshResponse(err error, statusToCodeTransforms configtypes.Http
 	}
 	return nil, err
 }
+
+func transformMapPublishResponse(err error, statusToCodeTransforms configtypes.HttpStatusToCodeTransforms) (*proxyproto.MapPublishResponse, error) {
+	protocolError, protocolDisconnect := transformHTTPStatusError(err, statusToCodeTransforms)
+	if protocolError != nil || protocolDisconnect != nil {
+		return &proxyproto.MapPublishResponse{
+			Error:      protocolError,
+			Disconnect: protocolDisconnect,
+		}, nil
+	}
+	return nil, err
+}
+
+func transformMapRemoveResponse(err error, statusToCodeTransforms configtypes.HttpStatusToCodeTransforms) (*proxyproto.MapRemoveResponse, error) {
+	protocolError, protocolDisconnect := transformHTTPStatusError(err, statusToCodeTransforms)
+	if protocolError != nil || protocolDisconnect != nil {
+		return &proxyproto.MapRemoveResponse{
+			Error:      protocolError,
+			Disconnect: protocolDisconnect,
+		}, nil
+	}
+	return nil, err
+}

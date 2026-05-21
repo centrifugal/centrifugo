@@ -265,3 +265,136 @@ func (s *grpcAPIService) Channels(ctx context.Context, req *ChannelsRequest) (*C
 	}
 	return resp, nil
 }
+
+// MapPublish ...
+func (s *grpcAPIService) MapPublish(ctx context.Context, req *MapPublishRequest) (*MapPublishResponse, error) {
+	resp := s.api.MapPublish(ctx, req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		metrics.IncAPIError(s.api.config.Protocol, "map_publish", resp.Error.Code)
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		metrics.IncAPIError(s.api.config.Protocol, "map_publish", resp.Error.Code)
+	}
+	return resp, nil
+}
+
+// MapRemove ...
+func (s *grpcAPIService) MapRemove(ctx context.Context, req *MapRemoveRequest) (*MapRemoveResponse, error) {
+	resp := s.api.MapRemove(ctx, req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		metrics.IncAPIError(s.api.config.Protocol, "map_remove", resp.Error.Code)
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		metrics.IncAPIError(s.api.config.Protocol, "map_remove", resp.Error.Code)
+	}
+	return resp, nil
+}
+
+// MapReadState ...
+func (s *grpcAPIService) MapReadState(ctx context.Context, req *MapReadStateRequest) (*MapReadStateResponse, error) {
+	resp := s.api.MapReadState(ctx, req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		metrics.IncAPIError(s.api.config.Protocol, "map_read_state", resp.Error.Code)
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		metrics.IncAPIError(s.api.config.Protocol, "map_read_state", resp.Error.Code)
+	}
+	return resp, nil
+}
+
+// MapReadStream ...
+func (s *grpcAPIService) MapReadStream(ctx context.Context, req *MapReadStreamRequest) (*MapReadStreamResponse, error) {
+	resp := s.api.MapReadStream(ctx, req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		metrics.IncAPIError(s.api.config.Protocol, "map_read_stream", resp.Error.Code)
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		metrics.IncAPIError(s.api.config.Protocol, "map_read_stream", resp.Error.Code)
+	}
+	return resp, nil
+}
+
+// MapStats ...
+func (s *grpcAPIService) MapStats(ctx context.Context, req *MapStatsRequest) (*MapStatsResponse, error) {
+	resp := s.api.MapStats(ctx, req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		metrics.IncAPIError(s.api.config.Protocol, "map_stats", resp.Error.Code)
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		metrics.IncAPIError(s.api.config.Protocol, "map_stats", resp.Error.Code)
+	}
+	return resp, nil
+}
+
+// MapClear ...
+func (s *grpcAPIService) MapClear(ctx context.Context, req *MapClearRequest) (*MapClearResponse, error) {
+	resp := s.api.MapClear(ctx, req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		metrics.IncAPIError(s.api.config.Protocol, "map_clear", resp.Error.Code)
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		metrics.IncAPIError(s.api.config.Protocol, "map_clear", resp.Error.Code)
+	}
+	return resp, nil
+}
+
+// SharedPollPublish ...
+func (s *grpcAPIService) SharedPollPublish(ctx context.Context, req *SharedPollPublishRequest) (*SharedPollPublishResponse, error) {
+	resp := s.api.SharedPollPublish(ctx, req)
+	if s.config.UseOpenTelemetry && resp.Error != nil {
+		span := trace.SpanFromContext(ctx)
+		span.SetStatus(codes.Error, resp.Error.Error())
+	}
+	if resp.Error != nil && s.useTransportErrorMode(ctx) {
+		metrics.IncAPIError(s.api.config.Protocol, "shared_poll_publish", resp.Error.Code)
+		statusCode := MapErrorToGRPCCode(resp.Error)
+		transportError, _ := status.New(statusCode, resp.Error.Message).WithDetails(resp.Error)
+		return nil, transportError.Err()
+	}
+	if resp.Error != nil {
+		metrics.IncAPIError(s.api.config.Protocol, "shared_poll_publish", resp.Error.Code)
+	}
+	return resp, nil
+}

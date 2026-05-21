@@ -39,9 +39,18 @@ type Registry struct {
 	consumerProcessedTotal *prometheus.CounterVec
 	consumerErrorsTotal    *prometheus.CounterVec
 
+	// Shared poll proxy metrics
+	sharedPollProxyRequestItems  *prometheus.HistogramVec
+	sharedPollProxyResponseItems *prometheus.HistogramVec
+
 	// Middleware metrics
 	connLimitReached  prometheus.Counter
 	httpRequestsTotal *prometheus.CounterVec
+
+	// PostgreSQL broker metrics (shared by both map and stream PG brokers)
+	pgBrokerCleanupRowsDeletedTotal *prometheus.CounterVec
+	pgBrokerOutboxCursorLagSeconds  *prometheus.GaugeVec
+	pgBrokerPartitions              *prometheus.GaugeVec
 }
 
 // Init initializes the metrics registry with the provided configuration.
@@ -68,8 +77,15 @@ func Init(cfg Config) error {
 	ConsumerProcessedTotal = reg.consumerProcessedTotal
 	ConsumerErrorsTotal = reg.consumerErrorsTotal
 
+	SharedPollProxyRequestItems = reg.sharedPollProxyRequestItems
+	SharedPollProxyResponseItems = reg.sharedPollProxyResponseItems
+
 	ConnLimitReached = reg.connLimitReached
 	HTTPRequestsTotal = reg.httpRequestsTotal
+
+	PGBrokerCleanupRowsDeletedTotal = reg.pgBrokerCleanupRowsDeletedTotal
+	PGBrokerOutboxCursorLagSeconds = reg.pgBrokerOutboxCursorLagSeconds
+	PGBrokerPartitions = reg.pgBrokerPartitions
 
 	return nil
 }
@@ -179,6 +195,25 @@ func newRegistry(cfg Config) (*Registry, error) {
 		ConstLabels: constLabels,
 	}, []string{"consumer_name"})
 
+	// Shared poll proxy metrics
+	m.sharedPollProxyRequestItems = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "shared_poll_proxy",
+		Name:        "request_items",
+		Help:        "Number of items per shared poll proxy request.",
+		Buckets:     []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000},
+		ConstLabels: constLabels,
+	}, []string{"name"})
+
+	m.sharedPollProxyResponseItems = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "shared_poll_proxy",
+		Name:        "response_items",
+		Help:        "Number of items per shared poll proxy response.",
+		Buckets:     []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000},
+		ConstLabels: constLabels,
+	}, []string{"name"})
+
 	// Middleware metrics
 	m.connLimitReached = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace:   metricsNamespace,
@@ -199,6 +234,31 @@ func newRegistry(cfg Config) (*Registry, error) {
 		[]string{"path", "method", "status"},
 	)
 
+	// PostgreSQL broker metrics (shared by both pg_map_broker and pg_stream_broker).
+	m.pgBrokerCleanupRowsDeletedTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "pg_broker",
+		Name:        "cleanup_rows_deleted_total",
+		Help:        "Total rows deleted by each cleanup pass.",
+		ConstLabels: constLabels,
+	}, []string{"broker", "pass"})
+
+	m.pgBrokerOutboxCursorLagSeconds = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "pg_broker",
+		Name:        "outbox_cursor_lag_seconds",
+		Help:        "Time between the outbox cursor's row created_at and now, per shard.",
+		ConstLabels: constLabels,
+	}, []string{"broker", "shard"})
+
+	m.pgBrokerPartitions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "pg_broker",
+		Name:        "partitions",
+		Help:        "Count of stream/history table partitions.",
+		ConstLabels: constLabels,
+	}, []string{"broker"})
+
 	// Register all metrics
 	var alreadyRegistered prometheus.AlreadyRegisteredError
 
@@ -213,8 +273,13 @@ func newRegistry(cfg Config) (*Registry, error) {
 		m.rpcDurationSummary,
 		m.consumerProcessedTotal,
 		m.consumerErrorsTotal,
+		m.sharedPollProxyRequestItems,
+		m.sharedPollProxyResponseItems,
 		m.connLimitReached,
 		m.httpRequestsTotal,
+		m.pgBrokerCleanupRowsDeletedTotal,
+		m.pgBrokerOutboxCursorLagSeconds,
+		m.pgBrokerPartitions,
 	}
 
 	for _, collector := range collectors {

@@ -55,6 +55,13 @@ type Command struct {
 	SendPushNotification *SendPushNotificationRequest `protobuf:"bytes,33,opt,name=send_push_notification,json=sendPushNotification,proto3" json:"send_push_notification,omitempty"`
 	UpdatePushStatus     *UpdatePushStatusRequest     `protobuf:"bytes,34,opt,name=update_push_status,json=updatePushStatus,proto3" json:"update_push_status,omitempty"`
 	CancelPush           *CancelPushRequest           `protobuf:"bytes,35,opt,name=cancel_push,json=cancelPush,proto3" json:"cancel_push,omitempty"`
+	MapPublish           *MapPublishRequest           `protobuf:"bytes,36,opt,name=map_publish,json=mapPublish,proto3" json:"map_publish,omitempty"`
+	MapRemove            *MapRemoveRequest            `protobuf:"bytes,37,opt,name=map_remove,json=mapRemove,proto3" json:"map_remove,omitempty"`
+	MapReadState         *MapReadStateRequest         `protobuf:"bytes,38,opt,name=map_read_state,json=mapReadState,proto3" json:"map_read_state,omitempty"`
+	MapReadStream        *MapReadStreamRequest        `protobuf:"bytes,39,opt,name=map_read_stream,json=mapReadStream,proto3" json:"map_read_stream,omitempty"`
+	MapStats             *MapStatsRequest             `protobuf:"bytes,40,opt,name=map_stats,json=mapStats,proto3" json:"map_stats,omitempty"`
+	MapClear             *MapClearRequest             `protobuf:"bytes,41,opt,name=map_clear,json=mapClear,proto3" json:"map_clear,omitempty"`
+	SharedPollPublish    *SharedPollPublishRequest    `protobuf:"bytes,42,opt,name=shared_poll_publish,json=sharedPollPublish,proto3" json:"shared_poll_publish,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -313,6 +320,55 @@ func (x *Command) GetCancelPush() *CancelPushRequest {
 	return nil
 }
 
+func (x *Command) GetMapPublish() *MapPublishRequest {
+	if x != nil {
+		return x.MapPublish
+	}
+	return nil
+}
+
+func (x *Command) GetMapRemove() *MapRemoveRequest {
+	if x != nil {
+		return x.MapRemove
+	}
+	return nil
+}
+
+func (x *Command) GetMapReadState() *MapReadStateRequest {
+	if x != nil {
+		return x.MapReadState
+	}
+	return nil
+}
+
+func (x *Command) GetMapReadStream() *MapReadStreamRequest {
+	if x != nil {
+		return x.MapReadStream
+	}
+	return nil
+}
+
+func (x *Command) GetMapStats() *MapStatsRequest {
+	if x != nil {
+		return x.MapStats
+	}
+	return nil
+}
+
+func (x *Command) GetMapClear() *MapClearRequest {
+	if x != nil {
+		return x.MapClear
+	}
+	return nil
+}
+
+func (x *Command) GetSharedPollPublish() *SharedPollPublishRequest {
+	if x != nil {
+		return x.SharedPollPublish
+	}
+	return nil
+}
+
 type Error struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Code          uint32                 `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
@@ -400,6 +456,13 @@ type Reply struct {
 	SendPushNotification *SendPushNotificationResult `protobuf:"bytes,33,opt,name=send_push_notification,json=sendPushNotification,proto3" json:"send_push_notification,omitempty"`
 	UpdatePushStatus     *UpdatePushStatusResult     `protobuf:"bytes,34,opt,name=update_push_status,json=updatePushStatus,proto3" json:"update_push_status,omitempty"`
 	CancelPush           *CancelPushResult           `protobuf:"bytes,35,opt,name=cancel_push,json=cancelPush,proto3" json:"cancel_push,omitempty"`
+	MapPublish           *MapPublishResult           `protobuf:"bytes,36,opt,name=map_publish,json=mapPublish,proto3" json:"map_publish,omitempty"`
+	MapRemove            *MapRemoveResult            `protobuf:"bytes,37,opt,name=map_remove,json=mapRemove,proto3" json:"map_remove,omitempty"`
+	MapReadState         *MapReadStateResult         `protobuf:"bytes,38,opt,name=map_read_state,json=mapReadState,proto3" json:"map_read_state,omitempty"`
+	MapReadStream        *MapReadStreamResult        `protobuf:"bytes,39,opt,name=map_read_stream,json=mapReadStream,proto3" json:"map_read_stream,omitempty"`
+	MapStats             *MapStatsResult             `protobuf:"bytes,40,opt,name=map_stats,json=mapStats,proto3" json:"map_stats,omitempty"`
+	MapClear             *MapClearResult             `protobuf:"bytes,41,opt,name=map_clear,json=mapClear,proto3" json:"map_clear,omitempty"`
+	SharedPollPublish    *SharedPollPublishResult    `protobuf:"bytes,42,opt,name=shared_poll_publish,json=sharedPollPublish,proto3" json:"shared_poll_publish,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -661,6 +724,55 @@ func (x *Reply) GetUpdatePushStatus() *UpdatePushStatusResult {
 func (x *Reply) GetCancelPush() *CancelPushResult {
 	if x != nil {
 		return x.CancelPush
+	}
+	return nil
+}
+
+func (x *Reply) GetMapPublish() *MapPublishResult {
+	if x != nil {
+		return x.MapPublish
+	}
+	return nil
+}
+
+func (x *Reply) GetMapRemove() *MapRemoveResult {
+	if x != nil {
+		return x.MapRemove
+	}
+	return nil
+}
+
+func (x *Reply) GetMapReadState() *MapReadStateResult {
+	if x != nil {
+		return x.MapReadState
+	}
+	return nil
+}
+
+func (x *Reply) GetMapReadStream() *MapReadStreamResult {
+	if x != nil {
+		return x.MapReadStream
+	}
+	return nil
+}
+
+func (x *Reply) GetMapStats() *MapStatsResult {
+	if x != nil {
+		return x.MapStats
+	}
+	return nil
+}
+
+func (x *Reply) GetMapClear() *MapClearResult {
+	if x != nil {
+		return x.MapClear
+	}
+	return nil
+}
+
+func (x *Reply) GetSharedPollPublish() *SharedPollPublishResult {
+	if x != nil {
+		return x.SharedPollPublish
 	}
 	return nil
 }
@@ -8234,11 +8346,1387 @@ func (*CancelPushResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{138}
 }
 
+type MapPublishRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Channel        string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	Key            string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	Data           Raw                    `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	B64Data        string                 `protobuf:"bytes,4,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	StreamData     Raw                    `protobuf:"bytes,5,opt,name=stream_data,json=streamData,proto3" json:"stream_data,omitempty"`
+	B64StreamData  string                 `protobuf:"bytes,6,opt,name=b64stream_data,json=b64streamData,proto3" json:"b64stream_data,omitempty"`
+	Tags           map[string]string      `protobuf:"bytes,7,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	IdempotencyKey string                 `protobuf:"bytes,8,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	Delta          bool                   `protobuf:"varint,9,opt,name=delta,proto3" json:"delta,omitempty"`
+	Version        uint64                 `protobuf:"varint,10,opt,name=version,proto3" json:"version,omitempty"`
+	VersionEpoch   string                 `protobuf:"bytes,11,opt,name=version_epoch,json=versionEpoch,proto3" json:"version_epoch,omitempty"`
+	Score          int64                  `protobuf:"varint,12,opt,name=score,proto3" json:"score,omitempty"`
+	KeyMode        string                 `protobuf:"bytes,13,opt,name=key_mode,json=keyMode,proto3" json:"key_mode,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *MapPublishRequest) Reset() {
+	*x = MapPublishRequest{}
+	mi := &file_api_proto_msgTypes[139]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapPublishRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapPublishRequest) ProtoMessage() {}
+
+func (x *MapPublishRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[139]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapPublishRequest.ProtoReflect.Descriptor instead.
+func (*MapPublishRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{139}
+}
+
+func (x *MapPublishRequest) GetChannel() string {
+	if x != nil {
+		return x.Channel
+	}
+	return ""
+}
+
+func (x *MapPublishRequest) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *MapPublishRequest) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *MapPublishRequest) GetB64Data() string {
+	if x != nil {
+		return x.B64Data
+	}
+	return ""
+}
+
+func (x *MapPublishRequest) GetStreamData() []byte {
+	if x != nil {
+		return x.StreamData
+	}
+	return nil
+}
+
+func (x *MapPublishRequest) GetB64StreamData() string {
+	if x != nil {
+		return x.B64StreamData
+	}
+	return ""
+}
+
+func (x *MapPublishRequest) GetTags() map[string]string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *MapPublishRequest) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
+func (x *MapPublishRequest) GetDelta() bool {
+	if x != nil {
+		return x.Delta
+	}
+	return false
+}
+
+func (x *MapPublishRequest) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *MapPublishRequest) GetVersionEpoch() string {
+	if x != nil {
+		return x.VersionEpoch
+	}
+	return ""
+}
+
+func (x *MapPublishRequest) GetScore() int64 {
+	if x != nil {
+		return x.Score
+	}
+	return 0
+}
+
+func (x *MapPublishRequest) GetKeyMode() string {
+	if x != nil {
+		return x.KeyMode
+	}
+	return ""
+}
+
+type MapPublishResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	Result        *MapPublishResult      `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapPublishResponse) Reset() {
+	*x = MapPublishResponse{}
+	mi := &file_api_proto_msgTypes[140]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapPublishResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapPublishResponse) ProtoMessage() {}
+
+func (x *MapPublishResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[140]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapPublishResponse.ProtoReflect.Descriptor instead.
+func (*MapPublishResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{140}
+}
+
+func (x *MapPublishResponse) GetError() *Error {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
+func (x *MapPublishResponse) GetResult() *MapPublishResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+type MapPublishResult struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Offset         uint64                 `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
+	Epoch          string                 `protobuf:"bytes,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	Suppressed     bool                   `protobuf:"varint,3,opt,name=suppressed,proto3" json:"suppressed,omitempty"`
+	SuppressReason string                 `protobuf:"bytes,4,opt,name=suppress_reason,json=suppressReason,proto3" json:"suppress_reason,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *MapPublishResult) Reset() {
+	*x = MapPublishResult{}
+	mi := &file_api_proto_msgTypes[141]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapPublishResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapPublishResult) ProtoMessage() {}
+
+func (x *MapPublishResult) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[141]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapPublishResult.ProtoReflect.Descriptor instead.
+func (*MapPublishResult) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{141}
+}
+
+func (x *MapPublishResult) GetOffset() uint64 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+func (x *MapPublishResult) GetEpoch() string {
+	if x != nil {
+		return x.Epoch
+	}
+	return ""
+}
+
+func (x *MapPublishResult) GetSuppressed() bool {
+	if x != nil {
+		return x.Suppressed
+	}
+	return false
+}
+
+func (x *MapPublishResult) GetSuppressReason() string {
+	if x != nil {
+		return x.SuppressReason
+	}
+	return ""
+}
+
+type MapRemoveRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Channel        string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	Key            string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	IdempotencyKey string                 `protobuf:"bytes,3,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *MapRemoveRequest) Reset() {
+	*x = MapRemoveRequest{}
+	mi := &file_api_proto_msgTypes[142]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapRemoveRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapRemoveRequest) ProtoMessage() {}
+
+func (x *MapRemoveRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[142]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapRemoveRequest.ProtoReflect.Descriptor instead.
+func (*MapRemoveRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{142}
+}
+
+func (x *MapRemoveRequest) GetChannel() string {
+	if x != nil {
+		return x.Channel
+	}
+	return ""
+}
+
+func (x *MapRemoveRequest) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *MapRemoveRequest) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
+type MapRemoveResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	Result        *MapRemoveResult       `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapRemoveResponse) Reset() {
+	*x = MapRemoveResponse{}
+	mi := &file_api_proto_msgTypes[143]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapRemoveResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapRemoveResponse) ProtoMessage() {}
+
+func (x *MapRemoveResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[143]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapRemoveResponse.ProtoReflect.Descriptor instead.
+func (*MapRemoveResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{143}
+}
+
+func (x *MapRemoveResponse) GetError() *Error {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
+func (x *MapRemoveResponse) GetResult() *MapRemoveResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+type MapRemoveResult struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Offset         uint64                 `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
+	Epoch          string                 `protobuf:"bytes,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	Suppressed     bool                   `protobuf:"varint,3,opt,name=suppressed,proto3" json:"suppressed,omitempty"`
+	SuppressReason string                 `protobuf:"bytes,4,opt,name=suppress_reason,json=suppressReason,proto3" json:"suppress_reason,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *MapRemoveResult) Reset() {
+	*x = MapRemoveResult{}
+	mi := &file_api_proto_msgTypes[144]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapRemoveResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapRemoveResult) ProtoMessage() {}
+
+func (x *MapRemoveResult) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[144]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapRemoveResult.ProtoReflect.Descriptor instead.
+func (*MapRemoveResult) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{144}
+}
+
+func (x *MapRemoveResult) GetOffset() uint64 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+func (x *MapRemoveResult) GetEpoch() string {
+	if x != nil {
+		return x.Epoch
+	}
+	return ""
+}
+
+func (x *MapRemoveResult) GetSuppressed() bool {
+	if x != nil {
+		return x.Suppressed
+	}
+	return false
+}
+
+func (x *MapRemoveResult) GetSuppressReason() string {
+	if x != nil {
+		return x.SuppressReason
+	}
+	return ""
+}
+
+type MapReadStateRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Channel        string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	Cursor         string                 `protobuf:"bytes,2,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	Limit          int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	Key            string                 `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty"`
+	Asc            bool                   `protobuf:"varint,5,opt,name=asc,proto3" json:"asc,omitempty"`
+	RevisionOffset uint64                 `protobuf:"varint,6,opt,name=revision_offset,json=revisionOffset,proto3" json:"revision_offset,omitempty"`
+	RevisionEpoch  string                 `protobuf:"bytes,7,opt,name=revision_epoch,json=revisionEpoch,proto3" json:"revision_epoch,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *MapReadStateRequest) Reset() {
+	*x = MapReadStateRequest{}
+	mi := &file_api_proto_msgTypes[145]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapReadStateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapReadStateRequest) ProtoMessage() {}
+
+func (x *MapReadStateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[145]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapReadStateRequest.ProtoReflect.Descriptor instead.
+func (*MapReadStateRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{145}
+}
+
+func (x *MapReadStateRequest) GetChannel() string {
+	if x != nil {
+		return x.Channel
+	}
+	return ""
+}
+
+func (x *MapReadStateRequest) GetCursor() string {
+	if x != nil {
+		return x.Cursor
+	}
+	return ""
+}
+
+func (x *MapReadStateRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *MapReadStateRequest) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *MapReadStateRequest) GetAsc() bool {
+	if x != nil {
+		return x.Asc
+	}
+	return false
+}
+
+func (x *MapReadStateRequest) GetRevisionOffset() uint64 {
+	if x != nil {
+		return x.RevisionOffset
+	}
+	return 0
+}
+
+func (x *MapReadStateRequest) GetRevisionEpoch() string {
+	if x != nil {
+		return x.RevisionEpoch
+	}
+	return ""
+}
+
+type MapReadStateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	Result        *MapReadStateResult    `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapReadStateResponse) Reset() {
+	*x = MapReadStateResponse{}
+	mi := &file_api_proto_msgTypes[146]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapReadStateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapReadStateResponse) ProtoMessage() {}
+
+func (x *MapReadStateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[146]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapReadStateResponse.ProtoReflect.Descriptor instead.
+func (*MapReadStateResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{146}
+}
+
+func (x *MapReadStateResponse) GetError() *Error {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
+func (x *MapReadStateResponse) GetResult() *MapReadStateResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+type MapReadStateResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entries       []*MapEntry            `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	Offset        uint64                 `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
+	Epoch         string                 `protobuf:"bytes,3,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	Cursor        string                 `protobuf:"bytes,4,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapReadStateResult) Reset() {
+	*x = MapReadStateResult{}
+	mi := &file_api_proto_msgTypes[147]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapReadStateResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapReadStateResult) ProtoMessage() {}
+
+func (x *MapReadStateResult) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[147]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapReadStateResult.ProtoReflect.Descriptor instead.
+func (*MapReadStateResult) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{147}
+}
+
+func (x *MapReadStateResult) GetEntries() []*MapEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *MapReadStateResult) GetOffset() uint64 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+func (x *MapReadStateResult) GetEpoch() string {
+	if x != nil {
+		return x.Epoch
+	}
+	return ""
+}
+
+func (x *MapReadStateResult) GetCursor() string {
+	if x != nil {
+		return x.Cursor
+	}
+	return ""
+}
+
+type MapEntry struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Data          Raw                    `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	Tags          map[string]string      `protobuf:"bytes,3,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Offset        uint64                 `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
+	Score         int64                  `protobuf:"varint,5,opt,name=score,proto3" json:"score,omitempty"`
+	Removed       bool                   `protobuf:"varint,6,opt,name=removed,proto3" json:"removed,omitempty"`
+	Time          int64                  `protobuf:"varint,7,opt,name=time,proto3" json:"time,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapEntry) Reset() {
+	*x = MapEntry{}
+	mi := &file_api_proto_msgTypes[148]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapEntry) ProtoMessage() {}
+
+func (x *MapEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[148]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapEntry.ProtoReflect.Descriptor instead.
+func (*MapEntry) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{148}
+}
+
+func (x *MapEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *MapEntry) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *MapEntry) GetTags() map[string]string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *MapEntry) GetOffset() uint64 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+func (x *MapEntry) GetScore() int64 {
+	if x != nil {
+		return x.Score
+	}
+	return 0
+}
+
+func (x *MapEntry) GetRemoved() bool {
+	if x != nil {
+		return x.Removed
+	}
+	return false
+}
+
+func (x *MapEntry) GetTime() int64 {
+	if x != nil {
+		return x.Time
+	}
+	return 0
+}
+
+type MapReadStreamRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Channel       string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	SinceOffset   uint64                 `protobuf:"varint,2,opt,name=since_offset,json=sinceOffset,proto3" json:"since_offset,omitempty"`
+	SinceEpoch    string                 `protobuf:"bytes,3,opt,name=since_epoch,json=sinceEpoch,proto3" json:"since_epoch,omitempty"`
+	Limit         int32                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
+	Reverse       bool                   `protobuf:"varint,5,opt,name=reverse,proto3" json:"reverse,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapReadStreamRequest) Reset() {
+	*x = MapReadStreamRequest{}
+	mi := &file_api_proto_msgTypes[149]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapReadStreamRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapReadStreamRequest) ProtoMessage() {}
+
+func (x *MapReadStreamRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[149]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapReadStreamRequest.ProtoReflect.Descriptor instead.
+func (*MapReadStreamRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{149}
+}
+
+func (x *MapReadStreamRequest) GetChannel() string {
+	if x != nil {
+		return x.Channel
+	}
+	return ""
+}
+
+func (x *MapReadStreamRequest) GetSinceOffset() uint64 {
+	if x != nil {
+		return x.SinceOffset
+	}
+	return 0
+}
+
+func (x *MapReadStreamRequest) GetSinceEpoch() string {
+	if x != nil {
+		return x.SinceEpoch
+	}
+	return ""
+}
+
+func (x *MapReadStreamRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *MapReadStreamRequest) GetReverse() bool {
+	if x != nil {
+		return x.Reverse
+	}
+	return false
+}
+
+type MapReadStreamResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	Result        *MapReadStreamResult   `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapReadStreamResponse) Reset() {
+	*x = MapReadStreamResponse{}
+	mi := &file_api_proto_msgTypes[150]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapReadStreamResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapReadStreamResponse) ProtoMessage() {}
+
+func (x *MapReadStreamResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[150]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapReadStreamResponse.ProtoReflect.Descriptor instead.
+func (*MapReadStreamResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{150}
+}
+
+func (x *MapReadStreamResponse) GetError() *Error {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
+func (x *MapReadStreamResponse) GetResult() *MapReadStreamResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+type MapReadStreamResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entries       []*MapEntry            `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	Offset        uint64                 `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
+	Epoch         string                 `protobuf:"bytes,3,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapReadStreamResult) Reset() {
+	*x = MapReadStreamResult{}
+	mi := &file_api_proto_msgTypes[151]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapReadStreamResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapReadStreamResult) ProtoMessage() {}
+
+func (x *MapReadStreamResult) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[151]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapReadStreamResult.ProtoReflect.Descriptor instead.
+func (*MapReadStreamResult) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{151}
+}
+
+func (x *MapReadStreamResult) GetEntries() []*MapEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *MapReadStreamResult) GetOffset() uint64 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+func (x *MapReadStreamResult) GetEpoch() string {
+	if x != nil {
+		return x.Epoch
+	}
+	return ""
+}
+
+type MapStatsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Channel       string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapStatsRequest) Reset() {
+	*x = MapStatsRequest{}
+	mi := &file_api_proto_msgTypes[152]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapStatsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapStatsRequest) ProtoMessage() {}
+
+func (x *MapStatsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[152]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapStatsRequest.ProtoReflect.Descriptor instead.
+func (*MapStatsRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{152}
+}
+
+func (x *MapStatsRequest) GetChannel() string {
+	if x != nil {
+		return x.Channel
+	}
+	return ""
+}
+
+type MapStatsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	Result        *MapStatsResult        `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapStatsResponse) Reset() {
+	*x = MapStatsResponse{}
+	mi := &file_api_proto_msgTypes[153]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapStatsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapStatsResponse) ProtoMessage() {}
+
+func (x *MapStatsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[153]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapStatsResponse.ProtoReflect.Descriptor instead.
+func (*MapStatsResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{153}
+}
+
+func (x *MapStatsResponse) GetError() *Error {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
+func (x *MapStatsResponse) GetResult() *MapStatsResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+type MapStatsResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NumKeys       int32                  `protobuf:"varint,1,opt,name=num_keys,json=numKeys,proto3" json:"num_keys,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapStatsResult) Reset() {
+	*x = MapStatsResult{}
+	mi := &file_api_proto_msgTypes[154]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapStatsResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapStatsResult) ProtoMessage() {}
+
+func (x *MapStatsResult) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[154]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapStatsResult.ProtoReflect.Descriptor instead.
+func (*MapStatsResult) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{154}
+}
+
+func (x *MapStatsResult) GetNumKeys() int32 {
+	if x != nil {
+		return x.NumKeys
+	}
+	return 0
+}
+
+type MapClearRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Channel       string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapClearRequest) Reset() {
+	*x = MapClearRequest{}
+	mi := &file_api_proto_msgTypes[155]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapClearRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapClearRequest) ProtoMessage() {}
+
+func (x *MapClearRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[155]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapClearRequest.ProtoReflect.Descriptor instead.
+func (*MapClearRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{155}
+}
+
+func (x *MapClearRequest) GetChannel() string {
+	if x != nil {
+		return x.Channel
+	}
+	return ""
+}
+
+type MapClearResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	Result        *MapClearResult        `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapClearResponse) Reset() {
+	*x = MapClearResponse{}
+	mi := &file_api_proto_msgTypes[156]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapClearResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapClearResponse) ProtoMessage() {}
+
+func (x *MapClearResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[156]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapClearResponse.ProtoReflect.Descriptor instead.
+func (*MapClearResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{156}
+}
+
+func (x *MapClearResponse) GetError() *Error {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
+func (x *MapClearResponse) GetResult() *MapClearResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+type MapClearResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MapClearResult) Reset() {
+	*x = MapClearResult{}
+	mi := &file_api_proto_msgTypes[157]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MapClearResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MapClearResult) ProtoMessage() {}
+
+func (x *MapClearResult) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[157]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MapClearResult.ProtoReflect.Descriptor instead.
+func (*MapClearResult) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{157}
+}
+
+type SharedPollPublishRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Channel       string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	Data          Raw                    `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	B64Data       string                 `protobuf:"bytes,4,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	Version       uint64                 `protobuf:"varint,5,opt,name=version,proto3" json:"version,omitempty"`
+	Epoch         string                 `protobuf:"bytes,6,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SharedPollPublishRequest) Reset() {
+	*x = SharedPollPublishRequest{}
+	mi := &file_api_proto_msgTypes[158]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SharedPollPublishRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SharedPollPublishRequest) ProtoMessage() {}
+
+func (x *SharedPollPublishRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[158]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SharedPollPublishRequest.ProtoReflect.Descriptor instead.
+func (*SharedPollPublishRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{158}
+}
+
+func (x *SharedPollPublishRequest) GetChannel() string {
+	if x != nil {
+		return x.Channel
+	}
+	return ""
+}
+
+func (x *SharedPollPublishRequest) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *SharedPollPublishRequest) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *SharedPollPublishRequest) GetB64Data() string {
+	if x != nil {
+		return x.B64Data
+	}
+	return ""
+}
+
+func (x *SharedPollPublishRequest) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *SharedPollPublishRequest) GetEpoch() string {
+	if x != nil {
+		return x.Epoch
+	}
+	return ""
+}
+
+type SharedPollPublishResponse struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Error         *Error                   `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	Result        *SharedPollPublishResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SharedPollPublishResponse) Reset() {
+	*x = SharedPollPublishResponse{}
+	mi := &file_api_proto_msgTypes[159]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SharedPollPublishResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SharedPollPublishResponse) ProtoMessage() {}
+
+func (x *SharedPollPublishResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[159]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SharedPollPublishResponse.ProtoReflect.Descriptor instead.
+func (*SharedPollPublishResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{159}
+}
+
+func (x *SharedPollPublishResponse) GetError() *Error {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
+func (x *SharedPollPublishResponse) GetResult() *SharedPollPublishResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+type SharedPollPublishResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SharedPollPublishResult) Reset() {
+	*x = SharedPollPublishResult{}
+	mi := &file_api_proto_msgTypes[160]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SharedPollPublishResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SharedPollPublishResult) ProtoMessage() {}
+
+func (x *SharedPollPublishResult) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[160]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SharedPollPublishResult.ProtoReflect.Descriptor instead.
+func (*SharedPollPublishResult) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{160}
+}
+
 var File_api_proto protoreflect.FileDescriptor
 
 const file_api_proto_rawDesc = "" +
 	"\n" +
-	"\tapi.proto\x12\x1acentrifugal.centrifugo.api\"\xaf\x15\n" +
+	"\tapi.proto\x12\x1acentrifugal.centrifugo.api\"\xf7\x19\n" +
 	"\aCommand\x12D\n" +
 	"\apublish\x18\x04 \x01(\v2*.centrifugal.centrifugo.api.PublishRequestR\apublish\x12J\n" +
 	"\tbroadcast\x18\x05 \x01(\v2,.centrifugal.centrifugo.api.BroadcastRequestR\tbroadcast\x12J\n" +
@@ -8277,10 +9765,19 @@ const file_api_proto_rawDesc = "" +
 	"\x16send_push_notification\x18! \x01(\v27.centrifugal.centrifugo.api.SendPushNotificationRequestR\x14sendPushNotification\x12a\n" +
 	"\x12update_push_status\x18\" \x01(\v23.centrifugal.centrifugo.api.UpdatePushStatusRequestR\x10updatePushStatus\x12N\n" +
 	"\vcancel_push\x18# \x01(\v2-.centrifugal.centrifugo.api.CancelPushRequestR\n" +
-	"cancelPushJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\x03\x10\x04\"5\n" +
+	"cancelPush\x12N\n" +
+	"\vmap_publish\x18$ \x01(\v2-.centrifugal.centrifugo.api.MapPublishRequestR\n" +
+	"mapPublish\x12K\n" +
+	"\n" +
+	"map_remove\x18% \x01(\v2,.centrifugal.centrifugo.api.MapRemoveRequestR\tmapRemove\x12U\n" +
+	"\x0emap_read_state\x18& \x01(\v2/.centrifugal.centrifugo.api.MapReadStateRequestR\fmapReadState\x12X\n" +
+	"\x0fmap_read_stream\x18' \x01(\v20.centrifugal.centrifugo.api.MapReadStreamRequestR\rmapReadStream\x12H\n" +
+	"\tmap_stats\x18( \x01(\v2+.centrifugal.centrifugo.api.MapStatsRequestR\bmapStats\x12H\n" +
+	"\tmap_clear\x18) \x01(\v2+.centrifugal.centrifugo.api.MapClearRequestR\bmapClear\x12d\n" +
+	"\x13shared_poll_publish\x18* \x01(\v24.centrifugal.centrifugo.api.SharedPollPublishRequestR\x11sharedPollPublishJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\x03\x10\x04\"5\n" +
 	"\x05Error\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\rR\x04code\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\xc0\x15\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\x81\x1a\n" +
 	"\x05Reply\x127\n" +
 	"\x05error\x18\x02 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12C\n" +
 	"\apublish\x18\x04 \x01(\v2).centrifugal.centrifugo.api.PublishResultR\apublish\x12I\n" +
@@ -8320,7 +9817,16 @@ const file_api_proto_rawDesc = "" +
 	"\x16send_push_notification\x18! \x01(\v26.centrifugal.centrifugo.api.SendPushNotificationResultR\x14sendPushNotification\x12`\n" +
 	"\x12update_push_status\x18\" \x01(\v22.centrifugal.centrifugo.api.UpdatePushStatusResultR\x10updatePushStatus\x12M\n" +
 	"\vcancel_push\x18# \x01(\v2,.centrifugal.centrifugo.api.CancelPushResultR\n" +
-	"cancelPushJ\x04\b\x01\x10\x02J\x04\b\x03\x10\x04\"k\n" +
+	"cancelPush\x12M\n" +
+	"\vmap_publish\x18$ \x01(\v2,.centrifugal.centrifugo.api.MapPublishResultR\n" +
+	"mapPublish\x12J\n" +
+	"\n" +
+	"map_remove\x18% \x01(\v2+.centrifugal.centrifugo.api.MapRemoveResultR\tmapRemove\x12T\n" +
+	"\x0emap_read_state\x18& \x01(\v2..centrifugal.centrifugo.api.MapReadStateResultR\fmapReadState\x12W\n" +
+	"\x0fmap_read_stream\x18' \x01(\v2/.centrifugal.centrifugo.api.MapReadStreamResultR\rmapReadStream\x12G\n" +
+	"\tmap_stats\x18( \x01(\v2*.centrifugal.centrifugo.api.MapStatsResultR\bmapStats\x12G\n" +
+	"\tmap_clear\x18) \x01(\v2*.centrifugal.centrifugo.api.MapClearResultR\bmapClear\x12c\n" +
+	"\x13shared_poll_publish\x18* \x01(\v23.centrifugal.centrifugo.api.SharedPollPublishResultR\x11sharedPollPublishJ\x04\b\x01\x10\x02J\x04\b\x03\x10\x04\"k\n" +
 	"\fBatchRequest\x12?\n" +
 	"\bcommands\x18\x01 \x03(\v2#.centrifugal.centrifugo.api.CommandR\bcommands\x12\x1a\n" +
 	"\bparallel\x18\x02 \x01(\bR\bparallel\"L\n" +
@@ -8877,7 +10383,115 @@ const file_api_proto_rawDesc = "" +
 	"\x12CancelPushResponse\x127\n" +
 	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12D\n" +
 	"\x06result\x18\x02 \x01(\v2,.centrifugal.centrifugo.api.CancelPushResultR\x06result\"\x12\n" +
-	"\x10CancelPushResult2\xe8\x1d\n" +
+	"\x10CancelPushResult\"\xea\x03\n" +
+	"\x11MapPublishRequest\x12\x18\n" +
+	"\achannel\x18\x01 \x01(\tR\achannel\x12\x10\n" +
+	"\x03key\x18\x02 \x01(\tR\x03key\x12\x12\n" +
+	"\x04data\x18\x03 \x01(\fR\x04data\x12\x18\n" +
+	"\ab64data\x18\x04 \x01(\tR\ab64data\x12\x1f\n" +
+	"\vstream_data\x18\x05 \x01(\fR\n" +
+	"streamData\x12%\n" +
+	"\x0eb64stream_data\x18\x06 \x01(\tR\rb64streamData\x12K\n" +
+	"\x04tags\x18\a \x03(\v27.centrifugal.centrifugo.api.MapPublishRequest.TagsEntryR\x04tags\x12'\n" +
+	"\x0fidempotency_key\x18\b \x01(\tR\x0eidempotencyKey\x12\x14\n" +
+	"\x05delta\x18\t \x01(\bR\x05delta\x12\x18\n" +
+	"\aversion\x18\n" +
+	" \x01(\x04R\aversion\x12#\n" +
+	"\rversion_epoch\x18\v \x01(\tR\fversionEpoch\x12\x14\n" +
+	"\x05score\x18\f \x01(\x03R\x05score\x12\x19\n" +
+	"\bkey_mode\x18\r \x01(\tR\akeyMode\x1a7\n" +
+	"\tTagsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x93\x01\n" +
+	"\x12MapPublishResponse\x127\n" +
+	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12D\n" +
+	"\x06result\x18\x02 \x01(\v2,.centrifugal.centrifugo.api.MapPublishResultR\x06result\"\x89\x01\n" +
+	"\x10MapPublishResult\x12\x16\n" +
+	"\x06offset\x18\x01 \x01(\x04R\x06offset\x12\x14\n" +
+	"\x05epoch\x18\x02 \x01(\tR\x05epoch\x12\x1e\n" +
+	"\n" +
+	"suppressed\x18\x03 \x01(\bR\n" +
+	"suppressed\x12'\n" +
+	"\x0fsuppress_reason\x18\x04 \x01(\tR\x0esuppressReason\"g\n" +
+	"\x10MapRemoveRequest\x12\x18\n" +
+	"\achannel\x18\x01 \x01(\tR\achannel\x12\x10\n" +
+	"\x03key\x18\x02 \x01(\tR\x03key\x12'\n" +
+	"\x0fidempotency_key\x18\x03 \x01(\tR\x0eidempotencyKey\"\x91\x01\n" +
+	"\x11MapRemoveResponse\x127\n" +
+	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12C\n" +
+	"\x06result\x18\x02 \x01(\v2+.centrifugal.centrifugo.api.MapRemoveResultR\x06result\"\x88\x01\n" +
+	"\x0fMapRemoveResult\x12\x16\n" +
+	"\x06offset\x18\x01 \x01(\x04R\x06offset\x12\x14\n" +
+	"\x05epoch\x18\x02 \x01(\tR\x05epoch\x12\x1e\n" +
+	"\n" +
+	"suppressed\x18\x03 \x01(\bR\n" +
+	"suppressed\x12'\n" +
+	"\x0fsuppress_reason\x18\x04 \x01(\tR\x0esuppressReason\"\xd1\x01\n" +
+	"\x13MapReadStateRequest\x12\x18\n" +
+	"\achannel\x18\x01 \x01(\tR\achannel\x12\x16\n" +
+	"\x06cursor\x18\x02 \x01(\tR\x06cursor\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\x12\x10\n" +
+	"\x03key\x18\x04 \x01(\tR\x03key\x12\x10\n" +
+	"\x03asc\x18\x05 \x01(\bR\x03asc\x12'\n" +
+	"\x0frevision_offset\x18\x06 \x01(\x04R\x0erevisionOffset\x12%\n" +
+	"\x0erevision_epoch\x18\a \x01(\tR\rrevisionEpoch\"\x97\x01\n" +
+	"\x14MapReadStateResponse\x127\n" +
+	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12F\n" +
+	"\x06result\x18\x02 \x01(\v2..centrifugal.centrifugo.api.MapReadStateResultR\x06result\"\x9a\x01\n" +
+	"\x12MapReadStateResult\x12>\n" +
+	"\aentries\x18\x01 \x03(\v2$.centrifugal.centrifugo.api.MapEntryR\aentries\x12\x16\n" +
+	"\x06offset\x18\x02 \x01(\x04R\x06offset\x12\x14\n" +
+	"\x05epoch\x18\x03 \x01(\tR\x05epoch\x12\x16\n" +
+	"\x06cursor\x18\x04 \x01(\tR\x06cursor\"\x89\x02\n" +
+	"\bMapEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x12\n" +
+	"\x04data\x18\x02 \x01(\fR\x04data\x12B\n" +
+	"\x04tags\x18\x03 \x03(\v2..centrifugal.centrifugo.api.MapEntry.TagsEntryR\x04tags\x12\x16\n" +
+	"\x06offset\x18\x04 \x01(\x04R\x06offset\x12\x14\n" +
+	"\x05score\x18\x05 \x01(\x03R\x05score\x12\x18\n" +
+	"\aremoved\x18\x06 \x01(\bR\aremoved\x12\x12\n" +
+	"\x04time\x18\a \x01(\x03R\x04time\x1a7\n" +
+	"\tTagsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa4\x01\n" +
+	"\x14MapReadStreamRequest\x12\x18\n" +
+	"\achannel\x18\x01 \x01(\tR\achannel\x12!\n" +
+	"\fsince_offset\x18\x02 \x01(\x04R\vsinceOffset\x12\x1f\n" +
+	"\vsince_epoch\x18\x03 \x01(\tR\n" +
+	"sinceEpoch\x12\x14\n" +
+	"\x05limit\x18\x04 \x01(\x05R\x05limit\x12\x18\n" +
+	"\areverse\x18\x05 \x01(\bR\areverse\"\x99\x01\n" +
+	"\x15MapReadStreamResponse\x127\n" +
+	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12G\n" +
+	"\x06result\x18\x02 \x01(\v2/.centrifugal.centrifugo.api.MapReadStreamResultR\x06result\"\x83\x01\n" +
+	"\x13MapReadStreamResult\x12>\n" +
+	"\aentries\x18\x01 \x03(\v2$.centrifugal.centrifugo.api.MapEntryR\aentries\x12\x16\n" +
+	"\x06offset\x18\x02 \x01(\x04R\x06offset\x12\x14\n" +
+	"\x05epoch\x18\x03 \x01(\tR\x05epoch\"+\n" +
+	"\x0fMapStatsRequest\x12\x18\n" +
+	"\achannel\x18\x01 \x01(\tR\achannel\"\x8f\x01\n" +
+	"\x10MapStatsResponse\x127\n" +
+	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12B\n" +
+	"\x06result\x18\x02 \x01(\v2*.centrifugal.centrifugo.api.MapStatsResultR\x06result\"+\n" +
+	"\x0eMapStatsResult\x12\x19\n" +
+	"\bnum_keys\x18\x01 \x01(\x05R\anumKeys\"+\n" +
+	"\x0fMapClearRequest\x12\x18\n" +
+	"\achannel\x18\x01 \x01(\tR\achannel\"\x8f\x01\n" +
+	"\x10MapClearResponse\x127\n" +
+	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12B\n" +
+	"\x06result\x18\x02 \x01(\v2*.centrifugal.centrifugo.api.MapClearResultR\x06result\"\x10\n" +
+	"\x0eMapClearResult\"\xa4\x01\n" +
+	"\x18SharedPollPublishRequest\x12\x18\n" +
+	"\achannel\x18\x01 \x01(\tR\achannel\x12\x10\n" +
+	"\x03key\x18\x02 \x01(\tR\x03key\x12\x12\n" +
+	"\x04data\x18\x03 \x01(\fR\x04data\x12\x18\n" +
+	"\ab64data\x18\x04 \x01(\tR\ab64data\x12\x18\n" +
+	"\aversion\x18\x05 \x01(\x04R\aversion\x12\x14\n" +
+	"\x05epoch\x18\x06 \x01(\tR\x05epoch\"\xa1\x01\n" +
+	"\x19SharedPollPublishResponse\x127\n" +
+	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12K\n" +
+	"\x06result\x18\x02 \x01(\v23.centrifugal.centrifugo.api.SharedPollPublishResultR\x06result\"\x19\n" +
+	"\x17SharedPollPublishResult2\x87$\n" +
 	"\rCentrifugoApi\x12^\n" +
 	"\x05Batch\x12(.centrifugal.centrifugo.api.BatchRequest\x1a).centrifugal.centrifugo.api.BatchResponse\"\x00\x12d\n" +
 	"\aPublish\x12*.centrifugal.centrifugo.api.PublishRequest\x1a+.centrifugal.centrifugo.api.PublishResponse\"\x00\x12j\n" +
@@ -8914,7 +10528,15 @@ const file_api_proto_rawDesc = "" +
 	"\x14SendPushNotification\x127.centrifugal.centrifugo.api.SendPushNotificationRequest\x1a8.centrifugal.centrifugo.api.SendPushNotificationResponse\"\x00\x12\x7f\n" +
 	"\x10UpdatePushStatus\x123.centrifugal.centrifugo.api.UpdatePushStatusRequest\x1a4.centrifugal.centrifugo.api.UpdatePushStatusResponse\"\x00\x12m\n" +
 	"\n" +
-	"CancelPush\x12-.centrifugal.centrifugo.api.CancelPushRequest\x1a..centrifugal.centrifugo.api.CancelPushResponse\"\x00B\rZ\v./;apiprotob\x06proto3"
+	"CancelPush\x12-.centrifugal.centrifugo.api.CancelPushRequest\x1a..centrifugal.centrifugo.api.CancelPushResponse\"\x00\x12m\n" +
+	"\n" +
+	"MapPublish\x12-.centrifugal.centrifugo.api.MapPublishRequest\x1a..centrifugal.centrifugo.api.MapPublishResponse\"\x00\x12j\n" +
+	"\tMapRemove\x12,.centrifugal.centrifugo.api.MapRemoveRequest\x1a-.centrifugal.centrifugo.api.MapRemoveResponse\"\x00\x12s\n" +
+	"\fMapReadState\x12/.centrifugal.centrifugo.api.MapReadStateRequest\x1a0.centrifugal.centrifugo.api.MapReadStateResponse\"\x00\x12v\n" +
+	"\rMapReadStream\x120.centrifugal.centrifugo.api.MapReadStreamRequest\x1a1.centrifugal.centrifugo.api.MapReadStreamResponse\"\x00\x12g\n" +
+	"\bMapStats\x12+.centrifugal.centrifugo.api.MapStatsRequest\x1a,.centrifugal.centrifugo.api.MapStatsResponse\"\x00\x12g\n" +
+	"\bMapClear\x12+.centrifugal.centrifugo.api.MapClearRequest\x1a,.centrifugal.centrifugo.api.MapClearResponse\"\x00\x12\x82\x01\n" +
+	"\x11SharedPollPublish\x124.centrifugal.centrifugo.api.SharedPollPublishRequest\x1a5.centrifugal.centrifugo.api.SharedPollPublishResponse\"\x00B\rZ\v./;apiprotob\x06proto3"
 
 var (
 	file_api_proto_rawDescOnce sync.Once
@@ -8928,7 +10550,7 @@ func file_api_proto_rawDescGZIP() []byte {
 	return file_api_proto_rawDescData
 }
 
-var file_api_proto_msgTypes = make([]protoimpl.MessageInfo, 154)
+var file_api_proto_msgTypes = make([]protoimpl.MessageInfo, 178)
 var file_api_proto_goTypes = []any{
 	(*Command)(nil),                      // 0: centrifugal.centrifugo.api.Command
 	(*Error)(nil),                        // 1: centrifugal.centrifugo.api.Error
@@ -9069,21 +10691,45 @@ var file_api_proto_goTypes = []any{
 	(*CancelPushRequest)(nil),            // 136: centrifugal.centrifugo.api.CancelPushRequest
 	(*CancelPushResponse)(nil),           // 137: centrifugal.centrifugo.api.CancelPushResponse
 	(*CancelPushResult)(nil),             // 138: centrifugal.centrifugo.api.CancelPushResult
-	nil,                                  // 139: centrifugal.centrifugo.api.PublishRequest.TagsEntry
-	nil,                                  // 140: centrifugal.centrifugo.api.BroadcastRequest.TagsEntry
-	nil,                                  // 141: centrifugal.centrifugo.api.PresenceResult.PresenceEntry
-	nil,                                  // 142: centrifugal.centrifugo.api.Publication.TagsEntry
-	nil,                                  // 143: centrifugal.centrifugo.api.Metrics.ItemsEntry
-	nil,                                  // 144: centrifugal.centrifugo.api.ChannelsResult.ChannelsEntry
-	nil,                                  // 145: centrifugal.centrifugo.api.ConnectionsResult.ConnectionsEntry
-	nil,                                  // 146: centrifugal.centrifugo.api.ConnectionState.ChannelsEntry
-	nil,                                  // 147: centrifugal.centrifugo.api.ConnectionState.SubscriptionTokensEntry
-	nil,                                  // 148: centrifugal.centrifugo.api.DeviceRegisterRequest.MetaEntry
-	nil,                                  // 149: centrifugal.centrifugo.api.DeviceMetaUpdate.MetaEntry
-	nil,                                  // 150: centrifugal.centrifugo.api.Device.MetaEntry
-	nil,                                  // 151: centrifugal.centrifugo.api.ApnsPushNotification.HeadersEntry
-	nil,                                  // 152: centrifugal.centrifugo.api.SendPushNotificationRequest.LocalizationsEntry
-	nil,                                  // 153: centrifugal.centrifugo.api.PushLocalization.TranslationsEntry
+	(*MapPublishRequest)(nil),            // 139: centrifugal.centrifugo.api.MapPublishRequest
+	(*MapPublishResponse)(nil),           // 140: centrifugal.centrifugo.api.MapPublishResponse
+	(*MapPublishResult)(nil),             // 141: centrifugal.centrifugo.api.MapPublishResult
+	(*MapRemoveRequest)(nil),             // 142: centrifugal.centrifugo.api.MapRemoveRequest
+	(*MapRemoveResponse)(nil),            // 143: centrifugal.centrifugo.api.MapRemoveResponse
+	(*MapRemoveResult)(nil),              // 144: centrifugal.centrifugo.api.MapRemoveResult
+	(*MapReadStateRequest)(nil),          // 145: centrifugal.centrifugo.api.MapReadStateRequest
+	(*MapReadStateResponse)(nil),         // 146: centrifugal.centrifugo.api.MapReadStateResponse
+	(*MapReadStateResult)(nil),           // 147: centrifugal.centrifugo.api.MapReadStateResult
+	(*MapEntry)(nil),                     // 148: centrifugal.centrifugo.api.MapEntry
+	(*MapReadStreamRequest)(nil),         // 149: centrifugal.centrifugo.api.MapReadStreamRequest
+	(*MapReadStreamResponse)(nil),        // 150: centrifugal.centrifugo.api.MapReadStreamResponse
+	(*MapReadStreamResult)(nil),          // 151: centrifugal.centrifugo.api.MapReadStreamResult
+	(*MapStatsRequest)(nil),              // 152: centrifugal.centrifugo.api.MapStatsRequest
+	(*MapStatsResponse)(nil),             // 153: centrifugal.centrifugo.api.MapStatsResponse
+	(*MapStatsResult)(nil),               // 154: centrifugal.centrifugo.api.MapStatsResult
+	(*MapClearRequest)(nil),              // 155: centrifugal.centrifugo.api.MapClearRequest
+	(*MapClearResponse)(nil),             // 156: centrifugal.centrifugo.api.MapClearResponse
+	(*MapClearResult)(nil),               // 157: centrifugal.centrifugo.api.MapClearResult
+	(*SharedPollPublishRequest)(nil),     // 158: centrifugal.centrifugo.api.SharedPollPublishRequest
+	(*SharedPollPublishResponse)(nil),    // 159: centrifugal.centrifugo.api.SharedPollPublishResponse
+	(*SharedPollPublishResult)(nil),      // 160: centrifugal.centrifugo.api.SharedPollPublishResult
+	nil,                                  // 161: centrifugal.centrifugo.api.PublishRequest.TagsEntry
+	nil,                                  // 162: centrifugal.centrifugo.api.BroadcastRequest.TagsEntry
+	nil,                                  // 163: centrifugal.centrifugo.api.PresenceResult.PresenceEntry
+	nil,                                  // 164: centrifugal.centrifugo.api.Publication.TagsEntry
+	nil,                                  // 165: centrifugal.centrifugo.api.Metrics.ItemsEntry
+	nil,                                  // 166: centrifugal.centrifugo.api.ChannelsResult.ChannelsEntry
+	nil,                                  // 167: centrifugal.centrifugo.api.ConnectionsResult.ConnectionsEntry
+	nil,                                  // 168: centrifugal.centrifugo.api.ConnectionState.ChannelsEntry
+	nil,                                  // 169: centrifugal.centrifugo.api.ConnectionState.SubscriptionTokensEntry
+	nil,                                  // 170: centrifugal.centrifugo.api.DeviceRegisterRequest.MetaEntry
+	nil,                                  // 171: centrifugal.centrifugo.api.DeviceMetaUpdate.MetaEntry
+	nil,                                  // 172: centrifugal.centrifugo.api.Device.MetaEntry
+	nil,                                  // 173: centrifugal.centrifugo.api.ApnsPushNotification.HeadersEntry
+	nil,                                  // 174: centrifugal.centrifugo.api.SendPushNotificationRequest.LocalizationsEntry
+	nil,                                  // 175: centrifugal.centrifugo.api.PushLocalization.TranslationsEntry
+	nil,                                  // 176: centrifugal.centrifugo.api.MapPublishRequest.TagsEntry
+	nil,                                  // 177: centrifugal.centrifugo.api.MapEntry.TagsEntry
 }
 var file_api_proto_depIdxs = []int32{
 	5,   // 0: centrifugal.centrifugo.api.Command.publish:type_name -> centrifugal.centrifugo.api.PublishRequest
@@ -9118,237 +10764,283 @@ var file_api_proto_depIdxs = []int32{
 	125, // 29: centrifugal.centrifugo.api.Command.send_push_notification:type_name -> centrifugal.centrifugo.api.SendPushNotificationRequest
 	133, // 30: centrifugal.centrifugo.api.Command.update_push_status:type_name -> centrifugal.centrifugo.api.UpdatePushStatusRequest
 	136, // 31: centrifugal.centrifugo.api.Command.cancel_push:type_name -> centrifugal.centrifugo.api.CancelPushRequest
-	1,   // 32: centrifugal.centrifugo.api.Reply.error:type_name -> centrifugal.centrifugo.api.Error
-	7,   // 33: centrifugal.centrifugo.api.Reply.publish:type_name -> centrifugal.centrifugo.api.PublishResult
-	10,  // 34: centrifugal.centrifugo.api.Reply.broadcast:type_name -> centrifugal.centrifugo.api.BroadcastResult
-	16,  // 35: centrifugal.centrifugo.api.Reply.subscribe:type_name -> centrifugal.centrifugo.api.SubscribeResult
-	19,  // 36: centrifugal.centrifugo.api.Reply.unsubscribe:type_name -> centrifugal.centrifugo.api.UnsubscribeResult
-	23,  // 37: centrifugal.centrifugo.api.Reply.disconnect:type_name -> centrifugal.centrifugo.api.DisconnectResult
-	27,  // 38: centrifugal.centrifugo.api.Reply.presence:type_name -> centrifugal.centrifugo.api.PresenceResult
-	30,  // 39: centrifugal.centrifugo.api.Reply.presence_stats:type_name -> centrifugal.centrifugo.api.PresenceStatsResult
-	35,  // 40: centrifugal.centrifugo.api.Reply.history:type_name -> centrifugal.centrifugo.api.HistoryResult
-	38,  // 41: centrifugal.centrifugo.api.Reply.history_remove:type_name -> centrifugal.centrifugo.api.HistoryRemoveResult
-	41,  // 42: centrifugal.centrifugo.api.Reply.info:type_name -> centrifugal.centrifugo.api.InfoResult
-	44,  // 43: centrifugal.centrifugo.api.Reply.rpc:type_name -> centrifugal.centrifugo.api.RPCResult
-	47,  // 44: centrifugal.centrifugo.api.Reply.refresh:type_name -> centrifugal.centrifugo.api.RefreshResult
-	53,  // 45: centrifugal.centrifugo.api.Reply.channels:type_name -> centrifugal.centrifugo.api.ChannelsResult
-	57,  // 46: centrifugal.centrifugo.api.Reply.connections:type_name -> centrifugal.centrifugo.api.ConnectionsResult
-	65,  // 47: centrifugal.centrifugo.api.Reply.update_user_status:type_name -> centrifugal.centrifugo.api.UpdateUserStatusResult
-	68,  // 48: centrifugal.centrifugo.api.Reply.get_user_status:type_name -> centrifugal.centrifugo.api.GetUserStatusResult
-	72,  // 49: centrifugal.centrifugo.api.Reply.delete_user_status:type_name -> centrifugal.centrifugo.api.DeleteUserStatusResult
-	74,  // 50: centrifugal.centrifugo.api.Reply.block_user:type_name -> centrifugal.centrifugo.api.BlockUserResult
-	77,  // 51: centrifugal.centrifugo.api.Reply.unblock_user:type_name -> centrifugal.centrifugo.api.UnblockUserResult
-	80,  // 52: centrifugal.centrifugo.api.Reply.revoke_token:type_name -> centrifugal.centrifugo.api.RevokeTokenResult
-	83,  // 53: centrifugal.centrifugo.api.Reply.invalidate_user_tokens:type_name -> centrifugal.centrifugo.api.InvalidateUserTokensResult
-	109, // 54: centrifugal.centrifugo.api.Reply.device_register:type_name -> centrifugal.centrifugo.api.DeviceRegisterResult
-	110, // 55: centrifugal.centrifugo.api.Reply.device_update:type_name -> centrifugal.centrifugo.api.DeviceUpdateResult
-	111, // 56: centrifugal.centrifugo.api.Reply.device_remove:type_name -> centrifugal.centrifugo.api.DeviceRemoveResult
-	112, // 57: centrifugal.centrifugo.api.Reply.device_list:type_name -> centrifugal.centrifugo.api.DeviceListResult
-	114, // 58: centrifugal.centrifugo.api.Reply.device_topic_list:type_name -> centrifugal.centrifugo.api.DeviceTopicListResult
-	117, // 59: centrifugal.centrifugo.api.Reply.device_topic_update:type_name -> centrifugal.centrifugo.api.DeviceTopicUpdateResult
-	116, // 60: centrifugal.centrifugo.api.Reply.user_topic_list:type_name -> centrifugal.centrifugo.api.UserTopicListResult
-	118, // 61: centrifugal.centrifugo.api.Reply.user_topic_update:type_name -> centrifugal.centrifugo.api.UserTopicUpdateResult
-	132, // 62: centrifugal.centrifugo.api.Reply.send_push_notification:type_name -> centrifugal.centrifugo.api.SendPushNotificationResult
-	135, // 63: centrifugal.centrifugo.api.Reply.update_push_status:type_name -> centrifugal.centrifugo.api.UpdatePushStatusResult
-	138, // 64: centrifugal.centrifugo.api.Reply.cancel_push:type_name -> centrifugal.centrifugo.api.CancelPushResult
-	0,   // 65: centrifugal.centrifugo.api.BatchRequest.commands:type_name -> centrifugal.centrifugo.api.Command
-	2,   // 66: centrifugal.centrifugo.api.BatchResponse.replies:type_name -> centrifugal.centrifugo.api.Reply
-	139, // 67: centrifugal.centrifugo.api.PublishRequest.tags:type_name -> centrifugal.centrifugo.api.PublishRequest.TagsEntry
-	1,   // 68: centrifugal.centrifugo.api.PublishResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	7,   // 69: centrifugal.centrifugo.api.PublishResponse.result:type_name -> centrifugal.centrifugo.api.PublishResult
-	140, // 70: centrifugal.centrifugo.api.BroadcastRequest.tags:type_name -> centrifugal.centrifugo.api.BroadcastRequest.TagsEntry
-	1,   // 71: centrifugal.centrifugo.api.BroadcastResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	10,  // 72: centrifugal.centrifugo.api.BroadcastResponse.result:type_name -> centrifugal.centrifugo.api.BroadcastResult
-	6,   // 73: centrifugal.centrifugo.api.BroadcastResult.responses:type_name -> centrifugal.centrifugo.api.PublishResponse
-	31,  // 74: centrifugal.centrifugo.api.SubscribeRequest.recover_since:type_name -> centrifugal.centrifugo.api.StreamPosition
-	15,  // 75: centrifugal.centrifugo.api.SubscribeRequest.override:type_name -> centrifugal.centrifugo.api.SubscribeOptionOverride
-	1,   // 76: centrifugal.centrifugo.api.SubscribeResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	16,  // 77: centrifugal.centrifugo.api.SubscribeResponse.result:type_name -> centrifugal.centrifugo.api.SubscribeResult
-	13,  // 78: centrifugal.centrifugo.api.SubscribeOptionOverride.presence:type_name -> centrifugal.centrifugo.api.BoolValue
-	13,  // 79: centrifugal.centrifugo.api.SubscribeOptionOverride.join_leave:type_name -> centrifugal.centrifugo.api.BoolValue
-	13,  // 80: centrifugal.centrifugo.api.SubscribeOptionOverride.force_recovery:type_name -> centrifugal.centrifugo.api.BoolValue
-	13,  // 81: centrifugal.centrifugo.api.SubscribeOptionOverride.force_positioning:type_name -> centrifugal.centrifugo.api.BoolValue
-	13,  // 82: centrifugal.centrifugo.api.SubscribeOptionOverride.force_push_join_leave:type_name -> centrifugal.centrifugo.api.BoolValue
-	1,   // 83: centrifugal.centrifugo.api.UnsubscribeResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	19,  // 84: centrifugal.centrifugo.api.UnsubscribeResponse.result:type_name -> centrifugal.centrifugo.api.UnsubscribeResult
-	20,  // 85: centrifugal.centrifugo.api.DisconnectRequest.disconnect:type_name -> centrifugal.centrifugo.api.Disconnect
-	1,   // 86: centrifugal.centrifugo.api.DisconnectResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	23,  // 87: centrifugal.centrifugo.api.DisconnectResponse.result:type_name -> centrifugal.centrifugo.api.DisconnectResult
-	1,   // 88: centrifugal.centrifugo.api.PresenceResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	27,  // 89: centrifugal.centrifugo.api.PresenceResponse.result:type_name -> centrifugal.centrifugo.api.PresenceResult
-	141, // 90: centrifugal.centrifugo.api.PresenceResult.presence:type_name -> centrifugal.centrifugo.api.PresenceResult.PresenceEntry
-	1,   // 91: centrifugal.centrifugo.api.PresenceStatsResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	30,  // 92: centrifugal.centrifugo.api.PresenceStatsResponse.result:type_name -> centrifugal.centrifugo.api.PresenceStatsResult
-	31,  // 93: centrifugal.centrifugo.api.HistoryRequest.since:type_name -> centrifugal.centrifugo.api.StreamPosition
-	1,   // 94: centrifugal.centrifugo.api.HistoryResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	35,  // 95: centrifugal.centrifugo.api.HistoryResponse.result:type_name -> centrifugal.centrifugo.api.HistoryResult
-	26,  // 96: centrifugal.centrifugo.api.Publication.info:type_name -> centrifugal.centrifugo.api.ClientInfo
-	142, // 97: centrifugal.centrifugo.api.Publication.tags:type_name -> centrifugal.centrifugo.api.Publication.TagsEntry
-	34,  // 98: centrifugal.centrifugo.api.HistoryResult.publications:type_name -> centrifugal.centrifugo.api.Publication
-	1,   // 99: centrifugal.centrifugo.api.HistoryRemoveResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	38,  // 100: centrifugal.centrifugo.api.HistoryRemoveResponse.result:type_name -> centrifugal.centrifugo.api.HistoryRemoveResult
-	1,   // 101: centrifugal.centrifugo.api.InfoResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	41,  // 102: centrifugal.centrifugo.api.InfoResponse.result:type_name -> centrifugal.centrifugo.api.InfoResult
-	48,  // 103: centrifugal.centrifugo.api.InfoResult.nodes:type_name -> centrifugal.centrifugo.api.NodeResult
-	1,   // 104: centrifugal.centrifugo.api.RPCResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	44,  // 105: centrifugal.centrifugo.api.RPCResponse.result:type_name -> centrifugal.centrifugo.api.RPCResult
-	1,   // 106: centrifugal.centrifugo.api.RefreshResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	47,  // 107: centrifugal.centrifugo.api.RefreshResponse.result:type_name -> centrifugal.centrifugo.api.RefreshResult
-	49,  // 108: centrifugal.centrifugo.api.NodeResult.metrics:type_name -> centrifugal.centrifugo.api.Metrics
-	50,  // 109: centrifugal.centrifugo.api.NodeResult.process:type_name -> centrifugal.centrifugo.api.Process
-	143, // 110: centrifugal.centrifugo.api.Metrics.items:type_name -> centrifugal.centrifugo.api.Metrics.ItemsEntry
-	1,   // 111: centrifugal.centrifugo.api.ChannelsResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	53,  // 112: centrifugal.centrifugo.api.ChannelsResponse.result:type_name -> centrifugal.centrifugo.api.ChannelsResult
-	144, // 113: centrifugal.centrifugo.api.ChannelsResult.channels:type_name -> centrifugal.centrifugo.api.ChannelsResult.ChannelsEntry
-	1,   // 114: centrifugal.centrifugo.api.ConnectionsResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	57,  // 115: centrifugal.centrifugo.api.ConnectionsResponse.result:type_name -> centrifugal.centrifugo.api.ConnectionsResult
-	145, // 116: centrifugal.centrifugo.api.ConnectionsResult.connections:type_name -> centrifugal.centrifugo.api.ConnectionsResult.ConnectionsEntry
-	59,  // 117: centrifugal.centrifugo.api.ConnectionInfo.state:type_name -> centrifugal.centrifugo.api.ConnectionState
-	146, // 118: centrifugal.centrifugo.api.ConnectionState.channels:type_name -> centrifugal.centrifugo.api.ConnectionState.ChannelsEntry
-	61,  // 119: centrifugal.centrifugo.api.ConnectionState.connection_token:type_name -> centrifugal.centrifugo.api.ConnectionTokenInfo
-	147, // 120: centrifugal.centrifugo.api.ConnectionState.subscription_tokens:type_name -> centrifugal.centrifugo.api.ConnectionState.SubscriptionTokensEntry
-	1,   // 121: centrifugal.centrifugo.api.UpdateUserStatusResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	65,  // 122: centrifugal.centrifugo.api.UpdateUserStatusResponse.result:type_name -> centrifugal.centrifugo.api.UpdateUserStatusResult
-	1,   // 123: centrifugal.centrifugo.api.GetUserStatusResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	68,  // 124: centrifugal.centrifugo.api.GetUserStatusResponse.result:type_name -> centrifugal.centrifugo.api.GetUserStatusResult
-	69,  // 125: centrifugal.centrifugo.api.GetUserStatusResult.statuses:type_name -> centrifugal.centrifugo.api.UserStatus
-	1,   // 126: centrifugal.centrifugo.api.DeleteUserStatusResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	72,  // 127: centrifugal.centrifugo.api.DeleteUserStatusResponse.result:type_name -> centrifugal.centrifugo.api.DeleteUserStatusResult
-	1,   // 128: centrifugal.centrifugo.api.BlockUserResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	74,  // 129: centrifugal.centrifugo.api.BlockUserResponse.result:type_name -> centrifugal.centrifugo.api.BlockUserResult
-	1,   // 130: centrifugal.centrifugo.api.UnblockUserResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	77,  // 131: centrifugal.centrifugo.api.UnblockUserResponse.result:type_name -> centrifugal.centrifugo.api.UnblockUserResult
-	1,   // 132: centrifugal.centrifugo.api.RevokeTokenResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	80,  // 133: centrifugal.centrifugo.api.RevokeTokenResponse.result:type_name -> centrifugal.centrifugo.api.RevokeTokenResult
-	1,   // 134: centrifugal.centrifugo.api.InvalidateUserTokensResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	83,  // 135: centrifugal.centrifugo.api.InvalidateUserTokensResponse.result:type_name -> centrifugal.centrifugo.api.InvalidateUserTokensResult
-	148, // 136: centrifugal.centrifugo.api.DeviceRegisterRequest.meta:type_name -> centrifugal.centrifugo.api.DeviceRegisterRequest.MetaEntry
-	88,  // 137: centrifugal.centrifugo.api.DeviceUpdateRequest.user_update:type_name -> centrifugal.centrifugo.api.DeviceUserUpdate
-	91,  // 138: centrifugal.centrifugo.api.DeviceUpdateRequest.meta_update:type_name -> centrifugal.centrifugo.api.DeviceMetaUpdate
-	92,  // 139: centrifugal.centrifugo.api.DeviceUpdateRequest.topics_update:type_name -> centrifugal.centrifugo.api.DeviceTopicsUpdate
-	89,  // 140: centrifugal.centrifugo.api.DeviceUpdateRequest.timezone_update:type_name -> centrifugal.centrifugo.api.DeviceTimezoneUpdate
-	90,  // 141: centrifugal.centrifugo.api.DeviceUpdateRequest.locale_update:type_name -> centrifugal.centrifugo.api.DeviceLocaleUpdate
-	149, // 142: centrifugal.centrifugo.api.DeviceMetaUpdate.meta:type_name -> centrifugal.centrifugo.api.DeviceMetaUpdate.MetaEntry
-	93,  // 143: centrifugal.centrifugo.api.DeviceListRequest.filter:type_name -> centrifugal.centrifugo.api.DeviceFilter
-	95,  // 144: centrifugal.centrifugo.api.DeviceTopicListRequest.filter:type_name -> centrifugal.centrifugo.api.DeviceTopicFilter
-	97,  // 145: centrifugal.centrifugo.api.UserTopicListRequest.filter:type_name -> centrifugal.centrifugo.api.UserTopicFilter
-	1,   // 146: centrifugal.centrifugo.api.DeviceRegisterResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	109, // 147: centrifugal.centrifugo.api.DeviceRegisterResponse.result:type_name -> centrifugal.centrifugo.api.DeviceRegisterResult
-	1,   // 148: centrifugal.centrifugo.api.DeviceUpdateResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	110, // 149: centrifugal.centrifugo.api.DeviceUpdateResponse.result:type_name -> centrifugal.centrifugo.api.DeviceUpdateResult
-	1,   // 150: centrifugal.centrifugo.api.DeviceRemoveResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	111, // 151: centrifugal.centrifugo.api.DeviceRemoveResponse.result:type_name -> centrifugal.centrifugo.api.DeviceRemoveResult
-	1,   // 152: centrifugal.centrifugo.api.DeviceListResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	112, // 153: centrifugal.centrifugo.api.DeviceListResponse.result:type_name -> centrifugal.centrifugo.api.DeviceListResult
-	1,   // 154: centrifugal.centrifugo.api.DeviceTopicListResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	114, // 155: centrifugal.centrifugo.api.DeviceTopicListResponse.result:type_name -> centrifugal.centrifugo.api.DeviceTopicListResult
-	1,   // 156: centrifugal.centrifugo.api.UserTopicListResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	116, // 157: centrifugal.centrifugo.api.UserTopicListResponse.result:type_name -> centrifugal.centrifugo.api.UserTopicListResult
-	1,   // 158: centrifugal.centrifugo.api.DeviceTopicUpdateResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	117, // 159: centrifugal.centrifugo.api.DeviceTopicUpdateResponse.result:type_name -> centrifugal.centrifugo.api.DeviceTopicUpdateResult
-	1,   // 160: centrifugal.centrifugo.api.UserTopicUpdateResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	118, // 161: centrifugal.centrifugo.api.UserTopicUpdateResponse.result:type_name -> centrifugal.centrifugo.api.UserTopicUpdateResult
-	113, // 162: centrifugal.centrifugo.api.DeviceListResult.items:type_name -> centrifugal.centrifugo.api.Device
-	150, // 163: centrifugal.centrifugo.api.Device.meta:type_name -> centrifugal.centrifugo.api.Device.MetaEntry
-	115, // 164: centrifugal.centrifugo.api.DeviceTopicListResult.items:type_name -> centrifugal.centrifugo.api.DeviceTopic
-	113, // 165: centrifugal.centrifugo.api.DeviceTopic.device:type_name -> centrifugal.centrifugo.api.Device
-	119, // 166: centrifugal.centrifugo.api.UserTopicListResult.items:type_name -> centrifugal.centrifugo.api.UserTopic
-	93,  // 167: centrifugal.centrifugo.api.PushRecipient.filter:type_name -> centrifugal.centrifugo.api.DeviceFilter
-	122, // 168: centrifugal.centrifugo.api.PushNotification.fcm:type_name -> centrifugal.centrifugo.api.FcmPushNotification
-	123, // 169: centrifugal.centrifugo.api.PushNotification.hms:type_name -> centrifugal.centrifugo.api.HmsPushNotification
-	124, // 170: centrifugal.centrifugo.api.PushNotification.apns:type_name -> centrifugal.centrifugo.api.ApnsPushNotification
-	151, // 171: centrifugal.centrifugo.api.ApnsPushNotification.headers:type_name -> centrifugal.centrifugo.api.ApnsPushNotification.HeadersEntry
-	120, // 172: centrifugal.centrifugo.api.SendPushNotificationRequest.recipient:type_name -> centrifugal.centrifugo.api.PushRecipient
-	121, // 173: centrifugal.centrifugo.api.SendPushNotificationRequest.notification:type_name -> centrifugal.centrifugo.api.PushNotification
-	127, // 174: centrifugal.centrifugo.api.SendPushNotificationRequest.limit_strategy:type_name -> centrifugal.centrifugo.api.PushLimitStrategy
-	152, // 175: centrifugal.centrifugo.api.SendPushNotificationRequest.localizations:type_name -> centrifugal.centrifugo.api.SendPushNotificationRequest.LocalizationsEntry
-	153, // 176: centrifugal.centrifugo.api.PushLocalization.translations:type_name -> centrifugal.centrifugo.api.PushLocalization.TranslationsEntry
-	129, // 177: centrifugal.centrifugo.api.PushLimitStrategy.rate_limit:type_name -> centrifugal.centrifugo.api.PushRateLimitStrategy
-	128, // 178: centrifugal.centrifugo.api.PushLimitStrategy.time_limit:type_name -> centrifugal.centrifugo.api.PushTimeLimitStrategy
-	130, // 179: centrifugal.centrifugo.api.PushRateLimitStrategy.policies:type_name -> centrifugal.centrifugo.api.RateLimitPolicy
-	1,   // 180: centrifugal.centrifugo.api.SendPushNotificationResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	132, // 181: centrifugal.centrifugo.api.SendPushNotificationResponse.result:type_name -> centrifugal.centrifugo.api.SendPushNotificationResult
-	1,   // 182: centrifugal.centrifugo.api.UpdatePushStatusResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	135, // 183: centrifugal.centrifugo.api.UpdatePushStatusResponse.result:type_name -> centrifugal.centrifugo.api.UpdatePushStatusResult
-	1,   // 184: centrifugal.centrifugo.api.CancelPushResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	138, // 185: centrifugal.centrifugo.api.CancelPushResponse.result:type_name -> centrifugal.centrifugo.api.CancelPushResult
-	26,  // 186: centrifugal.centrifugo.api.PresenceResult.PresenceEntry.value:type_name -> centrifugal.centrifugo.api.ClientInfo
-	54,  // 187: centrifugal.centrifugo.api.ChannelsResult.ChannelsEntry.value:type_name -> centrifugal.centrifugo.api.ChannelInfo
-	58,  // 188: centrifugal.centrifugo.api.ConnectionsResult.ConnectionsEntry.value:type_name -> centrifugal.centrifugo.api.ConnectionInfo
-	60,  // 189: centrifugal.centrifugo.api.ConnectionState.ChannelsEntry.value:type_name -> centrifugal.centrifugo.api.ChannelContext
-	62,  // 190: centrifugal.centrifugo.api.ConnectionState.SubscriptionTokensEntry.value:type_name -> centrifugal.centrifugo.api.SubscriptionTokenInfo
-	126, // 191: centrifugal.centrifugo.api.SendPushNotificationRequest.LocalizationsEntry.value:type_name -> centrifugal.centrifugo.api.PushLocalization
-	3,   // 192: centrifugal.centrifugo.api.CentrifugoApi.Batch:input_type -> centrifugal.centrifugo.api.BatchRequest
-	5,   // 193: centrifugal.centrifugo.api.CentrifugoApi.Publish:input_type -> centrifugal.centrifugo.api.PublishRequest
-	8,   // 194: centrifugal.centrifugo.api.CentrifugoApi.Broadcast:input_type -> centrifugal.centrifugo.api.BroadcastRequest
-	11,  // 195: centrifugal.centrifugo.api.CentrifugoApi.Subscribe:input_type -> centrifugal.centrifugo.api.SubscribeRequest
-	17,  // 196: centrifugal.centrifugo.api.CentrifugoApi.Unsubscribe:input_type -> centrifugal.centrifugo.api.UnsubscribeRequest
-	21,  // 197: centrifugal.centrifugo.api.CentrifugoApi.Disconnect:input_type -> centrifugal.centrifugo.api.DisconnectRequest
-	24,  // 198: centrifugal.centrifugo.api.CentrifugoApi.Presence:input_type -> centrifugal.centrifugo.api.PresenceRequest
-	28,  // 199: centrifugal.centrifugo.api.CentrifugoApi.PresenceStats:input_type -> centrifugal.centrifugo.api.PresenceStatsRequest
-	32,  // 200: centrifugal.centrifugo.api.CentrifugoApi.History:input_type -> centrifugal.centrifugo.api.HistoryRequest
-	36,  // 201: centrifugal.centrifugo.api.CentrifugoApi.HistoryRemove:input_type -> centrifugal.centrifugo.api.HistoryRemoveRequest
-	39,  // 202: centrifugal.centrifugo.api.CentrifugoApi.Info:input_type -> centrifugal.centrifugo.api.InfoRequest
-	42,  // 203: centrifugal.centrifugo.api.CentrifugoApi.RPC:input_type -> centrifugal.centrifugo.api.RPCRequest
-	45,  // 204: centrifugal.centrifugo.api.CentrifugoApi.Refresh:input_type -> centrifugal.centrifugo.api.RefreshRequest
-	51,  // 205: centrifugal.centrifugo.api.CentrifugoApi.Channels:input_type -> centrifugal.centrifugo.api.ChannelsRequest
-	55,  // 206: centrifugal.centrifugo.api.CentrifugoApi.Connections:input_type -> centrifugal.centrifugo.api.ConnectionsRequest
-	63,  // 207: centrifugal.centrifugo.api.CentrifugoApi.UpdateUserStatus:input_type -> centrifugal.centrifugo.api.UpdateUserStatusRequest
-	66,  // 208: centrifugal.centrifugo.api.CentrifugoApi.GetUserStatus:input_type -> centrifugal.centrifugo.api.GetUserStatusRequest
-	70,  // 209: centrifugal.centrifugo.api.CentrifugoApi.DeleteUserStatus:input_type -> centrifugal.centrifugo.api.DeleteUserStatusRequest
-	73,  // 210: centrifugal.centrifugo.api.CentrifugoApi.BlockUser:input_type -> centrifugal.centrifugo.api.BlockUserRequest
-	76,  // 211: centrifugal.centrifugo.api.CentrifugoApi.UnblockUser:input_type -> centrifugal.centrifugo.api.UnblockUserRequest
-	79,  // 212: centrifugal.centrifugo.api.CentrifugoApi.RevokeToken:input_type -> centrifugal.centrifugo.api.RevokeTokenRequest
-	82,  // 213: centrifugal.centrifugo.api.CentrifugoApi.InvalidateUserTokens:input_type -> centrifugal.centrifugo.api.InvalidateUserTokensRequest
-	85,  // 214: centrifugal.centrifugo.api.CentrifugoApi.DeviceRegister:input_type -> centrifugal.centrifugo.api.DeviceRegisterRequest
-	86,  // 215: centrifugal.centrifugo.api.CentrifugoApi.DeviceUpdate:input_type -> centrifugal.centrifugo.api.DeviceUpdateRequest
-	87,  // 216: centrifugal.centrifugo.api.CentrifugoApi.DeviceRemove:input_type -> centrifugal.centrifugo.api.DeviceRemoveRequest
-	94,  // 217: centrifugal.centrifugo.api.CentrifugoApi.DeviceList:input_type -> centrifugal.centrifugo.api.DeviceListRequest
-	96,  // 218: centrifugal.centrifugo.api.CentrifugoApi.DeviceTopicList:input_type -> centrifugal.centrifugo.api.DeviceTopicListRequest
-	99,  // 219: centrifugal.centrifugo.api.CentrifugoApi.DeviceTopicUpdate:input_type -> centrifugal.centrifugo.api.DeviceTopicUpdateRequest
-	98,  // 220: centrifugal.centrifugo.api.CentrifugoApi.UserTopicList:input_type -> centrifugal.centrifugo.api.UserTopicListRequest
-	100, // 221: centrifugal.centrifugo.api.CentrifugoApi.UserTopicUpdate:input_type -> centrifugal.centrifugo.api.UserTopicUpdateRequest
-	125, // 222: centrifugal.centrifugo.api.CentrifugoApi.SendPushNotification:input_type -> centrifugal.centrifugo.api.SendPushNotificationRequest
-	133, // 223: centrifugal.centrifugo.api.CentrifugoApi.UpdatePushStatus:input_type -> centrifugal.centrifugo.api.UpdatePushStatusRequest
-	136, // 224: centrifugal.centrifugo.api.CentrifugoApi.CancelPush:input_type -> centrifugal.centrifugo.api.CancelPushRequest
-	4,   // 225: centrifugal.centrifugo.api.CentrifugoApi.Batch:output_type -> centrifugal.centrifugo.api.BatchResponse
-	6,   // 226: centrifugal.centrifugo.api.CentrifugoApi.Publish:output_type -> centrifugal.centrifugo.api.PublishResponse
-	9,   // 227: centrifugal.centrifugo.api.CentrifugoApi.Broadcast:output_type -> centrifugal.centrifugo.api.BroadcastResponse
-	12,  // 228: centrifugal.centrifugo.api.CentrifugoApi.Subscribe:output_type -> centrifugal.centrifugo.api.SubscribeResponse
-	18,  // 229: centrifugal.centrifugo.api.CentrifugoApi.Unsubscribe:output_type -> centrifugal.centrifugo.api.UnsubscribeResponse
-	22,  // 230: centrifugal.centrifugo.api.CentrifugoApi.Disconnect:output_type -> centrifugal.centrifugo.api.DisconnectResponse
-	25,  // 231: centrifugal.centrifugo.api.CentrifugoApi.Presence:output_type -> centrifugal.centrifugo.api.PresenceResponse
-	29,  // 232: centrifugal.centrifugo.api.CentrifugoApi.PresenceStats:output_type -> centrifugal.centrifugo.api.PresenceStatsResponse
-	33,  // 233: centrifugal.centrifugo.api.CentrifugoApi.History:output_type -> centrifugal.centrifugo.api.HistoryResponse
-	37,  // 234: centrifugal.centrifugo.api.CentrifugoApi.HistoryRemove:output_type -> centrifugal.centrifugo.api.HistoryRemoveResponse
-	40,  // 235: centrifugal.centrifugo.api.CentrifugoApi.Info:output_type -> centrifugal.centrifugo.api.InfoResponse
-	43,  // 236: centrifugal.centrifugo.api.CentrifugoApi.RPC:output_type -> centrifugal.centrifugo.api.RPCResponse
-	46,  // 237: centrifugal.centrifugo.api.CentrifugoApi.Refresh:output_type -> centrifugal.centrifugo.api.RefreshResponse
-	52,  // 238: centrifugal.centrifugo.api.CentrifugoApi.Channels:output_type -> centrifugal.centrifugo.api.ChannelsResponse
-	56,  // 239: centrifugal.centrifugo.api.CentrifugoApi.Connections:output_type -> centrifugal.centrifugo.api.ConnectionsResponse
-	64,  // 240: centrifugal.centrifugo.api.CentrifugoApi.UpdateUserStatus:output_type -> centrifugal.centrifugo.api.UpdateUserStatusResponse
-	67,  // 241: centrifugal.centrifugo.api.CentrifugoApi.GetUserStatus:output_type -> centrifugal.centrifugo.api.GetUserStatusResponse
-	71,  // 242: centrifugal.centrifugo.api.CentrifugoApi.DeleteUserStatus:output_type -> centrifugal.centrifugo.api.DeleteUserStatusResponse
-	75,  // 243: centrifugal.centrifugo.api.CentrifugoApi.BlockUser:output_type -> centrifugal.centrifugo.api.BlockUserResponse
-	78,  // 244: centrifugal.centrifugo.api.CentrifugoApi.UnblockUser:output_type -> centrifugal.centrifugo.api.UnblockUserResponse
-	81,  // 245: centrifugal.centrifugo.api.CentrifugoApi.RevokeToken:output_type -> centrifugal.centrifugo.api.RevokeTokenResponse
-	84,  // 246: centrifugal.centrifugo.api.CentrifugoApi.InvalidateUserTokens:output_type -> centrifugal.centrifugo.api.InvalidateUserTokensResponse
-	101, // 247: centrifugal.centrifugo.api.CentrifugoApi.DeviceRegister:output_type -> centrifugal.centrifugo.api.DeviceRegisterResponse
-	102, // 248: centrifugal.centrifugo.api.CentrifugoApi.DeviceUpdate:output_type -> centrifugal.centrifugo.api.DeviceUpdateResponse
-	103, // 249: centrifugal.centrifugo.api.CentrifugoApi.DeviceRemove:output_type -> centrifugal.centrifugo.api.DeviceRemoveResponse
-	104, // 250: centrifugal.centrifugo.api.CentrifugoApi.DeviceList:output_type -> centrifugal.centrifugo.api.DeviceListResponse
-	105, // 251: centrifugal.centrifugo.api.CentrifugoApi.DeviceTopicList:output_type -> centrifugal.centrifugo.api.DeviceTopicListResponse
-	107, // 252: centrifugal.centrifugo.api.CentrifugoApi.DeviceTopicUpdate:output_type -> centrifugal.centrifugo.api.DeviceTopicUpdateResponse
-	106, // 253: centrifugal.centrifugo.api.CentrifugoApi.UserTopicList:output_type -> centrifugal.centrifugo.api.UserTopicListResponse
-	108, // 254: centrifugal.centrifugo.api.CentrifugoApi.UserTopicUpdate:output_type -> centrifugal.centrifugo.api.UserTopicUpdateResponse
-	131, // 255: centrifugal.centrifugo.api.CentrifugoApi.SendPushNotification:output_type -> centrifugal.centrifugo.api.SendPushNotificationResponse
-	134, // 256: centrifugal.centrifugo.api.CentrifugoApi.UpdatePushStatus:output_type -> centrifugal.centrifugo.api.UpdatePushStatusResponse
-	137, // 257: centrifugal.centrifugo.api.CentrifugoApi.CancelPush:output_type -> centrifugal.centrifugo.api.CancelPushResponse
-	225, // [225:258] is the sub-list for method output_type
-	192, // [192:225] is the sub-list for method input_type
-	192, // [192:192] is the sub-list for extension type_name
-	192, // [192:192] is the sub-list for extension extendee
-	0,   // [0:192] is the sub-list for field type_name
+	139, // 32: centrifugal.centrifugo.api.Command.map_publish:type_name -> centrifugal.centrifugo.api.MapPublishRequest
+	142, // 33: centrifugal.centrifugo.api.Command.map_remove:type_name -> centrifugal.centrifugo.api.MapRemoveRequest
+	145, // 34: centrifugal.centrifugo.api.Command.map_read_state:type_name -> centrifugal.centrifugo.api.MapReadStateRequest
+	149, // 35: centrifugal.centrifugo.api.Command.map_read_stream:type_name -> centrifugal.centrifugo.api.MapReadStreamRequest
+	152, // 36: centrifugal.centrifugo.api.Command.map_stats:type_name -> centrifugal.centrifugo.api.MapStatsRequest
+	155, // 37: centrifugal.centrifugo.api.Command.map_clear:type_name -> centrifugal.centrifugo.api.MapClearRequest
+	158, // 38: centrifugal.centrifugo.api.Command.shared_poll_publish:type_name -> centrifugal.centrifugo.api.SharedPollPublishRequest
+	1,   // 39: centrifugal.centrifugo.api.Reply.error:type_name -> centrifugal.centrifugo.api.Error
+	7,   // 40: centrifugal.centrifugo.api.Reply.publish:type_name -> centrifugal.centrifugo.api.PublishResult
+	10,  // 41: centrifugal.centrifugo.api.Reply.broadcast:type_name -> centrifugal.centrifugo.api.BroadcastResult
+	16,  // 42: centrifugal.centrifugo.api.Reply.subscribe:type_name -> centrifugal.centrifugo.api.SubscribeResult
+	19,  // 43: centrifugal.centrifugo.api.Reply.unsubscribe:type_name -> centrifugal.centrifugo.api.UnsubscribeResult
+	23,  // 44: centrifugal.centrifugo.api.Reply.disconnect:type_name -> centrifugal.centrifugo.api.DisconnectResult
+	27,  // 45: centrifugal.centrifugo.api.Reply.presence:type_name -> centrifugal.centrifugo.api.PresenceResult
+	30,  // 46: centrifugal.centrifugo.api.Reply.presence_stats:type_name -> centrifugal.centrifugo.api.PresenceStatsResult
+	35,  // 47: centrifugal.centrifugo.api.Reply.history:type_name -> centrifugal.centrifugo.api.HistoryResult
+	38,  // 48: centrifugal.centrifugo.api.Reply.history_remove:type_name -> centrifugal.centrifugo.api.HistoryRemoveResult
+	41,  // 49: centrifugal.centrifugo.api.Reply.info:type_name -> centrifugal.centrifugo.api.InfoResult
+	44,  // 50: centrifugal.centrifugo.api.Reply.rpc:type_name -> centrifugal.centrifugo.api.RPCResult
+	47,  // 51: centrifugal.centrifugo.api.Reply.refresh:type_name -> centrifugal.centrifugo.api.RefreshResult
+	53,  // 52: centrifugal.centrifugo.api.Reply.channels:type_name -> centrifugal.centrifugo.api.ChannelsResult
+	57,  // 53: centrifugal.centrifugo.api.Reply.connections:type_name -> centrifugal.centrifugo.api.ConnectionsResult
+	65,  // 54: centrifugal.centrifugo.api.Reply.update_user_status:type_name -> centrifugal.centrifugo.api.UpdateUserStatusResult
+	68,  // 55: centrifugal.centrifugo.api.Reply.get_user_status:type_name -> centrifugal.centrifugo.api.GetUserStatusResult
+	72,  // 56: centrifugal.centrifugo.api.Reply.delete_user_status:type_name -> centrifugal.centrifugo.api.DeleteUserStatusResult
+	74,  // 57: centrifugal.centrifugo.api.Reply.block_user:type_name -> centrifugal.centrifugo.api.BlockUserResult
+	77,  // 58: centrifugal.centrifugo.api.Reply.unblock_user:type_name -> centrifugal.centrifugo.api.UnblockUserResult
+	80,  // 59: centrifugal.centrifugo.api.Reply.revoke_token:type_name -> centrifugal.centrifugo.api.RevokeTokenResult
+	83,  // 60: centrifugal.centrifugo.api.Reply.invalidate_user_tokens:type_name -> centrifugal.centrifugo.api.InvalidateUserTokensResult
+	109, // 61: centrifugal.centrifugo.api.Reply.device_register:type_name -> centrifugal.centrifugo.api.DeviceRegisterResult
+	110, // 62: centrifugal.centrifugo.api.Reply.device_update:type_name -> centrifugal.centrifugo.api.DeviceUpdateResult
+	111, // 63: centrifugal.centrifugo.api.Reply.device_remove:type_name -> centrifugal.centrifugo.api.DeviceRemoveResult
+	112, // 64: centrifugal.centrifugo.api.Reply.device_list:type_name -> centrifugal.centrifugo.api.DeviceListResult
+	114, // 65: centrifugal.centrifugo.api.Reply.device_topic_list:type_name -> centrifugal.centrifugo.api.DeviceTopicListResult
+	117, // 66: centrifugal.centrifugo.api.Reply.device_topic_update:type_name -> centrifugal.centrifugo.api.DeviceTopicUpdateResult
+	116, // 67: centrifugal.centrifugo.api.Reply.user_topic_list:type_name -> centrifugal.centrifugo.api.UserTopicListResult
+	118, // 68: centrifugal.centrifugo.api.Reply.user_topic_update:type_name -> centrifugal.centrifugo.api.UserTopicUpdateResult
+	132, // 69: centrifugal.centrifugo.api.Reply.send_push_notification:type_name -> centrifugal.centrifugo.api.SendPushNotificationResult
+	135, // 70: centrifugal.centrifugo.api.Reply.update_push_status:type_name -> centrifugal.centrifugo.api.UpdatePushStatusResult
+	138, // 71: centrifugal.centrifugo.api.Reply.cancel_push:type_name -> centrifugal.centrifugo.api.CancelPushResult
+	141, // 72: centrifugal.centrifugo.api.Reply.map_publish:type_name -> centrifugal.centrifugo.api.MapPublishResult
+	144, // 73: centrifugal.centrifugo.api.Reply.map_remove:type_name -> centrifugal.centrifugo.api.MapRemoveResult
+	147, // 74: centrifugal.centrifugo.api.Reply.map_read_state:type_name -> centrifugal.centrifugo.api.MapReadStateResult
+	151, // 75: centrifugal.centrifugo.api.Reply.map_read_stream:type_name -> centrifugal.centrifugo.api.MapReadStreamResult
+	154, // 76: centrifugal.centrifugo.api.Reply.map_stats:type_name -> centrifugal.centrifugo.api.MapStatsResult
+	157, // 77: centrifugal.centrifugo.api.Reply.map_clear:type_name -> centrifugal.centrifugo.api.MapClearResult
+	160, // 78: centrifugal.centrifugo.api.Reply.shared_poll_publish:type_name -> centrifugal.centrifugo.api.SharedPollPublishResult
+	0,   // 79: centrifugal.centrifugo.api.BatchRequest.commands:type_name -> centrifugal.centrifugo.api.Command
+	2,   // 80: centrifugal.centrifugo.api.BatchResponse.replies:type_name -> centrifugal.centrifugo.api.Reply
+	161, // 81: centrifugal.centrifugo.api.PublishRequest.tags:type_name -> centrifugal.centrifugo.api.PublishRequest.TagsEntry
+	1,   // 82: centrifugal.centrifugo.api.PublishResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	7,   // 83: centrifugal.centrifugo.api.PublishResponse.result:type_name -> centrifugal.centrifugo.api.PublishResult
+	162, // 84: centrifugal.centrifugo.api.BroadcastRequest.tags:type_name -> centrifugal.centrifugo.api.BroadcastRequest.TagsEntry
+	1,   // 85: centrifugal.centrifugo.api.BroadcastResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	10,  // 86: centrifugal.centrifugo.api.BroadcastResponse.result:type_name -> centrifugal.centrifugo.api.BroadcastResult
+	6,   // 87: centrifugal.centrifugo.api.BroadcastResult.responses:type_name -> centrifugal.centrifugo.api.PublishResponse
+	31,  // 88: centrifugal.centrifugo.api.SubscribeRequest.recover_since:type_name -> centrifugal.centrifugo.api.StreamPosition
+	15,  // 89: centrifugal.centrifugo.api.SubscribeRequest.override:type_name -> centrifugal.centrifugo.api.SubscribeOptionOverride
+	1,   // 90: centrifugal.centrifugo.api.SubscribeResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	16,  // 91: centrifugal.centrifugo.api.SubscribeResponse.result:type_name -> centrifugal.centrifugo.api.SubscribeResult
+	13,  // 92: centrifugal.centrifugo.api.SubscribeOptionOverride.presence:type_name -> centrifugal.centrifugo.api.BoolValue
+	13,  // 93: centrifugal.centrifugo.api.SubscribeOptionOverride.join_leave:type_name -> centrifugal.centrifugo.api.BoolValue
+	13,  // 94: centrifugal.centrifugo.api.SubscribeOptionOverride.force_recovery:type_name -> centrifugal.centrifugo.api.BoolValue
+	13,  // 95: centrifugal.centrifugo.api.SubscribeOptionOverride.force_positioning:type_name -> centrifugal.centrifugo.api.BoolValue
+	13,  // 96: centrifugal.centrifugo.api.SubscribeOptionOverride.force_push_join_leave:type_name -> centrifugal.centrifugo.api.BoolValue
+	1,   // 97: centrifugal.centrifugo.api.UnsubscribeResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	19,  // 98: centrifugal.centrifugo.api.UnsubscribeResponse.result:type_name -> centrifugal.centrifugo.api.UnsubscribeResult
+	20,  // 99: centrifugal.centrifugo.api.DisconnectRequest.disconnect:type_name -> centrifugal.centrifugo.api.Disconnect
+	1,   // 100: centrifugal.centrifugo.api.DisconnectResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	23,  // 101: centrifugal.centrifugo.api.DisconnectResponse.result:type_name -> centrifugal.centrifugo.api.DisconnectResult
+	1,   // 102: centrifugal.centrifugo.api.PresenceResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	27,  // 103: centrifugal.centrifugo.api.PresenceResponse.result:type_name -> centrifugal.centrifugo.api.PresenceResult
+	163, // 104: centrifugal.centrifugo.api.PresenceResult.presence:type_name -> centrifugal.centrifugo.api.PresenceResult.PresenceEntry
+	1,   // 105: centrifugal.centrifugo.api.PresenceStatsResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	30,  // 106: centrifugal.centrifugo.api.PresenceStatsResponse.result:type_name -> centrifugal.centrifugo.api.PresenceStatsResult
+	31,  // 107: centrifugal.centrifugo.api.HistoryRequest.since:type_name -> centrifugal.centrifugo.api.StreamPosition
+	1,   // 108: centrifugal.centrifugo.api.HistoryResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	35,  // 109: centrifugal.centrifugo.api.HistoryResponse.result:type_name -> centrifugal.centrifugo.api.HistoryResult
+	26,  // 110: centrifugal.centrifugo.api.Publication.info:type_name -> centrifugal.centrifugo.api.ClientInfo
+	164, // 111: centrifugal.centrifugo.api.Publication.tags:type_name -> centrifugal.centrifugo.api.Publication.TagsEntry
+	34,  // 112: centrifugal.centrifugo.api.HistoryResult.publications:type_name -> centrifugal.centrifugo.api.Publication
+	1,   // 113: centrifugal.centrifugo.api.HistoryRemoveResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	38,  // 114: centrifugal.centrifugo.api.HistoryRemoveResponse.result:type_name -> centrifugal.centrifugo.api.HistoryRemoveResult
+	1,   // 115: centrifugal.centrifugo.api.InfoResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	41,  // 116: centrifugal.centrifugo.api.InfoResponse.result:type_name -> centrifugal.centrifugo.api.InfoResult
+	48,  // 117: centrifugal.centrifugo.api.InfoResult.nodes:type_name -> centrifugal.centrifugo.api.NodeResult
+	1,   // 118: centrifugal.centrifugo.api.RPCResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	44,  // 119: centrifugal.centrifugo.api.RPCResponse.result:type_name -> centrifugal.centrifugo.api.RPCResult
+	1,   // 120: centrifugal.centrifugo.api.RefreshResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	47,  // 121: centrifugal.centrifugo.api.RefreshResponse.result:type_name -> centrifugal.centrifugo.api.RefreshResult
+	49,  // 122: centrifugal.centrifugo.api.NodeResult.metrics:type_name -> centrifugal.centrifugo.api.Metrics
+	50,  // 123: centrifugal.centrifugo.api.NodeResult.process:type_name -> centrifugal.centrifugo.api.Process
+	165, // 124: centrifugal.centrifugo.api.Metrics.items:type_name -> centrifugal.centrifugo.api.Metrics.ItemsEntry
+	1,   // 125: centrifugal.centrifugo.api.ChannelsResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	53,  // 126: centrifugal.centrifugo.api.ChannelsResponse.result:type_name -> centrifugal.centrifugo.api.ChannelsResult
+	166, // 127: centrifugal.centrifugo.api.ChannelsResult.channels:type_name -> centrifugal.centrifugo.api.ChannelsResult.ChannelsEntry
+	1,   // 128: centrifugal.centrifugo.api.ConnectionsResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	57,  // 129: centrifugal.centrifugo.api.ConnectionsResponse.result:type_name -> centrifugal.centrifugo.api.ConnectionsResult
+	167, // 130: centrifugal.centrifugo.api.ConnectionsResult.connections:type_name -> centrifugal.centrifugo.api.ConnectionsResult.ConnectionsEntry
+	59,  // 131: centrifugal.centrifugo.api.ConnectionInfo.state:type_name -> centrifugal.centrifugo.api.ConnectionState
+	168, // 132: centrifugal.centrifugo.api.ConnectionState.channels:type_name -> centrifugal.centrifugo.api.ConnectionState.ChannelsEntry
+	61,  // 133: centrifugal.centrifugo.api.ConnectionState.connection_token:type_name -> centrifugal.centrifugo.api.ConnectionTokenInfo
+	169, // 134: centrifugal.centrifugo.api.ConnectionState.subscription_tokens:type_name -> centrifugal.centrifugo.api.ConnectionState.SubscriptionTokensEntry
+	1,   // 135: centrifugal.centrifugo.api.UpdateUserStatusResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	65,  // 136: centrifugal.centrifugo.api.UpdateUserStatusResponse.result:type_name -> centrifugal.centrifugo.api.UpdateUserStatusResult
+	1,   // 137: centrifugal.centrifugo.api.GetUserStatusResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	68,  // 138: centrifugal.centrifugo.api.GetUserStatusResponse.result:type_name -> centrifugal.centrifugo.api.GetUserStatusResult
+	69,  // 139: centrifugal.centrifugo.api.GetUserStatusResult.statuses:type_name -> centrifugal.centrifugo.api.UserStatus
+	1,   // 140: centrifugal.centrifugo.api.DeleteUserStatusResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	72,  // 141: centrifugal.centrifugo.api.DeleteUserStatusResponse.result:type_name -> centrifugal.centrifugo.api.DeleteUserStatusResult
+	1,   // 142: centrifugal.centrifugo.api.BlockUserResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	74,  // 143: centrifugal.centrifugo.api.BlockUserResponse.result:type_name -> centrifugal.centrifugo.api.BlockUserResult
+	1,   // 144: centrifugal.centrifugo.api.UnblockUserResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	77,  // 145: centrifugal.centrifugo.api.UnblockUserResponse.result:type_name -> centrifugal.centrifugo.api.UnblockUserResult
+	1,   // 146: centrifugal.centrifugo.api.RevokeTokenResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	80,  // 147: centrifugal.centrifugo.api.RevokeTokenResponse.result:type_name -> centrifugal.centrifugo.api.RevokeTokenResult
+	1,   // 148: centrifugal.centrifugo.api.InvalidateUserTokensResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	83,  // 149: centrifugal.centrifugo.api.InvalidateUserTokensResponse.result:type_name -> centrifugal.centrifugo.api.InvalidateUserTokensResult
+	170, // 150: centrifugal.centrifugo.api.DeviceRegisterRequest.meta:type_name -> centrifugal.centrifugo.api.DeviceRegisterRequest.MetaEntry
+	88,  // 151: centrifugal.centrifugo.api.DeviceUpdateRequest.user_update:type_name -> centrifugal.centrifugo.api.DeviceUserUpdate
+	91,  // 152: centrifugal.centrifugo.api.DeviceUpdateRequest.meta_update:type_name -> centrifugal.centrifugo.api.DeviceMetaUpdate
+	92,  // 153: centrifugal.centrifugo.api.DeviceUpdateRequest.topics_update:type_name -> centrifugal.centrifugo.api.DeviceTopicsUpdate
+	89,  // 154: centrifugal.centrifugo.api.DeviceUpdateRequest.timezone_update:type_name -> centrifugal.centrifugo.api.DeviceTimezoneUpdate
+	90,  // 155: centrifugal.centrifugo.api.DeviceUpdateRequest.locale_update:type_name -> centrifugal.centrifugo.api.DeviceLocaleUpdate
+	171, // 156: centrifugal.centrifugo.api.DeviceMetaUpdate.meta:type_name -> centrifugal.centrifugo.api.DeviceMetaUpdate.MetaEntry
+	93,  // 157: centrifugal.centrifugo.api.DeviceListRequest.filter:type_name -> centrifugal.centrifugo.api.DeviceFilter
+	95,  // 158: centrifugal.centrifugo.api.DeviceTopicListRequest.filter:type_name -> centrifugal.centrifugo.api.DeviceTopicFilter
+	97,  // 159: centrifugal.centrifugo.api.UserTopicListRequest.filter:type_name -> centrifugal.centrifugo.api.UserTopicFilter
+	1,   // 160: centrifugal.centrifugo.api.DeviceRegisterResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	109, // 161: centrifugal.centrifugo.api.DeviceRegisterResponse.result:type_name -> centrifugal.centrifugo.api.DeviceRegisterResult
+	1,   // 162: centrifugal.centrifugo.api.DeviceUpdateResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	110, // 163: centrifugal.centrifugo.api.DeviceUpdateResponse.result:type_name -> centrifugal.centrifugo.api.DeviceUpdateResult
+	1,   // 164: centrifugal.centrifugo.api.DeviceRemoveResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	111, // 165: centrifugal.centrifugo.api.DeviceRemoveResponse.result:type_name -> centrifugal.centrifugo.api.DeviceRemoveResult
+	1,   // 166: centrifugal.centrifugo.api.DeviceListResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	112, // 167: centrifugal.centrifugo.api.DeviceListResponse.result:type_name -> centrifugal.centrifugo.api.DeviceListResult
+	1,   // 168: centrifugal.centrifugo.api.DeviceTopicListResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	114, // 169: centrifugal.centrifugo.api.DeviceTopicListResponse.result:type_name -> centrifugal.centrifugo.api.DeviceTopicListResult
+	1,   // 170: centrifugal.centrifugo.api.UserTopicListResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	116, // 171: centrifugal.centrifugo.api.UserTopicListResponse.result:type_name -> centrifugal.centrifugo.api.UserTopicListResult
+	1,   // 172: centrifugal.centrifugo.api.DeviceTopicUpdateResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	117, // 173: centrifugal.centrifugo.api.DeviceTopicUpdateResponse.result:type_name -> centrifugal.centrifugo.api.DeviceTopicUpdateResult
+	1,   // 174: centrifugal.centrifugo.api.UserTopicUpdateResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	118, // 175: centrifugal.centrifugo.api.UserTopicUpdateResponse.result:type_name -> centrifugal.centrifugo.api.UserTopicUpdateResult
+	113, // 176: centrifugal.centrifugo.api.DeviceListResult.items:type_name -> centrifugal.centrifugo.api.Device
+	172, // 177: centrifugal.centrifugo.api.Device.meta:type_name -> centrifugal.centrifugo.api.Device.MetaEntry
+	115, // 178: centrifugal.centrifugo.api.DeviceTopicListResult.items:type_name -> centrifugal.centrifugo.api.DeviceTopic
+	113, // 179: centrifugal.centrifugo.api.DeviceTopic.device:type_name -> centrifugal.centrifugo.api.Device
+	119, // 180: centrifugal.centrifugo.api.UserTopicListResult.items:type_name -> centrifugal.centrifugo.api.UserTopic
+	93,  // 181: centrifugal.centrifugo.api.PushRecipient.filter:type_name -> centrifugal.centrifugo.api.DeviceFilter
+	122, // 182: centrifugal.centrifugo.api.PushNotification.fcm:type_name -> centrifugal.centrifugo.api.FcmPushNotification
+	123, // 183: centrifugal.centrifugo.api.PushNotification.hms:type_name -> centrifugal.centrifugo.api.HmsPushNotification
+	124, // 184: centrifugal.centrifugo.api.PushNotification.apns:type_name -> centrifugal.centrifugo.api.ApnsPushNotification
+	173, // 185: centrifugal.centrifugo.api.ApnsPushNotification.headers:type_name -> centrifugal.centrifugo.api.ApnsPushNotification.HeadersEntry
+	120, // 186: centrifugal.centrifugo.api.SendPushNotificationRequest.recipient:type_name -> centrifugal.centrifugo.api.PushRecipient
+	121, // 187: centrifugal.centrifugo.api.SendPushNotificationRequest.notification:type_name -> centrifugal.centrifugo.api.PushNotification
+	127, // 188: centrifugal.centrifugo.api.SendPushNotificationRequest.limit_strategy:type_name -> centrifugal.centrifugo.api.PushLimitStrategy
+	174, // 189: centrifugal.centrifugo.api.SendPushNotificationRequest.localizations:type_name -> centrifugal.centrifugo.api.SendPushNotificationRequest.LocalizationsEntry
+	175, // 190: centrifugal.centrifugo.api.PushLocalization.translations:type_name -> centrifugal.centrifugo.api.PushLocalization.TranslationsEntry
+	129, // 191: centrifugal.centrifugo.api.PushLimitStrategy.rate_limit:type_name -> centrifugal.centrifugo.api.PushRateLimitStrategy
+	128, // 192: centrifugal.centrifugo.api.PushLimitStrategy.time_limit:type_name -> centrifugal.centrifugo.api.PushTimeLimitStrategy
+	130, // 193: centrifugal.centrifugo.api.PushRateLimitStrategy.policies:type_name -> centrifugal.centrifugo.api.RateLimitPolicy
+	1,   // 194: centrifugal.centrifugo.api.SendPushNotificationResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	132, // 195: centrifugal.centrifugo.api.SendPushNotificationResponse.result:type_name -> centrifugal.centrifugo.api.SendPushNotificationResult
+	1,   // 196: centrifugal.centrifugo.api.UpdatePushStatusResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	135, // 197: centrifugal.centrifugo.api.UpdatePushStatusResponse.result:type_name -> centrifugal.centrifugo.api.UpdatePushStatusResult
+	1,   // 198: centrifugal.centrifugo.api.CancelPushResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	138, // 199: centrifugal.centrifugo.api.CancelPushResponse.result:type_name -> centrifugal.centrifugo.api.CancelPushResult
+	176, // 200: centrifugal.centrifugo.api.MapPublishRequest.tags:type_name -> centrifugal.centrifugo.api.MapPublishRequest.TagsEntry
+	1,   // 201: centrifugal.centrifugo.api.MapPublishResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	141, // 202: centrifugal.centrifugo.api.MapPublishResponse.result:type_name -> centrifugal.centrifugo.api.MapPublishResult
+	1,   // 203: centrifugal.centrifugo.api.MapRemoveResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	144, // 204: centrifugal.centrifugo.api.MapRemoveResponse.result:type_name -> centrifugal.centrifugo.api.MapRemoveResult
+	1,   // 205: centrifugal.centrifugo.api.MapReadStateResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	147, // 206: centrifugal.centrifugo.api.MapReadStateResponse.result:type_name -> centrifugal.centrifugo.api.MapReadStateResult
+	148, // 207: centrifugal.centrifugo.api.MapReadStateResult.entries:type_name -> centrifugal.centrifugo.api.MapEntry
+	177, // 208: centrifugal.centrifugo.api.MapEntry.tags:type_name -> centrifugal.centrifugo.api.MapEntry.TagsEntry
+	1,   // 209: centrifugal.centrifugo.api.MapReadStreamResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	151, // 210: centrifugal.centrifugo.api.MapReadStreamResponse.result:type_name -> centrifugal.centrifugo.api.MapReadStreamResult
+	148, // 211: centrifugal.centrifugo.api.MapReadStreamResult.entries:type_name -> centrifugal.centrifugo.api.MapEntry
+	1,   // 212: centrifugal.centrifugo.api.MapStatsResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	154, // 213: centrifugal.centrifugo.api.MapStatsResponse.result:type_name -> centrifugal.centrifugo.api.MapStatsResult
+	1,   // 214: centrifugal.centrifugo.api.MapClearResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	157, // 215: centrifugal.centrifugo.api.MapClearResponse.result:type_name -> centrifugal.centrifugo.api.MapClearResult
+	1,   // 216: centrifugal.centrifugo.api.SharedPollPublishResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	160, // 217: centrifugal.centrifugo.api.SharedPollPublishResponse.result:type_name -> centrifugal.centrifugo.api.SharedPollPublishResult
+	26,  // 218: centrifugal.centrifugo.api.PresenceResult.PresenceEntry.value:type_name -> centrifugal.centrifugo.api.ClientInfo
+	54,  // 219: centrifugal.centrifugo.api.ChannelsResult.ChannelsEntry.value:type_name -> centrifugal.centrifugo.api.ChannelInfo
+	58,  // 220: centrifugal.centrifugo.api.ConnectionsResult.ConnectionsEntry.value:type_name -> centrifugal.centrifugo.api.ConnectionInfo
+	60,  // 221: centrifugal.centrifugo.api.ConnectionState.ChannelsEntry.value:type_name -> centrifugal.centrifugo.api.ChannelContext
+	62,  // 222: centrifugal.centrifugo.api.ConnectionState.SubscriptionTokensEntry.value:type_name -> centrifugal.centrifugo.api.SubscriptionTokenInfo
+	126, // 223: centrifugal.centrifugo.api.SendPushNotificationRequest.LocalizationsEntry.value:type_name -> centrifugal.centrifugo.api.PushLocalization
+	3,   // 224: centrifugal.centrifugo.api.CentrifugoApi.Batch:input_type -> centrifugal.centrifugo.api.BatchRequest
+	5,   // 225: centrifugal.centrifugo.api.CentrifugoApi.Publish:input_type -> centrifugal.centrifugo.api.PublishRequest
+	8,   // 226: centrifugal.centrifugo.api.CentrifugoApi.Broadcast:input_type -> centrifugal.centrifugo.api.BroadcastRequest
+	11,  // 227: centrifugal.centrifugo.api.CentrifugoApi.Subscribe:input_type -> centrifugal.centrifugo.api.SubscribeRequest
+	17,  // 228: centrifugal.centrifugo.api.CentrifugoApi.Unsubscribe:input_type -> centrifugal.centrifugo.api.UnsubscribeRequest
+	21,  // 229: centrifugal.centrifugo.api.CentrifugoApi.Disconnect:input_type -> centrifugal.centrifugo.api.DisconnectRequest
+	24,  // 230: centrifugal.centrifugo.api.CentrifugoApi.Presence:input_type -> centrifugal.centrifugo.api.PresenceRequest
+	28,  // 231: centrifugal.centrifugo.api.CentrifugoApi.PresenceStats:input_type -> centrifugal.centrifugo.api.PresenceStatsRequest
+	32,  // 232: centrifugal.centrifugo.api.CentrifugoApi.History:input_type -> centrifugal.centrifugo.api.HistoryRequest
+	36,  // 233: centrifugal.centrifugo.api.CentrifugoApi.HistoryRemove:input_type -> centrifugal.centrifugo.api.HistoryRemoveRequest
+	39,  // 234: centrifugal.centrifugo.api.CentrifugoApi.Info:input_type -> centrifugal.centrifugo.api.InfoRequest
+	42,  // 235: centrifugal.centrifugo.api.CentrifugoApi.RPC:input_type -> centrifugal.centrifugo.api.RPCRequest
+	45,  // 236: centrifugal.centrifugo.api.CentrifugoApi.Refresh:input_type -> centrifugal.centrifugo.api.RefreshRequest
+	51,  // 237: centrifugal.centrifugo.api.CentrifugoApi.Channels:input_type -> centrifugal.centrifugo.api.ChannelsRequest
+	55,  // 238: centrifugal.centrifugo.api.CentrifugoApi.Connections:input_type -> centrifugal.centrifugo.api.ConnectionsRequest
+	63,  // 239: centrifugal.centrifugo.api.CentrifugoApi.UpdateUserStatus:input_type -> centrifugal.centrifugo.api.UpdateUserStatusRequest
+	66,  // 240: centrifugal.centrifugo.api.CentrifugoApi.GetUserStatus:input_type -> centrifugal.centrifugo.api.GetUserStatusRequest
+	70,  // 241: centrifugal.centrifugo.api.CentrifugoApi.DeleteUserStatus:input_type -> centrifugal.centrifugo.api.DeleteUserStatusRequest
+	73,  // 242: centrifugal.centrifugo.api.CentrifugoApi.BlockUser:input_type -> centrifugal.centrifugo.api.BlockUserRequest
+	76,  // 243: centrifugal.centrifugo.api.CentrifugoApi.UnblockUser:input_type -> centrifugal.centrifugo.api.UnblockUserRequest
+	79,  // 244: centrifugal.centrifugo.api.CentrifugoApi.RevokeToken:input_type -> centrifugal.centrifugo.api.RevokeTokenRequest
+	82,  // 245: centrifugal.centrifugo.api.CentrifugoApi.InvalidateUserTokens:input_type -> centrifugal.centrifugo.api.InvalidateUserTokensRequest
+	85,  // 246: centrifugal.centrifugo.api.CentrifugoApi.DeviceRegister:input_type -> centrifugal.centrifugo.api.DeviceRegisterRequest
+	86,  // 247: centrifugal.centrifugo.api.CentrifugoApi.DeviceUpdate:input_type -> centrifugal.centrifugo.api.DeviceUpdateRequest
+	87,  // 248: centrifugal.centrifugo.api.CentrifugoApi.DeviceRemove:input_type -> centrifugal.centrifugo.api.DeviceRemoveRequest
+	94,  // 249: centrifugal.centrifugo.api.CentrifugoApi.DeviceList:input_type -> centrifugal.centrifugo.api.DeviceListRequest
+	96,  // 250: centrifugal.centrifugo.api.CentrifugoApi.DeviceTopicList:input_type -> centrifugal.centrifugo.api.DeviceTopicListRequest
+	99,  // 251: centrifugal.centrifugo.api.CentrifugoApi.DeviceTopicUpdate:input_type -> centrifugal.centrifugo.api.DeviceTopicUpdateRequest
+	98,  // 252: centrifugal.centrifugo.api.CentrifugoApi.UserTopicList:input_type -> centrifugal.centrifugo.api.UserTopicListRequest
+	100, // 253: centrifugal.centrifugo.api.CentrifugoApi.UserTopicUpdate:input_type -> centrifugal.centrifugo.api.UserTopicUpdateRequest
+	125, // 254: centrifugal.centrifugo.api.CentrifugoApi.SendPushNotification:input_type -> centrifugal.centrifugo.api.SendPushNotificationRequest
+	133, // 255: centrifugal.centrifugo.api.CentrifugoApi.UpdatePushStatus:input_type -> centrifugal.centrifugo.api.UpdatePushStatusRequest
+	136, // 256: centrifugal.centrifugo.api.CentrifugoApi.CancelPush:input_type -> centrifugal.centrifugo.api.CancelPushRequest
+	139, // 257: centrifugal.centrifugo.api.CentrifugoApi.MapPublish:input_type -> centrifugal.centrifugo.api.MapPublishRequest
+	142, // 258: centrifugal.centrifugo.api.CentrifugoApi.MapRemove:input_type -> centrifugal.centrifugo.api.MapRemoveRequest
+	145, // 259: centrifugal.centrifugo.api.CentrifugoApi.MapReadState:input_type -> centrifugal.centrifugo.api.MapReadStateRequest
+	149, // 260: centrifugal.centrifugo.api.CentrifugoApi.MapReadStream:input_type -> centrifugal.centrifugo.api.MapReadStreamRequest
+	152, // 261: centrifugal.centrifugo.api.CentrifugoApi.MapStats:input_type -> centrifugal.centrifugo.api.MapStatsRequest
+	155, // 262: centrifugal.centrifugo.api.CentrifugoApi.MapClear:input_type -> centrifugal.centrifugo.api.MapClearRequest
+	158, // 263: centrifugal.centrifugo.api.CentrifugoApi.SharedPollPublish:input_type -> centrifugal.centrifugo.api.SharedPollPublishRequest
+	4,   // 264: centrifugal.centrifugo.api.CentrifugoApi.Batch:output_type -> centrifugal.centrifugo.api.BatchResponse
+	6,   // 265: centrifugal.centrifugo.api.CentrifugoApi.Publish:output_type -> centrifugal.centrifugo.api.PublishResponse
+	9,   // 266: centrifugal.centrifugo.api.CentrifugoApi.Broadcast:output_type -> centrifugal.centrifugo.api.BroadcastResponse
+	12,  // 267: centrifugal.centrifugo.api.CentrifugoApi.Subscribe:output_type -> centrifugal.centrifugo.api.SubscribeResponse
+	18,  // 268: centrifugal.centrifugo.api.CentrifugoApi.Unsubscribe:output_type -> centrifugal.centrifugo.api.UnsubscribeResponse
+	22,  // 269: centrifugal.centrifugo.api.CentrifugoApi.Disconnect:output_type -> centrifugal.centrifugo.api.DisconnectResponse
+	25,  // 270: centrifugal.centrifugo.api.CentrifugoApi.Presence:output_type -> centrifugal.centrifugo.api.PresenceResponse
+	29,  // 271: centrifugal.centrifugo.api.CentrifugoApi.PresenceStats:output_type -> centrifugal.centrifugo.api.PresenceStatsResponse
+	33,  // 272: centrifugal.centrifugo.api.CentrifugoApi.History:output_type -> centrifugal.centrifugo.api.HistoryResponse
+	37,  // 273: centrifugal.centrifugo.api.CentrifugoApi.HistoryRemove:output_type -> centrifugal.centrifugo.api.HistoryRemoveResponse
+	40,  // 274: centrifugal.centrifugo.api.CentrifugoApi.Info:output_type -> centrifugal.centrifugo.api.InfoResponse
+	43,  // 275: centrifugal.centrifugo.api.CentrifugoApi.RPC:output_type -> centrifugal.centrifugo.api.RPCResponse
+	46,  // 276: centrifugal.centrifugo.api.CentrifugoApi.Refresh:output_type -> centrifugal.centrifugo.api.RefreshResponse
+	52,  // 277: centrifugal.centrifugo.api.CentrifugoApi.Channels:output_type -> centrifugal.centrifugo.api.ChannelsResponse
+	56,  // 278: centrifugal.centrifugo.api.CentrifugoApi.Connections:output_type -> centrifugal.centrifugo.api.ConnectionsResponse
+	64,  // 279: centrifugal.centrifugo.api.CentrifugoApi.UpdateUserStatus:output_type -> centrifugal.centrifugo.api.UpdateUserStatusResponse
+	67,  // 280: centrifugal.centrifugo.api.CentrifugoApi.GetUserStatus:output_type -> centrifugal.centrifugo.api.GetUserStatusResponse
+	71,  // 281: centrifugal.centrifugo.api.CentrifugoApi.DeleteUserStatus:output_type -> centrifugal.centrifugo.api.DeleteUserStatusResponse
+	75,  // 282: centrifugal.centrifugo.api.CentrifugoApi.BlockUser:output_type -> centrifugal.centrifugo.api.BlockUserResponse
+	78,  // 283: centrifugal.centrifugo.api.CentrifugoApi.UnblockUser:output_type -> centrifugal.centrifugo.api.UnblockUserResponse
+	81,  // 284: centrifugal.centrifugo.api.CentrifugoApi.RevokeToken:output_type -> centrifugal.centrifugo.api.RevokeTokenResponse
+	84,  // 285: centrifugal.centrifugo.api.CentrifugoApi.InvalidateUserTokens:output_type -> centrifugal.centrifugo.api.InvalidateUserTokensResponse
+	101, // 286: centrifugal.centrifugo.api.CentrifugoApi.DeviceRegister:output_type -> centrifugal.centrifugo.api.DeviceRegisterResponse
+	102, // 287: centrifugal.centrifugo.api.CentrifugoApi.DeviceUpdate:output_type -> centrifugal.centrifugo.api.DeviceUpdateResponse
+	103, // 288: centrifugal.centrifugo.api.CentrifugoApi.DeviceRemove:output_type -> centrifugal.centrifugo.api.DeviceRemoveResponse
+	104, // 289: centrifugal.centrifugo.api.CentrifugoApi.DeviceList:output_type -> centrifugal.centrifugo.api.DeviceListResponse
+	105, // 290: centrifugal.centrifugo.api.CentrifugoApi.DeviceTopicList:output_type -> centrifugal.centrifugo.api.DeviceTopicListResponse
+	107, // 291: centrifugal.centrifugo.api.CentrifugoApi.DeviceTopicUpdate:output_type -> centrifugal.centrifugo.api.DeviceTopicUpdateResponse
+	106, // 292: centrifugal.centrifugo.api.CentrifugoApi.UserTopicList:output_type -> centrifugal.centrifugo.api.UserTopicListResponse
+	108, // 293: centrifugal.centrifugo.api.CentrifugoApi.UserTopicUpdate:output_type -> centrifugal.centrifugo.api.UserTopicUpdateResponse
+	131, // 294: centrifugal.centrifugo.api.CentrifugoApi.SendPushNotification:output_type -> centrifugal.centrifugo.api.SendPushNotificationResponse
+	134, // 295: centrifugal.centrifugo.api.CentrifugoApi.UpdatePushStatus:output_type -> centrifugal.centrifugo.api.UpdatePushStatusResponse
+	137, // 296: centrifugal.centrifugo.api.CentrifugoApi.CancelPush:output_type -> centrifugal.centrifugo.api.CancelPushResponse
+	140, // 297: centrifugal.centrifugo.api.CentrifugoApi.MapPublish:output_type -> centrifugal.centrifugo.api.MapPublishResponse
+	143, // 298: centrifugal.centrifugo.api.CentrifugoApi.MapRemove:output_type -> centrifugal.centrifugo.api.MapRemoveResponse
+	146, // 299: centrifugal.centrifugo.api.CentrifugoApi.MapReadState:output_type -> centrifugal.centrifugo.api.MapReadStateResponse
+	150, // 300: centrifugal.centrifugo.api.CentrifugoApi.MapReadStream:output_type -> centrifugal.centrifugo.api.MapReadStreamResponse
+	153, // 301: centrifugal.centrifugo.api.CentrifugoApi.MapStats:output_type -> centrifugal.centrifugo.api.MapStatsResponse
+	156, // 302: centrifugal.centrifugo.api.CentrifugoApi.MapClear:output_type -> centrifugal.centrifugo.api.MapClearResponse
+	159, // 303: centrifugal.centrifugo.api.CentrifugoApi.SharedPollPublish:output_type -> centrifugal.centrifugo.api.SharedPollPublishResponse
+	264, // [264:304] is the sub-list for method output_type
+	224, // [224:264] is the sub-list for method input_type
+	224, // [224:224] is the sub-list for extension type_name
+	224, // [224:224] is the sub-list for extension extendee
+	0,   // [0:224] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_init() }
@@ -9362,7 +11054,7 @@ func file_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_rawDesc), len(file_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   154,
+			NumMessages:   178,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

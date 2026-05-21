@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sync"
+	"time"
 	"unicode"
 
 	"github.com/centrifugal/centrifugo/v6/internal/clientcontext"
@@ -25,13 +27,16 @@ type RPCExtensionFunc func(c Client, e centrifuge.RPCEvent) (centrifuge.RPCReply
 // ProxyMap is a structure which contains all configured and already initialized
 // proxies which can be used from inside client event handlers.
 type ProxyMap struct {
-	ConnectProxy           proxy.ConnectProxy
-	RefreshProxy           proxy.RefreshProxy
-	RpcProxies             map[string]proxy.RPCProxy
-	PublishProxies         map[string]proxy.PublishProxy
-	SubscribeProxies       map[string]proxy.SubscribeProxy
-	SubRefreshProxies      map[string]proxy.SubRefreshProxy
-	SubscribeStreamProxies map[string]*proxy.SubscribeStreamProxy
+	ConnectProxy             proxy.ConnectProxy
+	RefreshProxy             proxy.RefreshProxy
+	RpcProxies               map[string]proxy.RPCProxy
+	PublishProxies           map[string]proxy.PublishProxy
+	SubscribeProxies         map[string]proxy.SubscribeProxy
+	SubRefreshProxies        map[string]proxy.SubRefreshProxy
+	SubscribeStreamProxies   map[string]*proxy.SubscribeStreamProxy
+	MapPublishProxies        map[string]proxy.MapPublishProxy
+	MapRemoveProxies         map[string]proxy.MapRemoveProxy
+	SharedPollRefreshProxies map[string]*proxy.SharedPollRefreshHandler
 }
 
 // Handler for client connections.
@@ -42,6 +47,12 @@ type Handler struct {
 	subTokenVerifier *jwtverify.VerifierJWT
 	proxyMap         *ProxyMap
 	rpcExtension     map[string]RPCExtensionFunc
+
+	trackSigMu              sync.RWMutex
+	trackSigVerifier        *trackSignatureVerifier
+	trackSigVerifierKey     string
+	trackSigPrevVerifier    *trackSignatureVerifier
+	trackSigPrevVerifierKey string
 }
 
 // NewHandler creates new Handler.
@@ -126,6 +137,44 @@ func (h *Handler) Setup() error {
 		}).Handle()
 	}
 
+	var mapPublishProxyHandler proxy.MapPublishHandlerFunc
+	if len(h.proxyMap.MapPublishProxies) > 0 {
+		mapPublishProxyHandler = proxy.NewMapPublishHandler(proxy.MapPublishHandlerConfig{
+			Proxies: h.proxyMap.MapPublishProxies,
+		}).Handle(h.node)
+	}
+
+	var mapRemoveProxyHandler proxy.MapRemoveHandlerFunc
+	if len(h.proxyMap.MapRemoveProxies) > 0 {
+		mapRemoveProxyHandler = proxy.NewMapRemoveHandler(proxy.MapRemoveHandlerConfig{
+			Proxies: h.proxyMap.MapRemoveProxies,
+		}).Handle(h.node)
+	}
+
+	// Wire shared poll refresh proxy handlers with per-namespace dispatch.
+	if len(h.proxyMap.SharedPollRefreshProxies) > 0 {
+		handlers := make(map[string]centrifuge.SharedPollHandler, len(h.proxyMap.SharedPollRefreshProxies))
+		for name, handler := range h.proxyMap.SharedPollRefreshProxies {
+			handlers[name] = handler.Handle(h.node)
+		}
+		cfgContainer := h.cfgContainer
+		h.node.OnSharedPoll(func(ctx context.Context, event centrifuge.SharedPollEvent) (centrifuge.SharedPollResult, error) {
+			_, _, chOpts, found, err := cfgContainer.ChannelOptions(event.Channel)
+			if err != nil || !found {
+				return centrifuge.SharedPollResult{}, centrifuge.ErrorInternal
+			}
+			proxyName := chOpts.SharedPoll.ProxyName
+			if proxyName == "" {
+				proxyName = config.DefaultProxyName
+			}
+			handler, ok := handlers[proxyName]
+			if !ok {
+				return centrifuge.SharedPollResult{}, centrifuge.ErrorInternal
+			}
+			return handler(ctx, event)
+		})
+	}
+
 	cfg := h.cfgContainer.Config()
 	concurrency := cfg.Client.Concurrency
 
@@ -182,6 +231,27 @@ func (h *Handler) Setup() error {
 		client.OnPublish(func(event centrifuge.PublishEvent, cb centrifuge.PublishCallback) {
 			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
 				reply, err := h.OnPublish(client, event, publishProxyHandler)
+				cb(reply, err)
+			})
+		})
+
+		client.OnMapPublish(func(event centrifuge.MapPublishEvent, cb centrifuge.MapPublishCallback) {
+			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
+				reply, err := h.OnMapPublish(client, event, mapPublishProxyHandler)
+				cb(reply, err)
+			})
+		})
+
+		client.OnMapRemove(func(event centrifuge.MapRemoveEvent, cb centrifuge.MapRemoveCallback) {
+			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
+				reply, err := h.OnMapRemove(client, event, mapRemoveProxyHandler)
+				cb(reply, err)
+			})
+		})
+
+		client.OnTrack(func(event centrifuge.TrackEvent, cb centrifuge.TrackCallback) {
+			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
+				reply, err := h.OnTrack(client, event)
 				cb(reply, err)
 			})
 		})
@@ -602,6 +672,16 @@ func isASCII(s string) bool {
 	return true
 }
 
+// isSubscriptionTypeAllowed checks whether the given subscription type
+// matches the namespace's configured subscription_type.
+// When no type is configured, only stream subscriptions are allowed.
+func isSubscriptionTypeAllowed(subType centrifuge.SubscriptionType, configuredType string) bool {
+	if configuredType == "" {
+		return subType == centrifuge.SubscriptionTypeStream
+	}
+	return configuredType == subType.String()
+}
+
 func (h *Handler) validChannelName(rest string, chOpts configtypes.ChannelOptions, channel string) (bool, error) {
 	if chOpts.ChannelRegex != "" {
 		regex := chOpts.Compiled.CompiledChannelRegex
@@ -652,6 +732,11 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		return centrifuge.SubscribeReply{}, SubscribeExtra{}, err
 	}
 
+	if !isSubscriptionTypeAllowed(e.Type, chOpts.SubscriptionType) {
+		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("subscription type not allowed for namespace")
+		return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorPermissionDenied
+	}
+
 	var allowed bool
 
 	var options centrifuge.SubscribeOptions
@@ -665,6 +750,13 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	options.HistoryMetaTTL = chOpts.HistoryMetaTTL.ToDuration()
 	options.AllowedDeltaTypes = chOpts.AllowedDeltaTypes
 	options.AllowTagsFilter = chOpts.AllowTagsFilter
+	options.MapRemoveClientOnUnsubscribe = chOpts.Map.RemoveClientOnUnsubscribe
+	if chOpts.MapClientsPresenceChannelPrefix != "" {
+		options.MapClientPresenceChannel = chOpts.MapClientsPresenceChannelPrefix + e.Channel
+	}
+	if chOpts.MapUsersPresenceChannelPrefix != "" {
+		options.MapUserPresenceChannel = chOpts.MapUsersPresenceChannelPrefix + e.Channel
+	}
 
 	isPrivateChannel := h.cfgContainer.IsPrivateChannel(e.Channel)
 	isUserLimitedChannel := chOpts.UserLimitedChannels && h.cfgContainer.IsUserLimited(e.Channel)
@@ -760,6 +852,11 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		options.PushJoinLeave = true
 	}
 
+	// Set subscription type for map subscriptions.
+	if e.Type != centrifuge.SubscriptionTypeStream {
+		options.Type = e.Type
+	}
+
 	return centrifuge.SubscribeReply{
 		Options:           options,
 		ClientSideRefresh: !chOpts.SubRefreshProxyEnabled,
@@ -837,6 +934,222 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 		log.Error().Err(err).Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("error publishing message")
 	}
 	return centrifuge.PublishReply{Result: &result}, err
+}
+
+// OnMapPublish ...
+func (h *Handler) OnMapPublish(c Client, e centrifuge.MapPublishEvent, mapPublishProxyHandler proxy.MapPublishHandlerFunc) (centrifuge.MapPublishReply, error) {
+	cfg := h.cfgContainer.Config()
+
+	_, rest, chOpts, found, err := h.cfgContainer.ChannelOptions(e.Channel)
+	if err != nil {
+		log.Error().Err(err).Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("error getting channel options")
+		return centrifuge.MapPublishReply{}, err
+	}
+	if !found {
+		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("map publish unknown channel")
+		return centrifuge.MapPublishReply{}, centrifuge.ErrorUnknownChannel
+	}
+	if err = h.validateChannelName(c, rest, chOpts, e.Channel); err != nil {
+		return centrifuge.MapPublishReply{}, err
+	}
+
+	if chOpts.Map.PublishProxyEnabled {
+		if mapPublishProxyHandler == nil {
+			log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("map publish proxy not enabled")
+			return centrifuge.MapPublishReply{}, centrifuge.ErrorNotAvailable
+		}
+		return mapPublishProxyHandler(c, e, chOpts, getPerCallData(c))
+	}
+
+	var allowed bool
+	if chOpts.Map.AllowPublishForClient && (c.UserID() != "" || chOpts.Map.AllowPublishForAnonymous) {
+		allowed = true
+	} else if chOpts.Map.AllowPublishForSubscriber && c.IsSubscribed(e.Channel) && (c.UserID() != "" || chOpts.Map.AllowPublishForAnonymous) {
+		allowed = true
+	} else if cfg.Client.Insecure {
+		allowed = true
+	}
+
+	if !allowed {
+		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("attempt to map publish without sufficient permission")
+		return centrifuge.MapPublishReply{}, centrifuge.ErrorPermissionDenied
+	}
+
+	reply := centrifuge.MapPublishReply{}
+	if chOpts.DeltaPublish {
+		reply.Options.UseDelta = true
+	}
+	// The library no longer falls back to the client-supplied event key, so we
+	// always set reply.Key explicitly. For server-driven keying (client_id /
+	// user_id) we resolve to a server-known identifier; for the default we
+	// pass the client-supplied key through.
+	switch chOpts.Map.ClientKey {
+	case "client_id":
+		reply.Key = c.ID()
+	case "user_id":
+		// Anonymous users have no user ID — reject rather than silently
+		// allowing the client to pick the key.
+		if c.UserID() == "" {
+			log.Info().Str("channel", e.Channel).Str("client", c.ID()).Msg("map publish rejected: client_key=user_id but client is anonymous")
+			return centrifuge.MapPublishReply{}, centrifuge.ErrorPermissionDenied
+		}
+		reply.Key = c.UserID()
+	default:
+		reply.Key = e.Key
+	}
+
+	return reply, nil
+}
+
+// OnMapRemove ...
+func (h *Handler) OnMapRemove(c Client, e centrifuge.MapRemoveEvent, mapRemoveProxyHandler proxy.MapRemoveHandlerFunc) (centrifuge.MapRemoveReply, error) {
+	cfg := h.cfgContainer.Config()
+
+	_, rest, chOpts, found, err := h.cfgContainer.ChannelOptions(e.Channel)
+	if err != nil {
+		log.Error().Err(err).Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("error getting channel options")
+		return centrifuge.MapRemoveReply{}, err
+	}
+	if !found {
+		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("map remove unknown channel")
+		return centrifuge.MapRemoveReply{}, centrifuge.ErrorUnknownChannel
+	}
+	if err = h.validateChannelName(c, rest, chOpts, e.Channel); err != nil {
+		return centrifuge.MapRemoveReply{}, err
+	}
+
+	if chOpts.Map.RemoveProxyEnabled {
+		if mapRemoveProxyHandler == nil {
+			log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("map remove proxy not enabled")
+			return centrifuge.MapRemoveReply{}, centrifuge.ErrorNotAvailable
+		}
+		return mapRemoveProxyHandler(c, e, chOpts, getPerCallData(c))
+	}
+
+	var allowed bool
+	if chOpts.Map.AllowRemoveForClient && (c.UserID() != "" || chOpts.Map.AllowRemoveForAnonymous) {
+		allowed = true
+	} else if chOpts.Map.AllowRemoveForSubscriber && c.IsSubscribed(e.Channel) && (c.UserID() != "" || chOpts.Map.AllowRemoveForAnonymous) {
+		allowed = true
+	} else if cfg.Client.Insecure {
+		allowed = true
+	}
+
+	if !allowed {
+		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("attempt to map remove without sufficient permission")
+		return centrifuge.MapRemoveReply{}, centrifuge.ErrorPermissionDenied
+	}
+
+	reply := centrifuge.MapRemoveReply{}
+	// See OnMapPublish for the rationale — set reply.Key explicitly in all
+	// cases, reject anonymous when client_key: user_id.
+	switch chOpts.Map.ClientKey {
+	case "client_id":
+		reply.Key = c.ID()
+	case "user_id":
+		if c.UserID() == "" {
+			log.Info().Str("channel", e.Channel).Str("client", c.ID()).Msg("map remove rejected: client_key=user_id but client is anonymous")
+			return centrifuge.MapRemoveReply{}, centrifuge.ErrorPermissionDenied
+		}
+		reply.Key = c.UserID()
+	default:
+		reply.Key = e.Key
+	}
+
+	return reply, nil
+}
+
+// OnTrack handles track requests for shared poll channels. A request can
+// carry multiple signed batches (centrifuge-js packs every cached signature
+// into a single sub_refresh frame on reconnect replay) — every batch's
+// signature must verify independently or the whole request is rejected.
+func (h *Handler) OnTrack(c Client, e centrifuge.TrackEvent) (centrifuge.TrackReply, error) {
+	_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(e.Channel)
+	if err != nil {
+		log.Error().Err(err).Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("error getting channel options")
+		return centrifuge.TrackReply{}, err
+	}
+	if !found {
+		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("keyed track unknown channel")
+		return centrifuge.TrackReply{}, centrifuge.ErrorUnknownChannel
+	}
+	if chOpts.SubscriptionType != "shared_poll" {
+		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("keyed track not allowed for non-shared_poll channel")
+		return centrifuge.TrackReply{}, centrifuge.ErrorPermissionDenied
+	}
+
+	sharedPollCfg := h.cfgContainer.Config().SharedPoll
+	if sharedPollCfg.HMACSecretKey == "" {
+		log.Error().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("shared poll hmac_secret_key not configured")
+		return centrifuge.TrackReply{}, centrifuge.ErrorInternal
+	}
+
+	verifier, prevVerifier := h.getTrackSignatureVerifiers(sharedPollCfg)
+	now := time.Now().Unix()
+	batchReplies := make([]centrifuge.TrackBatchReply, len(e.Batches))
+	for i, b := range e.Batches {
+		keys := make([]string, len(b.Items))
+		for j, item := range b.Items {
+			keys[j] = item.Key
+		}
+		verified := verifier.verify(e.Channel, b.Signature, keys, c.UserID())
+		if !verified && prevVerifier != nil {
+			if sharedPollCfg.HMACPreviousSecretKeyValidUntil > 0 {
+				iat, _ := parseSignatureTimestamps(b.Signature)
+				if iat > sharedPollCfg.HMACPreviousSecretKeyValidUntil {
+					log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("track signature issued after previous secret key expiry")
+					return centrifuge.TrackReply{}, centrifuge.ErrorPermissionDenied
+				}
+			}
+			verified = prevVerifier.verify(e.Channel, b.Signature, keys, c.UserID())
+		}
+		if !verified {
+			log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("invalid track signature")
+			return centrifuge.TrackReply{}, centrifuge.ErrorPermissionDenied
+		}
+		_, expiry := parseSignatureTimestamps(b.Signature)
+		if expiry > 0 && expiry+gracePeriodSeconds < now {
+			log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("track signature expired")
+			return centrifuge.TrackReply{}, centrifuge.ErrorTokenExpired
+		}
+		batchReplies[i] = centrifuge.TrackBatchReply{ExpireAt: expiry}
+	}
+
+	return centrifuge.TrackReply{Batches: batchReplies}, nil
+}
+
+func (h *Handler) getTrackSignatureVerifiers(cfg configtypes.SharedPoll) (*trackSignatureVerifier, *trackSignatureVerifier) {
+	h.trackSigMu.RLock()
+	v := h.trackSigVerifier
+	vKey := h.trackSigVerifierKey
+	pv := h.trackSigPrevVerifier
+	pvKey := h.trackSigPrevVerifierKey
+	h.trackSigMu.RUnlock()
+
+	if vKey == cfg.HMACSecretKey && pvKey == cfg.HMACPreviousSecretKey {
+		return v, pv
+	}
+
+	h.trackSigMu.Lock()
+	defer h.trackSigMu.Unlock()
+	// Double-check after acquiring write lock.
+	if h.trackSigVerifierKey == cfg.HMACSecretKey && h.trackSigPrevVerifierKey == cfg.HMACPreviousSecretKey {
+		return h.trackSigVerifier, h.trackSigPrevVerifier
+	}
+	if h.trackSigVerifierKey != cfg.HMACSecretKey {
+		h.trackSigVerifier = newTrackSignatureVerifier(cfg.HMACSecretKey)
+		h.trackSigVerifierKey = cfg.HMACSecretKey
+	}
+	if cfg.HMACPreviousSecretKey != "" {
+		if h.trackSigPrevVerifierKey != cfg.HMACPreviousSecretKey {
+			h.trackSigPrevVerifier = newTrackSignatureVerifier(cfg.HMACPreviousSecretKey)
+			h.trackSigPrevVerifierKey = cfg.HMACPreviousSecretKey
+		}
+	} else {
+		h.trackSigPrevVerifier = nil
+		h.trackSigPrevVerifierKey = ""
+	}
+	return h.trackSigVerifier, h.trackSigPrevVerifier
 }
 
 func (h *Handler) hasAccessToPresence(c Client, channel string, chOpts configtypes.ChannelOptions, forceSubscribed bool) bool {

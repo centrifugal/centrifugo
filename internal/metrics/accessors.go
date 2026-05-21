@@ -24,8 +24,22 @@ var (
 	ConsumerErrorsTotal    *prometheus.CounterVec
 )
 
+// Shared poll proxy metrics - exported for use by proxy package
+var (
+	SharedPollProxyRequestItems  *prometheus.HistogramVec
+	SharedPollProxyResponseItems *prometheus.HistogramVec
+)
+
 // Middleware metrics - exported for use by middleware package
 var (
 	ConnLimitReached  prometheus.Counter
 	HTTPRequestsTotal *prometheus.CounterVec
+)
+
+// PostgreSQL broker metrics - exported for use by pgmapbroker and pgstreambroker.
+// Shared subsystem "pg_broker" with a "broker" label to distinguish map vs stream.
+var (
+	PGBrokerCleanupRowsDeletedTotal *prometheus.CounterVec
+	PGBrokerOutboxCursorLagSeconds  *prometheus.GaugeVec
+	PGBrokerPartitions              *prometheus.GaugeVec
 )

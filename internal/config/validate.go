@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
@@ -14,7 +15,7 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
-var knownBrokers = []string{"memory", "nats", "redis", "redisnats"}
+var knownBrokers = []string{"memory", "nats", "redis", "redisnats", "postgres"}
 
 // Validate validates config and returns error if problems found.
 func (c Config) Validate() error {
@@ -111,6 +112,26 @@ func (c Config) Validate() error {
 		return fmt.Errorf("namespace for user personal channel not found: %s", personalChannelNamespace)
 	}
 
+	// Validate that map presence channel prefix references point to existing namespaces with map type.
+	boundary := c.Channel.NamespaceBoundary
+	if boundary == "" {
+		boundary = ":"
+	}
+	for _, n := range c.Channel.Namespaces {
+		if n.MapClientsPresenceChannelPrefix != "" {
+			targetNs := strings.SplitN(n.MapClientsPresenceChannelPrefix+"x", boundary, 2)[0]
+			if !slices.Contains(nss, targetNs) {
+				return fmt.Errorf("namespace %s: map_clients_presence_channel_prefix %q resolves to namespace %q which does not exist", n.Name, n.MapClientsPresenceChannelPrefix, targetNs)
+			}
+		}
+		if n.MapUsersPresenceChannelPrefix != "" {
+			targetNs := strings.SplitN(n.MapUsersPresenceChannelPrefix+"x", boundary, 2)[0]
+			if !slices.Contains(nss, targetNs) {
+				return fmt.Errorf("namespace %s: map_users_presence_channel_prefix %q resolves to namespace %q which does not exist", n.Name, n.MapUsersPresenceChannelPrefix, targetNs)
+			}
+		}
+	}
+
 	rpcNss := make([]string, 0, len(c.RPC.Namespaces))
 	for _, n := range c.RPC.Namespaces {
 		if slices.Contains(rpcNss, n.Name) {
@@ -164,6 +185,12 @@ func (c Config) Validate() error {
 	}
 	if err := validateConnectCodeTransforms(c.UniHTTPStream.ConnectCodeToHTTPResponse.Transforms); err != nil {
 		return fmt.Errorf("in uni_http_stream.connect_code_to_http_status.transforms: %v", err)
+	}
+
+	// Map broker validation.
+	var knownMapBrokers = []string{"memory", "redis", "postgres"}
+	if !slices.Contains(knownMapBrokers, c.MapBroker.Type) {
+		return fmt.Errorf("unknown map broker type: %s", c.MapBroker.Type)
 	}
 
 	return nil
@@ -275,6 +302,193 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 		}
 	}
 
+	if c.Map.PublishProxyName != "" && !slices.Contains(proxyNames, c.Map.PublishProxyName) {
+		return fmt.Errorf("map publish proxy with name \"%s\" not found", c.Map.PublishProxyName)
+	}
+	if c.Map.PublishProxyEnabled && c.Map.PublishProxyName == DefaultProxyName {
+		if err := validateProxy("default", cfg.Channel.Proxy.MapPublish); err != nil {
+			return fmt.Errorf("in channel.proxy.map_publish: %v", err)
+		}
+	}
+
+	if c.Map.RemoveProxyName != "" && !slices.Contains(proxyNames, c.Map.RemoveProxyName) {
+		return fmt.Errorf("map remove proxy with name \"%s\" not found", c.Map.RemoveProxyName)
+	}
+	if c.Map.RemoveProxyEnabled && c.Map.RemoveProxyName == DefaultProxyName {
+		if err := validateProxy("default", cfg.Channel.Proxy.MapRemove); err != nil {
+			return fmt.Errorf("in channel.proxy.map_remove: %v", err)
+		}
+	}
+
+	if c.Map.ClientKey != "" && !slices.Contains([]string{"client_id", "user_id"}, c.Map.ClientKey) {
+		return fmt.Errorf("unknown map.client_key: %q (valid: \"client_id\", \"user_id\")", c.Map.ClientKey)
+	}
+	// map.client_key and the publish/remove proxy both decide the final key.
+	// When a proxy is configured, it is solely responsible for keying (it may
+	// echo the client's key or override). Allowing both at once silently lets
+	// the proxy win over client_key, which surprises users who expect
+	// client_key to force the keying. Reject the combination at config-load,
+	// naming the actually-conflicting proxy field.
+	if c.Map.ClientKey != "" && c.Map.PublishProxyEnabled {
+		return fmt.Errorf("map.client_key is not compatible with map.publish_proxy_enabled: the proxy is responsible for keying when enabled")
+	}
+	if c.Map.ClientKey != "" && c.Map.RemoveProxyEnabled {
+		return fmt.Errorf("map.client_key is not compatible with map.remove_proxy_enabled: the proxy is responsible for keying when enabled")
+	}
+
+	if c.SubscriptionType != "" && !slices.Contains([]string{"stream", "map", "map_clients", "map_users", "shared_poll"}, c.SubscriptionType) {
+		return fmt.Errorf("unknown subscription_type: %q", c.SubscriptionType)
+	}
+	if c.SubscriptionType == "shared_poll" {
+		if cfg.SharedPoll.HMACSecretKey == "" {
+			return fmt.Errorf("shared_poll.hmac_secret_key is required when subscription_type is \"shared_poll\"")
+		}
+		if c.SharedPoll.ProxyName != "" && !slices.Contains(proxyNames, c.SharedPoll.ProxyName) {
+			return fmt.Errorf("shared poll proxy with name %q not found", c.SharedPoll.ProxyName)
+		}
+		sharedPollProxyName := c.SharedPoll.ProxyName
+		if sharedPollProxyName == "" {
+			sharedPollProxyName = DefaultProxyName
+		}
+		if sharedPollProxyName == DefaultProxyName {
+			if err := validateProxy("default", cfg.Channel.Proxy.SharedPollRefresh); err != nil {
+				return fmt.Errorf("in channel.proxy.shared_poll_refresh: %v", err)
+			}
+		}
+		if !slices.Contains([]string{"", "versionless", "versioned"}, c.SharedPoll.Mode) {
+			return fmt.Errorf("invalid shared_poll mode: %q", c.SharedPoll.Mode)
+		}
+		if c.SharedPoll.PublishEnabled && (c.SharedPoll.Mode == "" || c.SharedPoll.Mode == "versionless") {
+			return fmt.Errorf("shared_poll publish_enabled is incompatible with versionless mode (requires explicit versions)")
+		}
+	}
+	if c.Map.Mode != "" && !slices.Contains([]string{"ephemeral", "recoverable", "persistent"}, c.Map.Mode) {
+		return fmt.Errorf("unknown map.mode: %q (valid: \"ephemeral\", \"recoverable\", \"persistent\")", c.Map.Mode)
+	}
+	hasMapType := c.SubscriptionType == "map" || c.SubscriptionType == "map_clients" || c.SubscriptionType == "map_users"
+	if hasMapType {
+		if c.Map.Mode == "" {
+			return fmt.Errorf("map.mode is required when subscription_type is a map type")
+		}
+	}
+	mapHasExpiry := c.Map.Mode == "ephemeral" || c.Map.Mode == "recoverable"
+	if mapHasExpiry {
+		if c.Map.KeyTTL == 0 {
+			return fmt.Errorf("map.key_ttl is required when map.mode is %q", c.Map.Mode)
+		}
+		if c.Map.KeyTTL.ToDuration() < 0 {
+			return fmt.Errorf("map.key_ttl must be positive")
+		}
+	}
+	if c.Map.Mode == "persistent" && c.Map.KeyTTL != 0 {
+		return fmt.Errorf("map.key_ttl must not be set when map.mode is \"persistent\" (entries don't expire)")
+	}
+	// map_clients and map_users rely on TTL as the cleanup fallback: map_clients
+	// uses MapRemove on disconnect with TTL as the safety net for transient
+	// remove failures; map_users is *only* cleaned up by TTL (no remove on
+	// disconnect by design). Persistent mode disables TTL, which means stale
+	// presence entries can linger indefinitely. Refuse the combination.
+	if c.Map.Mode == "persistent" && (c.SubscriptionType == "map_clients" || c.SubscriptionType == "map_users") {
+		return fmt.Errorf("map.mode %q is not allowed with subscription_type %q (presence entries require TTL-based cleanup; use \"ephemeral\" or \"recoverable\")", c.Map.Mode, c.SubscriptionType)
+	}
+	if c.Map.Mode == "ephemeral" {
+		if c.Map.StreamSize > 0 {
+			return fmt.Errorf("map.stream_size must be 0 for map.mode \"ephemeral\"")
+		}
+		if c.Map.StreamTTL != 0 {
+			return fmt.Errorf("map.stream_ttl must be 0 for map.mode \"ephemeral\"")
+		}
+		if c.Map.MetaTTL != 0 {
+			return fmt.Errorf("map.meta_ttl must be 0 for map.mode \"ephemeral\"")
+		}
+	}
+	mapHasStream := c.Map.Mode == "recoverable" || c.Map.Mode == "persistent"
+	if mapHasStream {
+		if c.Map.StreamSize < 0 {
+			return fmt.Errorf("map.stream_size must be non-negative")
+		}
+		if c.Map.StreamTTL.ToDuration() < 0 {
+			return fmt.Errorf("map.stream_ttl must be non-negative")
+		}
+		if c.Map.MetaTTL.ToDuration() < 0 {
+			return fmt.Errorf("map.meta_ttl must be non-negative")
+		}
+		if c.Map.MetaTTL != 0 {
+			effectiveStreamTTL := c.Map.StreamTTL.ToDuration()
+			if effectiveStreamTTL == 0 {
+				effectiveStreamTTL = time.Minute
+			}
+			if c.Map.MetaTTL.ToDuration() < effectiveStreamTTL {
+				return fmt.Errorf("map.meta_ttl (%s) must be >= map.stream_ttl (%s) (metadata must outlive stream)", c.Map.MetaTTL, configtypes.Duration(effectiveStreamTTL))
+			}
+		}
+	}
+	if c.Map.RemoveClientOnUnsubscribe && !hasMapType {
+		return fmt.Errorf("map.remove_client_on_unsubscribe requires subscription_type to be a map type")
+	}
+
+	// Map presence prefixes must resolve to a namespace whose subscription_type
+	// is the matching map-presence flavour. Otherwise publishes to those
+	// channels would silently fail at runtime.
+	if c.MapClientsPresenceChannelPrefix != "" {
+		if err := validatePresenceChannelPrefix(cfg, "map_clients_presence_channel_prefix", c.MapClientsPresenceChannelPrefix, "map_clients"); err != nil {
+			return err
+		}
+	}
+	if c.MapUsersPresenceChannelPrefix != "" {
+		if err := validatePresenceChannelPrefix(cfg, "map_users_presence_channel_prefix", c.MapUsersPresenceChannelPrefix, "map_users"); err != nil {
+			return err
+		}
+	}
+
+	// Map page-size invariants. Zero means "use default" — the runtime path
+	// fills in sensible values — but any non-zero combination must satisfy
+	// min <= default <= max so clamping never produces surprising results.
+	if c.Map.MinPageSize < 0 {
+		return fmt.Errorf("map.min_page_size must not be negative")
+	}
+	if c.Map.MaxPageSize < 0 {
+		return fmt.Errorf("map.max_page_size must not be negative")
+	}
+	if c.Map.DefaultPageSize < 0 {
+		return fmt.Errorf("map.default_page_size must not be negative")
+	}
+	if c.Map.MinPageSize > 0 && c.Map.MaxPageSize > 0 && c.Map.MinPageSize > c.Map.MaxPageSize {
+		return fmt.Errorf("map.min_page_size (%d) must not exceed map.max_page_size (%d)", c.Map.MinPageSize, c.Map.MaxPageSize)
+	}
+	if c.Map.DefaultPageSize > 0 && c.Map.MaxPageSize > 0 && c.Map.DefaultPageSize > c.Map.MaxPageSize {
+		return fmt.Errorf("map.default_page_size (%d) must not exceed map.max_page_size (%d)", c.Map.DefaultPageSize, c.Map.MaxPageSize)
+	}
+	if c.Map.DefaultPageSize > 0 && c.Map.MinPageSize > 0 && c.Map.DefaultPageSize < c.Map.MinPageSize {
+		return fmt.Errorf("map.default_page_size (%d) must not be below map.min_page_size (%d)", c.Map.DefaultPageSize, c.Map.MinPageSize)
+	}
+
+	return nil
+}
+
+// validatePresenceChannelPrefix checks that prefix, when prepended to a
+// channel name, resolves under the configured NamespaceBoundary to a namespace
+// whose subscription_type is `expectedType`. Caught at config-load so typos
+// in the prefix don't surface only when the first map_publish fails.
+func validatePresenceChannelPrefix(cfg Config, fieldName, prefix, expectedType string) error {
+	boundary := cfg.Channel.NamespaceBoundary
+	var nsName string
+	if boundary != "" {
+		idx := strings.Index(prefix, boundary)
+		if idx >= 0 {
+			nsName = prefix[:idx]
+		}
+	}
+	opts, ok, err := channelOpts(&cfg, nsName)
+	if err != nil {
+		return fmt.Errorf("%s: %v", fieldName, err)
+	}
+	if !ok {
+		return fmt.Errorf("%s %q: namespace %q does not exist", fieldName, prefix, nsName)
+	}
+	if opts.SubscriptionType != expectedType {
+		return fmt.Errorf("%s %q: target namespace %q must have subscription_type=%q (got %q)", fieldName, prefix, nsName, expectedType, opts.SubscriptionType)
+	}
 	return nil
 }
 

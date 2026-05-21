@@ -8,21 +8,62 @@ services:
       - "8222:8222"
 
   postgres:
-    image: postgres:15
-    ports:
-      - "5432:5432"
+    image: postgres:16
+    container_name: postgres
     environment:
       POSTGRES_USER: test
       POSTGRES_PASSWORD: test
       POSTGRES_DB: test
-    tmpfs:
-      - /var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./misc/postgres/init-replication.sh:/docker-entrypoint-initdb.d/init-replication.sh
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_wal_senders=4"
+      - "-c"
+      - "hot_standby=on"
+      - "-c"
+      - "wal_writer_delay=10ms"
     healthcheck:
-      test: [ "CMD", "pg_isready", "-U", "test" ]
-      interval: 1s
+      test: ["CMD-SHELL", "pg_isready -U test -d test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Test/Demo-only setup. NOT suitable for production use.
+  # The replica wipes its data on every restart (pg_basebackup from primary).
+  postgres-replica:
+    image: postgres:16
+    container_name: postgres_replica
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+    ports:
+      - "5433:5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: |
+      bash -c '
+      # Test/Demo only: wipe and re-basebackup on every restart.
+      # In production, use persistent volumes and proper replica management.
+      rm -rf /var/lib/postgresql/data/*
+      until pg_isready -h postgres -U test; do sleep 1; done
+      chown postgres:postgres /var/lib/postgresql/data
+      chmod 700 /var/lib/postgresql/data
+      gosu postgres pg_basebackup -h postgres -U test -D /var/lib/postgresql/data -Fp -Xs -R
+      exec gosu postgres postgres
+      '
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d test"]
+      interval: 5s
       timeout: 5s
       retries: 10
-    command: ["postgres", "-c", "wal_level=logical", "-c", "wal_writer_delay=10ms"]
 
   google-pubsub-emulator:
     image: google/cloud-sdk:latest
@@ -81,3 +122,6 @@ services:
     image: redis:${REDIS_VERSION:-7}-alpine
     ports:
       - "6379:6379"
+
+volumes:
+  postgres_data:

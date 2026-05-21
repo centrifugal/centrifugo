@@ -38,6 +38,13 @@ service CentrifugoApi {
     rpc SendPushNotification (SendPushNotificationRequest) returns (SendPushNotificationResponse) {}
     rpc UpdatePushStatus (UpdatePushStatusRequest) returns (UpdatePushStatusResponse) {}
     rpc CancelPush (CancelPushRequest) returns (CancelPushResponse) {}
+    rpc MapPublish (MapPublishRequest) returns (MapPublishResponse) {}
+    rpc MapRemove (MapRemoveRequest) returns (MapRemoveResponse) {}
+    rpc MapReadState (MapReadStateRequest) returns (MapReadStateResponse) {}
+    rpc MapReadStream (MapReadStreamRequest) returns (MapReadStreamResponse) {}
+    rpc MapStats (MapStatsRequest) returns (MapStatsResponse) {}
+    rpc MapClear (MapClearRequest) returns (MapClearResponse) {}
+    rpc SharedPollPublish (SharedPollPublishRequest) returns (SharedPollPublishResponse) {}
 }
 
 message Command {
@@ -75,6 +82,13 @@ message Command {
     SendPushNotificationRequest send_push_notification = 33;
     UpdatePushStatusRequest update_push_status = 34;
     CancelPushRequest cancel_push = 35;
+    MapPublishRequest map_publish = 36;
+    MapRemoveRequest map_remove = 37;
+    MapReadStateRequest map_read_state = 38;
+    MapReadStreamRequest map_read_stream = 39;
+    MapStatsRequest map_stats = 40;
+    MapClearRequest map_clear = 41;
+    SharedPollPublishRequest shared_poll_publish = 42;
 }
 
 message Error {
@@ -119,6 +133,13 @@ message Reply {
     SendPushNotificationResult send_push_notification = 33;
     UpdatePushStatusResult update_push_status = 34;
     CancelPushResult cancel_push = 35;
+    MapPublishResult map_publish = 36;
+    MapRemoveResult map_remove = 37;
+    MapReadStateResult map_read_state = 38;
+    MapReadStreamResult map_read_stream = 39;
+    MapStatsResult map_stats = 40;
+    MapClearResult map_clear = 41;
+    SharedPollPublishResult shared_poll_publish = 42;
 }
 
 message BatchRequest {
@@ -866,3 +887,140 @@ message CancelPushResponse {
 }
 
 message CancelPushResult {}
+
+message MapPublishRequest {
+    string channel = 1;
+    string key = 2;
+    bytes data = 3;
+    string b64data = 4;
+    bytes stream_data = 5;
+    string b64stream_data = 6;
+    map<string, string> tags = 7;
+    string idempotency_key = 8;
+    bool delta = 9;
+    uint64 version = 10;
+    string version_epoch = 11;
+    int64 score = 12;
+    string key_mode = 13;
+}
+
+message MapPublishResponse {
+    Error error = 1;
+    MapPublishResult result = 2;
+}
+
+message MapPublishResult {
+    uint64 offset = 1;
+    string epoch = 2;
+    bool suppressed = 3;
+    string suppress_reason = 4;
+}
+
+message MapRemoveRequest {
+    string channel = 1;
+    string key = 2;
+    string idempotency_key = 3;
+}
+
+message MapRemoveResponse {
+    Error error = 1;
+    MapRemoveResult result = 2;
+}
+
+message MapRemoveResult {
+    uint64 offset = 1;
+    string epoch = 2;
+    bool suppressed = 3;
+    string suppress_reason = 4;
+}
+
+message MapReadStateRequest {
+    string channel = 1;
+    string cursor = 2;
+    int32 limit = 3;
+    string key = 4;
+    bool asc = 5;
+    uint64 revision_offset = 6;
+    string revision_epoch = 7;
+}
+
+message MapReadStateResponse {
+    Error error = 1;
+    MapReadStateResult result = 2;
+}
+
+message MapReadStateResult {
+    repeated MapEntry entries = 1;
+    uint64 offset = 2;
+    string epoch = 3;
+    string cursor = 4;
+}
+
+message MapEntry {
+    string key = 1;
+    bytes data = 2;
+    map<string, string> tags = 3;
+    uint64 offset = 4;
+    int64 score = 5;
+    bool removed = 6;
+    int64 time = 7;
+}
+
+message MapReadStreamRequest {
+    string channel = 1;
+    uint64 since_offset = 2;
+    string since_epoch = 3;
+    int32 limit = 4;
+    bool reverse = 5;
+}
+
+message MapReadStreamResponse {
+    Error error = 1;
+    MapReadStreamResult result = 2;
+}
+
+message MapReadStreamResult {
+    repeated MapEntry entries = 1;
+    uint64 offset = 2;
+    string epoch = 3;
+}
+
+message MapStatsRequest {
+    string channel = 1;
+}
+
+message MapStatsResponse {
+    Error error = 1;
+    MapStatsResult result = 2;
+}
+
+message MapStatsResult {
+    int32 num_keys = 1;
+}
+
+message MapClearRequest {
+    string channel = 1;
+}
+
+message MapClearResponse {
+    Error error = 1;
+    MapClearResult result = 2;
+}
+
+message MapClearResult {}
+
+message SharedPollPublishRequest {
+    string channel = 1;
+    string key = 2;
+    bytes data = 3;
+    string b64data = 4;
+    uint64 version = 5;
+    string epoch = 6;
+}
+
+message SharedPollPublishResponse {
+    Error error = 1;
+    SharedPollPublishResult result = 2;
+}
+
+message SharedPollPublishResult {}

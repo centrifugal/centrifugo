@@ -67,6 +67,14 @@ type ChannelOptions struct {
 	// ForcePushJoinLeave forces sending join/leave messages towards subscribers.
 	ForcePushJoinLeave bool `mapstructure:"force_push_join_leave" json:"force_push_join_leave" envconfig:"force_push_join_leave" yaml:"force_push_join_leave" toml:"force_push_join_leave"`
 
+	// MapClientsPresenceChannelPrefix is a prefix for map-based client presence channel.
+	// When set, client presence is tracked via MapBroker in a channel formed by this prefix + original channel name.
+	MapClientsPresenceChannelPrefix string `mapstructure:"map_clients_presence_channel_prefix" json:"map_clients_presence_channel_prefix" envconfig:"map_clients_presence_channel_prefix" yaml:"map_clients_presence_channel_prefix" toml:"map_clients_presence_channel_prefix"`
+
+	// MapUsersPresenceChannelPrefix is a prefix for map-based user presence channel.
+	// When set, user presence is tracked via MapBroker in a channel formed by this prefix + original channel name.
+	MapUsersPresenceChannelPrefix string `mapstructure:"map_users_presence_channel_prefix" json:"map_users_presence_channel_prefix" envconfig:"map_users_presence_channel_prefix" yaml:"map_users_presence_channel_prefix" toml:"map_users_presence_channel_prefix"`
+
 	// HistorySize determines max amount of history messages for a channel,
 	// Zero value means no history for channel. Centrifuge history has an
 	// auxiliary role with current Engines – it can not replace your backend
@@ -185,7 +193,57 @@ type ChannelOptions struct {
 	// SubscribeStreamBidirectional enables using bidirectional stream proxy for the namespace.
 	SubscribeStreamBidirectional bool `mapstructure:"subscribe_stream_proxy_bidirectional" json:"subscribe_stream_proxy_bidirectional" envconfig:"subscribe_stream_proxy_bidirectional" yaml:"subscribe_stream_proxy_bidirectional" toml:"subscribe_stream_proxy_bidirectional"`
 
+	// SubscriptionType defines the subscription type for the namespace.
+	// Valid values: "stream", "map", "map_clients", "map_users", "shared_poll".
+	// Default: "stream" (traditional PUB/SUB with history).
+	SubscriptionType string `mapstructure:"subscription_type" json:"subscription_type" envconfig:"subscription_type" yaml:"subscription_type" toml:"subscription_type"`
+
+	// Map contains configuration for map subscription types (map, map_clients, map_users).
+	Map MapConfig `mapstructure:"map" json:"map" envconfig:"map" yaml:"map" toml:"map"`
+
+	// SharedPoll contains configuration for shared poll subscription type.
+	SharedPoll SharedPollConfig `mapstructure:"shared_poll" json:"shared_poll" envconfig:"shared_poll" yaml:"shared_poll" toml:"shared_poll"`
+
 	Compiled `json:"-" yaml:"-" toml:"-"`
+}
+
+// MapConfig contains configuration for map subscription types (map, map_clients, map_users).
+type MapConfig struct {
+	Mode                        string   `mapstructure:"mode" json:"mode" envconfig:"mode" yaml:"mode" toml:"mode"`
+	KeyTTL                      Duration `mapstructure:"key_ttl" json:"key_ttl" envconfig:"key_ttl" yaml:"key_ttl" toml:"key_ttl"`
+	Ordered                     bool     `mapstructure:"ordered" json:"ordered" envconfig:"ordered" yaml:"ordered" toml:"ordered"`
+	StreamSize                  int      `mapstructure:"stream_size" json:"stream_size" envconfig:"stream_size" yaml:"stream_size" toml:"stream_size"`
+	StreamTTL                   Duration `mapstructure:"stream_ttl" json:"stream_ttl" envconfig:"stream_ttl" yaml:"stream_ttl" toml:"stream_ttl"`
+	MetaTTL                     Duration `mapstructure:"meta_ttl" json:"meta_ttl" envconfig:"meta_ttl" yaml:"meta_ttl" toml:"meta_ttl"`
+	RemoveClientOnUnsubscribe   bool     `mapstructure:"remove_client_on_unsubscribe" json:"remove_client_on_unsubscribe" envconfig:"remove_client_on_unsubscribe" yaml:"remove_client_on_unsubscribe" toml:"remove_client_on_unsubscribe"`
+	ClientKey                   string   `mapstructure:"client_key" json:"client_key" envconfig:"client_key" yaml:"client_key" toml:"client_key"`
+	AllowPublishForClient       bool     `mapstructure:"allow_publish_for_client" json:"allow_publish_for_client" envconfig:"allow_publish_for_client" yaml:"allow_publish_for_client" toml:"allow_publish_for_client"`
+	AllowPublishForSubscriber   bool     `mapstructure:"allow_publish_for_subscriber" json:"allow_publish_for_subscriber" envconfig:"allow_publish_for_subscriber" yaml:"allow_publish_for_subscriber" toml:"allow_publish_for_subscriber"`
+	AllowPublishForAnonymous    bool     `mapstructure:"allow_publish_for_anonymous" json:"allow_publish_for_anonymous" envconfig:"allow_publish_for_anonymous" yaml:"allow_publish_for_anonymous" toml:"allow_publish_for_anonymous"`
+	AllowRemoveForClient        bool     `mapstructure:"allow_remove_for_client" json:"allow_remove_for_client" envconfig:"allow_remove_for_client" yaml:"allow_remove_for_client" toml:"allow_remove_for_client"`
+	AllowRemoveForSubscriber    bool     `mapstructure:"allow_remove_for_subscriber" json:"allow_remove_for_subscriber" envconfig:"allow_remove_for_subscriber" yaml:"allow_remove_for_subscriber" toml:"allow_remove_for_subscriber"`
+	AllowRemoveForAnonymous     bool     `mapstructure:"allow_remove_for_anonymous" json:"allow_remove_for_anonymous" envconfig:"allow_remove_for_anonymous" yaml:"allow_remove_for_anonymous" toml:"allow_remove_for_anonymous"`
+	PublishProxyEnabled         bool     `mapstructure:"publish_proxy_enabled" json:"publish_proxy_enabled" envconfig:"publish_proxy_enabled" yaml:"publish_proxy_enabled" toml:"publish_proxy_enabled"`
+	PublishProxyName            string   `mapstructure:"publish_proxy_name" default:"default" json:"publish_proxy_name" envconfig:"publish_proxy_name" yaml:"publish_proxy_name" toml:"publish_proxy_name"`
+	RemoveProxyEnabled          bool     `mapstructure:"remove_proxy_enabled" json:"remove_proxy_enabled" envconfig:"remove_proxy_enabled" yaml:"remove_proxy_enabled" toml:"remove_proxy_enabled"`
+	RemoveProxyName             string   `mapstructure:"remove_proxy_name" default:"default" json:"remove_proxy_name" envconfig:"remove_proxy_name" yaml:"remove_proxy_name" toml:"remove_proxy_name"`
+	DefaultPageSize                  int      `mapstructure:"default_page_size" json:"default_page_size" envconfig:"default_page_size" yaml:"default_page_size" toml:"default_page_size"`
+	MinPageSize                      int      `mapstructure:"min_page_size" json:"min_page_size" envconfig:"min_page_size" yaml:"min_page_size" toml:"min_page_size"`
+	MaxPageSize                      int      `mapstructure:"max_page_size" json:"max_page_size" envconfig:"max_page_size" yaml:"max_page_size" toml:"max_page_size"`
+	LiveTransitionMaxPublicationLimit int     `mapstructure:"live_transition_max_publication_limit" json:"live_transition_max_publication_limit" envconfig:"live_transition_max_publication_limit" yaml:"live_transition_max_publication_limit" toml:"live_transition_max_publication_limit"`
+	SubscribeCatchUpTimeout          Duration `mapstructure:"subscribe_catch_up_timeout" json:"subscribe_catch_up_timeout" envconfig:"subscribe_catch_up_timeout" yaml:"subscribe_catch_up_timeout" toml:"subscribe_catch_up_timeout"`
+}
+
+// SharedPollConfig contains configuration for shared poll subscription type.
+type SharedPollConfig struct {
+	ProxyName              string   `mapstructure:"proxy_name" json:"proxy_name" envconfig:"proxy_name" yaml:"proxy_name" toml:"proxy_name"`
+	RefreshInterval        Duration `mapstructure:"refresh_interval" json:"refresh_interval" envconfig:"refresh_interval" yaml:"refresh_interval" toml:"refresh_interval"`
+	RefreshBatchSize       int      `mapstructure:"refresh_batch_size" json:"refresh_batch_size" envconfig:"refresh_batch_size" yaml:"refresh_batch_size" toml:"refresh_batch_size"`
+	MaxKeysPerConnection   int      `mapstructure:"max_keys_per_connection" json:"max_keys_per_connection" envconfig:"max_keys_per_connection" yaml:"max_keys_per_connection" toml:"max_keys_per_connection"`
+	Mode                   string   `mapstructure:"mode" json:"mode" envconfig:"mode" yaml:"mode" toml:"mode"`
+	ChannelShutdownDelay Duration `mapstructure:"channel_shutdown_delay" json:"channel_shutdown_delay" envconfig:"channel_shutdown_delay" yaml:"channel_shutdown_delay" toml:"channel_shutdown_delay"`
+	TrackExpiredExtraDelay Duration `mapstructure:"track_expired_extra_delay" json:"track_expired_extra_delay" envconfig:"track_expired_extra_delay" yaml:"track_expired_extra_delay" toml:"track_expired_extra_delay"`
+	PublishEnabled         bool     `mapstructure:"publish_enabled" json:"publish_enabled" envconfig:"publish_enabled" yaml:"publish_enabled" toml:"publish_enabled"`
 }
 
 type Compiled struct {
