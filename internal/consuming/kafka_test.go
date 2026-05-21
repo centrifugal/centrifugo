@@ -121,7 +121,38 @@ func createTestTopic(ctx context.Context, topicName string, numPartitions int32,
 			return fmt.Errorf("failed to create topic '%s': %v", topic.Topic, topic.Err)
 		}
 	}
-	return nil
+
+	// CreateTopics returns once the controller has accepted the create, but
+	// partition leader election and metadata propagation are async. Poll
+	// until all expected partitions have a valid leader, otherwise a fresh
+	// producer/consumer client can hit UNKNOWN_TOPIC_OR_PARTITION.
+	deadline := time.Now().Add(15 * time.Second)
+	for {
+		details, err := client.ListTopics(ctx, topicName)
+		if err == nil {
+			td, ok := details[topicName]
+			if ok && td.Err == nil && int32(len(td.Partitions)) == numPartitions {
+				ready := true
+				for _, p := range td.Partitions {
+					if p.Err != nil || p.Leader < 0 {
+						ready = false
+						break
+					}
+				}
+				if ready {
+					return nil
+				}
+			}
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timeout waiting for topic '%s' partitions to become ready", topicName)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
 }
 
 func waitCh(t *testing.T, ch chan struct{}, timeout time.Duration, failureMessage string) {
