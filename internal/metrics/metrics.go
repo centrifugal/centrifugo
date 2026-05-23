@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"errors"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -17,6 +18,25 @@ type Config struct {
 	ConstLabels map[string]string
 	// Registerer is the prometheus registerer to use. If nil, prometheus.DefaultRegisterer is used.
 	Registerer prometheus.Registerer
+	// NativeHistograms switches Histogram instruments to Prometheus native
+	// (sparse, exponential) schema with no explicit buckets exposed. Designed
+	// for OpenTelemetry export via the client_golang Prometheus bridge.
+	// Text-format scrapes lose _bucket series; use protobuf scrape format.
+	NativeHistograms bool
+}
+
+// nativeHistogramOpts returns opts unchanged when native is false. When true,
+// it enables Prometheus native histogram schema with no explicit buckets —
+// the metric exposes only _count, _sum, and the native histogram chunk.
+func nativeHistogramOpts(opts prometheus.HistogramOpts, native bool) prometheus.HistogramOpts {
+	if !native {
+		return opts
+	}
+	opts.Buckets = nil
+	opts.NativeHistogramBucketFactor = 1.1
+	opts.NativeHistogramMaxBucketNumber = 200
+	opts.NativeHistogramMinResetDuration = time.Hour
+	return opts
 }
 
 // Registry holds all Centrifugo metrics.
@@ -117,14 +137,14 @@ func newRegistry(cfg Config) (*Registry, error) {
 		ConstLabels: constLabels,
 	}, []string{"protocol", "type", "name"})
 
-	m.proxyCallDurationHistogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	m.proxyCallDurationHistogram = prometheus.NewHistogramVec(nativeHistogramOpts(prometheus.HistogramOpts{
 		Namespace:   metricsNamespace,
 		Subsystem:   "proxy",
 		Name:        "duration_seconds_histogram",
 		Buckets:     prometheus.DefBuckets,
 		Help:        "Histogram of duration of proxy call.",
 		ConstLabels: constLabels,
-	}, []string{"protocol", "type", "name"})
+	}, cfg.NativeHistograms), []string{"protocol", "type", "name"})
 
 	m.proxyCallErrorCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   metricsNamespace,
@@ -160,14 +180,14 @@ func newRegistry(cfg Config) (*Registry, error) {
 		ConstLabels: constLabels,
 	}, []string{"protocol", "method"})
 
-	m.apiCommandDurationHistogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	m.apiCommandDurationHistogram = prometheus.NewHistogramVec(nativeHistogramOpts(prometheus.HistogramOpts{
 		Namespace:   metricsNamespace,
 		Subsystem:   "api",
 		Buckets:     prometheus.DefBuckets,
 		Name:        "command_duration_seconds_histogram",
 		Help:        "Histogram of duration of API per command.",
 		ConstLabels: constLabels,
-	}, []string{"protocol", "method"})
+	}, cfg.NativeHistograms), []string{"protocol", "method"})
 
 	m.rpcDurationSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 		Namespace:   metricsNamespace,
@@ -196,23 +216,23 @@ func newRegistry(cfg Config) (*Registry, error) {
 	}, []string{"consumer_name"})
 
 	// Shared poll proxy metrics
-	m.sharedPollProxyRequestItems = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	m.sharedPollProxyRequestItems = prometheus.NewHistogramVec(nativeHistogramOpts(prometheus.HistogramOpts{
 		Namespace:   metricsNamespace,
 		Subsystem:   "shared_poll_proxy",
 		Name:        "request_items",
 		Help:        "Number of items per shared poll proxy request.",
 		Buckets:     []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000},
 		ConstLabels: constLabels,
-	}, []string{"name"})
+	}, cfg.NativeHistograms), []string{"name"})
 
-	m.sharedPollProxyResponseItems = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	m.sharedPollProxyResponseItems = prometheus.NewHistogramVec(nativeHistogramOpts(prometheus.HistogramOpts{
 		Namespace:   metricsNamespace,
 		Subsystem:   "shared_poll_proxy",
 		Name:        "response_items",
 		Help:        "Number of items per shared poll proxy response.",
 		Buckets:     []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000},
 		ConstLabels: constLabels,
-	}, []string{"name"})
+	}, cfg.NativeHistograms), []string{"name"})
 
 	// Middleware metrics
 	m.connLimitReached = prometheus.NewCounter(prometheus.CounterOpts{

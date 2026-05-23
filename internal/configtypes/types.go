@@ -337,6 +337,15 @@ type Prometheus struct {
 	InstrumentHTTPHandlers bool `mapstructure:"instrument_http_handlers" json:"instrument_http_handlers" envconfig:"instrument_http_handlers" yaml:"instrument_http_handlers" toml:"instrument_http_handlers"`
 	// RecoveredPublicationsHistogram enables a histogram to track the distribution of recovered publications number.
 	RecoveredPublicationsHistogram bool `mapstructure:"recovered_publications_histogram" json:"recovered_publications_histogram" envconfig:"recovered_publications_histogram" yaml:"recovered_publications_histogram" toml:"recovered_publications_histogram"`
+	// NativeHistograms switches Centrifugo's Histogram instruments and the
+	// underlying centrifuge library's distribution metrics to Prometheus
+	// native (sparse, exponential) histogram schema with no explicit buckets
+	// exposed. Designed for OpenTelemetry export via the client_golang
+	// Prometheus bridge: native histograms map to OTel ExponentialHistogram.
+	// Text-format scrapes lose _bucket series; only _count and _sum remain
+	// visible — use protobuf scrape format (Prom 2.40+) to get full data.
+	// Experimental in client_golang.
+	NativeHistograms bool `mapstructure:"native_histograms" json:"native_histograms" envconfig:"native_histograms" yaml:"native_histograms" toml:"native_histograms"`
 }
 
 type Health struct {
