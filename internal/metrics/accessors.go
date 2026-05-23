@@ -2,20 +2,36 @@ package metrics
 
 import "github.com/prometheus/client_golang/prometheus"
 
-// Proxy metrics - exported for use by proxy package
+// Proxy metrics - exported for use by proxy package.
+//
+// ProxyCallDurationSummary holds the legacy Summary instrument by default;
+// when prometheus.native_histograms is enabled it is a no-op observer (see
+// internal noopObserverVec), so callers can continue to construct cached
+// observers and call .Observe() without nil-checks. ProxyCallDurationHistogram
+// is the canonical companion — prefer it for new queries and OTel export.
 var (
-	ProxyCallDurationSummary   *prometheus.SummaryVec
+	ProxyCallDurationSummary   prometheus.ObserverVec
 	ProxyCallDurationHistogram *prometheus.HistogramVec
 	ProxyCallErrorCount        *prometheus.CounterVec
 	ProxyCallInflightRequests  *prometheus.GaugeVec
 )
 
-// API metrics - exported for use by api package
+// API metrics - exported for use by api package.
+//
+// APICommandDurationSummary follows the same pattern as ProxyCallDurationSummary
+// (real Summary by default, no-op when native_histograms is enabled).
+// APICommandDurationHistogram is the canonical companion.
+//
+// RPCDurationSummary follows the same pattern. RPCDurationHistogram is the
+// companion Histogram exposed as "rpc_duration_seconds_histogram" —
+// unconditional, with native (sparse, exponential) schema when
+// native_histograms is enabled.
 var (
 	APICommandErrorsTotal       *prometheus.CounterVec
-	APICommandDurationSummary   *prometheus.SummaryVec
+	APICommandDurationSummary   prometheus.ObserverVec
 	APICommandDurationHistogram *prometheus.HistogramVec
-	RPCDurationSummary          *prometheus.SummaryVec
+	RPCDurationSummary          prometheus.ObserverVec
+	RPCDurationHistogram        *prometheus.HistogramVec
 )
 
 // Consumer metrics - exported for use by consuming package
