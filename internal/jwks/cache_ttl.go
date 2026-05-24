@@ -78,20 +78,20 @@ func (tc *TTLCache) run() {
 	}()
 }
 
-// Add item into cache.
-func (tc *TTLCache) Add(key *JWK) error {
+// Add item into cache under the given cacheKey.
+func (tc *TTLCache) Add(cacheKey string, key *JWK) error {
 	tc.mu.Lock()
 	item := &item{data: key}
 	item.touch(tc.ttl)
-	tc.items[key.Kid] = item
+	tc.items[cacheKey] = item
 	tc.mu.Unlock()
 	return nil
 }
 
-// Get item by key.
-func (tc *TTLCache) Get(kid string) (*JWK, error) {
+// Get item by cacheKey.
+func (tc *TTLCache) Get(cacheKey string) (*JWK, error) {
 	tc.mu.RLock()
-	item, ok := tc.items[kid]
+	item, ok := tc.items[cacheKey]
 	if !ok || item.expired() {
 		tc.mu.RUnlock()
 		return nil, ErrCacheNotFound
@@ -109,9 +109,9 @@ func (tc *TTLCache) Stop() error {
 	return nil
 }
 
-func (tc *TTLCache) remove(kid string) error {
+func (tc *TTLCache) remove(cacheKey string) error {
 	tc.mu.Lock()
-	delete(tc.items, kid)
+	delete(tc.items, cacheKey)
 	tc.mu.Unlock()
 	return nil
 }
