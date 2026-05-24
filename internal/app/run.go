@@ -121,9 +121,10 @@ func Run(cmd *cobra.Command, configFile string) {
 
 	// Initialize centralized metrics registry.
 	err = metrics.Init(metrics.Config{
-		Namespace:   "", // Use default "centrifugo" namespace.
-		ConstLabels: nil, // Can be populated from config in the future.
-		Registerer:  nil, // Use prometheus.DefaultRegisterer.
+		Namespace:        "", // Use default "centrifugo" namespace.
+		ConstLabels:      nil, // Can be populated from config in the future.
+		Registerer:       nil, // Use prometheus.DefaultRegisterer.
+		NativeHistograms: cfg.Prometheus.NativeHistograms,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("error initializing metrics")

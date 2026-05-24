@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"errors"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -17,23 +18,75 @@ type Config struct {
 	ConstLabels map[string]string
 	// Registerer is the prometheus registerer to use. If nil, prometheus.DefaultRegisterer is used.
 	Registerer prometheus.Registerer
+	// NativeHistograms switches Histogram instruments to Prometheus native
+	// (sparse, exponential) schema with no explicit buckets exposed. Designed
+	// for OpenTelemetry export via the client_golang Prometheus bridge.
+	// Text-format scrapes lose _bucket series; use protobuf scrape format.
+	NativeHistograms bool
 }
+
+// nativeHistogramOpts returns opts unchanged when native is false. When true,
+// it enables Prometheus native histogram schema with no explicit buckets —
+// the metric exposes only _count, _sum, and the native histogram chunk.
+func nativeHistogramOpts(opts prometheus.HistogramOpts, native bool) prometheus.HistogramOpts {
+	if !native {
+		return opts
+	}
+	opts.Buckets = nil
+	opts.NativeHistogramBucketFactor = 1.1
+	opts.NativeHistogramMaxBucketNumber = 200
+	opts.NativeHistogramMinResetDuration = time.Hour
+	return opts
+}
+
+// noopObserverVec implements prometheus.ObserverVec with all no-op methods.
+// Assigned to Summary accessors when NativeHistograms is true so that
+// callers (proxy handlers, helpers) can still construct cached observers
+// and call .Observe() without nil checks — the calls become no-ops and no
+// metric data is recorded for the disabled Summary instrument.
+type noopObserverVec struct{}
+
+func (noopObserverVec) Describe(chan<- *prometheus.Desc)              {}
+func (noopObserverVec) Collect(chan<- prometheus.Metric)              {}
+func (noopObserverVec) WithLabelValues(...string) prometheus.Observer { return noopObserver{} }
+func (noopObserverVec) With(prometheus.Labels) prometheus.Observer    { return noopObserver{} }
+func (noopObserverVec) GetMetricWith(prometheus.Labels) (prometheus.Observer, error) {
+	return noopObserver{}, nil
+}
+func (noopObserverVec) GetMetricWithLabelValues(...string) (prometheus.Observer, error) {
+	return noopObserver{}, nil
+}
+func (noopObserverVec) CurryWith(prometheus.Labels) (prometheus.ObserverVec, error) {
+	return noopObserverVec{}, nil
+}
+func (noopObserverVec) MustCurryWith(prometheus.Labels) prometheus.ObserverVec {
+	return noopObserverVec{}
+}
+
+type noopObserver struct{}
+
+func (noopObserver) Observe(float64) {}
 
 // Registry holds all Centrifugo metrics.
 type Registry struct {
 	config Config
 
 	// Proxy metrics
-	proxyCallDurationSummary   *prometheus.SummaryVec
+	proxyCallDurationSummary   prometheus.ObserverVec
 	proxyCallDurationHistogram *prometheus.HistogramVec
 	proxyCallErrorCount        *prometheus.CounterVec
 	proxyCallInflightRequests  *prometheus.GaugeVec
 
 	// API metrics
 	apiCommandErrorsTotal       *prometheus.CounterVec
-	apiCommandDurationSummary   *prometheus.SummaryVec
+	apiCommandDurationSummary   prometheus.ObserverVec
 	apiCommandDurationHistogram *prometheus.HistogramVec
-	rpcDurationSummary          *prometheus.SummaryVec
+	// rpcDurationSummary is the legacy Summary by default; no-op when
+	// NativeHistograms is true. rpcDurationHistogram is the new companion
+	// Histogram exposed as "rpc_duration_seconds_histogram" — unconditional,
+	// with native schema when NativeHistograms is true.
+	rpcDurationSummary   prometheus.ObserverVec
+	rpcDurationHistogram *prometheus.HistogramVec
 
 	// Consumer metrics
 	consumerProcessedTotal *prometheus.CounterVec
@@ -73,6 +126,7 @@ func Init(cfg Config) error {
 	APICommandDurationSummary = reg.apiCommandDurationSummary
 	APICommandDurationHistogram = reg.apiCommandDurationHistogram
 	RPCDurationSummary = reg.rpcDurationSummary
+	RPCDurationHistogram = reg.rpcDurationHistogram
 
 	ConsumerProcessedTotal = reg.consumerProcessedTotal
 	ConsumerErrorsTotal = reg.consumerErrorsTotal
@@ -108,23 +162,27 @@ func newRegistry(cfg Config) (*Registry, error) {
 	}
 
 	// Proxy metrics
-	m.proxyCallDurationSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
-		Namespace:   metricsNamespace,
-		Subsystem:   "proxy",
-		Name:        "duration_seconds",
-		Objectives:  map[float64]float64{0.5: 0.05, 0.99: 0.001, 0.999: 0.0001},
-		Help:        "Duration of proxy call.",
-		ConstLabels: constLabels,
-	}, []string{"protocol", "type", "name"})
+	if cfg.NativeHistograms {
+		m.proxyCallDurationSummary = noopObserverVec{}
+	} else {
+		m.proxyCallDurationSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+			Namespace:   metricsNamespace,
+			Subsystem:   "proxy",
+			Name:        "duration_seconds",
+			Objectives:  map[float64]float64{0.5: 0.05, 0.99: 0.001, 0.999: 0.0001},
+			Help:        "DEPRECATED — use centrifugo_proxy_duration_seconds_histogram. Will be removed in Centrifugo v7. Duration of proxy call.",
+			ConstLabels: constLabels,
+		}, []string{"protocol", "type", "name"})
+	}
 
-	m.proxyCallDurationHistogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	m.proxyCallDurationHistogram = prometheus.NewHistogramVec(nativeHistogramOpts(prometheus.HistogramOpts{
 		Namespace:   metricsNamespace,
 		Subsystem:   "proxy",
 		Name:        "duration_seconds_histogram",
 		Buckets:     prometheus.DefBuckets,
 		Help:        "Histogram of duration of proxy call.",
 		ConstLabels: constLabels,
-	}, []string{"protocol", "type", "name"})
+	}, cfg.NativeHistograms), []string{"protocol", "type", "name"})
 
 	m.proxyCallErrorCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   metricsNamespace,
@@ -151,32 +209,49 @@ func newRegistry(cfg Config) (*Registry, error) {
 		ConstLabels: constLabels,
 	}, []string{"protocol", "method", "error"})
 
-	m.apiCommandDurationSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
-		Namespace:   metricsNamespace,
-		Subsystem:   "api",
-		Name:        "command_duration_seconds",
-		Objectives:  map[float64]float64{0.5: 0.05, 0.99: 0.001, 0.999: 0.0001},
-		Help:        "Duration of API per command.",
-		ConstLabels: constLabels,
-	}, []string{"protocol", "method"})
+	if cfg.NativeHistograms {
+		m.apiCommandDurationSummary = noopObserverVec{}
+	} else {
+		m.apiCommandDurationSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+			Namespace:   metricsNamespace,
+			Subsystem:   "api",
+			Name:        "command_duration_seconds",
+			Objectives:  map[float64]float64{0.5: 0.05, 0.99: 0.001, 0.999: 0.0001},
+			Help:        "DEPRECATED — use centrifugo_api_command_duration_seconds_histogram. Will be removed in Centrifugo v7. Duration of API per command.",
+			ConstLabels: constLabels,
+		}, []string{"protocol", "method"})
+	}
 
-	m.apiCommandDurationHistogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	m.apiCommandDurationHistogram = prometheus.NewHistogramVec(nativeHistogramOpts(prometheus.HistogramOpts{
 		Namespace:   metricsNamespace,
 		Subsystem:   "api",
 		Buckets:     prometheus.DefBuckets,
 		Name:        "command_duration_seconds_histogram",
 		Help:        "Histogram of duration of API per command.",
 		ConstLabels: constLabels,
-	}, []string{"protocol", "method"})
+	}, cfg.NativeHistograms), []string{"protocol", "method"})
 
-	m.rpcDurationSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+	if cfg.NativeHistograms {
+		m.rpcDurationSummary = noopObserverVec{}
+	} else {
+		m.rpcDurationSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+			Namespace:   metricsNamespace,
+			Subsystem:   "api",
+			Name:        "rpc_duration_seconds",
+			Objectives:  map[float64]float64{0.5: 0.05, 0.99: 0.001, 0.999: 0.0001},
+			Help:        "DEPRECATED — use centrifugo_api_rpc_duration_seconds_histogram. Will be removed in Centrifugo v7. Duration of API per command.",
+			ConstLabels: constLabels,
+		}, []string{"protocol", "method"})
+	}
+
+	m.rpcDurationHistogram = prometheus.NewHistogramVec(nativeHistogramOpts(prometheus.HistogramOpts{
 		Namespace:   metricsNamespace,
 		Subsystem:   "api",
-		Name:        "rpc_duration_seconds",
-		Objectives:  map[float64]float64{0.5: 0.05, 0.99: 0.001, 0.999: 0.0001},
-		Help:        "Duration of API per command.",
+		Name:        "rpc_duration_seconds_histogram",
+		Buckets:     prometheus.DefBuckets,
+		Help:        "Histogram of duration of API per command.",
 		ConstLabels: constLabels,
-	}, []string{"protocol", "method"})
+	}, cfg.NativeHistograms), []string{"protocol", "method"})
 
 	// Consumer metrics
 	m.consumerProcessedTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -196,23 +271,23 @@ func newRegistry(cfg Config) (*Registry, error) {
 	}, []string{"consumer_name"})
 
 	// Shared poll proxy metrics
-	m.sharedPollProxyRequestItems = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	m.sharedPollProxyRequestItems = prometheus.NewHistogramVec(nativeHistogramOpts(prometheus.HistogramOpts{
 		Namespace:   metricsNamespace,
 		Subsystem:   "shared_poll_proxy",
 		Name:        "request_items",
 		Help:        "Number of items per shared poll proxy request.",
 		Buckets:     []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000},
 		ConstLabels: constLabels,
-	}, []string{"name"})
+	}, cfg.NativeHistograms), []string{"name"})
 
-	m.sharedPollProxyResponseItems = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	m.sharedPollProxyResponseItems = prometheus.NewHistogramVec(nativeHistogramOpts(prometheus.HistogramOpts{
 		Namespace:   metricsNamespace,
 		Subsystem:   "shared_poll_proxy",
 		Name:        "response_items",
 		Help:        "Number of items per shared poll proxy response.",
 		Buckets:     []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000},
 		ConstLabels: constLabels,
-	}, []string{"name"})
+	}, cfg.NativeHistograms), []string{"name"})
 
 	// Middleware metrics
 	m.connLimitReached = prometheus.NewCounter(prometheus.CounterOpts{
@@ -271,6 +346,7 @@ func newRegistry(cfg Config) (*Registry, error) {
 		m.apiCommandDurationSummary,
 		m.apiCommandDurationHistogram,
 		m.rpcDurationSummary,
+		m.rpcDurationHistogram,
 		m.consumerProcessedTotal,
 		m.consumerErrorsTotal,
 		m.sharedPollProxyRequestItems,

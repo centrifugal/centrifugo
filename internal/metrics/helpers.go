@@ -28,6 +28,7 @@ func ObserveAPICommand(started time.Time, protocol string, method string) {
 func ObserveRPC(started time.Time, protocol string, method string) {
 	duration := time.Since(started).Seconds()
 	RPCDurationSummary.WithLabelValues(protocol, method).Observe(duration)
+	RPCDurationHistogram.WithLabelValues(protocol, method).Observe(duration)
 }
 
 // Consumer metric helper functions - these were previously in the consuming package
