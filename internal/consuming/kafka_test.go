@@ -3,12 +3,15 @@
 package consuming
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -18,6 +21,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
@@ -1333,6 +1337,555 @@ func TestKafkaConsumer_CommitsOffsetsOnShutdown(t *testing.T) {
 	require.True(t, ok, "committed offset not found for topic %s partition 0", testKafkaTopic)
 	require.Equal(t, int64(numMessages), offset.At,
 		"committed offset should equal number of produced messages")
+}
+
+// syncBuffer is a concurrency-safe buffer for capturing zerolog output in tests.
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (s *syncBuffer) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.buf.Write(p)
+}
+
+func (s *syncBuffer) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.buf.String()
+}
+
+// testCommonWithLogBuf builds a consumerCommon whose zerolog logger writes JSON
+// records into buf so tests can assert on log messages.
+func testCommonWithLogBuf(buf *syncBuffer) *consumerCommon {
+	return &consumerCommon{
+		name:   "test",
+		nodeID: uuid.New().String(),
+		log:    zerolog.New(buf).With().Str("consumer", "test").Logger(),
+	}
+}
+
+// producerState tracks every successfully produced message value.
+type producerState struct {
+	mu     sync.Mutex
+	values []string
+}
+
+func (p *producerState) add(v string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.values = append(p.values, v)
+}
+
+func (p *producerState) snapshot() []string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return slices.Clone(p.values)
+}
+
+// consumedTracker tracks unique consumed message values and total dispatch calls.
+type consumedTracker struct {
+	mu         sync.Mutex
+	values     map[string]struct{}
+	totalCalls int
+}
+
+func newConsumedTracker() *consumedTracker {
+	return &consumedTracker{values: make(map[string]struct{})}
+}
+
+func (c *consumedTracker) add(v string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.values[v] = struct{}{}
+	c.totalCalls++
+}
+
+func (c *consumedTracker) snapshotSet() map[string]struct{} {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	out := make(map[string]struct{}, len(c.values))
+	for v := range c.values {
+		out[v] = struct{}{}
+	}
+	return out
+}
+
+func (c *consumedTracker) uniqueCount() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return len(c.values)
+}
+
+func (c *consumedTracker) totalCount() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.totalCalls
+}
+
+// runMultiPartitionProducer produces messages "msg_1", "msg_2", ... round-robin
+// across all partitions of the topic. PollRecords blocks until records are
+// available, so a steady traffic stream is required to make the consumer poll
+// loop iterate and pick up an injected fatal error from the test-only channel.
+func runMultiPartitionProducer(
+	t *testing.T,
+	ctx context.Context,
+	topic string,
+	numPartitions int32,
+	interval time.Duration,
+) (*producerState, chan struct{}) {
+	t.Helper()
+	client, err := kgo.NewClient(
+		kgo.SeedBrokers(testKafkaBrokerURL),
+		kgo.RecordPartitioner(kgo.ManualPartitioner()),
+	)
+	require.NoError(t, err)
+
+	state := &producerState{}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		defer client.Close()
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		var seq int
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				seq++
+				value := fmt.Sprintf("msg_%d", seq)
+				partition := int32(seq-1) % numPartitions
+				err := client.ProduceSync(ctx, &kgo.Record{
+					Topic:     topic,
+					Partition: partition,
+					Value:     []byte(value),
+				}).FirstErr()
+				if err != nil {
+					if ctx.Err() != nil {
+						return
+					}
+					t.Logf("produce error: %v", err)
+					return
+				}
+				state.add(value)
+			}
+		}
+	}()
+	return state, done
+}
+
+// assertNoMessageLoss asserts that every successfully produced message was consumed.
+// Allows redeliveries (totalCount >= produced count).
+func assertNoMessageLoss(t *testing.T, prod *producerState, cons *consumedTracker) {
+	t.Helper()
+	producedList := prod.snapshot()
+	producedSet := make(map[string]struct{}, len(producedList))
+	for _, v := range producedList {
+		producedSet[v] = struct{}{}
+	}
+	consumedSet := cons.snapshotSet()
+
+	var missing []string
+	for v := range producedSet {
+		if _, ok := consumedSet[v]; !ok {
+			missing = append(missing, v)
+		}
+	}
+	require.Empty(t, missing, "produced messages were not consumed (message loss): %v", missing)
+
+	require.Equal(t, len(producedSet), len(consumedSet),
+		"unique consumed set size must equal unique produced set size")
+	require.Equal(t, producedSet, consumedSet,
+		"consumed set must equal produced set")
+	require.GreaterOrEqual(t, cons.totalCount(), len(producedList),
+		"total consume calls must be at least produced count")
+}
+
+// runConsumerAsync starts a KafkaConsumer in a goroutine and returns a channel
+// that receives the Run error when it returns.
+func runConsumerAsync(t *testing.T, ctx context.Context, c *KafkaConsumer) chan error {
+	t.Helper()
+	done := make(chan error, 1)
+	go func() {
+		done <- c.Run(ctx)
+	}()
+	return done
+}
+
+// TestKafkaConsumer_NoMessageLossOnReInit verifies that when a fatal poll error
+// triggers client re-initialization, every produced message is eventually
+// consumed and no messages are lost. Uses a multi-partition topic with
+// round-robin distribution so multiple partition consumers are exercised.
+func TestKafkaConsumer_NoMessageLossOnReInit(t *testing.T) {
+	t.Parallel()
+	const numPartitions int32 = 4
+	testKafkaTopic := "centrifugo_consumer_test_" + uuid.New().String()
+	consumerGroup := uuid.New().String()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	require.NoError(t, createTestTopic(ctx, testKafkaTopic, numPartitions, 1))
+
+	producerCtx, producerCancel := context.WithCancel(ctx)
+	defer producerCancel()
+	prod, producerDone := runMultiPartitionProducer(t, producerCtx, testKafkaTopic, numPartitions, 50*time.Millisecond)
+
+	consumed := newConsumedTracker()
+	thresholdReached := make(chan struct{})
+	var thresholdOnce sync.Once
+	const triggerAfter = 10
+
+	mockDispatcher := &MockDispatcher{
+		onDispatchCommand: func(_ context.Context, _ string, data []byte) error {
+			consumed.add(string(data))
+			if consumed.uniqueCount() >= triggerAfter {
+				thresholdOnce.Do(func() { close(thresholdReached) })
+			}
+			return nil
+		},
+	}
+
+	var logBuf syncBuffer
+	fatalErrCh := make(chan error, 1)
+	config := KafkaConfig{
+		Brokers:       []string{testKafkaBrokerURL},
+		Topics:        []string{testKafkaTopic},
+		ConsumerGroup: consumerGroup,
+	}
+
+	consumer, err := NewKafkaConsumer(config, mockDispatcher, testCommonWithLogBuf(&logBuf))
+	require.NoError(t, err)
+	consumer.testOnlyConfig.injectFatalPollErrorCh = fatalErrCh
+
+	consumerCtx, consumerCancel := context.WithCancel(ctx)
+	consumerErr := runConsumerAsync(t, consumerCtx, consumer)
+
+	waitCh(t, thresholdReached, 30*time.Second, "timeout waiting for threshold messages")
+	t.Logf("threshold reached (unique=%d), injecting fatal error", consumed.uniqueCount())
+	consumedAtInjection := consumed.uniqueCount()
+
+	fatalErrCh <- errors.New("injected fatal poll error")
+
+	require.Eventually(t, func() bool {
+		return strings.Contains(logBuf.String(), "Kafka consumer client re-initialized")
+	}, 30*time.Second, 50*time.Millisecond, "expected client re-initialization log entry")
+
+	require.Eventually(t, func() bool {
+		return consumed.uniqueCount() >= consumedAtInjection+3
+	}, 30*time.Second, 50*time.Millisecond, "expected processing to resume after re-init")
+
+	producerCancel()
+	<-producerDone
+
+	produced := prod.snapshot()
+	require.Eventually(t, func() bool {
+		return consumed.uniqueCount() >= len(produced)
+	}, 30*time.Second, 100*time.Millisecond,
+		"expected all produced messages to be consumed")
+
+	assertNoMessageLoss(t, prod, consumed)
+	t.Logf("final: produced=%d, unique=%d, total=%d, redeliveries=%d",
+		len(produced), consumed.uniqueCount(), consumed.totalCount(), consumed.totalCount()-len(produced))
+
+	logs := logBuf.String()
+	require.Contains(t, logs, "fatal error polling Kafka, need client re-init")
+	require.Contains(t, logs, "start re-initializing Kafka consumer client")
+	require.Contains(t, logs, "Kafka consumer client re-initialized")
+
+	consumerCancel()
+	select {
+	case err := <-consumerErr:
+		require.ErrorIs(t, err, context.Canceled)
+	case <-time.After(15 * time.Second):
+		t.Fatal("timeout waiting for consumer to close")
+	}
+}
+
+// TestKafkaConsumer_MultipleReInitsNoMessageLoss verifies that the consumer
+// survives multiple consecutive fatal errors, processes all produced messages,
+// and that committed offsets cover the full topic at the end.
+func TestKafkaConsumer_MultipleReInitsNoMessageLoss(t *testing.T) {
+	t.Parallel()
+	const (
+		numPartitions int32 = 4
+		numReInits          = 2
+	)
+	testKafkaTopic := "centrifugo_consumer_test_" + uuid.New().String()
+	consumerGroup := uuid.New().String()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	require.NoError(t, createTestTopic(ctx, testKafkaTopic, numPartitions, 1))
+
+	producerCtx, producerCancel := context.WithCancel(ctx)
+	defer producerCancel()
+	prod, producerDone := runMultiPartitionProducer(t, producerCtx, testKafkaTopic, numPartitions, 50*time.Millisecond)
+
+	consumed := newConsumedTracker()
+	mockDispatcher := &MockDispatcher{
+		onDispatchCommand: func(_ context.Context, _ string, data []byte) error {
+			consumed.add(string(data))
+			return nil
+		},
+	}
+
+	var logBuf syncBuffer
+	fatalErrCh := make(chan error, 1)
+	config := KafkaConfig{
+		Brokers:       []string{testKafkaBrokerURL},
+		Topics:        []string{testKafkaTopic},
+		ConsumerGroup: consumerGroup,
+	}
+	consumer, err := NewKafkaConsumer(config, mockDispatcher, testCommonWithLogBuf(&logBuf))
+	require.NoError(t, err)
+	consumer.testOnlyConfig.injectFatalPollErrorCh = fatalErrCh
+
+	consumerCtx, consumerCancel := context.WithCancel(ctx)
+	consumerErr := runConsumerAsync(t, consumerCtx, consumer)
+
+	require.Eventually(t, func() bool {
+		return consumed.uniqueCount() >= 5
+	}, 30*time.Second, 50*time.Millisecond, "expected initial messages to be consumed")
+
+	for i := range numReInits {
+		fatalErrCh <- fmt.Errorf("injected fatal error #%d", i+1)
+		t.Logf("injected fatal error %d/%d (unique=%d)", i+1, numReInits, consumed.uniqueCount())
+
+		expectedReInits := i + 1
+		require.Eventually(t, func() bool {
+			return strings.Count(logBuf.String(), "Kafka consumer client re-initialized") >= expectedReInits
+		}, 30*time.Second, 50*time.Millisecond,
+			fmt.Sprintf("expected at least %d re-init log entries", expectedReInits))
+
+		baseline := consumed.uniqueCount()
+		require.Eventually(t, func() bool {
+			return consumed.uniqueCount() >= baseline+3
+		}, 30*time.Second, 50*time.Millisecond,
+			"expected processing to resume after re-init before next injection")
+	}
+
+	producerCancel()
+	<-producerDone
+
+	produced := prod.snapshot()
+	require.Eventually(t, func() bool {
+		return consumed.uniqueCount() >= len(produced)
+	}, 30*time.Second, 100*time.Millisecond,
+		"expected all produced messages to be consumed")
+
+	assertNoMessageLoss(t, prod, consumed)
+
+	logs := logBuf.String()
+	require.GreaterOrEqual(t, strings.Count(logs, "fatal error polling Kafka, need client re-init"), numReInits)
+	require.GreaterOrEqual(t, strings.Count(logs, "start re-initializing Kafka consumer client"), numReInits)
+	require.GreaterOrEqual(t, strings.Count(logs, "Kafka consumer client re-initialized"), numReInits)
+
+	t.Logf("after %d re-inits: produced=%d, unique=%d, total=%d, redeliveries=%d",
+		numReInits, len(produced), consumed.uniqueCount(), consumed.totalCount(),
+		consumed.totalCount()-len(produced))
+
+	consumerCancel()
+	select {
+	case err := <-consumerErr:
+		require.ErrorIs(t, err, context.Canceled)
+	case <-time.After(15 * time.Second):
+		t.Fatal("timeout waiting for consumer to close")
+	}
+}
+
+// TestKafkaConsumer_ReInitPreservesCommittedOffsets verifies that after a fatal
+// error and client re-initialization, committed offsets eventually cover every
+// partition's full content.
+func TestKafkaConsumer_ReInitPreservesCommittedOffsets(t *testing.T) {
+	t.Parallel()
+	const numPartitions int32 = 4
+	testKafkaTopic := "centrifugo_consumer_test_" + uuid.New().String()
+	consumerGroup := uuid.New().String()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	require.NoError(t, createTestTopic(ctx, testKafkaTopic, numPartitions, 1))
+
+	producerCtx, producerCancel := context.WithCancel(ctx)
+	defer producerCancel()
+	prod, producerDone := runMultiPartitionProducer(t, producerCtx, testKafkaTopic, numPartitions, 50*time.Millisecond)
+
+	consumed := newConsumedTracker()
+	mockDispatcher := &MockDispatcher{
+		onDispatchCommand: func(_ context.Context, _ string, data []byte) error {
+			consumed.add(string(data))
+			return nil
+		},
+	}
+
+	var logBuf syncBuffer
+	fatalErrCh := make(chan error, 1)
+	config := KafkaConfig{
+		Brokers:       []string{testKafkaBrokerURL},
+		Topics:        []string{testKafkaTopic},
+		ConsumerGroup: consumerGroup,
+	}
+	consumer, err := NewKafkaConsumer(config, mockDispatcher, testCommonWithLogBuf(&logBuf))
+	require.NoError(t, err)
+	consumer.testOnlyConfig.injectFatalPollErrorCh = fatalErrCh
+
+	consumerCtx, consumerCancel := context.WithCancel(ctx)
+	consumerErr := runConsumerAsync(t, consumerCtx, consumer)
+
+	require.Eventually(t, func() bool {
+		return consumed.uniqueCount() >= 5
+	}, 30*time.Second, 50*time.Millisecond, "timeout waiting for initial messages")
+
+	fatalErrCh <- errors.New("injected fatal error")
+	require.Eventually(t, func() bool {
+		return strings.Contains(logBuf.String(), "Kafka consumer client re-initialized")
+	}, 30*time.Second, 50*time.Millisecond, "expected re-init completion")
+
+	baseline := consumed.uniqueCount()
+	require.Eventually(t, func() bool {
+		return consumed.uniqueCount() >= baseline+5
+	}, 30*time.Second, 50*time.Millisecond, "expected processing to resume after re-init")
+
+	producerCancel()
+	<-producerDone
+
+	produced := prod.snapshot()
+	require.Eventually(t, func() bool {
+		return consumed.uniqueCount() >= len(produced)
+	}, 30*time.Second, 100*time.Millisecond,
+		"expected all produced messages to be consumed")
+
+	assertNoMessageLoss(t, prod, consumed)
+
+	logs := logBuf.String()
+	require.Contains(t, logs, "fatal error polling Kafka, need client re-init")
+	require.Contains(t, logs, "start re-initializing Kafka consumer client")
+	require.Contains(t, logs, "Kafka consumer client re-initialized")
+
+	// Wait until committed offsets cover every partition's full content.
+	require.Eventually(t, func() bool {
+		cl, err := kgo.NewClient(kgo.SeedBrokers(testKafkaBrokerURL))
+		if err != nil {
+			return false
+		}
+		defer cl.Close()
+		admClient := kadm.NewClient(cl)
+		defer admClient.Close()
+
+		queryCtx, queryCancel := context.WithTimeout(ctx, 5*time.Second)
+		defer queryCancel()
+
+		endOffsets, err := admClient.ListEndOffsets(queryCtx, testKafkaTopic)
+		if err != nil {
+			return false
+		}
+		committed, err := admClient.FetchOffsets(queryCtx, consumerGroup)
+		if err != nil {
+			return false
+		}
+		allMatch := true
+		endOffsets.Each(func(o kadm.ListedOffset) {
+			c, ok := committed.Lookup(testKafkaTopic, o.Partition)
+			if !ok || c.At != o.Offset {
+				allMatch = false
+			}
+		})
+		return allMatch
+	}, 30*time.Second, 200*time.Millisecond,
+		"expected committed offsets to match end offsets on all partitions")
+
+	consumerCancel()
+	select {
+	case err := <-consumerErr:
+		require.ErrorIs(t, err, context.Canceled)
+	case <-time.After(15 * time.Second):
+		t.Fatal("timeout waiting for consumer to close")
+	}
+}
+
+// TestKafkaConsumer_GracefulShutdownDuringReInit verifies that cancelling the
+// context after a fatal error has triggered the re-init flow causes Run to
+// return promptly with the context error. The test waits for the "start
+// re-initializing" log entry before cancelling — re-init can occasionally
+// complete before the cancellation lands, in which case we are cancelling
+// the next poll loop iteration rather than mid-re-init proper. Either way,
+// Run must return within the 10s bound.
+func TestKafkaConsumer_GracefulShutdownDuringReInit(t *testing.T) {
+	t.Parallel()
+	const numPartitions int32 = 4
+	testKafkaTopic := "centrifugo_consumer_test_" + uuid.New().String()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	require.NoError(t, createTestTopic(ctx, testKafkaTopic, numPartitions, 1))
+
+	producerCtx, producerCancel := context.WithCancel(ctx)
+	_, producerDone := runMultiPartitionProducer(t, producerCtx, testKafkaTopic, numPartitions, 100*time.Millisecond)
+	defer func() {
+		producerCancel()
+		<-producerDone
+	}()
+
+	eventReceived := make(chan struct{})
+	var eventOnce sync.Once
+	mockDispatcher := &MockDispatcher{
+		onDispatchCommand: func(_ context.Context, _ string, _ []byte) error {
+			eventOnce.Do(func() { close(eventReceived) })
+			return nil
+		},
+	}
+
+	var logBuf syncBuffer
+	fatalErrCh := make(chan error, 1)
+	config := KafkaConfig{
+		Brokers:       []string{testKafkaBrokerURL},
+		Topics:        []string{testKafkaTopic},
+		ConsumerGroup: uuid.New().String(),
+	}
+	consumer, err := NewKafkaConsumer(config, mockDispatcher, testCommonWithLogBuf(&logBuf))
+	require.NoError(t, err)
+	consumer.testOnlyConfig.injectFatalPollErrorCh = fatalErrCh
+
+	consumerCtx, consumerCancel := context.WithCancel(ctx)
+	consumerErr := runConsumerAsync(t, consumerCtx, consumer)
+
+	waitCh(t, eventReceived, 30*time.Second, "timeout waiting for first event")
+
+	fatalErrCh <- errors.New("injected fatal error for shutdown test")
+
+	// Wait until the re-init flow has actually started, so we know we're
+	// cancelling the context mid-re-init.
+	require.Eventually(t, func() bool {
+		s := logBuf.String()
+		return strings.Contains(s, "fatal error polling Kafka, need client re-init") &&
+			strings.Contains(s, "start re-initializing Kafka consumer client")
+	}, 15*time.Second, 25*time.Millisecond, "expected re-init flow to start before context cancellation")
+
+	shutdownStart := time.Now()
+	consumerCancel()
+
+	select {
+	case runErr := <-consumerErr:
+		shutdownDuration := time.Since(shutdownStart)
+		require.ErrorIs(t, runErr, context.Canceled)
+		require.Less(t, shutdownDuration, 10*time.Second,
+			"consumer should shut down promptly when context is cancelled during re-init")
+		t.Logf("consumer shut down in %v after context cancellation", shutdownDuration)
+	case <-time.After(15 * time.Second):
+		t.Fatal("consumer did not shut down in time after context cancellation during re-init")
+	}
+
+	logs := logBuf.String()
+	require.Contains(t, logs, "fatal error polling Kafka, need client re-init")
+	require.Contains(t, logs, "start re-initializing Kafka consumer client")
 }
 
 func BenchmarkKafkaConsumer_ConsumePreLoadedTopic(b *testing.B) {
