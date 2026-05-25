@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/rs/zerolog"
+	"github.com/twmb/franz-go/pkg/kerr"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/kmsg"
 	mskaws "github.com/twmb/franz-go/pkg/sasl/aws"
@@ -37,6 +38,10 @@ type testOnlyConfig struct {
 	// leaveGroupOnShutdown when true sends a manual LeaveGroup request on shutdown.
 	// Used only in tests to simulate the old behavior with dynamic instance IDs.
 	leaveGroupOnShutdown bool
+	// injectFatalPollErrorCh, when a value is received from this channel (non-blocking
+	// check on each pollUntilFatal entry), causes pollUntilFatal to return it as a fatal
+	// error instead of actually polling — used to exercise the client re-init path in tests.
+	injectFatalPollErrorCh chan error
 }
 
 type topicPartition struct {
@@ -271,8 +276,30 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 	return client, nil
 }
 
+// fetchPartitionErrorRequiresClientReinit reports whether a PollRecords fetch error
+// should trigger a full consumer client re-initialization. franz-go classifies Kafka
+// protocol errors with kerr.IsRetriable; broker-level retryability uses
+// kgo.IsRetryableBrokerErr — these differ, so both are consulted. *kgo.ErrDataLoss
+// is handled by offset reset inside the client and does not require restarting it.
+func fetchPartitionErrorRequiresClientReinit(err error) bool {
+	if err == nil {
+		return false
+	}
+	var dataLoss *kgo.ErrDataLoss
+	if errors.As(err, &dataLoss) {
+		return false
+	}
+	if kerr.IsRetriable(err) || kgo.IsRetryableBrokerErr(err) {
+		return false
+	}
+	return true
+}
+
 func (c *KafkaConsumer) Run(ctx context.Context) error {
+	started := time.Now()
 	defer func() {
+		c.common.log.Info().Str("was_running_for", time.Since(started).String()).Msg("stopping Kafka consumer")
+		stopStarted := time.Now()
 		close(c.doneCh)
 		if c.client != nil {
 			// Stop all partition consumers first to ensure all offsets are marked.
@@ -300,25 +327,31 @@ func (c *KafkaConsumer) Run(ctx context.Context) error {
 			// with the same instance ID can take over partitions seamlessly.
 			c.client.CloseAllowingRebalance()
 		}
+		c.common.log.Info().Str("elapsed", time.Since(stopStarted).String()).Msg("stopped Kafka consumer")
 	}()
 	for {
+		pollStarted := time.Now()
 		err := c.pollUntilFatal(ctx)
 		if err != nil {
-			if errors.Is(err, context.Canceled) {
+			// franz-go may return context.DeadlineExceeded instead of context.Canceled on
+			// shutdown, so check the external context to detect shutdown — avoids logging
+			// the unwrapped error as if it were a real polling failure.
+			if ctx.Err() != nil {
 				return ctx.Err()
 			}
-			c.common.log.Error().Err(err).Msg("error polling Kafka")
+			c.common.log.Error().Err(err).Msg("fatal error polling Kafka, need client re-init")
 		}
-		// Upon returning from polling loop we are re-initializing consumer client.
+		// Upon returning from polling loop with fatal error we re-initialize consumer client.
 		c.client.CloseAllowingRebalance()
 		c.client = nil
-		c.common.log.Info().Msg("re-initializing Kafka consumer client")
+		c.common.log.Info().Str("was_polling_for", time.Since(pollStarted).String()).Msg("start re-initializing Kafka consumer client")
+		reInitStarted := time.Now()
 		err = c.reInitClient(ctx)
 		if err != nil {
 			// Only context.Canceled may be returned.
 			return err
 		}
-		c.common.log.Info().Msg("Kafka consumer client re-initialized")
+		c.common.log.Info().Str("elapsed", time.Since(reInitStarted).String()).Msg("Kafka consumer client re-initialized")
 	}
 }
 
@@ -328,22 +361,51 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
+			if ch := c.testOnlyConfig.injectFatalPollErrorCh; ch != nil {
+				select {
+				case err := <-ch:
+					return err
+				default:
+				}
+			}
 			fetches := c.client.PollRecords(ctx, c.config.MaxPollRecords)
 			if fetches.IsClientClosed() {
-				return nil
+				// Defensive check: in our code the client is only closed by Run after this loop
+				// exits, so this should not normally happen. Trigger re-init via Run to recover.
+				c.common.log.Warn().Msg("Kafka client unexpectedly closed during poll, will re-init")
+				return errors.New("client closed during poll")
 			}
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			// Check fetch errors. Only return fatal error if at least one partition error needs a
+			// full client re-init. Kafka-retriable protocol errors (kerr) and retryable broker
+			// errors (kgo) are left to franz-go; ErrDataLoss is handled via offset reset inside the
+			// client. Otherwise we log and continue so EachPartition still processes fetched
+			// records for partitions without errors.
 			fetchErrors := fetches.Errors()
 			if len(fetchErrors) > 0 {
-				// Non-retryable errors returned. We will restart consumer client, but log errors first.
 				var errs []error
+				var fatal bool
 				for _, fetchErr := range fetchErrors {
-					if errors.Is(fetchErr.Err, context.Canceled) {
-						return ctx.Err()
-					}
 					errs = append(errs, fetchErr.Err)
-					c.common.log.Error().Err(fetchErr.Err).Str("topic", fetchErr.Topic).Int32("partition", fetchErr.Partition).Msg("error while polling Kafka")
+					reinit := fetchPartitionErrorRequiresClientReinit(fetchErr.Err)
+					c.common.log.Error().
+						Err(fetchErr.Err).
+						Str("topic", fetchErr.Topic).
+						Int32("partition", fetchErr.Partition).
+						Bool("fatal", reinit).
+						Msg("error while polling topic partition")
+					if reinit {
+						fatal = true
+					}
 				}
-				return fmt.Errorf("poll error: %w", errors.Join(errs...))
+				if fatal {
+					// Client will be re-initialized in Run. This poll returns before EachPartition,
+					// so records from this cycle are not enqueued yet; recovery is at-least-once
+					// via refetch after re-init.
+					return fmt.Errorf("poll error: %w", errors.Join(errs...))
+				}
 			}
 
 			// Track which partitions we've paused in this poll cycle.
@@ -469,7 +531,13 @@ func (c *KafkaConsumer) revoked(ctx context.Context, cl *kgo.Client, revoked map
 	c.killConsumers(revoked)
 	// Always commit marked offsets on revoke.
 	if err := cl.CommitMarkedOffsets(ctx); err != nil {
-		c.common.log.Error().Err(err).Msg("error committing marked offsets on revoke")
+		// On shutdown the app context is already canceled; commit will fail with
+		// context.Canceled. That is expected, not an error — log at info level instead.
+		if errors.Is(err, context.Canceled) {
+			c.common.log.Info().Err(err).Msg("skipping commit on revoke due to context cancellation")
+		} else {
+			c.common.log.Error().Err(err).Msg("error committing marked offsets on revoke")
+		}
 	}
 }
 
