@@ -2568,6 +2568,33 @@ func TestPostgresMapBroker_AllColumnTypes(t *testing.T) {
 // Redis Broker Fan-out Tests (advisory lock mode)
 // ============================================================================
 
+// waitForAllShardLocksHeld blocks until every shard's advisory lock has been
+// acquired by a worker on this broker. Use it before publishing in fan-out
+// tests: runOutboxWorkerWithLock re-queries MAX(id) inside InitCursor on each
+// acquisition, so a publish that lands before the worker's first InitCursor
+// would be observed by the snapshot and silently skipped. In production this
+// race is benign — subscribers recover the gap via insufficient_state — but
+// tests register a raw BrokerEventHandler that bypasses that recovery path.
+func waitForAllShardLocksHeld(tb testing.TB, broker *PostgresMapBroker) {
+	tb.Helper()
+	ctx := context.Background()
+	baseID := broker.conf.Outbox.AdvisoryLockBaseID
+	require.Eventually(tb, func() bool {
+		for i := 0; i < broker.conf.NumShards; i++ {
+			var count int
+			if err := broker.pool.QueryRow(ctx,
+				"SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' AND objid = $1 AND granted = true",
+				baseID+int64(i)).Scan(&count); err != nil {
+				return false
+			}
+			if count < 1 {
+				return false
+			}
+		}
+		return true
+	}, 10*time.Second, 50*time.Millisecond, "all shard advisory locks should be held")
+}
+
 // newTestRedisBrokerForFanout creates a RedisBroker suitable for PG fan-out testing.
 // Does NOT call node.Run() or SetBroker — the PG broker handles registration.
 func newTestRedisBrokerForFanout(tb testing.TB, n *centrifuge.Node) *centrifuge.RedisBroker {
@@ -2657,8 +2684,10 @@ func TestPostgresMapBroker_RedisFanout_Delivery(t *testing.T) {
 	err = broker.Subscribe(channel)
 	require.NoError(t, err)
 
-	// Give workers time to start + subscribe to propagate.
-	time.Sleep(200 * time.Millisecond)
+	// Wait deterministically for all shard locks to be held: the LockWorker
+	// snapshots MAX(id) inside InitCursor on each acquisition, so any publish
+	// that lands before that snapshot would be skipped.
+	waitForAllShardLocksHeld(t, broker)
 
 	// Publish via PG broker.
 	const numMessages = 5
@@ -2764,7 +2793,7 @@ func TestPostgresMapBroker_RedisFanout_Delta(t *testing.T) {
 	err = broker.Subscribe(channel)
 	require.NoError(t, err)
 
-	time.Sleep(200 * time.Millisecond)
+	waitForAllShardLocksHeld(t, broker)
 
 	waitEvent := func(t *testing.T) pubEvent {
 		t.Helper()
@@ -3068,7 +3097,7 @@ func TestPostgresMapBroker_RedisFanout_ClientInfo(t *testing.T) {
 	err = broker.Subscribe(channel)
 	require.NoError(t, err)
 
-	time.Sleep(200 * time.Millisecond)
+	waitForAllShardLocksHeld(t, broker)
 
 	info := &centrifuge.ClientInfo{
 		ClientID: "c1",
