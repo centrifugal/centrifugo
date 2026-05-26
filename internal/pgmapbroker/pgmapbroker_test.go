@@ -2568,31 +2568,26 @@ func TestPostgresMapBroker_AllColumnTypes(t *testing.T) {
 // Redis Broker Fan-out Tests (advisory lock mode)
 // ============================================================================
 
-// waitForAllShardLocksHeld blocks until every shard's advisory lock has been
-// acquired by a worker on this broker. Use it before publishing in fan-out
-// tests: runOutboxWorkerWithLock re-queries MAX(id) inside InitCursor on each
-// acquisition, so a publish that lands before the worker's first InitCursor
+// waitForAllShardLocksHeld blocks until every shard's outbox worker has
+// completed its first InitCursor snapshot — i.e., has snapshotted MAX(id) and
+// is actively polling. Use it before publishing in fan-out tests: otherwise a
+// publish committed between lock acquisition and the InitCursor snapshot
 // would be observed by the snapshot and silently skipped. In production this
 // race is benign — subscribers recover the gap via insufficient_state — but
 // tests register a raw BrokerEventHandler that bypasses that recovery path.
+//
+// Waiting on pg_locks is insufficient: the lock is held the moment
+// pg_try_advisory_lock returns, but InitCursor runs strictly after that.
 func waitForAllShardLocksHeld(tb testing.TB, broker *PostgresMapBroker) {
 	tb.Helper()
-	ctx := context.Background()
-	baseID := broker.conf.Outbox.AdvisoryLockBaseID
 	require.Eventually(tb, func() bool {
 		for i := 0; i < broker.conf.NumShards; i++ {
-			var count int
-			if err := broker.pool.QueryRow(ctx,
-				"SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' AND objid = $1 AND granted = true",
-				baseID+int64(i)).Scan(&count); err != nil {
-				return false
-			}
-			if count < 1 {
+			if !broker.workersInitialized[i].Load() {
 				return false
 			}
 		}
 		return true
-	}, 10*time.Second, 50*time.Millisecond, "all shard advisory locks should be held")
+	}, 10*time.Second, 50*time.Millisecond, "all shard workers should have initialized cursors")
 }
 
 // newTestRedisBrokerForFanout creates a RedisBroker suitable for PG fan-out testing.
