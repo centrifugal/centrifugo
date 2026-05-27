@@ -1108,6 +1108,13 @@ func TestPostgresStreamBroker_UseNotify_WakesIdleWorker(t *testing.T) {
 		_ = node.Shutdown(ctx)
 	})
 
+	// Wait for LISTEN to be bound. With PollInterval=30s, a publish whose
+	// NOTIFY fires before LISTEN runs would be dropped and the worker would
+	// idle for 30s — well past the 10s deadline below.
+	require.Eventually(t, e.notifyListenerReady.Load,
+		10*time.Second, 50*time.Millisecond,
+		"notification listener did not bind LISTEN")
+
 	publishAndWait := func(timeout time.Duration, msg string) bool {
 		ch := make(chan struct{}, 1)
 		deliveredPtr.Store(&ch)

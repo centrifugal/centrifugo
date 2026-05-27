@@ -298,7 +298,12 @@ func TestPostgresController_UseNotify_LowLatency(t *testing.T) {
 		UseNotify:    true,
 	}, handler)
 
-	time.Sleep(100 * time.Millisecond) // Let listener establish LISTEN.
+	// Wait for the LISTEN to be bound — a publish whose NOTIFY fires before
+	// LISTEN runs would be dropped and the test would observe PollInterval
+	// (500ms) instead of the sub-200ms NOTIFY latency it asserts on.
+	require.Eventually(t, c.notifyListenerReady.Load,
+		5*time.Second, 25*time.Millisecond,
+		"notification listener did not bind LISTEN")
 
 	start := time.Now()
 	require.NoError(t, c.PublishControl([]byte("fast"), "", ""))

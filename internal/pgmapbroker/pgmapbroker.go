@@ -224,6 +224,12 @@ type PostgresMapBroker struct {
 	// the snapshot would be observed by InitCursor and skipped. Only the
 	// LockWorker path sets this; left as nil for the non-fan-out path.
 	workersInitialized []atomic.Bool
+
+	// notifyListenerReady flips true after the LISTEN command succeeds on
+	// the notification listener's connection. Used by tests that depend on
+	// NOTIFY-driven delivery so they publish only after LISTEN is bound.
+	// Production tolerates the race because PollInterval is the fallback.
+	notifyListenerReady atomic.Bool
 }
 
 var _ centrifuge.MapBroker = (*PostgresMapBroker)(nil)
@@ -1732,6 +1738,7 @@ func (e *PostgresMapBroker) runNotificationListener() {
 		Channel:  e.names.notifyChannel,
 		NotifyCh: e.notifyCh,
 		ErrorFn:  e.logErrorMsg,
+		OnReady:  func() { e.notifyListenerReady.Store(true) },
 	}
 	l.Run(e.cancelCtx, e.closeCh)
 }
