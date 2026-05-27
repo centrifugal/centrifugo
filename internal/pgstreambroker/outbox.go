@@ -103,6 +103,7 @@ func (e *PostgresStreamBroker) runNotificationListener() {
 		Channel:  e.names.notifyChannel,
 		NotifyCh: e.notifyCh,
 		ErrorFn:  e.logErrorMsg,
+		OnReady:  func() { e.notifyListenerReady.Store(true) },
 	}
 	l.Run(e.cancelCtx, e.closeCh)
 }

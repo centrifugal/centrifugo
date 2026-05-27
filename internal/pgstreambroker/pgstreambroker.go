@@ -369,6 +369,14 @@ type PostgresStreamBroker struct {
 	cancelFunc   context.CancelFunc
 	notifyCh     chan struct{}
 	sampler      *metricsSampler
+
+	// notifyListenerReady flips true after the LISTEN command succeeds on
+	// the notification listener's connection. Used by tests to publish only
+	// after the listener is bound — a publish whose NOTIFY fires before
+	// LISTEN runs would be dropped, and with a long PollInterval the test
+	// would time out. Production tolerates this race because PollInterval
+	// is the fallback.
+	notifyListenerReady atomic.Bool
 }
 
 var _ centrifuge.Broker = (*PostgresStreamBroker)(nil)
