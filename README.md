@@ -29,12 +29,12 @@ The core idea of Centrifugo is simple – it's a PUB/SUB server on top of modern
 The hard part is to make this concept production-ready, efficient, flexible and available from different application environments. Centrifugo is a mature solution that already helped many projects with adding real-time features and scale towards many concurrent connections. Centrifugo provides a set of features not available in other open-source solutions in the area:
 
 * Efficient real-time transports: WebSocket, HTTP-streaming, Server-Sent Events, GRPC, WebTransport
-* Built-in scalability with Redis (or Redis Cluster, or Redis-compatible storage – ex. AWS Elasticache, Valkey, KeyDB, DragonflyDB, etc), or Nats.
+* Built-in scalability with Redis (or Redis Cluster, or Redis-compatible storage – ex. AWS Elasticache, Valkey, KeyDB, DragonflyDB, etc), PostgreSQL or Nats.
 * Simple HTTP and GRPC server API to communicate with Centrifugo from the app backend
 * Asynchronous PostgreSQL and Kafka consumers to support transactional outbox and CDC patterns
 * Flexible connection authentication mechanisms: JWT and proxy-like (via request from Centrifugo to the backend)
 * Channel subscription multiplexing over a single connection
-* Different types of subscriptions: client-side and server-side
+* Different types of realtime subscriptions: client-side and server-side, stream/map/shared poll subscriptions
 * Various channel permission strategies, channel namespace concept
 * Hot message history in channels, with automatic message recovery upon reconnect, cache recovery mode (deliver latest publication immediately upon subscription)
 * Delta compression in channels based on Fossil algorithm
