@@ -12902,6 +12902,16 @@
         "default": "",
         "comment": "RecoveredPublicationsHistogram enables a histogram to track the distribution of recovered publications number.",
         "is_complex_type": false
+      },
+      {
+        "field": "prometheus.native_histograms",
+        "name": "native_histograms",
+        "go_name": "NativeHistograms",
+        "level": 2,
+        "type": "bool",
+        "default": "",
+        "comment": "NativeHistograms switches Centrifugo's Histogram instruments and the\nunderlying centrifuge library's distribution metrics to Prometheus\nnative (sparse, exponential) histogram schema with no explicit buckets\nexposed. Designed for OpenTelemetry export via the client_golang\nPrometheus bridge: native histograms map to OTel ExponentialHistogram.\nText-format scrapes lose _bucket series; only _count and _sum remain\nvisible — use protobuf scrape format (Prom 2.40+) to get full data.\nExperimental in client_golang.",
+        "is_complex_type": false
       }
     ]
   },
