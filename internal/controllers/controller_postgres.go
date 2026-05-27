@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
@@ -144,6 +145,13 @@ type PostgresController struct {
 	cancelCtx    context.Context
 	cancelFunc   context.CancelFunc
 	notifyCh     chan struct{}
+
+	// notifyListenerReady flips true after the LISTEN command succeeds. Used
+	// by tests that assert NOTIFY-driven latency — a publish whose NOTIFY
+	// fires before LISTEN runs would be dropped and the test would observe
+	// PollInterval instead. Production tolerates this race because
+	// PollInterval is the fallback.
+	notifyListenerReady atomic.Bool
 }
 
 var _ centrifuge.Controller = (*PostgresController)(nil)
@@ -470,6 +478,7 @@ func (c *PostgresController) runNotificationListener() {
 		Channel:  c.names.notifyChannel,
 		NotifyCh: c.notifyCh,
 		ErrorFn:  c.logError,
+		OnReady:  func() { c.notifyListenerReady.Store(true) },
 	}
 	l.Run(c.cancelCtx, c.closeCh)
 }

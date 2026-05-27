@@ -216,6 +216,20 @@ type PostgresMapBroker struct {
 	cancelCtx    context.Context
 	cancelFunc   context.CancelFunc
 	notifyCh     chan struct{} // nil when UseNotify is false
+
+	// workersInitialized[i] flips true once shard i's outbox worker completes
+	// its first InitCursor (i.e., has snapshotted MAX(id) and is actively
+	// polling). Used by tests to publish only after the InitCursor snapshot
+	// is taken — otherwise a publish committed between lock acquisition and
+	// the snapshot would be observed by InitCursor and skipped. Only the
+	// LockWorker path sets this; left as nil for the non-fan-out path.
+	workersInitialized []atomic.Bool
+
+	// notifyListenerReady flips true after the LISTEN command succeeds on
+	// the notification listener's connection. Used by tests that depend on
+	// NOTIFY-driven delivery so they publish only after LISTEN is bound.
+	// Production tolerates the race because PollInterval is the fallback.
+	notifyListenerReady atomic.Bool
 }
 
 var _ centrifuge.MapBroker = (*PostgresMapBroker)(nil)
@@ -460,13 +474,14 @@ func NewPostgresMapBroker(n *centrifuge.Node, conf PostgresMapBrokerConfig) (*Po
 	ctx, cancel := context.WithCancel(context.Background())
 
 	e := &PostgresMapBroker{
-		node:       n,
-		conf:       conf,
-		names:      newPgNames(conf.TablePrefix, conf.BinaryData),
-		pool:       pool,
-		closeCh:    make(chan struct{}),
-		cancelCtx:  ctx,
-		cancelFunc: cancel,
+		node:               n,
+		conf:               conf,
+		names:              newPgNames(conf.TablePrefix, conf.BinaryData),
+		pool:               pool,
+		closeCh:            make(chan struct{}),
+		cancelCtx:          ctx,
+		cancelFunc:         cancel,
+		workersInitialized: make([]atomic.Bool, conf.NumShards),
 	}
 	e.sampler = newMapMetricsSampler(e)
 
@@ -1723,6 +1738,7 @@ func (e *PostgresMapBroker) runNotificationListener() {
 		Channel:  e.names.notifyChannel,
 		NotifyCh: e.notifyCh,
 		ErrorFn:  e.logErrorMsg,
+		OnReady:  func() { e.notifyListenerReady.Store(true) },
 	}
 	l.Run(e.cancelCtx, e.closeCh)
 }
@@ -1820,8 +1836,16 @@ func (e *PostgresMapBroker) runOutboxWorkerWithLock(workerIdx int, initialCursor
 		// so we re-query MAX(id) each time. Returning a fixed startup value
 		// is not a correctness bug (subscribers dedup by offset) but would
 		// re-fanout every row already forwarded by a previous lock holder,
-		// growing linearly with broker uptime.
-		InitCursor: e.initOutboxCursor,
+		// growing linearly with broker uptime. The race window between lock
+		// acquisition and this snapshot is recovered subscriber-side via
+		// insufficient_state.
+		InitCursor: func(ctx context.Context, p *pgxpool.Pool) (int64, error) {
+			cursor, err := e.initOutboxCursor(ctx, p)
+			if err == nil {
+				e.workersInitialized[workerIdx].Store(true)
+			}
+			return cursor, err
+		},
 		ProcessBatch: func(ctx context.Context, pool *pgxpool.Pool, cursor int64, shardIDs []int) (int, int64, error) {
 			return e.processOutboxBatch(ctx, pool, cursor, shardIDs, buf)
 		},

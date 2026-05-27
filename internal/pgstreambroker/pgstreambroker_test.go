@@ -75,13 +75,13 @@ func newTestPostgresStreamBroker(tb testing.TB) (*PostgresStreamBroker, *centrif
 
 	connString := getPostgresConnString(tb)
 	e, err := NewPostgresStreamBroker(node, PostgresStreamBrokerConfig{
-		DSN:                       connString,
-		NumShards:                 4, // fewer shards for faster tests
-		BinaryData:                true,
-		CleanupInterval:           100 * time.Millisecond,
-		StreamRetention:           24 * time.Hour,
-		PartitionLookaheadDays:    1,
-		PartitionRetentionDays:    1,
+		DSN:                    connString,
+		NumShards:              4, // fewer shards for faster tests
+		BinaryData:             true,
+		CleanupInterval:        100 * time.Millisecond,
+		StreamRetention:        24 * time.Hour,
+		PartitionLookaheadDays: 1,
+		PartitionRetentionDays: 1,
 		Outbox: OutboxConfig{
 			PollInterval: 10 * time.Millisecond,
 			BatchSize:    100,
@@ -1050,104 +1050,100 @@ func TestPostgresStreamBroker_PartitionRetention_RetentionZero_NeverDrops(t *tes
 	require.True(t, exists, "old partition should NOT be dropped with RetentionDays=0")
 }
 
-// TestPostgresStreamBroker_UseNotify_WakeupLatency compares delivery latency
-// with UseNotify=true vs UseNotify=false. With UseNotify, delivery should be
-// significantly faster than the PollInterval-bounded baseline.
-func TestPostgresStreamBroker_UseNotify_WakeupLatency(t *testing.T) {
-	measure := func(t *testing.T, useNotify bool) time.Duration {
-		node, err := centrifuge.New(centrifuge.Config{})
-		require.NoError(t, err)
+// TestPostgresStreamBroker_UseNotify_WakesIdleWorker verifies that with
+// UseNotify=true, LISTEN/NOTIFY wakes an idle outbox worker — without
+// depending on a comparison against the polling-only baseline.
+//
+// Design: PollInterval is set far above the test window so polling cannot
+// be the delivery mechanism. After a first publish proves the worker is
+// past its initial drain and into idle-wait, subsequent publishes that
+// arrive within seconds must have been NOTIFY-driven (polling can't fire
+// for 30s).
+func TestPostgresStreamBroker_UseNotify_WakesIdleWorker(t *testing.T) {
+	node, err := centrifuge.New(centrifuge.Config{})
+	require.NoError(t, err)
 
-		connString := getPostgresConnString(t)
-		// NumShards=1 so the single NotifyCh reliably wakes the only worker.
-		// With multiple shards, a shared NotifyCh only wakes one of N workers
-		// per NOTIFY event, so a specific publication's shard worker may not
-		// receive the wake signal — making wakeup latency flaky for this test.
-		e, err := NewPostgresStreamBroker(node, PostgresStreamBrokerConfig{
-			DSN:                    connString,
-			NumShards:              1,
-			BinaryData:             true,
-			CleanupInterval:        500 * time.Millisecond,
-			PartitionLookaheadDays: 1,
-			PartitionRetentionDays: 1,
-			UseNotify:              useNotify,
-			Outbox: OutboxConfig{
-				// Long poll interval so we can isolate notify-driven wakeup latency.
-				PollInterval: 500 * time.Millisecond,
-				BatchSize:    100,
-			},
-		})
-		require.NoError(t, err)
+	// NumShards=1 so the single NotifyCh reliably wakes the only worker.
+	e, err := NewPostgresStreamBroker(node, PostgresStreamBrokerConfig{
+		DSN:                    getPostgresConnString(t),
+		NumShards:              1,
+		BinaryData:             true,
+		CleanupInterval:        500 * time.Millisecond,
+		PartitionLookaheadDays: 1,
+		PartitionRetentionDays: 1,
+		UseNotify:              true,
+		Outbox: OutboxConfig{
+			// Long enough that polling cannot deliver during the test window;
+			// any delivery to an idle worker must come via LISTEN/NOTIFY.
+			PollInterval: 30 * time.Second,
+			BatchSize:    100,
+		},
+	})
+	require.NoError(t, err)
 
-		ctx := context.Background()
-		hardResetTestSchema(t, e)
-		require.NoError(t, e.EnsureSchema(ctx))
-		cleanupTestTables(ctx, e)
+	ctx := context.Background()
+	hardResetTestSchema(t, e)
+	require.NoError(t, e.EnsureSchema(ctx))
+	cleanupTestTables(ctx, e)
 
-		channel := "test_notify_latency"
-		var probeReceived int32
-		var publishedAt int64
-		delivered := make(chan time.Duration, 1)
-		handler := &testBrokerEventHandler{
-			HandlePublicationFunc: func(ch string, pub *centrifuge.Publication, sp centrifuge.StreamPosition, delta bool, prevPub *centrifuge.Publication) error {
-				if ch == channel+"_probe" {
-					atomic.StoreInt32(&probeReceived, 1)
-				} else if ch == channel {
+	channel := "test_notify_wakes"
+	var deliveredPtr atomic.Pointer[chan struct{}]
+	handler := &testBrokerEventHandler{
+		HandlePublicationFunc: func(ch string, pub *centrifuge.Publication, sp centrifuge.StreamPosition, delta bool, prevPub *centrifuge.Publication) error {
+			if ch == channel {
+				if d := deliveredPtr.Load(); d != nil {
 					select {
-					case delivered <- time.Since(time.Unix(0, atomic.LoadInt64(&publishedAt))):
+					case *d <- struct{}{}:
 					default:
 					}
 				}
-				return nil
-			},
-		}
-		require.NoError(t, e.RegisterBrokerEventHandler(handler))
-		require.NoError(t, node.Run())
-		t.Cleanup(func() {
-			_ = e.Close(ctx)
-			_ = node.Shutdown(ctx)
-		})
+			}
+			return nil
+		},
+	}
+	require.NoError(t, e.RegisterBrokerEventHandler(handler))
+	require.NoError(t, node.Run())
+	t.Cleanup(func() {
+		_ = e.Close(ctx)
+		_ = node.Shutdown(ctx)
+	})
 
-		// Gate on probe delivery — ensures outbox workers + notification
-		// listener (when enabled) are fully initialized before measuring.
-		_, err = e.Publish(channel+"_probe", []byte("probe"), centrifuge.PublishOptions{
+	// Wait for LISTEN to be bound. With PollInterval=30s, a publish whose
+	// NOTIFY fires before LISTEN runs would be dropped and the worker would
+	// idle for 30s — well past the 10s deadline below.
+	require.Eventually(t, e.notifyListenerReady.Load,
+		10*time.Second, 50*time.Millisecond,
+		"notification listener did not bind LISTEN")
+
+	publishAndWait := func(timeout time.Duration, msg string) bool {
+		ch := make(chan struct{}, 1)
+		deliveredPtr.Store(&ch)
+		_, err := e.Publish(channel, []byte("ping"), centrifuge.PublishOptions{
 			HistoryTTL:  10 * time.Minute,
 			HistorySize: 10,
 		})
-		require.NoError(t, err)
-		require.Eventually(t, func() bool {
-			return atomic.LoadInt32(&probeReceived) == 1
-		}, 10*time.Second, 10*time.Millisecond, "workers not ready: probe not delivered")
-
-		atomic.StoreInt64(&publishedAt, time.Now().UnixNano())
-		_, err = e.Publish(channel, []byte("ping"), centrifuge.PublishOptions{
-			HistoryTTL:  10 * time.Minute,
-			HistorySize: 10,
-		})
-		require.NoError(t, err)
-
+		require.NoError(t, err, msg)
 		select {
-		case d := <-delivered:
-			return d
-		case <-time.After(10 * time.Second):
-			t.Fatal("publication not delivered within 10s")
-			return 0
+		case <-ch:
+			return true
+		case <-time.After(timeout):
+			return false
 		}
 	}
 
-	withNotify := measure(t, true)
-	withoutNotify := measure(t, false)
-	t.Logf("UseNotify=true: %v, UseNotify=false: %v", withNotify, withoutNotify)
+	// First publish gates on worker reaching idle-wait. The worker's initial
+	// drain may pick this up directly (no NOTIFY needed), which is fine — we
+	// just need the worker to finish startup before the real assertions.
+	require.True(t, publishAndWait(10*time.Second, "publish #0"),
+		"worker did not deliver first publish within 10s")
 
-	// With UseNotify, latency should be noticeably lower than polling. Use a
-	// relative comparison rather than an absolute bound so the test survives
-	// slow CI and the race detector: withNotify should be under half of
-	// PollInterval (500ms → < 250ms), and clearly lower than withoutNotify
-	// which polls on the full interval.
-	require.Less(t, withNotify, 250*time.Millisecond,
-		"UseNotify should yield sub-PollInterval latency (got %v)", withNotify)
-	require.Less(t, withNotify, withoutNotify,
-		"UseNotify should be faster than polling (notify=%v poll=%v)", withNotify, withoutNotify)
+	// From here on, the worker is idle. With PollInterval=30s, the only path
+	// that can wake it within 2s is LISTEN/NOTIFY. Require multiple wakeups
+	// in a row so a single race (e.g. LISTEN still establishing) is caught.
+	for i := 1; i <= 3; i++ {
+		require.True(t, publishAndWait(2*time.Second, fmt.Sprintf("publish #%d", i)),
+			"NOTIFY did not wake idle worker on publish #%d within 2s", i)
+	}
 }
 
 // TestPostgresStreamBroker_HistoryDoesNotRefreshMetaTTL verifies that History()
@@ -1235,7 +1231,6 @@ func TestPostgresStreamBroker_RemoveHistoryRaceWithPublish(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, pubs)
 }
-
 
 // TestPostgresStreamBroker_HistoryMetaTTL_NodeConfigFallback verifies the
 // 3-tier fallback for meta TTL: when opts.HistoryMetaTTL is 0, the broker
@@ -1411,7 +1406,6 @@ func TestPostgresStreamBroker_Metrics(t *testing.T) {
 	// Verify PG-specific gauges are populated (initialized by TestMain).
 	require.NotNil(t, metrics.PGBrokerPartitions)
 }
-
 
 // TestPostgresStreamBroker_OutboxCursorLag verifies the outbox cursor lag
 // gauge is sampled without panicking after publications are processed.

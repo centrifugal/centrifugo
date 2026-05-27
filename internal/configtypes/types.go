@@ -920,39 +920,39 @@ type KafkaPublicationDataModeConfig struct {
 // RedisStreamPublicationDataModeConfig holds configuration for publication data mode.
 type RedisStreamPublicationDataModeConfig struct {
 	// Enabled toggles publication data mode.
-	Enabled bool `mapstructure:"enabled" json:"enabled" yaml:"enabled" toml:"enabled"`
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	// ChannelsValue is used to extract channels to publish data into (channels must be comma-separated).
-	ChannelsValue string `mapstructure:"channels_value" default:"centrifugo-channels" json:"channels_value" yaml:"channels_value" toml:"channels_value"`
+	ChannelsValue string `mapstructure:"channels_value" default:"centrifugo-channels" json:"channels_value" envconfig:"channels_value" yaml:"channels_value" toml:"channels_value"`
 	// IdempotencyKeyValue is used to extract Publication idempotency key from Redis Stream message.
-	IdempotencyKeyValue string `mapstructure:"idempotency_key_value" default:"centrifugo-idempotency-key" json:"idempotency_key_value" yaml:"idempotency_key_value" toml:"idempotency_key_value"`
+	IdempotencyKeyValue string `mapstructure:"idempotency_key_value" default:"centrifugo-idempotency-key" json:"idempotency_key_value" envconfig:"idempotency_key_value" yaml:"idempotency_key_value" toml:"idempotency_key_value"`
 	// DeltaValue is used to extract Publication delta flag from Redis Stream message.
-	DeltaValue string `mapstructure:"delta_value" json:"delta_value" default:"centrifugo-delta" yaml:"delta_value" toml:"delta_value"`
+	DeltaValue string `mapstructure:"delta_value" json:"delta_value" default:"centrifugo-delta" envconfig:"delta_value" yaml:"delta_value" toml:"delta_value"`
 	// VersionValue is used to extract Publication version from Redis Stream message.
-	VersionValue string `mapstructure:"version_value" default:"centrifugo-version" json:"version_value" yaml:"version_value" toml:"version_value"`
+	VersionValue string `mapstructure:"version_value" default:"centrifugo-version" json:"version_value" envconfig:"version_value" yaml:"version_value" toml:"version_value"`
 	// VersionEpochValue is used to extract Publication version epoch from Redis Stream message.
-	VersionEpochValue string `mapstructure:"version_epoch_value" default:"centrifugo-version-epoch" json:"version_epoch_value" yaml:"version_epoch_value" toml:"version_epoch_value"`
+	VersionEpochValue string `mapstructure:"version_epoch_value" default:"centrifugo-version-epoch" json:"version_epoch_value" envconfig:"version_epoch_value" yaml:"version_epoch_value" toml:"version_epoch_value"`
 	// TagsValuePrefix is used to extract Publication tags from Redis Stream message.
-	TagsValuePrefix string `mapstructure:"tags_value_prefix" default:"centrifugo-tag-" json:"tags_value_prefix" yaml:"tags_value_prefix" toml:"tags_value_prefix"`
+	TagsValuePrefix string `mapstructure:"tags_value_prefix" default:"centrifugo-tag-" json:"tags_value_prefix" envconfig:"tags_value_prefix" yaml:"tags_value_prefix" toml:"tags_value_prefix"`
 }
 
 // RedisStreamConsumerConfig holds configuration for the Redis Streams consumer.
 type RedisStreamConsumerConfig struct {
 	Redis `mapstructure:",squash" yaml:",inline"`
 	// Streams to consume.
-	Streams []string `mapstructure:"streams" json:"streams" yaml:"streams" toml:"streams"`
+	Streams []string `mapstructure:"streams" json:"streams" envconfig:"streams" yaml:"streams" toml:"streams"`
 	// ConsumerGroup name to use.
-	ConsumerGroup string `mapstructure:"consumer_group" json:"consumer_group" yaml:"consumer_group" toml:"consumer_group"`
+	ConsumerGroup string `mapstructure:"consumer_group" json:"consumer_group" envconfig:"consumer_group" yaml:"consumer_group" toml:"consumer_group"`
 	// VisibilityTimeout is the time to wait for a message to be processed before it is re-queued.
-	VisibilityTimeout Duration `mapstructure:"visibility_timeout" default:"30s" json:"visibility_timeout" yaml:"visibility_timeout" toml:"visibility_timeout"`
+	VisibilityTimeout Duration `mapstructure:"visibility_timeout" default:"30s" json:"visibility_timeout" envconfig:"visibility_timeout" yaml:"visibility_timeout" toml:"visibility_timeout"`
 	// NumWorkers is the number of message workers to use for processing for each stream.
-	NumWorkers int `mapstructure:"num_workers" default:"1" json:"num_workers" yaml:"num_workers" toml:"num_workers"`
+	NumWorkers int `mapstructure:"num_workers" default:"1" json:"num_workers" envconfig:"num_workers" yaml:"num_workers" toml:"num_workers"`
 	// PayloadValue is used to extract data from Redis Stream message.
-	PayloadValue string `mapstructure:"payload_value" default:"payload" json:"payload_value" yaml:"payload_value" toml:"payload_value"`
+	PayloadValue string `mapstructure:"payload_value" default:"payload" json:"payload_value" envconfig:"payload_value" yaml:"payload_value" toml:"payload_value"`
 	// MethodValue is used to extract a method for command messages.
 	// If provided in message, then payload must be just a serialized API request object.
-	MethodValue string `mapstructure:"method_value" default:"method" json:"method_value" yaml:"method_value" toml:"method_value"`
+	MethodValue string `mapstructure:"method_value" default:"method" json:"method_value" envconfig:"method_value" yaml:"method_value" toml:"method_value"`
 	// PublicationDataMode configures publication data mode.
-	PublicationDataMode RedisStreamPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
+	PublicationDataMode RedisStreamPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" envconfig:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
 }
 
 // Validate validates required fields in the config.
@@ -975,57 +975,57 @@ func (c RedisStreamConsumerConfig) Validate() error {
 // NatsJetStreamConsumerConfig holds configuration for the NATS JetStream consumer.
 type NatsJetStreamConsumerConfig struct {
 	// URL is the address of the NATS server.
-	URL string `mapstructure:"url" default:"nats://127.0.0.1:4222" json:"url" toml:"url" yaml:"url"`
+	URL string `mapstructure:"url" default:"nats://127.0.0.1:4222" json:"url" envconfig:"url" toml:"url" yaml:"url"`
 	// CredentialsFile is the path to a NATS credentials file used for authentication (nats.UserCredentials).
 	// If provided, it overrides username/password and token.
-	CredentialsFile string `mapstructure:"credentials_file" json:"credentials_file" toml:"credentials_file" yaml:"credentials_file"`
+	CredentialsFile string `mapstructure:"credentials_file" json:"credentials_file" envconfig:"credentials_file" toml:"credentials_file" yaml:"credentials_file"`
 	// Username is used for basic authentication (along with Password) if CredentialsFile is not provided.
-	Username string `mapstructure:"username" json:"username" toml:"username" yaml:"username"`
+	Username string `mapstructure:"username" json:"username" envconfig:"username" toml:"username" yaml:"username"`
 	// Password is used with Username for basic authentication.
-	Password string `mapstructure:"password" json:"password" toml:"password" yaml:"password"`
+	Password string `mapstructure:"password" json:"password" envconfig:"password" toml:"password" yaml:"password"`
 	// Token is an alternative authentication mechanism if CredentialsFile and Username are not provided.
-	Token string `mapstructure:"token" json:"token" toml:"token" yaml:"token"`
+	Token string `mapstructure:"token" json:"token" envconfig:"token" toml:"token" yaml:"token"`
 	// StreamName is the name of the NATS JetStream stream to use.
-	StreamName string `mapstructure:"stream_name" json:"stream_name" toml:"stream_name" yaml:"stream_name"`
+	StreamName string `mapstructure:"stream_name" json:"stream_name" envconfig:"stream_name" toml:"stream_name" yaml:"stream_name"`
 	// UseExistingConsumer when enabled tells Centrifugo to use an existing consumer with
 	// durable_consumer_name instead of creating a new one. When on, these fields are ignored:
 	// deliver_policy, subjects, max_ack_pending, and all other consumer-creation-related options
 	// which may be added later (like ack wait, etc.). The existing consumer's configuration defines
 	// all behavior, and Centrifugo will fail to start if the consumer does not already exist.
-	UseExistingConsumer bool `mapstructure:"use_existing_consumer" default:"false" json:"use_existing_consumer" toml:"use_existing_consumer" yaml:"use_existing_consumer"`
+	UseExistingConsumer bool `mapstructure:"use_existing_consumer" default:"false" json:"use_existing_consumer" envconfig:"use_existing_consumer" toml:"use_existing_consumer" yaml:"use_existing_consumer"`
 	// Subjects is the list of NATS subjects (topics) to filter.
-	Subjects []string `mapstructure:"subjects" json:"subjects" toml:"subjects" yaml:"subjects"`
+	Subjects []string `mapstructure:"subjects" json:"subjects" envconfig:"subjects" toml:"subjects" yaml:"subjects"`
 	// DurableConsumerName sets the name of the durable JetStream consumer to use.
-	DurableConsumerName string `mapstructure:"durable_consumer_name" json:"durable_consumer_name" toml:"durable_consumer_name" yaml:"durable_consumer_name"`
+	DurableConsumerName string `mapstructure:"durable_consumer_name" json:"durable_consumer_name" envconfig:"durable_consumer_name" toml:"durable_consumer_name" yaml:"durable_consumer_name"`
 	// DeliverPolicy is the NATS JetStream delivery policy for the consumer. By default, it is set to "new". Possible values: `new`, `all`.
-	DeliverPolicy string `mapstructure:"deliver_policy" default:"new" json:"deliver_policy" toml:"deliver_policy" yaml:"deliver_policy"`
+	DeliverPolicy string `mapstructure:"deliver_policy" default:"new" json:"deliver_policy" envconfig:"deliver_policy" toml:"deliver_policy" yaml:"deliver_policy"`
 	// MaxAckPending is the maximum number of unacknowledged messages that can be pending for the consumer.
-	MaxAckPending int `mapstructure:"max_ack_pending" default:"100" json:"max_ack_pending" toml:"max_ack_pending" yaml:"max_ack_pending"`
+	MaxAckPending int `mapstructure:"max_ack_pending" default:"100" json:"max_ack_pending" envconfig:"max_ack_pending" toml:"max_ack_pending" yaml:"max_ack_pending"`
 	// MethodHeader is the NATS message header used to extract the method name for dispatching commands.
 	// If provided in message, then payload must be just a serialized API request object.
-	MethodHeader string `mapstructure:"method_header" default:"centrifugo-method" json:"method_header" toml:"method_header" yaml:"method_header"`
+	MethodHeader string `mapstructure:"method_header" default:"centrifugo-method" json:"method_header" envconfig:"method_header" toml:"method_header" yaml:"method_header"`
 	// PublicationDataMode configures extraction of pre-formatted publication data from message headers.
-	PublicationDataMode NatsJetStreamPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" toml:"publication_data_mode" yaml:"publication_data_mode"`
+	PublicationDataMode NatsJetStreamPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" envconfig:"publication_data_mode" toml:"publication_data_mode" yaml:"publication_data_mode"`
 	// TLS is the configuration for TLS.
-	TLS TLSConfig `mapstructure:"tls" json:"tls" toml:"tls" yaml:"tls"`
+	TLS TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" toml:"tls" yaml:"tls"`
 }
 
 // NatsJetStreamPublicationDataModeConfig holds settings for publication data mode.
 type NatsJetStreamPublicationDataModeConfig struct {
 	// Enabled toggles publication data mode.
-	Enabled bool `mapstructure:"enabled" json:"enabled" toml:"enabled" yaml:"enabled"`
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" toml:"enabled" yaml:"enabled"`
 	// ChannelsHeader is the name of the header that contains comma-separated channel names.
-	ChannelsHeader string `mapstructure:"channels_header" default:"centrifugo-channels" json:"channels_header" toml:"channels_header" yaml:"channels_header"`
+	ChannelsHeader string `mapstructure:"channels_header" default:"centrifugo-channels" json:"channels_header" envconfig:"channels_header" toml:"channels_header" yaml:"channels_header"`
 	// IdempotencyKeyHeader is the name of the header that contains an idempotency key for deduplication.
-	IdempotencyKeyHeader string `mapstructure:"idempotency_key_header" default:"centrifugo-idempotency-key"  json:"idempotency_key_header" toml:"idempotency_key_header" yaml:"idempotency_key_header"`
+	IdempotencyKeyHeader string `mapstructure:"idempotency_key_header" default:"centrifugo-idempotency-key" json:"idempotency_key_header" envconfig:"idempotency_key_header" toml:"idempotency_key_header" yaml:"idempotency_key_header"`
 	// DeltaHeader is the name of the header indicating whether the message represents a delta (partial update).
-	DeltaHeader string `mapstructure:"delta_header" default:"centrifugo-delta" json:"delta_header" toml:"delta_header" yaml:"delta_header"`
+	DeltaHeader string `mapstructure:"delta_header" default:"centrifugo-delta" json:"delta_header" envconfig:"delta_header" toml:"delta_header" yaml:"delta_header"`
 	// VersionHeader is the name of the header that contains the version of the message.
-	VersionHeader string `mapstructure:"version_header" default:"centrifugo-version" json:"version_header" toml:"version_header" yaml:"version_header"`
+	VersionHeader string `mapstructure:"version_header" default:"centrifugo-version" json:"version_header" envconfig:"version_header" toml:"version_header" yaml:"version_header"`
 	// VersionEpochHeader is the name of the header that contains the version epoch of the message.
-	VersionEpochHeader string `mapstructure:"version_epoch_header" default:"centrifugo-version-epoch" json:"version_epoch_header" toml:"version_epoch_header" yaml:"version_epoch_header"`
+	VersionEpochHeader string `mapstructure:"version_epoch_header" default:"centrifugo-version-epoch" json:"version_epoch_header" envconfig:"version_epoch_header" toml:"version_epoch_header" yaml:"version_epoch_header"`
 	// TagsHeaderPrefix is the prefix used to extract dynamic tags from message headers.
-	TagsHeaderPrefix string `mapstructure:"tags_header_prefix" default:"centrifugo-tag-" json:"tags_header_prefix" toml:"tags_header_prefix" yaml:"tags_header_prefix"`
+	TagsHeaderPrefix string `mapstructure:"tags_header_prefix" default:"centrifugo-tag-" json:"tags_header_prefix" envconfig:"tags_header_prefix" toml:"tags_header_prefix" yaml:"tags_header_prefix"`
 }
 
 // Validate validates the required fields.
@@ -1109,49 +1109,49 @@ func (c GooglePubSubConsumerConfig) Validate() error {
 // where the incoming message payload is already structured for downstream publication.
 type AzureServiceBusPublicationDataModeConfig struct {
 	// Enabled toggles the publication data mode.
-	Enabled bool `mapstructure:"enabled" json:"enabled" yaml:"enabled" toml:"enabled"`
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	// ChannelsProperty is the name of the message property that contains the list of target channels.
-	ChannelsProperty string `mapstructure:"channels_property" default:"centrifugo-channels" json:"channels_property" yaml:"channels_property" toml:"channels_property"`
+	ChannelsProperty string `mapstructure:"channels_property" default:"centrifugo-channels" json:"channels_property" envconfig:"channels_property" yaml:"channels_property" toml:"channels_property"`
 	// IdempotencyKeyProperty is the property that holds an idempotency key for deduplication.
-	IdempotencyKeyProperty string `mapstructure:"idempotency_key_property" default:"centrifugo-idempotency-key" json:"idempotency_key_property" yaml:"idempotency_key_property" toml:"idempotency_key_property"`
+	IdempotencyKeyProperty string `mapstructure:"idempotency_key_property" default:"centrifugo-idempotency-key" json:"idempotency_key_property" envconfig:"idempotency_key_property" yaml:"idempotency_key_property" toml:"idempotency_key_property"`
 	// DeltaProperty is the property that represents changes or deltas in the payload.
-	DeltaProperty string `mapstructure:"delta_property" default:"centrifugo-delta" json:"delta_property" yaml:"delta_property" toml:"delta_property"`
+	DeltaProperty string `mapstructure:"delta_property" default:"centrifugo-delta" json:"delta_property" envconfig:"delta_property" yaml:"delta_property" toml:"delta_property"`
 	// VersionProperty is the property that holds the version of the message.
-	VersionProperty string `mapstructure:"version_property" default:"centrifugo-version" json:"version_property" yaml:"version_property" toml:"version_property"`
+	VersionProperty string `mapstructure:"version_property" default:"centrifugo-version" json:"version_property" envconfig:"version_property" yaml:"version_property" toml:"version_property"`
 	// VersionEpochProperty is the property that holds the version epoch of the message.
-	VersionEpochProperty string `mapstructure:"version_epoch_property" default:"centrifugo-version-epoch" json:"version_epoch_property" yaml:"version_epoch_property" toml:"version_epoch_property"`
+	VersionEpochProperty string `mapstructure:"version_epoch_property" default:"centrifugo-version-epoch" json:"version_epoch_property" envconfig:"version_epoch_property" yaml:"version_epoch_property" toml:"version_epoch_property"`
 	// TagsPropertyPrefix defines the prefix used to extract dynamic tags from message properties.
-	TagsPropertyPrefix string `mapstructure:"tags_property_prefix" default:"centrifugo-tag-" json:"tags_property_prefix" yaml:"tags_property_prefix" toml:"tags_property_prefix"`
+	TagsPropertyPrefix string `mapstructure:"tags_property_prefix" default:"centrifugo-tag-" json:"tags_property_prefix" envconfig:"tags_property_prefix" yaml:"tags_property_prefix" toml:"tags_property_prefix"`
 }
 
 // AzureServiceBusConsumerConfig holds configuration for the Azure Service Bus consumer.
 type AzureServiceBusConsumerConfig struct {
 	// ConnectionString is the full connection string used for connection-string–based authentication.
-	ConnectionString string `mapstructure:"connection_string" json:"connection_string" yaml:"connection_string" toml:"connection_string"`
+	ConnectionString string `mapstructure:"connection_string" json:"connection_string" envconfig:"connection_string" yaml:"connection_string" toml:"connection_string"`
 	// UseAzureIdentity toggles Azure Identity (AAD) authentication instead of connection strings.
-	UseAzureIdentity bool `mapstructure:"use_azure_identity" json:"use_azure_identity" yaml:"use_azure_identity" toml:"use_azure_identity"`
+	UseAzureIdentity bool `mapstructure:"use_azure_identity" json:"use_azure_identity" envconfig:"use_azure_identity" yaml:"use_azure_identity" toml:"use_azure_identity"`
 	// FullyQualifiedNamespace is the Service Bus namespace, e.g. "your-namespace.servicebus.windows.net".
-	FullyQualifiedNamespace string `mapstructure:"fully_qualified_namespace" json:"fully_qualified_namespace" yaml:"fully_qualified_namespace" toml:"fully_qualified_namespace"`
+	FullyQualifiedNamespace string `mapstructure:"fully_qualified_namespace" json:"fully_qualified_namespace" envconfig:"fully_qualified_namespace" yaml:"fully_qualified_namespace" toml:"fully_qualified_namespace"`
 	// TenantID is the Azure Active Directory tenant ID used with Azure Identity.
-	TenantID string `mapstructure:"tenant_id" json:"tenant_id" yaml:"tenant_id" toml:"tenant_id"`
+	TenantID string `mapstructure:"tenant_id" json:"tenant_id" envconfig:"tenant_id" yaml:"tenant_id" toml:"tenant_id"`
 	// ClientID is the Azure AD application (client) ID used for authentication.
-	ClientID string `mapstructure:"client_id" json:"client_id" yaml:"client_id" toml:"client_id"`
+	ClientID string `mapstructure:"client_id" json:"client_id" envconfig:"client_id" yaml:"client_id" toml:"client_id"`
 	// ClientSecret is the secret associated with the Azure AD application.
-	ClientSecret string `mapstructure:"client_secret" json:"client_secret" yaml:"client_secret" toml:"client_secret"`
+	ClientSecret string `mapstructure:"client_secret" json:"client_secret" envconfig:"client_secret" yaml:"client_secret" toml:"client_secret"`
 	// Queues is the list of the Azure Service Bus queues to consume from.
-	Queues []string `mapstructure:"queues" json:"queues" yaml:"queues" toml:"queues"`
+	Queues []string `mapstructure:"queues" json:"queues" envconfig:"queues" yaml:"queues" toml:"queues"`
 	// UseSessions enables session-aware message handling.
 	// All messages must include a SessionID; messages within the same session will be processed in order.
-	UseSessions bool `mapstructure:"use_sessions" json:"use_sessions" yaml:"use_sessions" toml:"use_sessions"`
+	UseSessions bool `mapstructure:"use_sessions" json:"use_sessions" envconfig:"use_sessions" yaml:"use_sessions" toml:"use_sessions"`
 	// MaxConcurrentCalls controls the maximum number of messages processed concurrently.
-	MaxConcurrentCalls int `mapstructure:"max_concurrent_calls" default:"1" json:"max_concurrent_calls" yaml:"max_concurrent_calls" toml:"max_concurrent_calls"`
+	MaxConcurrentCalls int `mapstructure:"max_concurrent_calls" default:"1" json:"max_concurrent_calls" envconfig:"max_concurrent_calls" yaml:"max_concurrent_calls" toml:"max_concurrent_calls"`
 	// MaxReceiveMessages sets the batch size when receiving messages from the queue.
-	MaxReceiveMessages int `mapstructure:"max_receive_messages" default:"1" json:"max_receive_messages" yaml:"max_receive_messages" toml:"max_receive_messages"`
+	MaxReceiveMessages int `mapstructure:"max_receive_messages" default:"1" json:"max_receive_messages" envconfig:"max_receive_messages" yaml:"max_receive_messages" toml:"max_receive_messages"`
 	// MethodProperty is the name of the message property used to extract the method (for API command).
 	// If provided in message, then payload must be just a serialized API request object.
-	MethodProperty string `mapstructure:"method_property" default:"centrifugo-method" json:"method_property" yaml:"method_property" toml:"method_property"`
+	MethodProperty string `mapstructure:"method_property" default:"centrifugo-method" json:"method_property" envconfig:"method_property" yaml:"method_property" toml:"method_property"`
 	// PublicationDataMode configures how structured publication-ready data is extracted from the message.
-	PublicationDataMode AzureServiceBusPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
+	PublicationDataMode AzureServiceBusPublicationDataModeConfig `mapstructure:"publication_data_mode" json:"publication_data_mode" envconfig:"publication_data_mode" yaml:"publication_data_mode" toml:"publication_data_mode"`
 }
 
 // Validate checks that required fields are set.
