@@ -81,7 +81,13 @@ func (e *PostgresStreamBroker) runOutboxWorkerWithLock(workerIdx int, _ int64) {
 		LockID:        e.conf.Outbox.AdvisoryLockBaseID + int64(workerIdx),
 		PollInterval:  e.conf.Outbox.PollInterval,
 		RetryInterval: e.conf.Outbox.AdvisoryLockRetryInterval,
-		InitCursor:    e.initOutboxCursor,
+		InitCursor: func(ctx context.Context, p *pgxpool.Pool) (int64, error) {
+			cursor, err := e.initOutboxCursor(ctx, p)
+			if err == nil {
+				e.workersInitialized[workerIdx].Store(true)
+			}
+			return cursor, err
+		},
 		ProcessBatch: func(ctx context.Context, p *pgxpool.Pool, cursor int64, sids []int) (int, int64, error) {
 			return e.processOutboxBatch(ctx, p, cursor, sids)
 		},

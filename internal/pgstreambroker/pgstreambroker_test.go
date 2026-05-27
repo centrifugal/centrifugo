@@ -75,13 +75,13 @@ func newTestPostgresStreamBroker(tb testing.TB) (*PostgresStreamBroker, *centrif
 
 	connString := getPostgresConnString(tb)
 	e, err := NewPostgresStreamBroker(node, PostgresStreamBrokerConfig{
-		DSN:                       connString,
-		NumShards:                 4, // fewer shards for faster tests
-		BinaryData:                true,
-		CleanupInterval:           100 * time.Millisecond,
-		StreamRetention:           24 * time.Hour,
-		PartitionLookaheadDays:    1,
-		PartitionRetentionDays:    1,
+		DSN:                    connString,
+		NumShards:              4, // fewer shards for faster tests
+		BinaryData:             true,
+		CleanupInterval:        100 * time.Millisecond,
+		StreamRetention:        24 * time.Hour,
+		PartitionLookaheadDays: 1,
+		PartitionRetentionDays: 1,
 		Outbox: OutboxConfig{
 			PollInterval: 10 * time.Millisecond,
 			BatchSize:    100,
@@ -1108,9 +1108,9 @@ func TestPostgresStreamBroker_UseNotify_WakesIdleWorker(t *testing.T) {
 		_ = node.Shutdown(ctx)
 	})
 
-	// Wait for the LISTEN to be bound. With PollInterval=30s, a publish whose
-	// NOTIFY fires before LISTEN executes would be dropped and the worker
-	// would idle for 30s — the test's 10s deadline would expire first.
+	// Wait for LISTEN to be bound. With PollInterval=30s, a publish whose
+	// NOTIFY fires before LISTEN runs would be dropped and the worker would
+	// idle for 30s — well past the 10s deadline below.
 	require.Eventually(t, e.notifyListenerReady.Load,
 		10*time.Second, 50*time.Millisecond,
 		"notification listener did not bind LISTEN")
@@ -1231,7 +1231,6 @@ func TestPostgresStreamBroker_RemoveHistoryRaceWithPublish(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, pubs)
 }
-
 
 // TestPostgresStreamBroker_HistoryMetaTTL_NodeConfigFallback verifies the
 // 3-tier fallback for meta TTL: when opts.HistoryMetaTTL is 0, the broker
@@ -1407,7 +1406,6 @@ func TestPostgresStreamBroker_Metrics(t *testing.T) {
 	// Verify PG-specific gauges are populated (initialized by TestMain).
 	require.NotNil(t, metrics.PGBrokerPartitions)
 }
-
 
 // TestPostgresStreamBroker_OutboxCursorLag verifies the outbox cursor lag
 // gauge is sampled without panicking after publications are processed.

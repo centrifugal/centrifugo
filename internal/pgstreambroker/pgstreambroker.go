@@ -371,12 +371,21 @@ type PostgresStreamBroker struct {
 	sampler      *metricsSampler
 
 	// notifyListenerReady flips true after the LISTEN command succeeds on
-	// the notification listener's connection. Used by tests to publish only
-	// after the listener is bound — a publish whose NOTIFY fires before
-	// LISTEN runs would be dropped, and with a long PollInterval the test
-	// would time out. Production tolerates this race because PollInterval
-	// is the fallback.
+	// the notification listener's connection. Used by tests that depend on
+	// NOTIFY-driven delivery (typically with a long PollInterval) so they
+	// publish only after LISTEN is bound. Production tolerates the race
+	// because PollInterval is the fallback.
 	notifyListenerReady atomic.Bool
+
+	// workersInitialized[i] flips true once shard i's outbox LockWorker
+	// completes its first InitCursor (i.e., has snapshotted MAX(id) and is
+	// actively polling). Used by tests to publish only after the cursor
+	// snapshot is taken — otherwise a publish committed between lock
+	// acquisition and the snapshot would be observed by InitCursor and
+	// skipped. Only the LockWorker path sets this; left as nil for the
+	// non-fan-out Worker path (which uses a pre-init cursor synchronously
+	// in RegisterBrokerEventHandler and so doesn't have this race).
+	workersInitialized []atomic.Bool
 }
 
 var _ centrifuge.Broker = (*PostgresStreamBroker)(nil)
@@ -446,14 +455,15 @@ func NewPostgresStreamBroker(n *centrifuge.Node, conf PostgresStreamBrokerConfig
 	cancelCtx, cancelFunc := context.WithCancel(context.Background())
 
 	b := &PostgresStreamBroker{
-		node:       n,
-		conf:       conf,
-		names:      newPgNames(conf.TablePrefix, conf.BinaryData),
-		pool:       pool,
-		readPools:  readPools,
-		closeCh:    make(chan struct{}),
-		cancelCtx:  cancelCtx,
-		cancelFunc: cancelFunc,
+		node:               n,
+		conf:               conf,
+		names:              newPgNames(conf.TablePrefix, conf.BinaryData),
+		pool:               pool,
+		readPools:          readPools,
+		closeCh:            make(chan struct{}),
+		cancelCtx:          cancelCtx,
+		cancelFunc:         cancelFunc,
+		workersInitialized: make([]atomic.Bool, conf.NumShards),
 	}
 	b.sampler = newMetricsSampler(b)
 	if conf.UseNotify {
