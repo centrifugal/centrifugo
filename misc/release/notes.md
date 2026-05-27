@@ -8,8 +8,17 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## What's changed
 
+### Improvements
+
+* Support Prometheus native histograms, see [#1136](https://github.com/centrifugal/centrifugo/pull/1136).
+* Kafka consumer: don't re-init the client on retriable fetch errors, see [#1137](https://github.com/centrifugal/centrifugo/pull/1137).
+
+### Fixes
+
+* Fix a bunch of flaky integration tests.
+
 ### Miscellaneous
 
 * This release is built with Go 1.26.3
 * Dependency updates
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.7.2).
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.8.1).
