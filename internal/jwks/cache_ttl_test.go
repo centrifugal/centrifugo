@@ -32,8 +32,9 @@ func TestTTLCacheAdd(t *testing.T) {
 			require.NotNil(t, cache)
 
 			for i := 0; i < tc.Ops; i++ {
-				require.NoError(t, cache.Add(&JWK{
-					Kid: fmt.Sprintf("key-%d", i+1),
+				kid := fmt.Sprintf("key-%d", i+1)
+				require.NoError(t, cache.Add(kid, &JWK{
+					Kid: kid,
 					Kty: "RSA",
 					Alg: "RS256",
 					Use: "sig",
@@ -77,7 +78,7 @@ func TestTTLCacheGet(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			cache := NewTTLCache(5 * time.Minute)
 			require.NotNil(t, cache)
-			require.NoError(t, cache.Add(tc.Key))
+			require.NoError(t, cache.Add(tc.Key.Kid, tc.Key))
 
 			key, err := cache.Get(tc.Kid)
 			if tc.Error != nil {
@@ -118,8 +119,9 @@ func TestTTLCacheRemove(t *testing.T) {
 			require.NotNil(t, cache)
 
 			for i := 0; i < tc.NumAdd; i++ {
-				require.NoError(t, cache.Add(&JWK{
-					Kid: fmt.Sprintf("key-%d", i+1),
+				kid := fmt.Sprintf("key-%d", i+1)
+				require.NoError(t, cache.Add(kid, &JWK{
+					Kid: kid,
 					Kty: "RSA",
 					Alg: "RS256",
 					Use: "sig",
@@ -142,8 +144,9 @@ func TestTTLCacheCleanup(t *testing.T) {
 	cache := NewTTLCache(1 * time.Millisecond)
 
 	for i := 0; i < 10; i++ {
-		require.NoError(t, cache.Add(&JWK{
-			Kid: fmt.Sprintf("key-%d", i+1),
+		kid := fmt.Sprintf("key-%d", i+1)
+		require.NoError(t, cache.Add(kid, &JWK{
+			Kid: kid,
 			Kty: "RSA",
 			Alg: "RS256",
 			Use: "sig",

@@ -93,28 +93,49 @@ func NewManager(rawURL string, opts ...Option) (*Manager, error) {
 }
 
 // FetchKey fetches JWKS from public source or cache.
+//
+// The cache and singleflight keys are scoped to the resolved JWKS endpoint URL,
+// not only the JWT header kid. This prevents a key cached from one trust domain
+// (e.g., tenant A's templated JWKS URL) from satisfying a verification request
+// for a different trust domain (tenant B) that happens to advertise the same kid.
+// JWT kid values are not globally unique by spec — common operational labels like
+// "default" or rotation IDs may collide across issuers.
 func (m *Manager) FetchKey(ctx context.Context, kid string, tokenVars map[string]any) (*JWK, error) {
 	if kid == "" {
 		return nil, ErrKeyIDNotProvided
 	}
 
+	jwkURL, err := m.resolveURL(tokenVars)
+	if err != nil {
+		return nil, err
+	}
+
+	cacheKey := cacheKey(jwkURL, kid)
+
 	// If useCache is true, first try to get key from cache.
 	if m.useCache {
-		key, err := m.cache.Get(kid)
+		key, err := m.cache.Get(cacheKey)
 		if err == nil {
 			return key, nil
 		}
 	}
 
 	// Otherwise fetch from public JWKS.
-	v, err, _ := m.group.Do(kid, func() (any, error) {
-		return m.fetchKey(ctx, kid, tokenVars)
+	v, err, _ := m.group.Do(cacheKey, func() (any, error) {
+		return m.fetchKey(ctx, jwkURL, kid)
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return v.(*JWK), nil
+}
+
+// cacheKey builds a cache/singleflight key namespaced by the resolved JWKS URL.
+// The NUL byte is a delimiter that cannot appear in a valid URL or JWT kid, so
+// the encoding is unambiguous.
+func cacheKey(resolvedURL, kid string) string {
+	return resolvedURL + "\x00" + kid
 }
 
 func (m *Manager) loadData(req *http.Request) ([]byte, error) {
@@ -130,22 +151,27 @@ func (m *Manager) loadData(req *http.Request) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
-func (m *Manager) fetchKey(ctx context.Context, kid string, tokenVars map[string]any) (*JWK, error) {
+// resolveURL applies tokenVars to the URL template and rejects results with
+// path traversal sequences. Runs on every FetchKey call (including cache hits)
+// so that cache lookups are scoped to the validated, fully-resolved URL.
+func (m *Manager) resolveURL(tokenVars map[string]any) (string, error) {
 	jwkURL := m.url.ExecuteString(tokenVars)
 
-	// Reject requests where template substitution produced a URL with path traversal.
 	u, err := url.Parse(jwkURL)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing JWKS URL: %w", err)
+		return "", fmt.Errorf("error parsing JWKS URL: %w", err)
 	}
 	if u.Path != "" {
 		if cleanPath := path.Clean(u.Path); cleanPath != u.Path {
 			log.Info().Str("path", u.Path).Str("clean_path", cleanPath).
 				Msg("JWKS URL path contains traversal sequences, request rejected")
-			return nil, fmt.Errorf("JWKS URL path contains traversal sequences: %q", u.Path)
+			return "", fmt.Errorf("JWKS URL path contains traversal sequences: %q", u.Path)
 		}
 	}
+	return jwkURL, nil
+}
 
+func (m *Manager) fetchKey(ctx context.Context, jwkURL, kid string) (*JWK, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, jwkURL, nil)
 	if err != nil {
 		return nil, err
@@ -193,7 +219,7 @@ func (m *Manager) fetchKey(ctx context.Context, kid string, tokenVars map[string
 		}
 
 		if m.useCache {
-			_ = m.cache.Add(key)
+			_ = m.cache.Add(cacheKey(jwkURL, key.Kid), key)
 		}
 
 		if key.Kid == kid {

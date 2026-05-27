@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/rakutentech/jwk-go/jwk"
@@ -16,6 +17,15 @@ import (
 type testKey struct {
 	Kid string
 	Key any
+}
+
+func parseRSA(t *testing.T, k *JWK) *rsa.PublicKey {
+	t.Helper()
+	spec, err := k.ParseKeySpec()
+	require.NoError(t, err)
+	pub, ok := spec.Key.(*rsa.PublicKey)
+	require.True(t, ok)
+	return pub
 }
 
 func randomKeys() (*rsa.PrivateKey, *rsa.PublicKey, error) {
@@ -224,4 +234,58 @@ func TestManagerCachedFetchKey(t *testing.T) {
 			r.Equal(tc.ExpectedSize, size)
 		})
 	}
+}
+
+// TestManagerFetchKey_CacheScopedByResolvedURL is a regression test for a
+// cross-trust-domain cache reuse bug: when JWKS URLs are templated from token
+// claims (e.g., per-tenant endpoints), a key cached from tenant A's endpoint
+// must NOT satisfy a lookup for tenant B's endpoint, even if both JWKS documents
+// advertise the same kid. kid values are not globally unique by spec and may
+// collide across issuers.
+func TestManagerFetchKey_CacheScopedByResolvedURL(t *testing.T) {
+	const sharedKid = "shared-kid"
+
+	_, tenantAPubKey, err := randomKeys()
+	require.NoError(t, err)
+	_, tenantBPubKey, err := randomKeys()
+	require.NoError(t, err)
+
+	var tenantARequests, tenantBRequests int32
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/tenant-a/jwks.json", func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&tenantARequests, 1)
+		jwksHandler(testKey{sharedKid, tenantAPubKey}).ServeHTTP(w, r)
+	})
+	mux.HandleFunc("/tenant-b/jwks.json", func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&tenantBRequests, 1)
+		jwksHandler(testKey{sharedKid, tenantBPubKey}).ServeHTTP(w, r)
+	})
+	ts := httptest.NewServer(mux)
+	defer ts.Close()
+
+	manager, err := NewManager(ts.URL + "/{{tenant}}/jwks.json")
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	keyA, err := manager.FetchKey(ctx, sharedKid, map[string]any{"tenant": "tenant-a"})
+	require.NoError(t, err)
+	require.Equal(t, tenantAPubKey.N, parseRSA(t, keyA).N)
+	require.Equal(t, int32(1), atomic.LoadInt32(&tenantARequests))
+	require.Equal(t, int32(0), atomic.LoadInt32(&tenantBRequests))
+
+	// Fetching for tenant B with the same kid must consult tenant B's endpoint,
+	// not reuse the cached tenant A key.
+	keyB, err := manager.FetchKey(ctx, sharedKid, map[string]any{"tenant": "tenant-b"})
+	require.NoError(t, err)
+	require.Equal(t, tenantBPubKey.N, parseRSA(t, keyB).N)
+	require.Equal(t, int32(1), atomic.LoadInt32(&tenantARequests))
+	require.Equal(t, int32(1), atomic.LoadInt32(&tenantBRequests))
+
+	// Second fetch for tenant A should hit the cache — no new HTTP request.
+	_, err = manager.FetchKey(ctx, sharedKid, map[string]any{"tenant": "tenant-a"})
+	require.NoError(t, err)
+	require.Equal(t, int32(1), atomic.LoadInt32(&tenantARequests))
+	require.Equal(t, int32(1), atomic.LoadInt32(&tenantBRequests))
 }
