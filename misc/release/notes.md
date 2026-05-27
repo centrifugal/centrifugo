@@ -15,6 +15,7 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Fixes
 
+* Add missing `envconfig` tags to NATS JetStream consumer config so its fields can be configured via environment variables, see [#1117](https://github.com/centrifugal/centrifugo/pull/1117) by @thuy-le-kafi. Applied the same fix to the Redis Streams and Azure Service Bus consumer configs, which had the same gap.
 * Fix a bunch of flaky integration tests.
 
 ### Miscellaneous
