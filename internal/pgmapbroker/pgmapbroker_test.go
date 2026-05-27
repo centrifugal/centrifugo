@@ -2967,9 +2967,12 @@ func TestPostgresMapBroker_RedisFanout_AdvisoryLockExclusion(t *testing.T) {
 		_ = node2.Shutdown(context.Background())
 	})
 
-	// Wait until every shard's advisory lock is held by exactly one session.
-	// Acquisition is asynchronous (worker goroutines acquire on startup);
-	// polling avoids a fixed-duration sleep that flakes on slow CI.
+	// Wait until every shard's advisory lock is held by exactly one session
+	// AND that holder has finished InitCursor (so the cursor snapshot precedes
+	// our publish — otherwise InitCursor's MAX(id) would observe the publish
+	// and skip it; see runOutboxWorkerWithLock). pg_locks alone is not enough:
+	// the lock is recorded the moment pg_try_advisory_lock returns, but
+	// InitCursor runs strictly after that inside runLockedSession.
 	require.Eventually(t, func() bool {
 		for i := 0; i < numShards; i++ {
 			lockID := lockBaseID + int64(i)
@@ -2982,9 +2985,13 @@ func TestPostgresMapBroker_RedisFanout_AdvisoryLockExclusion(t *testing.T) {
 			if count != 1 {
 				return false
 			}
+			// Whichever broker acquired the lock must have completed InitCursor.
+			if !broker1.workersInitialized[i].Load() && !broker2.workersInitialized[i].Load() {
+				return false
+			}
 		}
 		return true
-	}, 10*time.Second, 100*time.Millisecond, "each shard should have exactly one advisory lock holder")
+	}, 10*time.Second, 50*time.Millisecond, "each shard should have one initialized lock holder")
 
 	// Publish some data and verify it arrives via one of the handlers.
 	const numMessages = 5
