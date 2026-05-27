@@ -75,13 +75,13 @@ func newTestPostgresStreamBroker(tb testing.TB) (*PostgresStreamBroker, *centrif
 
 	connString := getPostgresConnString(tb)
 	e, err := NewPostgresStreamBroker(node, PostgresStreamBrokerConfig{
-		DSN:                       connString,
-		NumShards:                 4, // fewer shards for faster tests
-		BinaryData:                true,
-		CleanupInterval:           100 * time.Millisecond,
-		StreamRetention:           24 * time.Hour,
-		PartitionLookaheadDays:    1,
-		PartitionRetentionDays:    1,
+		DSN:                    connString,
+		NumShards:              4, // fewer shards for faster tests
+		BinaryData:             true,
+		CleanupInterval:        100 * time.Millisecond,
+		StreamRetention:        24 * time.Hour,
+		PartitionLookaheadDays: 1,
+		PartitionRetentionDays: 1,
 		Outbox: OutboxConfig{
 			PollInterval: 10 * time.Millisecond,
 			BatchSize:    100,
@@ -1232,7 +1232,6 @@ func TestPostgresStreamBroker_RemoveHistoryRaceWithPublish(t *testing.T) {
 	require.Empty(t, pubs)
 }
 
-
 // TestPostgresStreamBroker_HistoryMetaTTL_NodeConfigFallback verifies the
 // 3-tier fallback for meta TTL: when opts.HistoryMetaTTL is 0, the broker
 // falls back to node.Config().HistoryMetaTTL, then to StreamRetention.
@@ -1407,7 +1406,6 @@ func TestPostgresStreamBroker_Metrics(t *testing.T) {
 	// Verify PG-specific gauges are populated (initialized by TestMain).
 	require.NotNil(t, metrics.PGBrokerPartitions)
 }
-
 
 // TestPostgresStreamBroker_OutboxCursorLag verifies the outbox cursor lag
 // gauge is sampled without panicking after publications are processed.
