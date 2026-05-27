@@ -40,6 +40,13 @@ type NotificationListener struct {
 	// ErrorFn is called on connection and LISTEN errors. Must be safe for
 	// concurrent use (in practice this listener runs in one goroutine).
 	ErrorFn func(msg string, err error)
+
+	// OnReady, if set, is invoked after each successful LISTEN — i.e., once
+	// the listener is bound and will deliver subsequent NOTIFY signals on
+	// the channel. Fires again after each reconnect. Used by tests that
+	// need to publish only after the listener is bound; the production
+	// path treats early NOTIFYs as benign (PollInterval is the fallback).
+	OnReady func()
 }
 
 // Run starts the listener loop. Returns when ctx is cancelled or closeCh
@@ -83,6 +90,10 @@ func (l *NotificationListener) Run(ctx context.Context, closeCh <-chan struct{})
 		}
 
 		backoff = time.Second
+
+		if l.OnReady != nil {
+			l.OnReady()
+		}
 
 		// Inner notification loop.
 		for {
