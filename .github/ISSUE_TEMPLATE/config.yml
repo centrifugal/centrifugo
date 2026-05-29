@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🗨️ GitHub Discussions
+    url: https://github.com/centrifugal/centrifugo/discussions
+    about: Ask usage questions, share ideas, and get help from the community. Answers here are searchable and benefit others.
+  - name: 📨 Telegram community
+    url: https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ
+    about: Chat with the community — fastest way to get a quick answer.
+  - name: 🎮 Discord
+    url: https://discord.gg/tYgADKx
+    about: Join the Discord server for community chat.
+  - name: 📖 Documentation & FAQ
+    url: https://centrifugal.dev/docs/faq
+    about: Most "how do I…" questions are already answered in the docs and FAQ.
