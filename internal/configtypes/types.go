@@ -289,6 +289,16 @@ type OpenTelemetry struct {
 	Enabled   bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	API       bool `mapstructure:"api" json:"api" envconfig:"api" yaml:"api" toml:"api"`
 	Consuming bool `mapstructure:"consuming" json:"consuming" envconfig:"consuming" yaml:"consuming" toml:"consuming"`
+	// GoogleCloudAuth, when true, injects Google Cloud Application Default
+	// Credentials (ADC) into the OTLP gRPC exporter as per-RPC OAuth2 tokens.
+	// This allows exporting directly to Google Cloud's OTLP endpoint
+	// (telemetry.googleapis.com) without a sidecar collector. Requires the
+	// gRPC exporter protocol (OTEL_EXPORTER_OTLP_PROTOCOL=grpc); it has no
+	// effect on the http/protobuf exporter. The endpoint and target project
+	// are still configured via the standard OTEL_EXPORTER_OTLP_* environment
+	// variables (e.g. OTEL_EXPORTER_OTLP_ENDPOINT=https://telemetry.googleapis.com
+	// and OTEL_RESOURCE_ATTRIBUTES=gcp.project_id=PROJECT_ID).
+	GoogleCloudAuth bool `mapstructure:"google_cloud_auth" json:"google_cloud_auth" envconfig:"google_cloud_auth" yaml:"google_cloud_auth" toml:"google_cloud_auth"`
 }
 
 type HttpAPI struct {

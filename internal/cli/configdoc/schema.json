@@ -13082,6 +13082,16 @@
         "default": "",
         "comment": "",
         "is_complex_type": false
+      },
+      {
+        "field": "opentelemetry.google_cloud_auth",
+        "name": "google_cloud_auth",
+        "go_name": "GoogleCloudAuth",
+        "level": 2,
+        "type": "bool",
+        "default": "",
+        "comment": "GoogleCloudAuth, when true, injects Google Cloud Application Default\nCredentials (ADC) into the OTLP gRPC exporter as per-RPC OAuth2 tokens.\nThis allows exporting directly to Google Cloud's OTLP endpoint\n(telemetry.googleapis.com) without a sidecar collector. Requires the\ngRPC exporter protocol (OTEL_EXPORTER_OTLP_PROTOCOL=grpc); it has no\neffect on the http/protobuf exporter. The endpoint and target project\nare still configured via the standard OTEL_EXPORTER_OTLP_* environment\nvariables (e.g. OTEL_EXPORTER_OTLP_ENDPOINT=https://telemetry.googleapis.com\nand OTEL_RESOURCE_ATTRIBUTES=gcp.project_id=PROJECT_ID).",
+        "is_complex_type": false
       }
     ]
   },
