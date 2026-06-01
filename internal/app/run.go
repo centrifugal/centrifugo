@@ -142,7 +142,7 @@ func Run(cmd *cobra.Command, configFile string) {
 	}
 
 	if cfg.OpenTelemetry.Enabled {
-		_, err := telemetry.SetupTracing(context.Background())
+		_, err := telemetry.SetupTracing(context.Background(), cfg.OpenTelemetry.GoogleCloudAuth)
 		if err != nil {
 			log.Fatal().Err(err).Msg("error setting up opentelemetry tracing")
 		}
