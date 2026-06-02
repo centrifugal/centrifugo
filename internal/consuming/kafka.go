@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/api"
@@ -18,7 +19,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsv2cfg "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/rs/zerolog"
 	"github.com/twmb/franz-go/pkg/kerr"
@@ -168,15 +168,57 @@ func (c *KafkaConsumer) leaveGroup(ctx context.Context, client *kgo.Client) erro
 	return err
 }
 
-func loadAWSConfigForKafkaAssumeRole(ctx context.Context, roleARN string) (aws.Config, error) {
+// mskAssumeRoleSessionNameCount is the number of STS RoleSessionName values to
+// rotate through on MSK IAM re-authentication. MSK may reject re-auth when the
+// same assumed-role session is reused near expiry (see franz-go #731).
+const mskAssumeRoleSessionNameCount = 5
+
+type mskAssumeRoleAuth struct {
+	stsClient *sts.Client
+	roleARN   string
+	sessionN  atomic.Uint32
+}
+
+func newMSKAssumeRoleAuth(ctx context.Context, roleARN string) (*mskAssumeRoleAuth, error) {
 	awsCfg, err := awsv2cfg.LoadDefaultConfig(ctx)
 	if err != nil {
-		return aws.Config{}, err
+		return nil, err
 	}
-	stsClient := sts.NewFromConfig(awsCfg)
-	assumeRoleProvider := stscreds.NewAssumeRoleProvider(stsClient, roleARN)
-	awsCfg.Credentials = aws.NewCredentialsCache(assumeRoleProvider)
-	return awsCfg, nil
+	return &mskAssumeRoleAuth{
+		stsClient: sts.NewFromConfig(awsCfg),
+		roleARN:   roleARN,
+	}, nil
+}
+
+func (a *mskAssumeRoleAuth) nextSessionName() string {
+	idx := (a.sessionN.Add(1) - 1) % mskAssumeRoleSessionNameCount
+	return fmt.Sprintf("centrifugo-msk-%d", idx)
+}
+
+func (a *mskAssumeRoleAuth) auth(ctx context.Context) (mskaws.Auth, error) {
+	out, err := a.stsClient.AssumeRole(ctx, &sts.AssumeRoleInput{
+		RoleArn:         aws.String(a.roleARN),
+		RoleSessionName: aws.String(a.nextSessionName()),
+	})
+	if err != nil {
+		return mskaws.Auth{}, err
+	}
+	if out.Credentials == nil {
+		return mskaws.Auth{}, errors.New("assume role returned no credentials")
+	}
+	creds := out.Credentials
+	if creds.AccessKeyId == nil || creds.SecretAccessKey == nil {
+		return mskaws.Auth{}, errors.New("assume role returned incomplete credentials")
+	}
+	sessionToken := ""
+	if creds.SessionToken != nil {
+		sessionToken = *creds.SessionToken
+	}
+	return mskaws.Auth{
+		AccessKey:    *creds.AccessKeyId,
+		SecretKey:    *creds.SecretAccessKey,
+		SessionToken: sessionToken,
+	}, nil
 }
 
 func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
@@ -236,21 +278,13 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 		case "aws-msk-iam":
 			if c.config.AssumeRoleARN != "" {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				awsCfg, err := loadAWSConfigForKafkaAssumeRole(ctx, c.config.AssumeRoleARN)
+				mskAuth, err := newMSKAssumeRoleAuth(ctx, c.config.AssumeRoleARN)
 				cancel()
 				if err != nil {
 					return nil, fmt.Errorf("load AWS config for MSK IAM assume role: %w", err)
 				}
 				opts = append(opts, kgo.SASL(mskaws.ManagedStreamingIAM(func(ctx context.Context) (mskaws.Auth, error) {
-					v, err := awsCfg.Credentials.Retrieve(ctx)
-					if err != nil {
-						return mskaws.Auth{}, err
-					}
-					return mskaws.Auth{
-						AccessKey:    v.AccessKeyID,
-						SecretKey:    v.SecretAccessKey,
-						SessionToken: v.SessionToken,
-					}, nil
+					return mskAuth.auth(ctx)
 				})))
 			} else {
 				opts = append(opts, kgo.SASL(mskaws.Auth{
