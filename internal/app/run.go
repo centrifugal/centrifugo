@@ -121,7 +121,7 @@ func Run(cmd *cobra.Command, configFile string) {
 
 	// Initialize centralized metrics registry.
 	err = metrics.Init(metrics.Config{
-		Namespace:        "", // Use default "centrifugo" namespace.
+		Namespace:        "",  // Use default "centrifugo" namespace.
 		ConstLabels:      nil, // Can be populated from config in the future.
 		Registerer:       nil, // Use prometheus.DefaultRegisterer.
 		NativeHistograms: cfg.Prometheus.NativeHistograms,
@@ -142,7 +142,7 @@ func Run(cmd *cobra.Command, configFile string) {
 	}
 
 	if cfg.OpenTelemetry.Enabled {
-		_, err := telemetry.SetupTracing(context.Background(), cfg.OpenTelemetry.GoogleCloudAuth)
+		_, err := telemetry.SetupTracing(context.Background(), cfg.OpenTelemetry.GoogleCloudADCAuth)
 		if err != nil {
 			log.Fatal().Err(err).Msg("error setting up opentelemetry tracing")
 		}

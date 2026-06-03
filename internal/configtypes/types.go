@@ -51,16 +51,16 @@ type Log struct {
 
 // Token common configuration.
 type Token struct {
-	HMACSecretKey                   string `mapstructure:"hmac_secret_key" json:"hmac_secret_key" envconfig:"hmac_secret_key" yaml:"hmac_secret_key" toml:"hmac_secret_key"`
-	HMACPreviousSecretKey           string `mapstructure:"hmac_previous_secret_key" json:"hmac_previous_secret_key" envconfig:"hmac_previous_secret_key" yaml:"hmac_previous_secret_key" toml:"hmac_previous_secret_key"`
-	HMACPreviousSecretKeyValidUntil int64  `mapstructure:"hmac_previous_secret_key_valid_until" json:"hmac_previous_secret_key_valid_until" envconfig:"hmac_previous_secret_key_valid_until" yaml:"hmac_previous_secret_key_valid_until" toml:"hmac_previous_secret_key_valid_until"`
-	RSAPublicKey                    string `mapstructure:"rsa_public_key" json:"rsa_public_key" envconfig:"rsa_public_key" yaml:"rsa_public_key" toml:"rsa_public_key"`
-	ECDSAPublicKey     string `mapstructure:"ecdsa_public_key" json:"ecdsa_public_key" envconfig:"ecdsa_public_key" yaml:"ecdsa_public_key" toml:"ecdsa_public_key"`
-	JWKSPublicEndpoint string `mapstructure:"jwks_public_endpoint" json:"jwks_public_endpoint" envconfig:"jwks_public_endpoint" yaml:"jwks_public_endpoint" toml:"jwks_public_endpoint"`
-	Audience           string `mapstructure:"audience" json:"audience" envconfig:"audience" yaml:"audience" toml:"audience"`
-	AudienceRegex      string `mapstructure:"audience_regex" json:"audience_regex" envconfig:"audience_regex" yaml:"audience_regex" toml:"audience_regex"`
-	Issuer             string `mapstructure:"issuer" json:"issuer" envconfig:"issuer" yaml:"issuer" toml:"issuer"`
-	IssuerRegex        string `mapstructure:"issuer_regex" json:"issuer_regex" envconfig:"issuer_regex" yaml:"issuer_regex" toml:"issuer_regex"`
+	HMACSecretKey                       string `mapstructure:"hmac_secret_key" json:"hmac_secret_key" envconfig:"hmac_secret_key" yaml:"hmac_secret_key" toml:"hmac_secret_key"`
+	HMACPreviousSecretKey               string `mapstructure:"hmac_previous_secret_key" json:"hmac_previous_secret_key" envconfig:"hmac_previous_secret_key" yaml:"hmac_previous_secret_key" toml:"hmac_previous_secret_key"`
+	HMACPreviousSecretKeyValidUntil     int64  `mapstructure:"hmac_previous_secret_key_valid_until" json:"hmac_previous_secret_key_valid_until" envconfig:"hmac_previous_secret_key_valid_until" yaml:"hmac_previous_secret_key_valid_until" toml:"hmac_previous_secret_key_valid_until"`
+	RSAPublicKey                        string `mapstructure:"rsa_public_key" json:"rsa_public_key" envconfig:"rsa_public_key" yaml:"rsa_public_key" toml:"rsa_public_key"`
+	ECDSAPublicKey                      string `mapstructure:"ecdsa_public_key" json:"ecdsa_public_key" envconfig:"ecdsa_public_key" yaml:"ecdsa_public_key" toml:"ecdsa_public_key"`
+	JWKSPublicEndpoint                  string `mapstructure:"jwks_public_endpoint" json:"jwks_public_endpoint" envconfig:"jwks_public_endpoint" yaml:"jwks_public_endpoint" toml:"jwks_public_endpoint"`
+	Audience                            string `mapstructure:"audience" json:"audience" envconfig:"audience" yaml:"audience" toml:"audience"`
+	AudienceRegex                       string `mapstructure:"audience_regex" json:"audience_regex" envconfig:"audience_regex" yaml:"audience_regex" toml:"audience_regex"`
+	Issuer                              string `mapstructure:"issuer" json:"issuer" envconfig:"issuer" yaml:"issuer" toml:"issuer"`
+	IssuerRegex                         string `mapstructure:"issuer_regex" json:"issuer_regex" envconfig:"issuer_regex" yaml:"issuer_regex" toml:"issuer_regex"`
 	UserIDClaim                         string `mapstructure:"user_id_claim" json:"user_id_claim" envconfig:"user_id_claim" yaml:"user_id_claim" toml:"user_id_claim"`
 	InsecureSkipJWKSEndpointSafetyCheck bool   `mapstructure:"insecure_skip_jwks_endpoint_safety_check" json:"insecure_skip_jwks_endpoint_safety_check" envconfig:"insecure_skip_jwks_endpoint_safety_check" yaml:"insecure_skip_jwks_endpoint_safety_check" toml:"insecure_skip_jwks_endpoint_safety_check"`
 }
@@ -289,16 +289,17 @@ type OpenTelemetry struct {
 	Enabled   bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
 	API       bool `mapstructure:"api" json:"api" envconfig:"api" yaml:"api" toml:"api"`
 	Consuming bool `mapstructure:"consuming" json:"consuming" envconfig:"consuming" yaml:"consuming" toml:"consuming"`
-	// GoogleCloudAuth, when true, injects Google Cloud Application Default
-	// Credentials (ADC) into the OTLP gRPC exporter as per-RPC OAuth2 tokens.
-	// This allows exporting directly to Google Cloud's OTLP endpoint
-	// (telemetry.googleapis.com) without a sidecar collector. Requires the
-	// gRPC exporter protocol (OTEL_EXPORTER_OTLP_PROTOCOL=grpc); it has no
-	// effect on the http/protobuf exporter. The endpoint and target project
-	// are still configured via the standard OTEL_EXPORTER_OTLP_* environment
-	// variables (e.g. OTEL_EXPORTER_OTLP_ENDPOINT=https://telemetry.googleapis.com
-	// and OTEL_RESOURCE_ATTRIBUTES=gcp.project_id=PROJECT_ID).
-	GoogleCloudAuth bool `mapstructure:"google_cloud_auth" json:"google_cloud_auth" envconfig:"google_cloud_auth" yaml:"google_cloud_auth" toml:"google_cloud_auth"`
+	// GoogleCloudADCAuth, when true, authenticates the OTLP exporter with
+	// Google Cloud Application Default Credentials (ADC). This allows exporting
+	// directly to Google Cloud's OTLP endpoint (telemetry.googleapis.com)
+	// without a sidecar collector. Works with both exporter protocols: over
+	// grpc the ADC token is attached as a per-RPC credential, over http/protobuf
+	// via an OAuth2 http.Client transport; in both cases the token refreshes
+	// automatically. The endpoint and target project are still configured via
+	// the standard OTEL_EXPORTER_OTLP_* environment variables (e.g.
+	// OTEL_EXPORTER_OTLP_ENDPOINT=https://telemetry.googleapis.com and
+	// OTEL_RESOURCE_ATTRIBUTES=gcp.project_id=PROJECT_ID).
+	GoogleCloudADCAuth bool `mapstructure:"google_cloud_adc_auth" json:"google_cloud_adc_auth" envconfig:"google_cloud_adc_auth" yaml:"google_cloud_adc_auth" toml:"google_cloud_adc_auth"`
 }
 
 type HttpAPI struct {
@@ -806,19 +807,19 @@ func (d *Consumers) Decode(value string) error {
 
 // PostgresConsumerConfig is a configuration for Postgres async outbox table consumer.
 type PostgresConsumerConfig struct {
-	DSN                          string    `mapstructure:"dsn" json:"dsn" envconfig:"dsn" yaml:"dsn" toml:"dsn"`
-	OutboxTableName              string    `mapstructure:"outbox_table_name" json:"outbox_table_name" envconfig:"outbox_table_name" yaml:"outbox_table_name" toml:"outbox_table_name"`
-	NumPartitions                int       `mapstructure:"num_partitions" json:"num_partitions" envconfig:"num_partitions" default:"1" yaml:"num_partitions" toml:"num_partitions"`
-	PartitionSelectLimit         int       `mapstructure:"partition_select_limit" json:"partition_select_limit" envconfig:"partition_select_limit" default:"100" yaml:"partition_select_limit" toml:"partition_select_limit"`
-	PartitionPollInterval        Duration  `mapstructure:"partition_poll_interval" json:"partition_poll_interval" envconfig:"partition_poll_interval" default:"300ms" yaml:"partition_poll_interval" toml:"partition_poll_interval"`
-	PartitionNotificationChannel string    `mapstructure:"partition_notification_channel" json:"partition_notification_channel" envconfig:"partition_notification_channel" yaml:"partition_notification_channel" toml:"partition_notification_channel"`
+	DSN                          string   `mapstructure:"dsn" json:"dsn" envconfig:"dsn" yaml:"dsn" toml:"dsn"`
+	OutboxTableName              string   `mapstructure:"outbox_table_name" json:"outbox_table_name" envconfig:"outbox_table_name" yaml:"outbox_table_name" toml:"outbox_table_name"`
+	NumPartitions                int      `mapstructure:"num_partitions" json:"num_partitions" envconfig:"num_partitions" default:"1" yaml:"num_partitions" toml:"num_partitions"`
+	PartitionSelectLimit         int      `mapstructure:"partition_select_limit" json:"partition_select_limit" envconfig:"partition_select_limit" default:"100" yaml:"partition_select_limit" toml:"partition_select_limit"`
+	PartitionPollInterval        Duration `mapstructure:"partition_poll_interval" json:"partition_poll_interval" envconfig:"partition_poll_interval" default:"300ms" yaml:"partition_poll_interval" toml:"partition_poll_interval"`
+	PartitionNotificationChannel string   `mapstructure:"partition_notification_channel" json:"partition_notification_channel" envconfig:"partition_notification_channel" yaml:"partition_notification_channel" toml:"partition_notification_channel"`
 	// PartitionNotificationDSN is an optional separate DSN used exclusively for
 	// the LISTEN connection. Set this to a direct PostgreSQL URL (bypassing
 	// PGBouncer) when DSN points at a PGBouncer endpoint — PGBouncer transaction
 	// pooling mode is incompatible with LISTEN/NOTIFY. If empty, the primary
 	// DSN pool is used (fine for direct PostgreSQL connections).
-	PartitionNotificationDSN string `mapstructure:"partition_notification_dsn" json:"partition_notification_dsn" envconfig:"partition_notification_dsn" yaml:"partition_notification_dsn" toml:"partition_notification_dsn"`
-	TLS                          TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
+	PartitionNotificationDSN string    `mapstructure:"partition_notification_dsn" json:"partition_notification_dsn" envconfig:"partition_notification_dsn" yaml:"partition_notification_dsn" toml:"partition_notification_dsn"`
+	TLS                      TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
 	// UseTryLock when enabled tells Centrifugo to use pg_try_advisory_xact_lock instead of pg_advisory_xact_lock.
 	UseTryLock bool `mapstructure:"use_try_lock" json:"use_try_lock" envconfig:"use_try_lock" default:"false" yaml:"use_try_lock" toml:"use_try_lock"`
 }
