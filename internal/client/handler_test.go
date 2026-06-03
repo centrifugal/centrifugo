@@ -1196,6 +1196,68 @@ func TestClientOnSubscribe_SubRefreshProxy(t *testing.T) {
 	require.False(t, reply.ClientSideRefresh)
 }
 
+// TestClientOnSubscribe_StreamProxyStoresCancelFunc is a regression test for
+// https://github.com/centrifugal/centrifugo/issues/1147 – the cancel function of a
+// subscribe stream proxy must be stored in client storage for BOTH unidirectional and
+// bidirectional streams. The OnUnsubscribe handler (registered in Setup) looks up the
+// "stream_cancel_<channel>" key to cancel the stream context when a client unsubscribes.
+// Previously the cancel func was only stored for bidirectional streams, so unidirectional
+// streams stayed open until the whole connection was closed.
+func TestClientOnSubscribe_StreamProxyStoresCancelFunc(t *testing.T) {
+	for _, bidirectional := range []bool{false, true} {
+		name := "unidirectional"
+		if bidirectional {
+			name = "bidirectional"
+		}
+		t.Run(name, func(t *testing.T) {
+			node := tools.NodeWithMemoryEngineNoHandlers()
+			defer func() { _ = node.Shutdown(context.Background()) }()
+
+			cfg := config.DefaultConfig()
+			cfg.Channel.WithoutNamespace.SubscribeStreamProxyEnabled = true
+			cfg.Channel.WithoutNamespace.SubscribeStreamBidirectional = bidirectional
+			cfg.Channel.Proxy.SubscribeStream.Endpoint = "grpc://localhost:12000"
+			cfgContainer, err := config.NewContainer(cfg)
+			require.NoError(t, err)
+
+			h := NewHandler(node, cfgContainer, nil, nil, &ProxyMap{})
+
+			var cancelCalled bool
+			cancelFunc := func() { cancelCalled = true }
+
+			streamHandlerFunc := func(
+				c proxy.Client, bidi bool, e centrifuge.SubscribeEvent,
+				chOpts configtypes.ChannelOptions, pcd proxy.PerCallData,
+			) (centrifuge.SubscribeReply, proxy.StreamPublishFunc, func(), error) {
+				require.Equal(t, bidirectional, bidi)
+				return centrifuge.SubscribeReply{}, nil, cancelFunc, nil
+			}
+
+			client := &tools.TestClientMock{
+				IDFunc:      func() string { return "42" },
+				UserIDFunc:  func() string { return "42" },
+				ContextFunc: func() context.Context { return context.Background() },
+			}
+
+			_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
+				Channel: "user",
+			}, nil, streamHandlerFunc)
+			require.NoError(t, err)
+
+			storage, release := client.AcquireStorage()
+			stored, ok := storage["stream_cancel_user"].(func())
+			release(storage)
+			require.True(t, ok, "cancel func must be stored so OnUnsubscribe can close the stream")
+			require.NotNil(t, stored)
+
+			// The stored func must be the one returned by the stream handler – invoking it
+			// (as OnUnsubscribe does) cancels the underlying stream context.
+			stored()
+			require.True(t, cancelCalled)
+		})
+	}
+}
+
 // buildSharedPollDispatch builds the dispatch closure identical to handler.go's Setup(),
 // using plain SharedPollHandler functions instead of proxy.SharedPollRefreshHandler
 // (avoids prometheus dependency in tests).

@@ -817,10 +817,15 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
 		}
 		r, publishFunc, cancelFunc, err := subscribeStreamHandlerFunc(c, chOpts.SubscribeStreamBidirectional, e, chOpts, getPerCallData(c))
-		if chOpts.SubscribeStreamBidirectional {
+		if cancelFunc != nil {
+			// Store cancel func for both unidirectional and bidirectional streams so that
+			// OnUnsubscribe can close the stream as soon as a client unsubscribes. The
+			// publish func only makes sense for bidirectional streams.
 			storage, release := c.AcquireStorage()
 			storage["stream_cancel_"+e.Channel] = cancelFunc
-			storage["stream_publisher_"+e.Channel] = publishFunc
+			if chOpts.SubscribeStreamBidirectional {
+				storage["stream_publisher_"+e.Channel] = publishFunc
+			}
 			release(storage)
 		}
 		if chOpts.SubRefreshProxyEnabled {
