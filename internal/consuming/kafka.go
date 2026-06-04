@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/api"
@@ -168,15 +167,17 @@ func (c *KafkaConsumer) leaveGroup(ctx context.Context, client *kgo.Client) erro
 	return err
 }
 
-// mskAssumeRoleSessionNameCount is the number of STS RoleSessionName values to
-// rotate through on MSK IAM re-authentication. MSK may reject re-auth when the
-// same assumed-role session is reused near expiry (see franz-go #731).
-const mskAssumeRoleSessionNameCount = 5
+// mskAssumeRoleSessionName is the STS RoleSessionName for AssumeRole calls.
+const mskAssumeRoleSessionName = "centrifugo-msk"
 
+// mskAssumeRoleAuth obtains fresh STS credentials for each MSK IAM SASL handshake.
+// Call AssumeRole directly on every callback; do not use CredentialsCache, which can
+// return the same credentials MSK already considers expired (see franz-go #731).
+// RoleSessionName stays constant so the broker principal is stable across re-auth
+// (see aws-msk-iam-auth README).
 type mskAssumeRoleAuth struct {
 	stsClient *sts.Client
 	roleARN   string
-	sessionN  atomic.Uint32
 }
 
 func newMSKAssumeRoleAuth(ctx context.Context, roleARN string) (*mskAssumeRoleAuth, error) {
@@ -190,15 +191,10 @@ func newMSKAssumeRoleAuth(ctx context.Context, roleARN string) (*mskAssumeRoleAu
 	}, nil
 }
 
-func (a *mskAssumeRoleAuth) nextSessionName() string {
-	idx := (a.sessionN.Add(1) - 1) % mskAssumeRoleSessionNameCount
-	return fmt.Sprintf("centrifugo-msk-%d", idx)
-}
-
 func (a *mskAssumeRoleAuth) auth(ctx context.Context) (mskaws.Auth, error) {
 	out, err := a.stsClient.AssumeRole(ctx, &sts.AssumeRoleInput{
 		RoleArn:         aws.String(a.roleARN),
-		RoleSessionName: aws.String(a.nextSessionName()),
+		RoleSessionName: aws.String(mskAssumeRoleSessionName),
 	})
 	if err != nil {
 		return mskaws.Auth{}, err
