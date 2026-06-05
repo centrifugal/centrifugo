@@ -10404,6 +10404,16 @@
             "is_complex_type": false
           },
           {
+            "field": "consumers[].kafka.dial_timeout",
+            "name": "dial_timeout",
+            "go_name": "DialTimeout",
+            "level": 3,
+            "type": "Duration",
+            "default": "3s",
+            "comment": "DialTimeout is the timeout for establishing a TCP connection to a single broker.\nWith many seed brokers, a lower value speeds up initial discovery when some brokers\nare unreachable, because franz-go tries them sequentially. If not set, defaults to 3s.",
+            "is_complex_type": false
+          },
+          {
             "field": "consumers[].kafka.tls",
             "name": "tls",
             "go_name": "TLS",

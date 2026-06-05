@@ -1911,3 +1911,41 @@ func BenchmarkKafkaConsumer_ConsumePreLoadedTopic(b *testing.B) {
 		b.Logf("benchmark complete: %d iterations, avg time %v, avg rate %.0f msg/sec", b.N, avgTime, avgRate)
 	}
 }
+
+func TestEffectiveDialTimeout(t *testing.T) {
+	t.Parallel()
+
+	t.Run("zero uses default", func(t *testing.T) {
+		t.Parallel()
+		require.Equal(t, defaultKafkaDialTimeout, effectiveDialTimeout(0))
+	})
+
+	t.Run("negative uses default", func(t *testing.T) {
+		t.Parallel()
+		require.Equal(t, defaultKafkaDialTimeout, effectiveDialTimeout(configtypes.Duration(-1*time.Second)))
+	})
+
+	t.Run("positive value is preserved", func(t *testing.T) {
+		t.Parallel()
+		require.Equal(t, 2*time.Second, effectiveDialTimeout(configtypes.Duration(2*time.Second)))
+	})
+}
+
+func TestPingTimeout(t *testing.T) {
+	t.Parallel()
+
+	t.Run("accounts for 2 attempts per broker", func(t *testing.T) {
+		t.Parallel()
+		require.Equal(t, 54*time.Second, pingTimeout(3*time.Second, 9))
+	})
+
+	t.Run("single broker is 2x dial timeout", func(t *testing.T) {
+		t.Parallel()
+		require.Equal(t, 6*time.Second, pingTimeout(3*time.Second, 1))
+	})
+
+	t.Run("zero brokers returns zero", func(t *testing.T) {
+		t.Parallel()
+		require.Equal(t, time.Duration(0), pingTimeout(3*time.Second, 0))
+	})
+}
