@@ -853,6 +853,11 @@ type KafkaConsumerConfig struct {
 	// If -1, pausing is done on every poll. If set, pausing only happens when queue size exceeds this threshold.
 	PartitionQueueMaxSize int `mapstructure:"partition_queue_max_size" json:"partition_queue_max_size" envconfig:"partition_queue_max_size" default:"1000" yaml:"partition_queue_max_size" toml:"partition_queue_max_size"`
 
+	// DialTimeout is the timeout for establishing a TCP connection to a single broker.
+	// With many seed brokers, a lower value speeds up initial discovery when some brokers
+	// are unreachable, because franz-go tries them sequentially. If not set, defaults to 3s.
+	DialTimeout Duration `mapstructure:"dial_timeout" json:"dial_timeout" envconfig:"dial_timeout" default:"3s" yaml:"dial_timeout" toml:"dial_timeout"`
+
 	// TLS for the connection to Kafka.
 	TLS TLSConfig `mapstructure:"tls" json:"tls" envconfig:"tls" yaml:"tls" toml:"tls"`
 

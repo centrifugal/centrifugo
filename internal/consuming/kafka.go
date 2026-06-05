@@ -217,9 +217,29 @@ func (a *mskAssumeRoleAuth) auth(ctx context.Context) (mskaws.Auth, error) {
 	}, nil
 }
 
+// defaultKafkaDialTimeout is the fallback TCP dial timeout to a single broker.
+const defaultKafkaDialTimeout = 3 * time.Second
+
+func effectiveDialTimeout(d configtypes.Duration) time.Duration {
+	if d <= 0 {
+		return defaultKafkaDialTimeout
+	}
+	return time.Duration(d)
+}
+
+// pingTimeout returns a context deadline long enough for Ping to try every
+// seed broker. franz-go retries each broker's connection once on retryable
+// errors (see broker.handleReq), so each broker may cost up to 2 × dialTimeout.
+func pingTimeout(dialTimeout time.Duration, numBrokers int) time.Duration {
+	const maxAttemptsPerBroker = 2
+	return dialTimeout * time.Duration(numBrokers) * maxAttemptsPerBroker
+}
+
 func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
+	dialTimeout := effectiveDialTimeout(c.config.DialTimeout)
 	opts := []kgo.Opt{
 		kgo.SeedBrokers(c.config.Brokers...),
+		kgo.DialTimeout(dialTimeout),
 		kgo.ConsumeTopics(c.config.Topics...),
 		kgo.ConsumerGroup(c.config.ConsumerGroup),
 		kgo.OnPartitionsAssigned(c.assigned),
@@ -297,7 +317,7 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error initializing client: %w", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), pingTimeout(dialTimeout, len(c.config.Brokers)))
 	defer cancel()
 	if err := client.Ping(ctx); err != nil {
 		client.Close()
