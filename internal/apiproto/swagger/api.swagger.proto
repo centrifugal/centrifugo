@@ -10,7 +10,7 @@ import "protoc-gen-openapiv2/options/annotations.proto";
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {
     title: "Centrifugo server HTTP API";
-    version: "5.0";
+    version: "6.0";
     description: "";
   };
   external_docs: {
