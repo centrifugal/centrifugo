@@ -34,6 +34,15 @@
     },
     {
       "name": "batch"
+    },
+    {
+      "name": "rpc"
+    },
+    {
+      "name": "map"
+    },
+    {
+      "name": "shared poll"
     }
   ],
   "basePath": "/api",
@@ -785,6 +794,240 @@
         ]
       }
     },
+    "/map_clear": {
+      "post": {
+        "summary": "Clear a map channel",
+        "operationId": "CentrifugoApi_MapClear",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/MapClearResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MapClearRequest"
+            }
+          }
+        ],
+        "tags": [
+          "map"
+        ]
+      }
+    },
+    "/map_publish": {
+      "post": {
+        "summary": "Publish a key into a map channel",
+        "operationId": "CentrifugoApi_MapPublish",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/MapPublishResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MapPublishRequest"
+            }
+          }
+        ],
+        "tags": [
+          "map"
+        ]
+      }
+    },
+    "/map_read_state": {
+      "post": {
+        "summary": "Read current state of a map channel",
+        "operationId": "CentrifugoApi_MapReadState",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/MapReadStateResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MapReadStateRequest"
+            }
+          }
+        ],
+        "tags": [
+          "map"
+        ]
+      }
+    },
+    "/map_read_stream": {
+      "post": {
+        "summary": "Read the stream of a map channel",
+        "operationId": "CentrifugoApi_MapReadStream",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/MapReadStreamResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MapReadStreamRequest"
+            }
+          }
+        ],
+        "tags": [
+          "map"
+        ]
+      }
+    },
+    "/map_remove": {
+      "post": {
+        "summary": "Remove a key from a map channel",
+        "operationId": "CentrifugoApi_MapRemove",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/MapRemoveResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MapRemoveRequest"
+            }
+          }
+        ],
+        "tags": [
+          "map"
+        ]
+      }
+    },
+    "/map_stats": {
+      "post": {
+        "summary": "Stats for a map channel",
+        "operationId": "CentrifugoApi_MapStats",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/MapStatsResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MapStatsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "map"
+        ]
+      }
+    },
     "/presence": {
       "post": {
         "summary": "Presence information for a channel",
@@ -980,6 +1223,45 @@
         ]
       }
     },
+    "/rpc": {
+      "post": {
+        "summary": "Execute RPC",
+        "operationId": "CentrifugoApi_RPC",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/RPCResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RPCRequest"
+            }
+          }
+        ],
+        "tags": [
+          "rpc"
+        ]
+      }
+    },
     "/send_push_notification": {
       "post": {
         "summary": "Send push notification",
@@ -1016,6 +1298,45 @@
         ],
         "tags": [
           "push notification"
+        ]
+      }
+    },
+    "/shared_poll_publish": {
+      "post": {
+        "summary": "Publish into a shared poll channel",
+        "operationId": "CentrifugoApi_SharedPollPublish",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/SharedPollPublishResponse"
+            }
+          },
+          "400": {
+            "description": "Returned in case of invalid request.",
+            "schema": {}
+          },
+          "401": {
+            "description": "Returned in case of missing auth.",
+            "schema": {}
+          },
+          "500": {
+            "description": "Returned in case of internal server error.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SharedPollPublishRequest"
+            }
+          }
+        ],
+        "tags": [
+          "shared poll"
         ]
       }
     },
@@ -1397,6 +1718,12 @@
         },
         "delta": {
           "type": "boolean"
+        },
+        "version": {
+          "type": "integer"
+        },
+        "version_epoch": {
+          "type": "string"
         }
       }
     },
@@ -1608,6 +1935,27 @@
         },
         "cancel_push": {
           "$ref": "#/definitions/CancelPushRequest"
+        },
+        "map_publish": {
+          "$ref": "#/definitions/MapPublishRequest"
+        },
+        "map_remove": {
+          "$ref": "#/definitions/MapRemoveRequest"
+        },
+        "map_read_state": {
+          "$ref": "#/definitions/MapReadStateRequest"
+        },
+        "map_read_stream": {
+          "$ref": "#/definitions/MapReadStreamRequest"
+        },
+        "map_stats": {
+          "$ref": "#/definitions/MapStatsRequest"
+        },
+        "map_clear": {
+          "$ref": "#/definitions/MapClearRequest"
+        },
+        "shared_poll_publish": {
+          "$ref": "#/definitions/SharedPollPublishRequest"
         }
       }
     },
@@ -1631,6 +1979,20 @@
         },
         "state": {
           "$ref": "#/definitions/ConnectionState"
+        },
+        "connected_at_ms": {
+          "type": "integer"
+        },
+        "ping_pong_latency_ms": {
+          "type": "integer",
+          "description": "can be -1 if not available."
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "PRO only — client labels attached to the centrifuge.Client by Centrifugo PRO."
         }
       }
     },
@@ -1676,6 +2038,10 @@
         },
         "expression": {
           "type": "string"
+        },
+        "label_filter": {
+          "$ref": "#/definitions/FilterNode",
+          "description": "PRO only — restrict the listing to clients whose labels match this filter."
         }
       }
     },
@@ -1767,6 +2133,9 @@
         },
         "locale": {
           "type": "string"
+        },
+        "webpush_keys": {
+          "type": "string"
         }
       }
     },
@@ -1818,6 +2187,9 @@
           "type": "boolean"
         },
         "include_topics": {
+          "type": "boolean"
+        },
+        "include_webpush_keys": {
           "type": "boolean"
         },
         "cursor": {
@@ -2090,6 +2462,10 @@
           "items": {
             "type": "string"
           }
+        },
+        "user": {
+          "type": "string",
+          "title": "optional ownership guard: apply only if the device currently belongs to this user"
         }
       }
     },
@@ -2196,6 +2572,14 @@
         },
         "session": {
           "type": "string"
+        },
+        "label_filter": {
+          "$ref": "#/definitions/FilterNode",
+          "description": "PRO only — restrict the call to clients whose labels match this filter."
+        },
+        "all_users": {
+          "type": "boolean",
+          "description": "PRO only — see SubscribeRequest.all_users."
         }
       }
     },
@@ -2232,6 +2616,37 @@
           "type": "object"
         }
       }
+    },
+    "FilterNode": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "cmp": {
+          "type": "string"
+        },
+        "val": {
+          "type": "string"
+        },
+        "vals": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/FilterNode"
+          }
+        }
+      },
+      "description": "FilterNode is a tree describing a label predicate.\nUsed as label_filter on Subscribe/Unsubscribe/Disconnect/Refresh/Connections requests.\nPRO only — defined in OSS api.proto for protocol-surface consistency; OSS handlers parse but do not act on it."
     },
     "GetUserStatusRequest": {
       "type": "object",
@@ -2400,6 +2815,311 @@
     },
     "InvalidateUserTokensResult": {
       "type": "object"
+    },
+    "MapClearRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        }
+      }
+    },
+    "MapClearResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/MapClearResult"
+        }
+      }
+    },
+    "MapClearResult": {
+      "type": "object"
+    },
+    "MapEntry": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object"
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "score": {
+          "type": "integer"
+        },
+        "removed": {
+          "type": "boolean"
+        },
+        "time": {
+          "type": "integer"
+        }
+      }
+    },
+    "MapPublishRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object"
+        },
+        "b64data": {
+          "type": "string"
+        },
+        "stream_data": {
+          "type": "object"
+        },
+        "b64stream_data": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "delta": {
+          "type": "boolean"
+        },
+        "version": {
+          "type": "integer"
+        },
+        "version_epoch": {
+          "type": "string"
+        },
+        "score": {
+          "type": "integer"
+        },
+        "key_mode": {
+          "type": "string"
+        }
+      }
+    },
+    "MapPublishResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/MapPublishResult"
+        }
+      }
+    },
+    "MapPublishResult": {
+      "type": "object",
+      "properties": {
+        "offset": {
+          "type": "integer"
+        },
+        "epoch": {
+          "type": "string"
+        },
+        "suppressed": {
+          "type": "boolean"
+        },
+        "suppress_reason": {
+          "type": "string"
+        }
+      }
+    },
+    "MapReadStateRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "key": {
+          "type": "string"
+        },
+        "asc": {
+          "type": "boolean"
+        },
+        "revision_offset": {
+          "type": "integer"
+        },
+        "revision_epoch": {
+          "type": "string"
+        }
+      }
+    },
+    "MapReadStateResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/MapReadStateResult"
+        }
+      }
+    },
+    "MapReadStateResult": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/MapEntry"
+          }
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "epoch": {
+          "type": "string"
+        },
+        "cursor": {
+          "type": "string"
+        }
+      }
+    },
+    "MapReadStreamRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "since_offset": {
+          "type": "integer"
+        },
+        "since_epoch": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "reverse": {
+          "type": "boolean"
+        }
+      }
+    },
+    "MapReadStreamResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/MapReadStreamResult"
+        }
+      }
+    },
+    "MapReadStreamResult": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/MapEntry"
+          }
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "epoch": {
+          "type": "string"
+        }
+      }
+    },
+    "MapRemoveRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "idempotency_key": {
+          "type": "string"
+        }
+      }
+    },
+    "MapRemoveResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/MapRemoveResult"
+        }
+      }
+    },
+    "MapRemoveResult": {
+      "type": "object",
+      "properties": {
+        "offset": {
+          "type": "integer"
+        },
+        "epoch": {
+          "type": "string"
+        },
+        "suppressed": {
+          "type": "boolean"
+        },
+        "suppress_reason": {
+          "type": "string"
+        }
+      }
+    },
+    "MapStatsRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        }
+      }
+    },
+    "MapStatsResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/MapStatsResult"
+        }
+      }
+    },
+    "MapStatsResult": {
+      "type": "object",
+      "properties": {
+        "num_keys": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
     },
     "Metrics": {
       "type": "object",
@@ -2578,6 +3298,12 @@
         },
         "delta": {
           "type": "boolean"
+        },
+        "version": {
+          "type": "integer"
+        },
+        "version_epoch": {
+          "type": "string"
         }
       }
     },
@@ -2637,6 +3363,9 @@
         },
         "apns": {
           "$ref": "#/definitions/ApnsPushNotification"
+        },
+        "webpush": {
+          "$ref": "#/definitions/WebPushPushNotification"
         },
         "expire_at": {
           "type": "integer",
@@ -2698,6 +3427,12 @@
           "items": {
             "type": "string"
           }
+        },
+        "webpush_tokens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -2726,6 +3461,17 @@
         },
         "params": {
           "type": "object"
+        }
+      }
+    },
+    "RPCResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/RPCResult"
         }
       }
     },
@@ -2769,6 +3515,14 @@
         },
         "session": {
           "type": "string"
+        },
+        "label_filter": {
+          "$ref": "#/definitions/FilterNode",
+          "description": "PRO only — restrict the call to clients whose labels match this filter."
+        },
+        "all_users": {
+          "type": "boolean",
+          "description": "PRO only — see SubscribeRequest.all_users."
         }
       }
     },
@@ -2887,6 +3641,27 @@
         },
         "cancel_push": {
           "$ref": "#/definitions/CancelPushResult"
+        },
+        "map_publish": {
+          "$ref": "#/definitions/MapPublishResult"
+        },
+        "map_remove": {
+          "$ref": "#/definitions/MapRemoveResult"
+        },
+        "map_read_state": {
+          "$ref": "#/definitions/MapReadStateResult"
+        },
+        "map_read_stream": {
+          "$ref": "#/definitions/MapReadStreamResult"
+        },
+        "map_stats": {
+          "$ref": "#/definitions/MapStatsResult"
+        },
+        "map_clear": {
+          "$ref": "#/definitions/MapClearResult"
+        },
+        "shared_poll_publish": {
+          "$ref": "#/definitions/SharedPollPublishResult"
         }
       }
     },
@@ -2981,6 +3756,43 @@
         }
       }
     },
+    "SharedPollPublishRequest": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object"
+        },
+        "b64data": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer"
+        },
+        "epoch": {
+          "type": "string"
+        }
+      }
+    },
+    "SharedPollPublishResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "result": {
+          "$ref": "#/definitions/SharedPollPublishResult"
+        }
+      }
+    },
+    "SharedPollPublishResult": {
+      "type": "object"
+    },
     "StreamPosition": {
       "type": "object",
       "properties": {
@@ -3047,6 +3859,14 @@
         },
         "session": {
           "type": "string"
+        },
+        "label_filter": {
+          "$ref": "#/definitions/FilterNode",
+          "description": "PRO only — restrict the call to clients whose labels match this filter."
+        },
+        "all_users": {
+          "type": "boolean",
+          "description": "PRO only — when `user` is empty, target every connection on every node\ninstead of the anonymous-only bucket. No effect when `user` is non-empty."
         }
       }
     },
@@ -3111,6 +3931,14 @@
         },
         "session": {
           "type": "string"
+        },
+        "label_filter": {
+          "$ref": "#/definitions/FilterNode",
+          "description": "PRO only — restrict the call to clients whose labels match this filter."
+        },
+        "all_users": {
+          "type": "boolean",
+          "description": "PRO only — see SubscribeRequest.all_users."
         }
       }
     },
@@ -3320,6 +4148,20 @@
     },
     "UserTopicUpdateResult": {
       "type": "object"
+    },
+    "WebPushPushNotification": {
+      "type": "object",
+      "properties": {
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "payload": {
+          "type": "object"
+        }
+      }
     },
     "api.Disconnect": {
       "type": "object",

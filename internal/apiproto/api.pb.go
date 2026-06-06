@@ -1289,26 +1289,118 @@ func (x *BroadcastResult) GetResponses() []*PublishResponse {
 	return nil
 }
 
+// FilterNode is a tree describing a label predicate.
+// Used as label_filter on Subscribe/Unsubscribe/Disconnect/Refresh/Connections requests.
+// PRO only — defined in OSS api.proto for protocol-surface consistency; OSS handlers parse but do not act on it.
+type FilterNode struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Op            string                 `protobuf:"bytes,1,opt,name=op,proto3" json:"op,omitempty"`
+	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	Cmp           string                 `protobuf:"bytes,3,opt,name=cmp,proto3" json:"cmp,omitempty"`
+	Val           string                 `protobuf:"bytes,4,opt,name=val,proto3" json:"val,omitempty"`
+	Vals          []string               `protobuf:"bytes,5,rep,name=vals,proto3" json:"vals,omitempty"`
+	Nodes         []*FilterNode          `protobuf:"bytes,6,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FilterNode) Reset() {
+	*x = FilterNode{}
+	mi := &file_api_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FilterNode) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FilterNode) ProtoMessage() {}
+
+func (x *FilterNode) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FilterNode.ProtoReflect.Descriptor instead.
+func (*FilterNode) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *FilterNode) GetOp() string {
+	if x != nil {
+		return x.Op
+	}
+	return ""
+}
+
+func (x *FilterNode) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *FilterNode) GetCmp() string {
+	if x != nil {
+		return x.Cmp
+	}
+	return ""
+}
+
+func (x *FilterNode) GetVal() string {
+	if x != nil {
+		return x.Val
+	}
+	return ""
+}
+
+func (x *FilterNode) GetVals() []string {
+	if x != nil {
+		return x.Vals
+	}
+	return nil
+}
+
+func (x *FilterNode) GetNodes() []*FilterNode {
+	if x != nil {
+		return x.Nodes
+	}
+	return nil
+}
+
 type SubscribeRequest struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Channel       string                   `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
-	User          string                   `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
-	ExpireAt      int64                    `protobuf:"varint,3,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	Info          Raw                      `protobuf:"bytes,4,opt,name=info,proto3" json:"info,omitempty"`
-	B64Info       string                   `protobuf:"bytes,5,opt,name=b64info,proto3" json:"b64info,omitempty"`
-	Client        string                   `protobuf:"bytes,6,opt,name=client,proto3" json:"client,omitempty"`
-	Data          Raw                      `protobuf:"bytes,7,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data       string                   `protobuf:"bytes,8,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	RecoverSince  *StreamPosition          `protobuf:"bytes,9,opt,name=recover_since,json=recoverSince,proto3" json:"recover_since,omitempty"`
-	Override      *SubscribeOptionOverride `protobuf:"bytes,10,opt,name=override,proto3" json:"override,omitempty"`
-	Session       string                   `protobuf:"bytes,11,opt,name=session,proto3" json:"session,omitempty"`
+	state        protoimpl.MessageState   `protogen:"open.v1"`
+	Channel      string                   `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	User         string                   `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
+	ExpireAt     int64                    `protobuf:"varint,3,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	Info         Raw                      `protobuf:"bytes,4,opt,name=info,proto3" json:"info,omitempty"`
+	B64Info      string                   `protobuf:"bytes,5,opt,name=b64info,proto3" json:"b64info,omitempty"`
+	Client       string                   `protobuf:"bytes,6,opt,name=client,proto3" json:"client,omitempty"`
+	Data         Raw                      `protobuf:"bytes,7,opt,name=data,proto3" json:"data,omitempty"`
+	B64Data      string                   `protobuf:"bytes,8,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	RecoverSince *StreamPosition          `protobuf:"bytes,9,opt,name=recover_since,json=recoverSince,proto3" json:"recover_since,omitempty"`
+	Override     *SubscribeOptionOverride `protobuf:"bytes,10,opt,name=override,proto3" json:"override,omitempty"`
+	Session      string                   `protobuf:"bytes,11,opt,name=session,proto3" json:"session,omitempty"`
+	// PRO only — restrict the call to clients whose labels match this filter.
+	LabelFilter *FilterNode `protobuf:"bytes,12,opt,name=label_filter,json=labelFilter,proto3" json:"label_filter,omitempty"`
+	// PRO only — when `user` is empty, target every connection on every node
+	// instead of the anonymous-only bucket. No effect when `user` is non-empty.
+	AllUsers      bool `protobuf:"varint,13,opt,name=all_users,json=allUsers,proto3" json:"all_users,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SubscribeRequest) Reset() {
 	*x = SubscribeRequest{}
-	mi := &file_api_proto_msgTypes[11]
+	mi := &file_api_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1320,7 +1412,7 @@ func (x *SubscribeRequest) String() string {
 func (*SubscribeRequest) ProtoMessage() {}
 
 func (x *SubscribeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[11]
+	mi := &file_api_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1333,7 +1425,7 @@ func (x *SubscribeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{11}
+	return file_api_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *SubscribeRequest) GetChannel() string {
@@ -1413,6 +1505,20 @@ func (x *SubscribeRequest) GetSession() string {
 	return ""
 }
 
+func (x *SubscribeRequest) GetLabelFilter() *FilterNode {
+	if x != nil {
+		return x.LabelFilter
+	}
+	return nil
+}
+
+func (x *SubscribeRequest) GetAllUsers() bool {
+	if x != nil {
+		return x.AllUsers
+	}
+	return false
+}
+
 type SubscribeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
@@ -1423,7 +1529,7 @@ type SubscribeResponse struct {
 
 func (x *SubscribeResponse) Reset() {
 	*x = SubscribeResponse{}
-	mi := &file_api_proto_msgTypes[12]
+	mi := &file_api_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1435,7 +1541,7 @@ func (x *SubscribeResponse) String() string {
 func (*SubscribeResponse) ProtoMessage() {}
 
 func (x *SubscribeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[12]
+	mi := &file_api_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1448,7 +1554,7 @@ func (x *SubscribeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeResponse.ProtoReflect.Descriptor instead.
 func (*SubscribeResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{12}
+	return file_api_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SubscribeResponse) GetError() *Error {
@@ -1474,7 +1580,7 @@ type BoolValue struct {
 
 func (x *BoolValue) Reset() {
 	*x = BoolValue{}
-	mi := &file_api_proto_msgTypes[13]
+	mi := &file_api_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1486,7 +1592,7 @@ func (x *BoolValue) String() string {
 func (*BoolValue) ProtoMessage() {}
 
 func (x *BoolValue) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[13]
+	mi := &file_api_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1499,7 +1605,7 @@ func (x *BoolValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BoolValue.ProtoReflect.Descriptor instead.
 func (*BoolValue) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{13}
+	return file_api_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *BoolValue) GetValue() bool {
@@ -1518,7 +1624,7 @@ type Int32Value struct {
 
 func (x *Int32Value) Reset() {
 	*x = Int32Value{}
-	mi := &file_api_proto_msgTypes[14]
+	mi := &file_api_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1530,7 +1636,7 @@ func (x *Int32Value) String() string {
 func (*Int32Value) ProtoMessage() {}
 
 func (x *Int32Value) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[14]
+	mi := &file_api_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1543,7 +1649,7 @@ func (x *Int32Value) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Int32Value.ProtoReflect.Descriptor instead.
 func (*Int32Value) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{14}
+	return file_api_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *Int32Value) GetValue() int32 {
@@ -1566,7 +1672,7 @@ type SubscribeOptionOverride struct {
 
 func (x *SubscribeOptionOverride) Reset() {
 	*x = SubscribeOptionOverride{}
-	mi := &file_api_proto_msgTypes[15]
+	mi := &file_api_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1578,7 +1684,7 @@ func (x *SubscribeOptionOverride) String() string {
 func (*SubscribeOptionOverride) ProtoMessage() {}
 
 func (x *SubscribeOptionOverride) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[15]
+	mi := &file_api_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1591,7 +1697,7 @@ func (x *SubscribeOptionOverride) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeOptionOverride.ProtoReflect.Descriptor instead.
 func (*SubscribeOptionOverride) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{15}
+	return file_api_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *SubscribeOptionOverride) GetPresence() *BoolValue {
@@ -1637,7 +1743,7 @@ type SubscribeResult struct {
 
 func (x *SubscribeResult) Reset() {
 	*x = SubscribeResult{}
-	mi := &file_api_proto_msgTypes[16]
+	mi := &file_api_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1649,7 +1755,7 @@ func (x *SubscribeResult) String() string {
 func (*SubscribeResult) ProtoMessage() {}
 
 func (x *SubscribeResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[16]
+	mi := &file_api_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1662,22 +1768,26 @@ func (x *SubscribeResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeResult.ProtoReflect.Descriptor instead.
 func (*SubscribeResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{16}
+	return file_api_proto_rawDescGZIP(), []int{17}
 }
 
 type UnsubscribeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channel       string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
-	User          string                 `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
-	Client        string                 `protobuf:"bytes,3,opt,name=client,proto3" json:"client,omitempty"`
-	Session       string                 `protobuf:"bytes,4,opt,name=session,proto3" json:"session,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Channel string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	User    string                 `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
+	Client  string                 `protobuf:"bytes,3,opt,name=client,proto3" json:"client,omitempty"`
+	Session string                 `protobuf:"bytes,4,opt,name=session,proto3" json:"session,omitempty"`
+	// PRO only — restrict the call to clients whose labels match this filter.
+	LabelFilter *FilterNode `protobuf:"bytes,5,opt,name=label_filter,json=labelFilter,proto3" json:"label_filter,omitempty"`
+	// PRO only — see SubscribeRequest.all_users.
+	AllUsers      bool `protobuf:"varint,6,opt,name=all_users,json=allUsers,proto3" json:"all_users,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UnsubscribeRequest) Reset() {
 	*x = UnsubscribeRequest{}
-	mi := &file_api_proto_msgTypes[17]
+	mi := &file_api_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1689,7 +1799,7 @@ func (x *UnsubscribeRequest) String() string {
 func (*UnsubscribeRequest) ProtoMessage() {}
 
 func (x *UnsubscribeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[17]
+	mi := &file_api_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1702,7 +1812,7 @@ func (x *UnsubscribeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnsubscribeRequest.ProtoReflect.Descriptor instead.
 func (*UnsubscribeRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{17}
+	return file_api_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *UnsubscribeRequest) GetChannel() string {
@@ -1733,6 +1843,20 @@ func (x *UnsubscribeRequest) GetSession() string {
 	return ""
 }
 
+func (x *UnsubscribeRequest) GetLabelFilter() *FilterNode {
+	if x != nil {
+		return x.LabelFilter
+	}
+	return nil
+}
+
+func (x *UnsubscribeRequest) GetAllUsers() bool {
+	if x != nil {
+		return x.AllUsers
+	}
+	return false
+}
+
 type UnsubscribeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
@@ -1743,7 +1867,7 @@ type UnsubscribeResponse struct {
 
 func (x *UnsubscribeResponse) Reset() {
 	*x = UnsubscribeResponse{}
-	mi := &file_api_proto_msgTypes[18]
+	mi := &file_api_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1755,7 +1879,7 @@ func (x *UnsubscribeResponse) String() string {
 func (*UnsubscribeResponse) ProtoMessage() {}
 
 func (x *UnsubscribeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[18]
+	mi := &file_api_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1768,7 +1892,7 @@ func (x *UnsubscribeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnsubscribeResponse.ProtoReflect.Descriptor instead.
 func (*UnsubscribeResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{18}
+	return file_api_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *UnsubscribeResponse) GetError() *Error {
@@ -1793,7 +1917,7 @@ type UnsubscribeResult struct {
 
 func (x *UnsubscribeResult) Reset() {
 	*x = UnsubscribeResult{}
-	mi := &file_api_proto_msgTypes[19]
+	mi := &file_api_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1805,7 +1929,7 @@ func (x *UnsubscribeResult) String() string {
 func (*UnsubscribeResult) ProtoMessage() {}
 
 func (x *UnsubscribeResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[19]
+	mi := &file_api_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1818,7 +1942,7 @@ func (x *UnsubscribeResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnsubscribeResult.ProtoReflect.Descriptor instead.
 func (*UnsubscribeResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{19}
+	return file_api_proto_rawDescGZIP(), []int{20}
 }
 
 type Disconnect struct {
@@ -1831,7 +1955,7 @@ type Disconnect struct {
 
 func (x *Disconnect) Reset() {
 	*x = Disconnect{}
-	mi := &file_api_proto_msgTypes[20]
+	mi := &file_api_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1843,7 +1967,7 @@ func (x *Disconnect) String() string {
 func (*Disconnect) ProtoMessage() {}
 
 func (x *Disconnect) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[20]
+	mi := &file_api_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1856,7 +1980,7 @@ func (x *Disconnect) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Disconnect.ProtoReflect.Descriptor instead.
 func (*Disconnect) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{20}
+	return file_api_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *Disconnect) GetCode() uint32 {
@@ -1874,19 +1998,23 @@ func (x *Disconnect) GetReason() string {
 }
 
 type DisconnectRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          string                 `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	Disconnect    *Disconnect            `protobuf:"bytes,2,opt,name=disconnect,proto3" json:"disconnect,omitempty"`
-	Client        string                 `protobuf:"bytes,3,opt,name=client,proto3" json:"client,omitempty"`
-	Whitelist     []string               `protobuf:"bytes,4,rep,name=whitelist,proto3" json:"whitelist,omitempty"`
-	Session       string                 `protobuf:"bytes,5,opt,name=session,proto3" json:"session,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	User       string                 `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	Disconnect *Disconnect            `protobuf:"bytes,2,opt,name=disconnect,proto3" json:"disconnect,omitempty"`
+	Client     string                 `protobuf:"bytes,3,opt,name=client,proto3" json:"client,omitempty"`
+	Whitelist  []string               `protobuf:"bytes,4,rep,name=whitelist,proto3" json:"whitelist,omitempty"`
+	Session    string                 `protobuf:"bytes,5,opt,name=session,proto3" json:"session,omitempty"`
+	// PRO only — restrict the call to clients whose labels match this filter.
+	LabelFilter *FilterNode `protobuf:"bytes,6,opt,name=label_filter,json=labelFilter,proto3" json:"label_filter,omitempty"`
+	// PRO only — see SubscribeRequest.all_users.
+	AllUsers      bool `protobuf:"varint,7,opt,name=all_users,json=allUsers,proto3" json:"all_users,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DisconnectRequest) Reset() {
 	*x = DisconnectRequest{}
-	mi := &file_api_proto_msgTypes[21]
+	mi := &file_api_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1898,7 +2026,7 @@ func (x *DisconnectRequest) String() string {
 func (*DisconnectRequest) ProtoMessage() {}
 
 func (x *DisconnectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[21]
+	mi := &file_api_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1911,7 +2039,7 @@ func (x *DisconnectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisconnectRequest.ProtoReflect.Descriptor instead.
 func (*DisconnectRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{21}
+	return file_api_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *DisconnectRequest) GetUser() string {
@@ -1949,6 +2077,20 @@ func (x *DisconnectRequest) GetSession() string {
 	return ""
 }
 
+func (x *DisconnectRequest) GetLabelFilter() *FilterNode {
+	if x != nil {
+		return x.LabelFilter
+	}
+	return nil
+}
+
+func (x *DisconnectRequest) GetAllUsers() bool {
+	if x != nil {
+		return x.AllUsers
+	}
+	return false
+}
+
 type DisconnectResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
@@ -1959,7 +2101,7 @@ type DisconnectResponse struct {
 
 func (x *DisconnectResponse) Reset() {
 	*x = DisconnectResponse{}
-	mi := &file_api_proto_msgTypes[22]
+	mi := &file_api_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1971,7 +2113,7 @@ func (x *DisconnectResponse) String() string {
 func (*DisconnectResponse) ProtoMessage() {}
 
 func (x *DisconnectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[22]
+	mi := &file_api_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1984,7 +2126,7 @@ func (x *DisconnectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisconnectResponse.ProtoReflect.Descriptor instead.
 func (*DisconnectResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{22}
+	return file_api_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *DisconnectResponse) GetError() *Error {
@@ -2009,7 +2151,7 @@ type DisconnectResult struct {
 
 func (x *DisconnectResult) Reset() {
 	*x = DisconnectResult{}
-	mi := &file_api_proto_msgTypes[23]
+	mi := &file_api_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2021,7 +2163,7 @@ func (x *DisconnectResult) String() string {
 func (*DisconnectResult) ProtoMessage() {}
 
 func (x *DisconnectResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[23]
+	mi := &file_api_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2034,7 +2176,7 @@ func (x *DisconnectResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisconnectResult.ProtoReflect.Descriptor instead.
 func (*DisconnectResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{23}
+	return file_api_proto_rawDescGZIP(), []int{24}
 }
 
 type PresenceRequest struct {
@@ -2046,7 +2188,7 @@ type PresenceRequest struct {
 
 func (x *PresenceRequest) Reset() {
 	*x = PresenceRequest{}
-	mi := &file_api_proto_msgTypes[24]
+	mi := &file_api_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2058,7 +2200,7 @@ func (x *PresenceRequest) String() string {
 func (*PresenceRequest) ProtoMessage() {}
 
 func (x *PresenceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[24]
+	mi := &file_api_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2071,7 +2213,7 @@ func (x *PresenceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PresenceRequest.ProtoReflect.Descriptor instead.
 func (*PresenceRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{24}
+	return file_api_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *PresenceRequest) GetChannel() string {
@@ -2091,7 +2233,7 @@ type PresenceResponse struct {
 
 func (x *PresenceResponse) Reset() {
 	*x = PresenceResponse{}
-	mi := &file_api_proto_msgTypes[25]
+	mi := &file_api_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2103,7 +2245,7 @@ func (x *PresenceResponse) String() string {
 func (*PresenceResponse) ProtoMessage() {}
 
 func (x *PresenceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[25]
+	mi := &file_api_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2116,7 +2258,7 @@ func (x *PresenceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PresenceResponse.ProtoReflect.Descriptor instead.
 func (*PresenceResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{25}
+	return file_api_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *PresenceResponse) GetError() *Error {
@@ -2145,7 +2287,7 @@ type ClientInfo struct {
 
 func (x *ClientInfo) Reset() {
 	*x = ClientInfo{}
-	mi := &file_api_proto_msgTypes[26]
+	mi := &file_api_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2157,7 +2299,7 @@ func (x *ClientInfo) String() string {
 func (*ClientInfo) ProtoMessage() {}
 
 func (x *ClientInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[26]
+	mi := &file_api_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2170,7 +2312,7 @@ func (x *ClientInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClientInfo.ProtoReflect.Descriptor instead.
 func (*ClientInfo) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{26}
+	return file_api_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ClientInfo) GetUser() string {
@@ -2210,7 +2352,7 @@ type PresenceResult struct {
 
 func (x *PresenceResult) Reset() {
 	*x = PresenceResult{}
-	mi := &file_api_proto_msgTypes[27]
+	mi := &file_api_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2222,7 +2364,7 @@ func (x *PresenceResult) String() string {
 func (*PresenceResult) ProtoMessage() {}
 
 func (x *PresenceResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[27]
+	mi := &file_api_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2235,7 +2377,7 @@ func (x *PresenceResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PresenceResult.ProtoReflect.Descriptor instead.
 func (*PresenceResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{27}
+	return file_api_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *PresenceResult) GetPresence() map[string]*ClientInfo {
@@ -2254,7 +2396,7 @@ type PresenceStatsRequest struct {
 
 func (x *PresenceStatsRequest) Reset() {
 	*x = PresenceStatsRequest{}
-	mi := &file_api_proto_msgTypes[28]
+	mi := &file_api_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2266,7 +2408,7 @@ func (x *PresenceStatsRequest) String() string {
 func (*PresenceStatsRequest) ProtoMessage() {}
 
 func (x *PresenceStatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[28]
+	mi := &file_api_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2279,7 +2421,7 @@ func (x *PresenceStatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PresenceStatsRequest.ProtoReflect.Descriptor instead.
 func (*PresenceStatsRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{28}
+	return file_api_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *PresenceStatsRequest) GetChannel() string {
@@ -2299,7 +2441,7 @@ type PresenceStatsResponse struct {
 
 func (x *PresenceStatsResponse) Reset() {
 	*x = PresenceStatsResponse{}
-	mi := &file_api_proto_msgTypes[29]
+	mi := &file_api_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2311,7 +2453,7 @@ func (x *PresenceStatsResponse) String() string {
 func (*PresenceStatsResponse) ProtoMessage() {}
 
 func (x *PresenceStatsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[29]
+	mi := &file_api_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2324,7 +2466,7 @@ func (x *PresenceStatsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PresenceStatsResponse.ProtoReflect.Descriptor instead.
 func (*PresenceStatsResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{29}
+	return file_api_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *PresenceStatsResponse) GetError() *Error {
@@ -2351,7 +2493,7 @@ type PresenceStatsResult struct {
 
 func (x *PresenceStatsResult) Reset() {
 	*x = PresenceStatsResult{}
-	mi := &file_api_proto_msgTypes[30]
+	mi := &file_api_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2363,7 +2505,7 @@ func (x *PresenceStatsResult) String() string {
 func (*PresenceStatsResult) ProtoMessage() {}
 
 func (x *PresenceStatsResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[30]
+	mi := &file_api_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2376,7 +2518,7 @@ func (x *PresenceStatsResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PresenceStatsResult.ProtoReflect.Descriptor instead.
 func (*PresenceStatsResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{30}
+	return file_api_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *PresenceStatsResult) GetNumClients() uint32 {
@@ -2403,7 +2545,7 @@ type StreamPosition struct {
 
 func (x *StreamPosition) Reset() {
 	*x = StreamPosition{}
-	mi := &file_api_proto_msgTypes[31]
+	mi := &file_api_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2415,7 +2557,7 @@ func (x *StreamPosition) String() string {
 func (*StreamPosition) ProtoMessage() {}
 
 func (x *StreamPosition) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[31]
+	mi := &file_api_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2428,7 +2570,7 @@ func (x *StreamPosition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamPosition.ProtoReflect.Descriptor instead.
 func (*StreamPosition) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{31}
+	return file_api_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *StreamPosition) GetOffset() uint64 {
@@ -2457,7 +2599,7 @@ type HistoryRequest struct {
 
 func (x *HistoryRequest) Reset() {
 	*x = HistoryRequest{}
-	mi := &file_api_proto_msgTypes[32]
+	mi := &file_api_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2469,7 +2611,7 @@ func (x *HistoryRequest) String() string {
 func (*HistoryRequest) ProtoMessage() {}
 
 func (x *HistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[32]
+	mi := &file_api_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2482,7 +2624,7 @@ func (x *HistoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HistoryRequest.ProtoReflect.Descriptor instead.
 func (*HistoryRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{32}
+	return file_api_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *HistoryRequest) GetChannel() string {
@@ -2523,7 +2665,7 @@ type HistoryResponse struct {
 
 func (x *HistoryResponse) Reset() {
 	*x = HistoryResponse{}
-	mi := &file_api_proto_msgTypes[33]
+	mi := &file_api_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2535,7 +2677,7 @@ func (x *HistoryResponse) String() string {
 func (*HistoryResponse) ProtoMessage() {}
 
 func (x *HistoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[33]
+	mi := &file_api_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2548,7 +2690,7 @@ func (x *HistoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HistoryResponse.ProtoReflect.Descriptor instead.
 func (*HistoryResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{33}
+	return file_api_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *HistoryResponse) GetError() *Error {
@@ -2578,7 +2720,7 @@ type Publication struct {
 
 func (x *Publication) Reset() {
 	*x = Publication{}
-	mi := &file_api_proto_msgTypes[34]
+	mi := &file_api_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2590,7 +2732,7 @@ func (x *Publication) String() string {
 func (*Publication) ProtoMessage() {}
 
 func (x *Publication) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[34]
+	mi := &file_api_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2603,7 +2745,7 @@ func (x *Publication) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Publication.ProtoReflect.Descriptor instead.
 func (*Publication) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{34}
+	return file_api_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *Publication) GetData() []byte {
@@ -2645,7 +2787,7 @@ type HistoryResult struct {
 
 func (x *HistoryResult) Reset() {
 	*x = HistoryResult{}
-	mi := &file_api_proto_msgTypes[35]
+	mi := &file_api_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2657,7 +2799,7 @@ func (x *HistoryResult) String() string {
 func (*HistoryResult) ProtoMessage() {}
 
 func (x *HistoryResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[35]
+	mi := &file_api_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2670,7 +2812,7 @@ func (x *HistoryResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HistoryResult.ProtoReflect.Descriptor instead.
 func (*HistoryResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{35}
+	return file_api_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *HistoryResult) GetPublications() []*Publication {
@@ -2703,7 +2845,7 @@ type HistoryRemoveRequest struct {
 
 func (x *HistoryRemoveRequest) Reset() {
 	*x = HistoryRemoveRequest{}
-	mi := &file_api_proto_msgTypes[36]
+	mi := &file_api_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2715,7 +2857,7 @@ func (x *HistoryRemoveRequest) String() string {
 func (*HistoryRemoveRequest) ProtoMessage() {}
 
 func (x *HistoryRemoveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[36]
+	mi := &file_api_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2728,7 +2870,7 @@ func (x *HistoryRemoveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HistoryRemoveRequest.ProtoReflect.Descriptor instead.
 func (*HistoryRemoveRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{36}
+	return file_api_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *HistoryRemoveRequest) GetChannel() string {
@@ -2748,7 +2890,7 @@ type HistoryRemoveResponse struct {
 
 func (x *HistoryRemoveResponse) Reset() {
 	*x = HistoryRemoveResponse{}
-	mi := &file_api_proto_msgTypes[37]
+	mi := &file_api_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2760,7 +2902,7 @@ func (x *HistoryRemoveResponse) String() string {
 func (*HistoryRemoveResponse) ProtoMessage() {}
 
 func (x *HistoryRemoveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[37]
+	mi := &file_api_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2773,7 +2915,7 @@ func (x *HistoryRemoveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HistoryRemoveResponse.ProtoReflect.Descriptor instead.
 func (*HistoryRemoveResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{37}
+	return file_api_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *HistoryRemoveResponse) GetError() *Error {
@@ -2798,7 +2940,7 @@ type HistoryRemoveResult struct {
 
 func (x *HistoryRemoveResult) Reset() {
 	*x = HistoryRemoveResult{}
-	mi := &file_api_proto_msgTypes[38]
+	mi := &file_api_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2810,7 +2952,7 @@ func (x *HistoryRemoveResult) String() string {
 func (*HistoryRemoveResult) ProtoMessage() {}
 
 func (x *HistoryRemoveResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[38]
+	mi := &file_api_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2823,7 +2965,7 @@ func (x *HistoryRemoveResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HistoryRemoveResult.ProtoReflect.Descriptor instead.
 func (*HistoryRemoveResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{38}
+	return file_api_proto_rawDescGZIP(), []int{39}
 }
 
 type InfoRequest struct {
@@ -2834,7 +2976,7 @@ type InfoRequest struct {
 
 func (x *InfoRequest) Reset() {
 	*x = InfoRequest{}
-	mi := &file_api_proto_msgTypes[39]
+	mi := &file_api_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2846,7 +2988,7 @@ func (x *InfoRequest) String() string {
 func (*InfoRequest) ProtoMessage() {}
 
 func (x *InfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[39]
+	mi := &file_api_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2859,7 +3001,7 @@ func (x *InfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InfoRequest.ProtoReflect.Descriptor instead.
 func (*InfoRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{39}
+	return file_api_proto_rawDescGZIP(), []int{40}
 }
 
 type InfoResponse struct {
@@ -2872,7 +3014,7 @@ type InfoResponse struct {
 
 func (x *InfoResponse) Reset() {
 	*x = InfoResponse{}
-	mi := &file_api_proto_msgTypes[40]
+	mi := &file_api_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2884,7 +3026,7 @@ func (x *InfoResponse) String() string {
 func (*InfoResponse) ProtoMessage() {}
 
 func (x *InfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[40]
+	mi := &file_api_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2897,7 +3039,7 @@ func (x *InfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InfoResponse.ProtoReflect.Descriptor instead.
 func (*InfoResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{40}
+	return file_api_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *InfoResponse) GetError() *Error {
@@ -2923,7 +3065,7 @@ type InfoResult struct {
 
 func (x *InfoResult) Reset() {
 	*x = InfoResult{}
-	mi := &file_api_proto_msgTypes[41]
+	mi := &file_api_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2935,7 +3077,7 @@ func (x *InfoResult) String() string {
 func (*InfoResult) ProtoMessage() {}
 
 func (x *InfoResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[41]
+	mi := &file_api_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2948,7 +3090,7 @@ func (x *InfoResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InfoResult.ProtoReflect.Descriptor instead.
 func (*InfoResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{41}
+	return file_api_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *InfoResult) GetNodes() []*NodeResult {
@@ -2968,7 +3110,7 @@ type RPCRequest struct {
 
 func (x *RPCRequest) Reset() {
 	*x = RPCRequest{}
-	mi := &file_api_proto_msgTypes[42]
+	mi := &file_api_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2980,7 +3122,7 @@ func (x *RPCRequest) String() string {
 func (*RPCRequest) ProtoMessage() {}
 
 func (x *RPCRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[42]
+	mi := &file_api_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2993,7 +3135,7 @@ func (x *RPCRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RPCRequest.ProtoReflect.Descriptor instead.
 func (*RPCRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{42}
+	return file_api_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *RPCRequest) GetMethod() string {
@@ -3020,7 +3162,7 @@ type RPCResponse struct {
 
 func (x *RPCResponse) Reset() {
 	*x = RPCResponse{}
-	mi := &file_api_proto_msgTypes[43]
+	mi := &file_api_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3032,7 +3174,7 @@ func (x *RPCResponse) String() string {
 func (*RPCResponse) ProtoMessage() {}
 
 func (x *RPCResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[43]
+	mi := &file_api_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3045,7 +3187,7 @@ func (x *RPCResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RPCResponse.ProtoReflect.Descriptor instead.
 func (*RPCResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{43}
+	return file_api_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *RPCResponse) GetError() *Error {
@@ -3071,7 +3213,7 @@ type RPCResult struct {
 
 func (x *RPCResult) Reset() {
 	*x = RPCResult{}
-	mi := &file_api_proto_msgTypes[44]
+	mi := &file_api_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3083,7 +3225,7 @@ func (x *RPCResult) String() string {
 func (*RPCResult) ProtoMessage() {}
 
 func (x *RPCResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[44]
+	mi := &file_api_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3096,7 +3238,7 @@ func (x *RPCResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RPCResult.ProtoReflect.Descriptor instead.
 func (*RPCResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{44}
+	return file_api_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *RPCResult) GetData() []byte {
@@ -3107,20 +3249,24 @@ func (x *RPCResult) GetData() []byte {
 }
 
 type RefreshRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          string                 `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	Client        string                 `protobuf:"bytes,2,opt,name=client,proto3" json:"client,omitempty"`
-	Expired       bool                   `protobuf:"varint,3,opt,name=expired,proto3" json:"expired,omitempty"`
-	ExpireAt      int64                  `protobuf:"varint,4,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	Info          Raw                    `protobuf:"bytes,5,opt,name=info,proto3" json:"info,omitempty"`
-	Session       string                 `protobuf:"bytes,6,opt,name=session,proto3" json:"session,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	User     string                 `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	Client   string                 `protobuf:"bytes,2,opt,name=client,proto3" json:"client,omitempty"`
+	Expired  bool                   `protobuf:"varint,3,opt,name=expired,proto3" json:"expired,omitempty"`
+	ExpireAt int64                  `protobuf:"varint,4,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	Info     Raw                    `protobuf:"bytes,5,opt,name=info,proto3" json:"info,omitempty"`
+	Session  string                 `protobuf:"bytes,6,opt,name=session,proto3" json:"session,omitempty"`
+	// PRO only — restrict the call to clients whose labels match this filter.
+	LabelFilter *FilterNode `protobuf:"bytes,7,opt,name=label_filter,json=labelFilter,proto3" json:"label_filter,omitempty"`
+	// PRO only — see SubscribeRequest.all_users.
+	AllUsers      bool `protobuf:"varint,8,opt,name=all_users,json=allUsers,proto3" json:"all_users,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RefreshRequest) Reset() {
 	*x = RefreshRequest{}
-	mi := &file_api_proto_msgTypes[45]
+	mi := &file_api_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3132,7 +3278,7 @@ func (x *RefreshRequest) String() string {
 func (*RefreshRequest) ProtoMessage() {}
 
 func (x *RefreshRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[45]
+	mi := &file_api_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3145,7 +3291,7 @@ func (x *RefreshRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshRequest.ProtoReflect.Descriptor instead.
 func (*RefreshRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{45}
+	return file_api_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *RefreshRequest) GetUser() string {
@@ -3190,6 +3336,20 @@ func (x *RefreshRequest) GetSession() string {
 	return ""
 }
 
+func (x *RefreshRequest) GetLabelFilter() *FilterNode {
+	if x != nil {
+		return x.LabelFilter
+	}
+	return nil
+}
+
+func (x *RefreshRequest) GetAllUsers() bool {
+	if x != nil {
+		return x.AllUsers
+	}
+	return false
+}
+
 type RefreshResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
@@ -3200,7 +3360,7 @@ type RefreshResponse struct {
 
 func (x *RefreshResponse) Reset() {
 	*x = RefreshResponse{}
-	mi := &file_api_proto_msgTypes[46]
+	mi := &file_api_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3212,7 +3372,7 @@ func (x *RefreshResponse) String() string {
 func (*RefreshResponse) ProtoMessage() {}
 
 func (x *RefreshResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[46]
+	mi := &file_api_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3225,7 +3385,7 @@ func (x *RefreshResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshResponse.ProtoReflect.Descriptor instead.
 func (*RefreshResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{46}
+	return file_api_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *RefreshResponse) GetError() *Error {
@@ -3250,7 +3410,7 @@ type RefreshResult struct {
 
 func (x *RefreshResult) Reset() {
 	*x = RefreshResult{}
-	mi := &file_api_proto_msgTypes[47]
+	mi := &file_api_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3262,7 +3422,7 @@ func (x *RefreshResult) String() string {
 func (*RefreshResult) ProtoMessage() {}
 
 func (x *RefreshResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[47]
+	mi := &file_api_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3275,7 +3435,7 @@ func (x *RefreshResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshResult.ProtoReflect.Descriptor instead.
 func (*RefreshResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{47}
+	return file_api_proto_rawDescGZIP(), []int{48}
 }
 
 type NodeResult struct {
@@ -3296,7 +3456,7 @@ type NodeResult struct {
 
 func (x *NodeResult) Reset() {
 	*x = NodeResult{}
-	mi := &file_api_proto_msgTypes[48]
+	mi := &file_api_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3308,7 +3468,7 @@ func (x *NodeResult) String() string {
 func (*NodeResult) ProtoMessage() {}
 
 func (x *NodeResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[48]
+	mi := &file_api_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3321,7 +3481,7 @@ func (x *NodeResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeResult.ProtoReflect.Descriptor instead.
 func (*NodeResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{48}
+	return file_api_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *NodeResult) GetUid() string {
@@ -3404,7 +3564,7 @@ type Metrics struct {
 
 func (x *Metrics) Reset() {
 	*x = Metrics{}
-	mi := &file_api_proto_msgTypes[49]
+	mi := &file_api_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3416,7 +3576,7 @@ func (x *Metrics) String() string {
 func (*Metrics) ProtoMessage() {}
 
 func (x *Metrics) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[49]
+	mi := &file_api_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3429,7 +3589,7 @@ func (x *Metrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Metrics.ProtoReflect.Descriptor instead.
 func (*Metrics) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{49}
+	return file_api_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *Metrics) GetInterval() float64 {
@@ -3456,7 +3616,7 @@ type Process struct {
 
 func (x *Process) Reset() {
 	*x = Process{}
-	mi := &file_api_proto_msgTypes[50]
+	mi := &file_api_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3468,7 +3628,7 @@ func (x *Process) String() string {
 func (*Process) ProtoMessage() {}
 
 func (x *Process) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[50]
+	mi := &file_api_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3481,7 +3641,7 @@ func (x *Process) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Process.ProtoReflect.Descriptor instead.
 func (*Process) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{50}
+	return file_api_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *Process) GetCpu() float64 {
@@ -3507,7 +3667,7 @@ type ChannelsRequest struct {
 
 func (x *ChannelsRequest) Reset() {
 	*x = ChannelsRequest{}
-	mi := &file_api_proto_msgTypes[51]
+	mi := &file_api_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3519,7 +3679,7 @@ func (x *ChannelsRequest) String() string {
 func (*ChannelsRequest) ProtoMessage() {}
 
 func (x *ChannelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[51]
+	mi := &file_api_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3532,7 +3692,7 @@ func (x *ChannelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChannelsRequest.ProtoReflect.Descriptor instead.
 func (*ChannelsRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{51}
+	return file_api_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *ChannelsRequest) GetPattern() string {
@@ -3552,7 +3712,7 @@ type ChannelsResponse struct {
 
 func (x *ChannelsResponse) Reset() {
 	*x = ChannelsResponse{}
-	mi := &file_api_proto_msgTypes[52]
+	mi := &file_api_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3564,7 +3724,7 @@ func (x *ChannelsResponse) String() string {
 func (*ChannelsResponse) ProtoMessage() {}
 
 func (x *ChannelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[52]
+	mi := &file_api_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3577,7 +3737,7 @@ func (x *ChannelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChannelsResponse.ProtoReflect.Descriptor instead.
 func (*ChannelsResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{52}
+	return file_api_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *ChannelsResponse) GetError() *Error {
@@ -3603,7 +3763,7 @@ type ChannelsResult struct {
 
 func (x *ChannelsResult) Reset() {
 	*x = ChannelsResult{}
-	mi := &file_api_proto_msgTypes[53]
+	mi := &file_api_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3615,7 +3775,7 @@ func (x *ChannelsResult) String() string {
 func (*ChannelsResult) ProtoMessage() {}
 
 func (x *ChannelsResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[53]
+	mi := &file_api_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3628,7 +3788,7 @@ func (x *ChannelsResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChannelsResult.ProtoReflect.Descriptor instead.
 func (*ChannelsResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{53}
+	return file_api_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *ChannelsResult) GetChannels() map[string]*ChannelInfo {
@@ -3647,7 +3807,7 @@ type ChannelInfo struct {
 
 func (x *ChannelInfo) Reset() {
 	*x = ChannelInfo{}
-	mi := &file_api_proto_msgTypes[54]
+	mi := &file_api_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3659,7 +3819,7 @@ func (x *ChannelInfo) String() string {
 func (*ChannelInfo) ProtoMessage() {}
 
 func (x *ChannelInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[54]
+	mi := &file_api_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3672,7 +3832,7 @@ func (x *ChannelInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChannelInfo.ProtoReflect.Descriptor instead.
 func (*ChannelInfo) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{54}
+	return file_api_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *ChannelInfo) GetNumClients() uint32 {
@@ -3683,16 +3843,18 @@ func (x *ChannelInfo) GetNumClients() uint32 {
 }
 
 type ConnectionsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          string                 `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	Expression    string                 `protobuf:"bytes,2,opt,name=expression,proto3" json:"expression,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	User       string                 `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	Expression string                 `protobuf:"bytes,2,opt,name=expression,proto3" json:"expression,omitempty"`
+	// PRO only — restrict the listing to clients whose labels match this filter.
+	LabelFilter   *FilterNode `protobuf:"bytes,3,opt,name=label_filter,json=labelFilter,proto3" json:"label_filter,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ConnectionsRequest) Reset() {
 	*x = ConnectionsRequest{}
-	mi := &file_api_proto_msgTypes[55]
+	mi := &file_api_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3704,7 +3866,7 @@ func (x *ConnectionsRequest) String() string {
 func (*ConnectionsRequest) ProtoMessage() {}
 
 func (x *ConnectionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[55]
+	mi := &file_api_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3717,7 +3879,7 @@ func (x *ConnectionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectionsRequest.ProtoReflect.Descriptor instead.
 func (*ConnectionsRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{55}
+	return file_api_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *ConnectionsRequest) GetUser() string {
@@ -3734,6 +3896,13 @@ func (x *ConnectionsRequest) GetExpression() string {
 	return ""
 }
 
+func (x *ConnectionsRequest) GetLabelFilter() *FilterNode {
+	if x != nil {
+		return x.LabelFilter
+	}
+	return nil
+}
+
 type ConnectionsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
@@ -3744,7 +3913,7 @@ type ConnectionsResponse struct {
 
 func (x *ConnectionsResponse) Reset() {
 	*x = ConnectionsResponse{}
-	mi := &file_api_proto_msgTypes[56]
+	mi := &file_api_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3756,7 +3925,7 @@ func (x *ConnectionsResponse) String() string {
 func (*ConnectionsResponse) ProtoMessage() {}
 
 func (x *ConnectionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[56]
+	mi := &file_api_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3769,7 +3938,7 @@ func (x *ConnectionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectionsResponse.ProtoReflect.Descriptor instead.
 func (*ConnectionsResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{56}
+	return file_api_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *ConnectionsResponse) GetError() *Error {
@@ -3795,7 +3964,7 @@ type ConnectionsResult struct {
 
 func (x *ConnectionsResult) Reset() {
 	*x = ConnectionsResult{}
-	mi := &file_api_proto_msgTypes[57]
+	mi := &file_api_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3807,7 +3976,7 @@ func (x *ConnectionsResult) String() string {
 func (*ConnectionsResult) ProtoMessage() {}
 
 func (x *ConnectionsResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[57]
+	mi := &file_api_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3820,7 +3989,7 @@ func (x *ConnectionsResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectionsResult.ProtoReflect.Descriptor instead.
 func (*ConnectionsResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{57}
+	return file_api_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *ConnectionsResult) GetConnections() map[string]*ConnectionInfo {
@@ -3840,13 +4009,15 @@ type ConnectionInfo struct {
 	State             *ConnectionState       `protobuf:"bytes,9,opt,name=state,proto3" json:"state,omitempty"`
 	ConnectedAtMs     int64                  `protobuf:"varint,10,opt,name=connected_at_ms,json=connectedAtMs,proto3" json:"connected_at_ms,omitempty"`
 	PingPongLatencyMs int64                  `protobuf:"varint,11,opt,name=ping_pong_latency_ms,json=pingPongLatencyMs,proto3" json:"ping_pong_latency_ms,omitempty"` // can be -1 if not available.
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// PRO only — client labels attached to the centrifuge.Client by Centrifugo PRO.
+	Labels        map[string]string `protobuf:"bytes,12,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ConnectionInfo) Reset() {
 	*x = ConnectionInfo{}
-	mi := &file_api_proto_msgTypes[58]
+	mi := &file_api_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3858,7 +4029,7 @@ func (x *ConnectionInfo) String() string {
 func (*ConnectionInfo) ProtoMessage() {}
 
 func (x *ConnectionInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[58]
+	mi := &file_api_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3871,7 +4042,7 @@ func (x *ConnectionInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectionInfo.ProtoReflect.Descriptor instead.
 func (*ConnectionInfo) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{58}
+	return file_api_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *ConnectionInfo) GetAppName() string {
@@ -3930,6 +4101,13 @@ func (x *ConnectionInfo) GetPingPongLatencyMs() int64 {
 	return 0
 }
 
+func (x *ConnectionInfo) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
 type ConnectionState struct {
 	state              protoimpl.MessageState            `protogen:"open.v1"`
 	Channels           map[string]*ChannelContext        `protobuf:"bytes,1,rep,name=channels,proto3" json:"channels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -3942,7 +4120,7 @@ type ConnectionState struct {
 
 func (x *ConnectionState) Reset() {
 	*x = ConnectionState{}
-	mi := &file_api_proto_msgTypes[59]
+	mi := &file_api_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3954,7 +4132,7 @@ func (x *ConnectionState) String() string {
 func (*ConnectionState) ProtoMessage() {}
 
 func (x *ConnectionState) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[59]
+	mi := &file_api_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3967,7 +4145,7 @@ func (x *ConnectionState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectionState.ProtoReflect.Descriptor instead.
 func (*ConnectionState) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{59}
+	return file_api_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *ConnectionState) GetChannels() map[string]*ChannelContext {
@@ -4007,7 +4185,7 @@ type ChannelContext struct {
 
 func (x *ChannelContext) Reset() {
 	*x = ChannelContext{}
-	mi := &file_api_proto_msgTypes[60]
+	mi := &file_api_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4019,7 +4197,7 @@ func (x *ChannelContext) String() string {
 func (*ChannelContext) ProtoMessage() {}
 
 func (x *ChannelContext) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[60]
+	mi := &file_api_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4032,7 +4210,7 @@ func (x *ChannelContext) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChannelContext.ProtoReflect.Descriptor instead.
 func (*ChannelContext) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{60}
+	return file_api_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *ChannelContext) GetSource() uint32 {
@@ -4052,7 +4230,7 @@ type ConnectionTokenInfo struct {
 
 func (x *ConnectionTokenInfo) Reset() {
 	*x = ConnectionTokenInfo{}
-	mi := &file_api_proto_msgTypes[61]
+	mi := &file_api_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4064,7 +4242,7 @@ func (x *ConnectionTokenInfo) String() string {
 func (*ConnectionTokenInfo) ProtoMessage() {}
 
 func (x *ConnectionTokenInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[61]
+	mi := &file_api_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4077,7 +4255,7 @@ func (x *ConnectionTokenInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectionTokenInfo.ProtoReflect.Descriptor instead.
 func (*ConnectionTokenInfo) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{61}
+	return file_api_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *ConnectionTokenInfo) GetUid() string {
@@ -4104,7 +4282,7 @@ type SubscriptionTokenInfo struct {
 
 func (x *SubscriptionTokenInfo) Reset() {
 	*x = SubscriptionTokenInfo{}
-	mi := &file_api_proto_msgTypes[62]
+	mi := &file_api_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4116,7 +4294,7 @@ func (x *SubscriptionTokenInfo) String() string {
 func (*SubscriptionTokenInfo) ProtoMessage() {}
 
 func (x *SubscriptionTokenInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[62]
+	mi := &file_api_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4129,7 +4307,7 @@ func (x *SubscriptionTokenInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscriptionTokenInfo.ProtoReflect.Descriptor instead.
 func (*SubscriptionTokenInfo) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{62}
+	return file_api_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *SubscriptionTokenInfo) GetUid() string {
@@ -4156,7 +4334,7 @@ type UpdateUserStatusRequest struct {
 
 func (x *UpdateUserStatusRequest) Reset() {
 	*x = UpdateUserStatusRequest{}
-	mi := &file_api_proto_msgTypes[63]
+	mi := &file_api_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4168,7 +4346,7 @@ func (x *UpdateUserStatusRequest) String() string {
 func (*UpdateUserStatusRequest) ProtoMessage() {}
 
 func (x *UpdateUserStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[63]
+	mi := &file_api_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4181,7 +4359,7 @@ func (x *UpdateUserStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateUserStatusRequest.ProtoReflect.Descriptor instead.
 func (*UpdateUserStatusRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{63}
+	return file_api_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *UpdateUserStatusRequest) GetUsers() []string {
@@ -4208,7 +4386,7 @@ type UpdateUserStatusResponse struct {
 
 func (x *UpdateUserStatusResponse) Reset() {
 	*x = UpdateUserStatusResponse{}
-	mi := &file_api_proto_msgTypes[64]
+	mi := &file_api_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4220,7 +4398,7 @@ func (x *UpdateUserStatusResponse) String() string {
 func (*UpdateUserStatusResponse) ProtoMessage() {}
 
 func (x *UpdateUserStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[64]
+	mi := &file_api_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4233,7 +4411,7 @@ func (x *UpdateUserStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateUserStatusResponse.ProtoReflect.Descriptor instead.
 func (*UpdateUserStatusResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{64}
+	return file_api_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *UpdateUserStatusResponse) GetError() *Error {
@@ -4258,7 +4436,7 @@ type UpdateUserStatusResult struct {
 
 func (x *UpdateUserStatusResult) Reset() {
 	*x = UpdateUserStatusResult{}
-	mi := &file_api_proto_msgTypes[65]
+	mi := &file_api_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4270,7 +4448,7 @@ func (x *UpdateUserStatusResult) String() string {
 func (*UpdateUserStatusResult) ProtoMessage() {}
 
 func (x *UpdateUserStatusResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[65]
+	mi := &file_api_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4283,7 +4461,7 @@ func (x *UpdateUserStatusResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateUserStatusResult.ProtoReflect.Descriptor instead.
 func (*UpdateUserStatusResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{65}
+	return file_api_proto_rawDescGZIP(), []int{66}
 }
 
 type GetUserStatusRequest struct {
@@ -4295,7 +4473,7 @@ type GetUserStatusRequest struct {
 
 func (x *GetUserStatusRequest) Reset() {
 	*x = GetUserStatusRequest{}
-	mi := &file_api_proto_msgTypes[66]
+	mi := &file_api_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4307,7 +4485,7 @@ func (x *GetUserStatusRequest) String() string {
 func (*GetUserStatusRequest) ProtoMessage() {}
 
 func (x *GetUserStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[66]
+	mi := &file_api_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4320,7 +4498,7 @@ func (x *GetUserStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetUserStatusRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{66}
+	return file_api_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *GetUserStatusRequest) GetUsers() []string {
@@ -4340,7 +4518,7 @@ type GetUserStatusResponse struct {
 
 func (x *GetUserStatusResponse) Reset() {
 	*x = GetUserStatusResponse{}
-	mi := &file_api_proto_msgTypes[67]
+	mi := &file_api_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4352,7 +4530,7 @@ func (x *GetUserStatusResponse) String() string {
 func (*GetUserStatusResponse) ProtoMessage() {}
 
 func (x *GetUserStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[67]
+	mi := &file_api_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4365,7 +4543,7 @@ func (x *GetUserStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetUserStatusResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{67}
+	return file_api_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *GetUserStatusResponse) GetError() *Error {
@@ -4391,7 +4569,7 @@ type GetUserStatusResult struct {
 
 func (x *GetUserStatusResult) Reset() {
 	*x = GetUserStatusResult{}
-	mi := &file_api_proto_msgTypes[68]
+	mi := &file_api_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4403,7 +4581,7 @@ func (x *GetUserStatusResult) String() string {
 func (*GetUserStatusResult) ProtoMessage() {}
 
 func (x *GetUserStatusResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[68]
+	mi := &file_api_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4416,7 +4594,7 @@ func (x *GetUserStatusResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserStatusResult.ProtoReflect.Descriptor instead.
 func (*GetUserStatusResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{68}
+	return file_api_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *GetUserStatusResult) GetStatuses() []*UserStatus {
@@ -4438,7 +4616,7 @@ type UserStatus struct {
 
 func (x *UserStatus) Reset() {
 	*x = UserStatus{}
-	mi := &file_api_proto_msgTypes[69]
+	mi := &file_api_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4450,7 +4628,7 @@ func (x *UserStatus) String() string {
 func (*UserStatus) ProtoMessage() {}
 
 func (x *UserStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[69]
+	mi := &file_api_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4463,7 +4641,7 @@ func (x *UserStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserStatus.ProtoReflect.Descriptor instead.
 func (*UserStatus) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{69}
+	return file_api_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *UserStatus) GetUser() string {
@@ -4503,7 +4681,7 @@ type DeleteUserStatusRequest struct {
 
 func (x *DeleteUserStatusRequest) Reset() {
 	*x = DeleteUserStatusRequest{}
-	mi := &file_api_proto_msgTypes[70]
+	mi := &file_api_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4515,7 +4693,7 @@ func (x *DeleteUserStatusRequest) String() string {
 func (*DeleteUserStatusRequest) ProtoMessage() {}
 
 func (x *DeleteUserStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[70]
+	mi := &file_api_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4528,7 +4706,7 @@ func (x *DeleteUserStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserStatusRequest.ProtoReflect.Descriptor instead.
 func (*DeleteUserStatusRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{70}
+	return file_api_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *DeleteUserStatusRequest) GetUsers() []string {
@@ -4548,7 +4726,7 @@ type DeleteUserStatusResponse struct {
 
 func (x *DeleteUserStatusResponse) Reset() {
 	*x = DeleteUserStatusResponse{}
-	mi := &file_api_proto_msgTypes[71]
+	mi := &file_api_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4560,7 +4738,7 @@ func (x *DeleteUserStatusResponse) String() string {
 func (*DeleteUserStatusResponse) ProtoMessage() {}
 
 func (x *DeleteUserStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[71]
+	mi := &file_api_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4573,7 +4751,7 @@ func (x *DeleteUserStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserStatusResponse.ProtoReflect.Descriptor instead.
 func (*DeleteUserStatusResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{71}
+	return file_api_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *DeleteUserStatusResponse) GetError() *Error {
@@ -4598,7 +4776,7 @@ type DeleteUserStatusResult struct {
 
 func (x *DeleteUserStatusResult) Reset() {
 	*x = DeleteUserStatusResult{}
-	mi := &file_api_proto_msgTypes[72]
+	mi := &file_api_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4610,7 +4788,7 @@ func (x *DeleteUserStatusResult) String() string {
 func (*DeleteUserStatusResult) ProtoMessage() {}
 
 func (x *DeleteUserStatusResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[72]
+	mi := &file_api_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4623,7 +4801,7 @@ func (x *DeleteUserStatusResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserStatusResult.ProtoReflect.Descriptor instead.
 func (*DeleteUserStatusResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{72}
+	return file_api_proto_rawDescGZIP(), []int{73}
 }
 
 type BlockUserRequest struct {
@@ -4636,7 +4814,7 @@ type BlockUserRequest struct {
 
 func (x *BlockUserRequest) Reset() {
 	*x = BlockUserRequest{}
-	mi := &file_api_proto_msgTypes[73]
+	mi := &file_api_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4648,7 +4826,7 @@ func (x *BlockUserRequest) String() string {
 func (*BlockUserRequest) ProtoMessage() {}
 
 func (x *BlockUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[73]
+	mi := &file_api_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4661,7 +4839,7 @@ func (x *BlockUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlockUserRequest.ProtoReflect.Descriptor instead.
 func (*BlockUserRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{73}
+	return file_api_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *BlockUserRequest) GetExpireAt() int64 {
@@ -4686,7 +4864,7 @@ type BlockUserResult struct {
 
 func (x *BlockUserResult) Reset() {
 	*x = BlockUserResult{}
-	mi := &file_api_proto_msgTypes[74]
+	mi := &file_api_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4698,7 +4876,7 @@ func (x *BlockUserResult) String() string {
 func (*BlockUserResult) ProtoMessage() {}
 
 func (x *BlockUserResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[74]
+	mi := &file_api_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4711,7 +4889,7 @@ func (x *BlockUserResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlockUserResult.ProtoReflect.Descriptor instead.
 func (*BlockUserResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{74}
+	return file_api_proto_rawDescGZIP(), []int{75}
 }
 
 type BlockUserResponse struct {
@@ -4724,7 +4902,7 @@ type BlockUserResponse struct {
 
 func (x *BlockUserResponse) Reset() {
 	*x = BlockUserResponse{}
-	mi := &file_api_proto_msgTypes[75]
+	mi := &file_api_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4736,7 +4914,7 @@ func (x *BlockUserResponse) String() string {
 func (*BlockUserResponse) ProtoMessage() {}
 
 func (x *BlockUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[75]
+	mi := &file_api_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4749,7 +4927,7 @@ func (x *BlockUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlockUserResponse.ProtoReflect.Descriptor instead.
 func (*BlockUserResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{75}
+	return file_api_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *BlockUserResponse) GetError() *Error {
@@ -4775,7 +4953,7 @@ type UnblockUserRequest struct {
 
 func (x *UnblockUserRequest) Reset() {
 	*x = UnblockUserRequest{}
-	mi := &file_api_proto_msgTypes[76]
+	mi := &file_api_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4787,7 +4965,7 @@ func (x *UnblockUserRequest) String() string {
 func (*UnblockUserRequest) ProtoMessage() {}
 
 func (x *UnblockUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[76]
+	mi := &file_api_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4800,7 +4978,7 @@ func (x *UnblockUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnblockUserRequest.ProtoReflect.Descriptor instead.
 func (*UnblockUserRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{76}
+	return file_api_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *UnblockUserRequest) GetUser() string {
@@ -4818,7 +4996,7 @@ type UnblockUserResult struct {
 
 func (x *UnblockUserResult) Reset() {
 	*x = UnblockUserResult{}
-	mi := &file_api_proto_msgTypes[77]
+	mi := &file_api_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4830,7 +5008,7 @@ func (x *UnblockUserResult) String() string {
 func (*UnblockUserResult) ProtoMessage() {}
 
 func (x *UnblockUserResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[77]
+	mi := &file_api_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4843,7 +5021,7 @@ func (x *UnblockUserResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnblockUserResult.ProtoReflect.Descriptor instead.
 func (*UnblockUserResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{77}
+	return file_api_proto_rawDescGZIP(), []int{78}
 }
 
 type UnblockUserResponse struct {
@@ -4856,7 +5034,7 @@ type UnblockUserResponse struct {
 
 func (x *UnblockUserResponse) Reset() {
 	*x = UnblockUserResponse{}
-	mi := &file_api_proto_msgTypes[78]
+	mi := &file_api_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4868,7 +5046,7 @@ func (x *UnblockUserResponse) String() string {
 func (*UnblockUserResponse) ProtoMessage() {}
 
 func (x *UnblockUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[78]
+	mi := &file_api_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4881,7 +5059,7 @@ func (x *UnblockUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnblockUserResponse.ProtoReflect.Descriptor instead.
 func (*UnblockUserResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{78}
+	return file_api_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *UnblockUserResponse) GetError() *Error {
@@ -4908,7 +5086,7 @@ type RevokeTokenRequest struct {
 
 func (x *RevokeTokenRequest) Reset() {
 	*x = RevokeTokenRequest{}
-	mi := &file_api_proto_msgTypes[79]
+	mi := &file_api_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4920,7 +5098,7 @@ func (x *RevokeTokenRequest) String() string {
 func (*RevokeTokenRequest) ProtoMessage() {}
 
 func (x *RevokeTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[79]
+	mi := &file_api_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4933,7 +5111,7 @@ func (x *RevokeTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeTokenRequest.ProtoReflect.Descriptor instead.
 func (*RevokeTokenRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{79}
+	return file_api_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *RevokeTokenRequest) GetExpireAt() int64 {
@@ -4958,7 +5136,7 @@ type RevokeTokenResult struct {
 
 func (x *RevokeTokenResult) Reset() {
 	*x = RevokeTokenResult{}
-	mi := &file_api_proto_msgTypes[80]
+	mi := &file_api_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4970,7 +5148,7 @@ func (x *RevokeTokenResult) String() string {
 func (*RevokeTokenResult) ProtoMessage() {}
 
 func (x *RevokeTokenResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[80]
+	mi := &file_api_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4983,7 +5161,7 @@ func (x *RevokeTokenResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeTokenResult.ProtoReflect.Descriptor instead.
 func (*RevokeTokenResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{80}
+	return file_api_proto_rawDescGZIP(), []int{81}
 }
 
 type RevokeTokenResponse struct {
@@ -4996,7 +5174,7 @@ type RevokeTokenResponse struct {
 
 func (x *RevokeTokenResponse) Reset() {
 	*x = RevokeTokenResponse{}
-	mi := &file_api_proto_msgTypes[81]
+	mi := &file_api_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5008,7 +5186,7 @@ func (x *RevokeTokenResponse) String() string {
 func (*RevokeTokenResponse) ProtoMessage() {}
 
 func (x *RevokeTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[81]
+	mi := &file_api_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5021,7 +5199,7 @@ func (x *RevokeTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeTokenResponse.ProtoReflect.Descriptor instead.
 func (*RevokeTokenResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{81}
+	return file_api_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *RevokeTokenResponse) GetError() *Error {
@@ -5050,7 +5228,7 @@ type InvalidateUserTokensRequest struct {
 
 func (x *InvalidateUserTokensRequest) Reset() {
 	*x = InvalidateUserTokensRequest{}
-	mi := &file_api_proto_msgTypes[82]
+	mi := &file_api_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5062,7 +5240,7 @@ func (x *InvalidateUserTokensRequest) String() string {
 func (*InvalidateUserTokensRequest) ProtoMessage() {}
 
 func (x *InvalidateUserTokensRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[82]
+	mi := &file_api_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5075,7 +5253,7 @@ func (x *InvalidateUserTokensRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvalidateUserTokensRequest.ProtoReflect.Descriptor instead.
 func (*InvalidateUserTokensRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{82}
+	return file_api_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *InvalidateUserTokensRequest) GetExpireAt() int64 {
@@ -5114,7 +5292,7 @@ type InvalidateUserTokensResult struct {
 
 func (x *InvalidateUserTokensResult) Reset() {
 	*x = InvalidateUserTokensResult{}
-	mi := &file_api_proto_msgTypes[83]
+	mi := &file_api_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5126,7 +5304,7 @@ func (x *InvalidateUserTokensResult) String() string {
 func (*InvalidateUserTokensResult) ProtoMessage() {}
 
 func (x *InvalidateUserTokensResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[83]
+	mi := &file_api_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5139,7 +5317,7 @@ func (x *InvalidateUserTokensResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvalidateUserTokensResult.ProtoReflect.Descriptor instead.
 func (*InvalidateUserTokensResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{83}
+	return file_api_proto_rawDescGZIP(), []int{84}
 }
 
 type InvalidateUserTokensResponse struct {
@@ -5152,7 +5330,7 @@ type InvalidateUserTokensResponse struct {
 
 func (x *InvalidateUserTokensResponse) Reset() {
 	*x = InvalidateUserTokensResponse{}
-	mi := &file_api_proto_msgTypes[84]
+	mi := &file_api_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5164,7 +5342,7 @@ func (x *InvalidateUserTokensResponse) String() string {
 func (*InvalidateUserTokensResponse) ProtoMessage() {}
 
 func (x *InvalidateUserTokensResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[84]
+	mi := &file_api_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5177,7 +5355,7 @@ func (x *InvalidateUserTokensResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvalidateUserTokensResponse.ProtoReflect.Descriptor instead.
 func (*InvalidateUserTokensResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{84}
+	return file_api_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *InvalidateUserTokensResponse) GetError() *Error {
@@ -5211,7 +5389,7 @@ type DeviceRegisterRequest struct {
 
 func (x *DeviceRegisterRequest) Reset() {
 	*x = DeviceRegisterRequest{}
-	mi := &file_api_proto_msgTypes[85]
+	mi := &file_api_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5223,7 +5401,7 @@ func (x *DeviceRegisterRequest) String() string {
 func (*DeviceRegisterRequest) ProtoMessage() {}
 
 func (x *DeviceRegisterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[85]
+	mi := &file_api_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5236,7 +5414,7 @@ func (x *DeviceRegisterRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceRegisterRequest.ProtoReflect.Descriptor instead.
 func (*DeviceRegisterRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{85}
+	return file_api_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *DeviceRegisterRequest) GetId() string {
@@ -5317,7 +5495,7 @@ type DeviceUpdateRequest struct {
 
 func (x *DeviceUpdateRequest) Reset() {
 	*x = DeviceUpdateRequest{}
-	mi := &file_api_proto_msgTypes[86]
+	mi := &file_api_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5329,7 +5507,7 @@ func (x *DeviceUpdateRequest) String() string {
 func (*DeviceUpdateRequest) ProtoMessage() {}
 
 func (x *DeviceUpdateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[86]
+	mi := &file_api_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5342,7 +5520,7 @@ func (x *DeviceUpdateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceUpdateRequest.ProtoReflect.Descriptor instead.
 func (*DeviceUpdateRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{86}
+	return file_api_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *DeviceUpdateRequest) GetIds() []string {
@@ -5404,7 +5582,7 @@ type DeviceRemoveRequest struct {
 
 func (x *DeviceRemoveRequest) Reset() {
 	*x = DeviceRemoveRequest{}
-	mi := &file_api_proto_msgTypes[87]
+	mi := &file_api_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5416,7 +5594,7 @@ func (x *DeviceRemoveRequest) String() string {
 func (*DeviceRemoveRequest) ProtoMessage() {}
 
 func (x *DeviceRemoveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[87]
+	mi := &file_api_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5429,7 +5607,7 @@ func (x *DeviceRemoveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceRemoveRequest.ProtoReflect.Descriptor instead.
 func (*DeviceRemoveRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{87}
+	return file_api_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *DeviceRemoveRequest) GetIds() []string {
@@ -5455,7 +5633,7 @@ type DeviceUserUpdate struct {
 
 func (x *DeviceUserUpdate) Reset() {
 	*x = DeviceUserUpdate{}
-	mi := &file_api_proto_msgTypes[88]
+	mi := &file_api_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5467,7 +5645,7 @@ func (x *DeviceUserUpdate) String() string {
 func (*DeviceUserUpdate) ProtoMessage() {}
 
 func (x *DeviceUserUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[88]
+	mi := &file_api_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5480,7 +5658,7 @@ func (x *DeviceUserUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceUserUpdate.ProtoReflect.Descriptor instead.
 func (*DeviceUserUpdate) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{88}
+	return file_api_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *DeviceUserUpdate) GetUser() string {
@@ -5499,7 +5677,7 @@ type DeviceTimezoneUpdate struct {
 
 func (x *DeviceTimezoneUpdate) Reset() {
 	*x = DeviceTimezoneUpdate{}
-	mi := &file_api_proto_msgTypes[89]
+	mi := &file_api_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5511,7 +5689,7 @@ func (x *DeviceTimezoneUpdate) String() string {
 func (*DeviceTimezoneUpdate) ProtoMessage() {}
 
 func (x *DeviceTimezoneUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[89]
+	mi := &file_api_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5524,7 +5702,7 @@ func (x *DeviceTimezoneUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceTimezoneUpdate.ProtoReflect.Descriptor instead.
 func (*DeviceTimezoneUpdate) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{89}
+	return file_api_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *DeviceTimezoneUpdate) GetTimezone() string {
@@ -5543,7 +5721,7 @@ type DeviceLocaleUpdate struct {
 
 func (x *DeviceLocaleUpdate) Reset() {
 	*x = DeviceLocaleUpdate{}
-	mi := &file_api_proto_msgTypes[90]
+	mi := &file_api_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5555,7 +5733,7 @@ func (x *DeviceLocaleUpdate) String() string {
 func (*DeviceLocaleUpdate) ProtoMessage() {}
 
 func (x *DeviceLocaleUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[90]
+	mi := &file_api_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5568,7 +5746,7 @@ func (x *DeviceLocaleUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceLocaleUpdate.ProtoReflect.Descriptor instead.
 func (*DeviceLocaleUpdate) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{90}
+	return file_api_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *DeviceLocaleUpdate) GetLocale() string {
@@ -5587,7 +5765,7 @@ type DeviceMetaUpdate struct {
 
 func (x *DeviceMetaUpdate) Reset() {
 	*x = DeviceMetaUpdate{}
-	mi := &file_api_proto_msgTypes[91]
+	mi := &file_api_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5599,7 +5777,7 @@ func (x *DeviceMetaUpdate) String() string {
 func (*DeviceMetaUpdate) ProtoMessage() {}
 
 func (x *DeviceMetaUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[91]
+	mi := &file_api_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5612,7 +5790,7 @@ func (x *DeviceMetaUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceMetaUpdate.ProtoReflect.Descriptor instead.
 func (*DeviceMetaUpdate) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{91}
+	return file_api_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *DeviceMetaUpdate) GetMeta() map[string]string {
@@ -5632,7 +5810,7 @@ type DeviceTopicsUpdate struct {
 
 func (x *DeviceTopicsUpdate) Reset() {
 	*x = DeviceTopicsUpdate{}
-	mi := &file_api_proto_msgTypes[92]
+	mi := &file_api_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5644,7 +5822,7 @@ func (x *DeviceTopicsUpdate) String() string {
 func (*DeviceTopicsUpdate) ProtoMessage() {}
 
 func (x *DeviceTopicsUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[92]
+	mi := &file_api_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5657,7 +5835,7 @@ func (x *DeviceTopicsUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceTopicsUpdate.ProtoReflect.Descriptor instead.
 func (*DeviceTopicsUpdate) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{92}
+	return file_api_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *DeviceTopicsUpdate) GetOp() string {
@@ -5687,7 +5865,7 @@ type DeviceFilter struct {
 
 func (x *DeviceFilter) Reset() {
 	*x = DeviceFilter{}
-	mi := &file_api_proto_msgTypes[93]
+	mi := &file_api_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5699,7 +5877,7 @@ func (x *DeviceFilter) String() string {
 func (*DeviceFilter) ProtoMessage() {}
 
 func (x *DeviceFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[93]
+	mi := &file_api_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5712,7 +5890,7 @@ func (x *DeviceFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceFilter.ProtoReflect.Descriptor instead.
 func (*DeviceFilter) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{93}
+	return file_api_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *DeviceFilter) GetIds() []string {
@@ -5751,20 +5929,21 @@ func (x *DeviceFilter) GetPlatforms() []string {
 }
 
 type DeviceListRequest struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Filter            *DeviceFilter          `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
-	IncludeTotalCount bool                   `protobuf:"varint,2,opt,name=include_total_count,json=includeTotalCount,proto3" json:"include_total_count,omitempty"`
-	IncludeMeta       bool                   `protobuf:"varint,3,opt,name=include_meta,json=includeMeta,proto3" json:"include_meta,omitempty"`
-	IncludeTopics     bool                   `protobuf:"varint,4,opt,name=include_topics,json=includeTopics,proto3" json:"include_topics,omitempty"`
-	Cursor            string                 `protobuf:"bytes,10,opt,name=cursor,proto3" json:"cursor,omitempty"`
-	Limit             int32                  `protobuf:"varint,11,opt,name=limit,proto3" json:"limit,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Filter             *DeviceFilter          `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
+	IncludeTotalCount  bool                   `protobuf:"varint,2,opt,name=include_total_count,json=includeTotalCount,proto3" json:"include_total_count,omitempty"`
+	IncludeMeta        bool                   `protobuf:"varint,3,opt,name=include_meta,json=includeMeta,proto3" json:"include_meta,omitempty"`
+	IncludeTopics      bool                   `protobuf:"varint,4,opt,name=include_topics,json=includeTopics,proto3" json:"include_topics,omitempty"`
+	IncludeWebpushKeys bool                   `protobuf:"varint,5,opt,name=include_webpush_keys,json=includeWebpushKeys,proto3" json:"include_webpush_keys,omitempty"`
+	Cursor             string                 `protobuf:"bytes,10,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	Limit              int32                  `protobuf:"varint,11,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *DeviceListRequest) Reset() {
 	*x = DeviceListRequest{}
-	mi := &file_api_proto_msgTypes[94]
+	mi := &file_api_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5776,7 +5955,7 @@ func (x *DeviceListRequest) String() string {
 func (*DeviceListRequest) ProtoMessage() {}
 
 func (x *DeviceListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[94]
+	mi := &file_api_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5789,7 +5968,7 @@ func (x *DeviceListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceListRequest.ProtoReflect.Descriptor instead.
 func (*DeviceListRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{94}
+	return file_api_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *DeviceListRequest) GetFilter() *DeviceFilter {
@@ -5816,6 +5995,13 @@ func (x *DeviceListRequest) GetIncludeMeta() bool {
 func (x *DeviceListRequest) GetIncludeTopics() bool {
 	if x != nil {
 		return x.IncludeTopics
+	}
+	return false
+}
+
+func (x *DeviceListRequest) GetIncludeWebpushKeys() bool {
+	if x != nil {
+		return x.IncludeWebpushKeys
 	}
 	return false
 }
@@ -5848,7 +6034,7 @@ type DeviceTopicFilter struct {
 
 func (x *DeviceTopicFilter) Reset() {
 	*x = DeviceTopicFilter{}
-	mi := &file_api_proto_msgTypes[95]
+	mi := &file_api_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5860,7 +6046,7 @@ func (x *DeviceTopicFilter) String() string {
 func (*DeviceTopicFilter) ProtoMessage() {}
 
 func (x *DeviceTopicFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[95]
+	mi := &file_api_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5873,7 +6059,7 @@ func (x *DeviceTopicFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceTopicFilter.ProtoReflect.Descriptor instead.
 func (*DeviceTopicFilter) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{95}
+	return file_api_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *DeviceTopicFilter) GetDeviceIds() []string {
@@ -5931,7 +6117,7 @@ type DeviceTopicListRequest struct {
 
 func (x *DeviceTopicListRequest) Reset() {
 	*x = DeviceTopicListRequest{}
-	mi := &file_api_proto_msgTypes[96]
+	mi := &file_api_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5943,7 +6129,7 @@ func (x *DeviceTopicListRequest) String() string {
 func (*DeviceTopicListRequest) ProtoMessage() {}
 
 func (x *DeviceTopicListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[96]
+	mi := &file_api_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5956,7 +6142,7 @@ func (x *DeviceTopicListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceTopicListRequest.ProtoReflect.Descriptor instead.
 func (*DeviceTopicListRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{96}
+	return file_api_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *DeviceTopicListRequest) GetFilter() *DeviceTopicFilter {
@@ -6005,7 +6191,7 @@ type UserTopicFilter struct {
 
 func (x *UserTopicFilter) Reset() {
 	*x = UserTopicFilter{}
-	mi := &file_api_proto_msgTypes[97]
+	mi := &file_api_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6017,7 +6203,7 @@ func (x *UserTopicFilter) String() string {
 func (*UserTopicFilter) ProtoMessage() {}
 
 func (x *UserTopicFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[97]
+	mi := &file_api_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6030,7 +6216,7 @@ func (x *UserTopicFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserTopicFilter.ProtoReflect.Descriptor instead.
 func (*UserTopicFilter) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{97}
+	return file_api_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *UserTopicFilter) GetUsers() []string {
@@ -6066,7 +6252,7 @@ type UserTopicListRequest struct {
 
 func (x *UserTopicListRequest) Reset() {
 	*x = UserTopicListRequest{}
-	mi := &file_api_proto_msgTypes[98]
+	mi := &file_api_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6078,7 +6264,7 @@ func (x *UserTopicListRequest) String() string {
 func (*UserTopicListRequest) ProtoMessage() {}
 
 func (x *UserTopicListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[98]
+	mi := &file_api_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6091,7 +6277,7 @@ func (x *UserTopicListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserTopicListRequest.ProtoReflect.Descriptor instead.
 func (*UserTopicListRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{98}
+	return file_api_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *UserTopicListRequest) GetFilter() *UserTopicFilter {
@@ -6127,13 +6313,14 @@ type DeviceTopicUpdateRequest struct {
 	DeviceId      string                 `protobuf:"bytes,1,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
 	Op            string                 `protobuf:"bytes,2,opt,name=op,proto3" json:"op,omitempty"` // add | remove | set
 	Topics        []string               `protobuf:"bytes,3,rep,name=topics,proto3" json:"topics,omitempty"`
+	User          string                 `protobuf:"bytes,4,opt,name=user,proto3" json:"user,omitempty"` // optional ownership guard: apply only if the device currently belongs to this user
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DeviceTopicUpdateRequest) Reset() {
 	*x = DeviceTopicUpdateRequest{}
-	mi := &file_api_proto_msgTypes[99]
+	mi := &file_api_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6145,7 +6332,7 @@ func (x *DeviceTopicUpdateRequest) String() string {
 func (*DeviceTopicUpdateRequest) ProtoMessage() {}
 
 func (x *DeviceTopicUpdateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[99]
+	mi := &file_api_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6158,7 +6345,7 @@ func (x *DeviceTopicUpdateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceTopicUpdateRequest.ProtoReflect.Descriptor instead.
 func (*DeviceTopicUpdateRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{99}
+	return file_api_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *DeviceTopicUpdateRequest) GetDeviceId() string {
@@ -6182,6 +6369,13 @@ func (x *DeviceTopicUpdateRequest) GetTopics() []string {
 	return nil
 }
 
+func (x *DeviceTopicUpdateRequest) GetUser() string {
+	if x != nil {
+		return x.User
+	}
+	return ""
+}
+
 type UserTopicUpdateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	User          string                 `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
@@ -6193,7 +6387,7 @@ type UserTopicUpdateRequest struct {
 
 func (x *UserTopicUpdateRequest) Reset() {
 	*x = UserTopicUpdateRequest{}
-	mi := &file_api_proto_msgTypes[100]
+	mi := &file_api_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6205,7 +6399,7 @@ func (x *UserTopicUpdateRequest) String() string {
 func (*UserTopicUpdateRequest) ProtoMessage() {}
 
 func (x *UserTopicUpdateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[100]
+	mi := &file_api_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6218,7 +6412,7 @@ func (x *UserTopicUpdateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserTopicUpdateRequest.ProtoReflect.Descriptor instead.
 func (*UserTopicUpdateRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{100}
+	return file_api_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *UserTopicUpdateRequest) GetUser() string {
@@ -6252,7 +6446,7 @@ type DeviceRegisterResponse struct {
 
 func (x *DeviceRegisterResponse) Reset() {
 	*x = DeviceRegisterResponse{}
-	mi := &file_api_proto_msgTypes[101]
+	mi := &file_api_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6264,7 +6458,7 @@ func (x *DeviceRegisterResponse) String() string {
 func (*DeviceRegisterResponse) ProtoMessage() {}
 
 func (x *DeviceRegisterResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[101]
+	mi := &file_api_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6277,7 +6471,7 @@ func (x *DeviceRegisterResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceRegisterResponse.ProtoReflect.Descriptor instead.
 func (*DeviceRegisterResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{101}
+	return file_api_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *DeviceRegisterResponse) GetError() *Error {
@@ -6304,7 +6498,7 @@ type DeviceUpdateResponse struct {
 
 func (x *DeviceUpdateResponse) Reset() {
 	*x = DeviceUpdateResponse{}
-	mi := &file_api_proto_msgTypes[102]
+	mi := &file_api_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6316,7 +6510,7 @@ func (x *DeviceUpdateResponse) String() string {
 func (*DeviceUpdateResponse) ProtoMessage() {}
 
 func (x *DeviceUpdateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[102]
+	mi := &file_api_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6329,7 +6523,7 @@ func (x *DeviceUpdateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceUpdateResponse.ProtoReflect.Descriptor instead.
 func (*DeviceUpdateResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{102}
+	return file_api_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *DeviceUpdateResponse) GetError() *Error {
@@ -6356,7 +6550,7 @@ type DeviceRemoveResponse struct {
 
 func (x *DeviceRemoveResponse) Reset() {
 	*x = DeviceRemoveResponse{}
-	mi := &file_api_proto_msgTypes[103]
+	mi := &file_api_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6368,7 +6562,7 @@ func (x *DeviceRemoveResponse) String() string {
 func (*DeviceRemoveResponse) ProtoMessage() {}
 
 func (x *DeviceRemoveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[103]
+	mi := &file_api_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6381,7 +6575,7 @@ func (x *DeviceRemoveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceRemoveResponse.ProtoReflect.Descriptor instead.
 func (*DeviceRemoveResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{103}
+	return file_api_proto_rawDescGZIP(), []int{104}
 }
 
 func (x *DeviceRemoveResponse) GetError() *Error {
@@ -6408,7 +6602,7 @@ type DeviceListResponse struct {
 
 func (x *DeviceListResponse) Reset() {
 	*x = DeviceListResponse{}
-	mi := &file_api_proto_msgTypes[104]
+	mi := &file_api_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6420,7 +6614,7 @@ func (x *DeviceListResponse) String() string {
 func (*DeviceListResponse) ProtoMessage() {}
 
 func (x *DeviceListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[104]
+	mi := &file_api_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6433,7 +6627,7 @@ func (x *DeviceListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceListResponse.ProtoReflect.Descriptor instead.
 func (*DeviceListResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{104}
+	return file_api_proto_rawDescGZIP(), []int{105}
 }
 
 func (x *DeviceListResponse) GetError() *Error {
@@ -6460,7 +6654,7 @@ type DeviceTopicListResponse struct {
 
 func (x *DeviceTopicListResponse) Reset() {
 	*x = DeviceTopicListResponse{}
-	mi := &file_api_proto_msgTypes[105]
+	mi := &file_api_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6472,7 +6666,7 @@ func (x *DeviceTopicListResponse) String() string {
 func (*DeviceTopicListResponse) ProtoMessage() {}
 
 func (x *DeviceTopicListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[105]
+	mi := &file_api_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6485,7 +6679,7 @@ func (x *DeviceTopicListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceTopicListResponse.ProtoReflect.Descriptor instead.
 func (*DeviceTopicListResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{105}
+	return file_api_proto_rawDescGZIP(), []int{106}
 }
 
 func (x *DeviceTopicListResponse) GetError() *Error {
@@ -6512,7 +6706,7 @@ type UserTopicListResponse struct {
 
 func (x *UserTopicListResponse) Reset() {
 	*x = UserTopicListResponse{}
-	mi := &file_api_proto_msgTypes[106]
+	mi := &file_api_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6524,7 +6718,7 @@ func (x *UserTopicListResponse) String() string {
 func (*UserTopicListResponse) ProtoMessage() {}
 
 func (x *UserTopicListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[106]
+	mi := &file_api_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6537,7 +6731,7 @@ func (x *UserTopicListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserTopicListResponse.ProtoReflect.Descriptor instead.
 func (*UserTopicListResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{106}
+	return file_api_proto_rawDescGZIP(), []int{107}
 }
 
 func (x *UserTopicListResponse) GetError() *Error {
@@ -6564,7 +6758,7 @@ type DeviceTopicUpdateResponse struct {
 
 func (x *DeviceTopicUpdateResponse) Reset() {
 	*x = DeviceTopicUpdateResponse{}
-	mi := &file_api_proto_msgTypes[107]
+	mi := &file_api_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6576,7 +6770,7 @@ func (x *DeviceTopicUpdateResponse) String() string {
 func (*DeviceTopicUpdateResponse) ProtoMessage() {}
 
 func (x *DeviceTopicUpdateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[107]
+	mi := &file_api_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6589,7 +6783,7 @@ func (x *DeviceTopicUpdateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceTopicUpdateResponse.ProtoReflect.Descriptor instead.
 func (*DeviceTopicUpdateResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{107}
+	return file_api_proto_rawDescGZIP(), []int{108}
 }
 
 func (x *DeviceTopicUpdateResponse) GetError() *Error {
@@ -6616,7 +6810,7 @@ type UserTopicUpdateResponse struct {
 
 func (x *UserTopicUpdateResponse) Reset() {
 	*x = UserTopicUpdateResponse{}
-	mi := &file_api_proto_msgTypes[108]
+	mi := &file_api_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6628,7 +6822,7 @@ func (x *UserTopicUpdateResponse) String() string {
 func (*UserTopicUpdateResponse) ProtoMessage() {}
 
 func (x *UserTopicUpdateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[108]
+	mi := &file_api_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6641,7 +6835,7 @@ func (x *UserTopicUpdateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserTopicUpdateResponse.ProtoReflect.Descriptor instead.
 func (*UserTopicUpdateResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{108}
+	return file_api_proto_rawDescGZIP(), []int{109}
 }
 
 func (x *UserTopicUpdateResponse) GetError() *Error {
@@ -6667,7 +6861,7 @@ type DeviceRegisterResult struct {
 
 func (x *DeviceRegisterResult) Reset() {
 	*x = DeviceRegisterResult{}
-	mi := &file_api_proto_msgTypes[109]
+	mi := &file_api_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6679,7 +6873,7 @@ func (x *DeviceRegisterResult) String() string {
 func (*DeviceRegisterResult) ProtoMessage() {}
 
 func (x *DeviceRegisterResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[109]
+	mi := &file_api_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6692,7 +6886,7 @@ func (x *DeviceRegisterResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceRegisterResult.ProtoReflect.Descriptor instead.
 func (*DeviceRegisterResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{109}
+	return file_api_proto_rawDescGZIP(), []int{110}
 }
 
 func (x *DeviceRegisterResult) GetId() string {
@@ -6710,7 +6904,7 @@ type DeviceUpdateResult struct {
 
 func (x *DeviceUpdateResult) Reset() {
 	*x = DeviceUpdateResult{}
-	mi := &file_api_proto_msgTypes[110]
+	mi := &file_api_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6722,7 +6916,7 @@ func (x *DeviceUpdateResult) String() string {
 func (*DeviceUpdateResult) ProtoMessage() {}
 
 func (x *DeviceUpdateResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[110]
+	mi := &file_api_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6735,7 +6929,7 @@ func (x *DeviceUpdateResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceUpdateResult.ProtoReflect.Descriptor instead.
 func (*DeviceUpdateResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{110}
+	return file_api_proto_rawDescGZIP(), []int{111}
 }
 
 type DeviceRemoveResult struct {
@@ -6746,7 +6940,7 @@ type DeviceRemoveResult struct {
 
 func (x *DeviceRemoveResult) Reset() {
 	*x = DeviceRemoveResult{}
-	mi := &file_api_proto_msgTypes[111]
+	mi := &file_api_proto_msgTypes[112]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6758,7 +6952,7 @@ func (x *DeviceRemoveResult) String() string {
 func (*DeviceRemoveResult) ProtoMessage() {}
 
 func (x *DeviceRemoveResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[111]
+	mi := &file_api_proto_msgTypes[112]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6771,7 +6965,7 @@ func (x *DeviceRemoveResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceRemoveResult.ProtoReflect.Descriptor instead.
 func (*DeviceRemoveResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{111}
+	return file_api_proto_rawDescGZIP(), []int{112}
 }
 
 type DeviceListResult struct {
@@ -6785,7 +6979,7 @@ type DeviceListResult struct {
 
 func (x *DeviceListResult) Reset() {
 	*x = DeviceListResult{}
-	mi := &file_api_proto_msgTypes[112]
+	mi := &file_api_proto_msgTypes[113]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6797,7 +6991,7 @@ func (x *DeviceListResult) String() string {
 func (*DeviceListResult) ProtoMessage() {}
 
 func (x *DeviceListResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[112]
+	mi := &file_api_proto_msgTypes[113]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6810,7 +7004,7 @@ func (x *DeviceListResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceListResult.ProtoReflect.Descriptor instead.
 func (*DeviceListResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{112}
+	return file_api_proto_rawDescGZIP(), []int{113}
 }
 
 func (x *DeviceListResult) GetItems() []*Device {
@@ -6847,13 +7041,14 @@ type Device struct {
 	Topics        []string               `protobuf:"bytes,11,rep,name=topics,proto3" json:"topics,omitempty"`
 	Timezone      string                 `protobuf:"bytes,12,opt,name=timezone,proto3" json:"timezone,omitempty"`
 	Locale        string                 `protobuf:"bytes,13,opt,name=locale,proto3" json:"locale,omitempty"`
+	WebpushKeys   string                 `protobuf:"bytes,14,opt,name=webpush_keys,json=webpushKeys,proto3" json:"webpush_keys,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Device) Reset() {
 	*x = Device{}
-	mi := &file_api_proto_msgTypes[113]
+	mi := &file_api_proto_msgTypes[114]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6865,7 +7060,7 @@ func (x *Device) String() string {
 func (*Device) ProtoMessage() {}
 
 func (x *Device) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[113]
+	mi := &file_api_proto_msgTypes[114]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6878,7 +7073,7 @@ func (x *Device) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Device.ProtoReflect.Descriptor instead.
 func (*Device) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{113}
+	return file_api_proto_rawDescGZIP(), []int{114}
 }
 
 func (x *Device) GetId() string {
@@ -6958,6 +7153,13 @@ func (x *Device) GetLocale() string {
 	return ""
 }
 
+func (x *Device) GetWebpushKeys() string {
+	if x != nil {
+		return x.WebpushKeys
+	}
+	return ""
+}
+
 type DeviceTopicListResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Items         []*DeviceTopic         `protobuf:"bytes,1,rep,name=items,proto3" json:"items"`
@@ -6969,7 +7171,7 @@ type DeviceTopicListResult struct {
 
 func (x *DeviceTopicListResult) Reset() {
 	*x = DeviceTopicListResult{}
-	mi := &file_api_proto_msgTypes[114]
+	mi := &file_api_proto_msgTypes[115]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6981,7 +7183,7 @@ func (x *DeviceTopicListResult) String() string {
 func (*DeviceTopicListResult) ProtoMessage() {}
 
 func (x *DeviceTopicListResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[114]
+	mi := &file_api_proto_msgTypes[115]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6994,7 +7196,7 @@ func (x *DeviceTopicListResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceTopicListResult.ProtoReflect.Descriptor instead.
 func (*DeviceTopicListResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{114}
+	return file_api_proto_rawDescGZIP(), []int{115}
 }
 
 func (x *DeviceTopicListResult) GetItems() []*DeviceTopic {
@@ -7029,7 +7231,7 @@ type DeviceTopic struct {
 
 func (x *DeviceTopic) Reset() {
 	*x = DeviceTopic{}
-	mi := &file_api_proto_msgTypes[115]
+	mi := &file_api_proto_msgTypes[116]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7041,7 +7243,7 @@ func (x *DeviceTopic) String() string {
 func (*DeviceTopic) ProtoMessage() {}
 
 func (x *DeviceTopic) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[115]
+	mi := &file_api_proto_msgTypes[116]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7054,7 +7256,7 @@ func (x *DeviceTopic) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceTopic.ProtoReflect.Descriptor instead.
 func (*DeviceTopic) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{115}
+	return file_api_proto_rawDescGZIP(), []int{116}
 }
 
 func (x *DeviceTopic) GetId() string {
@@ -7089,7 +7291,7 @@ type UserTopicListResult struct {
 
 func (x *UserTopicListResult) Reset() {
 	*x = UserTopicListResult{}
-	mi := &file_api_proto_msgTypes[116]
+	mi := &file_api_proto_msgTypes[117]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7101,7 +7303,7 @@ func (x *UserTopicListResult) String() string {
 func (*UserTopicListResult) ProtoMessage() {}
 
 func (x *UserTopicListResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[116]
+	mi := &file_api_proto_msgTypes[117]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7114,7 +7316,7 @@ func (x *UserTopicListResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserTopicListResult.ProtoReflect.Descriptor instead.
 func (*UserTopicListResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{116}
+	return file_api_proto_rawDescGZIP(), []int{117}
 }
 
 func (x *UserTopicListResult) GetItems() []*UserTopic {
@@ -7146,7 +7348,7 @@ type DeviceTopicUpdateResult struct {
 
 func (x *DeviceTopicUpdateResult) Reset() {
 	*x = DeviceTopicUpdateResult{}
-	mi := &file_api_proto_msgTypes[117]
+	mi := &file_api_proto_msgTypes[118]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7158,7 +7360,7 @@ func (x *DeviceTopicUpdateResult) String() string {
 func (*DeviceTopicUpdateResult) ProtoMessage() {}
 
 func (x *DeviceTopicUpdateResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[117]
+	mi := &file_api_proto_msgTypes[118]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7171,7 +7373,7 @@ func (x *DeviceTopicUpdateResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceTopicUpdateResult.ProtoReflect.Descriptor instead.
 func (*DeviceTopicUpdateResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{117}
+	return file_api_proto_rawDescGZIP(), []int{118}
 }
 
 type UserTopicUpdateResult struct {
@@ -7182,7 +7384,7 @@ type UserTopicUpdateResult struct {
 
 func (x *UserTopicUpdateResult) Reset() {
 	*x = UserTopicUpdateResult{}
-	mi := &file_api_proto_msgTypes[118]
+	mi := &file_api_proto_msgTypes[119]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7194,7 +7396,7 @@ func (x *UserTopicUpdateResult) String() string {
 func (*UserTopicUpdateResult) ProtoMessage() {}
 
 func (x *UserTopicUpdateResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[118]
+	mi := &file_api_proto_msgTypes[119]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7207,7 +7409,7 @@ func (x *UserTopicUpdateResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserTopicUpdateResult.ProtoReflect.Descriptor instead.
 func (*UserTopicUpdateResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{118}
+	return file_api_proto_rawDescGZIP(), []int{119}
 }
 
 type UserTopic struct {
@@ -7221,7 +7423,7 @@ type UserTopic struct {
 
 func (x *UserTopic) Reset() {
 	*x = UserTopic{}
-	mi := &file_api_proto_msgTypes[119]
+	mi := &file_api_proto_msgTypes[120]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7233,7 +7435,7 @@ func (x *UserTopic) String() string {
 func (*UserTopic) ProtoMessage() {}
 
 func (x *UserTopic) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[119]
+	mi := &file_api_proto_msgTypes[120]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7246,7 +7448,7 @@ func (x *UserTopic) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserTopic.ProtoReflect.Descriptor instead.
 func (*UserTopic) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{119}
+	return file_api_proto_rawDescGZIP(), []int{120}
 }
 
 func (x *UserTopic) GetId() string {
@@ -7280,13 +7482,14 @@ type PushRecipient struct {
 	HmsTopic      string                 `protobuf:"bytes,6,opt,name=hms_topic,json=hmsTopic,proto3" json:"hms_topic,omitempty"`
 	HmsCondition  string                 `protobuf:"bytes,7,opt,name=hms_condition,json=hmsCondition,proto3" json:"hms_condition,omitempty"`
 	ApnsTokens    []string               `protobuf:"bytes,8,rep,name=apns_tokens,json=apnsTokens,proto3" json:"apns_tokens,omitempty"`
+	WebpushTokens []string               `protobuf:"bytes,9,rep,name=webpush_tokens,json=webpushTokens,proto3" json:"webpush_tokens,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PushRecipient) Reset() {
 	*x = PushRecipient{}
-	mi := &file_api_proto_msgTypes[120]
+	mi := &file_api_proto_msgTypes[121]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7298,7 +7501,7 @@ func (x *PushRecipient) String() string {
 func (*PushRecipient) ProtoMessage() {}
 
 func (x *PushRecipient) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[120]
+	mi := &file_api_proto_msgTypes[121]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7311,7 +7514,7 @@ func (x *PushRecipient) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushRecipient.ProtoReflect.Descriptor instead.
 func (*PushRecipient) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{120}
+	return file_api_proto_rawDescGZIP(), []int{121}
 }
 
 func (x *PushRecipient) GetFilter() *DeviceFilter {
@@ -7370,19 +7573,27 @@ func (x *PushRecipient) GetApnsTokens() []string {
 	return nil
 }
 
+func (x *PushRecipient) GetWebpushTokens() []string {
+	if x != nil {
+		return x.WebpushTokens
+	}
+	return nil
+}
+
 type PushNotification struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Fcm           *FcmPushNotification   `protobuf:"bytes,1,opt,name=fcm,proto3" json:"fcm,omitempty"`
-	Hms           *HmsPushNotification   `protobuf:"bytes,2,opt,name=hms,proto3" json:"hms,omitempty"`
-	Apns          *ApnsPushNotification  `protobuf:"bytes,3,opt,name=apns,proto3" json:"apns,omitempty"`
-	ExpireAt      int64                  `protobuf:"varint,5,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"` // timestamp in the future when Centrifugo should stop trying to send push notification.
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Fcm           *FcmPushNotification     `protobuf:"bytes,1,opt,name=fcm,proto3" json:"fcm,omitempty"`
+	Hms           *HmsPushNotification     `protobuf:"bytes,2,opt,name=hms,proto3" json:"hms,omitempty"`
+	Apns          *ApnsPushNotification    `protobuf:"bytes,3,opt,name=apns,proto3" json:"apns,omitempty"`
+	Webpush       *WebPushPushNotification `protobuf:"bytes,4,opt,name=webpush,proto3" json:"webpush,omitempty"`
+	ExpireAt      int64                    `protobuf:"varint,5,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"` // timestamp in the future when Centrifugo should stop trying to send push notification.
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PushNotification) Reset() {
 	*x = PushNotification{}
-	mi := &file_api_proto_msgTypes[121]
+	mi := &file_api_proto_msgTypes[122]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7394,7 +7605,7 @@ func (x *PushNotification) String() string {
 func (*PushNotification) ProtoMessage() {}
 
 func (x *PushNotification) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[121]
+	mi := &file_api_proto_msgTypes[122]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7407,7 +7618,7 @@ func (x *PushNotification) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushNotification.ProtoReflect.Descriptor instead.
 func (*PushNotification) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{121}
+	return file_api_proto_rawDescGZIP(), []int{122}
 }
 
 func (x *PushNotification) GetFcm() *FcmPushNotification {
@@ -7431,6 +7642,13 @@ func (x *PushNotification) GetApns() *ApnsPushNotification {
 	return nil
 }
 
+func (x *PushNotification) GetWebpush() *WebPushPushNotification {
+	if x != nil {
+		return x.Webpush
+	}
+	return nil
+}
+
 func (x *PushNotification) GetExpireAt() int64 {
 	if x != nil {
 		return x.ExpireAt
@@ -7447,7 +7665,7 @@ type FcmPushNotification struct {
 
 func (x *FcmPushNotification) Reset() {
 	*x = FcmPushNotification{}
-	mi := &file_api_proto_msgTypes[122]
+	mi := &file_api_proto_msgTypes[123]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7459,7 +7677,7 @@ func (x *FcmPushNotification) String() string {
 func (*FcmPushNotification) ProtoMessage() {}
 
 func (x *FcmPushNotification) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[122]
+	mi := &file_api_proto_msgTypes[123]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7472,7 +7690,7 @@ func (x *FcmPushNotification) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FcmPushNotification.ProtoReflect.Descriptor instead.
 func (*FcmPushNotification) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{122}
+	return file_api_proto_rawDescGZIP(), []int{123}
 }
 
 func (x *FcmPushNotification) GetMessage() []byte {
@@ -7491,7 +7709,7 @@ type HmsPushNotification struct {
 
 func (x *HmsPushNotification) Reset() {
 	*x = HmsPushNotification{}
-	mi := &file_api_proto_msgTypes[123]
+	mi := &file_api_proto_msgTypes[124]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7503,7 +7721,7 @@ func (x *HmsPushNotification) String() string {
 func (*HmsPushNotification) ProtoMessage() {}
 
 func (x *HmsPushNotification) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[123]
+	mi := &file_api_proto_msgTypes[124]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7516,7 +7734,7 @@ func (x *HmsPushNotification) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HmsPushNotification.ProtoReflect.Descriptor instead.
 func (*HmsPushNotification) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{123}
+	return file_api_proto_rawDescGZIP(), []int{124}
 }
 
 func (x *HmsPushNotification) GetMessage() []byte {
@@ -7536,7 +7754,7 @@ type ApnsPushNotification struct {
 
 func (x *ApnsPushNotification) Reset() {
 	*x = ApnsPushNotification{}
-	mi := &file_api_proto_msgTypes[124]
+	mi := &file_api_proto_msgTypes[125]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7548,7 +7766,7 @@ func (x *ApnsPushNotification) String() string {
 func (*ApnsPushNotification) ProtoMessage() {}
 
 func (x *ApnsPushNotification) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[124]
+	mi := &file_api_proto_msgTypes[125]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7561,7 +7779,7 @@ func (x *ApnsPushNotification) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApnsPushNotification.ProtoReflect.Descriptor instead.
 func (*ApnsPushNotification) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{124}
+	return file_api_proto_rawDescGZIP(), []int{125}
 }
 
 func (x *ApnsPushNotification) GetHeaders() map[string]string {
@@ -7572,6 +7790,58 @@ func (x *ApnsPushNotification) GetHeaders() map[string]string {
 }
 
 func (x *ApnsPushNotification) GetPayload() []byte {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+type WebPushPushNotification struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Headers       map[string]string      `protobuf:"bytes,1,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Payload       Raw                    `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WebPushPushNotification) Reset() {
+	*x = WebPushPushNotification{}
+	mi := &file_api_proto_msgTypes[126]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WebPushPushNotification) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WebPushPushNotification) ProtoMessage() {}
+
+func (x *WebPushPushNotification) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_msgTypes[126]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WebPushPushNotification.ProtoReflect.Descriptor instead.
+func (*WebPushPushNotification) Descriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{126}
+}
+
+func (x *WebPushPushNotification) GetHeaders() map[string]string {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
+}
+
+func (x *WebPushPushNotification) GetPayload() []byte {
 	if x != nil {
 		return x.Payload
 	}
@@ -7596,7 +7866,7 @@ type SendPushNotificationRequest struct {
 
 func (x *SendPushNotificationRequest) Reset() {
 	*x = SendPushNotificationRequest{}
-	mi := &file_api_proto_msgTypes[125]
+	mi := &file_api_proto_msgTypes[127]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7608,7 +7878,7 @@ func (x *SendPushNotificationRequest) String() string {
 func (*SendPushNotificationRequest) ProtoMessage() {}
 
 func (x *SendPushNotificationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[125]
+	mi := &file_api_proto_msgTypes[127]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7621,7 +7891,7 @@ func (x *SendPushNotificationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendPushNotificationRequest.ProtoReflect.Descriptor instead.
 func (*SendPushNotificationRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{125}
+	return file_api_proto_rawDescGZIP(), []int{127}
 }
 
 func (x *SendPushNotificationRequest) GetRecipient() *PushRecipient {
@@ -7703,7 +7973,7 @@ type PushLocalization struct {
 
 func (x *PushLocalization) Reset() {
 	*x = PushLocalization{}
-	mi := &file_api_proto_msgTypes[126]
+	mi := &file_api_proto_msgTypes[128]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7715,7 +7985,7 @@ func (x *PushLocalization) String() string {
 func (*PushLocalization) ProtoMessage() {}
 
 func (x *PushLocalization) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[126]
+	mi := &file_api_proto_msgTypes[128]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7728,7 +7998,7 @@ func (x *PushLocalization) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushLocalization.ProtoReflect.Descriptor instead.
 func (*PushLocalization) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{126}
+	return file_api_proto_rawDescGZIP(), []int{128}
 }
 
 func (x *PushLocalization) GetTranslations() map[string]string {
@@ -7748,7 +8018,7 @@ type PushLimitStrategy struct {
 
 func (x *PushLimitStrategy) Reset() {
 	*x = PushLimitStrategy{}
-	mi := &file_api_proto_msgTypes[127]
+	mi := &file_api_proto_msgTypes[129]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7760,7 +8030,7 @@ func (x *PushLimitStrategy) String() string {
 func (*PushLimitStrategy) ProtoMessage() {}
 
 func (x *PushLimitStrategy) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[127]
+	mi := &file_api_proto_msgTypes[129]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7773,7 +8043,7 @@ func (x *PushLimitStrategy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushLimitStrategy.ProtoReflect.Descriptor instead.
 func (*PushLimitStrategy) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{127}
+	return file_api_proto_rawDescGZIP(), []int{129}
 }
 
 func (x *PushLimitStrategy) GetRateLimit() *PushRateLimitStrategy {
@@ -7801,7 +8071,7 @@ type PushTimeLimitStrategy struct {
 
 func (x *PushTimeLimitStrategy) Reset() {
 	*x = PushTimeLimitStrategy{}
-	mi := &file_api_proto_msgTypes[128]
+	mi := &file_api_proto_msgTypes[130]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7813,7 +8083,7 @@ func (x *PushTimeLimitStrategy) String() string {
 func (*PushTimeLimitStrategy) ProtoMessage() {}
 
 func (x *PushTimeLimitStrategy) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[128]
+	mi := &file_api_proto_msgTypes[130]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7826,7 +8096,7 @@ func (x *PushTimeLimitStrategy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushTimeLimitStrategy.ProtoReflect.Descriptor instead.
 func (*PushTimeLimitStrategy) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{128}
+	return file_api_proto_rawDescGZIP(), []int{130}
 }
 
 func (x *PushTimeLimitStrategy) GetSendAfterTime() string {
@@ -7861,7 +8131,7 @@ type PushRateLimitStrategy struct {
 
 func (x *PushRateLimitStrategy) Reset() {
 	*x = PushRateLimitStrategy{}
-	mi := &file_api_proto_msgTypes[129]
+	mi := &file_api_proto_msgTypes[131]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7873,7 +8143,7 @@ func (x *PushRateLimitStrategy) String() string {
 func (*PushRateLimitStrategy) ProtoMessage() {}
 
 func (x *PushRateLimitStrategy) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[129]
+	mi := &file_api_proto_msgTypes[131]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7886,7 +8156,7 @@ func (x *PushRateLimitStrategy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushRateLimitStrategy.ProtoReflect.Descriptor instead.
 func (*PushRateLimitStrategy) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{129}
+	return file_api_proto_rawDescGZIP(), []int{131}
 }
 
 func (x *PushRateLimitStrategy) GetKey() string {
@@ -7920,7 +8190,7 @@ type RateLimitPolicy struct {
 
 func (x *RateLimitPolicy) Reset() {
 	*x = RateLimitPolicy{}
-	mi := &file_api_proto_msgTypes[130]
+	mi := &file_api_proto_msgTypes[132]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7932,7 +8202,7 @@ func (x *RateLimitPolicy) String() string {
 func (*RateLimitPolicy) ProtoMessage() {}
 
 func (x *RateLimitPolicy) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[130]
+	mi := &file_api_proto_msgTypes[132]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7945,7 +8215,7 @@ func (x *RateLimitPolicy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RateLimitPolicy.ProtoReflect.Descriptor instead.
 func (*RateLimitPolicy) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{130}
+	return file_api_proto_rawDescGZIP(), []int{132}
 }
 
 func (x *RateLimitPolicy) GetRate() int64 {
@@ -7972,7 +8242,7 @@ type SendPushNotificationResponse struct {
 
 func (x *SendPushNotificationResponse) Reset() {
 	*x = SendPushNotificationResponse{}
-	mi := &file_api_proto_msgTypes[131]
+	mi := &file_api_proto_msgTypes[133]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7984,7 +8254,7 @@ func (x *SendPushNotificationResponse) String() string {
 func (*SendPushNotificationResponse) ProtoMessage() {}
 
 func (x *SendPushNotificationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[131]
+	mi := &file_api_proto_msgTypes[133]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7997,7 +8267,7 @@ func (x *SendPushNotificationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendPushNotificationResponse.ProtoReflect.Descriptor instead.
 func (*SendPushNotificationResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{131}
+	return file_api_proto_rawDescGZIP(), []int{133}
 }
 
 func (x *SendPushNotificationResponse) GetError() *Error {
@@ -8023,7 +8293,7 @@ type SendPushNotificationResult struct {
 
 func (x *SendPushNotificationResult) Reset() {
 	*x = SendPushNotificationResult{}
-	mi := &file_api_proto_msgTypes[132]
+	mi := &file_api_proto_msgTypes[134]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8035,7 +8305,7 @@ func (x *SendPushNotificationResult) String() string {
 func (*SendPushNotificationResult) ProtoMessage() {}
 
 func (x *SendPushNotificationResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[132]
+	mi := &file_api_proto_msgTypes[134]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8048,7 +8318,7 @@ func (x *SendPushNotificationResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendPushNotificationResult.ProtoReflect.Descriptor instead.
 func (*SendPushNotificationResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{132}
+	return file_api_proto_rawDescGZIP(), []int{134}
 }
 
 func (x *SendPushNotificationResult) GetUid() string {
@@ -8070,7 +8340,7 @@ type UpdatePushStatusRequest struct {
 
 func (x *UpdatePushStatusRequest) Reset() {
 	*x = UpdatePushStatusRequest{}
-	mi := &file_api_proto_msgTypes[133]
+	mi := &file_api_proto_msgTypes[135]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8082,7 +8352,7 @@ func (x *UpdatePushStatusRequest) String() string {
 func (*UpdatePushStatusRequest) ProtoMessage() {}
 
 func (x *UpdatePushStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[133]
+	mi := &file_api_proto_msgTypes[135]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8095,7 +8365,7 @@ func (x *UpdatePushStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePushStatusRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePushStatusRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{133}
+	return file_api_proto_rawDescGZIP(), []int{135}
 }
 
 func (x *UpdatePushStatusRequest) GetAnalyticsUid() string {
@@ -8136,7 +8406,7 @@ type UpdatePushStatusResponse struct {
 
 func (x *UpdatePushStatusResponse) Reset() {
 	*x = UpdatePushStatusResponse{}
-	mi := &file_api_proto_msgTypes[134]
+	mi := &file_api_proto_msgTypes[136]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8148,7 +8418,7 @@ func (x *UpdatePushStatusResponse) String() string {
 func (*UpdatePushStatusResponse) ProtoMessage() {}
 
 func (x *UpdatePushStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[134]
+	mi := &file_api_proto_msgTypes[136]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8161,7 +8431,7 @@ func (x *UpdatePushStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePushStatusResponse.ProtoReflect.Descriptor instead.
 func (*UpdatePushStatusResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{134}
+	return file_api_proto_rawDescGZIP(), []int{136}
 }
 
 func (x *UpdatePushStatusResponse) GetError() *Error {
@@ -8186,7 +8456,7 @@ type UpdatePushStatusResult struct {
 
 func (x *UpdatePushStatusResult) Reset() {
 	*x = UpdatePushStatusResult{}
-	mi := &file_api_proto_msgTypes[135]
+	mi := &file_api_proto_msgTypes[137]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8198,7 +8468,7 @@ func (x *UpdatePushStatusResult) String() string {
 func (*UpdatePushStatusResult) ProtoMessage() {}
 
 func (x *UpdatePushStatusResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[135]
+	mi := &file_api_proto_msgTypes[137]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8211,7 +8481,7 @@ func (x *UpdatePushStatusResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePushStatusResult.ProtoReflect.Descriptor instead.
 func (*UpdatePushStatusResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{135}
+	return file_api_proto_rawDescGZIP(), []int{137}
 }
 
 type CancelPushRequest struct {
@@ -8223,7 +8493,7 @@ type CancelPushRequest struct {
 
 func (x *CancelPushRequest) Reset() {
 	*x = CancelPushRequest{}
-	mi := &file_api_proto_msgTypes[136]
+	mi := &file_api_proto_msgTypes[138]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8235,7 +8505,7 @@ func (x *CancelPushRequest) String() string {
 func (*CancelPushRequest) ProtoMessage() {}
 
 func (x *CancelPushRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[136]
+	mi := &file_api_proto_msgTypes[138]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8248,7 +8518,7 @@ func (x *CancelPushRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelPushRequest.ProtoReflect.Descriptor instead.
 func (*CancelPushRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{136}
+	return file_api_proto_rawDescGZIP(), []int{138}
 }
 
 func (x *CancelPushRequest) GetUid() string {
@@ -8268,7 +8538,7 @@ type CancelPushResponse struct {
 
 func (x *CancelPushResponse) Reset() {
 	*x = CancelPushResponse{}
-	mi := &file_api_proto_msgTypes[137]
+	mi := &file_api_proto_msgTypes[139]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8280,7 +8550,7 @@ func (x *CancelPushResponse) String() string {
 func (*CancelPushResponse) ProtoMessage() {}
 
 func (x *CancelPushResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[137]
+	mi := &file_api_proto_msgTypes[139]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8293,7 +8563,7 @@ func (x *CancelPushResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelPushResponse.ProtoReflect.Descriptor instead.
 func (*CancelPushResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{137}
+	return file_api_proto_rawDescGZIP(), []int{139}
 }
 
 func (x *CancelPushResponse) GetError() *Error {
@@ -8318,7 +8588,7 @@ type CancelPushResult struct {
 
 func (x *CancelPushResult) Reset() {
 	*x = CancelPushResult{}
-	mi := &file_api_proto_msgTypes[138]
+	mi := &file_api_proto_msgTypes[140]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8330,7 +8600,7 @@ func (x *CancelPushResult) String() string {
 func (*CancelPushResult) ProtoMessage() {}
 
 func (x *CancelPushResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[138]
+	mi := &file_api_proto_msgTypes[140]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8343,7 +8613,7 @@ func (x *CancelPushResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelPushResult.ProtoReflect.Descriptor instead.
 func (*CancelPushResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{138}
+	return file_api_proto_rawDescGZIP(), []int{140}
 }
 
 type MapPublishRequest struct {
@@ -8367,7 +8637,7 @@ type MapPublishRequest struct {
 
 func (x *MapPublishRequest) Reset() {
 	*x = MapPublishRequest{}
-	mi := &file_api_proto_msgTypes[139]
+	mi := &file_api_proto_msgTypes[141]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8379,7 +8649,7 @@ func (x *MapPublishRequest) String() string {
 func (*MapPublishRequest) ProtoMessage() {}
 
 func (x *MapPublishRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[139]
+	mi := &file_api_proto_msgTypes[141]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8392,7 +8662,7 @@ func (x *MapPublishRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapPublishRequest.ProtoReflect.Descriptor instead.
 func (*MapPublishRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{139}
+	return file_api_proto_rawDescGZIP(), []int{141}
 }
 
 func (x *MapPublishRequest) GetChannel() string {
@@ -8496,7 +8766,7 @@ type MapPublishResponse struct {
 
 func (x *MapPublishResponse) Reset() {
 	*x = MapPublishResponse{}
-	mi := &file_api_proto_msgTypes[140]
+	mi := &file_api_proto_msgTypes[142]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8508,7 +8778,7 @@ func (x *MapPublishResponse) String() string {
 func (*MapPublishResponse) ProtoMessage() {}
 
 func (x *MapPublishResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[140]
+	mi := &file_api_proto_msgTypes[142]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8521,7 +8791,7 @@ func (x *MapPublishResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapPublishResponse.ProtoReflect.Descriptor instead.
 func (*MapPublishResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{140}
+	return file_api_proto_rawDescGZIP(), []int{142}
 }
 
 func (x *MapPublishResponse) GetError() *Error {
@@ -8550,7 +8820,7 @@ type MapPublishResult struct {
 
 func (x *MapPublishResult) Reset() {
 	*x = MapPublishResult{}
-	mi := &file_api_proto_msgTypes[141]
+	mi := &file_api_proto_msgTypes[143]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8562,7 +8832,7 @@ func (x *MapPublishResult) String() string {
 func (*MapPublishResult) ProtoMessage() {}
 
 func (x *MapPublishResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[141]
+	mi := &file_api_proto_msgTypes[143]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8575,7 +8845,7 @@ func (x *MapPublishResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapPublishResult.ProtoReflect.Descriptor instead.
 func (*MapPublishResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{141}
+	return file_api_proto_rawDescGZIP(), []int{143}
 }
 
 func (x *MapPublishResult) GetOffset() uint64 {
@@ -8617,7 +8887,7 @@ type MapRemoveRequest struct {
 
 func (x *MapRemoveRequest) Reset() {
 	*x = MapRemoveRequest{}
-	mi := &file_api_proto_msgTypes[142]
+	mi := &file_api_proto_msgTypes[144]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8629,7 +8899,7 @@ func (x *MapRemoveRequest) String() string {
 func (*MapRemoveRequest) ProtoMessage() {}
 
 func (x *MapRemoveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[142]
+	mi := &file_api_proto_msgTypes[144]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8642,7 +8912,7 @@ func (x *MapRemoveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapRemoveRequest.ProtoReflect.Descriptor instead.
 func (*MapRemoveRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{142}
+	return file_api_proto_rawDescGZIP(), []int{144}
 }
 
 func (x *MapRemoveRequest) GetChannel() string {
@@ -8676,7 +8946,7 @@ type MapRemoveResponse struct {
 
 func (x *MapRemoveResponse) Reset() {
 	*x = MapRemoveResponse{}
-	mi := &file_api_proto_msgTypes[143]
+	mi := &file_api_proto_msgTypes[145]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8688,7 +8958,7 @@ func (x *MapRemoveResponse) String() string {
 func (*MapRemoveResponse) ProtoMessage() {}
 
 func (x *MapRemoveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[143]
+	mi := &file_api_proto_msgTypes[145]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8701,7 +8971,7 @@ func (x *MapRemoveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapRemoveResponse.ProtoReflect.Descriptor instead.
 func (*MapRemoveResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{143}
+	return file_api_proto_rawDescGZIP(), []int{145}
 }
 
 func (x *MapRemoveResponse) GetError() *Error {
@@ -8730,7 +9000,7 @@ type MapRemoveResult struct {
 
 func (x *MapRemoveResult) Reset() {
 	*x = MapRemoveResult{}
-	mi := &file_api_proto_msgTypes[144]
+	mi := &file_api_proto_msgTypes[146]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8742,7 +9012,7 @@ func (x *MapRemoveResult) String() string {
 func (*MapRemoveResult) ProtoMessage() {}
 
 func (x *MapRemoveResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[144]
+	mi := &file_api_proto_msgTypes[146]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8755,7 +9025,7 @@ func (x *MapRemoveResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapRemoveResult.ProtoReflect.Descriptor instead.
 func (*MapRemoveResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{144}
+	return file_api_proto_rawDescGZIP(), []int{146}
 }
 
 func (x *MapRemoveResult) GetOffset() uint64 {
@@ -8801,7 +9071,7 @@ type MapReadStateRequest struct {
 
 func (x *MapReadStateRequest) Reset() {
 	*x = MapReadStateRequest{}
-	mi := &file_api_proto_msgTypes[145]
+	mi := &file_api_proto_msgTypes[147]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8813,7 +9083,7 @@ func (x *MapReadStateRequest) String() string {
 func (*MapReadStateRequest) ProtoMessage() {}
 
 func (x *MapReadStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[145]
+	mi := &file_api_proto_msgTypes[147]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8826,7 +9096,7 @@ func (x *MapReadStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapReadStateRequest.ProtoReflect.Descriptor instead.
 func (*MapReadStateRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{145}
+	return file_api_proto_rawDescGZIP(), []int{147}
 }
 
 func (x *MapReadStateRequest) GetChannel() string {
@@ -8888,7 +9158,7 @@ type MapReadStateResponse struct {
 
 func (x *MapReadStateResponse) Reset() {
 	*x = MapReadStateResponse{}
-	mi := &file_api_proto_msgTypes[146]
+	mi := &file_api_proto_msgTypes[148]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8900,7 +9170,7 @@ func (x *MapReadStateResponse) String() string {
 func (*MapReadStateResponse) ProtoMessage() {}
 
 func (x *MapReadStateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[146]
+	mi := &file_api_proto_msgTypes[148]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8913,7 +9183,7 @@ func (x *MapReadStateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapReadStateResponse.ProtoReflect.Descriptor instead.
 func (*MapReadStateResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{146}
+	return file_api_proto_rawDescGZIP(), []int{148}
 }
 
 func (x *MapReadStateResponse) GetError() *Error {
@@ -8942,7 +9212,7 @@ type MapReadStateResult struct {
 
 func (x *MapReadStateResult) Reset() {
 	*x = MapReadStateResult{}
-	mi := &file_api_proto_msgTypes[147]
+	mi := &file_api_proto_msgTypes[149]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8954,7 +9224,7 @@ func (x *MapReadStateResult) String() string {
 func (*MapReadStateResult) ProtoMessage() {}
 
 func (x *MapReadStateResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[147]
+	mi := &file_api_proto_msgTypes[149]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8967,7 +9237,7 @@ func (x *MapReadStateResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapReadStateResult.ProtoReflect.Descriptor instead.
 func (*MapReadStateResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{147}
+	return file_api_proto_rawDescGZIP(), []int{149}
 }
 
 func (x *MapReadStateResult) GetEntries() []*MapEntry {
@@ -9013,7 +9283,7 @@ type MapEntry struct {
 
 func (x *MapEntry) Reset() {
 	*x = MapEntry{}
-	mi := &file_api_proto_msgTypes[148]
+	mi := &file_api_proto_msgTypes[150]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9025,7 +9295,7 @@ func (x *MapEntry) String() string {
 func (*MapEntry) ProtoMessage() {}
 
 func (x *MapEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[148]
+	mi := &file_api_proto_msgTypes[150]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9038,7 +9308,7 @@ func (x *MapEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapEntry.ProtoReflect.Descriptor instead.
 func (*MapEntry) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{148}
+	return file_api_proto_rawDescGZIP(), []int{150}
 }
 
 func (x *MapEntry) GetKey() string {
@@ -9103,7 +9373,7 @@ type MapReadStreamRequest struct {
 
 func (x *MapReadStreamRequest) Reset() {
 	*x = MapReadStreamRequest{}
-	mi := &file_api_proto_msgTypes[149]
+	mi := &file_api_proto_msgTypes[151]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9115,7 +9385,7 @@ func (x *MapReadStreamRequest) String() string {
 func (*MapReadStreamRequest) ProtoMessage() {}
 
 func (x *MapReadStreamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[149]
+	mi := &file_api_proto_msgTypes[151]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9128,7 +9398,7 @@ func (x *MapReadStreamRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapReadStreamRequest.ProtoReflect.Descriptor instead.
 func (*MapReadStreamRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{149}
+	return file_api_proto_rawDescGZIP(), []int{151}
 }
 
 func (x *MapReadStreamRequest) GetChannel() string {
@@ -9176,7 +9446,7 @@ type MapReadStreamResponse struct {
 
 func (x *MapReadStreamResponse) Reset() {
 	*x = MapReadStreamResponse{}
-	mi := &file_api_proto_msgTypes[150]
+	mi := &file_api_proto_msgTypes[152]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9188,7 +9458,7 @@ func (x *MapReadStreamResponse) String() string {
 func (*MapReadStreamResponse) ProtoMessage() {}
 
 func (x *MapReadStreamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[150]
+	mi := &file_api_proto_msgTypes[152]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9201,7 +9471,7 @@ func (x *MapReadStreamResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapReadStreamResponse.ProtoReflect.Descriptor instead.
 func (*MapReadStreamResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{150}
+	return file_api_proto_rawDescGZIP(), []int{152}
 }
 
 func (x *MapReadStreamResponse) GetError() *Error {
@@ -9229,7 +9499,7 @@ type MapReadStreamResult struct {
 
 func (x *MapReadStreamResult) Reset() {
 	*x = MapReadStreamResult{}
-	mi := &file_api_proto_msgTypes[151]
+	mi := &file_api_proto_msgTypes[153]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9241,7 +9511,7 @@ func (x *MapReadStreamResult) String() string {
 func (*MapReadStreamResult) ProtoMessage() {}
 
 func (x *MapReadStreamResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[151]
+	mi := &file_api_proto_msgTypes[153]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9254,7 +9524,7 @@ func (x *MapReadStreamResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapReadStreamResult.ProtoReflect.Descriptor instead.
 func (*MapReadStreamResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{151}
+	return file_api_proto_rawDescGZIP(), []int{153}
 }
 
 func (x *MapReadStreamResult) GetEntries() []*MapEntry {
@@ -9287,7 +9557,7 @@ type MapStatsRequest struct {
 
 func (x *MapStatsRequest) Reset() {
 	*x = MapStatsRequest{}
-	mi := &file_api_proto_msgTypes[152]
+	mi := &file_api_proto_msgTypes[154]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9299,7 +9569,7 @@ func (x *MapStatsRequest) String() string {
 func (*MapStatsRequest) ProtoMessage() {}
 
 func (x *MapStatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[152]
+	mi := &file_api_proto_msgTypes[154]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9312,7 +9582,7 @@ func (x *MapStatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapStatsRequest.ProtoReflect.Descriptor instead.
 func (*MapStatsRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{152}
+	return file_api_proto_rawDescGZIP(), []int{154}
 }
 
 func (x *MapStatsRequest) GetChannel() string {
@@ -9332,7 +9602,7 @@ type MapStatsResponse struct {
 
 func (x *MapStatsResponse) Reset() {
 	*x = MapStatsResponse{}
-	mi := &file_api_proto_msgTypes[153]
+	mi := &file_api_proto_msgTypes[155]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9344,7 +9614,7 @@ func (x *MapStatsResponse) String() string {
 func (*MapStatsResponse) ProtoMessage() {}
 
 func (x *MapStatsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[153]
+	mi := &file_api_proto_msgTypes[155]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9357,7 +9627,7 @@ func (x *MapStatsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapStatsResponse.ProtoReflect.Descriptor instead.
 func (*MapStatsResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{153}
+	return file_api_proto_rawDescGZIP(), []int{155}
 }
 
 func (x *MapStatsResponse) GetError() *Error {
@@ -9383,7 +9653,7 @@ type MapStatsResult struct {
 
 func (x *MapStatsResult) Reset() {
 	*x = MapStatsResult{}
-	mi := &file_api_proto_msgTypes[154]
+	mi := &file_api_proto_msgTypes[156]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9395,7 +9665,7 @@ func (x *MapStatsResult) String() string {
 func (*MapStatsResult) ProtoMessage() {}
 
 func (x *MapStatsResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[154]
+	mi := &file_api_proto_msgTypes[156]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9408,7 +9678,7 @@ func (x *MapStatsResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapStatsResult.ProtoReflect.Descriptor instead.
 func (*MapStatsResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{154}
+	return file_api_proto_rawDescGZIP(), []int{156}
 }
 
 func (x *MapStatsResult) GetNumKeys() int32 {
@@ -9427,7 +9697,7 @@ type MapClearRequest struct {
 
 func (x *MapClearRequest) Reset() {
 	*x = MapClearRequest{}
-	mi := &file_api_proto_msgTypes[155]
+	mi := &file_api_proto_msgTypes[157]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9439,7 +9709,7 @@ func (x *MapClearRequest) String() string {
 func (*MapClearRequest) ProtoMessage() {}
 
 func (x *MapClearRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[155]
+	mi := &file_api_proto_msgTypes[157]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9452,7 +9722,7 @@ func (x *MapClearRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapClearRequest.ProtoReflect.Descriptor instead.
 func (*MapClearRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{155}
+	return file_api_proto_rawDescGZIP(), []int{157}
 }
 
 func (x *MapClearRequest) GetChannel() string {
@@ -9472,7 +9742,7 @@ type MapClearResponse struct {
 
 func (x *MapClearResponse) Reset() {
 	*x = MapClearResponse{}
-	mi := &file_api_proto_msgTypes[156]
+	mi := &file_api_proto_msgTypes[158]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9484,7 +9754,7 @@ func (x *MapClearResponse) String() string {
 func (*MapClearResponse) ProtoMessage() {}
 
 func (x *MapClearResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[156]
+	mi := &file_api_proto_msgTypes[158]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9497,7 +9767,7 @@ func (x *MapClearResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapClearResponse.ProtoReflect.Descriptor instead.
 func (*MapClearResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{156}
+	return file_api_proto_rawDescGZIP(), []int{158}
 }
 
 func (x *MapClearResponse) GetError() *Error {
@@ -9522,7 +9792,7 @@ type MapClearResult struct {
 
 func (x *MapClearResult) Reset() {
 	*x = MapClearResult{}
-	mi := &file_api_proto_msgTypes[157]
+	mi := &file_api_proto_msgTypes[159]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9534,7 +9804,7 @@ func (x *MapClearResult) String() string {
 func (*MapClearResult) ProtoMessage() {}
 
 func (x *MapClearResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[157]
+	mi := &file_api_proto_msgTypes[159]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9547,7 +9817,7 @@ func (x *MapClearResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MapClearResult.ProtoReflect.Descriptor instead.
 func (*MapClearResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{157}
+	return file_api_proto_rawDescGZIP(), []int{159}
 }
 
 type SharedPollPublishRequest struct {
@@ -9564,7 +9834,7 @@ type SharedPollPublishRequest struct {
 
 func (x *SharedPollPublishRequest) Reset() {
 	*x = SharedPollPublishRequest{}
-	mi := &file_api_proto_msgTypes[158]
+	mi := &file_api_proto_msgTypes[160]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9576,7 +9846,7 @@ func (x *SharedPollPublishRequest) String() string {
 func (*SharedPollPublishRequest) ProtoMessage() {}
 
 func (x *SharedPollPublishRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[158]
+	mi := &file_api_proto_msgTypes[160]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9589,7 +9859,7 @@ func (x *SharedPollPublishRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SharedPollPublishRequest.ProtoReflect.Descriptor instead.
 func (*SharedPollPublishRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{158}
+	return file_api_proto_rawDescGZIP(), []int{160}
 }
 
 func (x *SharedPollPublishRequest) GetChannel() string {
@@ -9644,7 +9914,7 @@ type SharedPollPublishResponse struct {
 
 func (x *SharedPollPublishResponse) Reset() {
 	*x = SharedPollPublishResponse{}
-	mi := &file_api_proto_msgTypes[159]
+	mi := &file_api_proto_msgTypes[161]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9656,7 +9926,7 @@ func (x *SharedPollPublishResponse) String() string {
 func (*SharedPollPublishResponse) ProtoMessage() {}
 
 func (x *SharedPollPublishResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[159]
+	mi := &file_api_proto_msgTypes[161]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9669,7 +9939,7 @@ func (x *SharedPollPublishResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SharedPollPublishResponse.ProtoReflect.Descriptor instead.
 func (*SharedPollPublishResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{159}
+	return file_api_proto_rawDescGZIP(), []int{161}
 }
 
 func (x *SharedPollPublishResponse) GetError() *Error {
@@ -9694,7 +9964,7 @@ type SharedPollPublishResult struct {
 
 func (x *SharedPollPublishResult) Reset() {
 	*x = SharedPollPublishResult{}
-	mi := &file_api_proto_msgTypes[160]
+	mi := &file_api_proto_msgTypes[162]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9706,7 +9976,7 @@ func (x *SharedPollPublishResult) String() string {
 func (*SharedPollPublishResult) ProtoMessage() {}
 
 func (x *SharedPollPublishResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[160]
+	mi := &file_api_proto_msgTypes[162]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9719,7 +9989,7 @@ func (x *SharedPollPublishResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SharedPollPublishResult.ProtoReflect.Descriptor instead.
 func (*SharedPollPublishResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{160}
+	return file_api_proto_rawDescGZIP(), []int{162}
 }
 
 var File_api_proto protoreflect.FileDescriptor
@@ -9868,7 +10138,15 @@ const file_api_proto_rawDesc = "" +
 	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12C\n" +
 	"\x06result\x18\x02 \x01(\v2+.centrifugal.centrifugo.api.BroadcastResultR\x06result\"\\\n" +
 	"\x0fBroadcastResult\x12I\n" +
-	"\tresponses\x18\x01 \x03(\v2+.centrifugal.centrifugo.api.PublishResponseR\tresponses\"\x8d\x03\n" +
+	"\tresponses\x18\x01 \x03(\v2+.centrifugal.centrifugo.api.PublishResponseR\tresponses\"\xa4\x01\n" +
+	"\n" +
+	"FilterNode\x12\x0e\n" +
+	"\x02op\x18\x01 \x01(\tR\x02op\x12\x10\n" +
+	"\x03key\x18\x02 \x01(\tR\x03key\x12\x10\n" +
+	"\x03cmp\x18\x03 \x01(\tR\x03cmp\x12\x10\n" +
+	"\x03val\x18\x04 \x01(\tR\x03val\x12\x12\n" +
+	"\x04vals\x18\x05 \x03(\tR\x04vals\x12<\n" +
+	"\x05nodes\x18\x06 \x03(\v2&.centrifugal.centrifugo.api.FilterNodeR\x05nodes\"\xf5\x03\n" +
 	"\x10SubscribeRequest\x12\x18\n" +
 	"\achannel\x18\x01 \x01(\tR\achannel\x12\x12\n" +
 	"\x04user\x18\x02 \x01(\tR\x04user\x12\x1b\n" +
@@ -9881,7 +10159,9 @@ const file_api_proto_rawDesc = "" +
 	"\rrecover_since\x18\t \x01(\v2*.centrifugal.centrifugo.api.StreamPositionR\frecoverSince\x12O\n" +
 	"\boverride\x18\n" +
 	" \x01(\v23.centrifugal.centrifugo.api.SubscribeOptionOverrideR\boverride\x12\x18\n" +
-	"\asession\x18\v \x01(\tR\asession\"\x91\x01\n" +
+	"\asession\x18\v \x01(\tR\asession\x12I\n" +
+	"\flabel_filter\x18\f \x01(\v2&.centrifugal.centrifugo.api.FilterNodeR\vlabelFilter\x12\x1b\n" +
+	"\tall_users\x18\r \x01(\bR\ballUsers\"\x91\x01\n" +
 	"\x11SubscribeResponse\x127\n" +
 	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12C\n" +
 	"\x06result\x18\x02 \x01(\v2+.centrifugal.centrifugo.api.SubscribeResultR\x06result\"!\n" +
@@ -9897,12 +10177,14 @@ const file_api_proto_rawDesc = "" +
 	"\x0eforce_recovery\x18\x03 \x01(\v2%.centrifugal.centrifugo.api.BoolValueR\rforceRecovery\x12R\n" +
 	"\x11force_positioning\x18\x04 \x01(\v2%.centrifugal.centrifugo.api.BoolValueR\x10forcePositioning\x12X\n" +
 	"\x15force_push_join_leave\x18\x05 \x01(\v2%.centrifugal.centrifugo.api.BoolValueR\x12forcePushJoinLeave\"\x11\n" +
-	"\x0fSubscribeResult\"t\n" +
+	"\x0fSubscribeResult\"\xdc\x01\n" +
 	"\x12UnsubscribeRequest\x12\x18\n" +
 	"\achannel\x18\x01 \x01(\tR\achannel\x12\x12\n" +
 	"\x04user\x18\x02 \x01(\tR\x04user\x12\x16\n" +
 	"\x06client\x18\x03 \x01(\tR\x06client\x12\x18\n" +
-	"\asession\x18\x04 \x01(\tR\asession\"\x95\x01\n" +
+	"\asession\x18\x04 \x01(\tR\asession\x12I\n" +
+	"\flabel_filter\x18\x05 \x01(\v2&.centrifugal.centrifugo.api.FilterNodeR\vlabelFilter\x12\x1b\n" +
+	"\tall_users\x18\x06 \x01(\bR\ballUsers\"\x95\x01\n" +
 	"\x13UnsubscribeResponse\x127\n" +
 	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12E\n" +
 	"\x06result\x18\x02 \x01(\v2-.centrifugal.centrifugo.api.UnsubscribeResultR\x06result\"\x13\n" +
@@ -9910,7 +10192,7 @@ const file_api_proto_rawDesc = "" +
 	"\n" +
 	"Disconnect\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\rR\x04code\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reasonJ\x04\b\x03\x10\x04\"\xbf\x01\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reasonJ\x04\b\x03\x10\x04\"\xa7\x02\n" +
 	"\x11DisconnectRequest\x12\x12\n" +
 	"\x04user\x18\x01 \x01(\tR\x04user\x12F\n" +
 	"\n" +
@@ -9918,7 +10200,9 @@ const file_api_proto_rawDesc = "" +
 	"disconnect\x12\x16\n" +
 	"\x06client\x18\x03 \x01(\tR\x06client\x12\x1c\n" +
 	"\twhitelist\x18\x04 \x03(\tR\twhitelist\x12\x18\n" +
-	"\asession\x18\x05 \x01(\tR\asession\"\x93\x01\n" +
+	"\asession\x18\x05 \x01(\tR\asession\x12I\n" +
+	"\flabel_filter\x18\x06 \x01(\v2&.centrifugal.centrifugo.api.FilterNodeR\vlabelFilter\x12\x1b\n" +
+	"\tall_users\x18\a \x01(\bR\ballUsers\"\x93\x01\n" +
 	"\x12DisconnectResponse\x127\n" +
 	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12D\n" +
 	"\x06result\x18\x02 \x01(\v2,.centrifugal.centrifugo.api.DisconnectResultR\x06result\"\x12\n" +
@@ -9992,14 +10276,16 @@ const file_api_proto_rawDesc = "" +
 	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12=\n" +
 	"\x06result\x18\x02 \x01(\v2%.centrifugal.centrifugo.api.RPCResultR\x06result\"\x1f\n" +
 	"\tRPCResult\x12\x12\n" +
-	"\x04data\x18\x01 \x01(\fR\x04data\"\xa1\x01\n" +
+	"\x04data\x18\x01 \x01(\fR\x04data\"\x89\x02\n" +
 	"\x0eRefreshRequest\x12\x12\n" +
 	"\x04user\x18\x01 \x01(\tR\x04user\x12\x16\n" +
 	"\x06client\x18\x02 \x01(\tR\x06client\x12\x18\n" +
 	"\aexpired\x18\x03 \x01(\bR\aexpired\x12\x1b\n" +
 	"\texpire_at\x18\x04 \x01(\x03R\bexpireAt\x12\x12\n" +
 	"\x04info\x18\x05 \x01(\fR\x04info\x12\x18\n" +
-	"\asession\x18\x06 \x01(\tR\asession\"\x8d\x01\n" +
+	"\asession\x18\x06 \x01(\tR\asession\x12I\n" +
+	"\flabel_filter\x18\a \x01(\v2&.centrifugal.centrifugo.api.FilterNodeR\vlabelFilter\x12\x1b\n" +
+	"\tall_users\x18\b \x01(\bR\ballUsers\"\x8d\x01\n" +
 	"\x0fRefreshResponse\x127\n" +
 	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12A\n" +
 	"\x06result\x18\x02 \x01(\v2).centrifugal.centrifugo.api.RefreshResultR\x06result\"\x0f\n" +
@@ -10040,12 +10326,13 @@ const file_api_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2'.centrifugal.centrifugo.api.ChannelInfoR\x05value:\x028\x01\".\n" +
 	"\vChannelInfo\x12\x1f\n" +
 	"\vnum_clients\x18\x01 \x01(\rR\n" +
-	"numClients\"H\n" +
+	"numClients\"\x93\x01\n" +
 	"\x12ConnectionsRequest\x12\x12\n" +
 	"\x04user\x18\x01 \x01(\tR\x04user\x12\x1e\n" +
 	"\n" +
 	"expression\x18\x02 \x01(\tR\n" +
-	"expression\"\x95\x01\n" +
+	"expression\x12I\n" +
+	"\flabel_filter\x18\x03 \x01(\v2&.centrifugal.centrifugo.api.FilterNodeR\vlabelFilter\"\x95\x01\n" +
 	"\x13ConnectionsResponse\x127\n" +
 	"\x05error\x18\x01 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12E\n" +
 	"\x06result\x18\x02 \x01(\v2-.centrifugal.centrifugo.api.ConnectionsResultR\x06result\"\xe1\x01\n" +
@@ -10053,7 +10340,7 @@ const file_api_proto_rawDesc = "" +
 	"\vconnections\x18\x01 \x03(\v2>.centrifugal.centrifugo.api.ConnectionsResult.ConnectionsEntryR\vconnections\x1aj\n" +
 	"\x10ConnectionsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12@\n" +
-	"\x05value\x18\x02 \x01(\v2*.centrifugal.centrifugo.api.ConnectionInfoR\x05value:\x028\x01\"\xc2\x02\n" +
+	"\x05value\x18\x02 \x01(\v2*.centrifugal.centrifugo.api.ConnectionInfoR\x05value:\x028\x01\"\xcd\x03\n" +
 	"\x0eConnectionInfo\x12\x19\n" +
 	"\bapp_name\x18\x01 \x01(\tR\aappName\x12\x1f\n" +
 	"\vapp_version\x18\x02 \x01(\tR\n" +
@@ -10064,7 +10351,11 @@ const file_api_proto_rawDesc = "" +
 	"\x05state\x18\t \x01(\v2+.centrifugal.centrifugo.api.ConnectionStateR\x05state\x12&\n" +
 	"\x0fconnected_at_ms\x18\n" +
 	" \x01(\x03R\rconnectedAtMs\x12/\n" +
-	"\x14ping_pong_latency_ms\x18\v \x01(\x03R\x11pingPongLatencyMsJ\x04\b\x05\x10\x06J\x04\b\a\x10\b\"\xb1\x04\n" +
+	"\x14ping_pong_latency_ms\x18\v \x01(\x03R\x11pingPongLatencyMs\x12N\n" +
+	"\x06labels\x18\f \x03(\v26.centrifugal.centrifugo.api.ConnectionInfo.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x05\x10\x06J\x04\b\a\x10\b\"\xb1\x04\n" +
 	"\x0fConnectionState\x12U\n" +
 	"\bchannels\x18\x01 \x03(\v29.centrifugal.centrifugo.api.ConnectionState.ChannelsEntryR\bchannels\x12Z\n" +
 	"\x10connection_token\x18\x02 \x01(\v2/.centrifugal.centrifugo.api.ConnectionTokenInfoR\x0fconnectionToken\x12t\n" +
@@ -10184,12 +10475,13 @@ const file_api_proto_rawDesc = "" +
 	"\x05users\x18\x02 \x03(\tR\x05users\x12\x16\n" +
 	"\x06topics\x18\x03 \x03(\tR\x06topics\x12\x1c\n" +
 	"\tproviders\x18\x04 \x03(\tR\tproviders\x12\x1c\n" +
-	"\tplatforms\x18\x05 \x03(\tR\tplatforms\"\xfd\x01\n" +
+	"\tplatforms\x18\x05 \x03(\tR\tplatforms\"\xaf\x02\n" +
 	"\x11DeviceListRequest\x12@\n" +
 	"\x06filter\x18\x01 \x01(\v2(.centrifugal.centrifugo.api.DeviceFilterR\x06filter\x12.\n" +
 	"\x13include_total_count\x18\x02 \x01(\bR\x11includeTotalCount\x12!\n" +
 	"\finclude_meta\x18\x03 \x01(\bR\vincludeMeta\x12%\n" +
-	"\x0einclude_topics\x18\x04 \x01(\bR\rincludeTopics\x12\x16\n" +
+	"\x0einclude_topics\x18\x04 \x01(\bR\rincludeTopics\x120\n" +
+	"\x14include_webpush_keys\x18\x05 \x01(\bR\x12includeWebpushKeys\x12\x16\n" +
 	"\x06cursor\x18\n" +
 	" \x01(\tR\x06cursor\x12\x14\n" +
 	"\x05limit\x18\v \x01(\x05R\x05limit\"\xe6\x01\n" +
@@ -10217,11 +10509,12 @@ const file_api_proto_rawDesc = "" +
 	"\x13include_total_count\x18\x02 \x01(\bR\x11includeTotalCount\x12\x16\n" +
 	"\x06cursor\x18\n" +
 	" \x01(\tR\x06cursor\x12\x14\n" +
-	"\x05limit\x18\v \x01(\x05R\x05limit\"_\n" +
+	"\x05limit\x18\v \x01(\x05R\x05limit\"s\n" +
 	"\x18DeviceTopicUpdateRequest\x12\x1b\n" +
 	"\tdevice_id\x18\x01 \x01(\tR\bdeviceId\x12\x0e\n" +
 	"\x02op\x18\x02 \x01(\tR\x02op\x12\x16\n" +
-	"\x06topics\x18\x03 \x03(\tR\x06topics\"T\n" +
+	"\x06topics\x18\x03 \x03(\tR\x06topics\x12\x12\n" +
+	"\x04user\x18\x04 \x01(\tR\x04user\"T\n" +
 	"\x16UserTopicUpdateRequest\x12\x12\n" +
 	"\x04user\x18\x01 \x01(\tR\x04user\x12\x0e\n" +
 	"\x02op\x18\x02 \x01(\tR\x02op\x12\x16\n" +
@@ -10259,7 +10552,7 @@ const file_api_proto_rawDesc = "" +
 	"\vnext_cursor\x18\x02 \x01(\tR\n" +
 	"nextCursor\x12\x1f\n" +
 	"\vtotal_count\x18\x03 \x01(\x03R\n" +
-	"totalCount\"\xff\x02\n" +
+	"totalCount\"\xa2\x03\n" +
 	"\x06Device\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\bplatform\x18\x02 \x01(\tR\bplatform\x12\x1a\n" +
@@ -10274,7 +10567,8 @@ const file_api_proto_rawDesc = "" +
 	" \x03(\v2,.centrifugal.centrifugo.api.Device.MetaEntryR\x04meta\x12\x16\n" +
 	"\x06topics\x18\v \x03(\tR\x06topics\x12\x1a\n" +
 	"\btimezone\x18\f \x01(\tR\btimezone\x12\x16\n" +
-	"\x06locale\x18\r \x01(\tR\x06locale\x1a7\n" +
+	"\x06locale\x18\r \x01(\tR\x06locale\x12!\n" +
+	"\fwebpush_keys\x18\x0e \x01(\tR\vwebpushKeys\x1a7\n" +
 	"\tMetaEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x98\x01\n" +
@@ -10299,7 +10593,7 @@ const file_api_proto_rawDesc = "" +
 	"\tUserTopic\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04user\x18\x02 \x01(\tR\x04user\x12\x14\n" +
-	"\x05topic\x18\x03 \x01(\tR\x05topic\"\xb4\x02\n" +
+	"\x05topic\x18\x03 \x01(\tR\x05topic\"\xdb\x02\n" +
 	"\rPushRecipient\x12@\n" +
 	"\x06filter\x18\x01 \x01(\v2(.centrifugal.centrifugo.api.DeviceFilterR\x06filter\x12\x1d\n" +
 	"\n" +
@@ -10311,11 +10605,13 @@ const file_api_proto_rawDesc = "" +
 	"\thms_topic\x18\x06 \x01(\tR\bhmsTopic\x12#\n" +
 	"\rhms_condition\x18\a \x01(\tR\fhmsCondition\x12\x1f\n" +
 	"\vapns_tokens\x18\b \x03(\tR\n" +
-	"apnsTokens\"\xfb\x01\n" +
+	"apnsTokens\x12%\n" +
+	"\x0ewebpush_tokens\x18\t \x03(\tR\rwebpushTokens\"\xca\x02\n" +
 	"\x10PushNotification\x12A\n" +
 	"\x03fcm\x18\x01 \x01(\v2/.centrifugal.centrifugo.api.FcmPushNotificationR\x03fcm\x12A\n" +
 	"\x03hms\x18\x02 \x01(\v2/.centrifugal.centrifugo.api.HmsPushNotificationR\x03hms\x12D\n" +
-	"\x04apns\x18\x03 \x01(\v20.centrifugal.centrifugo.api.ApnsPushNotificationR\x04apns\x12\x1b\n" +
+	"\x04apns\x18\x03 \x01(\v20.centrifugal.centrifugo.api.ApnsPushNotificationR\x04apns\x12M\n" +
+	"\awebpush\x18\x04 \x01(\v23.centrifugal.centrifugo.api.WebPushPushNotificationR\awebpush\x12\x1b\n" +
 	"\texpire_at\x18\x05 \x01(\x03R\bexpireAt\"/\n" +
 	"\x13FcmPushNotification\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\fR\amessage\"/\n" +
@@ -10323,6 +10619,12 @@ const file_api_proto_rawDesc = "" +
 	"\amessage\x18\x01 \x01(\fR\amessage\"\xc5\x01\n" +
 	"\x14ApnsPushNotification\x12W\n" +
 	"\aheaders\x18\x01 \x03(\v2=.centrifugal.centrifugo.api.ApnsPushNotification.HeadersEntryR\aheaders\x12\x18\n" +
+	"\apayload\x18\x02 \x01(\fR\apayload\x1a:\n" +
+	"\fHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xcb\x01\n" +
+	"\x17WebPushPushNotification\x12Z\n" +
+	"\aheaders\x18\x01 \x03(\v2@.centrifugal.centrifugo.api.WebPushPushNotification.HeadersEntryR\aheaders\x12\x18\n" +
 	"\apayload\x18\x02 \x01(\fR\apayload\x1a:\n" +
 	"\fHeadersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
@@ -10550,7 +10852,7 @@ func file_api_proto_rawDescGZIP() []byte {
 	return file_api_proto_rawDescData
 }
 
-var file_api_proto_msgTypes = make([]protoimpl.MessageInfo, 178)
+var file_api_proto_msgTypes = make([]protoimpl.MessageInfo, 182)
 var file_api_proto_goTypes = []any{
 	(*Command)(nil),                      // 0: centrifugal.centrifugo.api.Command
 	(*Error)(nil),                        // 1: centrifugal.centrifugo.api.Error
@@ -10563,484 +10865,497 @@ var file_api_proto_goTypes = []any{
 	(*BroadcastRequest)(nil),             // 8: centrifugal.centrifugo.api.BroadcastRequest
 	(*BroadcastResponse)(nil),            // 9: centrifugal.centrifugo.api.BroadcastResponse
 	(*BroadcastResult)(nil),              // 10: centrifugal.centrifugo.api.BroadcastResult
-	(*SubscribeRequest)(nil),             // 11: centrifugal.centrifugo.api.SubscribeRequest
-	(*SubscribeResponse)(nil),            // 12: centrifugal.centrifugo.api.SubscribeResponse
-	(*BoolValue)(nil),                    // 13: centrifugal.centrifugo.api.BoolValue
-	(*Int32Value)(nil),                   // 14: centrifugal.centrifugo.api.Int32Value
-	(*SubscribeOptionOverride)(nil),      // 15: centrifugal.centrifugo.api.SubscribeOptionOverride
-	(*SubscribeResult)(nil),              // 16: centrifugal.centrifugo.api.SubscribeResult
-	(*UnsubscribeRequest)(nil),           // 17: centrifugal.centrifugo.api.UnsubscribeRequest
-	(*UnsubscribeResponse)(nil),          // 18: centrifugal.centrifugo.api.UnsubscribeResponse
-	(*UnsubscribeResult)(nil),            // 19: centrifugal.centrifugo.api.UnsubscribeResult
-	(*Disconnect)(nil),                   // 20: centrifugal.centrifugo.api.Disconnect
-	(*DisconnectRequest)(nil),            // 21: centrifugal.centrifugo.api.DisconnectRequest
-	(*DisconnectResponse)(nil),           // 22: centrifugal.centrifugo.api.DisconnectResponse
-	(*DisconnectResult)(nil),             // 23: centrifugal.centrifugo.api.DisconnectResult
-	(*PresenceRequest)(nil),              // 24: centrifugal.centrifugo.api.PresenceRequest
-	(*PresenceResponse)(nil),             // 25: centrifugal.centrifugo.api.PresenceResponse
-	(*ClientInfo)(nil),                   // 26: centrifugal.centrifugo.api.ClientInfo
-	(*PresenceResult)(nil),               // 27: centrifugal.centrifugo.api.PresenceResult
-	(*PresenceStatsRequest)(nil),         // 28: centrifugal.centrifugo.api.PresenceStatsRequest
-	(*PresenceStatsResponse)(nil),        // 29: centrifugal.centrifugo.api.PresenceStatsResponse
-	(*PresenceStatsResult)(nil),          // 30: centrifugal.centrifugo.api.PresenceStatsResult
-	(*StreamPosition)(nil),               // 31: centrifugal.centrifugo.api.StreamPosition
-	(*HistoryRequest)(nil),               // 32: centrifugal.centrifugo.api.HistoryRequest
-	(*HistoryResponse)(nil),              // 33: centrifugal.centrifugo.api.HistoryResponse
-	(*Publication)(nil),                  // 34: centrifugal.centrifugo.api.Publication
-	(*HistoryResult)(nil),                // 35: centrifugal.centrifugo.api.HistoryResult
-	(*HistoryRemoveRequest)(nil),         // 36: centrifugal.centrifugo.api.HistoryRemoveRequest
-	(*HistoryRemoveResponse)(nil),        // 37: centrifugal.centrifugo.api.HistoryRemoveResponse
-	(*HistoryRemoveResult)(nil),          // 38: centrifugal.centrifugo.api.HistoryRemoveResult
-	(*InfoRequest)(nil),                  // 39: centrifugal.centrifugo.api.InfoRequest
-	(*InfoResponse)(nil),                 // 40: centrifugal.centrifugo.api.InfoResponse
-	(*InfoResult)(nil),                   // 41: centrifugal.centrifugo.api.InfoResult
-	(*RPCRequest)(nil),                   // 42: centrifugal.centrifugo.api.RPCRequest
-	(*RPCResponse)(nil),                  // 43: centrifugal.centrifugo.api.RPCResponse
-	(*RPCResult)(nil),                    // 44: centrifugal.centrifugo.api.RPCResult
-	(*RefreshRequest)(nil),               // 45: centrifugal.centrifugo.api.RefreshRequest
-	(*RefreshResponse)(nil),              // 46: centrifugal.centrifugo.api.RefreshResponse
-	(*RefreshResult)(nil),                // 47: centrifugal.centrifugo.api.RefreshResult
-	(*NodeResult)(nil),                   // 48: centrifugal.centrifugo.api.NodeResult
-	(*Metrics)(nil),                      // 49: centrifugal.centrifugo.api.Metrics
-	(*Process)(nil),                      // 50: centrifugal.centrifugo.api.Process
-	(*ChannelsRequest)(nil),              // 51: centrifugal.centrifugo.api.ChannelsRequest
-	(*ChannelsResponse)(nil),             // 52: centrifugal.centrifugo.api.ChannelsResponse
-	(*ChannelsResult)(nil),               // 53: centrifugal.centrifugo.api.ChannelsResult
-	(*ChannelInfo)(nil),                  // 54: centrifugal.centrifugo.api.ChannelInfo
-	(*ConnectionsRequest)(nil),           // 55: centrifugal.centrifugo.api.ConnectionsRequest
-	(*ConnectionsResponse)(nil),          // 56: centrifugal.centrifugo.api.ConnectionsResponse
-	(*ConnectionsResult)(nil),            // 57: centrifugal.centrifugo.api.ConnectionsResult
-	(*ConnectionInfo)(nil),               // 58: centrifugal.centrifugo.api.ConnectionInfo
-	(*ConnectionState)(nil),              // 59: centrifugal.centrifugo.api.ConnectionState
-	(*ChannelContext)(nil),               // 60: centrifugal.centrifugo.api.ChannelContext
-	(*ConnectionTokenInfo)(nil),          // 61: centrifugal.centrifugo.api.ConnectionTokenInfo
-	(*SubscriptionTokenInfo)(nil),        // 62: centrifugal.centrifugo.api.SubscriptionTokenInfo
-	(*UpdateUserStatusRequest)(nil),      // 63: centrifugal.centrifugo.api.UpdateUserStatusRequest
-	(*UpdateUserStatusResponse)(nil),     // 64: centrifugal.centrifugo.api.UpdateUserStatusResponse
-	(*UpdateUserStatusResult)(nil),       // 65: centrifugal.centrifugo.api.UpdateUserStatusResult
-	(*GetUserStatusRequest)(nil),         // 66: centrifugal.centrifugo.api.GetUserStatusRequest
-	(*GetUserStatusResponse)(nil),        // 67: centrifugal.centrifugo.api.GetUserStatusResponse
-	(*GetUserStatusResult)(nil),          // 68: centrifugal.centrifugo.api.GetUserStatusResult
-	(*UserStatus)(nil),                   // 69: centrifugal.centrifugo.api.UserStatus
-	(*DeleteUserStatusRequest)(nil),      // 70: centrifugal.centrifugo.api.DeleteUserStatusRequest
-	(*DeleteUserStatusResponse)(nil),     // 71: centrifugal.centrifugo.api.DeleteUserStatusResponse
-	(*DeleteUserStatusResult)(nil),       // 72: centrifugal.centrifugo.api.DeleteUserStatusResult
-	(*BlockUserRequest)(nil),             // 73: centrifugal.centrifugo.api.BlockUserRequest
-	(*BlockUserResult)(nil),              // 74: centrifugal.centrifugo.api.BlockUserResult
-	(*BlockUserResponse)(nil),            // 75: centrifugal.centrifugo.api.BlockUserResponse
-	(*UnblockUserRequest)(nil),           // 76: centrifugal.centrifugo.api.UnblockUserRequest
-	(*UnblockUserResult)(nil),            // 77: centrifugal.centrifugo.api.UnblockUserResult
-	(*UnblockUserResponse)(nil),          // 78: centrifugal.centrifugo.api.UnblockUserResponse
-	(*RevokeTokenRequest)(nil),           // 79: centrifugal.centrifugo.api.RevokeTokenRequest
-	(*RevokeTokenResult)(nil),            // 80: centrifugal.centrifugo.api.RevokeTokenResult
-	(*RevokeTokenResponse)(nil),          // 81: centrifugal.centrifugo.api.RevokeTokenResponse
-	(*InvalidateUserTokensRequest)(nil),  // 82: centrifugal.centrifugo.api.InvalidateUserTokensRequest
-	(*InvalidateUserTokensResult)(nil),   // 83: centrifugal.centrifugo.api.InvalidateUserTokensResult
-	(*InvalidateUserTokensResponse)(nil), // 84: centrifugal.centrifugo.api.InvalidateUserTokensResponse
-	(*DeviceRegisterRequest)(nil),        // 85: centrifugal.centrifugo.api.DeviceRegisterRequest
-	(*DeviceUpdateRequest)(nil),          // 86: centrifugal.centrifugo.api.DeviceUpdateRequest
-	(*DeviceRemoveRequest)(nil),          // 87: centrifugal.centrifugo.api.DeviceRemoveRequest
-	(*DeviceUserUpdate)(nil),             // 88: centrifugal.centrifugo.api.DeviceUserUpdate
-	(*DeviceTimezoneUpdate)(nil),         // 89: centrifugal.centrifugo.api.DeviceTimezoneUpdate
-	(*DeviceLocaleUpdate)(nil),           // 90: centrifugal.centrifugo.api.DeviceLocaleUpdate
-	(*DeviceMetaUpdate)(nil),             // 91: centrifugal.centrifugo.api.DeviceMetaUpdate
-	(*DeviceTopicsUpdate)(nil),           // 92: centrifugal.centrifugo.api.DeviceTopicsUpdate
-	(*DeviceFilter)(nil),                 // 93: centrifugal.centrifugo.api.DeviceFilter
-	(*DeviceListRequest)(nil),            // 94: centrifugal.centrifugo.api.DeviceListRequest
-	(*DeviceTopicFilter)(nil),            // 95: centrifugal.centrifugo.api.DeviceTopicFilter
-	(*DeviceTopicListRequest)(nil),       // 96: centrifugal.centrifugo.api.DeviceTopicListRequest
-	(*UserTopicFilter)(nil),              // 97: centrifugal.centrifugo.api.UserTopicFilter
-	(*UserTopicListRequest)(nil),         // 98: centrifugal.centrifugo.api.UserTopicListRequest
-	(*DeviceTopicUpdateRequest)(nil),     // 99: centrifugal.centrifugo.api.DeviceTopicUpdateRequest
-	(*UserTopicUpdateRequest)(nil),       // 100: centrifugal.centrifugo.api.UserTopicUpdateRequest
-	(*DeviceRegisterResponse)(nil),       // 101: centrifugal.centrifugo.api.DeviceRegisterResponse
-	(*DeviceUpdateResponse)(nil),         // 102: centrifugal.centrifugo.api.DeviceUpdateResponse
-	(*DeviceRemoveResponse)(nil),         // 103: centrifugal.centrifugo.api.DeviceRemoveResponse
-	(*DeviceListResponse)(nil),           // 104: centrifugal.centrifugo.api.DeviceListResponse
-	(*DeviceTopicListResponse)(nil),      // 105: centrifugal.centrifugo.api.DeviceTopicListResponse
-	(*UserTopicListResponse)(nil),        // 106: centrifugal.centrifugo.api.UserTopicListResponse
-	(*DeviceTopicUpdateResponse)(nil),    // 107: centrifugal.centrifugo.api.DeviceTopicUpdateResponse
-	(*UserTopicUpdateResponse)(nil),      // 108: centrifugal.centrifugo.api.UserTopicUpdateResponse
-	(*DeviceRegisterResult)(nil),         // 109: centrifugal.centrifugo.api.DeviceRegisterResult
-	(*DeviceUpdateResult)(nil),           // 110: centrifugal.centrifugo.api.DeviceUpdateResult
-	(*DeviceRemoveResult)(nil),           // 111: centrifugal.centrifugo.api.DeviceRemoveResult
-	(*DeviceListResult)(nil),             // 112: centrifugal.centrifugo.api.DeviceListResult
-	(*Device)(nil),                       // 113: centrifugal.centrifugo.api.Device
-	(*DeviceTopicListResult)(nil),        // 114: centrifugal.centrifugo.api.DeviceTopicListResult
-	(*DeviceTopic)(nil),                  // 115: centrifugal.centrifugo.api.DeviceTopic
-	(*UserTopicListResult)(nil),          // 116: centrifugal.centrifugo.api.UserTopicListResult
-	(*DeviceTopicUpdateResult)(nil),      // 117: centrifugal.centrifugo.api.DeviceTopicUpdateResult
-	(*UserTopicUpdateResult)(nil),        // 118: centrifugal.centrifugo.api.UserTopicUpdateResult
-	(*UserTopic)(nil),                    // 119: centrifugal.centrifugo.api.UserTopic
-	(*PushRecipient)(nil),                // 120: centrifugal.centrifugo.api.PushRecipient
-	(*PushNotification)(nil),             // 121: centrifugal.centrifugo.api.PushNotification
-	(*FcmPushNotification)(nil),          // 122: centrifugal.centrifugo.api.FcmPushNotification
-	(*HmsPushNotification)(nil),          // 123: centrifugal.centrifugo.api.HmsPushNotification
-	(*ApnsPushNotification)(nil),         // 124: centrifugal.centrifugo.api.ApnsPushNotification
-	(*SendPushNotificationRequest)(nil),  // 125: centrifugal.centrifugo.api.SendPushNotificationRequest
-	(*PushLocalization)(nil),             // 126: centrifugal.centrifugo.api.PushLocalization
-	(*PushLimitStrategy)(nil),            // 127: centrifugal.centrifugo.api.PushLimitStrategy
-	(*PushTimeLimitStrategy)(nil),        // 128: centrifugal.centrifugo.api.PushTimeLimitStrategy
-	(*PushRateLimitStrategy)(nil),        // 129: centrifugal.centrifugo.api.PushRateLimitStrategy
-	(*RateLimitPolicy)(nil),              // 130: centrifugal.centrifugo.api.RateLimitPolicy
-	(*SendPushNotificationResponse)(nil), // 131: centrifugal.centrifugo.api.SendPushNotificationResponse
-	(*SendPushNotificationResult)(nil),   // 132: centrifugal.centrifugo.api.SendPushNotificationResult
-	(*UpdatePushStatusRequest)(nil),      // 133: centrifugal.centrifugo.api.UpdatePushStatusRequest
-	(*UpdatePushStatusResponse)(nil),     // 134: centrifugal.centrifugo.api.UpdatePushStatusResponse
-	(*UpdatePushStatusResult)(nil),       // 135: centrifugal.centrifugo.api.UpdatePushStatusResult
-	(*CancelPushRequest)(nil),            // 136: centrifugal.centrifugo.api.CancelPushRequest
-	(*CancelPushResponse)(nil),           // 137: centrifugal.centrifugo.api.CancelPushResponse
-	(*CancelPushResult)(nil),             // 138: centrifugal.centrifugo.api.CancelPushResult
-	(*MapPublishRequest)(nil),            // 139: centrifugal.centrifugo.api.MapPublishRequest
-	(*MapPublishResponse)(nil),           // 140: centrifugal.centrifugo.api.MapPublishResponse
-	(*MapPublishResult)(nil),             // 141: centrifugal.centrifugo.api.MapPublishResult
-	(*MapRemoveRequest)(nil),             // 142: centrifugal.centrifugo.api.MapRemoveRequest
-	(*MapRemoveResponse)(nil),            // 143: centrifugal.centrifugo.api.MapRemoveResponse
-	(*MapRemoveResult)(nil),              // 144: centrifugal.centrifugo.api.MapRemoveResult
-	(*MapReadStateRequest)(nil),          // 145: centrifugal.centrifugo.api.MapReadStateRequest
-	(*MapReadStateResponse)(nil),         // 146: centrifugal.centrifugo.api.MapReadStateResponse
-	(*MapReadStateResult)(nil),           // 147: centrifugal.centrifugo.api.MapReadStateResult
-	(*MapEntry)(nil),                     // 148: centrifugal.centrifugo.api.MapEntry
-	(*MapReadStreamRequest)(nil),         // 149: centrifugal.centrifugo.api.MapReadStreamRequest
-	(*MapReadStreamResponse)(nil),        // 150: centrifugal.centrifugo.api.MapReadStreamResponse
-	(*MapReadStreamResult)(nil),          // 151: centrifugal.centrifugo.api.MapReadStreamResult
-	(*MapStatsRequest)(nil),              // 152: centrifugal.centrifugo.api.MapStatsRequest
-	(*MapStatsResponse)(nil),             // 153: centrifugal.centrifugo.api.MapStatsResponse
-	(*MapStatsResult)(nil),               // 154: centrifugal.centrifugo.api.MapStatsResult
-	(*MapClearRequest)(nil),              // 155: centrifugal.centrifugo.api.MapClearRequest
-	(*MapClearResponse)(nil),             // 156: centrifugal.centrifugo.api.MapClearResponse
-	(*MapClearResult)(nil),               // 157: centrifugal.centrifugo.api.MapClearResult
-	(*SharedPollPublishRequest)(nil),     // 158: centrifugal.centrifugo.api.SharedPollPublishRequest
-	(*SharedPollPublishResponse)(nil),    // 159: centrifugal.centrifugo.api.SharedPollPublishResponse
-	(*SharedPollPublishResult)(nil),      // 160: centrifugal.centrifugo.api.SharedPollPublishResult
-	nil,                                  // 161: centrifugal.centrifugo.api.PublishRequest.TagsEntry
-	nil,                                  // 162: centrifugal.centrifugo.api.BroadcastRequest.TagsEntry
-	nil,                                  // 163: centrifugal.centrifugo.api.PresenceResult.PresenceEntry
-	nil,                                  // 164: centrifugal.centrifugo.api.Publication.TagsEntry
-	nil,                                  // 165: centrifugal.centrifugo.api.Metrics.ItemsEntry
-	nil,                                  // 166: centrifugal.centrifugo.api.ChannelsResult.ChannelsEntry
-	nil,                                  // 167: centrifugal.centrifugo.api.ConnectionsResult.ConnectionsEntry
-	nil,                                  // 168: centrifugal.centrifugo.api.ConnectionState.ChannelsEntry
-	nil,                                  // 169: centrifugal.centrifugo.api.ConnectionState.SubscriptionTokensEntry
-	nil,                                  // 170: centrifugal.centrifugo.api.DeviceRegisterRequest.MetaEntry
-	nil,                                  // 171: centrifugal.centrifugo.api.DeviceMetaUpdate.MetaEntry
-	nil,                                  // 172: centrifugal.centrifugo.api.Device.MetaEntry
-	nil,                                  // 173: centrifugal.centrifugo.api.ApnsPushNotification.HeadersEntry
-	nil,                                  // 174: centrifugal.centrifugo.api.SendPushNotificationRequest.LocalizationsEntry
-	nil,                                  // 175: centrifugal.centrifugo.api.PushLocalization.TranslationsEntry
-	nil,                                  // 176: centrifugal.centrifugo.api.MapPublishRequest.TagsEntry
-	nil,                                  // 177: centrifugal.centrifugo.api.MapEntry.TagsEntry
+	(*FilterNode)(nil),                   // 11: centrifugal.centrifugo.api.FilterNode
+	(*SubscribeRequest)(nil),             // 12: centrifugal.centrifugo.api.SubscribeRequest
+	(*SubscribeResponse)(nil),            // 13: centrifugal.centrifugo.api.SubscribeResponse
+	(*BoolValue)(nil),                    // 14: centrifugal.centrifugo.api.BoolValue
+	(*Int32Value)(nil),                   // 15: centrifugal.centrifugo.api.Int32Value
+	(*SubscribeOptionOverride)(nil),      // 16: centrifugal.centrifugo.api.SubscribeOptionOverride
+	(*SubscribeResult)(nil),              // 17: centrifugal.centrifugo.api.SubscribeResult
+	(*UnsubscribeRequest)(nil),           // 18: centrifugal.centrifugo.api.UnsubscribeRequest
+	(*UnsubscribeResponse)(nil),          // 19: centrifugal.centrifugo.api.UnsubscribeResponse
+	(*UnsubscribeResult)(nil),            // 20: centrifugal.centrifugo.api.UnsubscribeResult
+	(*Disconnect)(nil),                   // 21: centrifugal.centrifugo.api.Disconnect
+	(*DisconnectRequest)(nil),            // 22: centrifugal.centrifugo.api.DisconnectRequest
+	(*DisconnectResponse)(nil),           // 23: centrifugal.centrifugo.api.DisconnectResponse
+	(*DisconnectResult)(nil),             // 24: centrifugal.centrifugo.api.DisconnectResult
+	(*PresenceRequest)(nil),              // 25: centrifugal.centrifugo.api.PresenceRequest
+	(*PresenceResponse)(nil),             // 26: centrifugal.centrifugo.api.PresenceResponse
+	(*ClientInfo)(nil),                   // 27: centrifugal.centrifugo.api.ClientInfo
+	(*PresenceResult)(nil),               // 28: centrifugal.centrifugo.api.PresenceResult
+	(*PresenceStatsRequest)(nil),         // 29: centrifugal.centrifugo.api.PresenceStatsRequest
+	(*PresenceStatsResponse)(nil),        // 30: centrifugal.centrifugo.api.PresenceStatsResponse
+	(*PresenceStatsResult)(nil),          // 31: centrifugal.centrifugo.api.PresenceStatsResult
+	(*StreamPosition)(nil),               // 32: centrifugal.centrifugo.api.StreamPosition
+	(*HistoryRequest)(nil),               // 33: centrifugal.centrifugo.api.HistoryRequest
+	(*HistoryResponse)(nil),              // 34: centrifugal.centrifugo.api.HistoryResponse
+	(*Publication)(nil),                  // 35: centrifugal.centrifugo.api.Publication
+	(*HistoryResult)(nil),                // 36: centrifugal.centrifugo.api.HistoryResult
+	(*HistoryRemoveRequest)(nil),         // 37: centrifugal.centrifugo.api.HistoryRemoveRequest
+	(*HistoryRemoveResponse)(nil),        // 38: centrifugal.centrifugo.api.HistoryRemoveResponse
+	(*HistoryRemoveResult)(nil),          // 39: centrifugal.centrifugo.api.HistoryRemoveResult
+	(*InfoRequest)(nil),                  // 40: centrifugal.centrifugo.api.InfoRequest
+	(*InfoResponse)(nil),                 // 41: centrifugal.centrifugo.api.InfoResponse
+	(*InfoResult)(nil),                   // 42: centrifugal.centrifugo.api.InfoResult
+	(*RPCRequest)(nil),                   // 43: centrifugal.centrifugo.api.RPCRequest
+	(*RPCResponse)(nil),                  // 44: centrifugal.centrifugo.api.RPCResponse
+	(*RPCResult)(nil),                    // 45: centrifugal.centrifugo.api.RPCResult
+	(*RefreshRequest)(nil),               // 46: centrifugal.centrifugo.api.RefreshRequest
+	(*RefreshResponse)(nil),              // 47: centrifugal.centrifugo.api.RefreshResponse
+	(*RefreshResult)(nil),                // 48: centrifugal.centrifugo.api.RefreshResult
+	(*NodeResult)(nil),                   // 49: centrifugal.centrifugo.api.NodeResult
+	(*Metrics)(nil),                      // 50: centrifugal.centrifugo.api.Metrics
+	(*Process)(nil),                      // 51: centrifugal.centrifugo.api.Process
+	(*ChannelsRequest)(nil),              // 52: centrifugal.centrifugo.api.ChannelsRequest
+	(*ChannelsResponse)(nil),             // 53: centrifugal.centrifugo.api.ChannelsResponse
+	(*ChannelsResult)(nil),               // 54: centrifugal.centrifugo.api.ChannelsResult
+	(*ChannelInfo)(nil),                  // 55: centrifugal.centrifugo.api.ChannelInfo
+	(*ConnectionsRequest)(nil),           // 56: centrifugal.centrifugo.api.ConnectionsRequest
+	(*ConnectionsResponse)(nil),          // 57: centrifugal.centrifugo.api.ConnectionsResponse
+	(*ConnectionsResult)(nil),            // 58: centrifugal.centrifugo.api.ConnectionsResult
+	(*ConnectionInfo)(nil),               // 59: centrifugal.centrifugo.api.ConnectionInfo
+	(*ConnectionState)(nil),              // 60: centrifugal.centrifugo.api.ConnectionState
+	(*ChannelContext)(nil),               // 61: centrifugal.centrifugo.api.ChannelContext
+	(*ConnectionTokenInfo)(nil),          // 62: centrifugal.centrifugo.api.ConnectionTokenInfo
+	(*SubscriptionTokenInfo)(nil),        // 63: centrifugal.centrifugo.api.SubscriptionTokenInfo
+	(*UpdateUserStatusRequest)(nil),      // 64: centrifugal.centrifugo.api.UpdateUserStatusRequest
+	(*UpdateUserStatusResponse)(nil),     // 65: centrifugal.centrifugo.api.UpdateUserStatusResponse
+	(*UpdateUserStatusResult)(nil),       // 66: centrifugal.centrifugo.api.UpdateUserStatusResult
+	(*GetUserStatusRequest)(nil),         // 67: centrifugal.centrifugo.api.GetUserStatusRequest
+	(*GetUserStatusResponse)(nil),        // 68: centrifugal.centrifugo.api.GetUserStatusResponse
+	(*GetUserStatusResult)(nil),          // 69: centrifugal.centrifugo.api.GetUserStatusResult
+	(*UserStatus)(nil),                   // 70: centrifugal.centrifugo.api.UserStatus
+	(*DeleteUserStatusRequest)(nil),      // 71: centrifugal.centrifugo.api.DeleteUserStatusRequest
+	(*DeleteUserStatusResponse)(nil),     // 72: centrifugal.centrifugo.api.DeleteUserStatusResponse
+	(*DeleteUserStatusResult)(nil),       // 73: centrifugal.centrifugo.api.DeleteUserStatusResult
+	(*BlockUserRequest)(nil),             // 74: centrifugal.centrifugo.api.BlockUserRequest
+	(*BlockUserResult)(nil),              // 75: centrifugal.centrifugo.api.BlockUserResult
+	(*BlockUserResponse)(nil),            // 76: centrifugal.centrifugo.api.BlockUserResponse
+	(*UnblockUserRequest)(nil),           // 77: centrifugal.centrifugo.api.UnblockUserRequest
+	(*UnblockUserResult)(nil),            // 78: centrifugal.centrifugo.api.UnblockUserResult
+	(*UnblockUserResponse)(nil),          // 79: centrifugal.centrifugo.api.UnblockUserResponse
+	(*RevokeTokenRequest)(nil),           // 80: centrifugal.centrifugo.api.RevokeTokenRequest
+	(*RevokeTokenResult)(nil),            // 81: centrifugal.centrifugo.api.RevokeTokenResult
+	(*RevokeTokenResponse)(nil),          // 82: centrifugal.centrifugo.api.RevokeTokenResponse
+	(*InvalidateUserTokensRequest)(nil),  // 83: centrifugal.centrifugo.api.InvalidateUserTokensRequest
+	(*InvalidateUserTokensResult)(nil),   // 84: centrifugal.centrifugo.api.InvalidateUserTokensResult
+	(*InvalidateUserTokensResponse)(nil), // 85: centrifugal.centrifugo.api.InvalidateUserTokensResponse
+	(*DeviceRegisterRequest)(nil),        // 86: centrifugal.centrifugo.api.DeviceRegisterRequest
+	(*DeviceUpdateRequest)(nil),          // 87: centrifugal.centrifugo.api.DeviceUpdateRequest
+	(*DeviceRemoveRequest)(nil),          // 88: centrifugal.centrifugo.api.DeviceRemoveRequest
+	(*DeviceUserUpdate)(nil),             // 89: centrifugal.centrifugo.api.DeviceUserUpdate
+	(*DeviceTimezoneUpdate)(nil),         // 90: centrifugal.centrifugo.api.DeviceTimezoneUpdate
+	(*DeviceLocaleUpdate)(nil),           // 91: centrifugal.centrifugo.api.DeviceLocaleUpdate
+	(*DeviceMetaUpdate)(nil),             // 92: centrifugal.centrifugo.api.DeviceMetaUpdate
+	(*DeviceTopicsUpdate)(nil),           // 93: centrifugal.centrifugo.api.DeviceTopicsUpdate
+	(*DeviceFilter)(nil),                 // 94: centrifugal.centrifugo.api.DeviceFilter
+	(*DeviceListRequest)(nil),            // 95: centrifugal.centrifugo.api.DeviceListRequest
+	(*DeviceTopicFilter)(nil),            // 96: centrifugal.centrifugo.api.DeviceTopicFilter
+	(*DeviceTopicListRequest)(nil),       // 97: centrifugal.centrifugo.api.DeviceTopicListRequest
+	(*UserTopicFilter)(nil),              // 98: centrifugal.centrifugo.api.UserTopicFilter
+	(*UserTopicListRequest)(nil),         // 99: centrifugal.centrifugo.api.UserTopicListRequest
+	(*DeviceTopicUpdateRequest)(nil),     // 100: centrifugal.centrifugo.api.DeviceTopicUpdateRequest
+	(*UserTopicUpdateRequest)(nil),       // 101: centrifugal.centrifugo.api.UserTopicUpdateRequest
+	(*DeviceRegisterResponse)(nil),       // 102: centrifugal.centrifugo.api.DeviceRegisterResponse
+	(*DeviceUpdateResponse)(nil),         // 103: centrifugal.centrifugo.api.DeviceUpdateResponse
+	(*DeviceRemoveResponse)(nil),         // 104: centrifugal.centrifugo.api.DeviceRemoveResponse
+	(*DeviceListResponse)(nil),           // 105: centrifugal.centrifugo.api.DeviceListResponse
+	(*DeviceTopicListResponse)(nil),      // 106: centrifugal.centrifugo.api.DeviceTopicListResponse
+	(*UserTopicListResponse)(nil),        // 107: centrifugal.centrifugo.api.UserTopicListResponse
+	(*DeviceTopicUpdateResponse)(nil),    // 108: centrifugal.centrifugo.api.DeviceTopicUpdateResponse
+	(*UserTopicUpdateResponse)(nil),      // 109: centrifugal.centrifugo.api.UserTopicUpdateResponse
+	(*DeviceRegisterResult)(nil),         // 110: centrifugal.centrifugo.api.DeviceRegisterResult
+	(*DeviceUpdateResult)(nil),           // 111: centrifugal.centrifugo.api.DeviceUpdateResult
+	(*DeviceRemoveResult)(nil),           // 112: centrifugal.centrifugo.api.DeviceRemoveResult
+	(*DeviceListResult)(nil),             // 113: centrifugal.centrifugo.api.DeviceListResult
+	(*Device)(nil),                       // 114: centrifugal.centrifugo.api.Device
+	(*DeviceTopicListResult)(nil),        // 115: centrifugal.centrifugo.api.DeviceTopicListResult
+	(*DeviceTopic)(nil),                  // 116: centrifugal.centrifugo.api.DeviceTopic
+	(*UserTopicListResult)(nil),          // 117: centrifugal.centrifugo.api.UserTopicListResult
+	(*DeviceTopicUpdateResult)(nil),      // 118: centrifugal.centrifugo.api.DeviceTopicUpdateResult
+	(*UserTopicUpdateResult)(nil),        // 119: centrifugal.centrifugo.api.UserTopicUpdateResult
+	(*UserTopic)(nil),                    // 120: centrifugal.centrifugo.api.UserTopic
+	(*PushRecipient)(nil),                // 121: centrifugal.centrifugo.api.PushRecipient
+	(*PushNotification)(nil),             // 122: centrifugal.centrifugo.api.PushNotification
+	(*FcmPushNotification)(nil),          // 123: centrifugal.centrifugo.api.FcmPushNotification
+	(*HmsPushNotification)(nil),          // 124: centrifugal.centrifugo.api.HmsPushNotification
+	(*ApnsPushNotification)(nil),         // 125: centrifugal.centrifugo.api.ApnsPushNotification
+	(*WebPushPushNotification)(nil),      // 126: centrifugal.centrifugo.api.WebPushPushNotification
+	(*SendPushNotificationRequest)(nil),  // 127: centrifugal.centrifugo.api.SendPushNotificationRequest
+	(*PushLocalization)(nil),             // 128: centrifugal.centrifugo.api.PushLocalization
+	(*PushLimitStrategy)(nil),            // 129: centrifugal.centrifugo.api.PushLimitStrategy
+	(*PushTimeLimitStrategy)(nil),        // 130: centrifugal.centrifugo.api.PushTimeLimitStrategy
+	(*PushRateLimitStrategy)(nil),        // 131: centrifugal.centrifugo.api.PushRateLimitStrategy
+	(*RateLimitPolicy)(nil),              // 132: centrifugal.centrifugo.api.RateLimitPolicy
+	(*SendPushNotificationResponse)(nil), // 133: centrifugal.centrifugo.api.SendPushNotificationResponse
+	(*SendPushNotificationResult)(nil),   // 134: centrifugal.centrifugo.api.SendPushNotificationResult
+	(*UpdatePushStatusRequest)(nil),      // 135: centrifugal.centrifugo.api.UpdatePushStatusRequest
+	(*UpdatePushStatusResponse)(nil),     // 136: centrifugal.centrifugo.api.UpdatePushStatusResponse
+	(*UpdatePushStatusResult)(nil),       // 137: centrifugal.centrifugo.api.UpdatePushStatusResult
+	(*CancelPushRequest)(nil),            // 138: centrifugal.centrifugo.api.CancelPushRequest
+	(*CancelPushResponse)(nil),           // 139: centrifugal.centrifugo.api.CancelPushResponse
+	(*CancelPushResult)(nil),             // 140: centrifugal.centrifugo.api.CancelPushResult
+	(*MapPublishRequest)(nil),            // 141: centrifugal.centrifugo.api.MapPublishRequest
+	(*MapPublishResponse)(nil),           // 142: centrifugal.centrifugo.api.MapPublishResponse
+	(*MapPublishResult)(nil),             // 143: centrifugal.centrifugo.api.MapPublishResult
+	(*MapRemoveRequest)(nil),             // 144: centrifugal.centrifugo.api.MapRemoveRequest
+	(*MapRemoveResponse)(nil),            // 145: centrifugal.centrifugo.api.MapRemoveResponse
+	(*MapRemoveResult)(nil),              // 146: centrifugal.centrifugo.api.MapRemoveResult
+	(*MapReadStateRequest)(nil),          // 147: centrifugal.centrifugo.api.MapReadStateRequest
+	(*MapReadStateResponse)(nil),         // 148: centrifugal.centrifugo.api.MapReadStateResponse
+	(*MapReadStateResult)(nil),           // 149: centrifugal.centrifugo.api.MapReadStateResult
+	(*MapEntry)(nil),                     // 150: centrifugal.centrifugo.api.MapEntry
+	(*MapReadStreamRequest)(nil),         // 151: centrifugal.centrifugo.api.MapReadStreamRequest
+	(*MapReadStreamResponse)(nil),        // 152: centrifugal.centrifugo.api.MapReadStreamResponse
+	(*MapReadStreamResult)(nil),          // 153: centrifugal.centrifugo.api.MapReadStreamResult
+	(*MapStatsRequest)(nil),              // 154: centrifugal.centrifugo.api.MapStatsRequest
+	(*MapStatsResponse)(nil),             // 155: centrifugal.centrifugo.api.MapStatsResponse
+	(*MapStatsResult)(nil),               // 156: centrifugal.centrifugo.api.MapStatsResult
+	(*MapClearRequest)(nil),              // 157: centrifugal.centrifugo.api.MapClearRequest
+	(*MapClearResponse)(nil),             // 158: centrifugal.centrifugo.api.MapClearResponse
+	(*MapClearResult)(nil),               // 159: centrifugal.centrifugo.api.MapClearResult
+	(*SharedPollPublishRequest)(nil),     // 160: centrifugal.centrifugo.api.SharedPollPublishRequest
+	(*SharedPollPublishResponse)(nil),    // 161: centrifugal.centrifugo.api.SharedPollPublishResponse
+	(*SharedPollPublishResult)(nil),      // 162: centrifugal.centrifugo.api.SharedPollPublishResult
+	nil,                                  // 163: centrifugal.centrifugo.api.PublishRequest.TagsEntry
+	nil,                                  // 164: centrifugal.centrifugo.api.BroadcastRequest.TagsEntry
+	nil,                                  // 165: centrifugal.centrifugo.api.PresenceResult.PresenceEntry
+	nil,                                  // 166: centrifugal.centrifugo.api.Publication.TagsEntry
+	nil,                                  // 167: centrifugal.centrifugo.api.Metrics.ItemsEntry
+	nil,                                  // 168: centrifugal.centrifugo.api.ChannelsResult.ChannelsEntry
+	nil,                                  // 169: centrifugal.centrifugo.api.ConnectionsResult.ConnectionsEntry
+	nil,                                  // 170: centrifugal.centrifugo.api.ConnectionInfo.LabelsEntry
+	nil,                                  // 171: centrifugal.centrifugo.api.ConnectionState.ChannelsEntry
+	nil,                                  // 172: centrifugal.centrifugo.api.ConnectionState.SubscriptionTokensEntry
+	nil,                                  // 173: centrifugal.centrifugo.api.DeviceRegisterRequest.MetaEntry
+	nil,                                  // 174: centrifugal.centrifugo.api.DeviceMetaUpdate.MetaEntry
+	nil,                                  // 175: centrifugal.centrifugo.api.Device.MetaEntry
+	nil,                                  // 176: centrifugal.centrifugo.api.ApnsPushNotification.HeadersEntry
+	nil,                                  // 177: centrifugal.centrifugo.api.WebPushPushNotification.HeadersEntry
+	nil,                                  // 178: centrifugal.centrifugo.api.SendPushNotificationRequest.LocalizationsEntry
+	nil,                                  // 179: centrifugal.centrifugo.api.PushLocalization.TranslationsEntry
+	nil,                                  // 180: centrifugal.centrifugo.api.MapPublishRequest.TagsEntry
+	nil,                                  // 181: centrifugal.centrifugo.api.MapEntry.TagsEntry
 }
 var file_api_proto_depIdxs = []int32{
 	5,   // 0: centrifugal.centrifugo.api.Command.publish:type_name -> centrifugal.centrifugo.api.PublishRequest
 	8,   // 1: centrifugal.centrifugo.api.Command.broadcast:type_name -> centrifugal.centrifugo.api.BroadcastRequest
-	11,  // 2: centrifugal.centrifugo.api.Command.subscribe:type_name -> centrifugal.centrifugo.api.SubscribeRequest
-	17,  // 3: centrifugal.centrifugo.api.Command.unsubscribe:type_name -> centrifugal.centrifugo.api.UnsubscribeRequest
-	21,  // 4: centrifugal.centrifugo.api.Command.disconnect:type_name -> centrifugal.centrifugo.api.DisconnectRequest
-	24,  // 5: centrifugal.centrifugo.api.Command.presence:type_name -> centrifugal.centrifugo.api.PresenceRequest
-	28,  // 6: centrifugal.centrifugo.api.Command.presence_stats:type_name -> centrifugal.centrifugo.api.PresenceStatsRequest
-	32,  // 7: centrifugal.centrifugo.api.Command.history:type_name -> centrifugal.centrifugo.api.HistoryRequest
-	36,  // 8: centrifugal.centrifugo.api.Command.history_remove:type_name -> centrifugal.centrifugo.api.HistoryRemoveRequest
-	39,  // 9: centrifugal.centrifugo.api.Command.info:type_name -> centrifugal.centrifugo.api.InfoRequest
-	42,  // 10: centrifugal.centrifugo.api.Command.rpc:type_name -> centrifugal.centrifugo.api.RPCRequest
-	45,  // 11: centrifugal.centrifugo.api.Command.refresh:type_name -> centrifugal.centrifugo.api.RefreshRequest
-	51,  // 12: centrifugal.centrifugo.api.Command.channels:type_name -> centrifugal.centrifugo.api.ChannelsRequest
-	55,  // 13: centrifugal.centrifugo.api.Command.connections:type_name -> centrifugal.centrifugo.api.ConnectionsRequest
-	63,  // 14: centrifugal.centrifugo.api.Command.update_user_status:type_name -> centrifugal.centrifugo.api.UpdateUserStatusRequest
-	66,  // 15: centrifugal.centrifugo.api.Command.get_user_status:type_name -> centrifugal.centrifugo.api.GetUserStatusRequest
-	70,  // 16: centrifugal.centrifugo.api.Command.delete_user_status:type_name -> centrifugal.centrifugo.api.DeleteUserStatusRequest
-	73,  // 17: centrifugal.centrifugo.api.Command.block_user:type_name -> centrifugal.centrifugo.api.BlockUserRequest
-	76,  // 18: centrifugal.centrifugo.api.Command.unblock_user:type_name -> centrifugal.centrifugo.api.UnblockUserRequest
-	79,  // 19: centrifugal.centrifugo.api.Command.revoke_token:type_name -> centrifugal.centrifugo.api.RevokeTokenRequest
-	82,  // 20: centrifugal.centrifugo.api.Command.invalidate_user_tokens:type_name -> centrifugal.centrifugo.api.InvalidateUserTokensRequest
-	85,  // 21: centrifugal.centrifugo.api.Command.device_register:type_name -> centrifugal.centrifugo.api.DeviceRegisterRequest
-	86,  // 22: centrifugal.centrifugo.api.Command.device_update:type_name -> centrifugal.centrifugo.api.DeviceUpdateRequest
-	87,  // 23: centrifugal.centrifugo.api.Command.device_remove:type_name -> centrifugal.centrifugo.api.DeviceRemoveRequest
-	94,  // 24: centrifugal.centrifugo.api.Command.device_list:type_name -> centrifugal.centrifugo.api.DeviceListRequest
-	96,  // 25: centrifugal.centrifugo.api.Command.device_topic_list:type_name -> centrifugal.centrifugo.api.DeviceTopicListRequest
-	99,  // 26: centrifugal.centrifugo.api.Command.device_topic_update:type_name -> centrifugal.centrifugo.api.DeviceTopicUpdateRequest
-	98,  // 27: centrifugal.centrifugo.api.Command.user_topic_list:type_name -> centrifugal.centrifugo.api.UserTopicListRequest
-	100, // 28: centrifugal.centrifugo.api.Command.user_topic_update:type_name -> centrifugal.centrifugo.api.UserTopicUpdateRequest
-	125, // 29: centrifugal.centrifugo.api.Command.send_push_notification:type_name -> centrifugal.centrifugo.api.SendPushNotificationRequest
-	133, // 30: centrifugal.centrifugo.api.Command.update_push_status:type_name -> centrifugal.centrifugo.api.UpdatePushStatusRequest
-	136, // 31: centrifugal.centrifugo.api.Command.cancel_push:type_name -> centrifugal.centrifugo.api.CancelPushRequest
-	139, // 32: centrifugal.centrifugo.api.Command.map_publish:type_name -> centrifugal.centrifugo.api.MapPublishRequest
-	142, // 33: centrifugal.centrifugo.api.Command.map_remove:type_name -> centrifugal.centrifugo.api.MapRemoveRequest
-	145, // 34: centrifugal.centrifugo.api.Command.map_read_state:type_name -> centrifugal.centrifugo.api.MapReadStateRequest
-	149, // 35: centrifugal.centrifugo.api.Command.map_read_stream:type_name -> centrifugal.centrifugo.api.MapReadStreamRequest
-	152, // 36: centrifugal.centrifugo.api.Command.map_stats:type_name -> centrifugal.centrifugo.api.MapStatsRequest
-	155, // 37: centrifugal.centrifugo.api.Command.map_clear:type_name -> centrifugal.centrifugo.api.MapClearRequest
-	158, // 38: centrifugal.centrifugo.api.Command.shared_poll_publish:type_name -> centrifugal.centrifugo.api.SharedPollPublishRequest
+	12,  // 2: centrifugal.centrifugo.api.Command.subscribe:type_name -> centrifugal.centrifugo.api.SubscribeRequest
+	18,  // 3: centrifugal.centrifugo.api.Command.unsubscribe:type_name -> centrifugal.centrifugo.api.UnsubscribeRequest
+	22,  // 4: centrifugal.centrifugo.api.Command.disconnect:type_name -> centrifugal.centrifugo.api.DisconnectRequest
+	25,  // 5: centrifugal.centrifugo.api.Command.presence:type_name -> centrifugal.centrifugo.api.PresenceRequest
+	29,  // 6: centrifugal.centrifugo.api.Command.presence_stats:type_name -> centrifugal.centrifugo.api.PresenceStatsRequest
+	33,  // 7: centrifugal.centrifugo.api.Command.history:type_name -> centrifugal.centrifugo.api.HistoryRequest
+	37,  // 8: centrifugal.centrifugo.api.Command.history_remove:type_name -> centrifugal.centrifugo.api.HistoryRemoveRequest
+	40,  // 9: centrifugal.centrifugo.api.Command.info:type_name -> centrifugal.centrifugo.api.InfoRequest
+	43,  // 10: centrifugal.centrifugo.api.Command.rpc:type_name -> centrifugal.centrifugo.api.RPCRequest
+	46,  // 11: centrifugal.centrifugo.api.Command.refresh:type_name -> centrifugal.centrifugo.api.RefreshRequest
+	52,  // 12: centrifugal.centrifugo.api.Command.channels:type_name -> centrifugal.centrifugo.api.ChannelsRequest
+	56,  // 13: centrifugal.centrifugo.api.Command.connections:type_name -> centrifugal.centrifugo.api.ConnectionsRequest
+	64,  // 14: centrifugal.centrifugo.api.Command.update_user_status:type_name -> centrifugal.centrifugo.api.UpdateUserStatusRequest
+	67,  // 15: centrifugal.centrifugo.api.Command.get_user_status:type_name -> centrifugal.centrifugo.api.GetUserStatusRequest
+	71,  // 16: centrifugal.centrifugo.api.Command.delete_user_status:type_name -> centrifugal.centrifugo.api.DeleteUserStatusRequest
+	74,  // 17: centrifugal.centrifugo.api.Command.block_user:type_name -> centrifugal.centrifugo.api.BlockUserRequest
+	77,  // 18: centrifugal.centrifugo.api.Command.unblock_user:type_name -> centrifugal.centrifugo.api.UnblockUserRequest
+	80,  // 19: centrifugal.centrifugo.api.Command.revoke_token:type_name -> centrifugal.centrifugo.api.RevokeTokenRequest
+	83,  // 20: centrifugal.centrifugo.api.Command.invalidate_user_tokens:type_name -> centrifugal.centrifugo.api.InvalidateUserTokensRequest
+	86,  // 21: centrifugal.centrifugo.api.Command.device_register:type_name -> centrifugal.centrifugo.api.DeviceRegisterRequest
+	87,  // 22: centrifugal.centrifugo.api.Command.device_update:type_name -> centrifugal.centrifugo.api.DeviceUpdateRequest
+	88,  // 23: centrifugal.centrifugo.api.Command.device_remove:type_name -> centrifugal.centrifugo.api.DeviceRemoveRequest
+	95,  // 24: centrifugal.centrifugo.api.Command.device_list:type_name -> centrifugal.centrifugo.api.DeviceListRequest
+	97,  // 25: centrifugal.centrifugo.api.Command.device_topic_list:type_name -> centrifugal.centrifugo.api.DeviceTopicListRequest
+	100, // 26: centrifugal.centrifugo.api.Command.device_topic_update:type_name -> centrifugal.centrifugo.api.DeviceTopicUpdateRequest
+	99,  // 27: centrifugal.centrifugo.api.Command.user_topic_list:type_name -> centrifugal.centrifugo.api.UserTopicListRequest
+	101, // 28: centrifugal.centrifugo.api.Command.user_topic_update:type_name -> centrifugal.centrifugo.api.UserTopicUpdateRequest
+	127, // 29: centrifugal.centrifugo.api.Command.send_push_notification:type_name -> centrifugal.centrifugo.api.SendPushNotificationRequest
+	135, // 30: centrifugal.centrifugo.api.Command.update_push_status:type_name -> centrifugal.centrifugo.api.UpdatePushStatusRequest
+	138, // 31: centrifugal.centrifugo.api.Command.cancel_push:type_name -> centrifugal.centrifugo.api.CancelPushRequest
+	141, // 32: centrifugal.centrifugo.api.Command.map_publish:type_name -> centrifugal.centrifugo.api.MapPublishRequest
+	144, // 33: centrifugal.centrifugo.api.Command.map_remove:type_name -> centrifugal.centrifugo.api.MapRemoveRequest
+	147, // 34: centrifugal.centrifugo.api.Command.map_read_state:type_name -> centrifugal.centrifugo.api.MapReadStateRequest
+	151, // 35: centrifugal.centrifugo.api.Command.map_read_stream:type_name -> centrifugal.centrifugo.api.MapReadStreamRequest
+	154, // 36: centrifugal.centrifugo.api.Command.map_stats:type_name -> centrifugal.centrifugo.api.MapStatsRequest
+	157, // 37: centrifugal.centrifugo.api.Command.map_clear:type_name -> centrifugal.centrifugo.api.MapClearRequest
+	160, // 38: centrifugal.centrifugo.api.Command.shared_poll_publish:type_name -> centrifugal.centrifugo.api.SharedPollPublishRequest
 	1,   // 39: centrifugal.centrifugo.api.Reply.error:type_name -> centrifugal.centrifugo.api.Error
 	7,   // 40: centrifugal.centrifugo.api.Reply.publish:type_name -> centrifugal.centrifugo.api.PublishResult
 	10,  // 41: centrifugal.centrifugo.api.Reply.broadcast:type_name -> centrifugal.centrifugo.api.BroadcastResult
-	16,  // 42: centrifugal.centrifugo.api.Reply.subscribe:type_name -> centrifugal.centrifugo.api.SubscribeResult
-	19,  // 43: centrifugal.centrifugo.api.Reply.unsubscribe:type_name -> centrifugal.centrifugo.api.UnsubscribeResult
-	23,  // 44: centrifugal.centrifugo.api.Reply.disconnect:type_name -> centrifugal.centrifugo.api.DisconnectResult
-	27,  // 45: centrifugal.centrifugo.api.Reply.presence:type_name -> centrifugal.centrifugo.api.PresenceResult
-	30,  // 46: centrifugal.centrifugo.api.Reply.presence_stats:type_name -> centrifugal.centrifugo.api.PresenceStatsResult
-	35,  // 47: centrifugal.centrifugo.api.Reply.history:type_name -> centrifugal.centrifugo.api.HistoryResult
-	38,  // 48: centrifugal.centrifugo.api.Reply.history_remove:type_name -> centrifugal.centrifugo.api.HistoryRemoveResult
-	41,  // 49: centrifugal.centrifugo.api.Reply.info:type_name -> centrifugal.centrifugo.api.InfoResult
-	44,  // 50: centrifugal.centrifugo.api.Reply.rpc:type_name -> centrifugal.centrifugo.api.RPCResult
-	47,  // 51: centrifugal.centrifugo.api.Reply.refresh:type_name -> centrifugal.centrifugo.api.RefreshResult
-	53,  // 52: centrifugal.centrifugo.api.Reply.channels:type_name -> centrifugal.centrifugo.api.ChannelsResult
-	57,  // 53: centrifugal.centrifugo.api.Reply.connections:type_name -> centrifugal.centrifugo.api.ConnectionsResult
-	65,  // 54: centrifugal.centrifugo.api.Reply.update_user_status:type_name -> centrifugal.centrifugo.api.UpdateUserStatusResult
-	68,  // 55: centrifugal.centrifugo.api.Reply.get_user_status:type_name -> centrifugal.centrifugo.api.GetUserStatusResult
-	72,  // 56: centrifugal.centrifugo.api.Reply.delete_user_status:type_name -> centrifugal.centrifugo.api.DeleteUserStatusResult
-	74,  // 57: centrifugal.centrifugo.api.Reply.block_user:type_name -> centrifugal.centrifugo.api.BlockUserResult
-	77,  // 58: centrifugal.centrifugo.api.Reply.unblock_user:type_name -> centrifugal.centrifugo.api.UnblockUserResult
-	80,  // 59: centrifugal.centrifugo.api.Reply.revoke_token:type_name -> centrifugal.centrifugo.api.RevokeTokenResult
-	83,  // 60: centrifugal.centrifugo.api.Reply.invalidate_user_tokens:type_name -> centrifugal.centrifugo.api.InvalidateUserTokensResult
-	109, // 61: centrifugal.centrifugo.api.Reply.device_register:type_name -> centrifugal.centrifugo.api.DeviceRegisterResult
-	110, // 62: centrifugal.centrifugo.api.Reply.device_update:type_name -> centrifugal.centrifugo.api.DeviceUpdateResult
-	111, // 63: centrifugal.centrifugo.api.Reply.device_remove:type_name -> centrifugal.centrifugo.api.DeviceRemoveResult
-	112, // 64: centrifugal.centrifugo.api.Reply.device_list:type_name -> centrifugal.centrifugo.api.DeviceListResult
-	114, // 65: centrifugal.centrifugo.api.Reply.device_topic_list:type_name -> centrifugal.centrifugo.api.DeviceTopicListResult
-	117, // 66: centrifugal.centrifugo.api.Reply.device_topic_update:type_name -> centrifugal.centrifugo.api.DeviceTopicUpdateResult
-	116, // 67: centrifugal.centrifugo.api.Reply.user_topic_list:type_name -> centrifugal.centrifugo.api.UserTopicListResult
-	118, // 68: centrifugal.centrifugo.api.Reply.user_topic_update:type_name -> centrifugal.centrifugo.api.UserTopicUpdateResult
-	132, // 69: centrifugal.centrifugo.api.Reply.send_push_notification:type_name -> centrifugal.centrifugo.api.SendPushNotificationResult
-	135, // 70: centrifugal.centrifugo.api.Reply.update_push_status:type_name -> centrifugal.centrifugo.api.UpdatePushStatusResult
-	138, // 71: centrifugal.centrifugo.api.Reply.cancel_push:type_name -> centrifugal.centrifugo.api.CancelPushResult
-	141, // 72: centrifugal.centrifugo.api.Reply.map_publish:type_name -> centrifugal.centrifugo.api.MapPublishResult
-	144, // 73: centrifugal.centrifugo.api.Reply.map_remove:type_name -> centrifugal.centrifugo.api.MapRemoveResult
-	147, // 74: centrifugal.centrifugo.api.Reply.map_read_state:type_name -> centrifugal.centrifugo.api.MapReadStateResult
-	151, // 75: centrifugal.centrifugo.api.Reply.map_read_stream:type_name -> centrifugal.centrifugo.api.MapReadStreamResult
-	154, // 76: centrifugal.centrifugo.api.Reply.map_stats:type_name -> centrifugal.centrifugo.api.MapStatsResult
-	157, // 77: centrifugal.centrifugo.api.Reply.map_clear:type_name -> centrifugal.centrifugo.api.MapClearResult
-	160, // 78: centrifugal.centrifugo.api.Reply.shared_poll_publish:type_name -> centrifugal.centrifugo.api.SharedPollPublishResult
+	17,  // 42: centrifugal.centrifugo.api.Reply.subscribe:type_name -> centrifugal.centrifugo.api.SubscribeResult
+	20,  // 43: centrifugal.centrifugo.api.Reply.unsubscribe:type_name -> centrifugal.centrifugo.api.UnsubscribeResult
+	24,  // 44: centrifugal.centrifugo.api.Reply.disconnect:type_name -> centrifugal.centrifugo.api.DisconnectResult
+	28,  // 45: centrifugal.centrifugo.api.Reply.presence:type_name -> centrifugal.centrifugo.api.PresenceResult
+	31,  // 46: centrifugal.centrifugo.api.Reply.presence_stats:type_name -> centrifugal.centrifugo.api.PresenceStatsResult
+	36,  // 47: centrifugal.centrifugo.api.Reply.history:type_name -> centrifugal.centrifugo.api.HistoryResult
+	39,  // 48: centrifugal.centrifugo.api.Reply.history_remove:type_name -> centrifugal.centrifugo.api.HistoryRemoveResult
+	42,  // 49: centrifugal.centrifugo.api.Reply.info:type_name -> centrifugal.centrifugo.api.InfoResult
+	45,  // 50: centrifugal.centrifugo.api.Reply.rpc:type_name -> centrifugal.centrifugo.api.RPCResult
+	48,  // 51: centrifugal.centrifugo.api.Reply.refresh:type_name -> centrifugal.centrifugo.api.RefreshResult
+	54,  // 52: centrifugal.centrifugo.api.Reply.channels:type_name -> centrifugal.centrifugo.api.ChannelsResult
+	58,  // 53: centrifugal.centrifugo.api.Reply.connections:type_name -> centrifugal.centrifugo.api.ConnectionsResult
+	66,  // 54: centrifugal.centrifugo.api.Reply.update_user_status:type_name -> centrifugal.centrifugo.api.UpdateUserStatusResult
+	69,  // 55: centrifugal.centrifugo.api.Reply.get_user_status:type_name -> centrifugal.centrifugo.api.GetUserStatusResult
+	73,  // 56: centrifugal.centrifugo.api.Reply.delete_user_status:type_name -> centrifugal.centrifugo.api.DeleteUserStatusResult
+	75,  // 57: centrifugal.centrifugo.api.Reply.block_user:type_name -> centrifugal.centrifugo.api.BlockUserResult
+	78,  // 58: centrifugal.centrifugo.api.Reply.unblock_user:type_name -> centrifugal.centrifugo.api.UnblockUserResult
+	81,  // 59: centrifugal.centrifugo.api.Reply.revoke_token:type_name -> centrifugal.centrifugo.api.RevokeTokenResult
+	84,  // 60: centrifugal.centrifugo.api.Reply.invalidate_user_tokens:type_name -> centrifugal.centrifugo.api.InvalidateUserTokensResult
+	110, // 61: centrifugal.centrifugo.api.Reply.device_register:type_name -> centrifugal.centrifugo.api.DeviceRegisterResult
+	111, // 62: centrifugal.centrifugo.api.Reply.device_update:type_name -> centrifugal.centrifugo.api.DeviceUpdateResult
+	112, // 63: centrifugal.centrifugo.api.Reply.device_remove:type_name -> centrifugal.centrifugo.api.DeviceRemoveResult
+	113, // 64: centrifugal.centrifugo.api.Reply.device_list:type_name -> centrifugal.centrifugo.api.DeviceListResult
+	115, // 65: centrifugal.centrifugo.api.Reply.device_topic_list:type_name -> centrifugal.centrifugo.api.DeviceTopicListResult
+	118, // 66: centrifugal.centrifugo.api.Reply.device_topic_update:type_name -> centrifugal.centrifugo.api.DeviceTopicUpdateResult
+	117, // 67: centrifugal.centrifugo.api.Reply.user_topic_list:type_name -> centrifugal.centrifugo.api.UserTopicListResult
+	119, // 68: centrifugal.centrifugo.api.Reply.user_topic_update:type_name -> centrifugal.centrifugo.api.UserTopicUpdateResult
+	134, // 69: centrifugal.centrifugo.api.Reply.send_push_notification:type_name -> centrifugal.centrifugo.api.SendPushNotificationResult
+	137, // 70: centrifugal.centrifugo.api.Reply.update_push_status:type_name -> centrifugal.centrifugo.api.UpdatePushStatusResult
+	140, // 71: centrifugal.centrifugo.api.Reply.cancel_push:type_name -> centrifugal.centrifugo.api.CancelPushResult
+	143, // 72: centrifugal.centrifugo.api.Reply.map_publish:type_name -> centrifugal.centrifugo.api.MapPublishResult
+	146, // 73: centrifugal.centrifugo.api.Reply.map_remove:type_name -> centrifugal.centrifugo.api.MapRemoveResult
+	149, // 74: centrifugal.centrifugo.api.Reply.map_read_state:type_name -> centrifugal.centrifugo.api.MapReadStateResult
+	153, // 75: centrifugal.centrifugo.api.Reply.map_read_stream:type_name -> centrifugal.centrifugo.api.MapReadStreamResult
+	156, // 76: centrifugal.centrifugo.api.Reply.map_stats:type_name -> centrifugal.centrifugo.api.MapStatsResult
+	159, // 77: centrifugal.centrifugo.api.Reply.map_clear:type_name -> centrifugal.centrifugo.api.MapClearResult
+	162, // 78: centrifugal.centrifugo.api.Reply.shared_poll_publish:type_name -> centrifugal.centrifugo.api.SharedPollPublishResult
 	0,   // 79: centrifugal.centrifugo.api.BatchRequest.commands:type_name -> centrifugal.centrifugo.api.Command
 	2,   // 80: centrifugal.centrifugo.api.BatchResponse.replies:type_name -> centrifugal.centrifugo.api.Reply
-	161, // 81: centrifugal.centrifugo.api.PublishRequest.tags:type_name -> centrifugal.centrifugo.api.PublishRequest.TagsEntry
+	163, // 81: centrifugal.centrifugo.api.PublishRequest.tags:type_name -> centrifugal.centrifugo.api.PublishRequest.TagsEntry
 	1,   // 82: centrifugal.centrifugo.api.PublishResponse.error:type_name -> centrifugal.centrifugo.api.Error
 	7,   // 83: centrifugal.centrifugo.api.PublishResponse.result:type_name -> centrifugal.centrifugo.api.PublishResult
-	162, // 84: centrifugal.centrifugo.api.BroadcastRequest.tags:type_name -> centrifugal.centrifugo.api.BroadcastRequest.TagsEntry
+	164, // 84: centrifugal.centrifugo.api.BroadcastRequest.tags:type_name -> centrifugal.centrifugo.api.BroadcastRequest.TagsEntry
 	1,   // 85: centrifugal.centrifugo.api.BroadcastResponse.error:type_name -> centrifugal.centrifugo.api.Error
 	10,  // 86: centrifugal.centrifugo.api.BroadcastResponse.result:type_name -> centrifugal.centrifugo.api.BroadcastResult
 	6,   // 87: centrifugal.centrifugo.api.BroadcastResult.responses:type_name -> centrifugal.centrifugo.api.PublishResponse
-	31,  // 88: centrifugal.centrifugo.api.SubscribeRequest.recover_since:type_name -> centrifugal.centrifugo.api.StreamPosition
-	15,  // 89: centrifugal.centrifugo.api.SubscribeRequest.override:type_name -> centrifugal.centrifugo.api.SubscribeOptionOverride
-	1,   // 90: centrifugal.centrifugo.api.SubscribeResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	16,  // 91: centrifugal.centrifugo.api.SubscribeResponse.result:type_name -> centrifugal.centrifugo.api.SubscribeResult
-	13,  // 92: centrifugal.centrifugo.api.SubscribeOptionOverride.presence:type_name -> centrifugal.centrifugo.api.BoolValue
-	13,  // 93: centrifugal.centrifugo.api.SubscribeOptionOverride.join_leave:type_name -> centrifugal.centrifugo.api.BoolValue
-	13,  // 94: centrifugal.centrifugo.api.SubscribeOptionOverride.force_recovery:type_name -> centrifugal.centrifugo.api.BoolValue
-	13,  // 95: centrifugal.centrifugo.api.SubscribeOptionOverride.force_positioning:type_name -> centrifugal.centrifugo.api.BoolValue
-	13,  // 96: centrifugal.centrifugo.api.SubscribeOptionOverride.force_push_join_leave:type_name -> centrifugal.centrifugo.api.BoolValue
-	1,   // 97: centrifugal.centrifugo.api.UnsubscribeResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	19,  // 98: centrifugal.centrifugo.api.UnsubscribeResponse.result:type_name -> centrifugal.centrifugo.api.UnsubscribeResult
-	20,  // 99: centrifugal.centrifugo.api.DisconnectRequest.disconnect:type_name -> centrifugal.centrifugo.api.Disconnect
-	1,   // 100: centrifugal.centrifugo.api.DisconnectResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	23,  // 101: centrifugal.centrifugo.api.DisconnectResponse.result:type_name -> centrifugal.centrifugo.api.DisconnectResult
-	1,   // 102: centrifugal.centrifugo.api.PresenceResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	27,  // 103: centrifugal.centrifugo.api.PresenceResponse.result:type_name -> centrifugal.centrifugo.api.PresenceResult
-	163, // 104: centrifugal.centrifugo.api.PresenceResult.presence:type_name -> centrifugal.centrifugo.api.PresenceResult.PresenceEntry
-	1,   // 105: centrifugal.centrifugo.api.PresenceStatsResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	30,  // 106: centrifugal.centrifugo.api.PresenceStatsResponse.result:type_name -> centrifugal.centrifugo.api.PresenceStatsResult
-	31,  // 107: centrifugal.centrifugo.api.HistoryRequest.since:type_name -> centrifugal.centrifugo.api.StreamPosition
-	1,   // 108: centrifugal.centrifugo.api.HistoryResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	35,  // 109: centrifugal.centrifugo.api.HistoryResponse.result:type_name -> centrifugal.centrifugo.api.HistoryResult
-	26,  // 110: centrifugal.centrifugo.api.Publication.info:type_name -> centrifugal.centrifugo.api.ClientInfo
-	164, // 111: centrifugal.centrifugo.api.Publication.tags:type_name -> centrifugal.centrifugo.api.Publication.TagsEntry
-	34,  // 112: centrifugal.centrifugo.api.HistoryResult.publications:type_name -> centrifugal.centrifugo.api.Publication
-	1,   // 113: centrifugal.centrifugo.api.HistoryRemoveResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	38,  // 114: centrifugal.centrifugo.api.HistoryRemoveResponse.result:type_name -> centrifugal.centrifugo.api.HistoryRemoveResult
-	1,   // 115: centrifugal.centrifugo.api.InfoResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	41,  // 116: centrifugal.centrifugo.api.InfoResponse.result:type_name -> centrifugal.centrifugo.api.InfoResult
-	48,  // 117: centrifugal.centrifugo.api.InfoResult.nodes:type_name -> centrifugal.centrifugo.api.NodeResult
-	1,   // 118: centrifugal.centrifugo.api.RPCResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	44,  // 119: centrifugal.centrifugo.api.RPCResponse.result:type_name -> centrifugal.centrifugo.api.RPCResult
-	1,   // 120: centrifugal.centrifugo.api.RefreshResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	47,  // 121: centrifugal.centrifugo.api.RefreshResponse.result:type_name -> centrifugal.centrifugo.api.RefreshResult
-	49,  // 122: centrifugal.centrifugo.api.NodeResult.metrics:type_name -> centrifugal.centrifugo.api.Metrics
-	50,  // 123: centrifugal.centrifugo.api.NodeResult.process:type_name -> centrifugal.centrifugo.api.Process
-	165, // 124: centrifugal.centrifugo.api.Metrics.items:type_name -> centrifugal.centrifugo.api.Metrics.ItemsEntry
-	1,   // 125: centrifugal.centrifugo.api.ChannelsResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	53,  // 126: centrifugal.centrifugo.api.ChannelsResponse.result:type_name -> centrifugal.centrifugo.api.ChannelsResult
-	166, // 127: centrifugal.centrifugo.api.ChannelsResult.channels:type_name -> centrifugal.centrifugo.api.ChannelsResult.ChannelsEntry
-	1,   // 128: centrifugal.centrifugo.api.ConnectionsResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	57,  // 129: centrifugal.centrifugo.api.ConnectionsResponse.result:type_name -> centrifugal.centrifugo.api.ConnectionsResult
-	167, // 130: centrifugal.centrifugo.api.ConnectionsResult.connections:type_name -> centrifugal.centrifugo.api.ConnectionsResult.ConnectionsEntry
-	59,  // 131: centrifugal.centrifugo.api.ConnectionInfo.state:type_name -> centrifugal.centrifugo.api.ConnectionState
-	168, // 132: centrifugal.centrifugo.api.ConnectionState.channels:type_name -> centrifugal.centrifugo.api.ConnectionState.ChannelsEntry
-	61,  // 133: centrifugal.centrifugo.api.ConnectionState.connection_token:type_name -> centrifugal.centrifugo.api.ConnectionTokenInfo
-	169, // 134: centrifugal.centrifugo.api.ConnectionState.subscription_tokens:type_name -> centrifugal.centrifugo.api.ConnectionState.SubscriptionTokensEntry
-	1,   // 135: centrifugal.centrifugo.api.UpdateUserStatusResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	65,  // 136: centrifugal.centrifugo.api.UpdateUserStatusResponse.result:type_name -> centrifugal.centrifugo.api.UpdateUserStatusResult
-	1,   // 137: centrifugal.centrifugo.api.GetUserStatusResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	68,  // 138: centrifugal.centrifugo.api.GetUserStatusResponse.result:type_name -> centrifugal.centrifugo.api.GetUserStatusResult
-	69,  // 139: centrifugal.centrifugo.api.GetUserStatusResult.statuses:type_name -> centrifugal.centrifugo.api.UserStatus
-	1,   // 140: centrifugal.centrifugo.api.DeleteUserStatusResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	72,  // 141: centrifugal.centrifugo.api.DeleteUserStatusResponse.result:type_name -> centrifugal.centrifugo.api.DeleteUserStatusResult
-	1,   // 142: centrifugal.centrifugo.api.BlockUserResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	74,  // 143: centrifugal.centrifugo.api.BlockUserResponse.result:type_name -> centrifugal.centrifugo.api.BlockUserResult
-	1,   // 144: centrifugal.centrifugo.api.UnblockUserResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	77,  // 145: centrifugal.centrifugo.api.UnblockUserResponse.result:type_name -> centrifugal.centrifugo.api.UnblockUserResult
-	1,   // 146: centrifugal.centrifugo.api.RevokeTokenResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	80,  // 147: centrifugal.centrifugo.api.RevokeTokenResponse.result:type_name -> centrifugal.centrifugo.api.RevokeTokenResult
-	1,   // 148: centrifugal.centrifugo.api.InvalidateUserTokensResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	83,  // 149: centrifugal.centrifugo.api.InvalidateUserTokensResponse.result:type_name -> centrifugal.centrifugo.api.InvalidateUserTokensResult
-	170, // 150: centrifugal.centrifugo.api.DeviceRegisterRequest.meta:type_name -> centrifugal.centrifugo.api.DeviceRegisterRequest.MetaEntry
-	88,  // 151: centrifugal.centrifugo.api.DeviceUpdateRequest.user_update:type_name -> centrifugal.centrifugo.api.DeviceUserUpdate
-	91,  // 152: centrifugal.centrifugo.api.DeviceUpdateRequest.meta_update:type_name -> centrifugal.centrifugo.api.DeviceMetaUpdate
-	92,  // 153: centrifugal.centrifugo.api.DeviceUpdateRequest.topics_update:type_name -> centrifugal.centrifugo.api.DeviceTopicsUpdate
-	89,  // 154: centrifugal.centrifugo.api.DeviceUpdateRequest.timezone_update:type_name -> centrifugal.centrifugo.api.DeviceTimezoneUpdate
-	90,  // 155: centrifugal.centrifugo.api.DeviceUpdateRequest.locale_update:type_name -> centrifugal.centrifugo.api.DeviceLocaleUpdate
-	171, // 156: centrifugal.centrifugo.api.DeviceMetaUpdate.meta:type_name -> centrifugal.centrifugo.api.DeviceMetaUpdate.MetaEntry
-	93,  // 157: centrifugal.centrifugo.api.DeviceListRequest.filter:type_name -> centrifugal.centrifugo.api.DeviceFilter
-	95,  // 158: centrifugal.centrifugo.api.DeviceTopicListRequest.filter:type_name -> centrifugal.centrifugo.api.DeviceTopicFilter
-	97,  // 159: centrifugal.centrifugo.api.UserTopicListRequest.filter:type_name -> centrifugal.centrifugo.api.UserTopicFilter
-	1,   // 160: centrifugal.centrifugo.api.DeviceRegisterResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	109, // 161: centrifugal.centrifugo.api.DeviceRegisterResponse.result:type_name -> centrifugal.centrifugo.api.DeviceRegisterResult
-	1,   // 162: centrifugal.centrifugo.api.DeviceUpdateResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	110, // 163: centrifugal.centrifugo.api.DeviceUpdateResponse.result:type_name -> centrifugal.centrifugo.api.DeviceUpdateResult
-	1,   // 164: centrifugal.centrifugo.api.DeviceRemoveResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	111, // 165: centrifugal.centrifugo.api.DeviceRemoveResponse.result:type_name -> centrifugal.centrifugo.api.DeviceRemoveResult
-	1,   // 166: centrifugal.centrifugo.api.DeviceListResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	112, // 167: centrifugal.centrifugo.api.DeviceListResponse.result:type_name -> centrifugal.centrifugo.api.DeviceListResult
-	1,   // 168: centrifugal.centrifugo.api.DeviceTopicListResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	114, // 169: centrifugal.centrifugo.api.DeviceTopicListResponse.result:type_name -> centrifugal.centrifugo.api.DeviceTopicListResult
-	1,   // 170: centrifugal.centrifugo.api.UserTopicListResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	116, // 171: centrifugal.centrifugo.api.UserTopicListResponse.result:type_name -> centrifugal.centrifugo.api.UserTopicListResult
-	1,   // 172: centrifugal.centrifugo.api.DeviceTopicUpdateResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	117, // 173: centrifugal.centrifugo.api.DeviceTopicUpdateResponse.result:type_name -> centrifugal.centrifugo.api.DeviceTopicUpdateResult
-	1,   // 174: centrifugal.centrifugo.api.UserTopicUpdateResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	118, // 175: centrifugal.centrifugo.api.UserTopicUpdateResponse.result:type_name -> centrifugal.centrifugo.api.UserTopicUpdateResult
-	113, // 176: centrifugal.centrifugo.api.DeviceListResult.items:type_name -> centrifugal.centrifugo.api.Device
-	172, // 177: centrifugal.centrifugo.api.Device.meta:type_name -> centrifugal.centrifugo.api.Device.MetaEntry
-	115, // 178: centrifugal.centrifugo.api.DeviceTopicListResult.items:type_name -> centrifugal.centrifugo.api.DeviceTopic
-	113, // 179: centrifugal.centrifugo.api.DeviceTopic.device:type_name -> centrifugal.centrifugo.api.Device
-	119, // 180: centrifugal.centrifugo.api.UserTopicListResult.items:type_name -> centrifugal.centrifugo.api.UserTopic
-	93,  // 181: centrifugal.centrifugo.api.PushRecipient.filter:type_name -> centrifugal.centrifugo.api.DeviceFilter
-	122, // 182: centrifugal.centrifugo.api.PushNotification.fcm:type_name -> centrifugal.centrifugo.api.FcmPushNotification
-	123, // 183: centrifugal.centrifugo.api.PushNotification.hms:type_name -> centrifugal.centrifugo.api.HmsPushNotification
-	124, // 184: centrifugal.centrifugo.api.PushNotification.apns:type_name -> centrifugal.centrifugo.api.ApnsPushNotification
-	173, // 185: centrifugal.centrifugo.api.ApnsPushNotification.headers:type_name -> centrifugal.centrifugo.api.ApnsPushNotification.HeadersEntry
-	120, // 186: centrifugal.centrifugo.api.SendPushNotificationRequest.recipient:type_name -> centrifugal.centrifugo.api.PushRecipient
-	121, // 187: centrifugal.centrifugo.api.SendPushNotificationRequest.notification:type_name -> centrifugal.centrifugo.api.PushNotification
-	127, // 188: centrifugal.centrifugo.api.SendPushNotificationRequest.limit_strategy:type_name -> centrifugal.centrifugo.api.PushLimitStrategy
-	174, // 189: centrifugal.centrifugo.api.SendPushNotificationRequest.localizations:type_name -> centrifugal.centrifugo.api.SendPushNotificationRequest.LocalizationsEntry
-	175, // 190: centrifugal.centrifugo.api.PushLocalization.translations:type_name -> centrifugal.centrifugo.api.PushLocalization.TranslationsEntry
-	129, // 191: centrifugal.centrifugo.api.PushLimitStrategy.rate_limit:type_name -> centrifugal.centrifugo.api.PushRateLimitStrategy
-	128, // 192: centrifugal.centrifugo.api.PushLimitStrategy.time_limit:type_name -> centrifugal.centrifugo.api.PushTimeLimitStrategy
-	130, // 193: centrifugal.centrifugo.api.PushRateLimitStrategy.policies:type_name -> centrifugal.centrifugo.api.RateLimitPolicy
-	1,   // 194: centrifugal.centrifugo.api.SendPushNotificationResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	132, // 195: centrifugal.centrifugo.api.SendPushNotificationResponse.result:type_name -> centrifugal.centrifugo.api.SendPushNotificationResult
-	1,   // 196: centrifugal.centrifugo.api.UpdatePushStatusResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	135, // 197: centrifugal.centrifugo.api.UpdatePushStatusResponse.result:type_name -> centrifugal.centrifugo.api.UpdatePushStatusResult
-	1,   // 198: centrifugal.centrifugo.api.CancelPushResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	138, // 199: centrifugal.centrifugo.api.CancelPushResponse.result:type_name -> centrifugal.centrifugo.api.CancelPushResult
-	176, // 200: centrifugal.centrifugo.api.MapPublishRequest.tags:type_name -> centrifugal.centrifugo.api.MapPublishRequest.TagsEntry
-	1,   // 201: centrifugal.centrifugo.api.MapPublishResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	141, // 202: centrifugal.centrifugo.api.MapPublishResponse.result:type_name -> centrifugal.centrifugo.api.MapPublishResult
-	1,   // 203: centrifugal.centrifugo.api.MapRemoveResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	144, // 204: centrifugal.centrifugo.api.MapRemoveResponse.result:type_name -> centrifugal.centrifugo.api.MapRemoveResult
-	1,   // 205: centrifugal.centrifugo.api.MapReadStateResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	147, // 206: centrifugal.centrifugo.api.MapReadStateResponse.result:type_name -> centrifugal.centrifugo.api.MapReadStateResult
-	148, // 207: centrifugal.centrifugo.api.MapReadStateResult.entries:type_name -> centrifugal.centrifugo.api.MapEntry
-	177, // 208: centrifugal.centrifugo.api.MapEntry.tags:type_name -> centrifugal.centrifugo.api.MapEntry.TagsEntry
-	1,   // 209: centrifugal.centrifugo.api.MapReadStreamResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	151, // 210: centrifugal.centrifugo.api.MapReadStreamResponse.result:type_name -> centrifugal.centrifugo.api.MapReadStreamResult
-	148, // 211: centrifugal.centrifugo.api.MapReadStreamResult.entries:type_name -> centrifugal.centrifugo.api.MapEntry
-	1,   // 212: centrifugal.centrifugo.api.MapStatsResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	154, // 213: centrifugal.centrifugo.api.MapStatsResponse.result:type_name -> centrifugal.centrifugo.api.MapStatsResult
-	1,   // 214: centrifugal.centrifugo.api.MapClearResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	157, // 215: centrifugal.centrifugo.api.MapClearResponse.result:type_name -> centrifugal.centrifugo.api.MapClearResult
-	1,   // 216: centrifugal.centrifugo.api.SharedPollPublishResponse.error:type_name -> centrifugal.centrifugo.api.Error
-	160, // 217: centrifugal.centrifugo.api.SharedPollPublishResponse.result:type_name -> centrifugal.centrifugo.api.SharedPollPublishResult
-	26,  // 218: centrifugal.centrifugo.api.PresenceResult.PresenceEntry.value:type_name -> centrifugal.centrifugo.api.ClientInfo
-	54,  // 219: centrifugal.centrifugo.api.ChannelsResult.ChannelsEntry.value:type_name -> centrifugal.centrifugo.api.ChannelInfo
-	58,  // 220: centrifugal.centrifugo.api.ConnectionsResult.ConnectionsEntry.value:type_name -> centrifugal.centrifugo.api.ConnectionInfo
-	60,  // 221: centrifugal.centrifugo.api.ConnectionState.ChannelsEntry.value:type_name -> centrifugal.centrifugo.api.ChannelContext
-	62,  // 222: centrifugal.centrifugo.api.ConnectionState.SubscriptionTokensEntry.value:type_name -> centrifugal.centrifugo.api.SubscriptionTokenInfo
-	126, // 223: centrifugal.centrifugo.api.SendPushNotificationRequest.LocalizationsEntry.value:type_name -> centrifugal.centrifugo.api.PushLocalization
-	3,   // 224: centrifugal.centrifugo.api.CentrifugoApi.Batch:input_type -> centrifugal.centrifugo.api.BatchRequest
-	5,   // 225: centrifugal.centrifugo.api.CentrifugoApi.Publish:input_type -> centrifugal.centrifugo.api.PublishRequest
-	8,   // 226: centrifugal.centrifugo.api.CentrifugoApi.Broadcast:input_type -> centrifugal.centrifugo.api.BroadcastRequest
-	11,  // 227: centrifugal.centrifugo.api.CentrifugoApi.Subscribe:input_type -> centrifugal.centrifugo.api.SubscribeRequest
-	17,  // 228: centrifugal.centrifugo.api.CentrifugoApi.Unsubscribe:input_type -> centrifugal.centrifugo.api.UnsubscribeRequest
-	21,  // 229: centrifugal.centrifugo.api.CentrifugoApi.Disconnect:input_type -> centrifugal.centrifugo.api.DisconnectRequest
-	24,  // 230: centrifugal.centrifugo.api.CentrifugoApi.Presence:input_type -> centrifugal.centrifugo.api.PresenceRequest
-	28,  // 231: centrifugal.centrifugo.api.CentrifugoApi.PresenceStats:input_type -> centrifugal.centrifugo.api.PresenceStatsRequest
-	32,  // 232: centrifugal.centrifugo.api.CentrifugoApi.History:input_type -> centrifugal.centrifugo.api.HistoryRequest
-	36,  // 233: centrifugal.centrifugo.api.CentrifugoApi.HistoryRemove:input_type -> centrifugal.centrifugo.api.HistoryRemoveRequest
-	39,  // 234: centrifugal.centrifugo.api.CentrifugoApi.Info:input_type -> centrifugal.centrifugo.api.InfoRequest
-	42,  // 235: centrifugal.centrifugo.api.CentrifugoApi.RPC:input_type -> centrifugal.centrifugo.api.RPCRequest
-	45,  // 236: centrifugal.centrifugo.api.CentrifugoApi.Refresh:input_type -> centrifugal.centrifugo.api.RefreshRequest
-	51,  // 237: centrifugal.centrifugo.api.CentrifugoApi.Channels:input_type -> centrifugal.centrifugo.api.ChannelsRequest
-	55,  // 238: centrifugal.centrifugo.api.CentrifugoApi.Connections:input_type -> centrifugal.centrifugo.api.ConnectionsRequest
-	63,  // 239: centrifugal.centrifugo.api.CentrifugoApi.UpdateUserStatus:input_type -> centrifugal.centrifugo.api.UpdateUserStatusRequest
-	66,  // 240: centrifugal.centrifugo.api.CentrifugoApi.GetUserStatus:input_type -> centrifugal.centrifugo.api.GetUserStatusRequest
-	70,  // 241: centrifugal.centrifugo.api.CentrifugoApi.DeleteUserStatus:input_type -> centrifugal.centrifugo.api.DeleteUserStatusRequest
-	73,  // 242: centrifugal.centrifugo.api.CentrifugoApi.BlockUser:input_type -> centrifugal.centrifugo.api.BlockUserRequest
-	76,  // 243: centrifugal.centrifugo.api.CentrifugoApi.UnblockUser:input_type -> centrifugal.centrifugo.api.UnblockUserRequest
-	79,  // 244: centrifugal.centrifugo.api.CentrifugoApi.RevokeToken:input_type -> centrifugal.centrifugo.api.RevokeTokenRequest
-	82,  // 245: centrifugal.centrifugo.api.CentrifugoApi.InvalidateUserTokens:input_type -> centrifugal.centrifugo.api.InvalidateUserTokensRequest
-	85,  // 246: centrifugal.centrifugo.api.CentrifugoApi.DeviceRegister:input_type -> centrifugal.centrifugo.api.DeviceRegisterRequest
-	86,  // 247: centrifugal.centrifugo.api.CentrifugoApi.DeviceUpdate:input_type -> centrifugal.centrifugo.api.DeviceUpdateRequest
-	87,  // 248: centrifugal.centrifugo.api.CentrifugoApi.DeviceRemove:input_type -> centrifugal.centrifugo.api.DeviceRemoveRequest
-	94,  // 249: centrifugal.centrifugo.api.CentrifugoApi.DeviceList:input_type -> centrifugal.centrifugo.api.DeviceListRequest
-	96,  // 250: centrifugal.centrifugo.api.CentrifugoApi.DeviceTopicList:input_type -> centrifugal.centrifugo.api.DeviceTopicListRequest
-	99,  // 251: centrifugal.centrifugo.api.CentrifugoApi.DeviceTopicUpdate:input_type -> centrifugal.centrifugo.api.DeviceTopicUpdateRequest
-	98,  // 252: centrifugal.centrifugo.api.CentrifugoApi.UserTopicList:input_type -> centrifugal.centrifugo.api.UserTopicListRequest
-	100, // 253: centrifugal.centrifugo.api.CentrifugoApi.UserTopicUpdate:input_type -> centrifugal.centrifugo.api.UserTopicUpdateRequest
-	125, // 254: centrifugal.centrifugo.api.CentrifugoApi.SendPushNotification:input_type -> centrifugal.centrifugo.api.SendPushNotificationRequest
-	133, // 255: centrifugal.centrifugo.api.CentrifugoApi.UpdatePushStatus:input_type -> centrifugal.centrifugo.api.UpdatePushStatusRequest
-	136, // 256: centrifugal.centrifugo.api.CentrifugoApi.CancelPush:input_type -> centrifugal.centrifugo.api.CancelPushRequest
-	139, // 257: centrifugal.centrifugo.api.CentrifugoApi.MapPublish:input_type -> centrifugal.centrifugo.api.MapPublishRequest
-	142, // 258: centrifugal.centrifugo.api.CentrifugoApi.MapRemove:input_type -> centrifugal.centrifugo.api.MapRemoveRequest
-	145, // 259: centrifugal.centrifugo.api.CentrifugoApi.MapReadState:input_type -> centrifugal.centrifugo.api.MapReadStateRequest
-	149, // 260: centrifugal.centrifugo.api.CentrifugoApi.MapReadStream:input_type -> centrifugal.centrifugo.api.MapReadStreamRequest
-	152, // 261: centrifugal.centrifugo.api.CentrifugoApi.MapStats:input_type -> centrifugal.centrifugo.api.MapStatsRequest
-	155, // 262: centrifugal.centrifugo.api.CentrifugoApi.MapClear:input_type -> centrifugal.centrifugo.api.MapClearRequest
-	158, // 263: centrifugal.centrifugo.api.CentrifugoApi.SharedPollPublish:input_type -> centrifugal.centrifugo.api.SharedPollPublishRequest
-	4,   // 264: centrifugal.centrifugo.api.CentrifugoApi.Batch:output_type -> centrifugal.centrifugo.api.BatchResponse
-	6,   // 265: centrifugal.centrifugo.api.CentrifugoApi.Publish:output_type -> centrifugal.centrifugo.api.PublishResponse
-	9,   // 266: centrifugal.centrifugo.api.CentrifugoApi.Broadcast:output_type -> centrifugal.centrifugo.api.BroadcastResponse
-	12,  // 267: centrifugal.centrifugo.api.CentrifugoApi.Subscribe:output_type -> centrifugal.centrifugo.api.SubscribeResponse
-	18,  // 268: centrifugal.centrifugo.api.CentrifugoApi.Unsubscribe:output_type -> centrifugal.centrifugo.api.UnsubscribeResponse
-	22,  // 269: centrifugal.centrifugo.api.CentrifugoApi.Disconnect:output_type -> centrifugal.centrifugo.api.DisconnectResponse
-	25,  // 270: centrifugal.centrifugo.api.CentrifugoApi.Presence:output_type -> centrifugal.centrifugo.api.PresenceResponse
-	29,  // 271: centrifugal.centrifugo.api.CentrifugoApi.PresenceStats:output_type -> centrifugal.centrifugo.api.PresenceStatsResponse
-	33,  // 272: centrifugal.centrifugo.api.CentrifugoApi.History:output_type -> centrifugal.centrifugo.api.HistoryResponse
-	37,  // 273: centrifugal.centrifugo.api.CentrifugoApi.HistoryRemove:output_type -> centrifugal.centrifugo.api.HistoryRemoveResponse
-	40,  // 274: centrifugal.centrifugo.api.CentrifugoApi.Info:output_type -> centrifugal.centrifugo.api.InfoResponse
-	43,  // 275: centrifugal.centrifugo.api.CentrifugoApi.RPC:output_type -> centrifugal.centrifugo.api.RPCResponse
-	46,  // 276: centrifugal.centrifugo.api.CentrifugoApi.Refresh:output_type -> centrifugal.centrifugo.api.RefreshResponse
-	52,  // 277: centrifugal.centrifugo.api.CentrifugoApi.Channels:output_type -> centrifugal.centrifugo.api.ChannelsResponse
-	56,  // 278: centrifugal.centrifugo.api.CentrifugoApi.Connections:output_type -> centrifugal.centrifugo.api.ConnectionsResponse
-	64,  // 279: centrifugal.centrifugo.api.CentrifugoApi.UpdateUserStatus:output_type -> centrifugal.centrifugo.api.UpdateUserStatusResponse
-	67,  // 280: centrifugal.centrifugo.api.CentrifugoApi.GetUserStatus:output_type -> centrifugal.centrifugo.api.GetUserStatusResponse
-	71,  // 281: centrifugal.centrifugo.api.CentrifugoApi.DeleteUserStatus:output_type -> centrifugal.centrifugo.api.DeleteUserStatusResponse
-	75,  // 282: centrifugal.centrifugo.api.CentrifugoApi.BlockUser:output_type -> centrifugal.centrifugo.api.BlockUserResponse
-	78,  // 283: centrifugal.centrifugo.api.CentrifugoApi.UnblockUser:output_type -> centrifugal.centrifugo.api.UnblockUserResponse
-	81,  // 284: centrifugal.centrifugo.api.CentrifugoApi.RevokeToken:output_type -> centrifugal.centrifugo.api.RevokeTokenResponse
-	84,  // 285: centrifugal.centrifugo.api.CentrifugoApi.InvalidateUserTokens:output_type -> centrifugal.centrifugo.api.InvalidateUserTokensResponse
-	101, // 286: centrifugal.centrifugo.api.CentrifugoApi.DeviceRegister:output_type -> centrifugal.centrifugo.api.DeviceRegisterResponse
-	102, // 287: centrifugal.centrifugo.api.CentrifugoApi.DeviceUpdate:output_type -> centrifugal.centrifugo.api.DeviceUpdateResponse
-	103, // 288: centrifugal.centrifugo.api.CentrifugoApi.DeviceRemove:output_type -> centrifugal.centrifugo.api.DeviceRemoveResponse
-	104, // 289: centrifugal.centrifugo.api.CentrifugoApi.DeviceList:output_type -> centrifugal.centrifugo.api.DeviceListResponse
-	105, // 290: centrifugal.centrifugo.api.CentrifugoApi.DeviceTopicList:output_type -> centrifugal.centrifugo.api.DeviceTopicListResponse
-	107, // 291: centrifugal.centrifugo.api.CentrifugoApi.DeviceTopicUpdate:output_type -> centrifugal.centrifugo.api.DeviceTopicUpdateResponse
-	106, // 292: centrifugal.centrifugo.api.CentrifugoApi.UserTopicList:output_type -> centrifugal.centrifugo.api.UserTopicListResponse
-	108, // 293: centrifugal.centrifugo.api.CentrifugoApi.UserTopicUpdate:output_type -> centrifugal.centrifugo.api.UserTopicUpdateResponse
-	131, // 294: centrifugal.centrifugo.api.CentrifugoApi.SendPushNotification:output_type -> centrifugal.centrifugo.api.SendPushNotificationResponse
-	134, // 295: centrifugal.centrifugo.api.CentrifugoApi.UpdatePushStatus:output_type -> centrifugal.centrifugo.api.UpdatePushStatusResponse
-	137, // 296: centrifugal.centrifugo.api.CentrifugoApi.CancelPush:output_type -> centrifugal.centrifugo.api.CancelPushResponse
-	140, // 297: centrifugal.centrifugo.api.CentrifugoApi.MapPublish:output_type -> centrifugal.centrifugo.api.MapPublishResponse
-	143, // 298: centrifugal.centrifugo.api.CentrifugoApi.MapRemove:output_type -> centrifugal.centrifugo.api.MapRemoveResponse
-	146, // 299: centrifugal.centrifugo.api.CentrifugoApi.MapReadState:output_type -> centrifugal.centrifugo.api.MapReadStateResponse
-	150, // 300: centrifugal.centrifugo.api.CentrifugoApi.MapReadStream:output_type -> centrifugal.centrifugo.api.MapReadStreamResponse
-	153, // 301: centrifugal.centrifugo.api.CentrifugoApi.MapStats:output_type -> centrifugal.centrifugo.api.MapStatsResponse
-	156, // 302: centrifugal.centrifugo.api.CentrifugoApi.MapClear:output_type -> centrifugal.centrifugo.api.MapClearResponse
-	159, // 303: centrifugal.centrifugo.api.CentrifugoApi.SharedPollPublish:output_type -> centrifugal.centrifugo.api.SharedPollPublishResponse
-	264, // [264:304] is the sub-list for method output_type
-	224, // [224:264] is the sub-list for method input_type
-	224, // [224:224] is the sub-list for extension type_name
-	224, // [224:224] is the sub-list for extension extendee
-	0,   // [0:224] is the sub-list for field type_name
+	11,  // 88: centrifugal.centrifugo.api.FilterNode.nodes:type_name -> centrifugal.centrifugo.api.FilterNode
+	32,  // 89: centrifugal.centrifugo.api.SubscribeRequest.recover_since:type_name -> centrifugal.centrifugo.api.StreamPosition
+	16,  // 90: centrifugal.centrifugo.api.SubscribeRequest.override:type_name -> centrifugal.centrifugo.api.SubscribeOptionOverride
+	11,  // 91: centrifugal.centrifugo.api.SubscribeRequest.label_filter:type_name -> centrifugal.centrifugo.api.FilterNode
+	1,   // 92: centrifugal.centrifugo.api.SubscribeResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	17,  // 93: centrifugal.centrifugo.api.SubscribeResponse.result:type_name -> centrifugal.centrifugo.api.SubscribeResult
+	14,  // 94: centrifugal.centrifugo.api.SubscribeOptionOverride.presence:type_name -> centrifugal.centrifugo.api.BoolValue
+	14,  // 95: centrifugal.centrifugo.api.SubscribeOptionOverride.join_leave:type_name -> centrifugal.centrifugo.api.BoolValue
+	14,  // 96: centrifugal.centrifugo.api.SubscribeOptionOverride.force_recovery:type_name -> centrifugal.centrifugo.api.BoolValue
+	14,  // 97: centrifugal.centrifugo.api.SubscribeOptionOverride.force_positioning:type_name -> centrifugal.centrifugo.api.BoolValue
+	14,  // 98: centrifugal.centrifugo.api.SubscribeOptionOverride.force_push_join_leave:type_name -> centrifugal.centrifugo.api.BoolValue
+	11,  // 99: centrifugal.centrifugo.api.UnsubscribeRequest.label_filter:type_name -> centrifugal.centrifugo.api.FilterNode
+	1,   // 100: centrifugal.centrifugo.api.UnsubscribeResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	20,  // 101: centrifugal.centrifugo.api.UnsubscribeResponse.result:type_name -> centrifugal.centrifugo.api.UnsubscribeResult
+	21,  // 102: centrifugal.centrifugo.api.DisconnectRequest.disconnect:type_name -> centrifugal.centrifugo.api.Disconnect
+	11,  // 103: centrifugal.centrifugo.api.DisconnectRequest.label_filter:type_name -> centrifugal.centrifugo.api.FilterNode
+	1,   // 104: centrifugal.centrifugo.api.DisconnectResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	24,  // 105: centrifugal.centrifugo.api.DisconnectResponse.result:type_name -> centrifugal.centrifugo.api.DisconnectResult
+	1,   // 106: centrifugal.centrifugo.api.PresenceResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	28,  // 107: centrifugal.centrifugo.api.PresenceResponse.result:type_name -> centrifugal.centrifugo.api.PresenceResult
+	165, // 108: centrifugal.centrifugo.api.PresenceResult.presence:type_name -> centrifugal.centrifugo.api.PresenceResult.PresenceEntry
+	1,   // 109: centrifugal.centrifugo.api.PresenceStatsResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	31,  // 110: centrifugal.centrifugo.api.PresenceStatsResponse.result:type_name -> centrifugal.centrifugo.api.PresenceStatsResult
+	32,  // 111: centrifugal.centrifugo.api.HistoryRequest.since:type_name -> centrifugal.centrifugo.api.StreamPosition
+	1,   // 112: centrifugal.centrifugo.api.HistoryResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	36,  // 113: centrifugal.centrifugo.api.HistoryResponse.result:type_name -> centrifugal.centrifugo.api.HistoryResult
+	27,  // 114: centrifugal.centrifugo.api.Publication.info:type_name -> centrifugal.centrifugo.api.ClientInfo
+	166, // 115: centrifugal.centrifugo.api.Publication.tags:type_name -> centrifugal.centrifugo.api.Publication.TagsEntry
+	35,  // 116: centrifugal.centrifugo.api.HistoryResult.publications:type_name -> centrifugal.centrifugo.api.Publication
+	1,   // 117: centrifugal.centrifugo.api.HistoryRemoveResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	39,  // 118: centrifugal.centrifugo.api.HistoryRemoveResponse.result:type_name -> centrifugal.centrifugo.api.HistoryRemoveResult
+	1,   // 119: centrifugal.centrifugo.api.InfoResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	42,  // 120: centrifugal.centrifugo.api.InfoResponse.result:type_name -> centrifugal.centrifugo.api.InfoResult
+	49,  // 121: centrifugal.centrifugo.api.InfoResult.nodes:type_name -> centrifugal.centrifugo.api.NodeResult
+	1,   // 122: centrifugal.centrifugo.api.RPCResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	45,  // 123: centrifugal.centrifugo.api.RPCResponse.result:type_name -> centrifugal.centrifugo.api.RPCResult
+	11,  // 124: centrifugal.centrifugo.api.RefreshRequest.label_filter:type_name -> centrifugal.centrifugo.api.FilterNode
+	1,   // 125: centrifugal.centrifugo.api.RefreshResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	48,  // 126: centrifugal.centrifugo.api.RefreshResponse.result:type_name -> centrifugal.centrifugo.api.RefreshResult
+	50,  // 127: centrifugal.centrifugo.api.NodeResult.metrics:type_name -> centrifugal.centrifugo.api.Metrics
+	51,  // 128: centrifugal.centrifugo.api.NodeResult.process:type_name -> centrifugal.centrifugo.api.Process
+	167, // 129: centrifugal.centrifugo.api.Metrics.items:type_name -> centrifugal.centrifugo.api.Metrics.ItemsEntry
+	1,   // 130: centrifugal.centrifugo.api.ChannelsResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	54,  // 131: centrifugal.centrifugo.api.ChannelsResponse.result:type_name -> centrifugal.centrifugo.api.ChannelsResult
+	168, // 132: centrifugal.centrifugo.api.ChannelsResult.channels:type_name -> centrifugal.centrifugo.api.ChannelsResult.ChannelsEntry
+	11,  // 133: centrifugal.centrifugo.api.ConnectionsRequest.label_filter:type_name -> centrifugal.centrifugo.api.FilterNode
+	1,   // 134: centrifugal.centrifugo.api.ConnectionsResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	58,  // 135: centrifugal.centrifugo.api.ConnectionsResponse.result:type_name -> centrifugal.centrifugo.api.ConnectionsResult
+	169, // 136: centrifugal.centrifugo.api.ConnectionsResult.connections:type_name -> centrifugal.centrifugo.api.ConnectionsResult.ConnectionsEntry
+	60,  // 137: centrifugal.centrifugo.api.ConnectionInfo.state:type_name -> centrifugal.centrifugo.api.ConnectionState
+	170, // 138: centrifugal.centrifugo.api.ConnectionInfo.labels:type_name -> centrifugal.centrifugo.api.ConnectionInfo.LabelsEntry
+	171, // 139: centrifugal.centrifugo.api.ConnectionState.channels:type_name -> centrifugal.centrifugo.api.ConnectionState.ChannelsEntry
+	62,  // 140: centrifugal.centrifugo.api.ConnectionState.connection_token:type_name -> centrifugal.centrifugo.api.ConnectionTokenInfo
+	172, // 141: centrifugal.centrifugo.api.ConnectionState.subscription_tokens:type_name -> centrifugal.centrifugo.api.ConnectionState.SubscriptionTokensEntry
+	1,   // 142: centrifugal.centrifugo.api.UpdateUserStatusResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	66,  // 143: centrifugal.centrifugo.api.UpdateUserStatusResponse.result:type_name -> centrifugal.centrifugo.api.UpdateUserStatusResult
+	1,   // 144: centrifugal.centrifugo.api.GetUserStatusResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	69,  // 145: centrifugal.centrifugo.api.GetUserStatusResponse.result:type_name -> centrifugal.centrifugo.api.GetUserStatusResult
+	70,  // 146: centrifugal.centrifugo.api.GetUserStatusResult.statuses:type_name -> centrifugal.centrifugo.api.UserStatus
+	1,   // 147: centrifugal.centrifugo.api.DeleteUserStatusResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	73,  // 148: centrifugal.centrifugo.api.DeleteUserStatusResponse.result:type_name -> centrifugal.centrifugo.api.DeleteUserStatusResult
+	1,   // 149: centrifugal.centrifugo.api.BlockUserResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	75,  // 150: centrifugal.centrifugo.api.BlockUserResponse.result:type_name -> centrifugal.centrifugo.api.BlockUserResult
+	1,   // 151: centrifugal.centrifugo.api.UnblockUserResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	78,  // 152: centrifugal.centrifugo.api.UnblockUserResponse.result:type_name -> centrifugal.centrifugo.api.UnblockUserResult
+	1,   // 153: centrifugal.centrifugo.api.RevokeTokenResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	81,  // 154: centrifugal.centrifugo.api.RevokeTokenResponse.result:type_name -> centrifugal.centrifugo.api.RevokeTokenResult
+	1,   // 155: centrifugal.centrifugo.api.InvalidateUserTokensResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	84,  // 156: centrifugal.centrifugo.api.InvalidateUserTokensResponse.result:type_name -> centrifugal.centrifugo.api.InvalidateUserTokensResult
+	173, // 157: centrifugal.centrifugo.api.DeviceRegisterRequest.meta:type_name -> centrifugal.centrifugo.api.DeviceRegisterRequest.MetaEntry
+	89,  // 158: centrifugal.centrifugo.api.DeviceUpdateRequest.user_update:type_name -> centrifugal.centrifugo.api.DeviceUserUpdate
+	92,  // 159: centrifugal.centrifugo.api.DeviceUpdateRequest.meta_update:type_name -> centrifugal.centrifugo.api.DeviceMetaUpdate
+	93,  // 160: centrifugal.centrifugo.api.DeviceUpdateRequest.topics_update:type_name -> centrifugal.centrifugo.api.DeviceTopicsUpdate
+	90,  // 161: centrifugal.centrifugo.api.DeviceUpdateRequest.timezone_update:type_name -> centrifugal.centrifugo.api.DeviceTimezoneUpdate
+	91,  // 162: centrifugal.centrifugo.api.DeviceUpdateRequest.locale_update:type_name -> centrifugal.centrifugo.api.DeviceLocaleUpdate
+	174, // 163: centrifugal.centrifugo.api.DeviceMetaUpdate.meta:type_name -> centrifugal.centrifugo.api.DeviceMetaUpdate.MetaEntry
+	94,  // 164: centrifugal.centrifugo.api.DeviceListRequest.filter:type_name -> centrifugal.centrifugo.api.DeviceFilter
+	96,  // 165: centrifugal.centrifugo.api.DeviceTopicListRequest.filter:type_name -> centrifugal.centrifugo.api.DeviceTopicFilter
+	98,  // 166: centrifugal.centrifugo.api.UserTopicListRequest.filter:type_name -> centrifugal.centrifugo.api.UserTopicFilter
+	1,   // 167: centrifugal.centrifugo.api.DeviceRegisterResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	110, // 168: centrifugal.centrifugo.api.DeviceRegisterResponse.result:type_name -> centrifugal.centrifugo.api.DeviceRegisterResult
+	1,   // 169: centrifugal.centrifugo.api.DeviceUpdateResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	111, // 170: centrifugal.centrifugo.api.DeviceUpdateResponse.result:type_name -> centrifugal.centrifugo.api.DeviceUpdateResult
+	1,   // 171: centrifugal.centrifugo.api.DeviceRemoveResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	112, // 172: centrifugal.centrifugo.api.DeviceRemoveResponse.result:type_name -> centrifugal.centrifugo.api.DeviceRemoveResult
+	1,   // 173: centrifugal.centrifugo.api.DeviceListResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	113, // 174: centrifugal.centrifugo.api.DeviceListResponse.result:type_name -> centrifugal.centrifugo.api.DeviceListResult
+	1,   // 175: centrifugal.centrifugo.api.DeviceTopicListResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	115, // 176: centrifugal.centrifugo.api.DeviceTopicListResponse.result:type_name -> centrifugal.centrifugo.api.DeviceTopicListResult
+	1,   // 177: centrifugal.centrifugo.api.UserTopicListResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	117, // 178: centrifugal.centrifugo.api.UserTopicListResponse.result:type_name -> centrifugal.centrifugo.api.UserTopicListResult
+	1,   // 179: centrifugal.centrifugo.api.DeviceTopicUpdateResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	118, // 180: centrifugal.centrifugo.api.DeviceTopicUpdateResponse.result:type_name -> centrifugal.centrifugo.api.DeviceTopicUpdateResult
+	1,   // 181: centrifugal.centrifugo.api.UserTopicUpdateResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	119, // 182: centrifugal.centrifugo.api.UserTopicUpdateResponse.result:type_name -> centrifugal.centrifugo.api.UserTopicUpdateResult
+	114, // 183: centrifugal.centrifugo.api.DeviceListResult.items:type_name -> centrifugal.centrifugo.api.Device
+	175, // 184: centrifugal.centrifugo.api.Device.meta:type_name -> centrifugal.centrifugo.api.Device.MetaEntry
+	116, // 185: centrifugal.centrifugo.api.DeviceTopicListResult.items:type_name -> centrifugal.centrifugo.api.DeviceTopic
+	114, // 186: centrifugal.centrifugo.api.DeviceTopic.device:type_name -> centrifugal.centrifugo.api.Device
+	120, // 187: centrifugal.centrifugo.api.UserTopicListResult.items:type_name -> centrifugal.centrifugo.api.UserTopic
+	94,  // 188: centrifugal.centrifugo.api.PushRecipient.filter:type_name -> centrifugal.centrifugo.api.DeviceFilter
+	123, // 189: centrifugal.centrifugo.api.PushNotification.fcm:type_name -> centrifugal.centrifugo.api.FcmPushNotification
+	124, // 190: centrifugal.centrifugo.api.PushNotification.hms:type_name -> centrifugal.centrifugo.api.HmsPushNotification
+	125, // 191: centrifugal.centrifugo.api.PushNotification.apns:type_name -> centrifugal.centrifugo.api.ApnsPushNotification
+	126, // 192: centrifugal.centrifugo.api.PushNotification.webpush:type_name -> centrifugal.centrifugo.api.WebPushPushNotification
+	176, // 193: centrifugal.centrifugo.api.ApnsPushNotification.headers:type_name -> centrifugal.centrifugo.api.ApnsPushNotification.HeadersEntry
+	177, // 194: centrifugal.centrifugo.api.WebPushPushNotification.headers:type_name -> centrifugal.centrifugo.api.WebPushPushNotification.HeadersEntry
+	121, // 195: centrifugal.centrifugo.api.SendPushNotificationRequest.recipient:type_name -> centrifugal.centrifugo.api.PushRecipient
+	122, // 196: centrifugal.centrifugo.api.SendPushNotificationRequest.notification:type_name -> centrifugal.centrifugo.api.PushNotification
+	129, // 197: centrifugal.centrifugo.api.SendPushNotificationRequest.limit_strategy:type_name -> centrifugal.centrifugo.api.PushLimitStrategy
+	178, // 198: centrifugal.centrifugo.api.SendPushNotificationRequest.localizations:type_name -> centrifugal.centrifugo.api.SendPushNotificationRequest.LocalizationsEntry
+	179, // 199: centrifugal.centrifugo.api.PushLocalization.translations:type_name -> centrifugal.centrifugo.api.PushLocalization.TranslationsEntry
+	131, // 200: centrifugal.centrifugo.api.PushLimitStrategy.rate_limit:type_name -> centrifugal.centrifugo.api.PushRateLimitStrategy
+	130, // 201: centrifugal.centrifugo.api.PushLimitStrategy.time_limit:type_name -> centrifugal.centrifugo.api.PushTimeLimitStrategy
+	132, // 202: centrifugal.centrifugo.api.PushRateLimitStrategy.policies:type_name -> centrifugal.centrifugo.api.RateLimitPolicy
+	1,   // 203: centrifugal.centrifugo.api.SendPushNotificationResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	134, // 204: centrifugal.centrifugo.api.SendPushNotificationResponse.result:type_name -> centrifugal.centrifugo.api.SendPushNotificationResult
+	1,   // 205: centrifugal.centrifugo.api.UpdatePushStatusResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	137, // 206: centrifugal.centrifugo.api.UpdatePushStatusResponse.result:type_name -> centrifugal.centrifugo.api.UpdatePushStatusResult
+	1,   // 207: centrifugal.centrifugo.api.CancelPushResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	140, // 208: centrifugal.centrifugo.api.CancelPushResponse.result:type_name -> centrifugal.centrifugo.api.CancelPushResult
+	180, // 209: centrifugal.centrifugo.api.MapPublishRequest.tags:type_name -> centrifugal.centrifugo.api.MapPublishRequest.TagsEntry
+	1,   // 210: centrifugal.centrifugo.api.MapPublishResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	143, // 211: centrifugal.centrifugo.api.MapPublishResponse.result:type_name -> centrifugal.centrifugo.api.MapPublishResult
+	1,   // 212: centrifugal.centrifugo.api.MapRemoveResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	146, // 213: centrifugal.centrifugo.api.MapRemoveResponse.result:type_name -> centrifugal.centrifugo.api.MapRemoveResult
+	1,   // 214: centrifugal.centrifugo.api.MapReadStateResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	149, // 215: centrifugal.centrifugo.api.MapReadStateResponse.result:type_name -> centrifugal.centrifugo.api.MapReadStateResult
+	150, // 216: centrifugal.centrifugo.api.MapReadStateResult.entries:type_name -> centrifugal.centrifugo.api.MapEntry
+	181, // 217: centrifugal.centrifugo.api.MapEntry.tags:type_name -> centrifugal.centrifugo.api.MapEntry.TagsEntry
+	1,   // 218: centrifugal.centrifugo.api.MapReadStreamResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	153, // 219: centrifugal.centrifugo.api.MapReadStreamResponse.result:type_name -> centrifugal.centrifugo.api.MapReadStreamResult
+	150, // 220: centrifugal.centrifugo.api.MapReadStreamResult.entries:type_name -> centrifugal.centrifugo.api.MapEntry
+	1,   // 221: centrifugal.centrifugo.api.MapStatsResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	156, // 222: centrifugal.centrifugo.api.MapStatsResponse.result:type_name -> centrifugal.centrifugo.api.MapStatsResult
+	1,   // 223: centrifugal.centrifugo.api.MapClearResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	159, // 224: centrifugal.centrifugo.api.MapClearResponse.result:type_name -> centrifugal.centrifugo.api.MapClearResult
+	1,   // 225: centrifugal.centrifugo.api.SharedPollPublishResponse.error:type_name -> centrifugal.centrifugo.api.Error
+	162, // 226: centrifugal.centrifugo.api.SharedPollPublishResponse.result:type_name -> centrifugal.centrifugo.api.SharedPollPublishResult
+	27,  // 227: centrifugal.centrifugo.api.PresenceResult.PresenceEntry.value:type_name -> centrifugal.centrifugo.api.ClientInfo
+	55,  // 228: centrifugal.centrifugo.api.ChannelsResult.ChannelsEntry.value:type_name -> centrifugal.centrifugo.api.ChannelInfo
+	59,  // 229: centrifugal.centrifugo.api.ConnectionsResult.ConnectionsEntry.value:type_name -> centrifugal.centrifugo.api.ConnectionInfo
+	61,  // 230: centrifugal.centrifugo.api.ConnectionState.ChannelsEntry.value:type_name -> centrifugal.centrifugo.api.ChannelContext
+	63,  // 231: centrifugal.centrifugo.api.ConnectionState.SubscriptionTokensEntry.value:type_name -> centrifugal.centrifugo.api.SubscriptionTokenInfo
+	128, // 232: centrifugal.centrifugo.api.SendPushNotificationRequest.LocalizationsEntry.value:type_name -> centrifugal.centrifugo.api.PushLocalization
+	3,   // 233: centrifugal.centrifugo.api.CentrifugoApi.Batch:input_type -> centrifugal.centrifugo.api.BatchRequest
+	5,   // 234: centrifugal.centrifugo.api.CentrifugoApi.Publish:input_type -> centrifugal.centrifugo.api.PublishRequest
+	8,   // 235: centrifugal.centrifugo.api.CentrifugoApi.Broadcast:input_type -> centrifugal.centrifugo.api.BroadcastRequest
+	12,  // 236: centrifugal.centrifugo.api.CentrifugoApi.Subscribe:input_type -> centrifugal.centrifugo.api.SubscribeRequest
+	18,  // 237: centrifugal.centrifugo.api.CentrifugoApi.Unsubscribe:input_type -> centrifugal.centrifugo.api.UnsubscribeRequest
+	22,  // 238: centrifugal.centrifugo.api.CentrifugoApi.Disconnect:input_type -> centrifugal.centrifugo.api.DisconnectRequest
+	25,  // 239: centrifugal.centrifugo.api.CentrifugoApi.Presence:input_type -> centrifugal.centrifugo.api.PresenceRequest
+	29,  // 240: centrifugal.centrifugo.api.CentrifugoApi.PresenceStats:input_type -> centrifugal.centrifugo.api.PresenceStatsRequest
+	33,  // 241: centrifugal.centrifugo.api.CentrifugoApi.History:input_type -> centrifugal.centrifugo.api.HistoryRequest
+	37,  // 242: centrifugal.centrifugo.api.CentrifugoApi.HistoryRemove:input_type -> centrifugal.centrifugo.api.HistoryRemoveRequest
+	40,  // 243: centrifugal.centrifugo.api.CentrifugoApi.Info:input_type -> centrifugal.centrifugo.api.InfoRequest
+	43,  // 244: centrifugal.centrifugo.api.CentrifugoApi.RPC:input_type -> centrifugal.centrifugo.api.RPCRequest
+	46,  // 245: centrifugal.centrifugo.api.CentrifugoApi.Refresh:input_type -> centrifugal.centrifugo.api.RefreshRequest
+	52,  // 246: centrifugal.centrifugo.api.CentrifugoApi.Channels:input_type -> centrifugal.centrifugo.api.ChannelsRequest
+	56,  // 247: centrifugal.centrifugo.api.CentrifugoApi.Connections:input_type -> centrifugal.centrifugo.api.ConnectionsRequest
+	64,  // 248: centrifugal.centrifugo.api.CentrifugoApi.UpdateUserStatus:input_type -> centrifugal.centrifugo.api.UpdateUserStatusRequest
+	67,  // 249: centrifugal.centrifugo.api.CentrifugoApi.GetUserStatus:input_type -> centrifugal.centrifugo.api.GetUserStatusRequest
+	71,  // 250: centrifugal.centrifugo.api.CentrifugoApi.DeleteUserStatus:input_type -> centrifugal.centrifugo.api.DeleteUserStatusRequest
+	74,  // 251: centrifugal.centrifugo.api.CentrifugoApi.BlockUser:input_type -> centrifugal.centrifugo.api.BlockUserRequest
+	77,  // 252: centrifugal.centrifugo.api.CentrifugoApi.UnblockUser:input_type -> centrifugal.centrifugo.api.UnblockUserRequest
+	80,  // 253: centrifugal.centrifugo.api.CentrifugoApi.RevokeToken:input_type -> centrifugal.centrifugo.api.RevokeTokenRequest
+	83,  // 254: centrifugal.centrifugo.api.CentrifugoApi.InvalidateUserTokens:input_type -> centrifugal.centrifugo.api.InvalidateUserTokensRequest
+	86,  // 255: centrifugal.centrifugo.api.CentrifugoApi.DeviceRegister:input_type -> centrifugal.centrifugo.api.DeviceRegisterRequest
+	87,  // 256: centrifugal.centrifugo.api.CentrifugoApi.DeviceUpdate:input_type -> centrifugal.centrifugo.api.DeviceUpdateRequest
+	88,  // 257: centrifugal.centrifugo.api.CentrifugoApi.DeviceRemove:input_type -> centrifugal.centrifugo.api.DeviceRemoveRequest
+	95,  // 258: centrifugal.centrifugo.api.CentrifugoApi.DeviceList:input_type -> centrifugal.centrifugo.api.DeviceListRequest
+	97,  // 259: centrifugal.centrifugo.api.CentrifugoApi.DeviceTopicList:input_type -> centrifugal.centrifugo.api.DeviceTopicListRequest
+	100, // 260: centrifugal.centrifugo.api.CentrifugoApi.DeviceTopicUpdate:input_type -> centrifugal.centrifugo.api.DeviceTopicUpdateRequest
+	99,  // 261: centrifugal.centrifugo.api.CentrifugoApi.UserTopicList:input_type -> centrifugal.centrifugo.api.UserTopicListRequest
+	101, // 262: centrifugal.centrifugo.api.CentrifugoApi.UserTopicUpdate:input_type -> centrifugal.centrifugo.api.UserTopicUpdateRequest
+	127, // 263: centrifugal.centrifugo.api.CentrifugoApi.SendPushNotification:input_type -> centrifugal.centrifugo.api.SendPushNotificationRequest
+	135, // 264: centrifugal.centrifugo.api.CentrifugoApi.UpdatePushStatus:input_type -> centrifugal.centrifugo.api.UpdatePushStatusRequest
+	138, // 265: centrifugal.centrifugo.api.CentrifugoApi.CancelPush:input_type -> centrifugal.centrifugo.api.CancelPushRequest
+	141, // 266: centrifugal.centrifugo.api.CentrifugoApi.MapPublish:input_type -> centrifugal.centrifugo.api.MapPublishRequest
+	144, // 267: centrifugal.centrifugo.api.CentrifugoApi.MapRemove:input_type -> centrifugal.centrifugo.api.MapRemoveRequest
+	147, // 268: centrifugal.centrifugo.api.CentrifugoApi.MapReadState:input_type -> centrifugal.centrifugo.api.MapReadStateRequest
+	151, // 269: centrifugal.centrifugo.api.CentrifugoApi.MapReadStream:input_type -> centrifugal.centrifugo.api.MapReadStreamRequest
+	154, // 270: centrifugal.centrifugo.api.CentrifugoApi.MapStats:input_type -> centrifugal.centrifugo.api.MapStatsRequest
+	157, // 271: centrifugal.centrifugo.api.CentrifugoApi.MapClear:input_type -> centrifugal.centrifugo.api.MapClearRequest
+	160, // 272: centrifugal.centrifugo.api.CentrifugoApi.SharedPollPublish:input_type -> centrifugal.centrifugo.api.SharedPollPublishRequest
+	4,   // 273: centrifugal.centrifugo.api.CentrifugoApi.Batch:output_type -> centrifugal.centrifugo.api.BatchResponse
+	6,   // 274: centrifugal.centrifugo.api.CentrifugoApi.Publish:output_type -> centrifugal.centrifugo.api.PublishResponse
+	9,   // 275: centrifugal.centrifugo.api.CentrifugoApi.Broadcast:output_type -> centrifugal.centrifugo.api.BroadcastResponse
+	13,  // 276: centrifugal.centrifugo.api.CentrifugoApi.Subscribe:output_type -> centrifugal.centrifugo.api.SubscribeResponse
+	19,  // 277: centrifugal.centrifugo.api.CentrifugoApi.Unsubscribe:output_type -> centrifugal.centrifugo.api.UnsubscribeResponse
+	23,  // 278: centrifugal.centrifugo.api.CentrifugoApi.Disconnect:output_type -> centrifugal.centrifugo.api.DisconnectResponse
+	26,  // 279: centrifugal.centrifugo.api.CentrifugoApi.Presence:output_type -> centrifugal.centrifugo.api.PresenceResponse
+	30,  // 280: centrifugal.centrifugo.api.CentrifugoApi.PresenceStats:output_type -> centrifugal.centrifugo.api.PresenceStatsResponse
+	34,  // 281: centrifugal.centrifugo.api.CentrifugoApi.History:output_type -> centrifugal.centrifugo.api.HistoryResponse
+	38,  // 282: centrifugal.centrifugo.api.CentrifugoApi.HistoryRemove:output_type -> centrifugal.centrifugo.api.HistoryRemoveResponse
+	41,  // 283: centrifugal.centrifugo.api.CentrifugoApi.Info:output_type -> centrifugal.centrifugo.api.InfoResponse
+	44,  // 284: centrifugal.centrifugo.api.CentrifugoApi.RPC:output_type -> centrifugal.centrifugo.api.RPCResponse
+	47,  // 285: centrifugal.centrifugo.api.CentrifugoApi.Refresh:output_type -> centrifugal.centrifugo.api.RefreshResponse
+	53,  // 286: centrifugal.centrifugo.api.CentrifugoApi.Channels:output_type -> centrifugal.centrifugo.api.ChannelsResponse
+	57,  // 287: centrifugal.centrifugo.api.CentrifugoApi.Connections:output_type -> centrifugal.centrifugo.api.ConnectionsResponse
+	65,  // 288: centrifugal.centrifugo.api.CentrifugoApi.UpdateUserStatus:output_type -> centrifugal.centrifugo.api.UpdateUserStatusResponse
+	68,  // 289: centrifugal.centrifugo.api.CentrifugoApi.GetUserStatus:output_type -> centrifugal.centrifugo.api.GetUserStatusResponse
+	72,  // 290: centrifugal.centrifugo.api.CentrifugoApi.DeleteUserStatus:output_type -> centrifugal.centrifugo.api.DeleteUserStatusResponse
+	76,  // 291: centrifugal.centrifugo.api.CentrifugoApi.BlockUser:output_type -> centrifugal.centrifugo.api.BlockUserResponse
+	79,  // 292: centrifugal.centrifugo.api.CentrifugoApi.UnblockUser:output_type -> centrifugal.centrifugo.api.UnblockUserResponse
+	82,  // 293: centrifugal.centrifugo.api.CentrifugoApi.RevokeToken:output_type -> centrifugal.centrifugo.api.RevokeTokenResponse
+	85,  // 294: centrifugal.centrifugo.api.CentrifugoApi.InvalidateUserTokens:output_type -> centrifugal.centrifugo.api.InvalidateUserTokensResponse
+	102, // 295: centrifugal.centrifugo.api.CentrifugoApi.DeviceRegister:output_type -> centrifugal.centrifugo.api.DeviceRegisterResponse
+	103, // 296: centrifugal.centrifugo.api.CentrifugoApi.DeviceUpdate:output_type -> centrifugal.centrifugo.api.DeviceUpdateResponse
+	104, // 297: centrifugal.centrifugo.api.CentrifugoApi.DeviceRemove:output_type -> centrifugal.centrifugo.api.DeviceRemoveResponse
+	105, // 298: centrifugal.centrifugo.api.CentrifugoApi.DeviceList:output_type -> centrifugal.centrifugo.api.DeviceListResponse
+	106, // 299: centrifugal.centrifugo.api.CentrifugoApi.DeviceTopicList:output_type -> centrifugal.centrifugo.api.DeviceTopicListResponse
+	108, // 300: centrifugal.centrifugo.api.CentrifugoApi.DeviceTopicUpdate:output_type -> centrifugal.centrifugo.api.DeviceTopicUpdateResponse
+	107, // 301: centrifugal.centrifugo.api.CentrifugoApi.UserTopicList:output_type -> centrifugal.centrifugo.api.UserTopicListResponse
+	109, // 302: centrifugal.centrifugo.api.CentrifugoApi.UserTopicUpdate:output_type -> centrifugal.centrifugo.api.UserTopicUpdateResponse
+	133, // 303: centrifugal.centrifugo.api.CentrifugoApi.SendPushNotification:output_type -> centrifugal.centrifugo.api.SendPushNotificationResponse
+	136, // 304: centrifugal.centrifugo.api.CentrifugoApi.UpdatePushStatus:output_type -> centrifugal.centrifugo.api.UpdatePushStatusResponse
+	139, // 305: centrifugal.centrifugo.api.CentrifugoApi.CancelPush:output_type -> centrifugal.centrifugo.api.CancelPushResponse
+	142, // 306: centrifugal.centrifugo.api.CentrifugoApi.MapPublish:output_type -> centrifugal.centrifugo.api.MapPublishResponse
+	145, // 307: centrifugal.centrifugo.api.CentrifugoApi.MapRemove:output_type -> centrifugal.centrifugo.api.MapRemoveResponse
+	148, // 308: centrifugal.centrifugo.api.CentrifugoApi.MapReadState:output_type -> centrifugal.centrifugo.api.MapReadStateResponse
+	152, // 309: centrifugal.centrifugo.api.CentrifugoApi.MapReadStream:output_type -> centrifugal.centrifugo.api.MapReadStreamResponse
+	155, // 310: centrifugal.centrifugo.api.CentrifugoApi.MapStats:output_type -> centrifugal.centrifugo.api.MapStatsResponse
+	158, // 311: centrifugal.centrifugo.api.CentrifugoApi.MapClear:output_type -> centrifugal.centrifugo.api.MapClearResponse
+	161, // 312: centrifugal.centrifugo.api.CentrifugoApi.SharedPollPublish:output_type -> centrifugal.centrifugo.api.SharedPollPublishResponse
+	273, // [273:313] is the sub-list for method output_type
+	233, // [233:273] is the sub-list for method input_type
+	233, // [233:233] is the sub-list for extension type_name
+	233, // [233:233] is the sub-list for extension extendee
+	0,   // [0:233] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_init() }
@@ -11054,7 +11369,7 @@ func file_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_rawDesc), len(file_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   178,
+			NumMessages:   182,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -10,16 +10,17 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* Support Prometheus native histograms, see [#1136](https://github.com/centrifugal/centrifugo/pull/1136).
-* Kafka consumer: don't re-init the client on retriable fetch errors, see [#1137](https://github.com/centrifugal/centrifugo/pull/1137).
+* OpenTelemetry: authenticate the OTLP exporter with Google Cloud Application Default Credentials (ADC) via the new `google_cloud_adc_auth` option, see [#1143](https://github.com/centrifugal/centrifugo/pull/1143) and [#1148](https://github.com/centrifugal/centrifugo/pull/1148). This allows exporting traces directly to Google Cloud's OTLP endpoint (`telemetry.googleapis.com`) without a sidecar collector, and works with both the `grpc` and `http/protobuf` exporter protocols.
+* Kafka consumer: added a configurable `dial_timeout` (default `3s`) for establishing a TCP connection to a single broker, and made the initial `Ping` timeout scale with the number of seed brokers so discovery no longer fails prematurely when some brokers are unreachable, see [#1151](https://github.com/centrifugal/centrifugo/pull/1151).
+* Centrifugo official Helm chart now supports k8s Gateway API - see [Helm chart 13.3.0 release](https://github.com/centrifugal/helm-charts/releases/tag/centrifugo-13.3.0)
 
 ### Fixes
 
-* Add missing `envconfig` tags to NATS JetStream consumer config so its fields can be configured via environment variables, see [#1117](https://github.com/centrifugal/centrifugo/pull/1117) by @thuy-le-kafi. Applied the same fix to the Redis Streams and Azure Service Bus consumer configs, which had the same gap.
-* Fix a bunch of flaky integration tests.
+* Kafka consumer with AWS MSK IAM auth: re-assume the STS role on each SASL re-auth instead of reusing cached credentials, fixing periodic `ILLEGAL_SASL_STATE` errors during re-authentication, see [#1146](https://github.com/centrifugal/centrifugo/pull/1146) by @samir-is-here which fixes [#1144](https://github.com/centrifugal/centrifugo/issues/1144).
+* Fix unidirectional subscribe stream proxy not closing on unsubscribe, see [#1150](https://github.com/centrifugal/centrifugo/pull/1150).
 
 ### Miscellaneous
 
-* This release is built with Go 1.26.3
+* This release is built with Go 1.26.4
 * Dependency updates
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.8.1).
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.8.2).

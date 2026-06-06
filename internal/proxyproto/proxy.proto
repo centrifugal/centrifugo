@@ -95,6 +95,9 @@ message ConnectResult {
   map<string, SubscribeOptions> subs = 8;
   bytes meta = 9;
   repeated ChannelsCapability caps = 10;
+  // PRO only — client labels attached to the centrifuge.Client by Centrifugo PRO.
+  // Parsed by OSS but not used (OSS does not populate centrifuge.ConnectReply.Labels).
+  map<string, string> labels = 11;
 }
 
 message ChannelsCapability {
@@ -117,6 +120,9 @@ message RefreshRequest {
 
   string user = 10;
   bytes meta = 11;
+  // PRO only — connection labels attached to the originating centrifuge.Client.
+  // Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
+  map<string, string> labels = 12;
 }
 
 message RefreshResult {
@@ -146,6 +152,9 @@ message SubscribeRequest {
   bytes meta = 13;
   bytes data = 14;
   string b64data = 15;
+  // PRO only — connection labels attached to the originating centrifuge.Client.
+  // Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
+  map<string, string> labels = 16;
 }
 
 message BoolValue {
@@ -192,6 +201,9 @@ message PublishRequest {
   bytes data = 12;
   string b64data = 13;
   bytes meta = 14;
+  // PRO only — connection labels attached to the originating centrifuge.Client.
+  // Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
+  map<string, string> labels = 15;
 }
 
 message PublishResult {
@@ -223,6 +235,9 @@ message MapPublishRequest {
   bytes data = 13;
   string b64data = 14;
   bytes meta = 15;
+  // PRO only — connection labels attached to the originating centrifuge.Client.
+  // Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
+  map<string, string> labels = 16;
 }
 
 message MapPublishResult {
@@ -256,6 +271,9 @@ message MapRemoveRequest {
   string channel = 11;
   string key = 12;
   bytes meta = 13;
+  // PRO only — connection labels attached to the originating centrifuge.Client.
+  // Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
+  map<string, string> labels = 14;
 }
 
 message MapRemoveResult {
@@ -281,6 +299,9 @@ message RPCRequest {
   bytes data = 12;
   string b64data = 13;
   bytes meta = 14;
+  // PRO only — connection labels attached to the originating centrifuge.Client.
+  // Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
+  map<string, string> labels = 15;
 }
 
 message RPCResult {
@@ -303,6 +324,9 @@ message SubRefreshRequest {
   string user = 10;
   string channel = 11;
   bytes meta = 12;
+  // PRO only — connection labels attached to the originating centrifuge.Client.
+  // Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
+  map<string, string> labels = 13;
 }
 
 message SubRefreshResult {

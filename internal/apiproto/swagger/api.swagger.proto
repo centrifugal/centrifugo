@@ -10,7 +10,7 @@ import "protoc-gen-openapiv2/options/annotations.proto";
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {
     title: "Centrifugo server HTTP API";
-    version: "5.0";
+    version: "6.0";
     description: "";
   };
   external_docs: {
@@ -50,6 +50,15 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
     },
     {
       name: "batch"
+    },
+    {
+      name: "rpc"
+    },
+    {
+      name: "map"
+    },
+    {
+      name: "shared poll"
     }
   ];
   responses: {
@@ -197,6 +206,16 @@ service CentrifugoApi {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Info shows details about server nodes";
       tags: ["stats"];
+    };
+  }
+  rpc RPC (RPCRequest) returns (RPCResponse) {
+    option (google.api.http) = {
+      post: "/rpc",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Execute RPC";
+      tags: ["rpc"];
     };
   }
   rpc Refresh (RefreshRequest) returns (RefreshResponse) {
@@ -409,6 +428,76 @@ service CentrifugoApi {
       tags: ["push notification"];
     };
   }
+  rpc MapPublish (MapPublishRequest) returns (MapPublishResponse) {
+    option (google.api.http) = {
+      post: "/map_publish",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Publish a key into a map channel";
+      tags: ["map"];
+    };
+  }
+  rpc MapRemove (MapRemoveRequest) returns (MapRemoveResponse) {
+    option (google.api.http) = {
+      post: "/map_remove",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Remove a key from a map channel";
+      tags: ["map"];
+    };
+  }
+  rpc MapReadState (MapReadStateRequest) returns (MapReadStateResponse) {
+    option (google.api.http) = {
+      post: "/map_read_state",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Read current state of a map channel";
+      tags: ["map"];
+    };
+  }
+  rpc MapReadStream (MapReadStreamRequest) returns (MapReadStreamResponse) {
+    option (google.api.http) = {
+      post: "/map_read_stream",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Read the stream of a map channel";
+      tags: ["map"];
+    };
+  }
+  rpc MapStats (MapStatsRequest) returns (MapStatsResponse) {
+    option (google.api.http) = {
+      post: "/map_stats",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Stats for a map channel";
+      tags: ["map"];
+    };
+  }
+  rpc MapClear (MapClearRequest) returns (MapClearResponse) {
+    option (google.api.http) = {
+      post: "/map_clear",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Clear a map channel";
+      tags: ["map"];
+    };
+  }
+  rpc SharedPollPublish (SharedPollPublishRequest) returns (SharedPollPublishResponse) {
+    option (google.api.http) = {
+      post: "/shared_poll_publish",
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Publish into a shared poll channel";
+      tags: ["shared poll"];
+    };
+  }
 }
 
 message Command {
@@ -446,6 +535,13 @@ message Command {
   SendPushNotificationRequest send_push_notification = 33;
   UpdatePushStatusRequest update_push_status = 34;
   CancelPushRequest cancel_push = 35;
+  MapPublishRequest map_publish = 36;
+  MapRemoveRequest map_remove = 37;
+  MapReadStateRequest map_read_state = 38;
+  MapReadStreamRequest map_read_stream = 39;
+  MapStatsRequest map_stats = 40;
+  MapClearRequest map_clear = 41;
+  SharedPollPublishRequest shared_poll_publish = 42;
 }
 
 message Error {
@@ -490,6 +586,13 @@ message Reply {
   SendPushNotificationResult send_push_notification = 33;
   UpdatePushStatusResult update_push_status = 34;
   CancelPushResult cancel_push = 35;
+  MapPublishResult map_publish = 36;
+  MapRemoveResult map_remove = 37;
+  MapReadStateResult map_read_state = 38;
+  MapReadStreamResult map_read_stream = 39;
+  MapStatsResult map_stats = 40;
+  MapClearResult map_clear = 41;
+  SharedPollPublishResult shared_poll_publish = 42;
 }
 
 message BatchRequest {
@@ -509,6 +612,8 @@ message PublishRequest {
   map<string, string> tags = 5;
   string idempotency_key = 6;
   bool delta = 7;
+  uint64 version = 8;
+  string version_epoch = 9;
 }
 
 message PublishResponse {
@@ -529,6 +634,8 @@ message BroadcastRequest {
   map<string, string> tags = 5;
   string idempotency_key = 6;
   bool delta = 7;
+  uint64 version = 8;
+  string version_epoch = 9;
 }
 
 message BroadcastResponse {
@@ -538,6 +645,18 @@ message BroadcastResponse {
 
 message BroadcastResult {
   repeated PublishResponse responses = 1;
+}
+
+// FilterNode is a tree describing a label predicate.
+// Used as label_filter on Subscribe/Unsubscribe/Disconnect/Refresh/Connections requests.
+// PRO only — defined in OSS api.proto for protocol-surface consistency; OSS handlers parse but do not act on it.
+message FilterNode {
+  string op = 1;
+  string key = 2;
+  string cmp = 3;
+  string val = 4;
+  repeated string vals = 5;
+  repeated FilterNode nodes = 6;
 }
 
 message SubscribeRequest {
@@ -552,6 +671,11 @@ message SubscribeRequest {
   StreamPosition recover_since = 9;
   SubscribeOptionOverride override = 10;
   string session = 11;
+  // PRO only — restrict the call to clients whose labels match this filter.
+  FilterNode label_filter = 12;
+  // PRO only — when `user` is empty, target every connection on every node
+  // instead of the anonymous-only bucket. No effect when `user` is non-empty.
+  bool all_users = 13;
 }
 
 message SubscribeResponse {
@@ -582,6 +706,10 @@ message UnsubscribeRequest {
   string user = 2;
   string client = 3;
   string session = 4;
+  // PRO only — restrict the call to clients whose labels match this filter.
+  FilterNode label_filter = 5;
+  // PRO only — see SubscribeRequest.all_users.
+  bool all_users = 6;
 }
 
 message UnsubscribeResponse {
@@ -604,6 +732,10 @@ message DisconnectRequest {
   string client = 3;
   repeated string whitelist = 4;
   string session = 5;
+  // PRO only — restrict the call to clients whose labels match this filter.
+  FilterNode label_filter = 6;
+  // PRO only — see SubscribeRequest.all_users.
+  bool all_users = 7;
 }
 
 message DisconnectResponse {
@@ -721,6 +853,10 @@ message RefreshRequest {
   int64 expire_at = 4;
   bytes info = 5;
   string session = 6;
+  // PRO only — restrict the call to clients whose labels match this filter.
+  FilterNode label_filter = 7;
+  // PRO only — see SubscribeRequest.all_users.
+  bool all_users = 8;
 }
 
 message RefreshResponse {
@@ -773,6 +909,8 @@ message ChannelInfo {
 message ConnectionsRequest {
   string user = 1;
   string expression = 2;
+  // PRO only — restrict the listing to clients whose labels match this filter.
+  FilterNode label_filter = 3;
 }
 
 message ConnectionsResponse {
@@ -793,6 +931,10 @@ message ConnectionInfo {
   string protocol = 4;
   string user = 8;
   ConnectionState state = 9;
+  int64 connected_at_ms = 10;
+  int64 ping_pong_latency_ms = 11; // can be -1 if not available.
+  // PRO only — client labels attached to the centrifuge.Client by Centrifugo PRO.
+  map<string, string> labels = 12;
 }
 
 message ConnectionState {
@@ -972,6 +1114,7 @@ message DeviceListRequest {
   bool include_total_count = 2;
   bool include_meta = 3;
   bool include_topics = 4;
+  bool include_webpush_keys = 5;
 
   string cursor = 10;
   int32 limit = 11;
@@ -1015,6 +1158,7 @@ message DeviceTopicUpdateRequest {
   string device_id = 1;
   string op = 2; // add | remove | set
   repeated string topics = 3;
+  string user = 4; // optional ownership guard: apply only if the device currently belongs to this user
 }
 
 message UserTopicUpdateRequest {
@@ -1092,6 +1236,7 @@ message Device {
   repeated string topics = 11;
   string timezone = 12;
   string locale = 13;
+  string webpush_keys = 14;
 }
 
 message DeviceTopicListResult {
@@ -1136,12 +1281,15 @@ message PushRecipient {
   string hms_condition = 7;
 
   repeated string apns_tokens = 8;
+
+  repeated string webpush_tokens = 9;
 }
 
 message PushNotification {
   FcmPushNotification fcm = 1;
   HmsPushNotification hms = 2;
   ApnsPushNotification apns = 3;
+  WebPushPushNotification webpush = 4;
 
   int64 expire_at = 5; // timestamp in the future when Centrifugo should stop trying to send push notification.
 }
@@ -1155,6 +1303,11 @@ message HmsPushNotification {
 }
 
 message ApnsPushNotification {
+  map<string, string> headers = 1;
+  bytes payload = 2;
+}
+
+message WebPushPushNotification {
   map<string, string> headers = 1;
   bytes payload = 2;
 }
@@ -1231,3 +1384,140 @@ message CancelPushResponse {
 }
 
 message CancelPushResult {}
+
+message MapPublishRequest {
+  string channel = 1;
+  string key = 2;
+  bytes data = 3;
+  string b64data = 4;
+  bytes stream_data = 5;
+  string b64stream_data = 6;
+  map<string, string> tags = 7;
+  string idempotency_key = 8;
+  bool delta = 9;
+  uint64 version = 10;
+  string version_epoch = 11;
+  int64 score = 12;
+  string key_mode = 13;
+}
+
+message MapPublishResponse {
+  Error error = 1;
+  MapPublishResult result = 2;
+}
+
+message MapPublishResult {
+  uint64 offset = 1;
+  string epoch = 2;
+  bool suppressed = 3;
+  string suppress_reason = 4;
+}
+
+message MapRemoveRequest {
+  string channel = 1;
+  string key = 2;
+  string idempotency_key = 3;
+}
+
+message MapRemoveResponse {
+  Error error = 1;
+  MapRemoveResult result = 2;
+}
+
+message MapRemoveResult {
+  uint64 offset = 1;
+  string epoch = 2;
+  bool suppressed = 3;
+  string suppress_reason = 4;
+}
+
+message MapReadStateRequest {
+  string channel = 1;
+  string cursor = 2;
+  int32 limit = 3;
+  string key = 4;
+  bool asc = 5;
+  uint64 revision_offset = 6;
+  string revision_epoch = 7;
+}
+
+message MapReadStateResponse {
+  Error error = 1;
+  MapReadStateResult result = 2;
+}
+
+message MapReadStateResult {
+  repeated MapEntry entries = 1;
+  uint64 offset = 2;
+  string epoch = 3;
+  string cursor = 4;
+}
+
+message MapEntry {
+  string key = 1;
+  bytes data = 2;
+  map<string, string> tags = 3;
+  uint64 offset = 4;
+  int64 score = 5;
+  bool removed = 6;
+  int64 time = 7;
+}
+
+message MapReadStreamRequest {
+  string channel = 1;
+  uint64 since_offset = 2;
+  string since_epoch = 3;
+  int32 limit = 4;
+  bool reverse = 5;
+}
+
+message MapReadStreamResponse {
+  Error error = 1;
+  MapReadStreamResult result = 2;
+}
+
+message MapReadStreamResult {
+  repeated MapEntry entries = 1;
+  uint64 offset = 2;
+  string epoch = 3;
+}
+
+message MapStatsRequest {
+  string channel = 1;
+}
+
+message MapStatsResponse {
+  Error error = 1;
+  MapStatsResult result = 2;
+}
+
+message MapStatsResult {
+  int32 num_keys = 1;
+}
+
+message MapClearRequest {
+  string channel = 1;
+}
+
+message MapClearResponse {
+  Error error = 1;
+  MapClearResult result = 2;
+}
+
+message MapClearResult {}
+
+message SharedPollPublishRequest {
+  string channel = 1;
+  string key = 2;
+  bytes data = 3;
+  string b64data = 4;
+  uint64 version = 5;
+  string epoch = 6;
+}
+
+message SharedPollPublishResponse {
+  Error error = 1;
+  SharedPollPublishResult result = 2;
+}
+
+message SharedPollPublishResult {}

@@ -194,6 +194,18 @@ message BroadcastResult {
     repeated PublishResponse responses = 1;
 }
 
+// FilterNode is a tree describing a label predicate.
+// Used as label_filter on Subscribe/Unsubscribe/Disconnect/Refresh/Connections requests.
+// PRO only — defined in OSS api.proto for protocol-surface consistency; OSS handlers parse but do not act on it.
+message FilterNode {
+    string op = 1;
+    string key = 2;
+    string cmp = 3;
+    string val = 4;
+    repeated string vals = 5;
+    repeated FilterNode nodes = 6;
+}
+
 message SubscribeRequest {
     string channel = 1;
     string user = 2;
@@ -206,6 +218,11 @@ message SubscribeRequest {
     StreamPosition recover_since = 9;
     SubscribeOptionOverride override = 10;
     string session = 11;
+    // PRO only — restrict the call to clients whose labels match this filter.
+    FilterNode label_filter = 12;
+    // PRO only — when `user` is empty, target every connection on every node
+    // instead of the anonymous-only bucket. No effect when `user` is non-empty.
+    bool all_users = 13;
 }
 
 message SubscribeResponse {
@@ -236,6 +253,10 @@ message UnsubscribeRequest {
     string user = 2;
     string client = 3;
     string session = 4;
+    // PRO only — restrict the call to clients whose labels match this filter.
+    FilterNode label_filter = 5;
+    // PRO only — see SubscribeRequest.all_users.
+    bool all_users = 6;
 }
 
 message UnsubscribeResponse {
@@ -258,6 +279,10 @@ message DisconnectRequest {
     string client = 3;
     repeated string whitelist = 4;
     string session = 5;
+    // PRO only — restrict the call to clients whose labels match this filter.
+    FilterNode label_filter = 6;
+    // PRO only — see SubscribeRequest.all_users.
+    bool all_users = 7;
 }
 
 message DisconnectResponse {
@@ -375,6 +400,10 @@ message RefreshRequest {
     int64 expire_at = 4;
     bytes info = 5;
     string session = 6;
+    // PRO only — restrict the call to clients whose labels match this filter.
+    FilterNode label_filter = 7;
+    // PRO only — see SubscribeRequest.all_users.
+    bool all_users = 8;
 }
 
 message RefreshResponse {
@@ -427,6 +456,8 @@ message ChannelInfo {
 message ConnectionsRequest {
     string user = 1;
     string expression = 2;
+    // PRO only — restrict the listing to clients whose labels match this filter.
+    FilterNode label_filter = 3;
 }
 
 message ConnectionsResponse {
@@ -449,6 +480,8 @@ message ConnectionInfo {
     ConnectionState state = 9;
     int64 connected_at_ms = 10;
     int64 ping_pong_latency_ms = 11; // can be -1 if not available.
+    // PRO only — client labels attached to the centrifuge.Client by Centrifugo PRO.
+    map<string, string> labels = 12;
 }
 
 message ConnectionState {
@@ -628,6 +661,7 @@ message DeviceListRequest {
     bool include_total_count = 2;
     bool include_meta = 3;
     bool include_topics = 4;
+    bool include_webpush_keys = 5;
 
     string cursor = 10;
     int32 limit = 11;
@@ -671,6 +705,7 @@ message DeviceTopicUpdateRequest {
     string device_id = 1;
     string op = 2; // add | remove | set
     repeated string topics = 3;
+    string user = 4; // optional ownership guard: apply only if the device currently belongs to this user
 }
 
 message UserTopicUpdateRequest {
@@ -748,6 +783,7 @@ message Device {
     repeated string topics = 11;
     string timezone = 12;
     string locale = 13;
+    string webpush_keys = 14;
 }
 
 message DeviceTopicListResult {
@@ -792,12 +828,15 @@ message PushRecipient {
     string hms_condition = 7;
 
     repeated string apns_tokens = 8;
+
+    repeated string webpush_tokens = 9;
 }
 
 message PushNotification {
     FcmPushNotification fcm = 1;
     HmsPushNotification hms = 2;
     ApnsPushNotification apns = 3;
+    WebPushPushNotification webpush = 4;
 
     int64 expire_at = 5; // timestamp in the future when Centrifugo should stop trying to send push notification.
 }
@@ -811,6 +850,11 @@ message HmsPushNotification {
 }
 
 message ApnsPushNotification {
+    map<string, string> headers = 1;
+    bytes payload = 2;
+}
+
+message WebPushPushNotification {
     map<string, string> headers = 1;
     bytes payload = 2;
 }

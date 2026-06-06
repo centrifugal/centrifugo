@@ -418,17 +418,20 @@ func (x *SubscribeOptions) GetServerTagsFilter() *FilterNode {
 }
 
 type ConnectResult struct {
-	state         protoimpl.MessageState       `protogen:"open.v1"`
-	User          string                       `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	ExpireAt      int64                        `protobuf:"varint,2,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	Info          Raw                          `protobuf:"bytes,3,opt,name=info,proto3" json:"info,omitempty"`
-	B64Info       string                       `protobuf:"bytes,4,opt,name=b64info,proto3" json:"b64info,omitempty"`
-	Data          Raw                          `protobuf:"bytes,5,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data       string                       `protobuf:"bytes,6,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	Channels      []string                     `protobuf:"bytes,7,rep,name=channels,proto3" json:"channels,omitempty"`
-	Subs          map[string]*SubscribeOptions `protobuf:"bytes,8,rep,name=subs,proto3" json:"subs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Meta          Raw                          `protobuf:"bytes,9,opt,name=meta,proto3" json:"meta,omitempty"`
-	Caps          []*ChannelsCapability        `protobuf:"bytes,10,rep,name=caps,proto3" json:"caps,omitempty"`
+	state    protoimpl.MessageState       `protogen:"open.v1"`
+	User     string                       `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	ExpireAt int64                        `protobuf:"varint,2,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	Info     Raw                          `protobuf:"bytes,3,opt,name=info,proto3" json:"info,omitempty"`
+	B64Info  string                       `protobuf:"bytes,4,opt,name=b64info,proto3" json:"b64info,omitempty"`
+	Data     Raw                          `protobuf:"bytes,5,opt,name=data,proto3" json:"data,omitempty"`
+	B64Data  string                       `protobuf:"bytes,6,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	Channels []string                     `protobuf:"bytes,7,rep,name=channels,proto3" json:"channels,omitempty"`
+	Subs     map[string]*SubscribeOptions `protobuf:"bytes,8,rep,name=subs,proto3" json:"subs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Meta     Raw                          `protobuf:"bytes,9,opt,name=meta,proto3" json:"meta,omitempty"`
+	Caps     []*ChannelsCapability        `protobuf:"bytes,10,rep,name=caps,proto3" json:"caps,omitempty"`
+	// PRO only — client labels attached to the centrifuge.Client by Centrifugo PRO.
+	// Parsed by OSS but not used (OSS does not populate centrifuge.ConnectReply.Labels).
+	Labels        map[string]string `protobuf:"bytes,11,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -529,6 +532,13 @@ func (x *ConnectResult) GetMeta() []byte {
 func (x *ConnectResult) GetCaps() []*ChannelsCapability {
 	if x != nil {
 		return x.Caps
+	}
+	return nil
+}
+
+func (x *ConnectResult) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
 	}
 	return nil
 }
@@ -654,13 +664,16 @@ func (x *ConnectResponse) GetDisconnect() *Disconnect {
 }
 
 type RefreshRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Client        string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
-	Transport     string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
-	Protocol      string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	Encoding      string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
-	User          string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
-	Meta          Raw                    `protobuf:"bytes,11,opt,name=meta,proto3" json:"meta,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Client    string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	Transport string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
+	Protocol  string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	Encoding  string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
+	User      string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
+	Meta      Raw                    `protobuf:"bytes,11,opt,name=meta,proto3" json:"meta,omitempty"`
+	// PRO only — connection labels attached to the originating centrifuge.Client.
+	// Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
+	Labels        map[string]string `protobuf:"bytes,12,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -733,6 +746,13 @@ func (x *RefreshRequest) GetUser() string {
 func (x *RefreshRequest) GetMeta() []byte {
 	if x != nil {
 		return x.Meta
+	}
+	return nil
+}
+
+func (x *RefreshRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
 	}
 	return nil
 }
@@ -882,17 +902,20 @@ func (x *RefreshResponse) GetDisconnect() *Disconnect {
 }
 
 type SubscribeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Client        string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
-	Transport     string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
-	Protocol      string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	Encoding      string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
-	User          string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
-	Channel       string                 `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
-	Token         string                 `protobuf:"bytes,12,opt,name=token,proto3" json:"token,omitempty"`
-	Meta          Raw                    `protobuf:"bytes,13,opt,name=meta,proto3" json:"meta,omitempty"`
-	Data          Raw                    `protobuf:"bytes,14,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data       string                 `protobuf:"bytes,15,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Client    string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	Transport string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
+	Protocol  string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	Encoding  string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
+	User      string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
+	Channel   string                 `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
+	Token     string                 `protobuf:"bytes,12,opt,name=token,proto3" json:"token,omitempty"`
+	Meta      Raw                    `protobuf:"bytes,13,opt,name=meta,proto3" json:"meta,omitempty"`
+	Data      Raw                    `protobuf:"bytes,14,opt,name=data,proto3" json:"data,omitempty"`
+	B64Data   string                 `protobuf:"bytes,15,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	// PRO only — connection labels attached to the originating centrifuge.Client.
+	// Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
+	Labels        map[string]string `protobuf:"bytes,16,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -995,6 +1018,13 @@ func (x *SubscribeRequest) GetB64Data() string {
 		return x.B64Data
 	}
 	return ""
+}
+
+func (x *SubscribeRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
 }
 
 type BoolValue struct {
@@ -1322,16 +1352,19 @@ func (x *SubscribeResponse) GetDisconnect() *Disconnect {
 }
 
 type PublishRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Client        string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
-	Transport     string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
-	Protocol      string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	Encoding      string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
-	User          string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
-	Channel       string                 `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
-	Data          Raw                    `protobuf:"bytes,12,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data       string                 `protobuf:"bytes,13,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	Meta          Raw                    `protobuf:"bytes,14,opt,name=meta,proto3" json:"meta,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Client    string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	Transport string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
+	Protocol  string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	Encoding  string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
+	User      string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
+	Channel   string                 `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
+	Data      Raw                    `protobuf:"bytes,12,opt,name=data,proto3" json:"data,omitempty"`
+	B64Data   string                 `protobuf:"bytes,13,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	Meta      Raw                    `protobuf:"bytes,14,opt,name=meta,proto3" json:"meta,omitempty"`
+	// PRO only — connection labels attached to the originating centrifuge.Client.
+	// Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
+	Labels        map[string]string `protobuf:"bytes,15,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1425,6 +1458,13 @@ func (x *PublishRequest) GetB64Data() string {
 func (x *PublishRequest) GetMeta() []byte {
 	if x != nil {
 		return x.Meta
+	}
+	return nil
+}
+
+func (x *PublishRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
 	}
 	return nil
 }
@@ -1590,17 +1630,20 @@ func (x *PublishResponse) GetDisconnect() *Disconnect {
 }
 
 type MapPublishRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Client        string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
-	Transport     string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
-	Protocol      string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	Encoding      string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
-	User          string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user,omitempty"`
-	Channel       string                 `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
-	Key           string                 `protobuf:"bytes,12,opt,name=key,proto3" json:"key,omitempty"`
-	Data          Raw                    `protobuf:"bytes,13,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data       string                 `protobuf:"bytes,14,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	Meta          Raw                    `protobuf:"bytes,15,opt,name=meta,proto3" json:"meta,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Client    string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	Transport string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
+	Protocol  string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	Encoding  string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
+	User      string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user,omitempty"`
+	Channel   string                 `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
+	Key       string                 `protobuf:"bytes,12,opt,name=key,proto3" json:"key,omitempty"`
+	Data      Raw                    `protobuf:"bytes,13,opt,name=data,proto3" json:"data,omitempty"`
+	B64Data   string                 `protobuf:"bytes,14,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	Meta      Raw                    `protobuf:"bytes,15,opt,name=meta,proto3" json:"meta,omitempty"`
+	// PRO only — connection labels attached to the originating centrifuge.Client.
+	// Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
+	Labels        map[string]string `protobuf:"bytes,16,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1701,6 +1744,13 @@ func (x *MapPublishRequest) GetB64Data() string {
 func (x *MapPublishRequest) GetMeta() []byte {
 	if x != nil {
 		return x.Meta
+	}
+	return nil
+}
+
+func (x *MapPublishRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
 	}
 	return nil
 }
@@ -1898,15 +1948,18 @@ func (x *MapPublishResponse) GetDisconnect() *Disconnect {
 }
 
 type MapRemoveRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Client        string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
-	Transport     string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
-	Protocol      string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	Encoding      string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
-	User          string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user,omitempty"`
-	Channel       string                 `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
-	Key           string                 `protobuf:"bytes,12,opt,name=key,proto3" json:"key,omitempty"`
-	Meta          Raw                    `protobuf:"bytes,13,opt,name=meta,proto3" json:"meta,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Client    string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	Transport string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
+	Protocol  string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	Encoding  string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
+	User      string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user,omitempty"`
+	Channel   string                 `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
+	Key       string                 `protobuf:"bytes,12,opt,name=key,proto3" json:"key,omitempty"`
+	Meta      Raw                    `protobuf:"bytes,13,opt,name=meta,proto3" json:"meta,omitempty"`
+	// PRO only — connection labels attached to the originating centrifuge.Client.
+	// Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
+	Labels        map[string]string `protobuf:"bytes,14,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1993,6 +2046,13 @@ func (x *MapRemoveRequest) GetKey() string {
 func (x *MapRemoveRequest) GetMeta() []byte {
 	if x != nil {
 		return x.Meta
+	}
+	return nil
+}
+
+func (x *MapRemoveRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
 	}
 	return nil
 }
@@ -2118,16 +2178,19 @@ func (x *MapRemoveResponse) GetDisconnect() *Disconnect {
 }
 
 type RPCRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Client        string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
-	Transport     string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
-	Protocol      string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	Encoding      string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
-	User          string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
-	Method        string                 `protobuf:"bytes,11,opt,name=method,proto3" json:"method,omitempty"`
-	Data          Raw                    `protobuf:"bytes,12,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data       string                 `protobuf:"bytes,13,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	Meta          Raw                    `protobuf:"bytes,14,opt,name=meta,proto3" json:"meta,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Client    string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	Transport string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
+	Protocol  string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	Encoding  string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
+	User      string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
+	Method    string                 `protobuf:"bytes,11,opt,name=method,proto3" json:"method,omitempty"`
+	Data      Raw                    `protobuf:"bytes,12,opt,name=data,proto3" json:"data,omitempty"`
+	B64Data   string                 `protobuf:"bytes,13,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	Meta      Raw                    `protobuf:"bytes,14,opt,name=meta,proto3" json:"meta,omitempty"`
+	// PRO only — connection labels attached to the originating centrifuge.Client.
+	// Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
+	Labels        map[string]string `protobuf:"bytes,15,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2221,6 +2284,13 @@ func (x *RPCRequest) GetB64Data() string {
 func (x *RPCRequest) GetMeta() []byte {
 	if x != nil {
 		return x.Meta
+	}
+	return nil
+}
+
+func (x *RPCRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
 	}
 	return nil
 }
@@ -2338,14 +2408,17 @@ func (x *RPCResponse) GetDisconnect() *Disconnect {
 }
 
 type SubRefreshRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Client        string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
-	Transport     string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
-	Protocol      string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	Encoding      string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
-	User          string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
-	Channel       string                 `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
-	Meta          Raw                    `protobuf:"bytes,12,opt,name=meta,proto3" json:"meta,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Client    string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	Transport string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
+	Protocol  string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	Encoding  string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
+	User      string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
+	Channel   string                 `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
+	Meta      Raw                    `protobuf:"bytes,12,opt,name=meta,proto3" json:"meta,omitempty"`
+	// PRO only — connection labels attached to the originating centrifuge.Client.
+	// Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
+	Labels        map[string]string `protobuf:"bytes,13,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2425,6 +2498,13 @@ func (x *SubRefreshRequest) GetChannel() string {
 func (x *SubRefreshRequest) GetMeta() []byte {
 	if x != nil {
 		return x.Meta
+	}
+	return nil
+}
+
+func (x *SubRefreshRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
 	}
 	return nil
 }
@@ -3369,7 +3449,7 @@ const file_proxy_proto_rawDesc = "" +
 	"\x04data\x18\x04 \x01(\fR\x04data\x12\x18\n" +
 	"\ab64data\x18\x05 \x01(\tR\ab64data\x12Q\n" +
 	"\boverride\x18\x06 \x01(\v25.centrifugal.centrifugo.proxy.SubscribeOptionOverrideR\boverride\x12V\n" +
-	"\x12server_tags_filter\x18\a \x01(\v2(.centrifugal.centrifugo.proxy.FilterNodeR\x10serverTagsFilter\"\xc6\x03\n" +
+	"\x12server_tags_filter\x18\a \x01(\v2(.centrifugal.centrifugo.proxy.FilterNodeR\x10serverTagsFilter\"\xd2\x04\n" +
 	"\rConnectResult\x12\x12\n" +
 	"\x04user\x18\x01 \x01(\tR\x04user\x12\x1b\n" +
 	"\texpire_at\x18\x02 \x01(\x03R\bexpireAt\x12\x12\n" +
@@ -3381,10 +3461,14 @@ const file_proxy_proto_rawDesc = "" +
 	"\x04subs\x18\b \x03(\v25.centrifugal.centrifugo.proxy.ConnectResult.SubsEntryR\x04subs\x12\x12\n" +
 	"\x04meta\x18\t \x01(\fR\x04meta\x12D\n" +
 	"\x04caps\x18\n" +
-	" \x03(\v20.centrifugal.centrifugo.proxy.ChannelsCapabilityR\x04caps\x1ag\n" +
+	" \x03(\v20.centrifugal.centrifugo.proxy.ChannelsCapabilityR\x04caps\x12O\n" +
+	"\x06labels\x18\v \x03(\v27.centrifugal.centrifugo.proxy.ConnectResult.LabelsEntryR\x06labels\x1ag\n" +
 	"\tSubsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
-	"\x05value\x18\x02 \x01(\v2..centrifugal.centrifugo.proxy.SubscribeOptionsR\x05value:\x028\x01\"\\\n" +
+	"\x05value\x18\x02 \x01(\v2..centrifugal.centrifugo.proxy.SubscribeOptionsR\x05value:\x028\x01\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\\\n" +
 	"\x12ChannelsCapability\x12\x1a\n" +
 	"\bchannels\x18\x01 \x03(\tR\bchannels\x12\x14\n" +
 	"\x05allow\x18\x02 \x03(\tR\x05allow\x12\x14\n" +
@@ -3394,7 +3478,7 @@ const file_proxy_proto_rawDesc = "" +
 	"\x05error\x18\x02 \x01(\v2#.centrifugal.centrifugo.proxy.ErrorR\x05error\x12H\n" +
 	"\n" +
 	"disconnect\x18\x03 \x01(\v2(.centrifugal.centrifugo.proxy.DisconnectR\n" +
-	"disconnect\"\xa6\x01\n" +
+	"disconnect\"\xb3\x02\n" +
 	"\x0eRefreshRequest\x12\x16\n" +
 	"\x06client\x18\x01 \x01(\tR\x06client\x12\x1c\n" +
 	"\ttransport\x18\x02 \x01(\tR\ttransport\x12\x1a\n" +
@@ -3402,7 +3486,11 @@ const file_proxy_proto_rawDesc = "" +
 	"\bencoding\x18\x04 \x01(\tR\bencoding\x12\x12\n" +
 	"\x04user\x18\n" +
 	" \x01(\tR\x04user\x12\x12\n" +
-	"\x04meta\x18\v \x01(\fR\x04meta\"\xce\x01\n" +
+	"\x04meta\x18\v \x01(\fR\x04meta\x12P\n" +
+	"\x06labels\x18\f \x03(\v28.centrifugal.centrifugo.proxy.RefreshRequest.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xce\x01\n" +
 	"\rRefreshResult\x12\x18\n" +
 	"\aexpired\x18\x01 \x01(\bR\aexpired\x12\x1b\n" +
 	"\texpire_at\x18\x02 \x01(\x03R\bexpireAt\x12\x12\n" +
@@ -3415,7 +3503,7 @@ const file_proxy_proto_rawDesc = "" +
 	"\x05error\x18\x02 \x01(\v2#.centrifugal.centrifugo.proxy.ErrorR\x05error\x12H\n" +
 	"\n" +
 	"disconnect\x18\x03 \x01(\v2(.centrifugal.centrifugo.proxy.DisconnectR\n" +
-	"disconnect\"\x86\x02\n" +
+	"disconnect\"\x95\x03\n" +
 	"\x10SubscribeRequest\x12\x16\n" +
 	"\x06client\x18\x01 \x01(\tR\x06client\x12\x1c\n" +
 	"\ttransport\x18\x02 \x01(\tR\ttransport\x12\x1a\n" +
@@ -3427,7 +3515,11 @@ const file_proxy_proto_rawDesc = "" +
 	"\x05token\x18\f \x01(\tR\x05token\x12\x12\n" +
 	"\x04meta\x18\r \x01(\fR\x04meta\x12\x12\n" +
 	"\x04data\x18\x0e \x01(\fR\x04data\x12\x18\n" +
-	"\ab64data\x18\x0f \x01(\tR\ab64data\"!\n" +
+	"\ab64data\x18\x0f \x01(\tR\ab64data\x12R\n" +
+	"\x06labels\x18\x10 \x03(\v2:.centrifugal.centrifugo.proxy.SubscribeRequest.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"!\n" +
 	"\tBoolValue\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\bR\x05value\"\"\n" +
 	"\n" +
@@ -3454,7 +3546,7 @@ const file_proxy_proto_rawDesc = "" +
 	"\x05error\x18\x02 \x01(\v2#.centrifugal.centrifugo.proxy.ErrorR\x05error\x12H\n" +
 	"\n" +
 	"disconnect\x18\x03 \x01(\v2(.centrifugal.centrifugo.proxy.DisconnectR\n" +
-	"disconnect\"\xee\x01\n" +
+	"disconnect\"\xfb\x02\n" +
 	"\x0ePublishRequest\x12\x16\n" +
 	"\x06client\x18\x01 \x01(\tR\x06client\x12\x1c\n" +
 	"\ttransport\x18\x02 \x01(\tR\ttransport\x12\x1a\n" +
@@ -3465,7 +3557,11 @@ const file_proxy_proto_rawDesc = "" +
 	"\achannel\x18\v \x01(\tR\achannel\x12\x12\n" +
 	"\x04data\x18\f \x01(\fR\x04data\x12\x18\n" +
 	"\ab64data\x18\r \x01(\tR\ab64data\x12\x12\n" +
-	"\x04meta\x18\x0e \x01(\fR\x04meta\"\xe2\x02\n" +
+	"\x04meta\x18\x0e \x01(\fR\x04meta\x12P\n" +
+	"\x06labels\x18\x0f \x03(\v28.centrifugal.centrifugo.proxy.PublishRequest.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xe2\x02\n" +
 	"\rPublishResult\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\fR\x04data\x12\x18\n" +
 	"\ab64data\x18\x02 \x01(\tR\ab64data\x12!\n" +
@@ -3483,7 +3579,7 @@ const file_proxy_proto_rawDesc = "" +
 	"\x05error\x18\x02 \x01(\v2#.centrifugal.centrifugo.proxy.ErrorR\x05error\x12H\n" +
 	"\n" +
 	"disconnect\x18\x03 \x01(\v2(.centrifugal.centrifugo.proxy.DisconnectR\n" +
-	"disconnect\"\x83\x02\n" +
+	"disconnect\"\x93\x03\n" +
 	"\x11MapPublishRequest\x12\x16\n" +
 	"\x06client\x18\x01 \x01(\tR\x06client\x12\x1c\n" +
 	"\ttransport\x18\x02 \x01(\tR\ttransport\x12\x1a\n" +
@@ -3495,7 +3591,11 @@ const file_proxy_proto_rawDesc = "" +
 	"\x03key\x18\f \x01(\tR\x03key\x12\x12\n" +
 	"\x04data\x18\r \x01(\fR\x04data\x12\x18\n" +
 	"\ab64data\x18\x0e \x01(\tR\ab64data\x12\x12\n" +
-	"\x04meta\x18\x0f \x01(\fR\x04meta\"\xd0\x03\n" +
+	"\x04meta\x18\x0f \x01(\fR\x04meta\x12S\n" +
+	"\x06labels\x18\x10 \x03(\v2;.centrifugal.centrifugo.proxy.MapPublishRequest.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd0\x03\n" +
 	"\x10MapPublishResult\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x12\n" +
 	"\x04data\x18\x02 \x01(\fR\x04data\x12\x18\n" +
@@ -3519,7 +3619,7 @@ const file_proxy_proto_rawDesc = "" +
 	"\x05error\x18\x02 \x01(\v2#.centrifugal.centrifugo.proxy.ErrorR\x05error\x12H\n" +
 	"\n" +
 	"disconnect\x18\x03 \x01(\v2(.centrifugal.centrifugo.proxy.DisconnectR\n" +
-	"disconnect\"\xd4\x01\n" +
+	"disconnect\"\xe3\x02\n" +
 	"\x10MapRemoveRequest\x12\x16\n" +
 	"\x06client\x18\x01 \x01(\tR\x06client\x12\x1c\n" +
 	"\ttransport\x18\x02 \x01(\tR\ttransport\x12\x1a\n" +
@@ -3529,7 +3629,11 @@ const file_proxy_proto_rawDesc = "" +
 	" \x01(\tR\x04user\x12\x18\n" +
 	"\achannel\x18\v \x01(\tR\achannel\x12\x10\n" +
 	"\x03key\x18\f \x01(\tR\x03key\x12\x12\n" +
-	"\x04meta\x18\r \x01(\fR\x04meta\"\xd2\x01\n" +
+	"\x04meta\x18\r \x01(\fR\x04meta\x12R\n" +
+	"\x06labels\x18\x0e \x03(\v2:.centrifugal.centrifugo.proxy.MapRemoveRequest.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd2\x01\n" +
 	"\x0fMapRemoveResult\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12K\n" +
 	"\x04tags\x18\x02 \x03(\v27.centrifugal.centrifugo.proxy.MapRemoveResult.TagsEntryR\x04tags\x12'\n" +
@@ -3542,7 +3646,7 @@ const file_proxy_proto_rawDesc = "" +
 	"\x05error\x18\x02 \x01(\v2#.centrifugal.centrifugo.proxy.ErrorR\x05error\x12H\n" +
 	"\n" +
 	"disconnect\x18\x03 \x01(\v2(.centrifugal.centrifugo.proxy.DisconnectR\n" +
-	"disconnect\"\xe8\x01\n" +
+	"disconnect\"\xf1\x02\n" +
 	"\n" +
 	"RPCRequest\x12\x16\n" +
 	"\x06client\x18\x01 \x01(\tR\x06client\x12\x1c\n" +
@@ -3554,7 +3658,11 @@ const file_proxy_proto_rawDesc = "" +
 	"\x06method\x18\v \x01(\tR\x06method\x12\x12\n" +
 	"\x04data\x18\f \x01(\fR\x04data\x12\x18\n" +
 	"\ab64data\x18\r \x01(\tR\ab64data\x12\x12\n" +
-	"\x04meta\x18\x0e \x01(\fR\x04meta\"9\n" +
+	"\x04meta\x18\x0e \x01(\fR\x04meta\x12L\n" +
+	"\x06labels\x18\x0f \x03(\v24.centrifugal.centrifugo.proxy.RPCRequest.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"9\n" +
 	"\tRPCResult\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\fR\x04data\x12\x18\n" +
 	"\ab64data\x18\x02 \x01(\tR\ab64data\"\xd3\x01\n" +
@@ -3563,7 +3671,7 @@ const file_proxy_proto_rawDesc = "" +
 	"\x05error\x18\x02 \x01(\v2#.centrifugal.centrifugo.proxy.ErrorR\x05error\x12H\n" +
 	"\n" +
 	"disconnect\x18\x03 \x01(\v2(.centrifugal.centrifugo.proxy.DisconnectR\n" +
-	"disconnect\"\xc3\x01\n" +
+	"disconnect\"\xd3\x02\n" +
 	"\x11SubRefreshRequest\x12\x16\n" +
 	"\x06client\x18\x01 \x01(\tR\x06client\x12\x1c\n" +
 	"\ttransport\x18\x02 \x01(\tR\ttransport\x12\x1a\n" +
@@ -3572,7 +3680,11 @@ const file_proxy_proto_rawDesc = "" +
 	"\x04user\x18\n" +
 	" \x01(\tR\x04user\x12\x18\n" +
 	"\achannel\x18\v \x01(\tR\achannel\x12\x12\n" +
-	"\x04meta\x18\f \x01(\fR\x04meta\"w\n" +
+	"\x04meta\x18\f \x01(\fR\x04meta\x12S\n" +
+	"\x06labels\x18\r \x03(\v2;.centrifugal.centrifugo.proxy.SubRefreshRequest.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"w\n" +
 	"\x10SubRefreshResult\x12\x18\n" +
 	"\aexpired\x18\x01 \x01(\bR\aexpired\x12\x1b\n" +
 	"\texpire_at\x18\x02 \x01(\x03R\bexpireAt\x12\x12\n" +
@@ -3659,7 +3771,7 @@ func file_proxy_proto_rawDescGZIP() []byte {
 	return file_proxy_proto_rawDescData
 }
 
-var file_proxy_proto_msgTypes = make([]protoimpl.MessageInfo, 52)
+var file_proxy_proto_msgTypes = make([]protoimpl.MessageInfo, 60)
 var file_proxy_proto_goTypes = []any{
 	(*FilterNode)(nil),                  // 0: centrifugal.centrifugo.proxy.FilterNode
 	(*Disconnect)(nil),                  // 1: centrifugal.centrifugo.proxy.Disconnect
@@ -3709,10 +3821,18 @@ var file_proxy_proto_goTypes = []any{
 	(*SharedPollRefreshResultItem)(nil), // 45: centrifugal.centrifugo.proxy.SharedPollRefreshResultItem
 	(*SharedPollRefreshResponse)(nil),   // 46: centrifugal.centrifugo.proxy.SharedPollRefreshResponse
 	nil,                                 // 47: centrifugal.centrifugo.proxy.ConnectResult.SubsEntry
-	nil,                                 // 48: centrifugal.centrifugo.proxy.PublishResult.TagsEntry
-	nil,                                 // 49: centrifugal.centrifugo.proxy.MapPublishResult.TagsEntry
-	nil,                                 // 50: centrifugal.centrifugo.proxy.MapRemoveResult.TagsEntry
-	nil,                                 // 51: centrifugal.centrifugo.proxy.Publication.TagsEntry
+	nil,                                 // 48: centrifugal.centrifugo.proxy.ConnectResult.LabelsEntry
+	nil,                                 // 49: centrifugal.centrifugo.proxy.RefreshRequest.LabelsEntry
+	nil,                                 // 50: centrifugal.centrifugo.proxy.SubscribeRequest.LabelsEntry
+	nil,                                 // 51: centrifugal.centrifugo.proxy.PublishRequest.LabelsEntry
+	nil,                                 // 52: centrifugal.centrifugo.proxy.PublishResult.TagsEntry
+	nil,                                 // 53: centrifugal.centrifugo.proxy.MapPublishRequest.LabelsEntry
+	nil,                                 // 54: centrifugal.centrifugo.proxy.MapPublishResult.TagsEntry
+	nil,                                 // 55: centrifugal.centrifugo.proxy.MapRemoveRequest.LabelsEntry
+	nil,                                 // 56: centrifugal.centrifugo.proxy.MapRemoveResult.TagsEntry
+	nil,                                 // 57: centrifugal.centrifugo.proxy.RPCRequest.LabelsEntry
+	nil,                                 // 58: centrifugal.centrifugo.proxy.SubRefreshRequest.LabelsEntry
+	nil,                                 // 59: centrifugal.centrifugo.proxy.Publication.TagsEntry
 }
 var file_proxy_proto_depIdxs = []int32{
 	0,  // 0: centrifugal.centrifugo.proxy.FilterNode.nodes:type_name -> centrifugal.centrifugo.proxy.FilterNode
@@ -3720,86 +3840,94 @@ var file_proxy_proto_depIdxs = []int32{
 	0,  // 2: centrifugal.centrifugo.proxy.SubscribeOptions.server_tags_filter:type_name -> centrifugal.centrifugo.proxy.FilterNode
 	47, // 3: centrifugal.centrifugo.proxy.ConnectResult.subs:type_name -> centrifugal.centrifugo.proxy.ConnectResult.SubsEntry
 	6,  // 4: centrifugal.centrifugo.proxy.ConnectResult.caps:type_name -> centrifugal.centrifugo.proxy.ChannelsCapability
-	5,  // 5: centrifugal.centrifugo.proxy.ConnectResponse.result:type_name -> centrifugal.centrifugo.proxy.ConnectResult
-	2,  // 6: centrifugal.centrifugo.proxy.ConnectResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	1,  // 7: centrifugal.centrifugo.proxy.ConnectResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	6,  // 8: centrifugal.centrifugo.proxy.RefreshResult.caps:type_name -> centrifugal.centrifugo.proxy.ChannelsCapability
-	9,  // 9: centrifugal.centrifugo.proxy.RefreshResponse.result:type_name -> centrifugal.centrifugo.proxy.RefreshResult
-	2,  // 10: centrifugal.centrifugo.proxy.RefreshResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	1,  // 11: centrifugal.centrifugo.proxy.RefreshResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	12, // 12: centrifugal.centrifugo.proxy.SubscribeOptionOverride.presence:type_name -> centrifugal.centrifugo.proxy.BoolValue
-	12, // 13: centrifugal.centrifugo.proxy.SubscribeOptionOverride.join_leave:type_name -> centrifugal.centrifugo.proxy.BoolValue
-	12, // 14: centrifugal.centrifugo.proxy.SubscribeOptionOverride.force_recovery:type_name -> centrifugal.centrifugo.proxy.BoolValue
-	12, // 15: centrifugal.centrifugo.proxy.SubscribeOptionOverride.force_positioning:type_name -> centrifugal.centrifugo.proxy.BoolValue
-	12, // 16: centrifugal.centrifugo.proxy.SubscribeOptionOverride.force_push_join_leave:type_name -> centrifugal.centrifugo.proxy.BoolValue
-	14, // 17: centrifugal.centrifugo.proxy.SubscribeResult.override:type_name -> centrifugal.centrifugo.proxy.SubscribeOptionOverride
-	0,  // 18: centrifugal.centrifugo.proxy.SubscribeResult.server_tags_filter:type_name -> centrifugal.centrifugo.proxy.FilterNode
-	15, // 19: centrifugal.centrifugo.proxy.SubscribeResponse.result:type_name -> centrifugal.centrifugo.proxy.SubscribeResult
-	2,  // 20: centrifugal.centrifugo.proxy.SubscribeResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	1,  // 21: centrifugal.centrifugo.proxy.SubscribeResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	48, // 22: centrifugal.centrifugo.proxy.PublishResult.tags:type_name -> centrifugal.centrifugo.proxy.PublishResult.TagsEntry
-	18, // 23: centrifugal.centrifugo.proxy.PublishResponse.result:type_name -> centrifugal.centrifugo.proxy.PublishResult
-	2,  // 24: centrifugal.centrifugo.proxy.PublishResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	1,  // 25: centrifugal.centrifugo.proxy.PublishResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	49, // 26: centrifugal.centrifugo.proxy.MapPublishResult.tags:type_name -> centrifugal.centrifugo.proxy.MapPublishResult.TagsEntry
-	21, // 27: centrifugal.centrifugo.proxy.MapPublishResponse.result:type_name -> centrifugal.centrifugo.proxy.MapPublishResult
-	2,  // 28: centrifugal.centrifugo.proxy.MapPublishResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	1,  // 29: centrifugal.centrifugo.proxy.MapPublishResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	50, // 30: centrifugal.centrifugo.proxy.MapRemoveResult.tags:type_name -> centrifugal.centrifugo.proxy.MapRemoveResult.TagsEntry
-	24, // 31: centrifugal.centrifugo.proxy.MapRemoveResponse.result:type_name -> centrifugal.centrifugo.proxy.MapRemoveResult
-	2,  // 32: centrifugal.centrifugo.proxy.MapRemoveResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	1,  // 33: centrifugal.centrifugo.proxy.MapRemoveResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	27, // 34: centrifugal.centrifugo.proxy.RPCResponse.result:type_name -> centrifugal.centrifugo.proxy.RPCResult
-	2,  // 35: centrifugal.centrifugo.proxy.RPCResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	1,  // 36: centrifugal.centrifugo.proxy.RPCResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	30, // 37: centrifugal.centrifugo.proxy.SubRefreshResponse.result:type_name -> centrifugal.centrifugo.proxy.SubRefreshResult
-	2,  // 38: centrifugal.centrifugo.proxy.SubRefreshResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	1,  // 39: centrifugal.centrifugo.proxy.SubRefreshResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
-	51, // 40: centrifugal.centrifugo.proxy.Publication.tags:type_name -> centrifugal.centrifugo.proxy.Publication.TagsEntry
-	11, // 41: centrifugal.centrifugo.proxy.StreamSubscribeRequest.subscribe_request:type_name -> centrifugal.centrifugo.proxy.SubscribeRequest
-	32, // 42: centrifugal.centrifugo.proxy.StreamSubscribeRequest.publication:type_name -> centrifugal.centrifugo.proxy.Publication
-	16, // 43: centrifugal.centrifugo.proxy.StreamSubscribeResponse.subscribe_response:type_name -> centrifugal.centrifugo.proxy.SubscribeResponse
-	32, // 44: centrifugal.centrifugo.proxy.StreamSubscribeResponse.publication:type_name -> centrifugal.centrifugo.proxy.Publication
-	37, // 45: centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse.result:type_name -> centrifugal.centrifugo.proxy.NotifyCacheEmptyResult
-	39, // 46: centrifugal.centrifugo.proxy.NotifyChannelStateRequest.events:type_name -> centrifugal.centrifugo.proxy.ChannelEvent
-	41, // 47: centrifugal.centrifugo.proxy.NotifyChannelStateResponse.result:type_name -> centrifugal.centrifugo.proxy.NotifyChannelStateResult
-	2,  // 48: centrifugal.centrifugo.proxy.NotifyChannelStateResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	43, // 49: centrifugal.centrifugo.proxy.SharedPollRefreshRequest.items:type_name -> centrifugal.centrifugo.proxy.SharedPollRefreshItem
-	45, // 50: centrifugal.centrifugo.proxy.SharedPollRefreshResult.items:type_name -> centrifugal.centrifugo.proxy.SharedPollRefreshResultItem
-	44, // 51: centrifugal.centrifugo.proxy.SharedPollRefreshResponse.result:type_name -> centrifugal.centrifugo.proxy.SharedPollRefreshResult
-	2,  // 52: centrifugal.centrifugo.proxy.SharedPollRefreshResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
-	4,  // 53: centrifugal.centrifugo.proxy.ConnectResult.SubsEntry.value:type_name -> centrifugal.centrifugo.proxy.SubscribeOptions
-	3,  // 54: centrifugal.centrifugo.proxy.CentrifugoProxy.Connect:input_type -> centrifugal.centrifugo.proxy.ConnectRequest
-	8,  // 55: centrifugal.centrifugo.proxy.CentrifugoProxy.Refresh:input_type -> centrifugal.centrifugo.proxy.RefreshRequest
-	11, // 56: centrifugal.centrifugo.proxy.CentrifugoProxy.Subscribe:input_type -> centrifugal.centrifugo.proxy.SubscribeRequest
-	17, // 57: centrifugal.centrifugo.proxy.CentrifugoProxy.Publish:input_type -> centrifugal.centrifugo.proxy.PublishRequest
-	26, // 58: centrifugal.centrifugo.proxy.CentrifugoProxy.RPC:input_type -> centrifugal.centrifugo.proxy.RPCRequest
-	29, // 59: centrifugal.centrifugo.proxy.CentrifugoProxy.SubRefresh:input_type -> centrifugal.centrifugo.proxy.SubRefreshRequest
-	11, // 60: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeUnidirectional:input_type -> centrifugal.centrifugo.proxy.SubscribeRequest
-	33, // 61: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeBidirectional:input_type -> centrifugal.centrifugo.proxy.StreamSubscribeRequest
-	35, // 62: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyCacheEmpty:input_type -> centrifugal.centrifugo.proxy.NotifyCacheEmptyRequest
-	38, // 63: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyChannelState:input_type -> centrifugal.centrifugo.proxy.NotifyChannelStateRequest
-	20, // 64: centrifugal.centrifugo.proxy.CentrifugoProxy.MapPublish:input_type -> centrifugal.centrifugo.proxy.MapPublishRequest
-	23, // 65: centrifugal.centrifugo.proxy.CentrifugoProxy.MapRemove:input_type -> centrifugal.centrifugo.proxy.MapRemoveRequest
-	42, // 66: centrifugal.centrifugo.proxy.CentrifugoProxy.SharedPollRefresh:input_type -> centrifugal.centrifugo.proxy.SharedPollRefreshRequest
-	7,  // 67: centrifugal.centrifugo.proxy.CentrifugoProxy.Connect:output_type -> centrifugal.centrifugo.proxy.ConnectResponse
-	10, // 68: centrifugal.centrifugo.proxy.CentrifugoProxy.Refresh:output_type -> centrifugal.centrifugo.proxy.RefreshResponse
-	16, // 69: centrifugal.centrifugo.proxy.CentrifugoProxy.Subscribe:output_type -> centrifugal.centrifugo.proxy.SubscribeResponse
-	19, // 70: centrifugal.centrifugo.proxy.CentrifugoProxy.Publish:output_type -> centrifugal.centrifugo.proxy.PublishResponse
-	28, // 71: centrifugal.centrifugo.proxy.CentrifugoProxy.RPC:output_type -> centrifugal.centrifugo.proxy.RPCResponse
-	31, // 72: centrifugal.centrifugo.proxy.CentrifugoProxy.SubRefresh:output_type -> centrifugal.centrifugo.proxy.SubRefreshResponse
-	34, // 73: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeUnidirectional:output_type -> centrifugal.centrifugo.proxy.StreamSubscribeResponse
-	34, // 74: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeBidirectional:output_type -> centrifugal.centrifugo.proxy.StreamSubscribeResponse
-	36, // 75: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyCacheEmpty:output_type -> centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse
-	40, // 76: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyChannelState:output_type -> centrifugal.centrifugo.proxy.NotifyChannelStateResponse
-	22, // 77: centrifugal.centrifugo.proxy.CentrifugoProxy.MapPublish:output_type -> centrifugal.centrifugo.proxy.MapPublishResponse
-	25, // 78: centrifugal.centrifugo.proxy.CentrifugoProxy.MapRemove:output_type -> centrifugal.centrifugo.proxy.MapRemoveResponse
-	46, // 79: centrifugal.centrifugo.proxy.CentrifugoProxy.SharedPollRefresh:output_type -> centrifugal.centrifugo.proxy.SharedPollRefreshResponse
-	67, // [67:80] is the sub-list for method output_type
-	54, // [54:67] is the sub-list for method input_type
-	54, // [54:54] is the sub-list for extension type_name
-	54, // [54:54] is the sub-list for extension extendee
-	0,  // [0:54] is the sub-list for field type_name
+	48, // 5: centrifugal.centrifugo.proxy.ConnectResult.labels:type_name -> centrifugal.centrifugo.proxy.ConnectResult.LabelsEntry
+	5,  // 6: centrifugal.centrifugo.proxy.ConnectResponse.result:type_name -> centrifugal.centrifugo.proxy.ConnectResult
+	2,  // 7: centrifugal.centrifugo.proxy.ConnectResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	1,  // 8: centrifugal.centrifugo.proxy.ConnectResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
+	49, // 9: centrifugal.centrifugo.proxy.RefreshRequest.labels:type_name -> centrifugal.centrifugo.proxy.RefreshRequest.LabelsEntry
+	6,  // 10: centrifugal.centrifugo.proxy.RefreshResult.caps:type_name -> centrifugal.centrifugo.proxy.ChannelsCapability
+	9,  // 11: centrifugal.centrifugo.proxy.RefreshResponse.result:type_name -> centrifugal.centrifugo.proxy.RefreshResult
+	2,  // 12: centrifugal.centrifugo.proxy.RefreshResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	1,  // 13: centrifugal.centrifugo.proxy.RefreshResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
+	50, // 14: centrifugal.centrifugo.proxy.SubscribeRequest.labels:type_name -> centrifugal.centrifugo.proxy.SubscribeRequest.LabelsEntry
+	12, // 15: centrifugal.centrifugo.proxy.SubscribeOptionOverride.presence:type_name -> centrifugal.centrifugo.proxy.BoolValue
+	12, // 16: centrifugal.centrifugo.proxy.SubscribeOptionOverride.join_leave:type_name -> centrifugal.centrifugo.proxy.BoolValue
+	12, // 17: centrifugal.centrifugo.proxy.SubscribeOptionOverride.force_recovery:type_name -> centrifugal.centrifugo.proxy.BoolValue
+	12, // 18: centrifugal.centrifugo.proxy.SubscribeOptionOverride.force_positioning:type_name -> centrifugal.centrifugo.proxy.BoolValue
+	12, // 19: centrifugal.centrifugo.proxy.SubscribeOptionOverride.force_push_join_leave:type_name -> centrifugal.centrifugo.proxy.BoolValue
+	14, // 20: centrifugal.centrifugo.proxy.SubscribeResult.override:type_name -> centrifugal.centrifugo.proxy.SubscribeOptionOverride
+	0,  // 21: centrifugal.centrifugo.proxy.SubscribeResult.server_tags_filter:type_name -> centrifugal.centrifugo.proxy.FilterNode
+	15, // 22: centrifugal.centrifugo.proxy.SubscribeResponse.result:type_name -> centrifugal.centrifugo.proxy.SubscribeResult
+	2,  // 23: centrifugal.centrifugo.proxy.SubscribeResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	1,  // 24: centrifugal.centrifugo.proxy.SubscribeResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
+	51, // 25: centrifugal.centrifugo.proxy.PublishRequest.labels:type_name -> centrifugal.centrifugo.proxy.PublishRequest.LabelsEntry
+	52, // 26: centrifugal.centrifugo.proxy.PublishResult.tags:type_name -> centrifugal.centrifugo.proxy.PublishResult.TagsEntry
+	18, // 27: centrifugal.centrifugo.proxy.PublishResponse.result:type_name -> centrifugal.centrifugo.proxy.PublishResult
+	2,  // 28: centrifugal.centrifugo.proxy.PublishResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	1,  // 29: centrifugal.centrifugo.proxy.PublishResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
+	53, // 30: centrifugal.centrifugo.proxy.MapPublishRequest.labels:type_name -> centrifugal.centrifugo.proxy.MapPublishRequest.LabelsEntry
+	54, // 31: centrifugal.centrifugo.proxy.MapPublishResult.tags:type_name -> centrifugal.centrifugo.proxy.MapPublishResult.TagsEntry
+	21, // 32: centrifugal.centrifugo.proxy.MapPublishResponse.result:type_name -> centrifugal.centrifugo.proxy.MapPublishResult
+	2,  // 33: centrifugal.centrifugo.proxy.MapPublishResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	1,  // 34: centrifugal.centrifugo.proxy.MapPublishResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
+	55, // 35: centrifugal.centrifugo.proxy.MapRemoveRequest.labels:type_name -> centrifugal.centrifugo.proxy.MapRemoveRequest.LabelsEntry
+	56, // 36: centrifugal.centrifugo.proxy.MapRemoveResult.tags:type_name -> centrifugal.centrifugo.proxy.MapRemoveResult.TagsEntry
+	24, // 37: centrifugal.centrifugo.proxy.MapRemoveResponse.result:type_name -> centrifugal.centrifugo.proxy.MapRemoveResult
+	2,  // 38: centrifugal.centrifugo.proxy.MapRemoveResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	1,  // 39: centrifugal.centrifugo.proxy.MapRemoveResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
+	57, // 40: centrifugal.centrifugo.proxy.RPCRequest.labels:type_name -> centrifugal.centrifugo.proxy.RPCRequest.LabelsEntry
+	27, // 41: centrifugal.centrifugo.proxy.RPCResponse.result:type_name -> centrifugal.centrifugo.proxy.RPCResult
+	2,  // 42: centrifugal.centrifugo.proxy.RPCResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	1,  // 43: centrifugal.centrifugo.proxy.RPCResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
+	58, // 44: centrifugal.centrifugo.proxy.SubRefreshRequest.labels:type_name -> centrifugal.centrifugo.proxy.SubRefreshRequest.LabelsEntry
+	30, // 45: centrifugal.centrifugo.proxy.SubRefreshResponse.result:type_name -> centrifugal.centrifugo.proxy.SubRefreshResult
+	2,  // 46: centrifugal.centrifugo.proxy.SubRefreshResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	1,  // 47: centrifugal.centrifugo.proxy.SubRefreshResponse.disconnect:type_name -> centrifugal.centrifugo.proxy.Disconnect
+	59, // 48: centrifugal.centrifugo.proxy.Publication.tags:type_name -> centrifugal.centrifugo.proxy.Publication.TagsEntry
+	11, // 49: centrifugal.centrifugo.proxy.StreamSubscribeRequest.subscribe_request:type_name -> centrifugal.centrifugo.proxy.SubscribeRequest
+	32, // 50: centrifugal.centrifugo.proxy.StreamSubscribeRequest.publication:type_name -> centrifugal.centrifugo.proxy.Publication
+	16, // 51: centrifugal.centrifugo.proxy.StreamSubscribeResponse.subscribe_response:type_name -> centrifugal.centrifugo.proxy.SubscribeResponse
+	32, // 52: centrifugal.centrifugo.proxy.StreamSubscribeResponse.publication:type_name -> centrifugal.centrifugo.proxy.Publication
+	37, // 53: centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse.result:type_name -> centrifugal.centrifugo.proxy.NotifyCacheEmptyResult
+	39, // 54: centrifugal.centrifugo.proxy.NotifyChannelStateRequest.events:type_name -> centrifugal.centrifugo.proxy.ChannelEvent
+	41, // 55: centrifugal.centrifugo.proxy.NotifyChannelStateResponse.result:type_name -> centrifugal.centrifugo.proxy.NotifyChannelStateResult
+	2,  // 56: centrifugal.centrifugo.proxy.NotifyChannelStateResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	43, // 57: centrifugal.centrifugo.proxy.SharedPollRefreshRequest.items:type_name -> centrifugal.centrifugo.proxy.SharedPollRefreshItem
+	45, // 58: centrifugal.centrifugo.proxy.SharedPollRefreshResult.items:type_name -> centrifugal.centrifugo.proxy.SharedPollRefreshResultItem
+	44, // 59: centrifugal.centrifugo.proxy.SharedPollRefreshResponse.result:type_name -> centrifugal.centrifugo.proxy.SharedPollRefreshResult
+	2,  // 60: centrifugal.centrifugo.proxy.SharedPollRefreshResponse.error:type_name -> centrifugal.centrifugo.proxy.Error
+	4,  // 61: centrifugal.centrifugo.proxy.ConnectResult.SubsEntry.value:type_name -> centrifugal.centrifugo.proxy.SubscribeOptions
+	3,  // 62: centrifugal.centrifugo.proxy.CentrifugoProxy.Connect:input_type -> centrifugal.centrifugo.proxy.ConnectRequest
+	8,  // 63: centrifugal.centrifugo.proxy.CentrifugoProxy.Refresh:input_type -> centrifugal.centrifugo.proxy.RefreshRequest
+	11, // 64: centrifugal.centrifugo.proxy.CentrifugoProxy.Subscribe:input_type -> centrifugal.centrifugo.proxy.SubscribeRequest
+	17, // 65: centrifugal.centrifugo.proxy.CentrifugoProxy.Publish:input_type -> centrifugal.centrifugo.proxy.PublishRequest
+	26, // 66: centrifugal.centrifugo.proxy.CentrifugoProxy.RPC:input_type -> centrifugal.centrifugo.proxy.RPCRequest
+	29, // 67: centrifugal.centrifugo.proxy.CentrifugoProxy.SubRefresh:input_type -> centrifugal.centrifugo.proxy.SubRefreshRequest
+	11, // 68: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeUnidirectional:input_type -> centrifugal.centrifugo.proxy.SubscribeRequest
+	33, // 69: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeBidirectional:input_type -> centrifugal.centrifugo.proxy.StreamSubscribeRequest
+	35, // 70: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyCacheEmpty:input_type -> centrifugal.centrifugo.proxy.NotifyCacheEmptyRequest
+	38, // 71: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyChannelState:input_type -> centrifugal.centrifugo.proxy.NotifyChannelStateRequest
+	20, // 72: centrifugal.centrifugo.proxy.CentrifugoProxy.MapPublish:input_type -> centrifugal.centrifugo.proxy.MapPublishRequest
+	23, // 73: centrifugal.centrifugo.proxy.CentrifugoProxy.MapRemove:input_type -> centrifugal.centrifugo.proxy.MapRemoveRequest
+	42, // 74: centrifugal.centrifugo.proxy.CentrifugoProxy.SharedPollRefresh:input_type -> centrifugal.centrifugo.proxy.SharedPollRefreshRequest
+	7,  // 75: centrifugal.centrifugo.proxy.CentrifugoProxy.Connect:output_type -> centrifugal.centrifugo.proxy.ConnectResponse
+	10, // 76: centrifugal.centrifugo.proxy.CentrifugoProxy.Refresh:output_type -> centrifugal.centrifugo.proxy.RefreshResponse
+	16, // 77: centrifugal.centrifugo.proxy.CentrifugoProxy.Subscribe:output_type -> centrifugal.centrifugo.proxy.SubscribeResponse
+	19, // 78: centrifugal.centrifugo.proxy.CentrifugoProxy.Publish:output_type -> centrifugal.centrifugo.proxy.PublishResponse
+	28, // 79: centrifugal.centrifugo.proxy.CentrifugoProxy.RPC:output_type -> centrifugal.centrifugo.proxy.RPCResponse
+	31, // 80: centrifugal.centrifugo.proxy.CentrifugoProxy.SubRefresh:output_type -> centrifugal.centrifugo.proxy.SubRefreshResponse
+	34, // 81: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeUnidirectional:output_type -> centrifugal.centrifugo.proxy.StreamSubscribeResponse
+	34, // 82: centrifugal.centrifugo.proxy.CentrifugoProxy.SubscribeBidirectional:output_type -> centrifugal.centrifugo.proxy.StreamSubscribeResponse
+	36, // 83: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyCacheEmpty:output_type -> centrifugal.centrifugo.proxy.NotifyCacheEmptyResponse
+	40, // 84: centrifugal.centrifugo.proxy.CentrifugoProxy.NotifyChannelState:output_type -> centrifugal.centrifugo.proxy.NotifyChannelStateResponse
+	22, // 85: centrifugal.centrifugo.proxy.CentrifugoProxy.MapPublish:output_type -> centrifugal.centrifugo.proxy.MapPublishResponse
+	25, // 86: centrifugal.centrifugo.proxy.CentrifugoProxy.MapRemove:output_type -> centrifugal.centrifugo.proxy.MapRemoveResponse
+	46, // 87: centrifugal.centrifugo.proxy.CentrifugoProxy.SharedPollRefresh:output_type -> centrifugal.centrifugo.proxy.SharedPollRefreshResponse
+	75, // [75:88] is the sub-list for method output_type
+	62, // [62:75] is the sub-list for method input_type
+	62, // [62:62] is the sub-list for extension type_name
+	62, // [62:62] is the sub-list for extension extendee
+	0,  // [0:62] is the sub-list for field type_name
 }
 
 func init() { file_proxy_proto_init() }
@@ -3813,7 +3941,7 @@ func file_proxy_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proxy_proto_rawDesc), len(file_proxy_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   52,
+			NumMessages:   60,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
