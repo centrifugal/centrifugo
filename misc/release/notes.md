@@ -13,6 +13,7 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 * OpenTelemetry: authenticate the OTLP exporter with Google Cloud Application Default Credentials (ADC) via the new `google_cloud_adc_auth` option, see [#1143](https://github.com/centrifugal/centrifugo/pull/1143) and [#1148](https://github.com/centrifugal/centrifugo/pull/1148). This allows exporting traces directly to Google Cloud's OTLP endpoint (`telemetry.googleapis.com`) without a sidecar collector, and works with both the `grpc` and `http/protobuf` exporter protocols.
 * Kafka consumer: added a configurable `dial_timeout` (default `3s`) for establishing a TCP connection to a single broker, and made the initial `Ping` timeout scale with the number of seed brokers so discovery no longer fails prematurely when some brokers are unreachable, see [#1151](https://github.com/centrifugal/centrifugo/pull/1151).
 * Centrifugo official Helm chart now supports k8s Gateway API - see [Helm chart 13.3.0 release](https://github.com/centrifugal/helm-charts/releases/tag/centrifugo-13.3.0)
+* Centrifugo now does not embed generated JSON config schema - configuration structure for `configdoc` is calculated in runtime
 
 ### Fixes
 
