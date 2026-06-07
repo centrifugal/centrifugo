@@ -14,21 +14,21 @@ import (
 // TLSConfig is a common configuration for TLS.
 type TLSConfig struct {
 	// Enabled turns on using TLS.
-	Enabled bool `mapstructure:"enabled" json:"enabled" yaml:"enabled" toml:"enabled" envconfig:"enabled"`
+	Enabled bool `mapstructure:"enabled" json:"enabled" yaml:"enabled" toml:"enabled" envconfig:"enabled" doc:"Enables TLS for this entity."`
 	// CertPem is a PEM certificate.
-	CertPem PEMData `mapstructure:"cert_pem" json:"cert_pem" envconfig:"cert_pem" yaml:"cert_pem" toml:"cert_pem"`
+	CertPem PEMData `mapstructure:"cert_pem" json:"cert_pem" envconfig:"cert_pem" yaml:"cert_pem" toml:"cert_pem" expose:"full" doc:"Certificate in PEM format. May be provided as a file path, raw PEM string, or base64-encoded PEM."`
 	// KeyPem is a path to a file with key in PEM format.
-	KeyPem PEMData `mapstructure:"key_pem" json:"key_pem" envconfig:"key_pem" yaml:"key_pem" toml:"key_pem"`
+	KeyPem PEMData `mapstructure:"key_pem" json:"key_pem" envconfig:"key_pem" yaml:"key_pem" toml:"key_pem" doc:"Private key in PEM format matching the certificate. May be provided as a file path, raw PEM string, or base64-encoded PEM."`
 	// ServerCAPem is a server root CA certificate in PEM format.
 	// The client uses this certificate to verify the server's certificate during the TLS handshake.
-	ServerCAPem PEMData `mapstructure:"server_ca_pem" json:"server_ca_pem" envconfig:"server_ca_pem" yaml:"server_ca_pem" toml:"server_ca_pem"`
+	ServerCAPem PEMData `mapstructure:"server_ca_pem" json:"server_ca_pem" envconfig:"server_ca_pem" yaml:"server_ca_pem" toml:"server_ca_pem" expose:"full" doc:"Root CA certificate in PEM format used to verify the server's certificate during the handshake (client side). May be a file path, raw PEM, or base64-encoded PEM."`
 	// ClientCAPem is a client CA certificate in PEM format.
 	// The server uses this certificate to verify the client's certificate during the TLS handshake.
-	ClientCAPem PEMData `mapstructure:"client_ca_pem" json:"client_ca_pem" envconfig:"client_ca_pem" yaml:"client_ca_pem" toml:"client_ca_pem"`
+	ClientCAPem PEMData `mapstructure:"client_ca_pem" json:"client_ca_pem" envconfig:"client_ca_pem" yaml:"client_ca_pem" toml:"client_ca_pem" expose:"full" doc:"CA certificate in PEM format used to verify client certificates (server side). Setting it enables mutual TLS and requires clients to present a valid certificate. May be a file path, raw PEM, or base64-encoded PEM."`
 	// InsecureSkipVerify turns off server certificate verification.
-	InsecureSkipVerify bool `mapstructure:"insecure_skip_verify" json:"insecure_skip_verify" envconfig:"insecure_skip_verify" yaml:"insecure_skip_verify" toml:"insecure_skip_verify"`
+	InsecureSkipVerify bool `mapstructure:"insecure_skip_verify" json:"insecure_skip_verify" envconfig:"insecure_skip_verify" yaml:"insecure_skip_verify" toml:"insecure_skip_verify" doc:"Disables verification of the server's certificate chain and host name. Insecure - use only for testing."`
 	// ServerName is used to verify the hostname on the returned certificates.
-	ServerName string `mapstructure:"server_name" json:"server_name" envconfig:"server_name" yaml:"server_name" toml:"server_name"`
+	ServerName string `mapstructure:"server_name" json:"server_name" envconfig:"server_name" yaml:"server_name" toml:"server_name" expose:"full" doc:"Expected server name (SNI) used to verify the hostname on the returned certificate."`
 }
 
 func (c TLSConfig) ToGoTLSConfig(logTraceEntity string) (*tls.Config, error) {
@@ -174,11 +174,11 @@ func newCertPoolFromPEM(pem []byte) (*x509.CertPool, error) {
 }
 
 type TLSAutocert struct {
-	Enabled       bool     `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled"`
-	HostWhitelist []string `mapstructure:"host_whitelist" json:"host_whitelist" envconfig:"host_whitelist" yaml:"host_whitelist" toml:"host_whitelist"`
-	CacheDir      string   `mapstructure:"cache_dir" json:"cache_dir" envconfig:"cache_dir" yaml:"cache_dir" toml:"cache_dir"`
-	Email         string   `mapstructure:"email" json:"email" envconfig:"email" yaml:"email" toml:"email"`
-	ServerName    string   `mapstructure:"server_name" json:"server_name" envconfig:"server_name" yaml:"server_name" toml:"server_name"`
-	HTTP          bool     `mapstructure:"http" json:"http" envconfig:"http" yaml:"http" toml:"http"`
-	HTTPAddr      string   `mapstructure:"http_addr" json:"http_addr" envconfig:"http_addr" default:":80" yaml:"http_addr" toml:"http_addr"`
+	Enabled       bool     `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled" doc:"Enables automatic TLS certificate provisioning via ACME (Let's Encrypt)."`
+	HostWhitelist []string `mapstructure:"host_whitelist" json:"host_whitelist" envconfig:"host_whitelist" yaml:"host_whitelist" toml:"host_whitelist" expose:"full" doc:"List of host names ACME certificates are allowed to be issued for. Leave empty to allow any host (not recommended in production)."`
+	CacheDir      string   `mapstructure:"cache_dir" json:"cache_dir" envconfig:"cache_dir" yaml:"cache_dir" toml:"cache_dir" expose:"full" doc:"Directory to cache issued certificates so they survive restarts and are shared between nodes."`
+	Email         string   `mapstructure:"email" json:"email" envconfig:"email" yaml:"email" toml:"email" expose:"full" doc:"Contact email sent to the ACME provider for expiry notices and account registration."`
+	ServerName    string   `mapstructure:"server_name" json:"server_name" envconfig:"server_name" yaml:"server_name" toml:"server_name" expose:"full" doc:"Server name (SNI) for which the certificate is requested."`
+	HTTP          bool     `mapstructure:"http" json:"http" envconfig:"http" yaml:"http" toml:"http" doc:"Enables an HTTP server to handle ACME http-01 challenges instead of the default tls-alpn-01."`
+	HTTPAddr      string   `mapstructure:"http_addr" json:"http_addr" envconfig:"http_addr" default:":80" yaml:"http_addr" toml:"http_addr" expose:"full" doc:"Address to bind the ACME http-01 challenge server to. Default <<:80>>."`
 }

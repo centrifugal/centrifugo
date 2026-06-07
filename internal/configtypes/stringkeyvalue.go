@@ -10,9 +10,9 @@ import (
 
 type StringKeyValue struct {
 	// Key is the key of the key/value pair. Must be unique within a StringKeyValues list.
-	Key string `mapstructure:"key" json:"key" envconfig:"key" yaml:"key" toml:"key"`
+	Key string `mapstructure:"key" json:"key" envconfig:"key" yaml:"key" toml:"key" expose:"full" doc:"Key of the key/value pair. Must be unique within the list."`
 	// Value is the value of the key/value pair.
-	Value string `mapstructure:"value" json:"value" envconfig:"value" yaml:"value" toml:"value"`
+	Value string `mapstructure:"value" json:"value" envconfig:"value" yaml:"value" toml:"value" doc:"Value of the key/value pair. Supports <<\\${ENV_VAR}>> expansion from environment variables."`
 }
 
 type StringKeyValues []StringKeyValue
