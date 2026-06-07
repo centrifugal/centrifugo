@@ -327,7 +327,7 @@ func documentStruct(cfg interface{}, parentKey string, level int) []FieldDoc {
 		var children []FieldDoc
 		switch field.Type.Kind() {
 		case reflect.Struct:
-			if !(field.Type.PkgPath() == "time" && field.Type.Name() == "Time") {
+			if field.Type.PkgPath() != "time" || field.Type.Name() != "Time" {
 				children = documentStruct(reflect.New(field.Type).Interface(), fullKey, fieldLevel)
 			}
 		case reflect.Ptr:
