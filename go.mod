@@ -30,7 +30,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.3.1
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/prometheus/client_golang v1.23.2
-	github.com/quic-go/quic-go v0.59.1
+	github.com/quic-go/quic-go v0.60.0
 	github.com/quic-go/webtransport-go v0.10.0
 	github.com/rakutentech/jwk-go v1.2.0
 	github.com/rs/zerolog v1.35.1
@@ -39,7 +39,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.19.0
 	github.com/tidwall/sjson v1.2.5
-	github.com/twmb/franz-go v1.21.2
+	github.com/twmb/franz-go v1.21.3
 	github.com/twmb/franz-go/pkg/kadm v1.18.0
 	github.com/twmb/franz-go/pkg/kmsg v1.13.1
 	github.com/valyala/fasttemplate v1.2.2

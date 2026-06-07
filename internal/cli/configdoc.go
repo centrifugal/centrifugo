@@ -8,20 +8,21 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 
 	_ "embed"
 
 	"github.com/centrifugal/centrifugo/v6/internal/build"
+	"github.com/centrifugal/centrifugo/v6/internal/config"
+	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"github.com/yuin/goldmark"
 )
-
-//go:embed configdoc/schema.json
-var configSchema string
 
 //go:embed configdoc/template.html
 var htmlTemplate string
@@ -47,11 +48,9 @@ func ConfigDoc() *cobra.Command {
 }
 
 func configDoc(port int, mdOutput bool, section string, baseLevel int) {
-	var docs []FieldDoc
-	if err := json.Unmarshal([]byte(configSchema), &docs); err != nil {
-		fmt.Printf("error unmarshalling config schema: %v\n", err)
-		os.Exit(1)
-	}
+	// Documentation is built from the config structs at runtime — descriptions
+	// come from the `doc` struct tags, types and defaults from reflection.
+	docs := documentStruct(config.Config{}, "", 1)
 
 	if mdOutput {
 		mdContent := convertDocsToMarkdown(docs, section, baseLevel, mdOutput)
@@ -251,4 +250,103 @@ func serveSimpleMarkdownView(w http.ResponseWriter, docs []FieldDoc) {
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write([]byte(simpleHTML))
+}
+
+var docCodeRe = regexp.MustCompile(`<<(.+?)>>`)
+
+// convertDocCodes turns <<value>> markers in doc text into Markdown inline code.
+func convertDocCodes(s string) string {
+	return docCodeRe.ReplaceAllString(s, "`$1`")
+}
+
+// getDisplayType returns the base type name and whether it's a complex (object)
+// type. Both the type label and the complex/object classification are shared via
+// configtypes so configdoc and the admin config UI (Pro) stay consistent.
+func getDisplayType(t reflect.Type) (string, bool) {
+	return configtypes.TypeLabel(t), configtypes.IsComplexType(t)
+}
+
+// documentStruct walks a config struct via reflection and builds the field
+// documentation tree at runtime — descriptions from the `doc` tag, types and
+// defaults from reflection. Fields tagged `expose:"-"` are excluded.
+func documentStruct(cfg interface{}, parentKey string, level int) []FieldDoc {
+	var docs []FieldDoc
+	t := reflect.TypeOf(cfg)
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	if t.Kind() != reflect.Struct {
+		return docs
+	}
+
+	fieldLevel := level
+	if parentKey != "" {
+		fieldLevel = level + 1
+	}
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		if field.Tag.Get("json") == "-" {
+			continue
+		}
+		// Flatten squashed/embedded structs.
+		if configtypes.IsSquash(field) {
+			var nested interface{}
+			if field.Type.Kind() == reflect.Ptr && field.Type.Elem().Kind() == reflect.Struct {
+				nested = reflect.New(field.Type.Elem()).Interface()
+			} else if field.Type.Kind() == reflect.Struct {
+				nested = reflect.New(field.Type).Interface()
+			}
+			if nested != nil {
+				docs = append(docs, documentStruct(nested, parentKey, level)...)
+			}
+			continue
+		}
+		if field.Tag.Get("expose") == "-" {
+			continue
+		}
+
+		keyTag := configtypes.JSONKey(field)
+		fullKey := keyTag
+		if parentKey != "" {
+			fullKey = parentKey + "." + keyTag
+		}
+
+		displayType, isComplex := getDisplayType(field.Type)
+		docEntry := FieldDoc{
+			Field:         fullKey,
+			Name:          keyTag,
+			GoName:        field.Name,
+			Level:         fieldLevel,
+			Type:          displayType,
+			Default:       field.Tag.Get("default"),
+			IsComplexType: isComplex,
+			Comment:       convertDocCodes(field.Tag.Get("doc")),
+		}
+
+		var children []FieldDoc
+		switch field.Type.Kind() {
+		case reflect.Struct:
+			if field.Type.PkgPath() != "time" || field.Type.Name() != "Time" {
+				children = documentStruct(reflect.New(field.Type).Interface(), fullKey, fieldLevel)
+			}
+		case reflect.Ptr:
+			if field.Type.Elem().Kind() == reflect.Struct {
+				children = documentStruct(reflect.New(field.Type.Elem()).Interface(), fullKey, fieldLevel)
+			}
+		case reflect.Slice:
+			elem := field.Type.Elem()
+			if elem.Kind() == reflect.Ptr {
+				elem = elem.Elem()
+			}
+			if elem.Kind() == reflect.Struct {
+				children = documentStruct(reflect.New(elem).Interface(), fullKey+"[]", fieldLevel)
+			}
+		}
+		if len(children) > 0 {
+			docEntry.Children = children
+		}
+		docs = append(docs, docEntry)
+	}
+	return docs
 }
