@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/centrifugal/centrifugo/v6/internal/build"
+	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
@@ -29,28 +30,64 @@ import (
 // Credentials.
 const googleCloudAuthScope = "https://www.googleapis.com/auth/cloud-platform"
 
-func SetupTracing(ctx context.Context, googleCloudADCAuth bool) (*trace.TracerProvider, error) {
+// newResource builds the OTel resource attached to telemetry providers.
+// instanceID (Centrifugo node ID) becomes the default service.instance.id —
+// backends that require points of a time series to arrive in order (notably
+// Google Cloud Managed Service for Prometheus) reject or collapse metrics when
+// several instances report under the same identity, so every process must
+// carry a distinct one. Optional detectors run first, so both Centrifugo
+// defaults and environment values override what they detect.
+// OTEL_RESOURCE_ATTRIBUTES / OTEL_SERVICE_NAME are merged with precedence over
+// Centrifugo defaults; the SDK's WithResource merges environment attributes
+// too, but with the opposite precedence (explicitly passed attributes win
+// there), so the env override must happen here.
+func newResource(ctx context.Context, instanceID string, detectors ...resource.Detector) (*resource.Resource, error) {
+	serviceName := os.Getenv("OTEL_SERVICE_NAME")
+	if serviceName == "" {
+		serviceName = "centrifugo"
+	}
+	rs, err := resource.New(ctx,
+		resource.WithSchemaURL(semconv.SchemaURL),
+		resource.WithDetectors(detectors...),
+		resource.WithAttributes(
+			semconv.ServiceNameKey.String(serviceName),
+			semconv.ServiceInstanceIDKey.String(instanceID),
+			attribute.String("version", build.Version),
+		),
+		resource.WithFromEnv(),
+	)
+	if err != nil {
+		// resource.New returns a usable partial resource together with the
+		// error (malformed OTEL_RESOURCE_ATTRIBUTES, failed detector), but
+		// exporting telemetry under a wrong or incomplete identity is worse
+		// than failing startup: both causes are actionable, and orchestrator
+		// restarts cover transient ones (e.g. metadata server not ready yet).
+		return nil, fmt.Errorf("error building opentelemetry resource: %w", err)
+	}
+	return rs, nil
+}
+
+func SetupTracing(ctx context.Context, cfg configtypes.OpenTelemetry, instanceID string) (*trace.TracerProvider, error) {
 	exporterProtocol := os.Getenv("OTEL_EXPORTER_OTLP_PROTOCOL")
 	if exporterProtocol == "" {
 		exporterProtocol = "http/protobuf"
 	}
 
-	exporter, err := createExporter(ctx, exporterProtocol, googleCloudADCAuth)
+	exporter, err := createExporter(ctx, exporterProtocol, cfg.GoogleCloudADCAuth)
 	if err != nil {
 		return nil, err
 	}
 
-	serviceName := os.Getenv("OTEL_SERVICE_NAME")
-	if serviceName == "" {
-		serviceName = "centrifugo"
+	detectors, err := resourceDetectors(cfg)
+	if err != nil {
+		return nil, err
 	}
 
 	// labels/tags/resources that are common to all traces.
-	rs := resource.NewWithAttributes(
-		semconv.SchemaURL,
-		semconv.ServiceNameKey.String(serviceName),
-		attribute.String("version", build.Version),
-	)
+	rs, err := newResource(ctx, instanceID, detectors...)
+	if err != nil {
+		return nil, err
+	}
 
 	provider := trace.NewTracerProvider(
 		trace.WithBatcher(exporter),
