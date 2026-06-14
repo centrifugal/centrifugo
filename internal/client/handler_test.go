@@ -254,6 +254,67 @@ func TestClientConnectWithProxy(t *testing.T) {
 	require.Contains(t, reply.Subscriptions, "channel1")
 }
 
+func TestClientConnectAutoCacheRecoveryServerSubs(t *testing.T) {
+	node := tools.NodeWithMemoryEngine()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	opts := &cfg.Channel.WithoutNamespace
+	opts.HistorySize = 1
+	opts.HistoryTTL = configtypes.Duration(time.Hour)
+	opts.ForceRecovery = true
+	opts.ForceRecoveryMode = "cache"
+	opts.AutoCacheRecovery = true
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+	verifier := hmacJWTVerifier(t, cfgContainer)
+	h := NewHandler(node, cfgContainer, verifier, nil, &ProxyMap{})
+
+	connectProxyHandler := func(context.Context, centrifuge.ConnectEvent) (centrifuge.ConnectReply, proxy.ConnectExtra, error) {
+		return centrifuge.ConnectReply{
+			Credentials: &centrifuge.Credentials{UserID: "34"},
+			Subscriptions: map[string]centrifuge.SubscribeOptions{
+				"channel1": {EnableRecovery: true, RecoveryMode: centrifuge.RecoveryModeCache},
+			},
+		}, proxy.ConnectExtra{}, nil
+	}
+
+	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, connectProxyHandler, true)
+	require.NoError(t, err)
+	require.Contains(t, reply.Subscriptions, "channel1")
+	require.True(t, reply.Subscriptions["channel1"].Recover, "auto_cache_recovery must set Recover for server-side subscription")
+}
+
+func TestClientConnectNoAutoCacheRecoveryByDefault(t *testing.T) {
+	node := tools.NodeWithMemoryEngine()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	opts := &cfg.Channel.WithoutNamespace
+	opts.HistorySize = 1
+	opts.HistoryTTL = configtypes.Duration(time.Hour)
+	opts.ForceRecovery = true
+	opts.ForceRecoveryMode = "cache"
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+	verifier := hmacJWTVerifier(t, cfgContainer)
+	h := NewHandler(node, cfgContainer, verifier, nil, &ProxyMap{})
+
+	connectProxyHandler := func(context.Context, centrifuge.ConnectEvent) (centrifuge.ConnectReply, proxy.ConnectExtra, error) {
+		return centrifuge.ConnectReply{
+			Credentials: &centrifuge.Credentials{UserID: "34"},
+			Subscriptions: map[string]centrifuge.SubscribeOptions{
+				"channel1": {EnableRecovery: true, RecoveryMode: centrifuge.RecoveryModeCache},
+			},
+		}, proxy.ConnectExtra{}, nil
+	}
+
+	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, connectProxyHandler, true)
+	require.NoError(t, err)
+	require.Contains(t, reply.Subscriptions, "channel1")
+	require.False(t, reply.Subscriptions["channel1"].Recover, "Recover must stay off without auto_cache_recovery")
+}
+
 func TestClientConnectWithValidTokenRSA(t *testing.T) {
 	privateKey, pubKey := generateTestRSAKeys(t)
 

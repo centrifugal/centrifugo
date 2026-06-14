@@ -228,6 +228,43 @@ func TestValidateMapNamespace_Ephemeral(t *testing.T) {
 	})
 }
 
+func TestValidateAutoCacheRecovery(t *testing.T) {
+	t.Run("valid_with_cache_recovery", func(t *testing.T) {
+		cfg := DefaultConfig()
+		opts := &cfg.Channel.WithoutNamespace
+		opts.HistorySize = 1
+		opts.HistoryTTL = configtypes.Duration(time.Hour)
+		opts.ForceRecovery = true
+		opts.ForceRecoveryMode = "cache"
+		opts.AutoCacheRecovery = true
+		require.NoError(t, cfg.Validate())
+	})
+
+	t.Run("requires_force_recovery", func(t *testing.T) {
+		cfg := DefaultConfig()
+		opts := &cfg.Channel.WithoutNamespace
+		opts.HistorySize = 1
+		opts.HistoryTTL = configtypes.Duration(time.Hour)
+		opts.ForceRecoveryMode = "cache"
+		opts.AutoCacheRecovery = true
+		err := cfg.Validate()
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "auto_cache_recovery requires force_recovery")
+	})
+
+	t.Run("requires_cache_mode", func(t *testing.T) {
+		cfg := DefaultConfig()
+		opts := &cfg.Channel.WithoutNamespace
+		opts.HistorySize = 1
+		opts.HistoryTTL = configtypes.Duration(time.Hour)
+		opts.ForceRecovery = true
+		opts.AutoCacheRecovery = true
+		err := cfg.Validate()
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "force_recovery_mode set to cache")
+	})
+}
+
 func TestValidateMapNamespace_Recoverable(t *testing.T) {
 	t.Run("valid_minimal_defaults_zero", func(t *testing.T) {
 		// Recoverable with all stream options at zero is valid
