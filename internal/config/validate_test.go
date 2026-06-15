@@ -228,7 +228,7 @@ func TestValidateMapNamespace_Ephemeral(t *testing.T) {
 	})
 }
 
-func TestValidateAutoCacheRecovery(t *testing.T) {
+func TestValidateAutoCacheRecover(t *testing.T) {
 	t.Run("valid_with_cache_recovery", func(t *testing.T) {
 		cfg := DefaultConfig()
 		opts := &cfg.Channel.WithoutNamespace
@@ -236,7 +236,7 @@ func TestValidateAutoCacheRecovery(t *testing.T) {
 		opts.HistoryTTL = configtypes.Duration(time.Hour)
 		opts.ForceRecovery = true
 		opts.ForceRecoveryMode = "cache"
-		opts.AutoCacheRecovery = true
+		opts.AutoCacheRecover = true
 		require.NoError(t, cfg.Validate())
 	})
 
@@ -246,10 +246,10 @@ func TestValidateAutoCacheRecovery(t *testing.T) {
 		opts.HistorySize = 1
 		opts.HistoryTTL = configtypes.Duration(time.Hour)
 		opts.ForceRecoveryMode = "cache"
-		opts.AutoCacheRecovery = true
+		opts.AutoCacheRecover = true
 		err := cfg.Validate()
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "auto_cache_recovery requires force_recovery")
+		require.Contains(t, err.Error(), "auto_cache_recover requires force_recovery")
 	})
 
 	t.Run("requires_cache_mode", func(t *testing.T) {
@@ -258,7 +258,7 @@ func TestValidateAutoCacheRecovery(t *testing.T) {
 		opts.HistorySize = 1
 		opts.HistoryTTL = configtypes.Duration(time.Hour)
 		opts.ForceRecovery = true
-		opts.AutoCacheRecovery = true
+		opts.AutoCacheRecover = true
 		err := cfg.Validate()
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "force_recovery_mode set to cache")

@@ -520,11 +520,11 @@ func (h *Handler) OnClientConnecting(
 	}
 
 	// Server-side subscribers can't request recovery on their own – especially unidirectional
-	// clients which may not even know channel names. In cache recovery mode auto_cache_recovery
+	// clients which may not even know channel names. In cache recovery mode auto_cache_recover
 	// makes Centrifugo deliver the latest publication for such subscriptions automatically on
 	// every (re)connect.
 	for ch, opts := range subscriptions {
-		if opts.Recover || !opts.EnableRecovery {
+		if opts.AutoCacheRecover || !opts.EnableRecovery {
 			continue
 		}
 		_, _, chOpts, found, err := h.cfgContainer.ChannelOptions(ch)
@@ -532,8 +532,8 @@ func (h *Handler) OnClientConnecting(
 			log.Error().Err(err).Str("channel", ch).Msg("error getting channel options")
 			return centrifuge.ConnectReply{}, err
 		}
-		if found && chOpts.AutoCacheRecovery && opts.RecoveryMode == centrifuge.RecoveryModeCache {
-			opts.Recover = true
+		if found && chOpts.AutoCacheRecover && opts.RecoveryMode == centrifuge.RecoveryModeCache {
+			opts.AutoCacheRecover = true
 			subscriptions[ch] = opts
 		}
 	}
@@ -881,10 +881,10 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		options.Type = e.Type
 	}
 
-	// In cache recovery mode auto_cache_recovery makes Centrifugo deliver the latest
+	// In cache recovery mode auto_cache_recover makes Centrifugo deliver the latest
 	// publication on subscribe without the client providing an empty "since" itself.
-	if chOpts.AutoCacheRecovery && options.EnableRecovery && options.RecoveryMode == centrifuge.RecoveryModeCache {
-		options.Recover = true
+	if chOpts.AutoCacheRecover && options.EnableRecovery && options.RecoveryMode == centrifuge.RecoveryModeCache {
+		options.AutoCacheRecover = true
 	}
 
 	return centrifuge.SubscribeReply{

@@ -254,7 +254,7 @@ func TestClientConnectWithProxy(t *testing.T) {
 	require.Contains(t, reply.Subscriptions, "channel1")
 }
 
-func TestClientConnectAutoCacheRecoveryServerSubs(t *testing.T) {
+func TestClientConnectAutoCacheRecoverServerSubs(t *testing.T) {
 	node := tools.NodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
@@ -264,7 +264,7 @@ func TestClientConnectAutoCacheRecoveryServerSubs(t *testing.T) {
 	opts.HistoryTTL = configtypes.Duration(time.Hour)
 	opts.ForceRecovery = true
 	opts.ForceRecoveryMode = "cache"
-	opts.AutoCacheRecovery = true
+	opts.AutoCacheRecover = true
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 	verifier := hmacJWTVerifier(t, cfgContainer)
@@ -282,10 +282,10 @@ func TestClientConnectAutoCacheRecoveryServerSubs(t *testing.T) {
 	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, connectProxyHandler, true)
 	require.NoError(t, err)
 	require.Contains(t, reply.Subscriptions, "channel1")
-	require.True(t, reply.Subscriptions["channel1"].Recover, "auto_cache_recovery must set Recover for server-side subscription")
+	require.True(t, reply.Subscriptions["channel1"].AutoCacheRecover, "auto_cache_recover must set AutoCacheRecover for server-side subscription")
 }
 
-func TestClientConnectNoAutoCacheRecoveryByDefault(t *testing.T) {
+func TestClientConnectNoAutoCacheRecoverByDefault(t *testing.T) {
 	node := tools.NodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
@@ -312,7 +312,7 @@ func TestClientConnectNoAutoCacheRecoveryByDefault(t *testing.T) {
 	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, connectProxyHandler, true)
 	require.NoError(t, err)
 	require.Contains(t, reply.Subscriptions, "channel1")
-	require.False(t, reply.Subscriptions["channel1"].Recover, "Recover must stay off without auto_cache_recovery")
+	require.False(t, reply.Subscriptions["channel1"].AutoCacheRecover, "AutoCacheRecover must stay off without auto_cache_recover")
 }
 
 func TestClientConnectWithValidTokenRSA(t *testing.T) {

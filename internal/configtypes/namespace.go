@@ -112,13 +112,13 @@ type ChannelOptions struct {
 	// ForceRecoveryMode can set the recovery mode for all channel subscribers in the namespace which use recovery.
 	ForceRecoveryMode string `mapstructure:"force_recovery_mode" json:"force_recovery_mode" envconfig:"force_recovery_mode" yaml:"force_recovery_mode" toml:"force_recovery_mode" expose:"full" doc:"Recovery mode for subscribers in this namespace that use recovery. Use <<stream>> (default) or <<cache>> (only the latest publication is recovered)."`
 
-	// AutoCacheRecovery makes Centrifugo automatically recover all subscriptions in the namespace
+	// AutoCacheRecover makes Centrifugo automatically recover all subscriptions in the namespace
 	// on subscribe, without requiring the subscriber to request recovery itself. In cache recovery
 	// mode this means the latest publication is delivered on every (re)subscribe without the need
 	// to provide an empty "since" on the client side, and it also enables this delivery for
 	// server-side subscriptions (e.g. of unidirectional clients which may not even know channel
 	// names). Requires force_recovery and force_recovery_mode set to "cache".
-	AutoCacheRecovery bool `mapstructure:"auto_cache_recovery" json:"auto_cache_recovery" envconfig:"auto_cache_recovery" yaml:"auto_cache_recovery" toml:"auto_cache_recovery" doc:"Automatically recovers all subscriptions in the namespace on subscribe without the subscriber requesting recovery. In cache recovery mode delivers the latest publication on every (re)subscribe (no client-side empty \"since\" needed) and also works for server-side subscriptions of unidirectional clients. Requires force_recovery and force_recovery_mode=cache."`
+	AutoCacheRecover bool `mapstructure:"auto_cache_recover" json:"auto_cache_recover" envconfig:"auto_cache_recover" yaml:"auto_cache_recover" toml:"auto_cache_recover" doc:"Automatically recovers all subscriptions in the namespace on subscribe without the subscriber requesting recovery. In cache recovery mode delivers the latest publication on every (re)subscribe (no client-side empty \"since\" needed) and also works for server-side subscriptions of unidirectional clients. Requires force_recovery and force_recovery_mode=cache."`
 
 	// AllowedDeltaTypes is non-empty contains slice of allowed delta types for subscribers to use.
 	AllowedDeltaTypes []centrifuge.DeltaType `mapstructure:"allowed_delta_types" json:"allowed_delta_types" envconfig:"allowed_delta_types" yaml:"allowed_delta_types" toml:"allowed_delta_types" doc:"Delta types subscribers may request in this namespace, e.g. <<[\"fossil\"]>>. Empty disables delta compression."`

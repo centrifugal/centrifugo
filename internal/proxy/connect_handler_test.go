@@ -331,7 +331,7 @@ func TestHandleConnectWithSubscriptionRecover(t *testing.T) {
 
 	httpTestCase := newConnHandleHTTPTestCase(context.Background(), "/proxy")
 	httpTestCase.Mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
-		_, _ = w.Write([]byte(`{"result": {"user": "56", "subs": {"test_ch": {"recover": true}}}}`))
+		_, _ = w.Write([]byte(`{"result": {"user": "56", "subs": {"test_ch": {"cache_recover": true}}}}`))
 	})
 	defer httpTestCase.Teardown()
 
@@ -341,7 +341,7 @@ func TestHandleConnectWithSubscriptionRecover(t *testing.T) {
 		require.NoError(t, err, c.protocol)
 		require.NotNil(t, reply.Subscriptions, c.protocol)
 		require.Contains(t, reply.Subscriptions, "test_ch", c.protocol)
-		require.True(t, reply.Subscriptions["test_ch"].Recover, c.protocol)
+		require.True(t, reply.Subscriptions["test_ch"].AutoCacheRecover, c.protocol)
 	}
 }
 

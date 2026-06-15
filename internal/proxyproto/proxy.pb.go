@@ -334,13 +334,14 @@ type SubscribeOptions struct {
 	B64Data          string                   `protobuf:"bytes,5,opt,name=b64data,proto3" json:"b64data,omitempty"`
 	Override         *SubscribeOptionOverride `protobuf:"bytes,6,opt,name=override,proto3" json:"override,omitempty"`
 	ServerTagsFilter *FilterNode              `protobuf:"bytes,7,opt,name=server_tags_filter,json=serverTagsFilter,proto3" json:"server_tags_filter,omitempty"`
-	// recover, when set, makes Centrifugo initiate recovery for the server-side
-	// subscription without requiring the client to provide a recover flag/position
-	// itself. This is the server-side equivalent of subscribing with an empty
-	// `since` on the client. Mostly useful for unidirectional clients which do not
-	// know channel names. Requires recovery to be enabled for the channel; in cache
-	// recovery mode this delivers the latest publication on (re)subscribe.
-	Recover       bool `protobuf:"varint,8,opt,name=recover,proto3" json:"recover,omitempty"`
+	// cache_recover, when set, makes Centrifugo initiate cache recovery for the
+	// server-side subscription without requiring the client to provide a recover
+	// flag/position itself. This is the server-side equivalent of subscribing with an
+	// empty `since` on the client. Mostly useful for unidirectional clients which do
+	// not know channel names. Requires recovery to be enabled for the channel and only
+	// applies in cache recovery mode, where it delivers the latest publication on
+	// (re)subscribe.
+	CacheRecover  bool `protobuf:"varint,8,opt,name=cache_recover,json=cacheRecover,proto3" json:"cache_recover,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -424,9 +425,9 @@ func (x *SubscribeOptions) GetServerTagsFilter() *FilterNode {
 	return nil
 }
 
-func (x *SubscribeOptions) GetRecover() bool {
+func (x *SubscribeOptions) GetCacheRecover() bool {
 	if x != nil {
-		return x.Recover
+		return x.CacheRecover
 	}
 	return false
 }
@@ -3455,7 +3456,7 @@ const file_proxy_proto_rawDesc = "" +
 	"\ab64data\x18\v \x01(\tR\ab64data\x12\x12\n" +
 	"\x04name\x18\f \x01(\tR\x04name\x12\x18\n" +
 	"\aversion\x18\r \x01(\tR\aversion\x12\x1a\n" +
-	"\bchannels\x18\x0e \x03(\tR\bchannels\"\xd0\x02\n" +
+	"\bchannels\x18\x0e \x03(\tR\bchannels\"\xdb\x02\n" +
 	"\x10SubscribeOptions\x12\x1b\n" +
 	"\texpire_at\x18\x01 \x01(\x03R\bexpireAt\x12\x12\n" +
 	"\x04info\x18\x02 \x01(\fR\x04info\x12\x18\n" +
@@ -3463,8 +3464,8 @@ const file_proxy_proto_rawDesc = "" +
 	"\x04data\x18\x04 \x01(\fR\x04data\x12\x18\n" +
 	"\ab64data\x18\x05 \x01(\tR\ab64data\x12Q\n" +
 	"\boverride\x18\x06 \x01(\v25.centrifugal.centrifugo.proxy.SubscribeOptionOverrideR\boverride\x12V\n" +
-	"\x12server_tags_filter\x18\a \x01(\v2(.centrifugal.centrifugo.proxy.FilterNodeR\x10serverTagsFilter\x12\x18\n" +
-	"\arecover\x18\b \x01(\bR\arecover\"\xd2\x04\n" +
+	"\x12server_tags_filter\x18\a \x01(\v2(.centrifugal.centrifugo.proxy.FilterNodeR\x10serverTagsFilter\x12#\n" +
+	"\rcache_recover\x18\b \x01(\bR\fcacheRecover\"\xd2\x04\n" +
 	"\rConnectResult\x12\x12\n" +
 	"\x04user\x18\x01 \x01(\tR\x04user\x12\x1b\n" +
 	"\texpire_at\x18\x02 \x01(\x03R\bexpireAt\x12\x12\n" +

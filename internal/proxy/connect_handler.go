@@ -222,7 +222,7 @@ func (h *ConnectHandler) Handle() ConnectingHandlerFunc {
 					EnableRecovery:    recovery,
 					EnablePositioning: positioning,
 					RecoveryMode:      recoveryMode,
-					Recover:           options.Recover,
+					AutoCacheRecover:  options.CacheRecover,
 					Data:              chData,
 					Source:            subsource.ConnectProxy,
 					HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
