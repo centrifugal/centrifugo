@@ -66,7 +66,7 @@ services:
       retries: 10
 
   google-pubsub-emulator:
-    image: google/cloud-sdk:latest
+    image: google/cloud-sdk:572.0.0-alpine
     command: gcloud beta emulators pubsub start --host-port=0.0.0.0:8085
     ports:
       - "8085:8085"
