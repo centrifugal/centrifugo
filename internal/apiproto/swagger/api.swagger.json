@@ -2,7 +2,7 @@
   "swagger": "2.0",
   "info": {
     "title": "Centrifugo server HTTP API",
-    "version": "5.0"
+    "version": "6.0"
   },
   "tags": [
     {
