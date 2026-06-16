@@ -187,6 +187,7 @@ func (h *SubscribeHandler) Handle() SubscribeHandlerFunc {
 				EnableRecovery:    recovery,
 				EnablePositioning: positioning,
 				RecoveryMode:      recoveryMode,
+				AutoCacheRecover:  recovery && chOpts.AutoCacheRecover && recoveryMode == centrifuge.RecoveryModeCache,
 				AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
 				AllowTagsFilter:   chOpts.AllowTagsFilter,
 				Data:              data,

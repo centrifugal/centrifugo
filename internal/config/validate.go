@@ -243,6 +243,9 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 	if c.ForceRecovery && (c.HistorySize == 0 || c.HistoryTTL == 0) {
 		return errors.New("both history size and history ttl required for recovery")
 	}
+	if c.AutoCacheRecover && (!c.ForceRecovery || c.ForceRecoveryMode != "cache") {
+		return errors.New("auto_cache_recover requires force_recovery and force_recovery_mode set to cache")
+	}
 	if c.ChannelRegex != "" {
 		if _, err := regexp.Compile(c.ChannelRegex); err != nil {
 			return fmt.Errorf("invalid channel regex %s: %w", c.ChannelRegex, err)

@@ -52,6 +52,17 @@ func (p proxyGRPCTestServer) Connect(_ context.Context, _ *proxyproto.ConnectReq
 				Channels: p.opts.Channels,
 			},
 		}, nil
+	case "subscription with recover":
+		subs := make(map[string]*proxyproto.SubscribeOptions, len(p.opts.Channels))
+		for _, ch := range p.opts.Channels {
+			subs[ch] = &proxyproto.SubscribeOptions{CacheRecover: true}
+		}
+		return &proxyproto.ConnectResponse{
+			Result: &proxyproto.ConnectResult{
+				User: p.opts.User,
+				Subs: subs,
+			},
+		}, nil
 	case "custom disconnect":
 		return &proxyproto.ConnectResponse{
 			Disconnect: p.newDisconnect(),

@@ -82,6 +82,14 @@ message SubscribeOptions {
   string b64data = 5;
   SubscribeOptionOverride override = 6;
   FilterNode server_tags_filter = 7;
+  // cache_recover, when set, makes Centrifugo initiate cache recovery for the
+  // server-side subscription without requiring the client to provide a recover
+  // flag/position itself. This is the server-side equivalent of subscribing with an
+  // empty `since` on the client. Mostly useful for unidirectional clients which do
+  // not know channel names. Requires recovery to be enabled for the channel and only
+  // applies in cache recovery mode, where it delivers the latest publication on
+  // (re)subscribe.
+  bool cache_recover = 8;
 }
 
 message ConnectResult {
