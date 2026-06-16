@@ -10,18 +10,20 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Improvements
 
-* OpenTelemetry: authenticate the OTLP exporter with Google Cloud Application Default Credentials (ADC) via the new `google_cloud_adc_auth` option, see [#1143](https://github.com/centrifugal/centrifugo/pull/1143) and [#1148](https://github.com/centrifugal/centrifugo/pull/1148). This allows exporting traces directly to Google Cloud's OTLP endpoint (`telemetry.googleapis.com`) without a sidecar collector, and works with both the `grpc` and `http/protobuf` exporter protocols.
-* Kafka consumer: added a configurable `dial_timeout` (default `3s`) for establishing a TCP connection to a single broker, and made the initial `Ping` timeout scale with the number of seed brokers so discovery no longer fails prematurely when some brokers are unreachable, see [#1151](https://github.com/centrifugal/centrifugo/pull/1151).
-* Centrifugo official Helm chart now supports k8s Gateway API - see [Helm chart 13.3.0 release](https://github.com/centrifugal/helm-charts/releases/tag/centrifugo-13.3.0)
-* Centrifugo now does not embed generated JSON config schema - configuration structure for `configdoc` is calculated in runtime
+* New `auto_cache_recover` channel namespace option to automatically recover subscriptions on (re)subscribe without the subscriber requesting recovery itself, see [#1158](https://github.com/centrifugal/centrifugo/pull/1158). In cache recovery mode this delivers the latest channel publication on every (re)subscribe – without the client providing an empty `since` position itself. It also enables this for server-side subscriptions, which is especially useful for unidirectional clients that may not even know channel names. The option requires `force_recovery` and `force_recovery_mode` set to `cache`. Subscribe and connect proxies may also enable it per subscription with the new `cache_recover` field in `SubscribeOptions`.
+* OpenTelemetry: Centrifugo node ID is now used as the `service.instance.id` resource attribute, see [#1155](https://github.com/centrifugal/centrifugo/pull/1155). Each Centrifugo process now reports telemetry under a distinct identity, which avoids backends that require points of a time series to arrive in order (notably Google Cloud Managed Service for Prometheus) rejecting or collapsing metrics when several instances report under the same identity. `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES` still take precedence over Centrifugo defaults.
+* All official Centrifugo SDKs now support a `getState` subscription callback – read the stream position first, then load your initial state, and return the position so the SDK subscribes from exactly there and recovers on every reconnect. This closes the gap between loading state from your own database and subscribing, see [Using recovery in your app](https://centrifugal.dev/docs/server/history_and_recovery#using-recovery-in-your-app).
+* All official Centrifugo SDKs now support [publication filtering by tags](https://centrifugal.dev/docs/server/publication_filtering) – clients can subscribe with a filter expression so only publications whose tags match are delivered, reducing bandwidth and client-side processing (previously available in `centrifuge-js` only).
 
-### Fixes
+### Documentation
 
-* Kafka consumer with AWS MSK IAM auth: re-assume the STS role on each SASL re-auth instead of reusing cached credentials, fixing periodic `ILLEGAL_SASL_STATE` errors during re-authentication, see [#1146](https://github.com/centrifugal/centrifugo/pull/1146) by @samir-is-here which fixes [#1144](https://github.com/centrifugal/centrifugo/issues/1144).
-* Fix unidirectional subscribe stream proxy not closing on unsubscribe, see [#1150](https://github.com/centrifugal/centrifugo/pull/1150).
+* The [Client protocol](https://centrifugal.dev/docs/transports/client_protocol) chapter was reworked and now ships with diagrams explaining the frame anatomy, command/reply sequence, push delivery, ping-pong, batching, and the JSON/Protobuf formats.
+* The [History and recovery](https://centrifugal.dev/docs/server/history_and_recovery) chapter was significantly expanded with diagrams covering stream vs cache recovery modes, the recovery decision flow, and recovery storm mitigation.
+* The [GrandChat tutorial](https://centrifugal.dev/docs/tutorial/intro) was actualized for 2026 – the Django/React code was modernized to recent versions and made more idiomatic and type-safe, and a new [Two-column layout](https://centrifugal.dev/docs/tutorial/two_column) chapter shows how to build a Telegram/Slack-style messenger layout (room list and open room side by side) live from a single personal-channel subscription.
 
 ### Miscellaneous
 
+* The `linux/386` (32-bit x86) binary is no longer published in releases, see [#1154](https://github.com/centrifugal/centrifugo/pull/1154).
 * This release is built with Go 1.26.4
 * Dependency updates
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.8.2).
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.8.3).
