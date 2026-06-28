@@ -108,9 +108,26 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if messageSizeLimit > 0 {
 		conn.SetReadLimit(int64(messageSizeLimit))
 	}
+	if compression {
+		decompressedMessageSizeLimit := s.config.DecompressedMessageSizeLimit
+		if decompressedMessageSizeLimit == 0 {
+			decompressedMessageSizeLimit = messageSizeLimit * DefaultWebsocketDecompressedMessageSizeLimitMultiplier
+		}
+		if decompressedMessageSizeLimit > 0 {
+			conn.SetDecompressedReadLimit(int64(decompressedMessageSizeLimit))
+		}
+	}
 
 	// Separate goroutine for better GC of caller's data.
 	go func() {
+		// Record server-sent (outgoing) close codes for observability. Runs last
+		// (registered first), after any teardown close frame has been written.
+		// Client-supplied codes are skipped to keep metric cardinality bounded.
+		defer func() {
+			if code, incoming := conn.CloseCode(); code != 0 && !incoming {
+				s.node.IncTransportOutgoingClose(transportName, code)
+			}
+		}()
 		opts := websocketTransportOptions{
 			framePingInterval:       framePingInterval,
 			framePongTimeout:        framePongTimeout,
