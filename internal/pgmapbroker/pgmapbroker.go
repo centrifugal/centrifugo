@@ -2122,7 +2122,7 @@ func (e *PostgresMapBroker) expireKeys(ctx context.Context) {
 		}
 		rows.Close()
 		if removedCount > 0 {
-			e.node.AddMapBrokerCleanupKeysRemoved(e.conf.Name, removedCount)
+			e.node.AddMapBrokerCleanupRemoved(e.conf.Name, removedCount)
 		}
 	}
 }

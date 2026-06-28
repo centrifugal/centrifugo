@@ -31,7 +31,7 @@ func (s *mapMetricsSampler) storeCursor(shard int, cursor int64) {
 }
 
 func (s *mapMetricsSampler) sample(ctx context.Context) {
-	if metrics.PGBrokerPartitions == nil {
+	if metrics.MapBrokerPostgresPartitions == nil {
 		return
 	}
 	brokerName := s.broker.conf.Name
@@ -44,7 +44,7 @@ func (s *mapMetricsSampler) sample(ctx context.Context) {
 		 WHERE c.relname = $1
 	`, s.broker.names.stream).Scan(&partitionCount)
 	if err == nil {
-		metrics.PGBrokerPartitions.WithLabelValues(brokerName).Set(float64(partitionCount))
+		metrics.MapBrokerPostgresPartitions.WithLabelValues(brokerName).Set(float64(partitionCount))
 	}
 
 	// Sample cursor lag per shard.
@@ -61,13 +61,13 @@ func (s *mapMetricsSampler) sample(ctx context.Context) {
 			s.broker.names.stream,
 		), cursor).Scan(&createdAt)
 		if err != nil {
-			metrics.PGBrokerOutboxCursorLagSeconds.WithLabelValues(brokerName, fmt.Sprintf("%d", shard)).Set(0)
+			metrics.MapBrokerPostgresOutboxCursorLagSeconds.WithLabelValues(brokerName, fmt.Sprintf("%d", shard)).Set(0)
 			continue
 		}
 		lag := time.Since(createdAt).Seconds()
 		if lag < 0 {
 			lag = 0
 		}
-		metrics.PGBrokerOutboxCursorLagSeconds.WithLabelValues(brokerName, fmt.Sprintf("%d", shard)).Set(lag)
+		metrics.MapBrokerPostgresOutboxCursorLagSeconds.WithLabelValues(brokerName, fmt.Sprintf("%d", shard)).Set(lag)
 	}
 }

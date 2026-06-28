@@ -52,10 +52,17 @@ var (
 	HTTPRequestsTotal *prometheus.CounterVec
 )
 
-// PostgreSQL broker metrics - exported for use by pgmapbroker and pgstreambroker.
-// Shared subsystem "pg_broker" with a "broker" label to distinguish map vs stream.
+// Postgres broker metrics exported for use by pgmapbroker and pgstreambroker.
+//
+// All carry a postgres_ name prefix: these are Postgres-specific (outbox,
+// partitions, row cleanup), not generic broker concepts. Metrics emitted by both
+// PG brokers are split per kind (broker_* for stream, map_broker_* for map) so
+// the two never share a series. Cleanup is stream-only today.
 var (
-	PGBrokerCleanupRowsDeletedTotal *prometheus.CounterVec
-	PGBrokerOutboxCursorLagSeconds  *prometheus.GaugeVec
-	PGBrokerPartitions              *prometheus.GaugeVec
+	BrokerPostgresCleanupRemovedTotal *prometheus.CounterVec
+
+	BrokerPostgresOutboxCursorLagSeconds    *prometheus.GaugeVec
+	MapBrokerPostgresOutboxCursorLagSeconds *prometheus.GaugeVec
+	BrokerPostgresPartitions                *prometheus.GaugeVec
+	MapBrokerPostgresPartitions             *prometheus.GaugeVec
 )
