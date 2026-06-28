@@ -598,14 +598,14 @@ func TestPostgresMapBroker_CleanupMetrics(t *testing.T) {
 		}
 		var removedCount float64
 		for _, f := range families {
-			if f.GetName() == "centrifuge_map_broker_cleanup_keys_removed_count" {
+			if f.GetName() == "centrifuge_map_broker_cleanup_removed_count" {
 				for _, m := range f.GetMetric() {
 					removedCount += m.GetCounter().GetValue()
 				}
 			}
 		}
 		return removedCount >= 2
-	}, 10*time.Second, 200*time.Millisecond, "cleanup_keys_removed_count should reach >= 2")
+	}, 10*time.Second, 200*time.Millisecond, "cleanup_removed_count should reach >= 2")
 }
 
 // TestPostgresMapBroker_KeyTTL tests key TTL (this is a slower test).
