@@ -1115,6 +1115,13 @@ func (l *limitedReader) limitExceeded() error {
 		// reason) so the peer/operator can tell the decompressed limit was hit.
 		_ = l.c.WriteControl(CloseMessage, FormatCloseMessage(CloseMessageTooBig, "message too big after decompression"), time.Now().Add(writeWait))
 	}
+	// Make the error permanent, mirroring the compressed-bytes limit enforced in
+	// advanceFrame: that path returns ErrReadLimit through NextReader, which sets
+	// c.readErr. The decompressed limit trips inside this reader (the one handed
+	// to the application), bypassing that assignment, so set it here too. Once set
+	// every subsequent NextReader call returns ErrReadLimit, honoring the gorilla
+	// contract that read errors are permanent.
+	l.c.readErr = ErrReadLimit
 	return ErrReadLimit
 }
 

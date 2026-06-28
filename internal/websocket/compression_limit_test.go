@@ -311,6 +311,47 @@ func TestDecompressedReadLimit_CompressedLimitStillApplies(t *testing.T) {
 	}
 }
 
+// TestDecompressedReadLimit_ErrorIsPermanent proves that once the decompressed
+// limit trips, the error is sticky: subsequent NextReader calls keep returning
+// ErrReadLimit instead of advancing to the next frame. This mirrors the
+// compressed-bytes limit (enforced in advanceFrame, which sets c.readErr via
+// NextReader) and honors the gorilla contract that read errors are permanent.
+func TestDecompressedReadLimit_ErrorIsPermanent(t *testing.T) {
+	const limit = 4096
+
+	// Two back-to-back compressed frames in one stream. The first is a bomb that
+	// trips the decompressed limit; the second is a small legitimate message that
+	// must NOT be delivered once the connection is in its terminal error state.
+	src := writeCompressedFrame(t, bytes.Repeat([]byte{'A'}, 1*1024*1024), 9)
+	next := writeCompressedFrame(t, []byte("should never be read"), 9)
+	src.Write(next.Bytes())
+
+	rc, out := newCompressedReader(src, limit)
+
+	_, r, err := rc.NextReader()
+	if err != nil {
+		t.Fatalf("NextReader: %v", err)
+	}
+	if _, err := io.ReadAll(r); !errors.Is(err, ErrReadLimit) {
+		t.Fatalf("io.ReadAll error = %v, want ErrReadLimit", err)
+	}
+	if !sentTooBig(out) {
+		t.Fatalf("expected CloseMessageTooBig control frame to be sent")
+	}
+
+	// The error must now be permanent: NextReader keeps returning ErrReadLimit
+	// rather than reading the second frame.
+	for i := 0; i < 3; i++ {
+		mt, r, err := rc.NextReader()
+		if !errors.Is(err, ErrReadLimit) {
+			t.Fatalf("NextReader #%d after limit = (%d, %v), want ErrReadLimit", i, mt, err)
+		}
+		if r != nil {
+			t.Fatalf("NextReader #%d returned non-nil reader after permanent error", i)
+		}
+	}
+}
+
 // TestDecompressedReadLimit_StreamingReads proves the limit is enforced on the
 // incremental NextReader path (used by the bidirectional handler's streaming
 // command decoder), not only via io.ReadAll: reading small chunks still trips
