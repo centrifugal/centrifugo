@@ -23,7 +23,7 @@ import (
 func TestMain(m *testing.M) {
 	// Initialize metrics with a custom registry for tests to avoid conflicts
 	// with prometheus.DefaultRegisterer. This populates the package-level vars
-	// (metrics.PGBrokerOrphanRows, etc.) that the sampler and tests use.
+	// (metrics.BrokerPostgresPartitions, etc.) that the sampler and tests use.
 	registry := prometheus.NewRegistry()
 	_ = metrics.Init(metrics.Config{
 		Registerer: registry,
@@ -1404,7 +1404,7 @@ func TestPostgresStreamBroker_Metrics(t *testing.T) {
 	time.Sleep(300 * time.Millisecond)
 
 	// Verify PG-specific gauges are populated (initialized by TestMain).
-	require.NotNil(t, metrics.PGBrokerPartitions)
+	require.NotNil(t, metrics.BrokerPostgresPartitions)
 }
 
 // TestPostgresStreamBroker_OutboxCursorLag verifies the outbox cursor lag
@@ -1424,7 +1424,7 @@ func TestPostgresStreamBroker_OutboxCursorLag(t *testing.T) {
 	// Wait for sampler to run. The main assertion is that the sampler
 	// doesn't panic when computing cursor lag.
 	time.Sleep(300 * time.Millisecond)
-	require.NotNil(t, metrics.PGBrokerOutboxCursorLagSeconds)
+	require.NotNil(t, metrics.BrokerPostgresOutboxCursorLagSeconds)
 }
 
 // testutilGaugeValue extracts a GaugeVec value for the given labels.
