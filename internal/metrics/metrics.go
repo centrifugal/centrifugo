@@ -100,10 +100,15 @@ type Registry struct {
 	connLimitReached  prometheus.Counter
 	httpRequestsTotal *prometheus.CounterVec
 
-	// PostgreSQL broker metrics (shared by both map and stream PG brokers)
-	pgBrokerCleanupRowsDeletedTotal *prometheus.CounterVec
-	pgBrokerOutboxCursorLagSeconds  *prometheus.GaugeVec
-	pgBrokerPartitions              *prometheus.GaugeVec
+	// PostgreSQL-specific broker metrics. Cleanup is Postgres-specific here (only
+	// the PG stream broker prunes rows, with PG table names in the "pass" label),
+	// so it carries the postgres_ prefix like the rest. Metrics emitted by both
+	// PG brokers are split per kind so stream and map never share a series.
+	brokerPostgresCleanupRemovedTotal       *prometheus.CounterVec
+	brokerPostgresOutboxCursorLagSeconds    *prometheus.GaugeVec
+	mapBrokerPostgresOutboxCursorLagSeconds *prometheus.GaugeVec
+	brokerPostgresPartitions                *prometheus.GaugeVec
+	mapBrokerPostgresPartitions             *prometheus.GaugeVec
 }
 
 // Init initializes the metrics registry with the provided configuration.
@@ -137,9 +142,11 @@ func Init(cfg Config) error {
 	ConnLimitReached = reg.connLimitReached
 	HTTPRequestsTotal = reg.httpRequestsTotal
 
-	PGBrokerCleanupRowsDeletedTotal = reg.pgBrokerCleanupRowsDeletedTotal
-	PGBrokerOutboxCursorLagSeconds = reg.pgBrokerOutboxCursorLagSeconds
-	PGBrokerPartitions = reg.pgBrokerPartitions
+	BrokerPostgresCleanupRemovedTotal = reg.brokerPostgresCleanupRemovedTotal
+	BrokerPostgresOutboxCursorLagSeconds = reg.brokerPostgresOutboxCursorLagSeconds
+	MapBrokerPostgresOutboxCursorLagSeconds = reg.mapBrokerPostgresOutboxCursorLagSeconds
+	BrokerPostgresPartitions = reg.brokerPostgresPartitions
+	MapBrokerPostgresPartitions = reg.mapBrokerPostgresPartitions
 
 	return nil
 }
@@ -309,30 +316,49 @@ func newRegistry(cfg Config) (*Registry, error) {
 		[]string{"path", "method", "status"},
 	)
 
-	// PostgreSQL broker metrics (shared by both pg_map_broker and pg_stream_broker).
-	m.pgBrokerCleanupRowsDeletedTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+	// Postgres-specific broker metrics carry a postgres_ name prefix. Cleanup is
+	// Postgres-specific here: only the PG stream broker prunes rows (the "pass"
+	// label is the PG table being cleaned), so it is not the generic cleanup
+	// metric. Metrics emitted by both PG brokers are split per kind below.
+	m.brokerPostgresCleanupRemovedTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   metricsNamespace,
-		Subsystem:   "pg_broker",
-		Name:        "cleanup_rows_deleted_total",
-		Help:        "Total rows deleted by each cleanup pass.",
+		Subsystem:   "broker",
+		Name:        "postgres_cleanup_removed_total",
+		Help:        "Total rows removed by each Postgres cleanup pass.",
 		ConstLabels: constLabels,
-	}, []string{"broker", "pass"})
+	}, []string{"broker_name", "pass"})
 
-	m.pgBrokerOutboxCursorLagSeconds = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	m.brokerPostgresOutboxCursorLagSeconds = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   metricsNamespace,
-		Subsystem:   "pg_broker",
-		Name:        "outbox_cursor_lag_seconds",
+		Subsystem:   "broker",
+		Name:        "postgres_outbox_cursor_lag_seconds",
 		Help:        "Time between the outbox cursor's row created_at and now, per shard.",
 		ConstLabels: constLabels,
-	}, []string{"broker", "shard"})
+	}, []string{"broker_name", "shard"})
 
-	m.pgBrokerPartitions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	m.mapBrokerPostgresOutboxCursorLagSeconds = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   metricsNamespace,
-		Subsystem:   "pg_broker",
-		Name:        "partitions",
+		Subsystem:   "map_broker",
+		Name:        "postgres_outbox_cursor_lag_seconds",
+		Help:        "Time between the outbox cursor's row created_at and now, per shard.",
+		ConstLabels: constLabels,
+	}, []string{"broker_name", "shard"})
+
+	m.brokerPostgresPartitions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "broker",
+		Name:        "postgres_partitions",
 		Help:        "Count of stream/history table partitions.",
 		ConstLabels: constLabels,
-	}, []string{"broker"})
+	}, []string{"broker_name"})
+
+	m.mapBrokerPostgresPartitions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace:   metricsNamespace,
+		Subsystem:   "map_broker",
+		Name:        "postgres_partitions",
+		Help:        "Count of stream/history table partitions.",
+		ConstLabels: constLabels,
+	}, []string{"broker_name"})
 
 	// Register all metrics
 	var alreadyRegistered prometheus.AlreadyRegisteredError
@@ -353,9 +379,11 @@ func newRegistry(cfg Config) (*Registry, error) {
 		m.sharedPollProxyResponseItems,
 		m.connLimitReached,
 		m.httpRequestsTotal,
-		m.pgBrokerCleanupRowsDeletedTotal,
-		m.pgBrokerOutboxCursorLagSeconds,
-		m.pgBrokerPartitions,
+		m.brokerPostgresCleanupRemovedTotal,
+		m.brokerPostgresOutboxCursorLagSeconds,
+		m.mapBrokerPostgresOutboxCursorLagSeconds,
+		m.brokerPostgresPartitions,
+		m.mapBrokerPostgresPartitions,
 	}
 
 	for _, collector := range collectors {

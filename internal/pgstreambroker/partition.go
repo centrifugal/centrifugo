@@ -57,8 +57,8 @@ func (e *PostgresStreamBroker) runCleanupWorker() {
 }
 
 func addCleanupRows(broker, pass string, n int64) {
-	if metrics.PGBrokerCleanupRowsDeletedTotal != nil {
-		metrics.PGBrokerCleanupRowsDeletedTotal.WithLabelValues(broker, pass).Add(float64(n))
+	if metrics.BrokerPostgresCleanupRemovedTotal != nil {
+		metrics.BrokerPostgresCleanupRemovedTotal.WithLabelValues(broker, pass).Add(float64(n))
 	}
 }
 
