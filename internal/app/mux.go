@@ -343,6 +343,7 @@ func websocketHandlerConfig(appCfg config.Config) centrifuge.WebsocketConfig {
 	cfg.UseWriteBufferPool = appCfg.WebSocket.UseWriteBufferPool
 	cfg.WriteTimeout = appCfg.WebSocket.WriteTimeout.ToDuration()
 	cfg.MessageSizeLimit = appCfg.WebSocket.MessageSizeLimit
+	cfg.DecompressedMessageSizeLimit = appCfg.WebSocket.DecompressedMessageSizeLimit
 	cfg.CheckOrigin = getCheckOrigin(appCfg)
 	cfg.PingPongConfig = getPingPongConfig(appCfg)
 	return cfg

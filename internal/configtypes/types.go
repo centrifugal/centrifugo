@@ -97,6 +97,12 @@ type WebSocket struct {
 	WriteBufferSize    int      `mapstructure:"write_buffer_size" json:"write_buffer_size" envconfig:"write_buffer_size" yaml:"write_buffer_size" toml:"write_buffer_size" doc:"WebSocket write buffer size in bytes. Zero uses the default gorilla/websocket buffer size."`
 	WriteTimeout       Duration `mapstructure:"write_timeout" json:"write_timeout" envconfig:"write_timeout" default:"1000ms" yaml:"write_timeout" toml:"write_timeout" doc:"Timeout for a single write operation to a WebSocket connection. Default <<1000ms>>."`
 	MessageSizeLimit   int      `mapstructure:"message_size_limit" json:"message_size_limit" envconfig:"message_size_limit" default:"65536" yaml:"message_size_limit" toml:"message_size_limit" doc:"Maximum allowed WebSocket message size in bytes. Default <<65536>>."`
+	// DecompressedMessageSizeLimit bounds the size of a message after permessage-deflate decompression.
+	// Only effective when Compression is enabled. message_size_limit alone bounds only the compressed bytes
+	// received on the wire, so without this limit a small compressed frame could be inflated into a much
+	// larger amount of memory (a "decompression bomb"). When zero, the limit is derived from
+	// message_size_limit multiplied by the default multiplier (10).
+	DecompressedMessageSizeLimit int `mapstructure:"decompressed_message_size_limit" json:"decompressed_message_size_limit" envconfig:"decompressed_message_size_limit" yaml:"decompressed_message_size_limit" toml:"decompressed_message_size_limit" doc:"Maximum allowed WebSocket message size in bytes after permessage-deflate decompression. Only used when compression is enabled. Zero derives the limit from message_size_limit times the default multiplier (10)."`
 }
 
 // SSE client real-time transport configuration.
@@ -132,6 +138,12 @@ type UniWebSocket struct {
 	WriteBufferSize    int      `mapstructure:"write_buffer_size" json:"write_buffer_size" envconfig:"write_buffer_size" yaml:"write_buffer_size" toml:"write_buffer_size" doc:"Write buffer size in bytes for unidirectional WebSocket connections. Zero uses the default buffer size."`
 	WriteTimeout       Duration `mapstructure:"write_timeout" json:"write_timeout" envconfig:"write_timeout" default:"1000ms" yaml:"write_timeout" toml:"write_timeout" doc:"Timeout for a single write operation on the unidirectional WebSocket transport. Default <<1000ms>>."`
 	MessageSizeLimit   int      `mapstructure:"message_size_limit" json:"message_size_limit" envconfig:"message_size_limit" default:"65536" yaml:"message_size_limit" toml:"message_size_limit" doc:"Maximum allowed message size in bytes for the unidirectional WebSocket transport. Default <<65536>>."`
+	// DecompressedMessageSizeLimit bounds the size of a message after permessage-deflate decompression.
+	// Only effective when Compression is enabled. message_size_limit alone bounds only the compressed bytes
+	// received on the wire, so without this limit a small compressed frame could be inflated into a much
+	// larger amount of memory (a "decompression bomb"). When zero, the limit is derived from
+	// message_size_limit multiplied by DefaultWebsocketDecompressedMessageSizeLimitMultiplier.
+	DecompressedMessageSizeLimit int `mapstructure:"decompressed_message_size_limit" json:"decompressed_message_size_limit" envconfig:"decompressed_message_size_limit" yaml:"decompressed_message_size_limit" toml:"decompressed_message_size_limit" doc:"Maximum allowed message size in bytes after permessage-deflate decompression for the unidirectional WebSocket transport. Only used when compression is enabled. Zero derives the limit from message_size_limit times the default multiplier (10)."`
 	// DisableClosingHandshake disables WebSocket closing handshake. This restores the behavior prior to
 	// Centrifugo v6.5.1 where server never sent a close frame on connection close initiated by server.
 	// Normally closing handshake is recommended to be performed according to WebSocket protocol RFC,

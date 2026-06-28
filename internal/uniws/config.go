@@ -18,6 +18,16 @@ const (
 	DefaultWebsocketMessageSizeLimit = 65536 // 64KB
 )
 
+// DefaultWebsocketDecompressedMessageSizeLimitMultiplier is the default factor
+// applied to MessageSizeLimit to derive the maximum allowed decompressed message
+// size when compression is negotiated and DecompressedMessageSizeLimit is not set
+// explicitly. MessageSizeLimit alone only bounds the compressed bytes received on
+// the wire, so a small compressed frame could otherwise be inflated into a much
+// larger amount of memory (a "decompression bomb"). The multiplier leaves
+// generous headroom for legitimately compressible messages while still rejecting
+// extreme expansion ratios.
+const DefaultWebsocketDecompressedMessageSizeLimitMultiplier = 10
+
 type Config = configtypes.UniWebSocket
 
 func sameHostOriginCheck() func(r *http.Request) bool {

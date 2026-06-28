@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode/utf8"
 )
@@ -261,10 +262,14 @@ type Conn struct {
 	writeBuf               []byte // frame is constructed in this buffer.
 	readLength             int64  // Message size.
 	readLimit              int64  // Maximum message size.
-	compressionLevel       int
-	readMaskPos            int
-	writeBufSize           int
-	writeErrMu             sync.Mutex
+	decompressedReadLimit  int64  // Maximum decompressed message size (0 = unlimited).
+	// closeCode holds the first close frame observed on the connection, packed
+	// as bits 0-15 = code, bit 16 = incoming flag; 0 means none observed yet.
+	closeCode        atomic.Int32
+	compressionLevel int
+	readMaskPos      int
+	writeBufSize     int
+	writeErrMu       sync.Mutex
 	// bytes remaining in current frame.
 	// set setReadRemaining to safely update this value and prevent overflow
 	readRemaining          int64
@@ -403,6 +408,14 @@ func (c *Conn) WriteControl(messageType int, data []byte, deadline time.Time) er
 	}
 	if len(data) > maxControlFramePayloadSize {
 		return errInvalidControlFrame
+	}
+
+	if messageType == CloseMessage {
+		code := CloseNoStatusReceived
+		if len(data) >= 2 {
+			code = int(binary.BigEndian.Uint16(data))
+		}
+		c.recordCloseCode(code, false)
 	}
 
 	b0 := byte(messageType) | finalBit
@@ -942,6 +955,7 @@ func (c *Conn) advanceFrame() (int, error) {
 				return noFrame, c.handleProtocolError("invalid utf8 payload in close frame")
 			}
 		}
+		c.recordCloseCode(closeCode, true)
 		if err := c.defaultCloseHandler(closeCode, closeText); err != nil {
 			return noFrame, err
 		}
@@ -992,6 +1006,14 @@ func (c *Conn) NextReader() (messageType int, r io.Reader, err error) {
 			c.reader = c.messageReader
 			if c.readDecompress {
 				c.reader = c.newDecompressionReader(c.reader)
+				if c.decompressedReadLimit > 0 {
+					// readLimit bounds only the compressed bytes counted in
+					// advanceFrame. With permessage-deflate a small compressed
+					// frame can inflate into an unbounded amount of memory
+					// (a "decompression bomb"), so additionally bound the
+					// decompressed output here.
+					c.reader = &limitedReader{c: c, r: c.reader, remaining: c.decompressedReadLimit + 1}
+				}
 			}
 			return frameType, c.reader, nil
 		}
@@ -1053,6 +1075,56 @@ func (r *messageReader) Close() error {
 	return nil
 }
 
+// limitedReader wraps a decompression reader and bounds the number of
+// decompressed bytes that may be read from a single message. Unlike
+// io.LimitedReader it returns ErrReadLimit (and sends a CloseMessageTooBig
+// control frame, mirroring the compressed-bytes limit enforced in
+// advanceFrame) instead of io.EOF when the limit is exceeded, so callers do
+// not mistake a truncated message for a complete one.
+type limitedReader struct {
+	c         *Conn
+	r         io.Reader
+	remaining int64 // decompressed bytes that may still be read (configured limit + 1)
+	tooBig    bool  // whether the close control frame was already sent
+}
+
+func (l *limitedReader) Read(p []byte) (int, error) {
+	if l.remaining <= 0 {
+		return 0, l.limitExceeded()
+	}
+	if int64(len(p)) > l.remaining {
+		// Never read more than one byte past the configured limit: that single
+		// extra byte is enough to prove the decompressed message is too big
+		// while keeping buffered memory bounded.
+		p = p[:l.remaining]
+	}
+	n, err := l.r.Read(p)
+	l.remaining -= int64(n)
+	if l.remaining <= 0 {
+		// Read limit+1 decompressed bytes, so the message exceeds the limit
+		// regardless of whether the underlying reader also reported EOF.
+		return n, l.limitExceeded()
+	}
+	return n, err
+}
+
+func (l *limitedReader) limitExceeded() error {
+	if !l.tooBig {
+		l.tooBig = true
+		// Distinct reason from the compressed-frame limit (which sends an empty
+		// reason) so the peer/operator can tell the decompressed limit was hit.
+		_ = l.c.WriteControl(CloseMessage, FormatCloseMessage(CloseMessageTooBig, "message too big after decompression"), time.Now().Add(writeWait))
+	}
+	return ErrReadLimit
+}
+
+func (l *limitedReader) Close() error {
+	if rc, ok := l.r.(io.Closer); ok {
+		return rc.Close()
+	}
+	return nil
+}
+
 // ReadMessage is a helper method for getting a reader using NextReader and
 // reading from that reader to a buffer.
 func (c *Conn) ReadMessage() (messageType int, p []byte, err error) {
@@ -1078,6 +1150,46 @@ func (c *Conn) SetReadDeadline(t time.Time) error {
 // and returns ErrReadLimit to the application.
 func (c *Conn) SetReadLimit(limit int64) {
 	c.readLimit = limit
+}
+
+// SetDecompressedReadLimit sets the maximum size in bytes for a single
+// decompressed message read from the peer when permessage-deflate compression
+// is negotiated. SetReadLimit only bounds the compressed bytes received on the
+// wire, which allows a small compressed frame to be inflated into a much larger
+// amount of memory (a "decompression bomb"). This limit additionally bounds the
+// decompressed output of each message. If a message exceeds the limit, the
+// connection sends a close message to the peer and reads return ErrReadLimit. A
+// value of zero (the default) disables the decompressed limit.
+func (c *Conn) SetDecompressedReadLimit(limit int64) {
+	c.decompressedReadLimit = limit
+}
+
+const closeCodeIncomingBit = int32(1) << 16
+
+func (c *Conn) recordCloseCode(code int, incoming bool) {
+	if code <= 0 || code > 0xFFFF {
+		return
+	}
+	v := int32(code)
+	if incoming {
+		v |= closeCodeIncomingBit
+	}
+	// The first close frame observed wins, so the initiating close (and its
+	// true direction) is preserved rather than the handshake response or
+	// teardown close that follows it.
+	c.closeCode.CompareAndSwap(0, v)
+}
+
+// CloseCode returns the close code of the first close frame observed on the
+// connection and whether it was received from the peer (incoming) rather than
+// sent locally (outgoing). It returns (0, false) if no close frame has been
+// observed yet.
+func (c *Conn) CloseCode() (code int, incoming bool) {
+	v := c.closeCode.Load()
+	if v == 0 {
+		return 0, false
+	}
+	return int(v & 0xFFFF), v&closeCodeIncomingBit != 0
 }
 
 func (c *Conn) defaultCloseHandler(code int, _ string) error {

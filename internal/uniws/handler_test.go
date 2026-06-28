@@ -194,6 +194,58 @@ func TestUnidirectionalWebSocket(t *testing.T) {
 	})
 }
 
+func TestUnidirectionalWebSocket_DecompressionBombRejected(t *testing.T) {
+	t.Parallel()
+
+	node, err := centrifuge.New(centrifuge.Config{})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = node.Shutdown(context.Background()) })
+
+	node.OnConnecting(func(ctx context.Context, event centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+		return centrifuge.ConnectReply{Credentials: &centrifuge.Credentials{}}, nil
+	})
+
+	// MessageSizeLimit 1024 -> decompressed limit = 1024 * 10 = 10240 bytes.
+	config := configtypes.UniWebSocket{
+		Compression:      true,
+		MessageSizeLimit: 1024,
+	}
+
+	handler := NewHandler(node, config, func(r *http.Request) bool { return true }, centrifuge.PingPongConfig{})
+	server := httptest.NewServer(middleware.LogRequest(handler))
+	t.Cleanup(func() { server.Close() })
+
+	for {
+		resp, err := http.Get(server.URL)
+		if err != nil {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		_ = resp.Body.Close()
+		break
+	}
+
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
+
+	dialer := websocket.Dialer{EnableCompression: true}
+	conn, _, _, err := dialer.Dial(wsURL, nil)
+	require.NoError(t, err)
+	defer func() { _ = conn.Close() }()
+	require.NoError(t, conn.SetCompressionLevel(9))
+
+	// 64KB of zeros compresses to well under the 1024-byte compressed limit but
+	// inflates far past the 10240-byte decompressed limit, as the first
+	// (pre-auth) frame.
+	bomb := make([]byte, 64*1024)
+	require.NoError(t, conn.WriteMessage(websocket.BinaryMessage, bomb))
+
+	require.NoError(t, conn.SetReadDeadline(time.Now().Add(5*time.Second)))
+	_, _, err = conn.ReadMessage()
+	require.Error(t, err)
+	require.Truef(t, websocket.IsCloseError(err, websocket.CloseMessageTooBig),
+		"expected close %d, got %v", websocket.CloseMessageTooBig, err)
+}
+
 func TestUnidirectionalWebSocket_CloseFrameSent(t *testing.T) {
 	t.Parallel()
 

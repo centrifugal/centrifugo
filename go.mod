@@ -145,3 +145,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260615183401-62b3387ff324 // indirect
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+replace github.com/centrifugal/centrifuge => /Users/fz/centrifugal/centrifuge
