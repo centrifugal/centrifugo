@@ -387,7 +387,7 @@ type Debug struct {
 }
 
 type Dev struct {
-	Enabled       bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled" doc:"Enables the development mode endpoint (e.g. real-time event log UI)."`
+	Enabled       bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled" expose:"-" doc:"Enables the development mode endpoint (e.g. real-time event log UI). This is an insecure endpoint which must be used only in development."`
 	HandlerPrefix string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/dev" yaml:"handler_prefix" toml:"handler_prefix" expose:"full" doc:"URL prefix for the dev mode handler. Default <</dev>>."`
 }
 
@@ -702,10 +702,10 @@ type ProxyCommonGRPC struct {
 type ProxyCommon struct {
 	// HttpHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.
 	// If GRPC proxy is used then request HTTP headers set to outgoing request metadata.
-	HttpHeaders []string `mapstructure:"http_headers" json:"http_headers" envconfig:"http_headers" yaml:"http_headers" toml:"http_headers" expose:"full" doc:"List of incoming HTTP header names to forward to the proxy backend. When a gRPC proxy is used, these headers are forwarded as gRPC metadata."`
+	HttpHeaders []string `mapstructure:"http_headers" json:"http_headers" envconfig:"http_headers" yaml:"http_headers" toml:"http_headers" expose:"full" doc:"List of incoming HTTP header names to forward to the proxy backend. When a gRPC proxy is used, these headers are forwarded as gRPC metadata. Note: a header value may come from the client via headers emulation, so if you expect it to be set by a proxy in front of Centrifugo, make that proxy set or strip it on every request."`
 	// GrpcMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by
 	// default. If HTTP proxy is used then these keys become outgoing request HTTP headers.
-	GrpcMetadata []string `mapstructure:"grpc_metadata" json:"grpc_metadata" envconfig:"grpc_metadata" yaml:"grpc_metadata" toml:"grpc_metadata" expose:"full" doc:"List of incoming gRPC metadata keys to forward to the proxy backend. When an HTTP proxy is used, these keys become outgoing HTTP headers."`
+	GrpcMetadata []string `mapstructure:"grpc_metadata" json:"grpc_metadata" envconfig:"grpc_metadata" yaml:"grpc_metadata" toml:"grpc_metadata" expose:"full" doc:"List of incoming gRPC metadata keys to forward to the proxy backend. When an HTTP proxy is used, these keys become outgoing HTTP headers. Note: like http_headers, a value may come from the client, so if you expect it to be set by infrastructure in front of Centrifugo, make that infrastructure set or strip it on every request."`
 	// BinaryEncoding makes proxy send data as base64 string (assuming it contains custom
 	// non-JSON payload).
 	BinaryEncoding bool `mapstructure:"binary_encoding" json:"binary_encoding" envconfig:"binary_encoding" yaml:"binary_encoding" toml:"binary_encoding" doc:"Encodes publication data as base64 in proxy requests. Use when the payload is binary and not valid JSON."`
