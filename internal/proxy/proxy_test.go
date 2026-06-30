@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/centrifugal/centrifugo/v6/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/middleware"
 
@@ -113,7 +114,93 @@ func TestRequestHeaders_StaticHeadersOverride(t *testing.T) {
 			ctx := context.Background()
 			ctx = middleware.SetHeadersToContext(ctx, tt.clientHeaders)
 
-			result := requestHeaders(ctx, tt.allowedHeaders, []string{}, tt.staticHeaders)
+			result := requestHeaders(ctx, tt.allowedHeaders, []string{}, []string{}, tt.staticHeaders)
+
+			require.Equal(t, len(tt.expectedResult), len(result), "number of headers should match")
+			for expectedKey, expectedValue := range tt.expectedResult {
+				require.Equal(t, expectedValue, result.Get(expectedKey),
+					"header %s should have value %s", expectedKey, expectedValue)
+			}
+		})
+	}
+}
+
+func TestEmulatedHeaderAllowList(t *testing.T) {
+	var p Config
+	p.HttpHeaders = []string{"x-user-id"}
+	p.ClientEmulatedHeaders = []string{"x-app-token"}
+
+	// Secure default: only client_emulated_headers are eligible for emulation.
+	require.Equal(t, []string{"x-app-token"}, emulatedHeaderAllowList(p))
+
+	// Deprecated pre-v7 compat: http_headers names also sourced from emulation.
+	p.HttpHeadersIncludeClientEmulated = true
+	require.ElementsMatch(t, []string{"x-app-token", "x-user-id"}, emulatedHeaderAllowList(p))
+}
+
+// TestRequestHeaders_EmulatedVsTransport verifies that client-supplied emulated
+// headers (from the connect frame) are forwarded only via client_emulated_headers,
+// never via the transport-level http_headers allow list, and that a real transport
+// header overrides an emulated one when a name is listed in both.
+func TestRequestHeaders_EmulatedVsTransport(t *testing.T) {
+	tests := []struct {
+		name                   string
+		emulatedHeaders        map[string]string
+		transportHeaders       http.Header
+		allowedHeaders         []string
+		allowedEmulatedHeaders []string
+		expectedResult         map[string]string
+	}{
+		{
+			name:            "emulated header is NOT forwarded via http_headers",
+			emulatedHeaders: map[string]string{"X-User-Id": "spoofed"},
+			allowedHeaders:  []string{"x-user-id"},
+			expectedResult: map[string]string{
+				"Content-Type": "application/json",
+			},
+		},
+		{
+			name:                   "emulated header forwarded via client_emulated_headers",
+			emulatedHeaders:        map[string]string{"X-User-Id": "from-client"},
+			allowedEmulatedHeaders: []string{"x-user-id"},
+			expectedResult: map[string]string{
+				"X-User-Id":    "from-client",
+				"Content-Type": "application/json",
+			},
+		},
+		{
+			name:                   "transport header overrides emulated when listed in both",
+			emulatedHeaders:        map[string]string{"X-User-Id": "spoofed"},
+			transportHeaders:       http.Header{"X-User-Id": []string{"trusted"}},
+			allowedHeaders:         []string{"x-user-id"},
+			allowedEmulatedHeaders: []string{"x-user-id"},
+			expectedResult: map[string]string{
+				"X-User-Id":    "trusted",
+				"Content-Type": "application/json",
+			},
+		},
+		{
+			name:             "transport header forwarded via http_headers",
+			transportHeaders: http.Header{"X-Real-Ip": []string{"1.2.3.4"}},
+			allowedHeaders:   []string{"x-real-ip"},
+			expectedResult: map[string]string{
+				"X-Real-Ip":    "1.2.3.4",
+				"Content-Type": "application/json",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			if tt.transportHeaders != nil {
+				ctx = middleware.SetHeadersToContext(ctx, tt.transportHeaders)
+			}
+			if tt.emulatedHeaders != nil {
+				ctx = clientcontext.SetEmulatedHeadersToContext(ctx, tt.emulatedHeaders)
+			}
+
+			result := requestHeaders(ctx, tt.allowedHeaders, []string{}, tt.allowedEmulatedHeaders, map[string]string{})
 
 			require.Equal(t, len(tt.expectedResult), len(result), "number of headers should match")
 			for expectedKey, expectedValue := range tt.expectedResult {
@@ -209,7 +296,7 @@ func TestRequestMetadata_StaticMetadataOverride(t *testing.T) {
 			ctx := context.Background()
 			ctx = metadata.NewIncomingContext(ctx, tt.clientMetadata)
 
-			result := requestMetadata(ctx, []string{}, tt.allowedMetaKeys, tt.staticMetadata)
+			result := requestMetadata(ctx, []string{}, tt.allowedMetaKeys, []string{}, tt.staticMetadata)
 
 			require.Equal(t, len(tt.expectedResult), len(result), "number of metadata entries should match")
 			for expectedKey, expectedValue := range tt.expectedResult {
@@ -220,4 +307,104 @@ func TestRequestMetadata_StaticMetadataOverride(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestRequestMetadata_EmulatedVsTransport mirrors TestRequestHeaders_EmulatedVsTransport
+// for the gRPC proxy path: emulated headers are forwarded only via
+// client_emulated_headers, never via the http_headers or grpc_metadata allow lists.
+func TestRequestMetadata_EmulatedVsTransport(t *testing.T) {
+	tests := []struct {
+		name                   string
+		emulatedHeaders        map[string]string
+		transportHeaders       http.Header
+		incomingMetadata       metadata.MD
+		allowedHeaders         []string
+		allowedMetaKeys        []string
+		allowedEmulatedHeaders []string
+		expectedResult         map[string]string
+	}{
+		{
+			name:            "emulated header is NOT forwarded via http_headers",
+			emulatedHeaders: map[string]string{"X-User-Id": "spoofed"},
+			allowedHeaders:  []string{"x-user-id"},
+			expectedResult:  map[string]string{},
+		},
+		{
+			name:            "emulated header is NOT forwarded via grpc_metadata",
+			emulatedHeaders: map[string]string{"X-User-Id": "spoofed"},
+			allowedMetaKeys: []string{"x-user-id"},
+			expectedResult:  map[string]string{},
+		},
+		{
+			name:                   "emulated header forwarded via client_emulated_headers",
+			emulatedHeaders:        map[string]string{"X-User-Id": "from-client"},
+			allowedEmulatedHeaders: []string{"x-user-id"},
+			expectedResult: map[string]string{
+				"x-user-id": "from-client",
+			},
+		},
+		{
+			name:                   "transport http header overrides emulated when listed in both",
+			emulatedHeaders:        map[string]string{"X-User-Id": "spoofed"},
+			transportHeaders:       http.Header{"X-User-Id": []string{"trusted"}},
+			allowedHeaders:         []string{"x-user-id"},
+			allowedEmulatedHeaders: []string{"x-user-id"},
+			expectedResult: map[string]string{
+				"x-user-id": "trusted",
+			},
+		},
+		{
+			name:             "incoming grpc metadata forwarded via grpc_metadata",
+			incomingMetadata: metadata.MD{"x-client-meta": []string{"meta-value"}},
+			allowedMetaKeys:  []string{"x-client-meta"},
+			expectedResult: map[string]string{
+				"x-client-meta": "meta-value",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			if tt.transportHeaders != nil {
+				ctx = middleware.SetHeadersToContext(ctx, tt.transportHeaders)
+			}
+			if tt.incomingMetadata != nil {
+				ctx = metadata.NewIncomingContext(ctx, tt.incomingMetadata)
+			}
+			if tt.emulatedHeaders != nil {
+				ctx = clientcontext.SetEmulatedHeadersToContext(ctx, tt.emulatedHeaders)
+			}
+
+			result := requestMetadata(ctx, tt.allowedHeaders, tt.allowedMetaKeys, tt.allowedEmulatedHeaders, map[string]string{})
+
+			require.Equal(t, len(tt.expectedResult), len(result), "number of metadata entries should match")
+			for expectedKey, expectedValue := range tt.expectedResult {
+				require.Equal(t, expectedValue, result.Get(expectedKey)[0],
+					"metadata %s should have value %s", expectedKey, expectedValue)
+			}
+		})
+	}
+}
+
+// TestRequestHeaders_DualSourceHeader verifies that listing the same name in
+// both http_headers and client_emulated_headers is valid (the browser-emulation
+// + native-client case for a backend-validated header like Authorization): the
+// transport value is preferred and the emulated value is used as a fallback.
+func TestRequestHeaders_DualSourceHeader(t *testing.T) {
+	const allowed = "authorization"
+
+	// Browser client: no transport header, emulated value is forwarded.
+	ctx := clientcontext.SetEmulatedHeadersToContext(context.Background(),
+		map[string]string{"Authorization": "Bearer from-emulation"})
+	result := requestHeaders(ctx, []string{allowed}, []string{}, []string{allowed}, map[string]string{})
+	require.Equal(t, "Bearer from-emulation", result.Get("Authorization"))
+
+	// Native client: real transport header wins over the emulated one.
+	ctx = middleware.SetHeadersToContext(context.Background(),
+		http.Header{"Authorization": []string{"Bearer from-transport"}})
+	ctx = clientcontext.SetEmulatedHeadersToContext(ctx,
+		map[string]string{"Authorization": "Bearer from-emulation"})
+	result = requestHeaders(ctx, []string{allowed}, []string{}, []string{allowed}, map[string]string{})
+	require.Equal(t, "Bearer from-transport", result.Get("Authorization"))
 }

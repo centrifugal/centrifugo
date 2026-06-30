@@ -125,10 +125,10 @@ func transformHTTPStatusError(err error, transforms []configtypes.HttpStatusToCo
 }
 
 func httpRequestHeaders(ctx context.Context, proxy Config) http.Header {
-	return requestHeaders(ctx, proxy.HttpHeaders, proxy.GrpcMetadata, proxy.HTTP.StaticHeaders)
+	return requestHeaders(ctx, proxy.HttpHeaders, proxy.GrpcMetadata, emulatedHeaderAllowList(proxy), proxy.HTTP.StaticHeaders)
 }
 
-func requestHeaders(ctx context.Context, allowedHeaders, allowedMetaKeys []string, staticHeaders map[string]string) http.Header {
+func requestHeaders(ctx context.Context, allowedHeaders, allowedMetaKeys, allowedEmulatedHeaders []string, staticHeaders map[string]string) http.Header {
 	headers := http.Header{}
 
 	// Set static headers first, so that dynamic headers can override them.
@@ -136,9 +136,12 @@ func requestHeaders(ctx context.Context, allowedHeaders, allowedMetaKeys []strin
 		headers.Set(k, v)
 	}
 
+	// Emulated headers come from the client connect frame and are client-controlled,
+	// so they are forwarded only when listed in client_emulated_headers - never via
+	// the transport-level http_headers allow list.
 	emulatedHeaders, _ := clientcontext.GetEmulatedHeadersFromContext(ctx)
 	for k, v := range emulatedHeaders {
-		if slices.Contains(allowedHeaders, strings.ToLower(k)) {
+		if slices.Contains(allowedEmulatedHeaders, strings.ToLower(k)) {
 			headers.Set(k, v)
 		}
 	}

@@ -8,14 +8,62 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## What's changed
 
-### Fixes
+### Breaking changes
 
-* Centrifugo now bounds the size of a WebSocket message after `permessage-deflate` decompression, see [#1162](https://github.com/centrifugal/centrifugo/pull/1162). [`websocket.message_size_limit`](https://centrifugal.dev/docs/transports/websocket#websocketmessage_size_limit) alone only bounds the compressed bytes received on the wire, so without an additional limit a small compressed frame could be inflated into a much larger amount of memory (a "decompression bomb"). The new [`websocket.decompressed_message_size_limit`](https://centrifugal.dev/docs/transports/websocket#websocketdecompressed_message_size_limit) option (and its [`uni_websocket.decompressed_message_size_limit`](https://centrifugal.dev/docs/transports/uni_websocket) counterpart) lets you tune this limit. When set to `0` (the default), the limit is derived from `message_size_limit` multiplied by the default multiplier (`10`); messages exceeding it cause Centrifugo to close the connection with a `message too big` close code. Only effective when [compression](https://centrifugal.dev/docs/transports/websocket#websocketcompression) is enabled. Reported by @alanturing881 via [GHSA-q6mr-3g59-5m8x](https://github.com/centrifugal/centrifugo/security/advisories/GHSA-q6mr-3g59-5m8x).
+**TLDR**: Proxy `http_headers` is now transport-only; need to use explicit `client_emulated_headers` list for emulated headers
+
+Before v6.9.0, the proxy `http_headers` option forwarded headers from **two different sources**:
+
+- **transport-level headers** — set on the real connection request (by the client transport or a reverse proxy/gateway in front of Centrifugo);
+- **client-supplied emulated headers** — sent by the client inside its connect frame via the [headers emulation](https://centrifugal.dev/docs/server/proxy#http-headers-emulation) feature.
+
+In v6.9.0 these two sources are split into separate options:
+
+| Option                    | Source                                                 | Trust                                                        |
+|---------------------------|--------------------------------------------------------|--------------------------------------------------------------|
+| `http_headers`            | the real connection request only                       | controllable by your edge (a proxy/gateway can set/strip it) |
+| `client_emulated_headers` | the client's headers emulation map only                | always client-controlled — treat as untrusted input          |
+
+`http_headers` no longer forwards emulated headers. To forward a header supplied via headers emulation, you must now list it in the new `client_emulated_headers` option.
+
+**Why:** forwarding a client-supplied emulated value under the same list operators used for trusted transport headers made it possible to accidentally forward a forgeable value to a backend that trusted it (e.g. an identity header). For example, this could happen for bidirectional WebSocket if your proxy sets the `x-user-id` header for an authenticated user, but skips setting it for a non-authenticated one. If your proxy always sets `x-user-id` to an empty string in the non-authenticated case – there was no security issue.
+
+To avoid possible mistakes on that level we decided to split the sources to make the boundary explicit: a name in `http_headers` can never be injected by the client's emulation map.
+
+**Are you affected?** Only if you rely on headers emulation:
+
+* using [headers](https://github.com/centrifugal/centrifuge-js/blob/77d9fdc1050da0eec0e385819dc380a80430edfe/src/types.ts#L127) option in `centrifuge-js`
+* using [headers](https://github.com/centrifugal/centrifuge-dart/blob/f91c8f158f17885bfdbdd0e970069216e89d59e3/lib/src/client_config.dart#L47) option in `centrifuge-dart` (web platform only — on native `dart:io` these are sent as real WebSocket upgrade headers and are not affected)
+* using [headers](https://github.com/centrifugal/centrifuge-csharp/blob/ce8a732deabfcac7cf6354447a4e092e1871ddf7/src/Centrifugal.Centrifuge/ClientOptions.cs#L86) option in `centrifuge-csharp`
+* using unidirectional transports and passing `headers` as part of [ConnectRequest](https://centrifugal.dev/docs/transports/uni_client_protocol#connectrequest)
+
+You are **not** affected if you are not using headers at all or only forward real transport headers (e.g. `Cookie`, `Authorization`, `X-Real-Ip` set by your reverse proxy or by native clients) — those keep working under `http_headers` with no change.
+
+**How to migrate:** Before upgrading to v6.9.0, add the header names you allow to be sent over headers emulation to `client_emulated_headers` proxy configuration object option. Apply this change to every proxy that used emulated headers (`connect`, `refresh`, channel proxies, RPC proxies, and any named proxies in the top-level `proxies` list).
+
+**Temporary compatibility flag:** if you can't migrate config immediately, set `http_headers_include_client_emulated: true` on a proxy to restore the pre-v6.9.0 behavior (header names in `http_headers` are again also sourced from emulation). This option is **deprecated**, logs a warning at startup, and **will be removed in Centrifugo v7** — use it only as a temporary workaround.
+
+```json
+{
+  "client": {
+    "proxy": {
+      "connect": {
+        "enabled": true,
+        "endpoint": "https://your_backend/centrifugo/connect",
+        "http_headers": ["Cookie", "Authorization"],
+        "http_headers_include_client_emulated": true
+      }
+    }
+  }
+}
+```
+
+**Note:** Never put an origin-trusted identity header (e.g. a gateway-injected `x-user-id`) in `client_emulated_headers`, since that can make it forgeable if the transport-level header is not set (i.e. the proxy skips setting the `x-user-id` header for an unauthenticated user).
+
+Long-term, we will also rename `headers` to `emulated_headers` in SDKs that provide this feature.
+
+Please reach out in the community rooms for the help with the migration.
 
 ### Miscellaneous
 
-* New blog post [Scaling Redis Pub/Sub to Millions of Channels and Hundreds of Subscriber Nodes](https://centrifugal.dev/blog/2026/06/29/scaling-redis-pub-sub) – a deep dive into how Centrifugo talks to Redis efficiently, shards across isolated Redis instances, and makes PUB/SUB work on Redis Cluster (sharded PUB/SUB, slot balance, connection count, and efficient resubscribes).
-* PostgreSQL broker metrics were split into per-kind `broker_*` / `map_broker_*` subsystems and renamed with a `postgres_` prefix to align with the rest of the broker metric taxonomy, see [#1161](https://github.com/centrifugal/centrifugo/pull/1161). Previously stream and map PG brokers shared a `pg_broker_*` subsystem and were told apart by a `broker` label, so brokers with the same (or default) name collided. This is a **breaking change** for dashboards and alerts in PRO deployments using the PostgreSQL broker – the `broker` label is now `broker_name`, and metric names changed as follows: `pg_broker_cleanup_rows_deleted_total` → `broker_postgres_cleanup_removed_total`, `pg_broker_outbox_cursor_lag_seconds` → `broker_postgres_outbox_cursor_lag_seconds` / `map_broker_postgres_outbox_cursor_lag_seconds`, `pg_broker_partitions` → `broker_postgres_partitions` / `map_broker_postgres_partitions`. See [exposed metrics](https://centrifugal.dev/docs/server/observability#exposed-metrics) for the full list.
-* This release is built with Go 1.26.4
-* Dependency updates
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.8.4).
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases).
