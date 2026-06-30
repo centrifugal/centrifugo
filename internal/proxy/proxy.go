@@ -2,14 +2,58 @@ package proxy
 
 import (
 	"encoding/json"
+	"slices"
 	"strings"
+	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/tools"
 
 	"github.com/rs/zerolog/log"
 )
 
 type Config = configtypes.Proxy
+
+// droppedEmulatedHeaderLogLimiter throttles the (rare) migration hint emitted
+// when a client sends an emulated header that would have been forwarded before
+// v6.9.0 (listed in http_headers) but is now dropped because it is not in
+// client_emulated_headers. Single global limiter - at most one line per interval
+// across all proxies.
+var droppedEmulatedHeaderLogLimiter = tools.NewIntervalLimiter(5 * time.Minute)
+
+// logDroppedEmulatedHeadersHint emits a one-off INFO hint listing every emulated
+// header dropped for this request. It is only called when at least one header was
+// dropped, and the body runs at most once per limiter interval, so it is
+// effectively free on the hot path. allowedHeaders/allowedEmulatedHeaders are the
+// lowercased http_headers / client_emulated_headers allow lists.
+func logDroppedEmulatedHeadersHint(emulatedHeaders map[string]string, allowedHeaders, allowedEmulatedHeaders []string) {
+	if !droppedEmulatedHeaderLogLimiter.Allow() {
+		return
+	}
+	dropped := droppedEmulatedHeaderNames(emulatedHeaders, allowedHeaders, allowedEmulatedHeaders)
+	if len(dropped) == 0 {
+		return
+	}
+	// Informational only - deliberately no call to action. These names came from
+	// the client, so this may be a missed migration OR an unexpected/malicious
+	// client probing http_headers names; the operator must decide. Never imply the
+	// names should be allow-listed: their values are client-controlled.
+	log.Info().Strs("headers", dropped).Msg("client sent emulation headers matching http_headers but not client_emulated_headers - not forwarded to proxy (since v6.9.0); values are client-controlled, see headers emulation docs")
+}
+
+// droppedEmulatedHeaderNames returns the lowercased names of client-supplied
+// emulated headers that are listed in http_headers but not client_emulated_headers
+// - i.e. names that would have been forwarded before v6.9.0 and are now dropped.
+func droppedEmulatedHeaderNames(emulatedHeaders map[string]string, allowedHeaders, allowedEmulatedHeaders []string) []string {
+	var dropped []string
+	for k := range emulatedHeaders {
+		lk := strings.ToLower(k)
+		if !slices.Contains(allowedEmulatedHeaders, lk) && slices.Contains(allowedHeaders, lk) {
+			dropped = append(dropped, lk)
+		}
+	}
+	return dropped
+}
 
 // prepareProxyConfig normalizes a proxy config's header allow lists and emits
 // deprecation warnings. It must be called for every proxy before use.

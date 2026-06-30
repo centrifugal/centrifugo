@@ -91,10 +91,19 @@ func requestMetadata(ctx context.Context, allowedHeaders, allowedMetaKeys, allow
 	// so they are forwarded only when listed in client_emulated_headers - never via
 	// the transport-level http_headers allow list.
 	emulatedHeaders, _ := clientcontext.GetEmulatedHeadersFromContext(ctx)
+	var droppedEmulated bool
 	for k, v := range emulatedHeaders {
-		if slices.Contains(allowedEmulatedHeaders, strings.ToLower(k)) {
+		lk := strings.ToLower(k)
+		if slices.Contains(allowedEmulatedHeaders, lk) {
 			requestMD.Set(k, v)
+		} else if slices.Contains(allowedHeaders, lk) {
+			// Listed in http_headers but not client_emulated_headers: this would
+			// have been forwarded before v6.9.0. Flag for a throttled migration hint.
+			droppedEmulated = true
 		}
+	}
+	if droppedEmulated {
+		logDroppedEmulatedHeadersHint(emulatedHeaders, allowedHeaders, allowedEmulatedHeaders)
 	}
 
 	httpHeaders, hasHTTPHeaders := middleware.GetHeadersFromContext(ctx)

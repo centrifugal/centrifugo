@@ -125,6 +125,25 @@ func TestRequestHeaders_StaticHeadersOverride(t *testing.T) {
 	}
 }
 
+func TestDroppedEmulatedHeaderNames(t *testing.T) {
+	emulated := map[string]string{
+		"X-User-Id":   "forged", // in http_headers only -> dropped (migration hint)
+		"X-App-Token": "ok",     // in client_emulated_headers -> forwarded, not dropped
+		"X-Other":     "x",      // in neither list -> not dropped (never forwarded)
+	}
+	dropped := droppedEmulatedHeaderNames(emulated, []string{"x-user-id"}, []string{"x-app-token"})
+	require.Equal(t, []string{"x-user-id"}, dropped)
+
+	// Nothing dropped when the name is also allowed for emulation (e.g. compat
+	// flag merges http_headers into the emulated allow list).
+	dropped = droppedEmulatedHeaderNames(emulated, []string{"x-user-id"}, []string{"x-app-token", "x-user-id"})
+	require.Empty(t, dropped)
+
+	// Nothing dropped when http_headers is empty.
+	dropped = droppedEmulatedHeaderNames(emulated, nil, []string{"x-app-token"})
+	require.Empty(t, dropped)
+}
+
 func TestEmulatedHeaderAllowList(t *testing.T) {
 	var p Config
 	p.HttpHeaders = []string{"x-user-id"}
