@@ -368,15 +368,15 @@ func TestHandleConnectWithSubscriptionError(t *testing.T) {
 	}
 }
 
-// TestHandleConnectForwardsClientEmulatedHeaders is an end-to-end test of the
-// client_emulated_headers feature: a client supplies emulated headers in the
+// TestHandleConnectForwardsEmulatedHeaders is an end-to-end test of the
+// emulated_headers feature: a client supplies emulated headers in the
 // connect frame (here via the emulated-headers context value, exactly as the
 // client handler sets them from ConnectEvent.Headers), and we assert what the
 // backend actually receives over a real HTTP proxy request:
-//   - a name listed in client_emulated_headers is forwarded;
+//   - a name listed in emulated_headers is forwarded;
 //   - a name listed only in http_headers (transport-only) is NOT forwardable via
 //     emulation, so a client-forged value never reaches the backend.
-func TestHandleConnectForwardsClientEmulatedHeaders(t *testing.T) {
+func TestHandleConnectForwardsEmulatedHeaders(t *testing.T) {
 	httpTestCase := tools.NewCommonHTTPProxyTestCase(context.Background())
 	defer httpTestCase.Teardown()
 
@@ -392,7 +392,7 @@ func TestHandleConnectForwardsClientEmulatedHeaders(t *testing.T) {
 		Timeout:  configtypes.Duration(5 * time.Second),
 		ProxyCommon: configtypes.ProxyCommon{
 			HttpHeaders:           []string{"X-Trusted"},   // transport-only allow list
-			ClientEmulatedHeaders: []string{"X-App-Token"}, // emulated allow list
+			EmulatedHeaders: []string{"X-App-Token"}, // emulated allow list
 		},
 	}
 	connectProxy, err := GetConnectProxy("default", proxyCfg)
@@ -414,7 +414,7 @@ func TestHandleConnectForwardsClientEmulatedHeaders(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NotNil(t, received, "backend should have been called")
-	require.Equal(t, "from-client", received.Get("X-App-Token"), "header in client_emulated_headers must be forwarded")
+	require.Equal(t, "from-client", received.Get("X-App-Token"), "header in emulated_headers must be forwarded")
 	require.Empty(t, received.Get("X-Trusted"), "emulated value for an http_headers-only name must NOT be forwarded")
 	require.Empty(t, received.Get("X-Other"), "header in neither allow list must NOT be forwarded")
 }

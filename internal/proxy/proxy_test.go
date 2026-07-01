@@ -128,14 +128,13 @@ func TestRequestHeaders_StaticHeadersOverride(t *testing.T) {
 func TestDroppedEmulatedHeaderNames(t *testing.T) {
 	emulated := map[string]string{
 		"X-User-Id":   "forged", // in http_headers only -> dropped (migration hint)
-		"X-App-Token": "ok",     // in client_emulated_headers -> forwarded, not dropped
+		"X-App-Token": "ok",     // in emulated_headers -> forwarded, not dropped
 		"X-Other":     "x",      // in neither list -> not dropped (never forwarded)
 	}
 	dropped := droppedEmulatedHeaderNames(emulated, []string{"x-user-id"}, []string{"x-app-token"})
 	require.Equal(t, []string{"x-user-id"}, dropped)
 
-	// Nothing dropped when the name is also allowed for emulation (e.g. compat
-	// flag merges http_headers into the emulated allow list).
+	// Nothing dropped when the name is also in emulated_headers (dual-source).
 	dropped = droppedEmulatedHeaderNames(emulated, []string{"x-user-id"}, []string{"x-app-token", "x-user-id"})
 	require.Empty(t, dropped)
 
@@ -147,18 +146,14 @@ func TestDroppedEmulatedHeaderNames(t *testing.T) {
 func TestEmulatedHeaderAllowList(t *testing.T) {
 	var p Config
 	p.HttpHeaders = []string{"x-user-id"}
-	p.ClientEmulatedHeaders = []string{"x-app-token"}
+	p.EmulatedHeaders = []string{"x-app-token"}
 
-	// Secure default: only client_emulated_headers are eligible for emulation.
+	// Only emulated_headers are eligible for emulation; http_headers never are.
 	require.Equal(t, []string{"x-app-token"}, emulatedHeaderAllowList(p))
-
-	// Deprecated pre-v7 compat: http_headers names also sourced from emulation.
-	p.HttpHeadersIncludeClientEmulated = true
-	require.ElementsMatch(t, []string{"x-app-token", "x-user-id"}, emulatedHeaderAllowList(p))
 }
 
 // TestRequestHeaders_EmulatedVsTransport verifies that client-supplied emulated
-// headers (from the connect frame) are forwarded only via client_emulated_headers,
+// headers (from the connect frame) are forwarded only via emulated_headers,
 // never via the transport-level http_headers allow list, and that a real transport
 // header overrides an emulated one when a name is listed in both.
 func TestRequestHeaders_EmulatedVsTransport(t *testing.T) {
@@ -179,7 +174,7 @@ func TestRequestHeaders_EmulatedVsTransport(t *testing.T) {
 			},
 		},
 		{
-			name:                   "emulated header forwarded via client_emulated_headers",
+			name:                   "emulated header forwarded via emulated_headers",
 			emulatedHeaders:        map[string]string{"X-User-Id": "from-client"},
 			allowedEmulatedHeaders: []string{"x-user-id"},
 			expectedResult: map[string]string{
@@ -330,7 +325,7 @@ func TestRequestMetadata_StaticMetadataOverride(t *testing.T) {
 
 // TestRequestMetadata_EmulatedVsTransport mirrors TestRequestHeaders_EmulatedVsTransport
 // for the gRPC proxy path: emulated headers are forwarded only via
-// client_emulated_headers, never via the http_headers or grpc_metadata allow lists.
+// emulated_headers, never via the http_headers or grpc_metadata allow lists.
 func TestRequestMetadata_EmulatedVsTransport(t *testing.T) {
 	tests := []struct {
 		name                   string
@@ -355,7 +350,7 @@ func TestRequestMetadata_EmulatedVsTransport(t *testing.T) {
 			expectedResult:  map[string]string{},
 		},
 		{
-			name:                   "emulated header forwarded via client_emulated_headers",
+			name:                   "emulated header forwarded via emulated_headers",
 			emulatedHeaders:        map[string]string{"X-User-Id": "from-client"},
 			allowedEmulatedHeaders: []string{"x-user-id"},
 			expectedResult: map[string]string{
@@ -407,7 +402,7 @@ func TestRequestMetadata_EmulatedVsTransport(t *testing.T) {
 }
 
 // TestRequestHeaders_DualSourceHeader verifies that listing the same name in
-// both http_headers and client_emulated_headers is valid (the browser-emulation
+// both http_headers and emulated_headers is valid (the browser-emulation
 // + native-client case for a backend-validated header like Authorization): the
 // transport value is preferred and the emulated value is used as a fallback.
 func TestRequestHeaders_DualSourceHeader(t *testing.T) {

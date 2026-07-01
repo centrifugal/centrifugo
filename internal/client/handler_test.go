@@ -140,8 +140,8 @@ func TestClientHandlerSetup(t *testing.T) {
 
 // TestOnClientConnectingEmulatedHeadersGating verifies that the client's
 // emulated headers are only kept in the connection context when some proxy may
-// actually forward them (ProxyMap.UsesClientEmulatedHeaders). When no proxy uses
-// client_emulated_headers we must not retain the map for the connection lifetime.
+// actually forward them (ProxyMap.UsesEmulatedHeaders). When no proxy uses
+// emulated_headers we must not retain the map for the connection lifetime.
 func TestOnClientConnectingEmulatedHeadersGating(t *testing.T) {
 	for _, uses := range []bool{true, false} {
 		node := tools.NodeWithMemoryEngine()
@@ -149,7 +149,7 @@ func TestOnClientConnectingEmulatedHeadersGating(t *testing.T) {
 		cfgContainer, err := config.NewContainer(config.DefaultConfig())
 		require.NoError(t, err)
 		h := NewHandler(node, cfgContainer, emptyJWTVerifier(t, cfgContainer), nil, &ProxyMap{
-			UsesClientEmulatedHeaders: uses,
+			UsesEmulatedHeaders: uses,
 		})
 
 		var connectCtx context.Context

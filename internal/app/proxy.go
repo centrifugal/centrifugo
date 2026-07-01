@@ -43,7 +43,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
 		}
-		if len(p.ClientEmulatedHeaders) > 0 || (p.HttpHeadersIncludeClientEmulated && len(p.HttpHeaders) > 0) {
+		if len(p.EmulatedHeaders) > 0 {
 			keepEmulatedHeadersInContext = true
 		}
 	}
@@ -58,7 +58,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
 		}
-		if len(p.ClientEmulatedHeaders) > 0 || (p.HttpHeadersIncludeClientEmulated && len(p.HttpHeaders) > 0) {
+		if len(p.EmulatedHeaders) > 0 {
 			keepEmulatedHeadersInContext = true
 		}
 	}
@@ -91,7 +91,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
 		}
-		if len(p.ClientEmulatedHeaders) > 0 || (p.HttpHeadersIncludeClientEmulated && len(p.HttpHeaders) > 0) {
+		if len(p.EmulatedHeaders) > 0 {
 			keepEmulatedHeadersInContext = true
 		}
 	}
@@ -119,7 +119,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
 		}
-		if len(p.ClientEmulatedHeaders) > 0 || (p.HttpHeadersIncludeClientEmulated && len(p.HttpHeaders) > 0) {
+		if len(p.EmulatedHeaders) > 0 {
 			keepEmulatedHeadersInContext = true
 		}
 	}
@@ -147,7 +147,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
 		}
-		if len(p.ClientEmulatedHeaders) > 0 || (p.HttpHeadersIncludeClientEmulated && len(p.HttpHeaders) > 0) {
+		if len(p.EmulatedHeaders) > 0 {
 			keepEmulatedHeadersInContext = true
 		}
 	}
@@ -178,7 +178,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
 		}
-		if len(p.ClientEmulatedHeaders) > 0 || (p.HttpHeadersIncludeClientEmulated && len(p.HttpHeaders) > 0) {
+		if len(p.EmulatedHeaders) > 0 {
 			keepEmulatedHeadersInContext = true
 		}
 	}
@@ -206,7 +206,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
 		}
-		if len(p.ClientEmulatedHeaders) > 0 || (p.HttpHeadersIncludeClientEmulated && len(p.HttpHeaders) > 0) {
+		if len(p.EmulatedHeaders) > 0 {
 			keepEmulatedHeadersInContext = true
 		}
 	}
@@ -234,7 +234,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
 		}
-		if len(p.ClientEmulatedHeaders) > 0 || (p.HttpHeadersIncludeClientEmulated && len(p.HttpHeaders) > 0) {
+		if len(p.EmulatedHeaders) > 0 {
 			keepEmulatedHeadersInContext = true
 		}
 	}
@@ -263,7 +263,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			if len(p.HttpHeaders) > 0 {
 				keepHeadersInContext = true
 			}
-			if len(p.ClientEmulatedHeaders) > 0 || (p.HttpHeadersIncludeClientEmulated && len(p.HttpHeaders) > 0) {
+			if len(p.EmulatedHeaders) > 0 {
 				keepEmulatedHeadersInContext = true
 			}
 		}
@@ -291,7 +291,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			if len(p.HttpHeaders) > 0 {
 				keepHeadersInContext = true
 			}
-			if len(p.ClientEmulatedHeaders) > 0 || (p.HttpHeadersIncludeClientEmulated && len(p.HttpHeaders) > 0) {
+			if len(p.EmulatedHeaders) > 0 {
 				keepEmulatedHeadersInContext = true
 			}
 		}
@@ -319,7 +319,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			if len(p.HttpHeaders) > 0 {
 				keepHeadersInContext = true
 			}
-			if len(p.ClientEmulatedHeaders) > 0 || (p.HttpHeadersIncludeClientEmulated && len(p.HttpHeaders) > 0) {
+			if len(p.EmulatedHeaders) > 0 {
 				keepEmulatedHeadersInContext = true
 			}
 		}
@@ -350,7 +350,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			if len(p.HttpHeaders) > 0 {
 				keepHeadersInContext = true
 			}
-			if len(p.ClientEmulatedHeaders) > 0 || (p.HttpHeadersIncludeClientEmulated && len(p.HttpHeaders) > 0) {
+			if len(p.EmulatedHeaders) > 0 {
 				keepEmulatedHeadersInContext = true
 			}
 		}
@@ -378,7 +378,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			if len(p.HttpHeaders) > 0 {
 				keepHeadersInContext = true
 			}
-			if len(p.ClientEmulatedHeaders) > 0 || (p.HttpHeadersIncludeClientEmulated && len(p.HttpHeaders) > 0) {
+			if len(p.EmulatedHeaders) > 0 {
 				keepEmulatedHeadersInContext = true
 			}
 		}
@@ -406,7 +406,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			if len(p.HttpHeaders) > 0 {
 				keepHeadersInContext = true
 			}
-			if len(p.ClientEmulatedHeaders) > 0 || (p.HttpHeadersIncludeClientEmulated && len(p.HttpHeaders) > 0) {
+			if len(p.EmulatedHeaders) > 0 {
 				keepEmulatedHeadersInContext = true
 			}
 		}
@@ -492,7 +492,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
 		}
-		if len(p.ClientEmulatedHeaders) > 0 || (p.HttpHeadersIncludeClientEmulated && len(p.HttpHeaders) > 0) {
+		if len(p.EmulatedHeaders) > 0 {
 			keepEmulatedHeadersInContext = true
 		}
 	}
@@ -521,13 +521,13 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			if len(p.HttpHeaders) > 0 {
 				keepHeadersInContext = true
 			}
-			if len(p.ClientEmulatedHeaders) > 0 || (p.HttpHeadersIncludeClientEmulated && len(p.HttpHeaders) > 0) {
+			if len(p.EmulatedHeaders) > 0 {
 				keepEmulatedHeadersInContext = true
 			}
 		}
 	}
 
-	proxyMap.UsesClientEmulatedHeaders = keepEmulatedHeadersInContext
+	proxyMap.UsesEmulatedHeaders = keepEmulatedHeadersInContext
 
 	return proxyMap, keepHeadersInContext, nil
 }
