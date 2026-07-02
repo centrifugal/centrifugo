@@ -225,6 +225,25 @@ func TestRequestHeaders_EmulatedVsTransport(t *testing.T) {
 	}
 }
 
+// TestRequestHeaders_GrpcMetadataOverridesEmulated covers a client on a gRPC
+// transport with an HTTP proxy backend, with the same name listed in both
+// emulated_headers and grpc_metadata. The transport metadata value must land on
+// the same (canonical) header key as the emulated value and override it -
+// previously the lowercase metadata key coexisted with the canonical emulated
+// key and both values were sent as duplicate headers.
+func TestRequestHeaders_GrpcMetadataOverridesEmulated(t *testing.T) {
+	ctx := context.Background()
+	ctx = clientcontext.SetEmulatedHeadersToContext(ctx, map[string]string{"x-user-id": "emulated-value"})
+	ctx = metadata.NewIncomingContext(ctx, metadata.MD{"x-user-id": []string{"transport-value"}})
+
+	result := requestHeaders(ctx, []string{}, []string{"x-user-id"}, []string{"x-user-id"}, nil)
+
+	require.Equal(t, []string{"transport-value"}, result["X-User-Id"], "transport metadata value must override the emulated value")
+	_, hasLowercaseKey := result["x-user-id"]
+	require.False(t, hasLowercaseKey, "no duplicate lowercase header key must remain")
+	require.Len(t, result, 2, "only the canonical header and Content-Type expected") // X-User-Id + Content-Type
+}
+
 // TestRequestMetadata_StaticMetadataOverride tests that static metadata is set
 // but can be overridden by client metadata only when the metadata key is explicitly
 // allowed in the configuration.

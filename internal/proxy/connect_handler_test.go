@@ -391,7 +391,7 @@ func TestHandleConnectForwardsEmulatedHeaders(t *testing.T) {
 		Endpoint: httpTestCase.Server.URL + "/proxy",
 		Timeout:  configtypes.Duration(5 * time.Second),
 		ProxyCommon: configtypes.ProxyCommon{
-			HttpHeaders:           []string{"X-Trusted"},   // transport-only allow list
+			HttpHeaders:     []string{"X-Trusted"},   // transport-only allow list
 			EmulatedHeaders: []string{"X-App-Token"}, // emulated allow list
 		},
 	}

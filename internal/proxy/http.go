@@ -166,7 +166,11 @@ func requestHeaders(ctx context.Context, allowedHeaders, allowedMetaKeys, allowe
 		md, _ := metadata.FromIncomingContext(ctx)
 		for k, vv := range md {
 			if slices.Contains(allowedMetaKeys, k) {
-				headers[k] = vv
+				// Canonicalize the lowercase metadata key so the transport value
+				// lands on the same map key as emulated values written via Set
+				// and overrides them - otherwise both would be sent as duplicate
+				// headers with different casings.
+				headers[http.CanonicalHeaderKey(k)] = vv
 			}
 		}
 	}
