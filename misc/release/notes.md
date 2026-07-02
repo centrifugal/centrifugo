@@ -10,7 +10,7 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Breaking changes
 
-**TLDR**: Proxy `http_headers` is now transport-only; need to use explicit `emulated_headers` list for emulated headers
+**TLDR**: Proxy `http_headers` is now transport-only; Need to configure explicit `emulated_headers` list for emulated headers in Centrifugo server configuration.
 
 Before v6.9.0, the proxy `http_headers` option forwarded headers from **two different sources**:
 
@@ -19,16 +19,22 @@ Before v6.9.0, the proxy `http_headers` option forwarded headers from **two diff
 
 In v6.9.0 these two sources are split into separate options:
 
-| Option                    | Source                                                 | Trust                                                        |
-|---------------------------|--------------------------------------------------------|--------------------------------------------------------------|
-| `http_headers`            | the real connection request only                       | controllable by your edge (a proxy/gateway can set/strip it) |
-| `emulated_headers` | the client's headers emulation map only                | always client-controlled — treat as untrusted input          |
+| Option             | Source                                  | Trust                                                        |
+|--------------------|-----------------------------------------|--------------------------------------------------------------|
+| `http_headers`     | the real connection request only        | controllable by your edge (a proxy/gateway can set/strip it) |
+| `emulated_headers` | the client's headers emulation map only | always client-controlled — always an untrusted input         |
 
-`http_headers` no longer forwards emulated headers. To forward a header supplied via headers emulation, you must now list it in the new `emulated_headers` option.
+`http_headers` no longer forwards emulated headers. To forward a header supplied via headers emulation, you must now list it in the new `emulated_headers` option near `http_headers`.
 
-**Why:** forwarding a client-supplied emulated value under the same list operators used for trusted transport headers made it possible to accidentally forward a forgeable value to a backend that trusted it (e.g. an identity header). For example, this could happen for bidirectional WebSocket if your proxy sets the `x-user-id` header for an authenticated user, but skips setting it for a non-authenticated one. If your proxy always sets `x-user-id` to an empty string in the non-authenticated case – there was no security issue.
+**Why we had to make this a breaking change.** Before v6.9.0 a name listed in `http_headers` could be filled from **either** the real connection request **or** the client's emulation map. That made a trusted header like `x-user-id` forgeable in a way that is **not the operator's mistake**:
 
-To avoid possible mistakes on that level we decided to split the sources to make the boundary explicit: a name in `http_headers` can never be injected by the client's emulation map.
+* An operator adds `x-user-id` to `http_headers` for a legitimate reason — their reverse proxy sets it, and they want that identity forwarded to the backend. They have no reason to expect this also lets a client supply `x-user-id` via emulation, especially if they have never heard of the headers emulation feature.
+* That reverse proxy **might** set `x-user-id` only for authenticated requests and leave it fully unset otherwise.
+* A client then sends `x-user-id` in its connect frame via emulation. For any request where the proxy did not set the real header, Centrifugo forwarded the client's **forged** value to the backend, which trusted it as an authenticated identity.
+
+A setup where the proxy **always** sets `x-user-id` (for example to an empty string even for anonymous requests) is *not* vulnerable. But Centrifugo cannot inspect your proxy to know whether you did that, and cannot tell a genuine `x-user-id` from a client-emulated one at request time — so there is no way for Centrifugo to make this safe automatically or to warn only the affected setups.
+
+The only robust fix is structural to make operators aware of the feature: split the sources so `http_headers` is **incapable** of carrying a client-emulated value. A name in `http_headers` is now sourced only from the real HTTP connection; anything a client sends via emulation must be explicitly opted into `emulated_headers` (and is clearly documented as untrusted input). This removes the possibility of the flaw entirely, rather than relying on every operator to configure their proxy defensively against a feature they may not even know exists.
 
 **Are you affected?** Only if you rely on headers emulation:
 
@@ -39,11 +45,7 @@ To avoid possible mistakes on that level we decided to split the sources to make
 
 You are **not** affected if you are not using headers at all or only forward real transport headers (e.g. `Cookie`, `Authorization`, `X-Real-Ip` set by your reverse proxy or by native clients) — those keep working under `http_headers` with no change.
 
-**How to migrate:** Before upgrading to v6.9.0, add the header names you allow to be sent over headers emulation to `emulated_headers` proxy configuration object option. Apply this change to every proxy that used emulated headers (`connect`, `refresh`, channel proxies, RPC proxies, and any named proxies in the top-level `proxies` list).
-
-**Detecting if you're affected:** when a connecting client sends emulation headers whose names are in a proxy's `http_headers` but not its `emulated_headers`, Centrifugo emits an `INFO` log line (throttled to at most once per minute) listing those header names — so you can tell from the logs whether clients still rely on the old behavior. This hint is informational only: the names come from the client, so do not blindly add them to `emulated_headers` (a client could send arbitrary `http_headers` names hoping you allow-list them — the values are client-controlled).
-
-**Can't decide which headers to move right away?** Copy the whole `http_headers` list into `emulated_headers` to preserve the pre-v6.9.0 behavior, then trim `emulated_headers` down to only the names your backend treats as untrusted client input. The "Detecting if you're affected" hint above tells you which names clients actually rely on.
+**How to migrate:** Before upgrading to v6.9.0, add the header names you allow to be sent over headers emulation to `emulated_headers` proxy configuration object option near `http_headers`. Apply this change to every proxy that used emulated headers (`connect`, `refresh`, channel proxies, RPC proxies, and any named proxies in the top-level `proxies` list).
 
 ```json
 {
@@ -52,20 +54,24 @@ You are **not** affected if you are not using headers at all or only forward rea
       "connect": {
         "enabled": true,
         "endpoint": "https://your_backend/centrifugo/connect",
-        "http_headers": ["Cookie", "Authorization"],
-        "emulated_headers": ["Cookie", "Authorization"]
+        "http_headers": ["X-User-Id", "Authorization"],
+        "emulated_headers": ["Authorization"]
       }
     }
   }
 }
 ```
 
-**Note:** Never put an origin-trusted identity header (e.g. a gateway-injected `x-user-id`) in `emulated_headers`, since that can make it forgeable if the transport-level header is not set (i.e. the proxy skips setting the `x-user-id` header for an unauthenticated user).
+**If you can't decide which headers to move right away, but need to update to v6.9.0** – then as a workaround, copy the whole `http_headers` list into `emulated_headers` nearby to preserve the pre-v6.9.0 behavior, then trim `emulated_headers` down to only the names your backend treats as untrusted client input.
 
 Long-term, we will also rename `headers` to `emulated_headers` in SDKs that provide this feature.
 
-Please reach out in the community rooms for the help with the migration.
+Please reach out in the community rooms if the help with the migration is needed.
+
+The security issue was reported in [GHSA-9468-v6mj-fppw](https://github.com/centrifugal/centrifugo/security/advisories/GHSA-9468-v6mj-fppw).
 
 ### Miscellaneous
 
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases).
+* This release is built with Go 1.26.4
+* Dependency updates
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.9.0).
