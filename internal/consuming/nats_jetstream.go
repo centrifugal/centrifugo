@@ -364,7 +364,7 @@ func (c *NatsJetStreamConsumer) Run(ctx context.Context) error {
 			c.consumeContext.Stop()
 			return ctx.Err()
 		case <-c.recreateCh:
-			c.common.log.Info().Msg("recreating consumer due to heartbeat error")
+			c.common.log.Info().Msg("recreating consumer")
 			c.consumeContext.Stop()
 			// Recreate the consumer.
 		}
