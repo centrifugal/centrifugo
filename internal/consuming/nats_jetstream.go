@@ -35,7 +35,8 @@ type NatsJetStreamConsumer struct {
 
 // NewNatsJetStreamConsumer creates a new NatsJetStreamConsumer instance.
 // On startup if creating a consumer fails then an error is returned.
-// Later at runtime, if a heartbeat error occurs the consumer is re-created endlessly.
+// Later at runtime, if a heartbeat error occurs or the consumer/stream is
+// deleted on the server side the consumer is re-created endlessly.
 func NewNatsJetStreamConsumer(
 	cfg NatsJetStreamConsumerConfig,
 	dispatcher Dispatcher,
@@ -280,12 +281,20 @@ func publicationTagsFromNatsHeaders(msg jetstream.Msg, prefix string) map[string
 	return tags
 }
 
-// errorHandler returns a jetstream error handler that triggers recreation on heartbeat loss.
+// errorHandler returns a jetstream error handler that triggers recreation on heartbeat loss
+// or when the consumer (or its stream) was deleted on the server side. The latter happens
+// when JetStream state is lost externally – ex. stream removed and re-created by an operator,
+// or in-memory stream lost after NATS restart. Without recreation Centrifugo would keep
+// logging errors without consuming anything until the process is restarted.
 func (c *NatsJetStreamConsumer) errorHandler() jetstream.ConsumeErrHandlerFunc {
 	return func(consumeCtx jetstream.ConsumeContext, err error) {
-		if errors.Is(err, jetstream.ErrNoHeartbeat) {
-			c.common.log.Warn().Msg("no heartbeat detected, triggering consumer recreation")
+		if errors.Is(err, jetstream.ErrNoHeartbeat) ||
+			errors.Is(err, jetstream.ErrConsumerDeleted) ||
+			errors.Is(err, jetstream.ErrConsumerNotFound) ||
+			errors.Is(err, jetstream.ErrStreamNotFound) {
+			c.common.log.Warn().Err(err).Msg("consumer unavailable, triggering consumer recreation")
 			c.triggerRecreation()
+			return
 		}
 		c.common.log.Error().Err(err).Msg("error during consuming")
 	}
@@ -355,7 +364,7 @@ func (c *NatsJetStreamConsumer) Run(ctx context.Context) error {
 			c.consumeContext.Stop()
 			return ctx.Err()
 		case <-c.recreateCh:
-			c.common.log.Info().Msg("recreating consumer due to heartbeat error")
+			c.common.log.Info().Msg("recreating consumer")
 			c.consumeContext.Stop()
 			// Recreate the consumer.
 		}
