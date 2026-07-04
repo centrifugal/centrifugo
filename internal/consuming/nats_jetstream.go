@@ -185,10 +185,29 @@ func (c *NatsJetStreamConsumer) msgHandler(msg jetstream.Msg) {
 		}
 	} else {
 		c.common.log.Error().Err(processErr).Msg("processing message failed")
-		if err := msg.Nak(); err != nil {
+		// NakWithDelay, not Nak: a bare Nak triggers instant redelivery with no
+		// backoff and the consumer sets no MaxDeliver, so a persistently failing
+		// (poison) message or a downstream outage would spin in a tight
+		// redeliver->fail->redeliver loop, pinning CPU and blocking head-of-line
+		// progress. Delay grows with the delivery count, capped like the other
+		// consumers' backoff.
+		if err := msg.NakWithDelay(natsNakDelay(msg)); err != nil {
 			c.common.log.Error().Err(err).Msg("failed to nak message")
 		}
 	}
+}
+
+// natsNakDelay computes an exponential redelivery backoff (capped) from the
+// message's delivery count.
+func natsNakDelay(msg jetstream.Msg) time.Duration {
+	retries := 1
+	if md, err := msg.Metadata(); err == nil && md.NumDelivered > 0 {
+		retries = int(md.NumDelivered)
+		if retries > 10 { // cap to avoid 1<<retries overflow / overlong delays
+			retries = 10
+		}
+	}
+	return getNextBackoffDuration(0, retries)
 }
 
 // processPublicationDataMessage processes a message in publication data mode.
