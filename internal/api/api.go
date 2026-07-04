@@ -443,11 +443,34 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 		}
 	}
 
+	// Prefer the base64 fields when set (they exist for binary payloads that
+	// can't be carried in a JSON bytes field), matching publish/broadcast. Without
+	// this, b64data/b64info were silently dropped and the subscription got empty
+	// data/info.
+	data := cmd.Data
+	if cmd.B64Data != "" {
+		decoded, err := base64.StdEncoding.DecodeString(cmd.B64Data)
+		if err != nil {
+			resp.Error = ErrorBadRequest
+			return resp
+		}
+		data = decoded
+	}
+	info := cmd.Info
+	if cmd.B64Info != "" {
+		decoded, err := base64.StdEncoding.DecodeString(cmd.B64Info)
+		if err != nil {
+			resp.Error = ErrorBadRequest
+			return resp
+		}
+		info = decoded
+	}
+
 	err = h.node.Subscribe(user, channel,
-		centrifuge.WithSubscribeData(cmd.Data),
+		centrifuge.WithSubscribeData(data),
 		centrifuge.WithSubscribeClient(cmd.Client),
 		centrifuge.WithSubscribeSession(cmd.Session),
-		centrifuge.WithChannelInfo(cmd.Info),
+		centrifuge.WithChannelInfo(info),
 		centrifuge.WithExpireAt(cmd.ExpireAt),
 		centrifuge.WithEmitJoinLeave(joinLeave),
 		centrifuge.WithPushJoinLeave(pushJoinLeave),
