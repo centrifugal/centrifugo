@@ -66,6 +66,20 @@ func (t *websocketTransport) ping() {
 			_ = t.Close(centrifuge.DisconnectWriteError)
 			return
 		}
+		if t.opts.writeTimeout > 0 && t.opts.protoMajor > 1 {
+			// WriteControl set a write deadline on the underlying HTTP/2 stream but,
+			// unlike writeData, nothing clears it here. An expired HTTP/2 deadline
+			// cannot be extended and permanently RSTs the stream, so an idle
+			// connection would be dropped ~writeTimeout after each ping. Clear it,
+			// serialized against writeData via writeMu.
+			t.writeMu.Lock()
+			derr := t.conn.NetConn().SetWriteDeadline(time.Time{})
+			t.writeMu.Unlock()
+			if derr != nil {
+				_ = t.Close(centrifuge.DisconnectWriteError)
+				return
+			}
+		}
 		t.addPing()
 	}
 }
