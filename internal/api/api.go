@@ -1044,6 +1044,10 @@ func (h *Executor) MapReadState(ctx context.Context, cmd *MapReadStateRequest) *
 
 	result, err := h.node.MapStateRead(ctx, ch, opts)
 	if err != nil {
+		if errors.Is(err, centrifuge.ErrorUnrecoverablePosition) {
+			resp.Error = ErrorUnrecoverablePosition
+			return resp
+		}
 		log.Error().Err(err).Str("channel", ch).Msg("error in map read state")
 		resp.Error = ErrorInternal
 		return resp
@@ -1114,6 +1118,10 @@ func (h *Executor) MapReadStream(ctx context.Context, cmd *MapReadStreamRequest)
 
 	result, err := h.node.MapStreamRead(ctx, ch, opts)
 	if err != nil {
+		if errors.Is(err, centrifuge.ErrorUnrecoverablePosition) {
+			resp.Error = ErrorUnrecoverablePosition
+			return resp
+		}
 		log.Error().Err(err).Str("channel", ch).Msg("error in map read stream")
 		resp.Error = ErrorInternal
 		return resp
