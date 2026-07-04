@@ -148,8 +148,10 @@ func Mux(
 	}
 
 	connMiddlewares := append([]alice.Constructor{}, commonMiddlewares...)
-	connLimit := cfg.Client.ConnectionLimit
-	if connLimit > 0 {
+	// The ConnLimit middleware enforces both the total connection cap and the
+	// connection rate limit, so install it when either is configured - otherwise
+	// connection_rate_limit is silently ignored when connection_limit is 0.
+	if cfg.Client.ConnectionLimit > 0 || cfg.Client.ConnectionRateLimit > 0 {
 		connLimitMW := middleware.NewConnLimit(n, cfgContainer)
 		connMiddlewares = append(connMiddlewares, connLimitMW.Middleware)
 	}
