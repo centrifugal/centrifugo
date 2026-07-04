@@ -11,11 +11,11 @@ func StripPassword(address string) string {
 	if err != nil {
 		return address
 	}
-	pass, passSet := u.User.Password()
-	if passSet {
-		return strings.Replace(u.String(), pass+"@", "***@", 1)
-	}
-	return u.String()
+	// Use url.Redacted, which replaces the password in the parsed userinfo before
+	// re-encoding. The previous approach string-replaced the DECODED password in
+	// the ENCODED URL, so a password containing a URL-special char (e.g. "@", a
+	// space, or non-ASCII) never matched and was logged in the clear.
+	return u.Redacted()
 }
 
 // GetLogAddresses returns a string with addresses (concatenated with comma)
