@@ -19,7 +19,7 @@ var knownBrokers = []string{"memory", "nats", "redis", "redisnats", "postgres"}
 
 // Validate validates config and returns error if problems found.
 func (c Config) Validate() error {
-	if c.HTTP.H2CExternal && strconv.Itoa(c.HTTP.Port) == c.HTTP.InternalPort {
+	if c.HTTP.H2CExternal && (c.HTTP.InternalPort == "" || strconv.Itoa(c.HTTP.Port) == c.HTTP.InternalPort) {
 		return fmt.Errorf("external_h2c requires custom separate internal_port to be configured")
 	}
 	if c.HTTP.TLS.Enabled && c.HTTP.H2CExternal {
@@ -596,10 +596,10 @@ func validateCodeToUniDisconnectTransforms(transforms configtypes.UniConnectCode
 			return fmt.Errorf("no code specified in transforms[%d]", i)
 		}
 		if t.To.Code == 0 {
-			return errors.New("no disconnect code specified in transforms[%d].to")
+			return fmt.Errorf("no disconnect code specified in transforms[%d].to", i)
 		}
 		if !tools.IsASCII(t.To.Reason) {
-			return errors.New("disconnect reason must be ASCII in transforms[%d].to")
+			return fmt.Errorf("disconnect reason must be ASCII in transforms[%d].to", i)
 		}
 	}
 	return nil
