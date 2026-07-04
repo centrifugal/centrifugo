@@ -68,6 +68,31 @@ func TestPublishAPI(t *testing.T) {
 	require.Equal(t, ErrorUnknownChannel, resp.Error)
 }
 
+// TestBatchAPINilCommand guards against a crash on a nil batch command (e.g. a
+// JSON `null` array element). In parallel mode each command runs in its own
+// goroutine, so a nil-deref would escape net/http's recover and crash the node.
+func TestBatchAPINilCommand(t *testing.T) {
+	node := nodeWithMemoryEngine()
+	cfg := config.DefaultConfig()
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	api := NewExecutor(node, cfgContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test", UseOpenTelemetry: false})
+
+	for _, parallel := range []bool{false, true} {
+		resp := api.Batch(context.Background(), &BatchRequest{
+			Parallel: parallel,
+			Commands: []*Command{
+				nil,
+				{Publish: &PublishRequest{Channel: "test", Data: []byte("x")}},
+			},
+		})
+		require.Len(t, resp.Replies, 2)
+		require.Equal(t, ErrorBadRequest, resp.Replies[0].Error)
+		require.Nil(t, resp.Replies[1].Error)
+	}
+}
+
 func TestBroadcastAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	cfg := config.DefaultConfig()

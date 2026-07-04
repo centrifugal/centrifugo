@@ -59,6 +59,14 @@ func (h *Executor) SetRPCExtension(method string, handler RPCHandler) {
 }
 
 func (h *Executor) processCmd(ctx context.Context, cmd *Command, i int, replies []*Reply) {
+	if cmd == nil {
+		// A batch can carry a nil command (e.g. a JSON `null` array element). In
+		// parallel mode processCmd runs in its own goroutine, so a nil-deref here
+		// would escape net/http's per-request recover and crash the whole process;
+		// reject it as a bad request instead.
+		replies[i].Error = ErrorBadRequest
+		return
+	}
 	var method string
 	if cmd.Publish != nil {
 		method = "publish"
