@@ -69,9 +69,23 @@ func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions
 	if opts.Filter.Since != nil {
 		sinceOffset = int64(opts.Filter.Since.Offset)
 	}
-	effectiveStart := sinceOffset + 1
-	if windowStart > effectiveStart {
-		effectiveStart = windowStart
+	// Compute the offset window [effectiveStart, effectiveEnd]. Forward returns
+	// publications after Since (ascending); reverse returns publications before
+	// Since (descending) - the boundary sits on the opposite side of the cursor,
+	// as in the memory/redis/pgmapbroker brokers. Using Since+1 for both
+	// directions made reverse pagination return already-seen or empty pages and
+	// never reach older messages.
+	effectiveStart := windowStart
+	effectiveEnd := topOffset
+	if opts.Filter.Reverse {
+		if opts.Filter.Since != nil {
+			effectiveEnd = sinceOffset - 1
+		}
+	} else {
+		effectiveStart = sinceOffset + 1
+		if windowStart > effectiveStart {
+			effectiveStart = windowStart
+		}
 	}
 
 	effectiveLimit := math.MaxInt32
@@ -115,7 +129,7 @@ func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions
 		 LIMIT $6
 	`, e.names.stream, order)
 
-	rows, err := pool.Query(ctx, rowsQuery, ch, effectiveStart, topOffset, cutoff, epoch, effectiveLimit)
+	rows, err := pool.Query(ctx, rowsQuery, ch, effectiveStart, effectiveEnd, cutoff, epoch, effectiveLimit)
 	if err != nil {
 		return nil, centrifuge.StreamPosition{}, fmt.Errorf("postgres stream broker: history query: %w", err)
 	}
