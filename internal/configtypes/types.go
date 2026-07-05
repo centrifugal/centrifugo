@@ -386,11 +386,6 @@ type Debug struct {
 	HandlerPrefix string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/debug/pprof" yaml:"handler_prefix" toml:"handler_prefix" expose:"full" doc:"URL prefix for the pprof debug handler. Default <</debug/pprof>>."`
 }
 
-type Dev struct {
-	Enabled       bool   `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled" expose:"-" doc:"Enables the development mode endpoint (e.g. real-time event log UI). This is an insecure endpoint which must be used only in development."`
-	HandlerPrefix string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/dev" yaml:"handler_prefix" toml:"handler_prefix" expose:"full" doc:"URL prefix for the dev mode handler. Default <</dev>>."`
-}
-
 type Shutdown struct {
 	Timeout Duration `mapstructure:"timeout" json:"timeout" envconfig:"timeout" default:"30s" yaml:"timeout" toml:"timeout" doc:"Maximum time to wait for graceful shutdown before forcefully stopping. Default <<30s>>."`
 }
