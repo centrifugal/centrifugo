@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
@@ -363,7 +363,11 @@ func getAzureBoolProperty(msg *azservicebus.ReceivedMessage, key string) (bool, 
 	if !ok {
 		return false, nil
 	}
-	b, err := strconv.ParseBool(val.(string))
+	strVal, ok := val.(string)
+	if !ok {
+		return false, fmt.Errorf("property %q is not a string", key)
+	}
+	b, err := strconv.ParseBool(strVal)
 	if err != nil {
 		return false, fmt.Errorf("error parsing bool property %q: %w", key, err)
 	}
