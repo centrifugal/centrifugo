@@ -376,7 +376,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 				}
 			} else {
 				respError := ErrorInternal
-				metrics.IncAPIError(h.config.Protocol, "publish", respError.Code)
+				metrics.IncAPIError(h.config.Protocol, "broadcast_publish", respError.Code)
 				log.Error().Err(err).Str("channel", ch).Msg("error publishing data to channel during broadcast")
 				resp.Error = respError
 			}
