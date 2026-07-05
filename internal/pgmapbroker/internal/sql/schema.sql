@@ -193,7 +193,7 @@ BEGIN
     END IF;
 
     -- Calculate shard_id from channel hash
-    v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
+    v_shard_id := abs(hashtext(p_channel)::bigint) % p_num_shards;
 
     -- 0. Per-shard serialization lock (lock order: shard → meta → state)
     PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
@@ -472,7 +472,7 @@ BEGIN
     END IF;
 
     -- Calculate shard_id from channel hash
-    v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
+    v_shard_id := abs(hashtext(p_channel)::bigint) % p_num_shards;
 
     -- 0. Per-shard serialization lock (lock order: shard → meta → state)
     PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
@@ -638,7 +638,7 @@ BEGIN
     LOOP
         -- 0. Calculate shard_id and acquire per-shard serialization lock
         --    (lock order: shard → meta → state).
-        v_shard_id := abs(hashtext(v_channel)) % p_num_shards;
+        v_shard_id := abs(hashtext(v_channel)::bigint) % p_num_shards;
         PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
 
         -- 1. Lock meta (same order as publish: shard → meta → state).

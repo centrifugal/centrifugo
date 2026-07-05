@@ -234,7 +234,7 @@ BEGIN
         RAISE EXCEPTION 'shard_lock table is empty — run EnsureSchema first';
     END IF;
 
-    v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
+    v_shard_id := abs(hashtext(p_channel)::bigint) % p_num_shards;
 
     -- Per-shard serialization lock (lock order: shard → meta).
     PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
@@ -416,7 +416,7 @@ BEGIN
     IF p_num_shards IS NULL THEN
         SELECT COUNT(*)::INTEGER INTO p_num_shards FROM __PREFIX__shard_lock;
     END IF;
-    v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
+    v_shard_id := abs(hashtext(p_channel)::bigint) % p_num_shards;
 
     -- Acquire shard lock so this insert serializes with publications on the
     -- same shard. Without this, the join's id could be committed before an
@@ -451,7 +451,7 @@ BEGIN
     IF p_num_shards IS NULL THEN
         SELECT COUNT(*)::INTEGER INTO p_num_shards FROM __PREFIX__shard_lock;
     END IF;
-    v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
+    v_shard_id := abs(hashtext(p_channel)::bigint) % p_num_shards;
 
     PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
 
@@ -480,7 +480,7 @@ BEGIN
     IF p_num_shards IS NULL THEN
         SELECT COUNT(*)::INTEGER INTO p_num_shards FROM __PREFIX__shard_lock;
     END IF;
-    v_shard_id := abs(hashtext(p_channel)) % p_num_shards;
+    v_shard_id := abs(hashtext(p_channel)::bigint) % p_num_shards;
 
     PERFORM 1 FROM __PREFIX__shard_lock WHERE shard_id = v_shard_id FOR UPDATE;
 
