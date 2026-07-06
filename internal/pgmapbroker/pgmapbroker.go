@@ -700,6 +700,19 @@ func (e *SchemaError) Unwrap() error {
 // stale shard_lock is not merely a perf issue — missing rows silently break
 // per-shard publish serialization, which in turn lets stream IDs commit out
 // of order and lets the outbox cursor skip rows.
+// bothVariantsPresent reports whether the primary table exists for both the
+// jsonb and binary variants, so EnsureSchema's fast path doesn't trust a partial
+// install where only one variant was created.
+func (e *PostgresMapBroker) bothVariantsPresent(ctx context.Context) bool {
+	for _, prefix := range []string{e.names.jsonbPrefix, e.names.binaryPrefix} {
+		table := strings.TrimRight(prefix, "_")
+		if _, err := e.pool.Exec(ctx, fmt.Sprintf(`SELECT 1 FROM %s LIMIT 0`, table)); err != nil {
+			return false
+		}
+	}
+	return true
+}
+
 func (e *PostgresMapBroker) reconcileShardLock(ctx context.Context) error {
 	for _, prefix := range []string{e.names.jsonbPrefix, e.names.binaryPrefix} {
 		shardLock := prefix + "shard_lock"
@@ -812,15 +825,21 @@ func (e *PostgresMapBroker) EnsureSchema(ctx context.Context) error {
 	//    shard_lock (load-bearing, see comment in reconcileShardLock) and
 	//    return without touching DDL.
 	if !isFresh && dbVersion == schemaVersion {
-		if _, probeErr := e.pool.Exec(ctx, fmt.Sprintf(
-			`SELECT 1 FROM %s LIMIT 0`, e.names.stream)); probeErr == nil {
+		// Probe BOTH variants' primary tables, not just the active one. The two
+		// variants (jsonb + binary) are created by separate Exec calls, so a
+		// partial fresh install can commit one variant's DDL (including its
+		// schema_version row) and fail the other's on a transient error. Probing
+		// only the active variant would then take the fast path and fail in
+		// reconcileShardLock (which touches both variants) on the missing tables,
+		// before ever reaching the idempotent DDL that recreates them — wedging
+		// the broker on every subsequent restart. If a variant is missing, fall
+		// through and re-apply DDL (idempotent) to self-heal.
+		if e.bothVariantsPresent(ctx) {
 			if err := e.reconcileShardLock(ctx); err != nil {
 				return err
 			}
 			return nil
 		}
-		// Probe failed → schema_version survived but primary table is missing
-		// (manual drop or partial restore). Fall through and re-apply DDL.
 	}
 
 	// 3. Reject downgrade. A binary running schemaVersion=N against a DB at
