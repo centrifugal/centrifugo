@@ -68,6 +68,13 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req == nil {
+		// A literal `null` connect request decodes to a nil request with no error;
+		// treat it as an empty request rather than passing nil to the connect
+		// handler, which would nil-deref.
+		req = &protocol.ConnectRequest{}
+	}
+
 	ack := make(chan struct{})
 	transport := newStreamTransport(r, h.pingPong, ack)
 	c, closeFn, err := centrifuge.NewClient(r.Context(), h.node, transport)

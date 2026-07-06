@@ -253,6 +253,7 @@ func (c *AzureServiceBusConsumer) runNonSessionMode(ctx context.Context) error {
 // azureCompleter defines an interface for completing messages.
 type azureCompleter interface {
 	CompleteMessage(context.Context, *azservicebus.ReceivedMessage, *azservicebus.CompleteMessageOptions) error
+	AbandonMessage(context.Context, *azservicebus.ReceivedMessage, *azservicebus.AbandonMessageOptions) error
 }
 
 // processMessage processes a single message with a retry mechanism.
@@ -262,14 +263,14 @@ func (c *AzureServiceBusConsumer) processMessage(ctx context.Context, msg *azser
 	data := msg.Body
 	const maxRetries = 5
 
+	var processErr error
 	for {
-		var err error
 		if c.config.PublicationDataMode.Enabled {
-			err = c.processPublicationDataMessage(ctx, msg, data)
+			processErr = c.processPublicationDataMessage(ctx, msg, data)
 		} else {
-			err = c.processCommandMessage(ctx, msg, data)
+			processErr = c.processCommandMessage(ctx, msg, data)
 		}
-		if err == nil {
+		if processErr == nil {
 			if retries > 0 {
 				c.common.log.Info().Msg("message processed successfully after retries")
 			}
@@ -277,17 +278,28 @@ func (c *AzureServiceBusConsumer) processMessage(ctx context.Context, msg *azser
 		}
 		// Stop retrying if context is canceled or maximum attempts reached.
 		if ctx.Err() != nil || retries >= maxRetries {
-			c.common.log.Error().Err(err).Msg("max retries reached or context canceled; abandoning message")
+			c.common.log.Error().Err(processErr).Msg("max retries reached or context canceled; abandoning message")
 			break
 		}
 		retries++
 		backoffDuration = getNextBackoffDuration(backoffDuration, retries)
-		c.common.log.Error().Err(err).Msgf("error processing message, retrying in %v", backoffDuration)
+		c.common.log.Error().Err(processErr).Msgf("error processing message, retrying in %v", backoffDuration)
 		select {
 		case <-time.After(backoffDuration):
 		case <-ctx.Done():
 			return
 		}
+	}
+
+	if processErr != nil {
+		// Processing failed after retries: abandon the message so the broker
+		// redelivers it (and eventually dead-letters at MaxDeliveryCount) instead
+		// of completing it, which settles it as successful and permanently drops it.
+		if err := completer.AbandonMessage(ctx, msg, nil); err != nil {
+			c.common.log.Error().Err(err).Msg("failed to abandon message")
+			metrics.ConsumerErrorsTotal.WithLabelValues(c.common.name).Inc()
+		}
+		return
 	}
 
 	// Complete the message (or log an error on failure).
