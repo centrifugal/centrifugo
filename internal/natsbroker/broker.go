@@ -319,6 +319,9 @@ func (b *NatsBroker) handleClientMessage(subject string, data []byte, sub *nats.
 			sp.Offset = push.Pub.Offset
 			sp.Epoch = push.Pub.Tags[epochTagsKey]
 		}
+		// Strip the internal epoch tag so it isn't delivered to clients as if it
+		// were an application tag (no-op when absent).
+		delete(push.Pub.Tags, epochTagsKey)
 		delta := push.Pub.Delta
 		push.Pub.Delta = false
 		_ = b.eventHandler.HandlePublication(subChannel, pubFromProto(push.Pub, specificChannel), sp, delta, nil)
