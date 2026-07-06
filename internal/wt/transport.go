@@ -13,6 +13,10 @@ import (
 
 const transportName = "webtransport"
 
+// defaultWebTransportMessageSizeLimit is used when message_size_limit is 0
+// (which the stream decoder treats as unbounded). Matches the config default.
+const defaultWebTransportMessageSizeLimit = 65536
+
 type webtransportTransport struct {
 	mu             sync.RWMutex
 	closeCh        chan struct{}

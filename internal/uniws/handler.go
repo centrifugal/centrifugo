@@ -218,6 +218,14 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		if req == nil {
+			// A literal `null` connect frame decodes to a nil request with no error;
+			// treat it as an empty connect request. Passing nil to the connect
+			// handler nil-derefs, and this runs in a bare goroutine (ServeHTTP has
+			// already returned), so the panic would crash the whole process.
+			req = &protocol.ConnectRequest{}
+		}
+
 		c.ProtocolConnect(req)
 
 		for {

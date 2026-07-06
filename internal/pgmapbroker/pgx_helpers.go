@@ -168,12 +168,22 @@ func pgRawTimestampMillis(b []byte, format int16) int64 {
 		return 0
 	}
 	if format == pgTextFormat {
-		// PostgreSQL text format for timestamptz, e.g. "2025-06-15 12:34:56.123456+00"
-		t, err := time.Parse("2006-01-02 15:04:05.999999Z07:00:00", convert.BytesToString(b))
-		if err != nil {
-			return 0
+		// PostgreSQL renders timestamptz with a variable-width zone offset - hour
+		// only ("+00"), hour:minute ("+05:30"), or the rare hour:minute:second - so
+		// no single Go layout matches all of them (the previous "Z07:00:00" layout
+		// parsed none of PostgreSQL's actual output, zeroing every timestamp under
+		// the simple-query protocol). Try the three offset widths.
+		s := convert.BytesToString(b)
+		for _, layout := range []string{
+			"2006-01-02 15:04:05.999999-07",
+			"2006-01-02 15:04:05.999999-07:00",
+			"2006-01-02 15:04:05.999999-07:00:00",
+		} {
+			if t, err := time.Parse(layout, s); err == nil {
+				return t.UnixMilli()
+			}
 		}
-		return t.UnixMilli()
+		return 0
 	}
 	usec := int64(binary.BigEndian.Uint64(b))
 	return (usec + pgEpochDeltaUsec) / 1000

@@ -563,29 +563,24 @@ func (e *PostgresMapBroker) getReadPool(channel string, allowCached bool) *pgxpo
 	if !allowCached || len(e.readPools) == 0 {
 		return e.pool
 	}
-	shardID := abs32(hashtext(channel)) % e.conf.NumShards
+	shardID := int(hashtext(channel) % uint32(e.conf.NumShards))
 	replicaIdx := shardID % len(e.readPools)
 	return e.readPools[replicaIdx]
 }
 
-// hashtext is a simple polynomial hash used for shard/replica routing.
-// It does NOT match PostgreSQL's hashtext() (which uses Jenkins lookup3) —
-// values differ for the same input. That is intentional: we only need
-// consistent routing within a single process; the PostgreSQL function is used
-// inside SQL for shard assignment, which is independent of this Go path.
-func hashtext(s string) int32 {
-	var h int32
+// hashtext is a simple polynomial hash used only for in-process read-replica
+// routing. It does NOT match PostgreSQL's hashtext() (which uses Jenkins
+// lookup3) — values differ for the same input, which is fine: replicas are
+// interchangeable, and the PostgreSQL function is used separately inside SQL for
+// shard assignment. It returns uint32 so the result is always non-negative and
+// can be taken modulo NumShards directly (no abs, and no math.MinInt32 overflow
+// edge case).
+func hashtext(s string) uint32 {
+	var h uint32
 	for i := 0; i < len(s); i++ {
-		h = h*31 + int32(s[i])
+		h = h*31 + uint32(s[i])
 	}
 	return h
-}
-
-func abs32(n int32) int {
-	if n < 0 {
-		return int(-n)
-	}
-	return int(n)
 }
 
 // RegisterEventHandler registers the event handler and starts background workers.
@@ -705,6 +700,19 @@ func (e *SchemaError) Unwrap() error {
 // stale shard_lock is not merely a perf issue — missing rows silently break
 // per-shard publish serialization, which in turn lets stream IDs commit out
 // of order and lets the outbox cursor skip rows.
+// bothVariantsPresent reports whether the primary table exists for both the
+// jsonb and binary variants, so EnsureSchema's fast path doesn't trust a partial
+// install where only one variant was created.
+func (e *PostgresMapBroker) bothVariantsPresent(ctx context.Context) bool {
+	for _, prefix := range []string{e.names.jsonbPrefix, e.names.binaryPrefix} {
+		table := strings.TrimRight(prefix, "_")
+		if _, err := e.pool.Exec(ctx, fmt.Sprintf(`SELECT 1 FROM %s LIMIT 0`, table)); err != nil {
+			return false
+		}
+	}
+	return true
+}
+
 func (e *PostgresMapBroker) reconcileShardLock(ctx context.Context) error {
 	for _, prefix := range []string{e.names.jsonbPrefix, e.names.binaryPrefix} {
 		shardLock := prefix + "shard_lock"
@@ -817,15 +825,21 @@ func (e *PostgresMapBroker) EnsureSchema(ctx context.Context) error {
 	//    shard_lock (load-bearing, see comment in reconcileShardLock) and
 	//    return without touching DDL.
 	if !isFresh && dbVersion == schemaVersion {
-		if _, probeErr := e.pool.Exec(ctx, fmt.Sprintf(
-			`SELECT 1 FROM %s LIMIT 0`, e.names.stream)); probeErr == nil {
+		// Probe BOTH variants' primary tables, not just the active one. The two
+		// variants (jsonb + binary) are created by separate Exec calls, so a
+		// partial fresh install can commit one variant's DDL (including its
+		// schema_version row) and fail the other's on a transient error. Probing
+		// only the active variant would then take the fast path and fail in
+		// reconcileShardLock (which touches both variants) on the missing tables,
+		// before ever reaching the idempotent DDL that recreates them — wedging
+		// the broker on every subsequent restart. If a variant is missing, fall
+		// through and re-apply DDL (idempotent) to self-heal.
+		if e.bothVariantsPresent(ctx) {
 			if err := e.reconcileShardLock(ctx); err != nil {
 				return err
 			}
 			return nil
 		}
-		// Probe failed → schema_version survived but primary table is missing
-		// (manual drop or partial restore). Fall through and re-apply DDL.
 	}
 
 	// 3. Reject downgrade. A binary running schemaVersion=N against a DB at

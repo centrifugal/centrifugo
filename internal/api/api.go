@@ -59,6 +59,14 @@ func (h *Executor) SetRPCExtension(method string, handler RPCHandler) {
 }
 
 func (h *Executor) processCmd(ctx context.Context, cmd *Command, i int, replies []*Reply) {
+	if cmd == nil {
+		// A batch can carry a nil command (e.g. a JSON `null` array element). In
+		// parallel mode processCmd runs in its own goroutine, so a nil-deref here
+		// would escape net/http's per-request recover and crash the whole process;
+		// reject it as a bad request instead.
+		replies[i].Error = ErrorBadRequest
+		return
+	}
 	var method string
 	if cmd.Publish != nil {
 		method = "publish"
@@ -376,7 +384,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 				}
 			} else {
 				respError := ErrorInternal
-				metrics.IncAPIError(h.config.Protocol, "publish", respError.Code)
+				metrics.IncAPIError(h.config.Protocol, "broadcast_publish", respError.Code)
 				log.Error().Err(err).Str("channel", ch).Msg("error publishing data to channel during broadcast")
 				resp.Error = respError
 			}
@@ -443,11 +451,34 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 		}
 	}
 
+	// Prefer the base64 fields when set (they exist for binary payloads that
+	// can't be carried in a JSON bytes field), matching publish/broadcast. Without
+	// this, b64data/b64info were silently dropped and the subscription got empty
+	// data/info.
+	data := cmd.Data
+	if cmd.B64Data != "" {
+		decoded, err := base64.StdEncoding.DecodeString(cmd.B64Data)
+		if err != nil {
+			resp.Error = ErrorBadRequest
+			return resp
+		}
+		data = decoded
+	}
+	info := cmd.Info
+	if cmd.B64Info != "" {
+		decoded, err := base64.StdEncoding.DecodeString(cmd.B64Info)
+		if err != nil {
+			resp.Error = ErrorBadRequest
+			return resp
+		}
+		info = decoded
+	}
+
 	err = h.node.Subscribe(user, channel,
-		centrifuge.WithSubscribeData(cmd.Data),
+		centrifuge.WithSubscribeData(data),
 		centrifuge.WithSubscribeClient(cmd.Client),
 		centrifuge.WithSubscribeSession(cmd.Session),
-		centrifuge.WithChannelInfo(cmd.Info),
+		centrifuge.WithChannelInfo(info),
 		centrifuge.WithExpireAt(cmd.ExpireAt),
 		centrifuge.WithEmitJoinLeave(joinLeave),
 		centrifuge.WithPushJoinLeave(pushJoinLeave),
@@ -1044,6 +1075,10 @@ func (h *Executor) MapReadState(ctx context.Context, cmd *MapReadStateRequest) *
 
 	result, err := h.node.MapStateRead(ctx, ch, opts)
 	if err != nil {
+		if errors.Is(err, centrifuge.ErrorUnrecoverablePosition) {
+			resp.Error = ErrorUnrecoverablePosition
+			return resp
+		}
 		log.Error().Err(err).Str("channel", ch).Msg("error in map read state")
 		resp.Error = ErrorInternal
 		return resp
@@ -1114,6 +1149,10 @@ func (h *Executor) MapReadStream(ctx context.Context, cmd *MapReadStreamRequest)
 
 	result, err := h.node.MapStreamRead(ctx, ch, opts)
 	if err != nil {
+		if errors.Is(err, centrifuge.ErrorUnrecoverablePosition) {
+			resp.Error = ErrorUnrecoverablePosition
+			return resp
+		}
 		log.Error().Err(err).Str("channel", ch).Msg("error in map read stream")
 		resp.Error = ErrorInternal
 		return resp

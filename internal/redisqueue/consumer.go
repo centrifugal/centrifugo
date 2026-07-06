@@ -149,11 +149,12 @@ func (c *Consumer) Run() {
 		c.poll()
 	}()
 
-	stop := newSignalHandler()
-	go func() {
-		<-stop
-		c.Shutdown()
-	}()
+	// NOTE: the upstream library installed its own process-global SIGINT/SIGTERM
+	// handler here that os.Exit(1)s on a second signal. That hijacks the embedding
+	// server's graceful shutdown (a second signal aborts it, skipping cleanup) and
+	// leaks goroutines. Centrifugo drives shutdown via Shutdown() on context
+	// cancellation (see consuming.RedisStreamConsumer.Run), so no signal handler
+	// is installed here.
 
 	var workerWg sync.WaitGroup
 	workerWg.Add(c.options.Concurrency)

@@ -9,16 +9,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
+	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 
 	"cloud.google.com/go/pubsub/v2"
 	"google.golang.org/api/option"
 )
 
 type GooglePubSubConsumerConfig = configtypes.GooglePubSubConsumerConfig
+
+// pubSubReceiveBackoffReset is the minimum duration a Receive call must run
+// before a subsequent failure is treated as fresh, resetting the retry backoff.
+const pubSubReceiveBackoffReset = 30 * time.Second
 
 // GooglePubSubConsumer represents a Google Pub/Sub consumer.
 type GooglePubSubConsumer struct {
@@ -83,15 +87,42 @@ func (c *GooglePubSubConsumer) Run(ctx context.Context) error {
 			sub.ReceiveSettings.MaxOutstandingBytes = c.config.MaxOutstandingBytes
 			sub.ReceiveSettings.NumGoroutines = 10
 
-			err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
-				if logging.Enabled(logging.DebugLevel) {
-					c.common.log.Debug().Str("subscription", subID).
-						Msg("received message from subscription")
+			// Receive re-establishes the streaming pull and returns only on ctx
+			// cancellation or an error the SDK deems non-retryable. Such an error is
+			// not necessarily permanent (IAM propagation, quota reset, backend
+			// failover, subscription recreated), and without re-subscribing the
+			// subscription would stay silently dead for the whole process lifetime.
+			// Re-Receive with a capped backoff so a genuinely permanent error can't
+			// spin hot.
+			var backoff time.Duration
+			var retries int
+			for ctx.Err() == nil {
+				start := time.Now()
+				err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
+					if logging.Enabled(logging.DebugLevel) {
+						c.common.log.Debug().Str("subscription", subID).
+							Msg("received message from subscription")
+					}
+					c.dispatchMessage(ctx, msg)
+				})
+				if err == nil || errors.Is(err, context.Canceled) || ctx.Err() != nil {
+					return
 				}
-				c.dispatchMessage(ctx, msg)
-			})
-			if err != nil && !errors.Is(err, context.Canceled) {
-				c.common.log.Error().Err(err).Msgf("error receiving messages for subscription %s", subscriptionID)
+				// A Receive that ran for a while before failing is a fresh failure,
+				// not an escalating one — reset the backoff ramp.
+				if time.Since(start) > pubSubReceiveBackoffReset {
+					backoff, retries = 0, 0
+				}
+				retries++
+				backoff = getNextBackoffDuration(backoff, retries)
+				metrics.ConsumerErrorsTotal.WithLabelValues(c.common.name).Inc()
+				c.common.log.Error().Err(err).Str("subscription", subscriptionID).
+					Dur("retry_in", backoff).Msg("error receiving messages, will re-subscribe")
+				select {
+				case <-time.After(backoff):
+				case <-ctx.Done():
+					return
+				}
 			}
 		}(subID)
 	}

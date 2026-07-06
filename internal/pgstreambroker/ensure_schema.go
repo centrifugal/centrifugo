@@ -3,6 +3,7 @@ package pgstreambroker
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/centrifugal/centrifugo/v6/internal/pgschema"
 )
@@ -14,6 +15,19 @@ import (
 // row makes `PERFORM 1 FROM shard_lock WHERE shard_id = X FOR UPDATE`
 // lock nothing, breaking per-shard publish serialization, which in turn
 // lets stream IDs commit out of order and the outbox cursor skip rows.
+// bothVariantsPresent reports whether the primary table exists for both the
+// jsonb and binary variants, so EnsureSchema's fast path doesn't trust a partial
+// install where only one variant was created.
+func (e *PostgresStreamBroker) bothVariantsPresent(ctx context.Context) bool {
+	for _, prefix := range []string{e.names.jsonbPrefix, e.names.binaryPrefix} {
+		table := strings.TrimRight(prefix, "_")
+		if _, err := e.pool.Exec(ctx, fmt.Sprintf(`SELECT 1 FROM %s LIMIT 0`, table)); err != nil {
+			return false
+		}
+	}
+	return true
+}
+
 func (e *PostgresStreamBroker) reconcileShardLock(ctx context.Context) error {
 	for _, prefix := range []string{e.names.jsonbPrefix, e.names.binaryPrefix} {
 		shardLock := prefix + "shard_lock"
@@ -118,10 +132,16 @@ func (e *PostgresStreamBroker) EnsureSchema(ctx context.Context) error {
 		return err
 	}
 
-	// Fast path: version current, history table exists, partition shape ok.
+	// Fast path: version current, both variants' history tables exist, partition
+	// shape ok. Probe BOTH variants (not just the active one): the two variants
+	// are created by separate Exec calls, so a partial fresh install can commit
+	// one and fail the other transiently. Trusting only the active variant would
+	// take the fast path and then fail in reconcileShardLock (which touches both)
+	// on the missing tables, before reaching the idempotent DDL that recreates
+	// them — wedging the broker on every restart. If a variant is missing, fall
+	// through and re-apply DDL to self-heal.
 	if !isFresh && dbVersion == schemaVersion {
-		if _, probeErr := e.pool.Exec(ctx, fmt.Sprintf(
-			`SELECT 1 FROM %s LIMIT 0`, e.names.stream)); probeErr == nil {
+		if e.bothVariantsPresent(ctx) {
 			if err := e.verifyPartitionedShape(ctx); err != nil {
 				return err
 			}

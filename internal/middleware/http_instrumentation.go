@@ -16,6 +16,15 @@ func HTTPServerInstrumentation(next http.Handler) http.Handler {
 		rw := &statusResponseWriter{w, http.StatusOK}
 		next.ServeHTTP(rw, r)
 		status := strconv.Itoa(rw.status)
-		metrics.HTTPRequestsTotal.WithLabelValues(r.URL.Path, r.Method, status).Inc()
+		// Use the matched route pattern, not the raw request path. Subtree
+		// handlers (admin, swagger, dev, debug) accept arbitrary client-controlled
+		// sub-paths, so labeling by r.URL.Path would grow the Prometheus series map
+		// without bound (memory DoS). r.Pattern is the registered pattern that
+		// matched (e.g. "/admin/"), so cardinality is bounded by the route count.
+		path := r.Pattern
+		if path == "" {
+			path = "other"
+		}
+		metrics.HTTPRequestsTotal.WithLabelValues(path, r.Method, status).Inc()
 	})
 }

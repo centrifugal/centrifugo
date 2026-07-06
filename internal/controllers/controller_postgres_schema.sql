@@ -60,7 +60,7 @@ BEGIN
     IF p_num_shards <= 1 THEN
         v_shard_id := 0;
     ELSIF p_node_id != '' THEN
-        v_shard_id := abs(hashtext(p_node_id)) % p_num_shards;
+        v_shard_id := abs(hashtext(p_node_id)::bigint) % p_num_shards;
     ELSE
         v_shard_id := (txid_current() % p_num_shards)::INTEGER;
     END IF;

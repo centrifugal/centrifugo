@@ -20,6 +20,10 @@ import (
 // NatsJetStreamConsumerConfig is an alias for our configuration type.
 type NatsJetStreamConsumerConfig = configtypes.NatsJetStreamConsumerConfig
 
+// natsConsumeBackoffReset is the minimum duration a consume session must run
+// before its end resets the recreation backoff, so rapid flapping still backs off.
+const natsConsumeBackoffReset = 30 * time.Second
+
 // NatsJetStreamConsumer consumes messages from NATS JetStream.
 type NatsJetStreamConsumer struct {
 	config         NatsJetStreamConsumerConfig
@@ -35,7 +39,8 @@ type NatsJetStreamConsumer struct {
 
 // NewNatsJetStreamConsumer creates a new NatsJetStreamConsumer instance.
 // On startup if creating a consumer fails then an error is returned.
-// Later at runtime, if a heartbeat error occurs the consumer is re-created endlessly.
+// Later at runtime, if a heartbeat error occurs or the consumer/stream is
+// deleted on the server side the consumer is re-created endlessly.
 func NewNatsJetStreamConsumer(
 	cfg NatsJetStreamConsumerConfig,
 	dispatcher Dispatcher,
@@ -184,10 +189,29 @@ func (c *NatsJetStreamConsumer) msgHandler(msg jetstream.Msg) {
 		}
 	} else {
 		c.common.log.Error().Err(processErr).Msg("processing message failed")
-		if err := msg.Nak(); err != nil {
+		// NakWithDelay, not Nak: a bare Nak triggers instant redelivery with no
+		// backoff and the consumer sets no MaxDeliver, so a persistently failing
+		// (poison) message or a downstream outage would spin in a tight
+		// redeliver->fail->redeliver loop, pinning CPU and blocking head-of-line
+		// progress. Delay grows with the delivery count, capped like the other
+		// consumers' backoff.
+		if err := msg.NakWithDelay(natsNakDelay(msg)); err != nil {
 			c.common.log.Error().Err(err).Msg("failed to nak message")
 		}
 	}
+}
+
+// natsNakDelay computes an exponential redelivery backoff (capped) from the
+// message's delivery count.
+func natsNakDelay(msg jetstream.Msg) time.Duration {
+	retries := 1
+	if md, err := msg.Metadata(); err == nil && md.NumDelivered > 0 {
+		retries = int(md.NumDelivered)
+		if retries > 10 { // cap to avoid 1<<retries overflow / overlong delays
+			retries = 10
+		}
+	}
+	return getNextBackoffDuration(0, retries)
 }
 
 // processPublicationDataMessage processes a message in publication data mode.
@@ -280,12 +304,20 @@ func publicationTagsFromNatsHeaders(msg jetstream.Msg, prefix string) map[string
 	return tags
 }
 
-// errorHandler returns a jetstream error handler that triggers recreation on heartbeat loss.
+// errorHandler returns a jetstream error handler that triggers recreation on heartbeat loss
+// or when the consumer (or its stream) was deleted on the server side. The latter happens
+// when JetStream state is lost externally – ex. stream removed and re-created by an operator,
+// or in-memory stream lost after NATS restart. Without recreation Centrifugo would keep
+// logging errors without consuming anything until the process is restarted.
 func (c *NatsJetStreamConsumer) errorHandler() jetstream.ConsumeErrHandlerFunc {
 	return func(consumeCtx jetstream.ConsumeContext, err error) {
-		if errors.Is(err, jetstream.ErrNoHeartbeat) {
-			c.common.log.Warn().Msg("no heartbeat detected, triggering consumer recreation")
+		if errors.Is(err, jetstream.ErrNoHeartbeat) ||
+			errors.Is(err, jetstream.ErrConsumerDeleted) ||
+			errors.Is(err, jetstream.ErrConsumerNotFound) ||
+			errors.Is(err, jetstream.ErrStreamNotFound) {
+			c.common.log.Warn().Err(err).Msg("consumer unavailable, triggering consumer recreation")
 			c.triggerRecreation()
+			return
 		}
 		c.common.log.Error().Err(err).Msg("error during consuming")
 	}
@@ -344,9 +376,8 @@ func (c *NatsJetStreamConsumer) Run(ctx context.Context) error {
 			continue
 		}
 
-		retries = 0
-		backoffDuration = 0
 		firstRun = false
+		startedAt := time.Now()
 
 		c.common.log.Info().Msg("consuming started, waiting for messages")
 		// Block until context cancellation or a recreation signal is received.
@@ -355,9 +386,18 @@ func (c *NatsJetStreamConsumer) Run(ctx context.Context) error {
 			c.consumeContext.Stop()
 			return ctx.Err()
 		case <-c.recreateCh:
-			c.common.log.Info().Msg("recreating consumer due to heartbeat error")
+			c.common.log.Info().Msg("recreating consumer")
 			c.consumeContext.Stop()
 			// Recreate the consumer.
+		}
+
+		// Reset the backoff ramp only if the session ran healthily for a while. A
+		// session that starts fine but dies almost immediately (flapping) keeps the
+		// ramp so the recreation loop backs off instead of spinning, rather than
+		// resetting to zero on every short-lived start.
+		if time.Since(startedAt) > natsConsumeBackoffReset {
+			retries = 0
+			backoffDuration = 0
 		}
 	}
 }
