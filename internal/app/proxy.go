@@ -28,6 +28,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 	}
 
 	var keepHeadersInContext bool
+	var keepEmulatedHeadersInContext bool
 
 	var err error
 	var proxyFound bool
@@ -42,6 +43,9 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
 		}
+		if len(p.EmulatedHeaders) > 0 {
+			keepEmulatedHeadersInContext = true
+		}
 	}
 
 	if cfg.Client.Proxy.Refresh.Enabled {
@@ -53,6 +57,9 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		log.Info().Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("refresh proxy enabled")
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
+		}
+		if len(p.EmulatedHeaders) > 0 {
+			keepEmulatedHeadersInContext = true
 		}
 	}
 
@@ -84,6 +91,9 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
 		}
+		if len(p.EmulatedHeaders) > 0 {
+			keepEmulatedHeadersInContext = true
+		}
 	}
 
 	publishProxyEnabled := cfg.Channel.WithoutNamespace.PublishProxyEnabled
@@ -109,6 +119,9 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
 		}
+		if len(p.EmulatedHeaders) > 0 {
+			keepEmulatedHeadersInContext = true
+		}
 	}
 
 	subRefreshProxyEnabled := cfg.Channel.WithoutNamespace.SubRefreshProxyEnabled
@@ -133,6 +146,9 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		log.Info().Str("proxy_name", subRefreshProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("sub refresh proxy enabled for channels without namespace")
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
+		}
+		if len(p.EmulatedHeaders) > 0 {
+			keepEmulatedHeadersInContext = true
 		}
 	}
 
@@ -162,6 +178,9 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
 		}
+		if len(p.EmulatedHeaders) > 0 {
+			keepEmulatedHeadersInContext = true
+		}
 	}
 
 	mapPublishProxyEnabled := cfg.Channel.WithoutNamespace.Map.PublishProxyEnabled
@@ -187,6 +206,9 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
 		}
+		if len(p.EmulatedHeaders) > 0 {
+			keepEmulatedHeadersInContext = true
+		}
 	}
 
 	mapRemoveProxyEnabled := cfg.Channel.WithoutNamespace.Map.RemoveProxyEnabled
@@ -211,6 +233,9 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		log.Info().Str("proxy_name", mapRemoveProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("map remove proxy enabled for channels without namespace")
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
+		}
+		if len(p.EmulatedHeaders) > 0 {
+			keepEmulatedHeadersInContext = true
 		}
 	}
 
@@ -238,6 +263,9 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			if len(p.HttpHeaders) > 0 {
 				keepHeadersInContext = true
 			}
+			if len(p.EmulatedHeaders) > 0 {
+				keepEmulatedHeadersInContext = true
+			}
 		}
 
 		publishProxyEnabled := ns.PublishProxyEnabled
@@ -263,6 +291,9 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			if len(p.HttpHeaders) > 0 {
 				keepHeadersInContext = true
 			}
+			if len(p.EmulatedHeaders) > 0 {
+				keepEmulatedHeadersInContext = true
+			}
 		}
 
 		subRefreshProxyEnabled := ns.SubRefreshProxyEnabled
@@ -287,6 +318,9 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			log.Info().Str("proxy_name", subRefreshProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Str("namespace", ns.Name).Msg("sub refresh proxy enabled for channels in namespace")
 			if len(p.HttpHeaders) > 0 {
 				keepHeadersInContext = true
+			}
+			if len(p.EmulatedHeaders) > 0 {
+				keepEmulatedHeadersInContext = true
 			}
 		}
 
@@ -316,6 +350,9 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			if len(p.HttpHeaders) > 0 {
 				keepHeadersInContext = true
 			}
+			if len(p.EmulatedHeaders) > 0 {
+				keepEmulatedHeadersInContext = true
+			}
 		}
 
 		mapPublishProxyEnabled := ns.Map.PublishProxyEnabled
@@ -341,6 +378,9 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			if len(p.HttpHeaders) > 0 {
 				keepHeadersInContext = true
 			}
+			if len(p.EmulatedHeaders) > 0 {
+				keepEmulatedHeadersInContext = true
+			}
 		}
 
 		mapRemoveProxyEnabled := ns.Map.RemoveProxyEnabled
@@ -365,6 +405,9 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			log.Info().Str("proxy_name", mapRemoveProxyName).Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Str("namespace", ns.Name).Msg("map remove proxy enabled for channels in namespace")
 			if len(p.HttpHeaders) > 0 {
 				keepHeadersInContext = true
+			}
+			if len(p.EmulatedHeaders) > 0 {
+				keepEmulatedHeadersInContext = true
 			}
 		}
 
@@ -449,6 +492,9 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		if len(p.HttpHeaders) > 0 {
 			keepHeadersInContext = true
 		}
+		if len(p.EmulatedHeaders) > 0 {
+			keepEmulatedHeadersInContext = true
+		}
 	}
 
 	for _, ns := range cfg.RPC.Namespaces {
@@ -475,8 +521,13 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			if len(p.HttpHeaders) > 0 {
 				keepHeadersInContext = true
 			}
+			if len(p.EmulatedHeaders) > 0 {
+				keepEmulatedHeadersInContext = true
+			}
 		}
 	}
+
+	proxyMap.UsesEmulatedHeaders = keepEmulatedHeadersInContext
 
 	return proxyMap, keepHeadersInContext, nil
 }

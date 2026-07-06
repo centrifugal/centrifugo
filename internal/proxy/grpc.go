@@ -75,11 +75,11 @@ func getDialOpts(name string, p Config) ([]grpc.DialOption, error) {
 }
 
 func grpcRequestContext(ctx context.Context, proxy Config) context.Context {
-	md := requestMetadata(ctx, proxy.HttpHeaders, proxy.GrpcMetadata, proxy.GRPC.StaticMetadata)
+	md := requestMetadata(ctx, proxy.HttpHeaders, proxy.GrpcMetadata, emulatedHeaderAllowList(proxy), proxy.GRPC.StaticMetadata)
 	return metadata.NewOutgoingContext(ctx, md)
 }
 
-func requestMetadata(ctx context.Context, allowedHeaders []string, allowedMetaKeys []string, staticMetadata map[string]string) metadata.MD {
+func requestMetadata(ctx context.Context, allowedHeaders, allowedMetaKeys, allowedEmulatedHeaders []string, staticMetadata map[string]string) metadata.MD {
 	requestMD := metadata.MD{}
 
 	// Set static metadata first, so that dynamic metadata can override it.
@@ -87,11 +87,23 @@ func requestMetadata(ctx context.Context, allowedHeaders []string, allowedMetaKe
 		requestMD.Set(k, v)
 	}
 
+	// Emulated headers come from the client connect frame and are client-controlled,
+	// so they are forwarded only when listed in emulated_headers - never via
+	// the transport-level http_headers allow list.
 	emulatedHeaders, _ := clientcontext.GetEmulatedHeadersFromContext(ctx)
+	var droppedEmulated bool
 	for k, v := range emulatedHeaders {
-		if slices.Contains(allowedHeaders, strings.ToLower(k)) {
+		lk := strings.ToLower(k)
+		if slices.Contains(allowedEmulatedHeaders, lk) {
 			requestMD.Set(k, v)
+		} else if slices.Contains(allowedHeaders, lk) {
+			// Listed in http_headers but not emulated_headers: this would
+			// have been forwarded before v6.9.0. Flag for a throttled migration hint.
+			droppedEmulated = true
 		}
+	}
+	if droppedEmulated {
+		logDroppedEmulatedHeadersHint(emulatedHeaders, allowedHeaders, allowedEmulatedHeaders)
 	}
 
 	httpHeaders, hasHTTPHeaders := middleware.GetHeadersFromContext(ctx)

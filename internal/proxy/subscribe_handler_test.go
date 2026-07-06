@@ -7,8 +7,11 @@ import (
 	"log"
 	"net/http"
 	"testing"
+	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/middleware"
 	"github.com/centrifugal/centrifugo/v6/internal/subsource"
 	"github.com/centrifugal/centrifugo/v6/internal/tools"
 
@@ -94,6 +97,57 @@ func newSubscribeHandleTestCases(httpTestCase httpSubscribeHandleTestCase, grpcT
 			protocol:              "http",
 		},
 	}
+}
+
+// TestHandleSubscribeForwardsHeaders is an end-to-end test that the split header
+// model works for a channel (subscribe) proxy, not just connect: the emulated and
+// real transport headers captured at connect (here placed in the client context,
+// exactly as OnClientConnecting sets them) are forwarded to the subscribe backend
+// filtered by the subscribe proxy's own http_headers / emulated_headers lists.
+func TestHandleSubscribeForwardsHeaders(t *testing.T) {
+	// Client context as it would look after connect: a real transport header, plus
+	// an emulated map that includes a legit token and a forged value for a name that
+	// is only in http_headers (must not win via emulation).
+	ctx := middleware.SetHeadersToContext(context.Background(), http.Header{"X-Real-Ip": []string{"1.2.3.4"}})
+	ctx = clientcontext.SetEmulatedHeadersToContext(ctx, map[string]string{
+		"x-app-token": "from-client",
+		"x-real-ip":   "forged-by-client",
+	})
+
+	commonProxyTestCase := tools.NewCommonHTTPProxyTestCase(ctx)
+	defer commonProxyTestCase.Teardown()
+
+	var received http.Header
+	commonProxyTestCase.Mux.HandleFunc("/subscribe", func(w http.ResponseWriter, req *http.Request) {
+		received = req.Header.Clone()
+		_, _ = w.Write([]byte(`{"result": {}}`))
+	})
+
+	proxyCfg := configtypes.Proxy{
+		Endpoint: commonProxyTestCase.Server.URL + "/subscribe",
+		Timeout:  configtypes.Duration(5 * time.Second),
+		ProxyCommon: configtypes.ProxyCommon{
+			HttpHeaders:     []string{"X-Real-Ip"},   // transport-only
+			EmulatedHeaders: []string{"X-App-Token"}, // client-supplied
+		},
+	}
+	subscribeProxy, err := GetSubscribeProxy("test", proxyCfg)
+	require.NoError(t, err)
+
+	handler := NewSubscribeHandler(SubscribeHandlerConfig{
+		Proxies: map[string]SubscribeProxy{"test": subscribeProxy},
+	}).Handle()
+
+	chOpts := configtypes.ChannelOptions{
+		SubscribeProxyEnabled: true,
+		SubscribeProxyName:    "test",
+	}
+	_, _, err = handler(commonProxyTestCase.Client, centrifuge.SubscribeEvent{}, chOpts, PerCallData{})
+	require.NoError(t, err)
+
+	require.NotNil(t, received, "subscribe backend should have been called")
+	require.Equal(t, "from-client", received.Get("X-App-Token"), "emulated header must be forwarded via the subscribe proxy's emulated_headers")
+	require.Equal(t, "1.2.3.4", received.Get("X-Real-Ip"), "real transport value must win; forged emulated value must NOT be forwarded via http_headers")
 }
 
 func TestHandleSubscribeWithResult(t *testing.T) {

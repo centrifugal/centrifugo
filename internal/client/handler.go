@@ -37,6 +37,12 @@ type ProxyMap struct {
 	MapPublishProxies        map[string]proxy.MapPublishProxy
 	MapRemoveProxies         map[string]proxy.MapRemoveProxy
 	SharedPollRefreshProxies map[string]*proxy.SharedPollRefreshHandler
+
+	// UsesEmulatedHeaders is true when at least one configured proxy may forward
+	// client-supplied emulated headers (it has a non-empty emulated_headers list).
+	// When false there is no point keeping the client's emulated headers in the
+	// connection context.
+	UsesEmulatedHeaders bool
 }
 
 // Handler for client connections.
@@ -386,7 +392,11 @@ func (h *Handler) OnClientConnecting(
 
 		processClientChannels = true
 	} else if connectProxyHandler != nil {
-		connectReply, _, err := connectProxyHandler(clientcontext.SetEmulatedHeadersToContext(ctx, e.Headers), e)
+		connectCtx := ctx
+		if h.proxyMap.UsesEmulatedHeaders {
+			connectCtx = clientcontext.SetEmulatedHeadersToContext(ctx, e.Headers)
+		}
+		connectReply, _, err := connectProxyHandler(connectCtx, e)
 		if err != nil {
 			return centrifuge.ConnectReply{}, err
 		}
@@ -545,7 +555,10 @@ func (h *Handler) OnClientConnecting(
 		Data:              data,
 		ClientSideRefresh: !refreshProxyEnabled,
 	}
-	if len(e.Headers) > 0 {
+	// Only keep emulated headers in the connection context when some proxy may
+	// actually forward them - otherwise they would be retained for the whole
+	// connection lifetime for nothing.
+	if h.proxyMap.UsesEmulatedHeaders && len(e.Headers) > 0 {
 		if newCtx != nil {
 			newCtx = clientcontext.SetEmulatedHeadersToContext(newCtx, e.Headers)
 		} else {

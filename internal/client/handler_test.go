@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/jwtverify"
@@ -135,6 +136,47 @@ func TestClientHandlerSetup(t *testing.T) {
 	require.NoError(t, err)
 	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
 	require.True(t, ok)
+}
+
+// TestOnClientConnectingEmulatedHeadersGating verifies that the client's
+// emulated headers are only kept in the connection context when some proxy may
+// actually forward them (ProxyMap.UsesEmulatedHeaders). When no proxy uses
+// emulated_headers we must not retain the map for the connection lifetime.
+func TestOnClientConnectingEmulatedHeadersGating(t *testing.T) {
+	for _, uses := range []bool{true, false} {
+		node := tools.NodeWithMemoryEngine()
+
+		cfgContainer, err := config.NewContainer(config.DefaultConfig())
+		require.NoError(t, err)
+		h := NewHandler(node, cfgContainer, emptyJWTVerifier(t, cfgContainer), nil, &ProxyMap{
+			UsesEmulatedHeaders: uses,
+		})
+
+		var connectCtx context.Context
+		connectProxyHandler := func(ctx context.Context, _ centrifuge.ConnectEvent) (centrifuge.ConnectReply, proxy.ConnectExtra, error) {
+			connectCtx = ctx
+			return centrifuge.ConnectReply{Credentials: &centrifuge.Credentials{UserID: "1"}}, proxy.ConnectExtra{}, nil
+		}
+
+		reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
+			Transport: tools.NewTestTransport(),
+			Headers:   map[string]string{"x-app-token": "v"},
+		}, connectProxyHandler, false)
+		require.NoError(t, err)
+
+		// Context passed to the connect proxy call.
+		_, inConnectCtx := clientcontext.GetEmulatedHeadersFromContext(connectCtx)
+		require.Equal(t, uses, inConnectCtx, "connect-call emulated headers presence should match uses=%v", uses)
+
+		// Long-lived connection context.
+		inReplyCtx := false
+		if reply.Context != nil {
+			_, inReplyCtx = clientcontext.GetEmulatedHeadersFromContext(reply.Context)
+		}
+		require.Equal(t, uses, inReplyCtx, "connection-context emulated headers presence should match uses=%v", uses)
+
+		_ = node.Shutdown(context.Background())
+	}
 }
 
 func TestClientConnectingNoCredentialsNoToken(t *testing.T) {

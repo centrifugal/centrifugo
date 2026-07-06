@@ -125,10 +125,10 @@ func transformHTTPStatusError(err error, transforms []configtypes.HttpStatusToCo
 }
 
 func httpRequestHeaders(ctx context.Context, proxy Config) http.Header {
-	return requestHeaders(ctx, proxy.HttpHeaders, proxy.GrpcMetadata, proxy.HTTP.StaticHeaders)
+	return requestHeaders(ctx, proxy.HttpHeaders, proxy.GrpcMetadata, emulatedHeaderAllowList(proxy), proxy.HTTP.StaticHeaders)
 }
 
-func requestHeaders(ctx context.Context, allowedHeaders, allowedMetaKeys []string, staticHeaders map[string]string) http.Header {
+func requestHeaders(ctx context.Context, allowedHeaders, allowedMetaKeys, allowedEmulatedHeaders []string, staticHeaders map[string]string) http.Header {
 	headers := http.Header{}
 
 	// Set static headers first, so that dynamic headers can override them.
@@ -136,11 +136,23 @@ func requestHeaders(ctx context.Context, allowedHeaders, allowedMetaKeys []strin
 		headers.Set(k, v)
 	}
 
+	// Emulated headers come from the client connect frame and are client-controlled,
+	// so they are forwarded only when listed in emulated_headers - never via
+	// the transport-level http_headers allow list.
 	emulatedHeaders, _ := clientcontext.GetEmulatedHeadersFromContext(ctx)
+	var droppedEmulated bool
 	for k, v := range emulatedHeaders {
-		if slices.Contains(allowedHeaders, strings.ToLower(k)) {
+		lk := strings.ToLower(k)
+		if slices.Contains(allowedEmulatedHeaders, lk) {
 			headers.Set(k, v)
+		} else if slices.Contains(allowedHeaders, lk) {
+			// Listed in http_headers but not emulated_headers: this would
+			// have been forwarded before v6.9.0. Flag for a throttled migration hint.
+			droppedEmulated = true
 		}
+	}
+	if droppedEmulated {
+		logDroppedEmulatedHeadersHint(emulatedHeaders, allowedHeaders, allowedEmulatedHeaders)
 	}
 
 	httpHeaders, hasHTTPHeaders := middleware.GetHeadersFromContext(ctx)
@@ -154,7 +166,11 @@ func requestHeaders(ctx context.Context, allowedHeaders, allowedMetaKeys []strin
 		md, _ := metadata.FromIncomingContext(ctx)
 		for k, vv := range md {
 			if slices.Contains(allowedMetaKeys, k) {
-				headers[k] = vv
+				// Canonicalize the lowercase metadata key so the transport value
+				// lands on the same map key as emulated values written via Set
+				// and overrides them - otherwise both would be sent as duplicate
+				// headers with different casings.
+				headers[http.CanonicalHeaderKey(k)] = vv
 			}
 		}
 	}
