@@ -20,6 +20,10 @@ import (
 // NatsJetStreamConsumerConfig is an alias for our configuration type.
 type NatsJetStreamConsumerConfig = configtypes.NatsJetStreamConsumerConfig
 
+// natsConsumeBackoffReset is the minimum duration a consume session must run
+// before its end resets the recreation backoff, so rapid flapping still backs off.
+const natsConsumeBackoffReset = 30 * time.Second
+
 // NatsJetStreamConsumer consumes messages from NATS JetStream.
 type NatsJetStreamConsumer struct {
 	config         NatsJetStreamConsumerConfig
@@ -353,9 +357,8 @@ func (c *NatsJetStreamConsumer) Run(ctx context.Context) error {
 			continue
 		}
 
-		retries = 0
-		backoffDuration = 0
 		firstRun = false
+		startedAt := time.Now()
 
 		c.common.log.Info().Msg("consuming started, waiting for messages")
 		// Block until context cancellation or a recreation signal is received.
@@ -367,6 +370,15 @@ func (c *NatsJetStreamConsumer) Run(ctx context.Context) error {
 			c.common.log.Info().Msg("recreating consumer")
 			c.consumeContext.Stop()
 			// Recreate the consumer.
+		}
+
+		// Reset the backoff ramp only if the session ran healthily for a while. A
+		// session that starts fine but dies almost immediately (flapping) keeps the
+		// ramp so the recreation loop backs off instead of spinning, rather than
+		// resetting to zero on every short-lived start.
+		if time.Since(startedAt) > natsConsumeBackoffReset {
+			retries = 0
+			backoffDuration = 0
 		}
 	}
 }
