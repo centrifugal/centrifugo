@@ -78,7 +78,12 @@ func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions
 	effectiveStart := windowStart
 	effectiveEnd := topOffset
 	if opts.Filter.Reverse {
-		if opts.Filter.Since != nil {
+		// Reverse returns publications strictly before Since (descending).
+		// Guard sinceOffset == 0: centrifuge's Since.Offset is uint64, so its
+		// `since.Offset - 1` underflows to MaxUint64 for offset 0, which means
+		// "read the whole stream from the top". We keep effectiveEnd = topOffset
+		// in that case instead of computing -1 (which would match no rows).
+		if opts.Filter.Since != nil && sinceOffset > 0 {
 			effectiveEnd = sinceOffset - 1
 		}
 	} else {
