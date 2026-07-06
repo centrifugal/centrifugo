@@ -239,7 +239,11 @@ func TestRequestHeaders_GrpcMetadataOverridesEmulated(t *testing.T) {
 	result := requestHeaders(ctx, []string{}, []string{"x-user-id"}, []string{"x-user-id"}, nil)
 
 	require.Equal(t, []string{"transport-value"}, result["X-User-Id"], "transport metadata value must override the emulated value")
-	_, hasLowercaseKey := result["x-user-id"]
+	// Inspect the raw map by its non-canonical key on purpose to prove no
+	// duplicate lowercase key coexists with the canonical one. Indexing
+	// http.Header with a non-canonical key would be flagged by staticcheck
+	// (SA1008), so convert to the underlying map type for this probe.
+	_, hasLowercaseKey := map[string][]string(result)["x-user-id"]
 	require.False(t, hasLowercaseKey, "no duplicate lowercase header key must remain")
 	require.Len(t, result, 2, "only the canonical header and Content-Type expected") // X-User-Id + Content-Type
 }
