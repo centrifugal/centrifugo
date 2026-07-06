@@ -448,10 +448,9 @@ func (s *algorithms) verify(token *jwt.Token) error {
 	return verifier.Verify(token)
 }
 
+// verifySignature verifies a token's signature. The caller must hold
+// verifier.mu (at least RLock); it does not lock, to avoid recursive RLock.
 func (verifier *VerifierJWT) verifySignature(token *jwt.Token) error {
-	verifier.mu.RLock()
-	defer verifier.mu.RUnlock()
-
 	err := verifier.algorithms.verify(token)
 	if err != nil && verifier.previousHMACAlgorithms != nil {
 		if validUntil := verifier.hmacPreviousSecretKeyValidUntil; validUntil > 0 && time.Now().Unix() > validUntil {
@@ -464,10 +463,10 @@ func (verifier *VerifierJWT) verifySignature(token *jwt.Token) error {
 	return err
 }
 
+// verifySignatureByJWK verifies a token against the JWKS manager. The caller
+// must hold verifier.mu (at least RLock); it does not lock, to avoid recursive
+// RLock.
 func (verifier *VerifierJWT) verifySignatureByJWK(token *jwt.Token, tokenVars map[string]any) error {
-	verifier.mu.RLock()
-	defer verifier.mu.RUnlock()
-
 	return verifier.jwksManager.verify(token, tokenVars)
 }
 
@@ -535,6 +534,15 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 	if err != nil {
 		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
+
+	// Hold a read lock across the whole verification so a concurrent Reload (which
+	// rewrites the verifier's signing/config fields under mu.Lock) can't change
+	// them mid-verification - reading them unlocked was a data race and could
+	// nil-deref algorithms/jwksManager when a reload switched auth mode. The
+	// signature helpers assume the caller holds this lock and don't re-acquire it
+	// (recursive RLock can deadlock if a writer is waiting).
+	verifier.mu.RLock()
+	defer verifier.mu.RUnlock()
 
 	tokenVars := map[string]any{}
 
@@ -707,6 +715,11 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 	if err != nil {
 		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
+
+	// See VerifyConnectToken: hold a read lock across verification so a concurrent
+	// Reload can't change the signing/config fields mid-verification.
+	verifier.mu.RLock()
+	defer verifier.mu.RUnlock()
 
 	tokenVars := map[string]any{}
 
