@@ -170,21 +170,18 @@ func durationToIntervalString(d time.Duration) string {
 	return "1 milliseconds"
 }
 
-// hashtext approximates PostgreSQL hashtext() for shard routing. We only need
-// consistency within a process, not cross-process compatibility with PG.
-func hashtext(s string) int32 {
-	var h int32
+// hashtext is a simple polynomial hash used only for in-process read-replica
+// routing. It only needs consistency within a process, not cross-process
+// compatibility with PostgreSQL's hashtext() (which uses Jenkins lookup3 and is
+// used separately inside SQL for shard assignment). It returns uint32 so the
+// result is always non-negative and can be taken modulo NumShards directly (no
+// abs, and no math.MinInt32 overflow edge case).
+func hashtext(s string) uint32 {
+	var h uint32
 	for i := 0; i < len(s); i++ {
-		h = h*31 + int32(s[i])
+		h = h*31 + uint32(s[i])
 	}
 	return h
-}
-
-func abs32(n int32) int {
-	if n < 0 {
-		return int(-n)
-	}
-	return int(n)
 }
 
 // OutboxConfig configures outbox-based delivery.
@@ -599,7 +596,7 @@ func (e *PostgresStreamBroker) getReadPool(channel string, allowCached bool) *pg
 	if !allowCached || len(e.readPools) == 0 {
 		return e.pool
 	}
-	shardID := abs32(hashtext(channel)) % e.conf.NumShards
+	shardID := int(hashtext(channel) % uint32(e.conf.NumShards))
 	replicaIdx := shardID % len(e.readPools)
 	return e.readPools[replicaIdx]
 }

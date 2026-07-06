@@ -563,29 +563,24 @@ func (e *PostgresMapBroker) getReadPool(channel string, allowCached bool) *pgxpo
 	if !allowCached || len(e.readPools) == 0 {
 		return e.pool
 	}
-	shardID := abs32(hashtext(channel)) % e.conf.NumShards
+	shardID := int(hashtext(channel) % uint32(e.conf.NumShards))
 	replicaIdx := shardID % len(e.readPools)
 	return e.readPools[replicaIdx]
 }
 
-// hashtext is a simple polynomial hash used for shard/replica routing.
-// It does NOT match PostgreSQL's hashtext() (which uses Jenkins lookup3) —
-// values differ for the same input. That is intentional: we only need
-// consistent routing within a single process; the PostgreSQL function is used
-// inside SQL for shard assignment, which is independent of this Go path.
-func hashtext(s string) int32 {
-	var h int32
+// hashtext is a simple polynomial hash used only for in-process read-replica
+// routing. It does NOT match PostgreSQL's hashtext() (which uses Jenkins
+// lookup3) — values differ for the same input, which is fine: replicas are
+// interchangeable, and the PostgreSQL function is used separately inside SQL for
+// shard assignment. It returns uint32 so the result is always non-negative and
+// can be taken modulo NumShards directly (no abs, and no math.MinInt32 overflow
+// edge case).
+func hashtext(s string) uint32 {
+	var h uint32
 	for i := 0; i < len(s); i++ {
-		h = h*31 + int32(s[i])
+		h = h*31 + uint32(s[i])
 	}
 	return h
-}
-
-func abs32(n int32) int {
-	if n < 0 {
-		return int(-n)
-	}
-	return int(n)
 }
 
 // RegisterEventHandler registers the event handler and starts background workers.
