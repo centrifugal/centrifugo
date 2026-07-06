@@ -70,8 +70,48 @@ Please reach out in the community rooms if the help with the migration is needed
 
 The security issue was reported in [GHSA-9468-v6mj-fppw](https://github.com/centrifugal/centrifugo/security/advisories/GHSA-9468-v6mj-fppw).
 
+### Improvements
+
+* NATS JetStream consumer: recreate the consumer on `ErrConsumerDeleted`, `ErrConsumerNotFound` and `ErrStreamNotFound` instead of getting permanently stuck ([#1166](https://github.com/centrifugal/centrifugo/pull/1166), commit [`920d0c23`](https://github.com/centrifugal/centrifugo/commit/920d0c23)). By @thuy-le-kafi.
+* Reworked web admin UI — now Vite-based, uses CodeMirror instead of Monaco (for offline work) and includes various UX improvements ([#1169](https://github.com/centrifugal/centrifugo/pull/1169), commit [`fa984f0f`](https://github.com/centrifugal/centrifugo/commit/fa984f0f)).
+* NATS JetStream consumer: back off redelivery with capped exponential delay instead of an instant `Nak`, avoiding hot redelivery loops on a poison message ([#1175](https://github.com/centrifugal/centrifugo/pull/1175), commit [`ddda397e`](https://github.com/centrifugal/centrifugo/commit/ddda397e)).
+* Google Pub/Sub consumer: re-subscribe with capped backoff on a receive error instead of exiting the receive loop (which previously left the consumer silently stopped) ([#1176](https://github.com/centrifugal/centrifugo/pull/1176), commit [`5f6b3871`](https://github.com/centrifugal/centrifugo/commit/5f6b3871)).
+* NATS JetStream consumer: reset the consume backoff only after a session has run healthy long enough, preventing rapid reconnect flapping ([#1176](https://github.com/centrifugal/centrifugo/pull/1176), commit [`c591b954`](https://github.com/centrifugal/centrifugo/commit/c591b954)).
+
+### Fixes
+
+A lot of issues were discovered and then fixed by LLM:
+
+* Authentication: hold the read lock across the whole token verification to fix a data race between token verification and JWKS/config reload ([#1168](https://github.com/centrifugal/centrifugo/pull/1168), commit [`e30aca89`](https://github.com/centrifugal/centrifugo/commit/e30aca89)).
+* PostgreSQL broker: fix `hashtext(channel)` integer overflow that could panic shard routing when the hash landed exactly on `INT_MIN` ([#1170](https://github.com/centrifugal/centrifugo/pull/1170), commit [`b52a3cb4`](https://github.com/centrifugal/centrifugo/commit/b52a3cb4)).
+* PostgreSQL broker: self-heal a partial fresh install where only one of the JSONB/binary variant tables was created, which previously wedged schema setup ([#1171](https://github.com/centrifugal/centrifugo/pull/1171), commit [`cd85c450`](https://github.com/centrifugal/centrifugo/commit/cd85c450)).
+* PostgreSQL broker: fix publication timestamps being zeroed by incorrect `timestamptz` text parsing ([#1174](https://github.com/centrifugal/centrifugo/pull/1174), commit [`3e163854`](https://github.com/centrifugal/centrifugo/commit/3e163854)).
+* PostgreSQL stream broker: fix reverse history pagination returning already-seen or empty pages and never reaching older messages ([#1177](https://github.com/centrifugal/centrifugo/pull/1177), commit [`2a58bf7f`](https://github.com/centrifugal/centrifugo/commit/2a58bf7f)).
+* PostgreSQL outbox: ping the advisory-lock connection while the worker is busy (not only when idle) so a silently dropped lock session is detected promptly, preventing dual-leader processing ([#1172](https://github.com/centrifugal/centrifugo/pull/1172), commit [`aee4cb6c`](https://github.com/centrifugal/centrifugo/commit/aee4cb6c)).
+* NATS: strip the internal epoch tag before delivering publications so it no longer leaks to clients ([#1174](https://github.com/centrifugal/centrifugo/pull/1174), commit [`05fb837c`](https://github.com/centrifugal/centrifugo/commit/05fb837c)).
+* Azure Service Bus: abandon (instead of complete) a message when processing fails so it is redelivered rather than silently dropped ([#1173](https://github.com/centrifugal/centrifugo/pull/1173), commit [`0b59fc3a`](https://github.com/centrifugal/centrifugo/commit/0b59fc3a)).
+* Azure Service Bus: guard a boolean application-property type assertion against a panic on non-string values ([#1172](https://github.com/centrifugal/centrifugo/pull/1172), commit [`4cce70ff`](https://github.com/centrifugal/centrifugo/commit/4cce70ff)).
+* Unidirectional WebSocket: clear the HTTP/2 write deadline after a frame ping — a leftover expired deadline could otherwise fail the stream permanently on HTTP/2 ([#1175](https://github.com/centrifugal/centrifugo/pull/1175), commit [`519c27a4`](https://github.com/centrifugal/centrifugo/commit/519c27a4)).
+* Bidirectional WebSocket: clear the HTTP/2 write deadline after a frame ping when native frame ping-pong is used. Similar fix to the above's for unidirectional WebSocket. See [centrifugal/centrifuge#588](https://github.com/centrifugal/centrifuge/pull/588).
+* WebTransport: coerce a `message_size_limit` of `0` to the default, preventing unbounded per-message memory use (OOM) ([#1179](https://github.com/centrifugal/centrifugo/pull/1179), commit [`45751b29`](https://github.com/centrifugal/centrifugo/commit/45751b29)).
+* Unidirectional gRPC: use the uni-gRPC TLS config for the uni-gRPC server (the API-gRPC TLS config was used before) ([#1180](https://github.com/centrifugal/centrifugo/pull/1180), commit [`2fffa613`](https://github.com/centrifugal/centrifugo/commit/2fffa613)).
+* Unidirectional gRPC: gracefully shut down the uni-gRPC server on exit — it was assigned to the wrong variable and never stopped ([#1180](https://github.com/centrifugal/centrifugo/pull/1180), commit [`2169cdcc`](https://github.com/centrifugal/centrifugo/commit/2169cdcc)).
+* Redis: use the Sentinel TLS config for the Sentinel connection instead of the main Redis TLS config ([#1179](https://github.com/centrifugal/centrifugo/pull/1179), commit [`a043b736`](https://github.com/centrifugal/centrifugo/commit/a043b736)).
+* Fix crash on a null connect request received over unidirectional transports ([#1173](https://github.com/centrifugal/centrifugo/pull/1173), commit [`e5140842`](https://github.com/centrifugal/centrifugo/commit/e5140842)).
+* Fix crash on a nil command inside a batch server API request ([#1173](https://github.com/centrifugal/centrifugo/pull/1173), commit [`59f0ed16`](https://github.com/centrifugal/centrifugo/commit/59f0ed16)).
+* Server API: decode `b64data`/`b64info` in the `subscribe` method (they were ignored) ([#1177](https://github.com/centrifugal/centrifugo/pull/1177), commit [`e1b3ecdd`](https://github.com/centrifugal/centrifugo/commit/e1b3ecdd)).
+* Server API: translate the unrecoverable-position error in the map read methods so clients receive the proper error ([#1178](https://github.com/centrifugal/centrifugo/pull/1178), commit [`3278277f`](https://github.com/centrifugal/centrifugo/commit/3278277f)).
+* Proxy: cancel the subscribe-stream proxy on all post-open error paths, fixing a context/goroutine leak ([#1179](https://github.com/centrifugal/centrifugo/pull/1179), commit [`8eb4fe9c`](https://github.com/centrifugal/centrifugo/commit/8eb4fe9c)).
+* Enforce `connection_rate_limit` even when `connection_limit` is not set ([#1174](https://github.com/centrifugal/centrifugo/pull/1174), commit [`a914f5cf`](https://github.com/centrifugal/centrifugo/commit/a914f5cf)).
+* Stop the Redis queue from installing a process-global signal handler ([#1174](https://github.com/centrifugal/centrifugo/pull/1174), commit [`658bc52e`](https://github.com/centrifugal/centrifugo/commit/658bc52e)).
+* Metrics: label per-channel Broadcast publish failures as `broadcast_publish` instead of reusing the `publish` label ([#1172](https://github.com/centrifugal/centrifugo/pull/1172), commit [`0188e07f`](https://github.com/centrifugal/centrifugo/commit/0188e07f)).
+* Metrics: bound HTTP metric label cardinality by the matched route pattern instead of the raw request path ([#1179](https://github.com/centrifugal/centrifugo/pull/1179), commit [`475a8669`](https://github.com/centrifugal/centrifugo/commit/475a8669)).
+* Config validation: fix transform error messages and the `h2c_external` check ([#1178](https://github.com/centrifugal/centrifugo/pull/1178), commit [`6d057175`](https://github.com/centrifugal/centrifugo/commit/6d057175)).
+* Logging: redact passwords containing special characters in logged URLs ([#1180](https://github.com/centrifugal/centrifugo/pull/1180), commit [`84c32661`](https://github.com/centrifugal/centrifugo/commit/84c32661)).
+
 ### Miscellaneous
 
+* Removed the undocumented and unused dev page ([#1181](https://github.com/centrifugal/centrifugo/pull/1181), commit [`d29c3893`](https://github.com/centrifugal/centrifugo/commit/d29c3893)).
 * This release is built with Go 1.26.4
 * Dependency updates
 * See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.9.0).
