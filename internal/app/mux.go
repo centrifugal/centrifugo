@@ -15,7 +15,6 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 	"github.com/centrifugal/centrifugo/v6/internal/conninit"
-	"github.com/centrifugal/centrifugo/v6/internal/devpage"
 	"github.com/centrifugal/centrifugo/v6/internal/health"
 	"github.com/centrifugal/centrifugo/v6/internal/middleware"
 	"github.com/centrifugal/centrifugo/v6/internal/swaggerui"
@@ -68,8 +67,6 @@ const (
 	HandlerInit
 	// HandlerSwagger handles swagger UI.
 	HandlerSwagger
-	// HandlerDev handles development page.
-	HandlerDev
 )
 
 var handlerText = map[HandlerFlag]string{
@@ -88,11 +85,10 @@ var handlerText = map[HandlerFlag]string{
 	HandlerEmulation:     "emulation",
 	HandlerInit:          "init",
 	HandlerSwagger:       "swagger",
-	HandlerDev:           "dev",
 }
 
 func (flags HandlerFlag) String() string {
-	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerWebtransport, HandlerHTTPStream, HandlerSSE, HandlerEmulation, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniHTTPStream, HandlerSwagger, HandlerDev, HandlerInit}
+	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerWebtransport, HandlerHTTPStream, HandlerSSE, HandlerEmulation, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniHTTPStream, HandlerSwagger, HandlerInit}
 	var endpoints []string
 	for _, flag := range flagsOrdered {
 		text, ok := handlerText[flag]
@@ -311,14 +307,6 @@ func Mux(
 		mux.Handle(healthPrefix, basicChain.Then(health.NewHandler(n, health.Config{})))
 	}
 
-	if flags&HandlerDev != 0 {
-		devPrefix := strings.TrimRight(cfg.Dev.HandlerPrefix, "/")
-		if devPrefix == "" {
-			devPrefix = "/"
-		}
-		mux.Handle(devPrefix+"/", basicChain.Then(devpage.NewHandler(cfg)))
-	}
-
 	return mux
 }
 
@@ -381,7 +369,6 @@ func runHTTPServers(
 	usePrometheus := cfg.Prometheus.Enabled
 	useHealth := cfg.Health.Enabled
 	useSwagger := cfg.Swagger.Enabled
-	useDev := cfg.Dev.Enabled
 	useConnInit := cfg.Init.Enabled
 
 	adminExternal := cfg.Admin.External
@@ -446,9 +433,6 @@ func runHTTPServers(
 	}
 	if cfg.UniHTTPStream.Enabled {
 		portFlags |= HandlerUniHTTPStream
-	}
-	if useDev {
-		portFlags |= HandlerDev
 	}
 	if useConnInit {
 		portFlags |= HandlerInit

@@ -102,7 +102,6 @@ type Config struct {
 	// Debug helps to enable Go profiling endpoints.
 	Debug configtypes.Debug `mapstructure:"debug" json:"debug" envconfig:"debug" toml:"debug" yaml:"debug" doc:"Configures Go pprof profiling endpoints. For debugging only - do not expose publicly."`
 	// Dev is a configuration for development page with simple Centrifugo client connection test.
-	Dev configtypes.Dev `mapstructure:"dev" json:"dev" envconfig:"dev" toml:"dev" yaml:"dev" expose:"-"`
 	// Init is a configuration for connection initialization endpoint.
 	Init configtypes.ConnInit `mapstructure:"init" json:"init" envconfig:"init" toml:"init" yaml:"init" doc:"Configures the connection initialization endpoint."`
 

@@ -25,9 +25,6 @@ func logStartWarnings(cfg config.Config, cfgMeta config.Meta) {
 	if cfg.Debug.Enabled {
 		log.Warn().Msg("DEBUG mode enabled, see on " + cfg.Debug.HandlerPrefix)
 	}
-	if cfg.Dev.Enabled {
-		log.Warn().Msg("INSECURE dev endpoint enabled, use only in development, see on " + cfg.Dev.HandlerPrefix)
-	}
 
 	for _, key := range cfgMeta.UnknownKeys {
 		log.Warn().Str("key", key).Msg("unknown key in configuration file")
