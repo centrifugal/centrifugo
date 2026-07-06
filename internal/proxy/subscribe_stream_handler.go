@@ -173,6 +173,11 @@ func (h *SubscribeStreamHandler) Handle() SubscribeStreamHandlerFunc {
 
 		if subscribeRep.Disconnect != nil {
 			//proxyCallErrorCount.WithLabelValues(proxyName, "subscribe", "disconnect_"+strconv.FormatUint(uint64(subscribeRep.Disconnect.Code), 10)).Inc()
+			// SubscribeStream returned successfully here, so it has opened the stream
+			// and spawned its reader goroutine. Every rejection/error return below
+			// must cancel it or the stream context and goroutine leak until the
+			// client disconnects.
+			cancelFunc()
 			return centrifuge.SubscribeReply{}, nil, nil, &centrifuge.Disconnect{
 				Code:   subscribeRep.Disconnect.Code,
 				Reason: subscribeRep.Disconnect.Reason,
@@ -180,6 +185,7 @@ func (h *SubscribeStreamHandler) Handle() SubscribeStreamHandlerFunc {
 		}
 		if subscribeRep.Error != nil {
 			//proxyCallErrorCount.WithLabelValues(proxyName, "subscribe", "error_"+strconv.FormatUint(uint64(subscribeRep.Error.Code), 10)).Inc()
+			cancelFunc()
 			return centrifuge.SubscribeReply{}, nil, nil, &centrifuge.Error{
 				Code:    subscribeRep.Error.Code,
 				Message: subscribeRep.Error.Message,
@@ -199,6 +205,7 @@ func (h *SubscribeStreamHandler) Handle() SubscribeStreamHandlerFunc {
 				decodedInfo, err := base64.StdEncoding.DecodeString(subscribeRep.Result.B64Info)
 				if err != nil {
 					log.Error().Err(err).Str("client", client.ID()).Msg("error decoding base64 info")
+					cancelFunc()
 					return centrifuge.SubscribeReply{}, nil, nil, centrifuge.ErrorInternal
 				}
 				info = decodedInfo
@@ -209,6 +216,7 @@ func (h *SubscribeStreamHandler) Handle() SubscribeStreamHandlerFunc {
 				decodedData, err := base64.StdEncoding.DecodeString(subscribeRep.Result.B64Data)
 				if err != nil {
 					log.Error().Err(err).Str("client", client.ID()).Msg("error decoding base64 data")
+					cancelFunc()
 					return centrifuge.SubscribeReply{}, nil, nil, centrifuge.ErrorInternal
 				}
 				data = decodedData
@@ -337,6 +345,9 @@ func (p *SubscribeStreamProxy) SubscribeStream(
 	}()
 
 	if resp.SubscribeResponse == nil {
+		// The reader goroutine was already spawned above, so cancel before
+		// returning an error or it (and the derived context) leaks.
+		cancel()
 		return nil, nil, nil, errors.New("no subscribe response in first message from stream proxy")
 	}
 	return resp.SubscribeResponse, publishFunc, cancel, nil

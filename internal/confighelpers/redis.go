@@ -109,7 +109,7 @@ func getRedisShardConfigs(redisConf configtypes.Redis) ([]centrifuge.RedisShardC
 			}
 			conf.SentinelClientName = redisConf.SentinelClientName
 			if redisConf.SentinelTLS.Enabled {
-				tlsConfig, err := redisConf.TLS.ToGoTLSConfig("redis_sentinel")
+				tlsConfig, err := redisConf.SentinelTLS.ToGoTLSConfig("redis_sentinel")
 				if err != nil {
 					return nil, fmt.Errorf("error creating Redis Sentinel TLS config: %v", err)
 				}
