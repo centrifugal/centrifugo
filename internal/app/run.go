@@ -294,9 +294,9 @@ func Run(cmd *cobra.Command, configFile string) {
 	var grpcUniServer *grpc.Server
 	if cfg.UniGRPC.Enabled {
 		var err error
-		grpcAPIServer, err = runGRPCUniServer(cfg, node)
+		grpcUniServer, err = runGRPCUniServer(cfg, node)
 		if err != nil {
-			log.Fatal().Err(err).Msg("error creating GRPC API server")
+			log.Fatal().Err(err).Msg("error creating uni GRPC server")
 		}
 	}
 

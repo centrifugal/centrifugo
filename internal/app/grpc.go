@@ -83,8 +83,8 @@ func runGRPCUniServer(cfg config.Config, node *centrifuge.Node) (*grpc.Server, e
 	}
 
 	var uniGrpcTLSConfig *tls.Config
-	if cfg.GrpcAPI.TLS.Enabled {
-		uniGrpcTLSConfig, err = cfg.GrpcAPI.TLS.ToGoTLSConfig("uni_grpc")
+	if cfg.UniGRPC.TLS.Enabled {
+		uniGrpcTLSConfig, err = cfg.UniGRPC.TLS.ToGoTLSConfig("uni_grpc")
 		if err != nil {
 			return nil, fmt.Errorf("error getting TLS config for uni GRPC: %v", err)
 		}
