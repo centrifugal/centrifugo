@@ -13,6 +13,12 @@ import (
 // spikes — otherwise we spuriously release and re-acquire the lock.
 const lockPingMinTimeout = 2 * time.Second
 
+// lockLivenessInterval bounds how often the lock-holding connection is pinged
+// for liveness, whether the worker is busy or idle. It caps how long a silently
+// dropped lock connection — and therefore a dual-leader window — can go
+// undetected under a sustained backlog (where the worker never goes idle).
+const lockLivenessInterval = 5 * time.Second
+
 // LockWorker runs the advisory-lock variant of the outbox poll loop.
 //
 // Unlike Worker, LockWorker holds a session-scoped PostgreSQL advisory
@@ -170,6 +176,7 @@ func (lw *LockWorker) runLockedSession(ctx context.Context, closeCh <-chan struc
 		return false
 	}
 
+	lastLockPing := time.Now()
 	for {
 		select {
 		case <-closeCh:
@@ -207,41 +214,31 @@ func (lw *LockWorker) runLockedSession(ctx context.Context, closeCh <-chan struc
 			return false
 		}
 
+		// Ping the lock-holding connection on a time bound, whether the worker is
+		// busy or idle. Postgres releases the advisory lock when this session dies,
+		// so a silently reaped lock conn (pgbouncer reaping it, kernel TCP timeout,
+		// a network partition affecting only this conn) lets another node acquire
+		// the lock and dual-process. The lock conn is TCP-idle while queries run on
+		// PollPool, and under a sustained backlog the worker never reaches the idle
+		// wait below — so this liveness ping must run here, not only when idle. On
+		// failure, drop the session and re-acquire, restoring single-writer
+		// semantics.
+		if time.Since(lastLockPing) >= lockLivenessInterval {
+			alive, ctxDone := lw.pingLockConn(ctx, lockConn)
+			if ctxDone {
+				return true
+			}
+			if !alive {
+				return false
+			}
+			lastLockPing = time.Now()
+		}
+
 		if !idle {
 			continue
 		}
 
-		// Idle wait. While waiting, periodically ping the lock-holding
-		// connection so we detect silent session loss (pgbouncer reaping the
-		// idle conn, kernel TCP timeout, transient network partition
-		// affecting only this conn). If the lock conn dies, Postgres
-		// releases the advisory lock automatically on session end and
-		// another node could acquire it — leading to dual-leader processing
-		// of the same outbox region. The ping turns that into an explicit
-		// "lock lost" → release and re-acquire, restoring single-writer
-		// semantics. Cost is one round-trip per PollInterval during idle
-		// periods; during active batching the PollPool path already
-		// exercises the broader connection state.
-		//
-		// The ping timeout is decoupled from PollInterval: PollInterval
-		// controls idle cadence (often sub-second), but a ping is a TCP
-		// RTT liveness probe that must tolerate transient latency spikes
-		// without spuriously dropping the lock.
-		pingTimeout := lw.PollInterval
-		if pingTimeout < lockPingMinTimeout {
-			pingTimeout = lockPingMinTimeout
-		}
-		pingCtx, cancel := context.WithTimeout(ctx, pingTimeout)
-		err := lockConn.Conn().Ping(pingCtx)
-		cancel()
-		if err != nil {
-			if ctx.Err() != nil {
-				return true
-			}
-			lw.ErrorFn("outbox worker: lock connection ping failed — releasing lock", err)
-			return false
-		}
-
+		// Idle wait.
 		select {
 		case <-closeCh:
 			return true
@@ -250,6 +247,30 @@ func (lw *LockWorker) runLockedSession(ctx context.Context, closeCh <-chan struc
 		case <-time.After(lw.PollInterval):
 		}
 	}
+}
+
+// pingLockConn checks the lock-holding connection is still alive. Returns
+// (alive, ctxDone): alive=false means the connection is dead — Postgres has (or
+// will) release the advisory lock, so the caller must drop the session and
+// re-acquire; ctxDone=true means the worker is shutting down. The ping timeout
+// is decoupled from PollInterval (which can be sub-second) with a floor so a
+// transient latency spike doesn't spuriously drop the lock.
+func (lw *LockWorker) pingLockConn(ctx context.Context, lockConn *pgxpool.Conn) (alive bool, ctxDone bool) {
+	pingTimeout := lw.PollInterval
+	if pingTimeout < lockPingMinTimeout {
+		pingTimeout = lockPingMinTimeout
+	}
+	pingCtx, cancel := context.WithTimeout(ctx, pingTimeout)
+	err := lockConn.Conn().Ping(pingCtx)
+	cancel()
+	if err != nil {
+		if ctx.Err() != nil {
+			return false, true
+		}
+		lw.ErrorFn("outbox worker: lock connection ping failed — releasing lock", err)
+		return false, false
+	}
+	return true, false
 }
 
 // releaseAdvisoryLock explicitly releases an advisory lock held on conn.
