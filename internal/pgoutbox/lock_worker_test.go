@@ -64,9 +64,10 @@ func findLockHolderPID(t *testing.T, pool *pgxpool.Pool, lockID int64) int32 {
 // TestLockWorker_LockConnTerminationDetected is the regression test for the
 // advisory-lock health-check ping. Once the worker has acquired the advisory
 // lock, an external session terminates the lock-holding backend; Postgres
-// then auto-releases the advisory lock. The ping during the next idle wait
-// must detect the dead session and surface it via ErrorFn so the worker
-// releases the (already-gone) lock and re-acquires it via the outer loop.
+// then auto-releases the advisory lock. The time-gated liveness ping (fires
+// every lockLivenessInterval, whether the worker is idle or busy) must detect
+// the dead session and surface it via ErrorFn so the worker releases the
+// (already-gone) lock and re-acquires it via the outer loop.
 //
 // Without the ping, the worker would happily continue polling on a healthy
 // PollPool connection while another node could have already acquired the
@@ -147,7 +148,7 @@ func TestLockWorker_LockConnTerminationDetected(t *testing.T) {
 			}
 		}
 		return false
-	}, 3*time.Second, 100*time.Millisecond, "ping failure was not surfaced via ErrorFn")
+	}, lockLivenessInterval+3*time.Second, 100*time.Millisecond, "ping failure was not surfaced via ErrorFn")
 
 	// And the worker should be able to re-acquire the lock under a fresh
 	// connection on its next cycle. We don't assert specific PIDs because
