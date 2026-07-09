@@ -294,6 +294,13 @@ const (
 	Command_SEND_PUSH_NOTIFICATION CommandMethodType = 30
 	Command_UPDATE_PUSH_STATUS     CommandMethodType = 31
 	Command_CANCEL_PUSH            CommandMethodType = 32
+	Command_MAP_PUBLISH            CommandMethodType = 33
+	Command_MAP_REMOVE             CommandMethodType = 34
+	Command_MAP_READ_STATE         CommandMethodType = 35
+	Command_MAP_READ_STREAM        CommandMethodType = 36
+	Command_MAP_STATS              CommandMethodType = 37
+	Command_MAP_CLEAR              CommandMethodType = 38
+	Command_SHARED_POLL_PUBLISH    CommandMethodType = 39
 )
 
 var Command_MethodType_value = map[string]int32{
@@ -329,6 +336,13 @@ var Command_MethodType_value = map[string]int32{
 	"SEND_PUSH_NOTIFICATION": 30,
 	"UPDATE_PUSH_STATUS":     31,
 	"CANCEL_PUSH":            32,
+	"MAP_PUBLISH":            33,
+	"MAP_REMOVE":             34,
+	"MAP_READ_STATE":         35,
+	"MAP_READ_STREAM":        36,
+	"MAP_STATS":              37,
+	"MAP_CLEAR":              38,
+	"SHARED_POLL_PUBLISH":    39,
 }
 
 var (
@@ -365,6 +379,13 @@ var (
 		30: "SEND_PUSH_NOTIFICATION",
 		31: "UPDATE_PUSH_STATUS",
 		32: "CANCEL_PUSH",
+		33: "MAP_PUBLISH",
+		34: "MAP_REMOVE",
+		35: "MAP_READ_STATE",
+		36: "MAP_READ_STREAM",
+		37: "MAP_STATS",
+		38: "MAP_CLEAR",
+		39: "SHARED_POLL_PUBLISH",
 	}
 )
 
@@ -610,6 +631,132 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 		} else {
 			if resp.Result != nil {
 				replyRes, err = encoder.EncodeChannels(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case Command_MAP_PUBLISH:
+		cmd, err := decoder.DecodeMapPublish(params)
+		if err != nil {
+			log.Error().Err(err).Msg("error decoding map publish params")
+			rep.Error = apiproto.ErrorBadRequest
+			return rep, nil
+		}
+		resp := s.api.MapPublish(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeMapPublish(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case Command_MAP_REMOVE:
+		cmd, err := decoder.DecodeMapRemove(params)
+		if err != nil {
+			log.Error().Err(err).Msg("error decoding map remove params")
+			rep.Error = apiproto.ErrorBadRequest
+			return rep, nil
+		}
+		resp := s.api.MapRemove(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeMapRemove(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case Command_MAP_READ_STATE:
+		cmd, err := decoder.DecodeMapReadState(params)
+		if err != nil {
+			log.Error().Err(err).Msg("error decoding map read state params")
+			rep.Error = apiproto.ErrorBadRequest
+			return rep, nil
+		}
+		resp := s.api.MapReadState(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeMapReadState(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case Command_MAP_READ_STREAM:
+		cmd, err := decoder.DecodeMapReadStream(params)
+		if err != nil {
+			log.Error().Err(err).Msg("error decoding map read stream params")
+			rep.Error = apiproto.ErrorBadRequest
+			return rep, nil
+		}
+		resp := s.api.MapReadStream(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeMapReadStream(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case Command_MAP_STATS:
+		cmd, err := decoder.DecodeMapStats(params)
+		if err != nil {
+			log.Error().Err(err).Msg("error decoding map stats params")
+			rep.Error = apiproto.ErrorBadRequest
+			return rep, nil
+		}
+		resp := s.api.MapStats(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeMapStats(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case Command_MAP_CLEAR:
+		cmd, err := decoder.DecodeMapClear(params)
+		if err != nil {
+			log.Error().Err(err).Msg("error decoding map clear params")
+			rep.Error = apiproto.ErrorBadRequest
+			return rep, nil
+		}
+		resp := s.api.MapClear(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeMapClear(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case Command_SHARED_POLL_PUBLISH:
+		cmd, err := decoder.DecodeSharedPollPublish(params)
+		if err != nil {
+			log.Error().Err(err).Msg("error decoding shared poll publish params")
+			rep.Error = apiproto.ErrorBadRequest
+			return rep, nil
+		}
+		resp := s.api.SharedPollPublish(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeSharedPollPublish(resp.Result)
 				if err != nil {
 					return nil, err
 				}

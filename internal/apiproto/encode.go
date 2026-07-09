@@ -15,4 +15,11 @@ type ResultEncoder interface {
 	EncodeRPC(*RPCResult) ([]byte, error)
 	EncodeRefresh(*RefreshResult) ([]byte, error)
 	EncodeChannels(*ChannelsResult) ([]byte, error)
+	EncodeMapPublish(*MapPublishResult) ([]byte, error)
+	EncodeMapRemove(*MapRemoveResult) ([]byte, error)
+	EncodeMapReadState(*MapReadStateResult) ([]byte, error)
+	EncodeMapReadStream(*MapReadStreamResult) ([]byte, error)
+	EncodeMapStats(*MapStatsResult) ([]byte, error)
+	EncodeMapClear(*MapClearResult) ([]byte, error)
+	EncodeSharedPollPublish(*SharedPollPublishResult) ([]byte, error)
 }
