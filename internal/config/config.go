@@ -101,7 +101,6 @@ type Config struct {
 	Swagger configtypes.Swagger `mapstructure:"swagger" json:"swagger" envconfig:"swagger" toml:"swagger" yaml:"swagger" doc:"Configures the Swagger UI endpoint describing the server HTTP API."`
 	// Debug helps to enable Go profiling endpoints.
 	Debug configtypes.Debug `mapstructure:"debug" json:"debug" envconfig:"debug" toml:"debug" yaml:"debug" doc:"Configures Go pprof profiling endpoints. For debugging only - do not expose publicly."`
-	// Dev is a configuration for development page with simple Centrifugo client connection test.
 	// Init is a configuration for connection initialization endpoint.
 	Init configtypes.ConnInit `mapstructure:"init" json:"init" envconfig:"init" toml:"init" yaml:"init" doc:"Configures the connection initialization endpoint."`
 
@@ -151,7 +150,6 @@ func DefineFlags(rootCmd *cobra.Command) {
 	rootCmd.Flags().BoolP("prometheus.enabled", "", false, "enable Prometheus metrics endpoint")
 	rootCmd.Flags().BoolP("swagger.enabled", "", false, "enable Swagger UI endpoint describing server HTTP API")
 	rootCmd.Flags().BoolP("health.enabled", "", false, "enable health check endpoint")
-	rootCmd.Flags().BoolP("dev.enabled", "", false, "enable dev endpoint (must be used only in development)")
 	rootCmd.Flags().BoolP("uni_websocket.enabled", "", false, "enable unidirectional websocket endpoint")
 	rootCmd.Flags().BoolP("uni_sse.enabled", "", false, "enable unidirectional SSE (EventSource) endpoint")
 	rootCmd.Flags().BoolP("uni_http_stream.enabled", "", false, "enable unidirectional HTTP-streaming endpoint")
@@ -186,7 +184,7 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 			"admin.insecure", "client.insecure", "http_api.insecure", "http_api.external", "prometheus.enabled",
 			"health.enabled", "grpc_api.enabled", "grpc_api.port", "uni_grpc.enabled", "uni_grpc.port",
 			"uni_websocket.enabled", "uni_sse.enabled", "uni_http_stream.enabled", "sse.enabled", "http_stream.enabled",
-			"swagger.enabled", "dev.enabled", "init.enabled",
+			"swagger.enabled", "init.enabled",
 		}
 		for _, flag := range bindPFlags {
 			_ = v.BindPFlag(flag, cmd.Flags().Lookup(flag))
