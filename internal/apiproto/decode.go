@@ -16,4 +16,11 @@ type RequestDecoder interface {
 	DecodeRPC([]byte) (*RPCRequest, error)
 	DecodeRefresh([]byte) (*RefreshRequest, error)
 	DecodeChannels([]byte) (*ChannelsRequest, error)
+	DecodeMapPublish([]byte) (*MapPublishRequest, error)
+	DecodeMapRemove([]byte) (*MapRemoveRequest, error)
+	DecodeMapReadState([]byte) (*MapReadStateRequest, error)
+	DecodeMapReadStream([]byte) (*MapReadStreamRequest, error)
+	DecodeMapStats([]byte) (*MapStatsRequest, error)
+	DecodeMapClear([]byte) (*MapClearRequest, error)
+	DecodeSharedPollPublish([]byte) (*SharedPollPublishRequest, error)
 }
