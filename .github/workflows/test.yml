@@ -13,7 +13,7 @@ jobs:
     # Prevent duplicate builds on internal PRs.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
           go-version: stable
@@ -35,7 +35,7 @@ jobs:
         go-version: [1.26.5]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Install Go
         uses: actions/setup-go@v6
