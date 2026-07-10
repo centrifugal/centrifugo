@@ -219,7 +219,6 @@ type ChannelOptions struct {
 type MapConfig struct {
 	Mode                              string   `mapstructure:"mode" json:"mode" envconfig:"mode" yaml:"mode" toml:"mode" expose:"full" doc:"Map mode controlling how keys are stored and delivered. See map subscription docs for supported values."`
 	KeyTTL                            Duration `mapstructure:"key_ttl" json:"key_ttl" envconfig:"key_ttl" yaml:"key_ttl" toml:"key_ttl" doc:"How long a key is retained in the map after its last update, e.g. <<300s>>. Zero means no expiration."`
-	Ordered                           bool     `mapstructure:"ordered" json:"ordered" envconfig:"ordered" yaml:"ordered" toml:"ordered" doc:"Preserves key ordering when delivering the map state to subscribers."`
 	StreamSize                        int      `mapstructure:"stream_size" json:"stream_size" envconfig:"stream_size" yaml:"stream_size" toml:"stream_size" doc:"Maximum number of updates kept in the per-channel change stream used to bring subscribers up to date."`
 	StreamTTL                         Duration `mapstructure:"stream_ttl" json:"stream_ttl" envconfig:"stream_ttl" yaml:"stream_ttl" toml:"stream_ttl" doc:"How long the per-channel change stream is retained, e.g. <<60s>>."`
 	MetaTTL                           Duration `mapstructure:"meta_ttl" json:"meta_ttl" envconfig:"meta_ttl" yaml:"meta_ttl" toml:"meta_ttl" doc:"How long map stream meta information is retained. Should be larger than stream_ttl."`
