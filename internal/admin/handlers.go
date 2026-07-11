@@ -90,8 +90,6 @@ func (s *Handler) adminSecureTokenAuth(h http.Handler) http.Handler {
 				return
 			}
 			token = parts[1]
-		} else {
-			token = r.URL.Query().Get("token")
 		}
 
 		if token == "" || !checkSecureAdminToken(secret, token) {
@@ -123,9 +121,6 @@ func (s *Handler) initHandler(w http.ResponseWriter, r *http.Request) {
 			if len(parts) == 2 && strings.ToLower(parts[0]) == "token" {
 				token = parts[1]
 			}
-		}
-		if token == "" {
-			token = r.URL.Query().Get("token")
 		}
 		if token != "" && checkSecureAdminToken(secret, token) {
 			authenticated = true
