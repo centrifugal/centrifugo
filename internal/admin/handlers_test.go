@@ -157,7 +157,8 @@ func TestAdminSecureTokenAuth_ValidToken(t *testing.T) {
 	require.NoError(t, err)
 
 	authHandler := handler.adminSecureTokenAuth(finalHandler)
-	req := httptest.NewRequest("GET", "/admin/api?token="+token, nil)
+	req := httptest.NewRequest("GET", "/admin/api", nil)
+	req.Header.Set("Authorization", "token "+token)
 	resp := httptest.NewRecorder()
 
 	authHandler.ServeHTTP(resp, req)
@@ -176,7 +177,8 @@ func TestAdminSecureTokenAuth_InvalidToken(t *testing.T) {
 	})
 
 	authHandler := handler.adminSecureTokenAuth(finalHandler)
-	req := httptest.NewRequest("GET", "/admin/api?token=invalid-token", nil)
+	req := httptest.NewRequest("GET", "/admin/api", nil)
+	req.Header.Set("Authorization", "token invalid-token")
 	resp := httptest.NewRecorder()
 
 	authHandler.ServeHTTP(resp, req)
