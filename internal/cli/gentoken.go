@@ -70,7 +70,7 @@ func genToken(cmd *cobra.Command, genTokenConfigFile string, genTokenUser string
 // generateToken generates sample JWT for user.
 func generateToken(config jwtverify.VerifierConfig, user string, ttlSeconds int64) (string, error) {
 	if config.HMACSecretKey == "" {
-		return "", errors.New("no HMAC secret key set")
+		return "", errors.New("gentoken only supports generating HMAC-signed tokens, but no HMAC secret key is set in the configuration (client.token.hmac_secret_key) – if you use RSA/ECDSA/JWKS token verification you need to generate the JWT with your own tooling")
 	}
 	signer, err := jwt.NewSignerHS(jwt.HS256, []byte(config.HMACSecretKey))
 	if err != nil {

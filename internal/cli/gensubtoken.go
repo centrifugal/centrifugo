@@ -86,7 +86,7 @@ func genSubToken(
 // generateSubToken generates sample subscription JWT for user.
 func generateSubToken(config jwtverify.VerifierConfig, user string, channel string, ttlSeconds int64) (string, error) {
 	if config.HMACSecretKey == "" {
-		return "", errors.New("no HMAC secret key set")
+		return "", errors.New("gensubtoken only supports generating HMAC-signed tokens, but no HMAC secret key is set in the configuration (client.subscription_token.token.hmac_secret_key, or client.token.hmac_secret_key when subscription token is not separately configured) – if you use RSA/ECDSA/JWKS token verification you need to generate the JWT with your own tooling")
 	}
 	signer, err := jwt.NewSignerHS(jwt.HS256, []byte(config.HMACSecretKey))
 	if err != nil {
