@@ -6,6 +6,7 @@ updates:
       interval: monthly
     ignore:
       - dependency-name: github.com/centrifugal/centrifuge # updating manually.
+      - dependency-name: github.com/mailru/easyjson # updating manually.
     groups:
       go-packages:
         patterns:
