@@ -4,7 +4,6 @@ _Scalable real-time messaging server in a language-agnostic way._
 
 [![CI](https://github.com/centrifugal/centrifugo/actions/workflows/test.yml/badge.svg)](https://github.com/centrifugal/centrifugo/actions/workflows/test.yml)
 [![Release](https://img.shields.io/github/v/release/centrifugal/centrifugo?sort=semver)](https://github.com/centrifugal/centrifugo/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/centrifugal/centrifugo)](https://goreportcard.com/report/github.com/centrifugal/centrifugo)
 [![Docker Pulls](https://img.shields.io/docker/pulls/centrifugo/centrifugo)](https://hub.docker.com/r/centrifugo/centrifugo)
 [![License](https://img.shields.io/github/license/centrifugal/centrifugo)](https://github.com/centrifugal/centrifugo/blob/master/LICENSE)
 [![Telegram](https://img.shields.io/badge/Telegram-join-26A5E4?logo=telegram&logoColor=white)](https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ)
