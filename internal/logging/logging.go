@@ -51,13 +51,26 @@ var logStringToLevel = map[string]centrifuge.LogLevel{
 	"none":  centrifuge.LogLevelNone,
 }
 
+// centrifugeLogHandlerBufferSize is the number of log entries buffered between
+// the (many) goroutines producing them and the single goroutine writing them
+// out. Handle drops entries when this is full, so the buffer has to absorb
+// bursts rather than merely smooth a steady rate.
+//
+// Bursts are exactly when the logs matter. A Redis failover, for instance, makes
+// every shard's client and control PUB/SUB loop log connection errors, subscribe
+// errors and lifecycle transitions at nearly the same instant, while the drain
+// goroutine is rate-limited by writing to stdout. The previous value of 64 was
+// overrun easily in that situation — and with log_level debug, which is what an
+// operator turns on to investigate, it fills faster still.
+const centrifugeLogHandlerBufferSize = 1024
+
 type centrifugeLogHandler struct {
 	entries chan centrifuge.LogEntry
 }
 
 func newCentrifugeLogHandler() *centrifugeLogHandler {
 	h := &centrifugeLogHandler{
-		entries: make(chan centrifuge.LogEntry, 64),
+		entries: make(chan centrifuge.LogEntry, centrifugeLogHandlerBufferSize),
 	}
 	go h.readEntries()
 	return h
