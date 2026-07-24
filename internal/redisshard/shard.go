@@ -52,6 +52,19 @@ func NewRedisShard(conf RedisShardConfig) (*RedisShard, error) {
 		MaxFlushDelay:    100 * time.Microsecond,
 		Dialer: net.Dialer{
 			Timeout: conf.ConnectTimeout,
+			// KeepAlive doubles as the rueidis keepalive PING cadence — the
+			// mechanism that detects a silently stalled connection (peer
+			// stops replying while TCP stays open) and errors out every
+			// pending command. Worst-case failure time for a command on a
+			// stalled connection is 2*KeepAlive + IOTimeout: a straggler
+			// reply can make one keepalive tick look active, only the next
+			// tick sends a PING, and the PING waits a full IOTimeout. The
+			// rueidis default of 1s gives 6s with the default 4s IOTimeout;
+			// 400ms keeps the worst case within 5s (4.8s), since commands
+			// are issued without per-request context deadlines. Same change
+			// as in centrifuge RedisShard, where a regression test pins the
+			// bound against a blackholed connection.
+			KeepAlive: 400 * time.Millisecond,
 		},
 	}
 
