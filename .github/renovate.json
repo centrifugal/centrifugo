@@ -1,0 +1,13 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "enabledManagers": ["dockerfile"],
+  "packageRules": [
+    {
+      "description": "Alpine base image: only propose stable MAJOR.MINOR release tags (no edge, RC, patch or datestamp tags).",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["alpine"],
+      "allowedVersions": "/^\\d+\\.\\d+$/"
+    }
+  ]
+}
