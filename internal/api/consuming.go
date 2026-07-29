@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/centrifugal/centrifugo/v6/internal/apiproto"
 
@@ -39,6 +40,18 @@ func logNonRetryableConsumingError(err error, method string) {
 	log.Error().Err(err).Str("method", method).Msg("non retryable error during consuming, skip message")
 }
 
+// ErrShutdown is returned to consumers for messages received after Node shutdown
+// started. Such messages must not be acknowledged: this node is no longer able to
+// deliver them, and depending on the broker a publish may still return success (a
+// memory broker never fails, so without this check a message would be committed
+// while going nowhere). Returning an error makes consumers leave the message
+// unacknowledged, so it's redelivered to another node or after restart.
+//
+// It wraps context.Canceled since consumers treat cancellation as a stop signal
+// and give up immediately instead of retrying with backoff until the shutdown
+// timeout is reached.
+var ErrShutdown = fmt.Errorf("node is shutting down: %w", context.Canceled)
+
 type Dispatcher struct {
 	handler *ConsumingHandler
 }
@@ -46,6 +59,16 @@ type Dispatcher struct {
 func NewDispatcher(handler *ConsumingHandler) *Dispatcher {
 	return &Dispatcher{
 		handler: handler,
+	}
+}
+
+// shuttingDown returns true once Node shutdown started.
+func (d *Dispatcher) shuttingDown() bool {
+	select {
+	case <-d.handler.node.NotifyShutdown():
+		return true
+	default:
+		return false
 	}
 }
 
@@ -104,6 +127,9 @@ type ConsumedPublication struct {
 func (d *Dispatcher) DispatchPublication(
 	ctx context.Context, channels []string, pub ConsumedPublication,
 ) error {
+	if d.shuttingDown() {
+		return ErrShutdown
+	}
 	if len(channels) == 0 {
 		return nil
 	}
@@ -264,6 +290,9 @@ type MethodWithRequestPayload struct {
 
 // DispatchCommand processes commands received from asynchronous consumers.
 func (d *Dispatcher) DispatchCommand(ctx context.Context, method string, payload []byte) error {
+	if d.shuttingDown() {
+		return ErrShutdown
+	}
 	if method != "" {
 		// If method already known – we can skip decoding into MethodWithRequestPayload.
 		return d.dispatchMethodPayload(ctx, method, payload)

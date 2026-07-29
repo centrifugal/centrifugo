@@ -59,6 +59,11 @@ func Run(cmd *cobra.Command, configFile string) {
 	ctx, serviceCancel := context.WithCancel(context.Background())
 	defer serviceCancel()
 
+	// Ingest services (async consumers) have a separate lifecycle from the rest of
+	// services – see the shutdown sequence in handleSignals.
+	ingestCtx, ingestCancel := context.WithCancel(context.Background())
+	defer ingestCancel()
+
 	centrifugeLogHandler, logCloseFn := logging.Setup(cfg)
 	if logCloseFn != nil {
 		defer logCloseFn()
@@ -220,7 +225,11 @@ func Run(cmd *cobra.Command, configFile string) {
 		log.Fatal().Err(err).Msg("error initializing consumers")
 	}
 
-	serviceManager.Register(consumingServices...)
+	// Consumers are registered in a separate manager: unlike other services they
+	// must be stopped before Node shutdown, so that no consumed message is
+	// acknowledged after this node lost the ability to deliver it.
+	ingestManager := service.NewManager()
+	ingestManager.Register(consumingServices...)
 
 	if cfg.Graphite.Enabled {
 		serviceManager.Register(graphiteExporter(cfg, nodeCfg))
@@ -271,16 +280,8 @@ func Run(cmd *cobra.Command, configFile string) {
 		log.Fatal().Err(err).Msg("error running node")
 	}
 
-	serviceDone := make(chan struct{})
-	serviceManager.Run(ctx)
-	go func() {
-		defer close(serviceDone)
-		err := serviceManager.Wait()
-		if err != nil && !errors.Is(err, context.Canceled) {
-			log.Error().Err(err).Msg("error running service")
-			os.Exit(1)
-		}
-	}()
+	serviceDone := runServices(ctx, serviceManager)
+	ingestDone := runServices(ingestCtx, ingestManager)
 
 	var grpcAPIServer *grpc.Server
 	if cfg.GrpcAPI.Enabled {
@@ -310,15 +311,31 @@ func Run(cmd *cobra.Command, configFile string) {
 	handleSignals(
 		cmd, configFile, node, cfgContainer, tokenVerifier, subTokenVerifier,
 		httpServers, grpcAPIServer, grpcUniServer,
-		serviceDone, serviceCancel,
+		serviceDone, serviceCancel, ingestDone, ingestCancel,
 	)
+}
+
+// runServices runs all services registered in the manager and returns a channel
+// closed when all of them stopped.
+func runServices(ctx context.Context, manager *service.Manager) chan struct{} {
+	done := make(chan struct{})
+	manager.Run(ctx)
+	go func() {
+		defer close(done)
+		err := manager.Wait()
+		if err != nil && !errors.Is(err, context.Canceled) {
+			log.Error().Err(err).Msg("error running service")
+			os.Exit(1)
+		}
+	}()
+	return done
 }
 
 func handleSignals(
 	cmd *cobra.Command, configFile string, n *centrifuge.Node, cfgContainer *config.Container,
 	tokenVerifier *jwtverify.VerifierJWT, subTokenVerifier *jwtverify.VerifierJWT, httpServers []*http.Server,
 	grpcAPIServer *grpc.Server, grpcUniServer *grpc.Server, serviceDone chan struct{},
-	serviceCancel context.CancelFunc,
+	serviceCancel context.CancelFunc, ingestDone chan struct{}, ingestCancel context.CancelFunc,
 ) {
 	cfg := cfgContainer.Config()
 	sigCh := make(chan os.Signal, 1)
@@ -402,6 +419,16 @@ func handleSignals(
 					_ = srv.Shutdown(context.Background()) // We have a separate timeout goroutine.
 				}(srv)
 			}
+
+			// Stop consuming messages before Node shutdown and wait until consumers
+			// stopped. Otherwise a message consumed here may be acknowledged while
+			// this node is already unable to deliver it – such message must be left
+			// unacknowledged instead, to be redelivered upon restart. Note that we
+			// don't wait for HTTP/GRPC servers here: their shutdown only completes
+			// after Node disconnected clients, since long-lived streaming requests
+			// (SSE, HTTP-streaming, unidirectional GRPC) are in-flight until then.
+			ingestCancel()
+			<-ingestDone
 
 			_ = n.Shutdown(context.Background()) // We have a separate timeout goroutine.
 			wg.Wait()
