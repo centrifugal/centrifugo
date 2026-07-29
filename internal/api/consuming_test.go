@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/centrifugal/centrifugo/v6/internal/apiproto"
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 
 	"github.com/stretchr/testify/require"
@@ -57,6 +58,17 @@ func TestDispatcherErrorsAfterNodeShutdown(t *testing.T) {
 
 	err = dispatcher.DispatchPublication(context.Background(), []string{"test"}, ConsumedPublication{
 		Data: []byte(`{}`),
+	})
+	require.ErrorIs(t, err, ErrShutdown)
+
+	// Typed entry points must behave the same way.
+	err = dispatcher.Publish(context.Background(), &apiproto.PublishRequest{
+		Channel: "test", Data: []byte(`{}`),
+	})
+	require.ErrorIs(t, err, ErrShutdown)
+
+	err = dispatcher.Broadcast(context.Background(), &apiproto.BroadcastRequest{
+		Channels: []string{"test"}, Data: []byte(`{}`),
 	})
 	require.ErrorIs(t, err, ErrShutdown)
 }

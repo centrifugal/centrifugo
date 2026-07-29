@@ -73,6 +73,9 @@ func (d *Dispatcher) shuttingDown() bool {
 }
 
 func (d *Dispatcher) Publish(ctx context.Context, req *apiproto.PublishRequest) error {
+	if d.shuttingDown() {
+		return ErrShutdown
+	}
 	resp := d.handler.api.Publish(ctx, req)
 	if d.handler.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
@@ -88,6 +91,9 @@ func (d *Dispatcher) Publish(ctx context.Context, req *apiproto.PublishRequest) 
 }
 
 func (d *Dispatcher) Broadcast(ctx context.Context, req *apiproto.BroadcastRequest) error {
+	if d.shuttingDown() {
+		return ErrShutdown
+	}
 	resp := d.handler.api.Broadcast(ctx, req)
 	if d.handler.config.UseOpenTelemetry && resp.Error != nil {
 		span := trace.SpanFromContext(ctx)
