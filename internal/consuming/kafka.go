@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -498,6 +499,18 @@ func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {
 						pausedTopicPartitions[tp] = struct{}{}
 					}
 				}
+
+				// Clone p.Records to a fresh, tightly-sized backing array before enqueueing.
+				// The []*kgo.Record slice returned by franz-go points into the per-partition
+				// array franz-go grew via append while decoding the fetch response. That array
+				// can hold many more *Record pointers than the window we take here (up to
+				// MaxPollRecords); Go's GC tracks the whole backing allocation, so retaining
+				// the sub-slice keeps every pointer in the original array reachable — including
+				// records semantically stripped when the partition gets paused. That in turn
+				// keeps their Record structs and the batch buffers their Values point into
+				// alive, amplifying heap usage under lag. Cloning breaks the reference so the
+				// queue only pins the records we actually intend to process.
+				p.Records = slices.Clone(p.Records)
 
 				// Now submit to unbounded queue.
 				if !consumer.queue.Push(p) {
