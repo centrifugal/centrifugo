@@ -8,12 +8,12 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus v1.10.0
 	github.com/FZambia/eagle v0.2.0
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
-	github.com/aws/aws-sdk-go-v2 v1.42.1
-	github.com/aws/aws-sdk-go-v2/config v1.32.29
-	github.com/aws/aws-sdk-go-v2/credentials v1.19.28
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.45.0
-	github.com/aws/aws-sdk-go-v2/service/sts v1.44.0
-	github.com/aws/smithy-go v1.27.3
+	github.com/aws/aws-sdk-go-v2 v1.43.1
+	github.com/aws/aws-sdk-go-v2/config v1.32.32
+	github.com/aws/aws-sdk-go-v2/credentials v1.19.31
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.46.1
+	github.com/aws/aws-sdk-go-v2/service/sts v1.45.1
+	github.com/aws/smithy-go v1.27.5
 	github.com/centrifugal/centrifuge v0.38.1-0.20260711082514-84d40cc4dbf6
 	github.com/centrifugal/protocol v0.19.2
 	github.com/cristalhq/jwt/v5 v5.4.0
@@ -25,13 +25,13 @@ require (
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/joho/godotenv v1.5.1
 	github.com/justinas/alice v1.2.0
-	github.com/mattn/go-isatty v0.0.22
+	github.com/mattn/go-isatty v0.0.24
 	github.com/nats-io/nats.go v1.52.0
 	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
-	github.com/prometheus/client_golang v1.23.2
-	github.com/quic-go/quic-go v0.60.0
-	github.com/quic-go/webtransport-go v0.11.1
+	github.com/prometheus/client_golang v1.24.1
+	github.com/quic-go/quic-go v0.61.0
+	github.com/quic-go/webtransport-go v0.12.0
 	github.com/rakutentech/jwk-go v1.2.0
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/cobra v1.10.2
@@ -43,7 +43,7 @@ require (
 	github.com/twmb/franz-go/pkg/kadm v1.18.0
 	github.com/twmb/franz-go/pkg/kmsg v1.13.1
 	github.com/valyala/fasttemplate v1.2.2
-	github.com/yuin/goldmark v1.8.4
+	github.com/yuin/goldmark v1.8.5
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.69.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.69.0
 	go.opentelemetry.io/otel v1.44.0
@@ -55,14 +55,14 @@ require (
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.22.0
 	golang.org/x/time v0.15.0
-	google.golang.org/api v0.288.0
+	google.golang.org/api v0.291.0
 	google.golang.org/grpc v1.82.1
 	google.golang.org/protobuf v1.36.11
 )
 
 require (
 	cloud.google.com/go v0.123.0 // indirect
-	cloud.google.com/go/auth v0.21.0 // indirect
+	cloud.google.com/go/auth v0.22.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cloud.google.com/go/iam v1.11.0 // indirect
@@ -71,20 +71,20 @@ require (
 	github.com/Azure/go-amqp v1.7.0 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.7.2 // indirect
 	github.com/Masterminds/semver/v3 v3.5.0 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.30 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.30 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.30 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.31 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.13 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.30 // indirect
-	github.com/aws/aws-sdk-go-v2/service/signin v1.4.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.32.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.37.0 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.32 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.32 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.32 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.33 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.14 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.32 // indirect
+	github.com/aws/aws-sdk-go-v2/service/signin v1.5.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.33.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.38.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/dunglas/httpsfv v1.1.0 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
-	github.com/googleapis/enterprise-certificate-proxy v0.3.18 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.3.19 // indirect
 	github.com/googleapis/gax-go/v2 v2.23.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
@@ -118,14 +118,14 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
-	github.com/klauspost/compress v1.19.0 // indirect
+	github.com/klauspost/compress v1.19.1 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/nats-io/nkeys v0.4.16 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.2
-	github.com/prometheus/common v0.70.0 // indirect
+	github.com/prometheus/common v0.70.1 // indirect
 	github.com/prometheus/procfs v0.21.1 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/redis/rueidis v1.0.76
@@ -142,6 +142,6 @@ require (
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260706201446-f0a921348800 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260706201446-f0a921348800 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260724162435-b2f20204f0df // indirect
 	gopkg.in/yaml.v3 v3.0.1
 )
