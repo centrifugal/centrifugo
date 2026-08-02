@@ -103,7 +103,7 @@ func TestWebTransportWithLogMiddleware(t *testing.T) {
 		<-servErr
 	}()
 
-	d := webtransport.Dialer{
+	d := webtransport.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		QUICConfig:      &quic.Config{EnableDatagrams: true, EnableStreamResetPartialDelivery: true},
 	}
