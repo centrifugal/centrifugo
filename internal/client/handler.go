@@ -177,7 +177,14 @@ func (h *Handler) Setup() error {
 			if !ok {
 				return centrifuge.SharedPollResult{}, centrifuge.ErrorInternal
 			}
-			return handler(ctx, event)
+			result, err := handler(ctx, event)
+			if err != nil {
+				return centrifuge.SharedPollResult{}, err
+			}
+			if err := validateSharedPollRefreshData(event.Channel, chOpts.PublicationDataFormat, result.Items); err != nil {
+				return centrifuge.SharedPollResult{}, err
+			}
+			return result, nil
 		})
 	}
 
@@ -977,6 +984,32 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 		log.Error().Err(err).Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("error publishing message")
 	}
 	return centrifuge.PublishReply{Result: &result}, err
+}
+
+// validateSharedPollRefreshData checks data returned by a shared poll refresh
+// proxy against the channel publication_data_format. Data comes from the
+// application backend, so a format mismatch is a configuration/implementation
+// mistake rather than untrusted input – reject the entire batch loudly instead
+// of delivering payloads subscribers are not able to parse.
+//
+// Items without data are skipped: a refresh response carries no data both for
+// removals and for keys the backend reports as unchanged, and this layer can't
+// tell "unchanged" from "changed to empty" (only the shared poll manager knows
+// the current version of a key). So the empty-data rule of the default format
+// is not applied here, while json/json_object still catch malformed payloads.
+func validateSharedPollRefreshData(channel string, format string, items []centrifuge.SharedPollRefreshItem) error {
+	for _, item := range items {
+		if item.Removed || len(item.Data) == 0 {
+			continue
+		}
+		if err := config.ValidatePublicationData(item.Data, format); err != nil {
+			log.Error().Err(err).Str("channel", channel).Str("key", item.Key).
+				Str("publication_data_format", format).
+				Msg("shared poll refresh data does not match channel publication_data_format, rejecting the whole refresh batch – fix the data returned by the shared poll refresh proxy")
+			return centrifuge.ErrorBadRequest
+		}
+	}
+	return nil
 }
 
 // OnMapPublish ...

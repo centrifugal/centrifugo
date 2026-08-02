@@ -1826,3 +1826,51 @@ func TestOnMapPublishDataFormat(t *testing.T) {
 		})
 	}
 }
+
+// TestValidateSharedPollRefreshData ensures a shared poll refresh batch is
+// rejected as a whole when the backend returns data not matching the channel
+// publication_data_format, while removals and data-less "unchanged" items pass.
+func TestValidateSharedPollRefreshData(t *testing.T) {
+	const ch = "sp:test"
+
+	t.Run("valid batch accepted", func(t *testing.T) {
+		err := validateSharedPollRefreshData(ch, configtypes.PublicationDataFormatJSONObject, []centrifuge.SharedPollRefreshItem{
+			{Key: "k1", Data: []byte(`{"v":1}`), Version: 1},
+			{Key: "k2", Data: []byte(`{"v":2}`), Version: 1},
+		})
+		require.NoError(t, err)
+	})
+
+	t.Run("one bad item rejects whole batch", func(t *testing.T) {
+		err := validateSharedPollRefreshData(ch, configtypes.PublicationDataFormatJSONObject, []centrifuge.SharedPollRefreshItem{
+			{Key: "k1", Data: []byte(`{"v":1}`), Version: 1},
+			{Key: "k2", Data: []byte(`[1,2]`), Version: 1},
+			{Key: "k3", Data: []byte(`{"v":3}`), Version: 1},
+		})
+		require.Equal(t, centrifuge.ErrorBadRequest, err)
+	})
+
+	t.Run("invalid json rejected", func(t *testing.T) {
+		err := validateSharedPollRefreshData(ch, configtypes.PublicationDataFormatJSON, []centrifuge.SharedPollRefreshItem{
+			{Key: "k1", Data: []byte(`not json`), Version: 1},
+		})
+		require.Equal(t, centrifuge.ErrorBadRequest, err)
+	})
+
+	t.Run("removals and data-less items skipped", func(t *testing.T) {
+		// Removals carry no data, and an unchanged key may come back without
+		// data — neither must trip the empty-data rule of the default format.
+		err := validateSharedPollRefreshData(ch, "", []centrifuge.SharedPollRefreshItem{
+			{Key: "k1", Removed: true},
+			{Key: "k2", Version: 7},
+		})
+		require.NoError(t, err)
+	})
+
+	t.Run("binary format allows anything", func(t *testing.T) {
+		err := validateSharedPollRefreshData(ch, configtypes.PublicationDataFormatBinary, []centrifuge.SharedPollRefreshItem{
+			{Key: "k1", Data: []byte{0x00, 0x01, 0xff}, Version: 1},
+		})
+		require.NoError(t, err)
+	})
+}
