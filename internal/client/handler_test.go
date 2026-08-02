@@ -1513,6 +1513,134 @@ func TestSharedPollRefreshProxyDispatch_FallbackToDefault(t *testing.T) {
 	require.Equal(t, 1, defaultCalls)
 }
 
+// TestOnTrackPreviousSecretKeyRotation checks that shared_poll
+// hmac_previous_secret_key_valid_until bounds the previous key usage in real
+// server time. The iat inside a signature is chosen by whoever minted it, so a
+// holder of the rotated-out key must not be able to keep minting accepted
+// signatures after the cutoff by backdating iat.
+func TestOnTrackPreviousSecretKeyRotation(t *testing.T) {
+	const (
+		currentKey = "current-secret-key"
+		prevKey    = "previous-secret-key"
+		channel    = "shared:poll"
+		userID     = "42"
+	)
+	keys := []string{"key1", "key2"}
+
+	newHandlerWithClient := func(t *testing.T, validUntil int64) (*Handler, *centrifuge.Client, func()) {
+		t.Helper()
+		node := tools.NodeWithMemoryEngineNoHandlers()
+
+		cfg := config.DefaultConfig()
+		cfg.SharedPoll.HMACSecretKey = currentKey
+		cfg.SharedPoll.HMACPreviousSecretKey = prevKey
+		cfg.SharedPoll.HMACPreviousSecretKeyValidUntil = validUntil
+		cfg.Channel.Proxy.SharedPollRefresh.Endpoint = "http://localhost:9999"
+		cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
+			{
+				Name:           "shared",
+				ChannelOptions: configtypes.ChannelOptions{SubscriptionType: "shared_poll"},
+			},
+		}
+		cfgContainer, err := config.NewContainer(cfg)
+		require.NoError(t, err)
+		h := NewHandler(node, cfgContainer, hmacJWTVerifier(t, cfgContainer), nil, &ProxyMap{})
+
+		node.OnConnecting(func(ctx context.Context, event centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+			return centrifuge.ConnectReply{Credentials: &centrifuge.Credentials{UserID: userID}}, nil
+		})
+
+		transport := tools.NewTestTransport()
+		client, closeFn, err := centrifuge.NewClient(context.Background(), node, transport)
+		require.NoError(t, err)
+
+		encoder := protocol.NewJSONCommandEncoder()
+		data, err := encoder.Encode(&protocol.Command{Id: 1, Connect: &protocol.ConnectRequest{}})
+		require.NoError(t, err)
+		require.True(t, centrifuge.HandleReadFrame(client, bytes.NewReader(data), 1<<20))
+
+		return h, client, func() {
+			_ = closeFn()
+			_ = node.Shutdown(context.Background())
+		}
+	}
+
+	track := func(h *Handler, client *centrifuge.Client, sig string) (centrifuge.TrackReply, error) {
+		return h.OnTrack(client, centrifuge.TrackEvent{
+			Channel: channel,
+			Batches: []centrifuge.TrackBatch{{
+				Items:     []centrifuge.TrackItem{{Key: keys[0]}, {Key: keys[1]}},
+				Signature: sig,
+			}},
+		})
+	}
+
+	now := time.Now().Unix()
+
+	t.Run("previous key accepted inside grace period", func(t *testing.T) {
+		validUntil := now + 3600
+		h, client, cleanup := newHandlerWithClient(t, validUntil)
+		defer cleanup()
+
+		sig := makeTestSignature(prevKey, channel, keys, userID, now-60, now+300)
+		reply, err := track(h, client, sig)
+		require.NoError(t, err)
+		require.Len(t, reply.Batches, 1)
+		require.Equal(t, now+300, reply.Batches[0].ExpireAt)
+	})
+
+	t.Run("previous key rejected for iat after cutoff", func(t *testing.T) {
+		validUntil := now + 3600
+		h, client, cleanup := newHandlerWithClient(t, validUntil)
+		defer cleanup()
+
+		sig := makeTestSignature(prevKey, channel, keys, userID, validUntil+1, now+300)
+		_, err := track(h, client, sig)
+		require.Equal(t, centrifuge.ErrorPermissionDenied, err)
+	})
+
+	t.Run("previous key rejected after cutoff passed", func(t *testing.T) {
+		validUntil := now - 3600
+		h, client, cleanup := newHandlerWithClient(t, validUntil)
+		defer cleanup()
+
+		// Honest signature – iat tells the truth about when it was minted.
+		sig := makeTestSignature(prevKey, channel, keys, userID, now, now+300)
+		_, err := track(h, client, sig)
+		require.Equal(t, centrifuge.ErrorPermissionDenied, err)
+
+		// Backdated signature – minted now but claiming an iat before the cutoff.
+		// Must be rejected too, otherwise the cutoff protects nothing against
+		// someone who retained the rotated-out key.
+		sig = makeTestSignature(prevKey, channel, keys, userID, validUntil-10, now+300)
+		_, err = track(h, client, sig)
+		require.Equal(t, centrifuge.ErrorPermissionDenied, err)
+	})
+
+	t.Run("current key still accepted after cutoff passed", func(t *testing.T) {
+		validUntil := now - 3600
+		h, client, cleanup := newHandlerWithClient(t, validUntil)
+		defer cleanup()
+
+		sig := makeTestSignature(currentKey, channel, keys, userID, now, now+300)
+		reply, err := track(h, client, sig)
+		require.NoError(t, err)
+		require.Len(t, reply.Batches, 1)
+		require.Equal(t, now+300, reply.Batches[0].ExpireAt)
+	})
+
+	t.Run("previous key accepted when no cutoff configured", func(t *testing.T) {
+		h, client, cleanup := newHandlerWithClient(t, 0)
+		defer cleanup()
+
+		sig := makeTestSignature(prevKey, channel, keys, userID, now, now+300)
+		reply, err := track(h, client, sig)
+		require.NoError(t, err)
+		require.Len(t, reply.Batches, 1)
+		require.Equal(t, now+300, reply.Batches[0].ExpireAt)
+	})
+}
+
 func TestSingleConnection(t *testing.T) {
 	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()

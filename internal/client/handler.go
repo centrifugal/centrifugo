@@ -1137,9 +1137,22 @@ func (h *Handler) OnTrack(c Client, e centrifuge.TrackEvent) (centrifuge.TrackRe
 		}
 		verified := verifier.verify(e.Channel, b.Signature, keys, c.UserID())
 		if !verified && prevVerifier != nil {
-			if sharedPollCfg.HMACPreviousSecretKeyValidUntil > 0 {
+			if validUntil := sharedPollCfg.HMACPreviousSecretKeyValidUntil; validUntil > 0 {
+				// The rotation cutoff must be enforced against server time. The iat
+				// inside a signature is chosen by whoever minted it, so checking iat
+				// alone would let anyone holding the rotated-out key keep minting
+				// accepted signatures indefinitely by backdating iat – exactly the
+				// scenario the cutoff exists to contain. Once the cutoff passed the
+				// previous key is not consulted at all, same as JWT verifier does.
+				if now > validUntil {
+					log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("previous shared poll secret key expired")
+					return centrifuge.TrackReply{}, centrifuge.ErrorPermissionDenied
+				}
+				// Inside the grace period still require the signature to claim an iat
+				// at or before the cutoff, so an old-key backend which keeps issuing
+				// new signatures does not silently extend the rotation window.
 				iat, _ := parseSignatureTimestamps(b.Signature)
-				if iat > sharedPollCfg.HMACPreviousSecretKeyValidUntil {
+				if iat > validUntil {
 					log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("track signature issued after previous secret key expiry")
 					return centrifuge.TrackReply{}, centrifuge.ErrorPermissionDenied
 				}
