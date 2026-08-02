@@ -996,6 +996,12 @@ func (h *Handler) OnMapPublish(c Client, e centrifuge.MapPublishEvent, mapPublis
 		return centrifuge.MapPublishReply{}, err
 	}
 
+	// Data format validation
+	if err := config.ValidatePublicationData(e.Data, chOpts.PublicationDataFormat); err != nil {
+		log.Info().Err(err).Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("map publish data validation failed")
+		return centrifuge.MapPublishReply{}, centrifuge.ErrorBadRequest
+	}
+
 	if chOpts.Map.PublishProxyEnabled {
 		if mapPublishProxyHandler == nil {
 			log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("map publish proxy not enabled")

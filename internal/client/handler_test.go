@@ -1764,3 +1764,65 @@ func TestSingleConnection(t *testing.T) {
 		return res.NumClients == 1 && res.NumUsers == 1
 	}, 5*time.Second, 100*time.Millisecond, "expected presence stats to show 1 client and 1 user")
 }
+
+// TestOnMapPublishDataFormat ensures client map publish applies the namespace
+// publication_data_format policy, same as client stream publish does.
+func TestOnMapPublishDataFormat(t *testing.T) {
+	cases := []struct {
+		format     string
+		data       []byte
+		wantReject bool
+	}{
+		{configtypes.PublicationDataFormatJSONObject, []byte(`{"v":1}`), false},
+		{configtypes.PublicationDataFormatJSONObject, []byte(`[1,2]`), true},
+		{configtypes.PublicationDataFormatJSON, []byte(`nope`), true},
+		{configtypes.PublicationDataFormatBinary, nil, false},
+		{"", nil, true}, // default format rejects empty data
+	}
+	for _, c := range cases {
+		t.Run("format="+c.format, func(t *testing.T) {
+			node := tools.NodeWithMemoryEngineNoHandlers()
+			defer func() { _ = node.Shutdown(context.Background()) }()
+
+			cfg := config.DefaultConfig()
+			cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
+				{
+					Name: "mp",
+					ChannelOptions: configtypes.ChannelOptions{
+						SubscriptionType:      "map",
+						PublicationDataFormat: c.format,
+						Map: configtypes.MapConfig{
+							Mode:                  "ephemeral",
+							KeyTTL:                configtypes.Duration(time.Minute),
+							AllowPublishForClient: true,
+						},
+					},
+				},
+			}
+			cfgContainer, err := config.NewContainer(cfg)
+			require.NoError(t, err)
+			h := NewHandler(node, cfgContainer, hmacJWTVerifier(t, cfgContainer), nil, &ProxyMap{})
+
+			node.OnConnecting(func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+				return centrifuge.ConnectReply{Credentials: &centrifuge.Credentials{UserID: "42"}}, nil
+			})
+			transport := tools.NewTestTransport()
+			client, closeFn, err := centrifuge.NewClient(context.Background(), node, transport)
+			require.NoError(t, err)
+			defer func() { _ = closeFn() }()
+			enc := protocol.NewJSONCommandEncoder()
+			data, err := enc.Encode(&protocol.Command{Id: 1, Connect: &protocol.ConnectRequest{}})
+			require.NoError(t, err)
+			require.True(t, centrifuge.HandleReadFrame(client, bytes.NewReader(data), 1<<20))
+
+			_, err = h.OnMapPublish(client, centrifuge.MapPublishEvent{
+				Channel: "mp:test", Key: "k", Data: c.data,
+			}, nil)
+			if c.wantReject {
+				require.Equal(t, centrifuge.ErrorBadRequest, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
