@@ -14,7 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.46.5
 	github.com/aws/aws-sdk-go-v2/service/sts v1.45.5
 	github.com/aws/smithy-go v1.27.7
-	github.com/centrifugal/centrifuge v0.38.1-0.20260812044137-a63771cce903
+	github.com/centrifugal/centrifuge v0.38.1-0.20260812170737-ccb335a5d97b
 	github.com/centrifugal/protocol v0.20.1-0.20260811164823-815457ed4d09
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.5.0
@@ -39,7 +39,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.19.0
 	github.com/tidwall/sjson v1.2.5
-	github.com/twmb/franz-go v1.21.5
+	github.com/twmb/franz-go v1.21.6
 	github.com/twmb/franz-go/pkg/kadm v1.18.0
 	github.com/twmb/franz-go/pkg/kmsg v1.13.1
 	github.com/valyala/fasttemplate v1.2.2
@@ -128,7 +128,7 @@ require (
 	github.com/prometheus/common v0.70.1 // indirect
 	github.com/prometheus/procfs v0.21.1 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
-	github.com/redis/rueidis v1.0.76
+	github.com/redis/rueidis v1.0.77-0.20260811083940-91dfdfd3b348
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/segmentio/encoding v0.5.4
 	github.com/spf13/cast v1.10.0 // indirect
