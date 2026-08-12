@@ -18,6 +18,18 @@ import (
 const (
 	defaultRedisIOTimeout      = 4 * time.Second
 	defaultRedisConnectTimeout = time.Second
+
+	// sentinelTopologyRefreshInterval makes the Sentinel client periodically
+	// re-check its targets with Sentinels instead of relying solely on the
+	// +switch-master event. That event is the only way the client learns about
+	// a failover, and it can be missed — a demoted master keeps its connection
+	// alive and a role change sends no MOVED, so a client which missed the
+	// event stays pinned to a node that is now a read-only replica until
+	// restart. This is easy to hit with a Sentinel co-located with each Redis
+	// node (as in the Bitnami Redis Helm chart), where the client loses its
+	// Sentinel connection at the same moment the master dies and Redis PUB/SUB
+	// does not replay the missed message.
+	sentinelTopologyRefreshInterval = 5 * time.Second
 )
 
 type RedisShard struct {
@@ -103,8 +115,11 @@ func NewRedisShard(conf RedisShardConfig) (*RedisShard, error) {
 			addressOpts.ClientOption, addressOpts.IsCluster, addressOpts.IsSentinel, addressOpts.ReplicaClientEnabled
 	}
 
-	if isSentinel && options.Sentinel.MasterSet == "" {
-		return nil, errors.New("sentinel master name must be configured for Redis Sentinel setup")
+	if isSentinel {
+		if options.Sentinel.MasterSet == "" {
+			return nil, errors.New("sentinel master name must be configured for Redis Sentinel setup")
+		}
+		options.Sentinel.TopologyRefreshInterval = sentinelTopologyRefreshInterval
 	}
 
 	client, err := rueidis.NewClient(options)
