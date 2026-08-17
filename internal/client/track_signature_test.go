@@ -35,8 +35,15 @@ func TestTrackSignature_InvalidHMAC(t *testing.T) {
 	now := time.Now().Unix()
 	expiry := now + 3600
 	sig := makeTestSignature(testSecret, "test:channel", []string{"key1", "key2"}, "user1", now, expiry)
-	// Tamper with the signature.
-	sig = sig[:len(sig)-2] + "ff"
+	// Tamper with the signature by flipping its last hex character to a
+	// different one. Replacing it with a fixed value would be a no-op when the
+	// signature already happens to end in that value (~1/256 of runs), which made
+	// this test flaky.
+	repl := byte('f')
+	if sig[len(sig)-1] == 'f' {
+		repl = 'e'
+	}
+	sig = sig[:len(sig)-1] + string(repl)
 	require.False(t, verifyTrackSignature(testSecret, "test:channel", sig, []string{"key1", "key2"}, "user1"))
 }
 
