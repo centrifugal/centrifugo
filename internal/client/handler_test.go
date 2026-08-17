@@ -134,7 +134,7 @@ func TestClientHandlerSetup(t *testing.T) {
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
 	require.NoError(t, err)
-	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data), 1<<20)
 	require.True(t, ok)
 }
 
@@ -536,7 +536,7 @@ func TestClientSubscribeChannel(t *testing.T) {
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
 	require.NoError(t, err)
-	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data), 1<<20)
 	require.True(t, ok)
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
@@ -574,7 +574,7 @@ func TestClientSubscribeChannelNoPermission(t *testing.T) {
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
 	require.NoError(t, err)
-	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data), 1<<20)
 	require.True(t, ok)
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
@@ -613,7 +613,7 @@ func TestClientSubscribeChannelUserLimitedError(t *testing.T) {
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
 	require.NoError(t, err)
-	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data), 1<<20)
 	require.True(t, ok)
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
@@ -652,7 +652,7 @@ func TestClientSubscribeChannelUserLimitedOK(t *testing.T) {
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
 	require.NoError(t, err)
-	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data), 1<<20)
 	require.True(t, ok)
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
@@ -690,7 +690,7 @@ func TestClientSubscribeWithToken(t *testing.T) {
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
 	require.NoError(t, err)
-	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data), 1<<20)
 	require.True(t, ok)
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
@@ -748,7 +748,7 @@ func TestClientSubscribeWithTokenAnonymous(t *testing.T) {
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
 	require.NoError(t, err)
-	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data), 1<<20)
 	require.True(t, ok)
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
@@ -788,7 +788,7 @@ func TestClientSideSubRefresh(t *testing.T) {
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
 	require.NoError(t, err)
-	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data), 1<<20)
 	require.True(t, ok)
 
 	reply, _, err := h.OnSubscribe(client, centrifuge.SubscribeEvent{
@@ -856,7 +856,7 @@ func TestClientSideSubRefresh_SeparateSubTokenConfig(t *testing.T) {
 	encoder := protocol.NewJSONCommandEncoder()
 	data, err := encoder.Encode(connectCommand)
 	require.NoError(t, err)
-	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data))
+	ok := centrifuge.HandleReadFrame(client, bytes.NewReader(data), 1<<20)
 	require.True(t, ok)
 
 	_, _, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
@@ -1555,7 +1555,7 @@ func TestSingleConnection(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn1() }()
 
-	ok := centrifuge.HandleReadFrame(client1, bytes.NewReader(makeConnectCommandData("user42")))
+	ok := centrifuge.HandleReadFrame(client1, bytes.NewReader(makeConnectCommandData("user42")), 1<<20)
 	require.True(t, ok)
 
 	personalChannel := cfgContainer.PersonalChannel("user42")
@@ -1580,7 +1580,7 @@ func TestSingleConnection(t *testing.T) {
 	client2, closeFn2, err := centrifuge.NewClient(context.Background(), node, transport2)
 	require.NoError(t, err)
 	defer func() { _ = closeFn2() }()
-	ok = centrifuge.HandleReadFrame(client2, bytes.NewReader(makeConnectCommandData("user42")))
+	ok = centrifuge.HandleReadFrame(client2, bytes.NewReader(makeConnectCommandData("user42")), 1<<20)
 	require.True(t, ok)
 	require.Eventuallyf(t, func() bool {
 		res, err := node.PresenceStats(personalChannel)
@@ -1600,7 +1600,7 @@ func TestSingleConnection(t *testing.T) {
 	client3, closeFn3, err := centrifuge.NewClient(context.Background(), node, transport3)
 	require.NoError(t, err)
 	defer func() { _ = closeFn3() }()
-	ok = centrifuge.HandleReadFrame(client3, bytes.NewReader(makeConnectCommandData("user43")))
+	ok = centrifuge.HandleReadFrame(client3, bytes.NewReader(makeConnectCommandData("user43")), 1<<20)
 	require.True(t, ok)
 	require.Eventuallyf(t, func() bool {
 		res, err := node.PresenceStats(cfgContainer.PersonalChannel("user43")) // Note - another personal channel.
@@ -1624,7 +1624,7 @@ func TestSingleConnection(t *testing.T) {
 	client4, closeFn4, err := centrifuge.NewClient(context.Background(), node, transport4)
 	require.NoError(t, err)
 	defer func() { _ = closeFn4() }()
-	ok = centrifuge.HandleReadFrame(client4, bytes.NewReader(makeConnectCommandData("user42")))
+	ok = centrifuge.HandleReadFrame(client4, bytes.NewReader(makeConnectCommandData("user42")), 1<<20)
 	require.True(t, ok)
 
 	require.Eventuallyf(t, func() bool {
