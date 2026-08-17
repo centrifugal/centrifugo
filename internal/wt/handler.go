@@ -71,12 +71,12 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}(time.Now())
 	}
 
-	// Coerce 0 to the default, matching the other transports: in the stream
-	// decoder a limit of 0 means "unbounded", so without this an explicit
-	// message_size_limit: 0 (a natural "use default" choice for operators) would
-	// let a single frame trigger a huge allocation and OOM the process.
+	// Coerce a non-positive limit to the default, matching the other transports:
+	// the stream decoder requires a positive limit (it panics otherwise), so an
+	// explicit message_size_limit of 0 (a natural "use default" choice for
+	// operators) or a negative value must not reach it.
 	messageSizeLimit := int64(s.config.MessageSizeLimit)
-	if messageSizeLimit == 0 {
+	if messageSizeLimit <= 0 {
 		messageSizeLimit = defaultWebTransportMessageSizeLimit
 	}
 
