@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/api"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
@@ -35,7 +36,18 @@ func NewHandler(n *centrifuge.Node, apiExecutor *api.Executor, c Config) *Handle
 	mux := http.NewServeMux()
 	prefix := strings.TrimRight(h.config.HandlerPrefix, "/")
 	mux.Handle(prefix+"/admin/init", http.HandlerFunc(h.initHandler))
-	mux.Handle(prefix+"/admin/auth", middleware.Post(http.HandlerFunc(h.authHandler)))
+	// Throttle repeated failed password attempts per client IP to slow brute-force
+	// of admin.password. Only failures count and each IP is tracked independently,
+	// so a valid login is never throttled - including while another source attacks.
+	//
+	// This is best-effort, in-process protection only. The admin auth endpoint is
+	// intended to be reachable by trusted operators, and Centrifugo recommends
+	// restricting access to it at the infrastructure level (firewall rules, a
+	// private network, an authenticating reverse proxy, etc.). The throttle here
+	// raises the bar for brute-force but is not a substitute for that: the primary
+	// protection of the admin endpoint must be done at the infrastructure level.
+	authThrottle := middleware.NewAuthThrottle(10, time.Minute, nil)
+	mux.Handle(prefix+"/admin/auth", middleware.Post(authThrottle.Middleware(http.HandlerFunc(h.authHandler))))
 	mux.Handle(prefix+"/admin/api", middleware.Post(h.adminSecureTokenAuth(api.NewHandler(n, apiExecutor, api.Config{}).OldRoute())))
 
 	webPrefix := prefix + "/"
