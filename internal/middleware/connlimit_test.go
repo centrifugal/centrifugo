@@ -10,6 +10,7 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/tools"
 
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 )
 
 func TestConnLimit_ConnectionRate(t *testing.T) {
@@ -21,7 +22,11 @@ func TestConnLimit_ConnectionRate(t *testing.T) {
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 
-	ts := httptest.NewServer(NewConnLimit(node, cfgContainer).Middleware(testHandler()))
+	connLimit := NewConnLimit(node, cfgContainer)
+	require.Equal(t, rate.Limit(10), connLimit.rl.Limit())
+	require.Equal(t, 10, connLimit.rl.Burst())
+
+	ts := httptest.NewServer(connLimit.Middleware(testHandler()))
 	defer ts.Close()
 
 	for i := 0; i < 20; i++ {

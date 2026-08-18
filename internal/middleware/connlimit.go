@@ -54,7 +54,7 @@ func (l *ConnLimit) Middleware(h http.Handler) http.Handler {
 
 func connectionRateLimiter(connRateLimit int) *rate.Limiter {
 	if connRateLimit > 0 {
-		return rate.NewLimiter(rate.Every(time.Second), connRateLimit)
+		return rate.NewLimiter(rate.Limit(connRateLimit), connRateLimit)
 	}
 	return nil
 }
