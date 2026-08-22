@@ -776,7 +776,7 @@ type Consumer struct {
 
 func decodeToNamedSlice(value string, target interface{}) error {
 	targetVal := reflect.ValueOf(target)
-	if targetVal.Kind() != reflect.Ptr || targetVal.Elem().Kind() != reflect.Slice {
+	if targetVal.Kind() != reflect.Pointer || targetVal.Elem().Kind() != reflect.Slice {
 		return fmt.Errorf("target must be a pointer to a slice")
 	}
 	targetSlice := targetVal.Elem()

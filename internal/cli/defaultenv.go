@@ -124,7 +124,7 @@ func valueToStringReflect(v reflect.Value) string {
 		}
 		// Escape double quotes to make the value suitable for environment variables
 		return fmt.Sprintf("\"%v\"", strings.ReplaceAll(string(jsonValue), `"`, `\"`))
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if v.IsNil() {
 			return ""
 		}

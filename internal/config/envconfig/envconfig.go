@@ -65,7 +65,7 @@ type VarInfo struct {
 func gatherInfo(prefix string, spec interface{}) ([]VarInfo, error) {
 	s := reflect.ValueOf(spec)
 
-	if s.Kind() != reflect.Ptr {
+	if s.Kind() != reflect.Pointer {
 		return nil, ErrInvalidSpecification
 	}
 	s = s.Elem()
@@ -83,7 +83,7 @@ func gatherInfo(prefix string, spec interface{}) ([]VarInfo, error) {
 			continue
 		}
 
-		for f.Kind() == reflect.Ptr {
+		for f.Kind() == reflect.Pointer {
 			if f.IsNil() {
 				if f.Type().Elem().Kind() != reflect.Struct {
 					// nil pointer to a non-struct: leave it alone
@@ -298,7 +298,7 @@ func processField(value string, field reflect.Value, defaultIsUsed bool) error {
 		return b.UnmarshalBinary([]byte(value))
 	}
 
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
 		if field.IsNil() {
 			field.Set(reflect.New(typ))

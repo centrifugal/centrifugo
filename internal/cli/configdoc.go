@@ -272,7 +272,7 @@ func getDisplayType(t reflect.Type) (string, bool) {
 func documentStruct(cfg interface{}, parentKey string, level int) []FieldDoc {
 	var docs []FieldDoc
 	t := reflect.TypeOf(cfg)
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	if t.Kind() != reflect.Struct {
@@ -292,7 +292,7 @@ func documentStruct(cfg interface{}, parentKey string, level int) []FieldDoc {
 		// Flatten squashed/embedded structs.
 		if configtypes.IsSquash(field) {
 			var nested interface{}
-			if field.Type.Kind() == reflect.Ptr && field.Type.Elem().Kind() == reflect.Struct {
+			if field.Type.Kind() == reflect.Pointer && field.Type.Elem().Kind() == reflect.Struct {
 				nested = reflect.New(field.Type.Elem()).Interface()
 			} else if field.Type.Kind() == reflect.Struct {
 				nested = reflect.New(field.Type).Interface()
@@ -330,13 +330,13 @@ func documentStruct(cfg interface{}, parentKey string, level int) []FieldDoc {
 			if field.Type.PkgPath() != "time" || field.Type.Name() != "Time" {
 				children = documentStruct(reflect.New(field.Type).Interface(), fullKey, fieldLevel)
 			}
-		case reflect.Ptr:
+		case reflect.Pointer:
 			if field.Type.Elem().Kind() == reflect.Struct {
 				children = documentStruct(reflect.New(field.Type.Elem()).Interface(), fullKey, fieldLevel)
 			}
 		case reflect.Slice:
 			elem := field.Type.Elem()
-			if elem.Kind() == reflect.Ptr {
+			if elem.Kind() == reflect.Pointer {
 				elem = elem.Elem()
 			}
 			if elem.Kind() == reflect.Struct {
