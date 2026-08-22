@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/config"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 	"github.com/centrifugal/centrifugo/v6/internal/proxyproto"
@@ -147,6 +148,13 @@ func (h *MapPublishHandler) Handle(node *centrifuge.Node) MapPublishHandlerFunc 
 			useDelta = mapPublishRep.Result.Delta
 			version = mapPublishRep.Result.Version
 			versionEpoch = mapPublishRep.Result.VersionEpoch
+		}
+
+		// The proxy may replace the data client sent, so validate the final data
+		// against the channel format – same policy as for the client-supplied one.
+		if err := config.ValidatePublicationData(data, chOpts.PublicationDataFormat); err != nil {
+			log.Info().Err(err).Str("channel", e.Channel).Str("client", client.ID()).Msg("map publish proxy data validation failed")
+			return centrifuge.MapPublishReply{}, centrifuge.ErrorBadRequest
 		}
 
 		result, err := node.MapPublish(

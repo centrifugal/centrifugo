@@ -943,6 +943,12 @@ func (h *Executor) MapPublish(ctx context.Context, cmd *MapPublishRequest) *MapP
 		data = cmd.Data
 	}
 
+	if err := config.ValidatePublicationData(data, chOpts.PublicationDataFormat); err != nil {
+		log.Error().Err(err).Str("channel", ch).Msg("bad map publish request")
+		resp.Error = ErrorBadRequest
+		return resp
+	}
+
 	delta := cmd.Delta
 	if chOpts.DeltaPublish {
 		delta = true
@@ -1307,6 +1313,12 @@ func (h *Executor) SharedPollPublish(ctx context.Context, cmd *SharedPollPublish
 		data = byteInfo
 	} else {
 		data = cmd.Data
+	}
+
+	if err := config.ValidatePublicationData(data, chOpts.PublicationDataFormat); err != nil {
+		log.Error().Err(err).Str("channel", ch).Msg("bad shared poll publish request")
+		resp.Error = ErrorBadRequest
+		return resp
 	}
 
 	err = h.node.SharedPollPublish(ctx, ch, cmd.Key, cmd.Version, cmd.Epoch, data)

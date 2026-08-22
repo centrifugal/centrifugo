@@ -1764,3 +1764,113 @@ func TestSingleConnection(t *testing.T) {
 		return res.NumClients == 1 && res.NumUsers == 1
 	}, 5*time.Second, 100*time.Millisecond, "expected presence stats to show 1 client and 1 user")
 }
+
+// TestOnMapPublishDataFormat ensures client map publish applies the namespace
+// publication_data_format policy, same as client stream publish does.
+func TestOnMapPublishDataFormat(t *testing.T) {
+	cases := []struct {
+		format     string
+		data       []byte
+		wantReject bool
+	}{
+		{configtypes.PublicationDataFormatJSONObject, []byte(`{"v":1}`), false},
+		{configtypes.PublicationDataFormatJSONObject, []byte(`[1,2]`), true},
+		{configtypes.PublicationDataFormatJSON, []byte(`nope`), true},
+		{configtypes.PublicationDataFormatBinary, nil, false},
+		{"", nil, true}, // default format rejects empty data
+	}
+	for _, c := range cases {
+		t.Run("format="+c.format, func(t *testing.T) {
+			node := tools.NodeWithMemoryEngineNoHandlers()
+			defer func() { _ = node.Shutdown(context.Background()) }()
+
+			cfg := config.DefaultConfig()
+			cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
+				{
+					Name: "mp",
+					ChannelOptions: configtypes.ChannelOptions{
+						SubscriptionType:      "map",
+						PublicationDataFormat: c.format,
+						Map: configtypes.MapConfig{
+							Mode:                  "ephemeral",
+							KeyTTL:                configtypes.Duration(time.Minute),
+							AllowPublishForClient: true,
+						},
+					},
+				},
+			}
+			cfgContainer, err := config.NewContainer(cfg)
+			require.NoError(t, err)
+			h := NewHandler(node, cfgContainer, hmacJWTVerifier(t, cfgContainer), nil, &ProxyMap{})
+
+			node.OnConnecting(func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+				return centrifuge.ConnectReply{Credentials: &centrifuge.Credentials{UserID: "42"}}, nil
+			})
+			transport := tools.NewTestTransport()
+			client, closeFn, err := centrifuge.NewClient(context.Background(), node, transport)
+			require.NoError(t, err)
+			defer func() { _ = closeFn() }()
+			enc := protocol.NewJSONCommandEncoder()
+			data, err := enc.Encode(&protocol.Command{Id: 1, Connect: &protocol.ConnectRequest{}})
+			require.NoError(t, err)
+			require.True(t, centrifuge.HandleReadFrame(client, bytes.NewReader(data), 1<<20))
+
+			_, err = h.OnMapPublish(client, centrifuge.MapPublishEvent{
+				Channel: "mp:test", Key: "k", Data: c.data,
+			}, nil)
+			if c.wantReject {
+				require.Equal(t, centrifuge.ErrorBadRequest, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestValidateSharedPollRefreshData ensures a shared poll refresh batch is
+// rejected as a whole when the backend returns data not matching the channel
+// publication_data_format, while removals and data-less "unchanged" items pass.
+func TestValidateSharedPollRefreshData(t *testing.T) {
+	const ch = "sp:test"
+
+	t.Run("valid batch accepted", func(t *testing.T) {
+		err := validateSharedPollRefreshData(ch, configtypes.PublicationDataFormatJSONObject, []centrifuge.SharedPollRefreshItem{
+			{Key: "k1", Data: []byte(`{"v":1}`), Version: 1},
+			{Key: "k2", Data: []byte(`{"v":2}`), Version: 1},
+		})
+		require.NoError(t, err)
+	})
+
+	t.Run("one bad item rejects whole batch", func(t *testing.T) {
+		err := validateSharedPollRefreshData(ch, configtypes.PublicationDataFormatJSONObject, []centrifuge.SharedPollRefreshItem{
+			{Key: "k1", Data: []byte(`{"v":1}`), Version: 1},
+			{Key: "k2", Data: []byte(`[1,2]`), Version: 1},
+			{Key: "k3", Data: []byte(`{"v":3}`), Version: 1},
+		})
+		require.Equal(t, centrifuge.ErrorBadRequest, err)
+	})
+
+	t.Run("invalid json rejected", func(t *testing.T) {
+		err := validateSharedPollRefreshData(ch, configtypes.PublicationDataFormatJSON, []centrifuge.SharedPollRefreshItem{
+			{Key: "k1", Data: []byte(`not json`), Version: 1},
+		})
+		require.Equal(t, centrifuge.ErrorBadRequest, err)
+	})
+
+	t.Run("removals and data-less items skipped", func(t *testing.T) {
+		// Removals carry no data, and an unchanged key may come back without
+		// data — neither must trip the empty-data rule of the default format.
+		err := validateSharedPollRefreshData(ch, "", []centrifuge.SharedPollRefreshItem{
+			{Key: "k1", Removed: true},
+			{Key: "k2", Version: 7},
+		})
+		require.NoError(t, err)
+	})
+
+	t.Run("binary format allows anything", func(t *testing.T) {
+		err := validateSharedPollRefreshData(ch, configtypes.PublicationDataFormatBinary, []centrifuge.SharedPollRefreshItem{
+			{Key: "k1", Data: []byte{0x00, 0x01, 0xff}, Version: 1},
+		})
+		require.NoError(t, err)
+	})
+}

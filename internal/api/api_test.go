@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -626,4 +628,120 @@ func TestMapAPIs_RejectUnknownChannel(t *testing.T) {
 
 	clResp := api.MapClear(context.Background(), &MapClearRequest{Channel: "missing:test"})
 	require.Equal(t, ErrorUnknownChannel, clResp.Error)
+}
+
+// nodeWithMapSupport builds a node able to actually serve map operations for
+// channels of the given config container, so that valid publishes really reach
+// the map broker instead of failing on options resolution.
+func nodeWithMapSupport(cfgContainer *config.Container) *centrifuge.Node {
+	n, err := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				_, _, chOpts, ok, err := cfgContainer.ChannelOptions(channel)
+				if err != nil || !ok {
+					return centrifuge.MapChannelOptions{}
+				}
+				var mode centrifuge.MapMode
+				switch chOpts.Map.Mode {
+				case "ephemeral":
+					mode = centrifuge.MapModeEphemeral
+				case "recoverable":
+					mode = centrifuge.MapModeRecoverable
+				case "persistent":
+					mode = centrifuge.MapModePersistent
+				}
+				return centrifuge.MapChannelOptions{Mode: mode, KeyTTL: chOpts.Map.KeyTTL.ToDuration()}
+			},
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+	if err = n.Run(); err != nil {
+		panic(err)
+	}
+	return n
+}
+
+// TestMapPublishAPI_DataFormat ensures map_publish applies the namespace
+// publication_data_format policy, same as the stream Publish endpoint does.
+func TestMapPublishAPI_DataFormat(t *testing.T) {
+	cases := []struct {
+		format     string
+		data       []byte
+		b64Data    string
+		wantReject bool
+	}{
+		{configtypes.PublicationDataFormatJSONObject, []byte(`{"v":1}`), "", false},
+		{configtypes.PublicationDataFormatJSONObject, []byte(`[1,2]`), "", true},
+		{configtypes.PublicationDataFormatJSONObject, []byte(`not-json-object`), "", true},
+		{configtypes.PublicationDataFormatJSON, []byte(`[1,2]`), "", false},
+		{configtypes.PublicationDataFormatJSON, []byte(`nope`), "", true},
+		{configtypes.PublicationDataFormatBinary, nil, "", false},
+		{"", []byte(`whatever`), "", false},
+		{"", nil, "", true}, // default format rejects empty data
+		// b64data must be validated after decoding, not before.
+		{configtypes.PublicationDataFormatJSONObject, nil, base64.StdEncoding.EncodeToString([]byte(`{"v":1}`)), false},
+		{configtypes.PublicationDataFormatJSONObject, nil, base64.StdEncoding.EncodeToString([]byte(`nope`)), true},
+	}
+	for i, c := range cases {
+		t.Run(fmt.Sprintf("%d_format=%q", i, c.format), func(t *testing.T) {
+			cfg := configWithNamespace("ns", "map")
+			cfg.Channel.Namespaces[0].PublicationDataFormat = c.format
+			cfgContainer, err := config.NewContainer(cfg)
+			require.NoError(t, err)
+			node := nodeWithMapSupport(cfgContainer)
+			defer func() { _ = node.Shutdown(context.Background()) }()
+
+			api := NewExecutor(node, cfgContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test"})
+			resp := api.MapPublish(context.Background(), &MapPublishRequest{
+				Channel: "ns:test", Key: "k", Data: c.data, B64Data: c.b64Data,
+			})
+			if c.wantReject {
+				require.Equal(t, ErrorBadRequest, resp.Error)
+			} else {
+				require.Nil(t, resp.Error)
+			}
+		})
+	}
+}
+
+// TestSharedPollPublishAPI_DataFormat ensures shared_poll_publish applies the
+// namespace publication_data_format policy.
+func TestSharedPollPublishAPI_DataFormat(t *testing.T) {
+	cases := []struct {
+		format     string
+		data       []byte
+		wantReject bool
+	}{
+		{configtypes.PublicationDataFormatJSONObject, []byte(`{"v":1}`), false},
+		{configtypes.PublicationDataFormatJSONObject, []byte(`nope`), true},
+		{configtypes.PublicationDataFormatJSON, []byte(`nope`), true},
+		{configtypes.PublicationDataFormatBinary, nil, false},
+		{"", nil, true}, // default format rejects empty data
+	}
+	for i, c := range cases {
+		t.Run(fmt.Sprintf("%d_format=%q", i, c.format), func(t *testing.T) {
+			cfg := configWithNamespace("ns", "shared_poll")
+			cfg.Channel.Namespaces[0].PublicationDataFormat = c.format
+			cfg.Channel.Namespaces[0].SharedPoll.PublishEnabled = true
+			cfgContainer, err := config.NewContainer(cfg)
+			require.NoError(t, err)
+			node := nodeWithMemoryEngine()
+			defer func() { _ = node.Shutdown(context.Background()) }()
+
+			api := NewExecutor(node, cfgContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test"})
+			resp := api.SharedPollPublish(context.Background(), &SharedPollPublishRequest{
+				Channel: "ns:test", Key: "k", Version: 1, Data: c.data,
+			})
+			if c.wantReject {
+				require.Equal(t, ErrorBadRequest, resp.Error)
+			} else {
+				// The test node has no shared poll manager, so a valid payload
+				// gets past validation and fails later — the point is that it is
+				// not rejected as a bad request.
+				require.NotEqual(t, ErrorBadRequest, resp.Error)
+			}
+		})
+	}
 }

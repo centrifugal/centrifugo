@@ -286,3 +286,34 @@ func TestHandlePublishWithInvalidCustomData(t *testing.T) {
 		require.Equal(t, centrifuge.PublishReply{}, reply, c.protocol)
 	}
 }
+
+// TestHandlePublishProxyResultDataValidated ensures data returned by a publish
+// proxy is validated against the channel publication_data_format — the proxy can
+// replace what the client sent, so the client-side check is not enough.
+func TestHandlePublishProxyResultDataValidated(t *testing.T) {
+	// Not a JSON object, while the channel requires one.
+	badDataB64 := base64.StdEncoding.EncodeToString([]byte(`"just a string"`))
+	chOpts := configtypes.ChannelOptions{
+		PublishProxyEnabled:   true,
+		PublishProxyName:      "test",
+		PublicationDataFormat: configtypes.PublicationDataFormatJSONObject,
+	}
+
+	opts := proxyGRPCTestServerOptions{
+		B64Data: badDataB64,
+	}
+	grpcTestCase := newPublishHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("result", opts), chOpts)
+	defer grpcTestCase.Teardown()
+
+	httpTestCase := newPublishHandleHTTPTestCase(context.Background(), "/publish", chOpts)
+	httpTestCase.Mux.HandleFunc("/publish", func(w http.ResponseWriter, req *http.Request) {
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"b64data": "%s"}}`, badDataB64)))
+	})
+	defer httpTestCase.Teardown()
+
+	cases := newPublishHandleTestCases(httpTestCase, grpcTestCase)
+	for _, c := range cases {
+		_, err := c.invokeHandle()
+		require.Equal(t, centrifuge.ErrorBadRequest, err, c.protocol)
+	}
+}
