@@ -294,7 +294,7 @@ func findValidKeys(typ reflect.Type, validKeys map[string]reflect.StructField) {
 		} else if field.Anonymous && strings.Contains(tag, "squash") {
 			// Handle embedded fields with "squash".
 			embeddedType := field.Type
-			if embeddedType.Kind() == reflect.Ptr {
+			if embeddedType.Kind() == reflect.Pointer {
 				embeddedType = embeddedType.Elem()
 			}
 			if embeddedType.Kind() == reflect.Struct {
@@ -309,12 +309,12 @@ func findUnknownKeys(data map[string]interface{}, configStruct interface{}, pare
 	var unknownKeys []string
 	val := reflect.ValueOf(configStruct)
 
-	if val.Kind() == reflect.Ptr && val.IsNil() {
+	if val.Kind() == reflect.Pointer && val.IsNil() {
 		// Create an instance if the struct pointer is nil to avoid panic.
 		val = reflect.New(val.Type().Elem())
 	}
 
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	typ := val.Type()
@@ -328,14 +328,14 @@ func findUnknownKeys(data map[string]interface{}, configStruct interface{}, pare
 		if field, exists := validKeys[key]; exists {
 			fieldValue := val.FieldByName(field.Name)
 
-			if (fieldValue.Kind() == reflect.Struct || (fieldValue.Kind() == reflect.Ptr && fieldValue.Type().Elem().Kind() == reflect.Struct)) && !field.Anonymous {
+			if (fieldValue.Kind() == reflect.Struct || (fieldValue.Kind() == reflect.Pointer && fieldValue.Type().Elem().Kind() == reflect.Struct)) && !field.Anonymous {
 				if nestedMap, ok := value.(map[string]interface{}); ok {
 					// Handle pointers to structs specifically
-					if fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
+					if fieldValue.Kind() == reflect.Pointer && fieldValue.IsNil() {
 						fieldValue.Set(reflect.New(fieldValue.Type().Elem())) // Create new struct if nil
 					}
 					nestedStruct := fieldValue.Interface()
-					if fieldValue.Kind() == reflect.Ptr {
+					if fieldValue.Kind() == reflect.Pointer {
 						nestedStruct = fieldValue.Elem().Interface()
 					}
 					unknownKeys = append(unknownKeys, findUnknownKeys(nestedMap, nestedStruct, appendKeyPath(parentKey, key))...)
@@ -346,7 +346,7 @@ func findUnknownKeys(data map[string]interface{}, configStruct interface{}, pare
 					for i, elem := range slice {
 						if elemMap, ok := elem.(map[string]interface{}); ok {
 							elementType := fieldValue.Type().Elem()
-							if elementType.Kind() == reflect.Ptr {
+							if elementType.Kind() == reflect.Pointer {
 								elementType = elementType.Elem()
 							}
 							if elementType.Kind() == reflect.Struct {

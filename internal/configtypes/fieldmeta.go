@@ -43,13 +43,13 @@ func IsSquash(f reflect.StructField) bool {
 // complex (each maps to one env var). time.Time is treated as a scalar.
 func IsComplexType(t reflect.Type) bool {
 	switch t.Kind() {
-	case reflect.Ptr:
+	case reflect.Pointer:
 		return t.Elem().Kind() == reflect.Struct && !isTimeType(t.Elem())
 	case reflect.Struct:
 		return !isTimeType(t)
 	case reflect.Slice, reflect.Array:
 		elem := t.Elem()
-		if elem.Kind() == reflect.Ptr {
+		if elem.Kind() == reflect.Pointer {
 			elem = elem.Elem()
 		}
 		return elem.Kind() == reflect.Struct && !isTimeType(elem)
@@ -69,7 +69,7 @@ func isTimeType(t reflect.Type) bool {
 // "[]string", "map[string]string"). Used by both the configdoc generator and the
 // admin config UI (Pro) so the two surfaces present identical type labels.
 func TypeLabel(t reflect.Type) string {
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		if t.Elem().Kind() == reflect.Struct {
 			if isTimeType(t.Elem()) {
 				return stripConfigtypesQualifier(t.String())
@@ -85,7 +85,7 @@ func TypeLabel(t reflect.Type) string {
 	}
 	if t.Kind() == reflect.Slice {
 		elem := t.Elem()
-		if elem.Kind() == reflect.Ptr {
+		if elem.Kind() == reflect.Pointer {
 			elem = elem.Elem()
 		}
 		if elem.Kind() == reflect.Struct {
