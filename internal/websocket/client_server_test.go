@@ -698,7 +698,9 @@ func TestHost(t *testing.T) {
 		// Confirm that net/http has same result
 
 		transport := &http.Transport{
-			Dial:            dialer.NetDial,
+			DialContext: func(_ context.Context, network, addr string) (net.Conn, error) {
+				return dialer.NetDial(network, addr)
+			},
 			TLSClientConfig: dialer.TLSClientConfig,
 		}
 		req, _ := http.NewRequest(http.MethodGet, httpProtos[tt.server]+tt.url+"/", nil)
