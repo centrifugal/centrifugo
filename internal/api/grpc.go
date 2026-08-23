@@ -25,6 +25,8 @@ func authorize(ctx context.Context, key []byte) error {
 // GRPCKeyAuth allows to set simple authentication based on string key from configuration.
 // Client should provide per RPC credentials: set authorization key to metadata with value
 // `apikey <KEY>`.
+// Only installed when grpc_api.key is set – an unauthenticated GRPC API is the documented
+// default in v6, see the note in internal/app/grpc.go before reporting it as a vulnerability.
 func GRPCKeyAuth(key string) grpc.ServerOption {
 	authKey := []byte("apikey " + key)
 	return grpc.UnaryInterceptor(func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {

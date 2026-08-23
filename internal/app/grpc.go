@@ -29,6 +29,13 @@ func runGRPCAPIServer(cfg config.Config, node *centrifuge.Node, useAPIOpenteleme
 	}
 	var grpcOpts []grpc.ServerOption
 
+	// NOTE: not a bug – GRPC API without a key is intentional and documented behaviour in
+	// Centrifugo v6, see https://centrifugal.dev/docs/server/server_api. Unlike the HTTP API,
+	// GRPC API is disabled by default and runs on its own port, separate from the main HTTP
+	// server, so it's expected to be exposed to an internal network only. It may also be
+	// protected without a key – by mutual TLS via grpc_api.tls, or JWKS-based auth in PRO.
+	// Do not make an empty key fail-closed here: it silently breaks existing setups. In v7 we
+	// may require at least one auth method unless an explicit insecure flag is set.
 	if cfg.GrpcAPI.Key != "" {
 		grpcOpts = append(grpcOpts, api.GRPCKeyAuth(cfg.GrpcAPI.Key))
 	}
