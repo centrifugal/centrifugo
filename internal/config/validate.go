@@ -60,7 +60,7 @@ func (c Config) Validate() error {
 	var proxyNames []string
 	for _, p := range c.Proxies {
 		if slices.Contains(proxyNames, p.Name) {
-			return fmt.Errorf("duplicate proxy name in channel.named_proxies: %s", p.Name)
+			return fmt.Errorf("duplicate proxy name in proxies: %s", p.Name)
 		}
 		if err := validateProxy(p.Name, p.Proxy); err != nil {
 			return fmt.Errorf("in proxy %s: %v", p.Name, err)
@@ -181,10 +181,10 @@ func (c Config) Validate() error {
 	}
 
 	if err := validateConnectCodeTransforms(c.UniSSE.ConnectCodeToHTTPResponse.Transforms); err != nil {
-		return fmt.Errorf("in uni_sse.connect_code_to_http_status.transforms: %v", err)
+		return fmt.Errorf("in uni_sse.connect_code_to_http_response.transforms: %v", err)
 	}
 	if err := validateConnectCodeTransforms(c.UniHTTPStream.ConnectCodeToHTTPResponse.Transforms); err != nil {
-		return fmt.Errorf("in uni_http_stream.connect_code_to_http_status.transforms: %v", err)
+		return fmt.Errorf("in uni_http_stream.connect_code_to_http_response.transforms: %v", err)
 	}
 
 	// Map broker validation.
@@ -581,10 +581,10 @@ func validateStatusTransforms(transforms []configtypes.HttpStatusToCodeTransform
 func validateConnectCodeTransforms(transforms []configtypes.ConnectCodeToHTTPResponseTransform) error {
 	for i, transform := range transforms {
 		if transform.Code == 0 {
-			return fmt.Errorf("code should be set in connect_code_to_http_status.transforms[%d]", i)
+			return fmt.Errorf("code should be set in connect_code_to_http_response.transforms[%d]", i)
 		}
 		if transform.To.StatusCode == 0 {
-			return fmt.Errorf("status_code should be set in connect_code_to_http_status.transforms[%d].to_response", i)
+			return fmt.Errorf("status_code should be set in connect_code_to_http_response.transforms[%d].to", i)
 		}
 	}
 	return nil

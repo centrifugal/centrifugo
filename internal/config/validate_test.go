@@ -607,3 +607,101 @@ func TestValidateMapNamespace_MapBrokerType(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateConnectCodeToHTTPResponseTransforms(t *testing.T) {
+	validTransform := configtypes.ConnectCodeToHTTPResponseTransform{
+		Code: 3500,
+		To: configtypes.TransformedConnectErrorHttpResponse{
+			StatusCode: 403,
+			Body:       "forbidden",
+		},
+	}
+	noCode := validTransform
+	noCode.Code = 0
+	noStatusCode := validTransform
+	noStatusCode.To.StatusCode = 0
+
+	tests := []struct {
+		name       string
+		transforms configtypes.ConnectCodeToHTTPResponseTransforms
+		wantErr    string
+	}{
+		{
+			name:       "valid transform",
+			transforms: configtypes.ConnectCodeToHTTPResponseTransforms{validTransform},
+		},
+		{
+			name:       "missing code",
+			transforms: configtypes.ConnectCodeToHTTPResponseTransforms{noCode},
+			wantErr:    "code should be set in connect_code_to_http_response.transforms[0]",
+		},
+		{
+			name:       "missing status code",
+			transforms: configtypes.ConnectCodeToHTTPResponseTransforms{validTransform, noStatusCode},
+			wantErr:    "status_code should be set in connect_code_to_http_response.transforms[1].to",
+		},
+	}
+
+	// The same transforms are validated for both unidirectional HTTP transports,
+	// each reporting under its own config path.
+	transports := []struct {
+		name   string
+		prefix string
+		set    func(cfg *Config, transforms configtypes.ConnectCodeToHTTPResponseTransforms)
+	}{
+		{
+			name:   "uni_sse",
+			prefix: "in uni_sse.connect_code_to_http_response.transforms: ",
+			set: func(cfg *Config, transforms configtypes.ConnectCodeToHTTPResponseTransforms) {
+				cfg.UniSSE.ConnectCodeToHTTPResponse.Transforms = transforms
+			},
+		},
+		{
+			name:   "uni_http_stream",
+			prefix: "in uni_http_stream.connect_code_to_http_response.transforms: ",
+			set: func(cfg *Config, transforms configtypes.ConnectCodeToHTTPResponseTransforms) {
+				cfg.UniHTTPStream.ConnectCodeToHTTPResponse.Transforms = transforms
+			},
+		},
+	}
+
+	for _, transport := range transports {
+		for _, tt := range tests {
+			t.Run(transport.name+"/"+tt.name, func(t *testing.T) {
+				cfg := DefaultConfig()
+				transport.set(&cfg, tt.transforms)
+				err := cfg.Validate()
+				if tt.wantErr == "" {
+					require.NoError(t, err)
+					return
+				}
+				require.EqualError(t, err, transport.prefix+tt.wantErr)
+			})
+		}
+	}
+}
+
+func TestValidateDuplicateProxyName(t *testing.T) {
+	proxy := configtypes.Proxy{
+		Endpoint: "http://localhost:3000/proxy",
+		Timeout:  configtypes.Duration(time.Second),
+	}
+
+	t.Run("unique names are valid", func(t *testing.T) {
+		cfg := DefaultConfig()
+		cfg.Proxies = configtypes.NamedProxies{
+			{Name: "first", Proxy: proxy},
+			{Name: "second", Proxy: proxy},
+		}
+		require.NoError(t, cfg.Validate())
+	})
+
+	t.Run("duplicate name is invalid", func(t *testing.T) {
+		cfg := DefaultConfig()
+		cfg.Proxies = configtypes.NamedProxies{
+			{Name: "first", Proxy: proxy},
+			{Name: "first", Proxy: proxy},
+		}
+		require.EqualError(t, cfg.Validate(), "duplicate proxy name in proxies: first")
+	})
+}
