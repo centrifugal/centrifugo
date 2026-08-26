@@ -32,7 +32,7 @@ func newRollingCache(shardSize int, shardCount int) *rollingCache {
 			buffer: make([]atomic.Value, shardSize),
 		}
 		for j := 0; j < shardSize; j++ {
-			shard.buffer[j].Store(cacheItem{}) // Initialize with zero value.
+			shard.buffer[j].Store(&cacheItem{}) // Initialize with zero value.
 		}
 		rc.shards[i] = shard
 	}
@@ -49,7 +49,7 @@ func (c *rollingCache) shardForKey(key string) *cacheShard {
 func (c *rollingCache) Get(channel string) (channelOptionsResult, bool) {
 	shard := c.shardForKey(channel)
 	for i := 0; i < int(shard.size); i++ {
-		item := shard.buffer[i].Load().(cacheItem)
+		item := shard.buffer[i].Load().(*cacheItem)
 		if item.channel == channel && time.Now().UnixNano() < item.expires {
 			return item.value, true
 		}
@@ -60,7 +60,7 @@ func (c *rollingCache) Get(channel string) (channelOptionsResult, bool) {
 func (c *rollingCache) Set(channel string, value channelOptionsResult, ttl time.Duration) {
 	shard := c.shardForKey(channel)
 	index := int(atomic.AddInt32(&shard.index, 1) % shard.size)
-	item := cacheItem{
+	item := &cacheItem{
 		channel: channel,
 		value:   value,
 		expires: time.Now().Add(ttl).UnixNano(),
