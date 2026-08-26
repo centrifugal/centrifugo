@@ -2,22 +2,18 @@ package middleware
 
 import (
 	"net/http"
-	"sync/atomic"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 	"github.com/centrifugal/centrifugo/v6/internal/metrics"
+	"github.com/centrifugal/centrifugo/v6/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/time/rate"
 )
 
-var (
-	connLimitReachedLoggedAt int64
-)
-
-const connLimitReachedLogThrottle = int64(3 * time.Second)
+var connLimitReachedLogLimiter = tools.NewIntervalLimiter(3 * time.Second)
 
 type ConnLimit struct {
 	node         *centrifuge.Node
@@ -39,11 +35,8 @@ func (l *ConnLimit) Middleware(h http.Handler) http.Handler {
 		connLimit := l.cfgContainer.Config().Client.ConnectionLimit
 		if connLimit > 0 && l.node.Hub().NumClients() >= connLimit {
 			metrics.ConnLimitReached.Inc()
-			now := time.Now().UnixNano()
-			prevLoggedAt := atomic.LoadInt64(&connLimitReachedLoggedAt)
-			if prevLoggedAt == 0 || now-prevLoggedAt > connLimitReachedLogThrottle {
+			if connLimitReachedLogLimiter.Allow() {
 				log.Warn().Int("limit", connLimit).Msg("node connection limit reached")
-				atomic.StoreInt64(&connLimitReachedLoggedAt, now)
 			}
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
