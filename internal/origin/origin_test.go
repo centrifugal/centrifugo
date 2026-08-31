@@ -52,6 +52,14 @@ func TestPatternCheck(t *testing.T) {
 			success: false,
 		},
 		{
+			name:   "origin_patterns_uppercase_pattern_matches",
+			origin: "https://two.example.com",
+			originPatterns: []string{
+				"*.Example.com",
+			},
+			success: true,
+		},
+		{
 			name:   "file_origin",
 			origin: "file://",
 			originPatterns: []string{

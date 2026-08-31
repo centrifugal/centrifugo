@@ -15,7 +15,7 @@ type PatternChecker struct {
 func NewPatternChecker(allowedOrigins []string) (*PatternChecker, error) {
 	var globs []glob.Glob
 	for _, pattern := range allowedOrigins {
-		g, err := glob.Compile(pattern)
+		g, err := glob.Compile(strings.ToLower(pattern))
 		if err != nil {
 			return nil, fmt.Errorf("malformed origin pattern: %w", err)
 		}
