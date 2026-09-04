@@ -9,11 +9,11 @@ import (
 )
 
 type PatternChecker struct {
-	allowedOrigins []glob.Glob
+	allowedOrigins []*glob.Pattern
 }
 
 func NewPatternChecker(allowedOrigins []string) (*PatternChecker, error) {
-	var globs []glob.Glob
+	var globs []*glob.Pattern
 	for _, pattern := range allowedOrigins {
 		g, err := glob.Compile(pattern)
 		if err != nil {
