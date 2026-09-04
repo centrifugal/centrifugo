@@ -786,7 +786,11 @@ func (pc *partitionConsumer) processRecords(records []*kgo.Record) {
 				pc.cl.MarkCommitRecords(record)
 				break
 			}
-			if errors.Is(err, context.Canceled) {
+			// Only stop on our own cancellation: an unrelated context.Canceled bubbling up
+			// from the dispatcher must be retried, not treated as shutdown. Bailing out here
+			// would skip the rest of the batch and let a later batch commit an offset past
+			// this record — losing it for good.
+			if pc.partitionCtx.Err() != nil {
 				return
 			}
 			retries++

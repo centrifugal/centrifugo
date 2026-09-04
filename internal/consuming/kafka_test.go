@@ -359,6 +359,93 @@ func TestKafkaConsumer_RetryAfterDispatchError(t *testing.T) {
 	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
 }
 
+// A context.Canceled coming from the dispatcher's own downstream call must not be mistaken
+// for consumer shutdown: the partition consumer used to bail out on any context.Canceled,
+// dropping the record and the rest of its batch. Since Kafka commits are offset based, the
+// next batch then committed an offset past the dropped records, losing them for good.
+func TestKafkaConsumer_UnrelatedContextCanceledIsRetried(t *testing.T) {
+	t.Parallel()
+	testKafkaTopic := "centrifugo_consumer_test_" + uuid.New().String()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	err := createTestTopic(ctx, testKafkaTopic, 1, 1)
+	require.NoError(t, err)
+
+	config := KafkaConfig{
+		Brokers:       []string{testKafkaBrokerURL},
+		Topics:        []string{testKafkaTopic},
+		ConsumerGroup: uuid.New().String(),
+	}
+
+	// A canceled context which has nothing to do with the consumer lifecycle.
+	unrelatedCtx, unrelatedCancel := context.WithCancel(context.Background())
+	unrelatedCancel()
+
+	makeMessage := func(key string) []byte {
+		message, err := json.Marshal(api.MethodWithRequestPayload{
+			Method:  "method",
+			Payload: api.JSONRawOrString(`{"key":"` + key + `"}`),
+		})
+		require.NoError(t, err)
+		return message
+	}
+	firstMessage := makeMessage("first")
+	secondMessage := makeMessage("second")
+
+	const numFailures = 3
+
+	var mu sync.Mutex
+	var retryCount int
+	var dispatched [][]byte
+
+	allDispatched := make(chan struct{})
+	consumerClosed := make(chan struct{})
+
+	mockDispatcher := &MockDispatcher{
+		onDispatchCommand: func(_ context.Context, _ string, data []byte) error {
+			mu.Lock()
+			defer mu.Unlock()
+			if bytes.Equal(data, firstMessage) && retryCount < numFailures {
+				retryCount++
+				return fmt.Errorf("dispatch error: %w", unrelatedCtx.Err())
+			}
+			dispatched = append(dispatched, data)
+			if len(dispatched) == 2 {
+				close(allDispatched)
+			}
+			return nil
+		},
+	}
+	consumer, err := NewKafkaConsumer(config, mockDispatcher, testCommon(prometheus.NewRegistry()))
+	require.NoError(t, err)
+
+	go func() {
+		err := consumer.Run(ctx)
+		require.ErrorIs(t, err, context.Canceled)
+		close(consumerClosed)
+	}()
+
+	err = produceManyRecords(
+		&kgo.Record{Topic: testKafkaTopic, Value: firstMessage},
+		&kgo.Record{Topic: testKafkaTopic, Value: secondMessage},
+	)
+	require.NoError(t, err)
+
+	waitCh(t, allDispatched, 30*time.Second, "timeout waiting for records to be processed")
+
+	mu.Lock()
+	require.Equal(t, numFailures, retryCount)
+	// Both records must be processed, in order – neither the retried one nor the rest of
+	// its batch may be skipped.
+	require.Equal(t, [][]byte{firstMessage, secondMessage}, dispatched)
+	mu.Unlock()
+
+	cancel()
+	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
+}
+
 // In this test we simulate a scenario where a partition is blocked and the partition consumer
 // is stuck on it. We want to make sure that the consumer is not blocked and can still process
 // messages from other topics.

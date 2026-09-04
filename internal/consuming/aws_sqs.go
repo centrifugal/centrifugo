@@ -280,7 +280,9 @@ func (c *AwsSqsConsumer) processSingleMessage(ctx context.Context, msg types.Mes
 			}
 			break
 		}
-		if errors.Is(processErr, context.Canceled) {
+		// Only stop on our own cancellation: an unrelated context.Canceled bubbling up
+		// from the dispatcher must be retried rather than treated as shutdown.
+		if ctx.Err() != nil {
 			return false
 		}
 		retries++
