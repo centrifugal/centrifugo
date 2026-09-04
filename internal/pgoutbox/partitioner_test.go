@@ -2,18 +2,22 @@ package pgoutbox
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func TestParsePartitionDate_Valid(t *testing.T) {
 	cases := []struct {
-		name       string
-		partName   string
-		parent     string
-		wantYear   int
-		wantMonth  time.Month
-		wantDay    int
+		name      string
+		partName  string
+		parent    string
+		wantYear  int
+		wantMonth time.Month
+		wantDay   int
 	}{
 		{
 			name:      "map stream parent",
@@ -203,4 +207,46 @@ func TestPartitioner_DropOldPartitions_RetentionPositive_AttemptsQuery(t *testin
 		}
 	}()
 	p.DropOldPartitions(context.Background())
+}
+
+func TestIsDuplicateTableErr(t *testing.T) {
+	cases := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{
+			name: "duplicate table from a concurrent creator",
+			err:  &pgconn.PgError{Code: "42P07", Message: `relation "cf_stream_history_2026_09_11" already exists`},
+			want: true,
+		},
+		{
+			name: "wrapped duplicate table",
+			err:  fmt.Errorf("create partition: %w", &pgconn.PgError{Code: "42P07"}),
+			want: true,
+		},
+		{
+			name: "a different server error is still a failure",
+			err:  &pgconn.PgError{Code: "42501", Message: "permission denied"},
+			want: false,
+		},
+		{
+			name: "a non-server error is still a failure",
+			err:  errors.New("connection reset"),
+			want: false,
+		},
+		{
+			name: "no error",
+			err:  nil,
+			want: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := isDuplicateTableErr(tc.err); got != tc.want {
+				t.Fatalf("isDuplicateTableErr(%v) = %v, want %v", tc.err, got, tc.want)
+			}
+		})
+	}
 }

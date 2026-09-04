@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -16,6 +17,17 @@ import (
 // would otherwise pollute CI logs and mask genuine cleanup errors.
 func isShutdownErr(err error) bool {
 	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
+}
+
+// isDuplicateTableErr reports whether err is PostgreSQL's 42P07, raised when the
+// relation already exists. CREATE TABLE IF NOT EXISTS checks the catalog before
+// it takes the lock, so two nodes creating the same partition at the same moment
+// both pass the check and the loser gets a hard error rather than the notice a
+// sequential re-run produces. The partition exists either way, which is the
+// outcome the statement was asking for.
+func isDuplicateTableErr(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "42P07"
 }
 
 // Partitioner manages daily time-based partition maintenance for an
@@ -72,7 +84,9 @@ type Partitioner struct {
 
 // EnsureLookaheadPartitions creates today's daily partition and up to
 // LookaheadDays future daily partitions as PARTITION OF ParentTable.
-// The CREATE TABLE IF NOT EXISTS form makes this safe to call repeatedly.
+// The CREATE TABLE IF NOT EXISTS form makes this safe to call repeatedly, and
+// tolerating 42P07 makes it safe to call concurrently: every node runs the
+// partitioner, so the same partition is routinely created by two of them at once.
 //
 // Boundaries are written as fully-qualified UTC timestamps (e.g.
 // '2026-04-23 00:00:00+00'). Using a bare DATE/date-text literal would
@@ -93,7 +107,7 @@ func (p *Partitioner) EnsureLookaheadPartitions(ctx context.Context) error {
 			day.Format("2006-01-02 00:00:00+00"),
 			nextDay.Format("2006-01-02 00:00:00+00"),
 		))
-		if err != nil {
+		if err != nil && !isDuplicateTableErr(err) {
 			return fmt.Errorf("create partition %s: %w", partName, err)
 		}
 	}
