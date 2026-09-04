@@ -82,7 +82,7 @@ func respondChannelsSurvey(node *centrifuge.Node, params []byte) centrifuge.Surv
 	if err != nil {
 		return centrifuge.SurveyReply{Code: InvalidRequest}
 	}
-	var g glob.Glob
+	var g *glob.Pattern
 	if req.Pattern != "" {
 		var err error
 		g, err = glob.Compile(req.Pattern)
