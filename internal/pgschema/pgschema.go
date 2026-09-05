@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"math/rand/v2"
 	"time"
 
 	"github.com/jackc/pgerrcode"
@@ -119,10 +120,10 @@ type MigrationVariant struct {
 	VersionTable string
 }
 
-// IsConcurrentDDLErr reports whether err is a conflict caused by several nodes
-// running the same idempotent schema DDL at the same time. That is the normal
-// situation on a cluster start or a rolling restart: every node runs its own
-// EnsureSchema against the same database and nothing serialises them.
+// IsRetryableSchemaExecErr reports whether err is a conflict caused by several
+// nodes running the same idempotent schema DDL at the same time. That is the
+// normal situation on a cluster start or a rolling restart: every node runs its
+// own EnsureSchema against the same database and nothing serialises them.
 //
 //   - 40P01 deadlock_detected — nodes taking the same catalog locks in
 //     different orders.
@@ -137,17 +138,14 @@ type MigrationVariant struct {
 //     23505 from the unique index on pg_type/pg_class if the loser reached its
 //     own catalog inserts first.
 //
-// Retrying is the right response to all four: either the object now exists,
-// which is the outcome the statement asked for, or the next attempt creates
-// it. Retrying is only safe for callers that run their schema batch as a
-// single implicit transaction — one multi-statement Exec with no explicit
-// BEGIN/COMMIT — so a failed attempt rolls back completely and the retry
-// starts from a clean state.
+// The name is deliberately bound to schema execs: 23505 and XX000 are ordinary
+// application failures anywhere else, and retrying them on a data path would
+// paper over real bugs. Only classify statements from a schema batch with this.
 //
-// Migrations deliberately do not use this: they run under
-// AcquireMigrationLock, which serialises nodes cluster-wide, so a duplicate
-// object there is a real bug and must surface rather than be retried away.
-func IsConcurrentDDLErr(err error) bool {
+// Migrations deliberately do not use it: they run under AcquireMigrationLock,
+// which serialises nodes cluster-wide, so a duplicate object there is a real
+// bug and must surface rather than be retried away.
+func IsRetryableSchemaExecErr(err error) bool {
 	var pgErr *pgconn.PgError
 	if !errors.As(err, &pgErr) {
 		return false
@@ -157,6 +155,63 @@ func IsConcurrentDDLErr(err error) bool {
 		return true
 	}
 	return false
+}
+
+const (
+	schemaExecAttempts    = 5
+	schemaExecBaseBackoff = 100 * time.Millisecond
+	schemaExecMaxBackoff  = 800 * time.Millisecond
+)
+
+// RetrySchemaExec runs exec, repeating it while it fails with a concurrent-DDL
+// conflict (see IsRetryableSchemaExecErr) and attempts remain. Any other error
+// is returned on the first occurrence, as is the last conflict once the
+// attempts are exhausted; a cancelled ctx aborts the loop and returns
+// ctx.Err(), so a shutdown mid-retry is reported as cancellation rather than
+// as a schema failure.
+//
+// Callers must make exec idempotent AND self-contained: a retry re-runs the
+// whole thing, so a schema batch has to be a single multi-statement Exec with
+// no arguments (pgx sends those over the simple query protocol, so the server
+// wraps them in one implicit transaction and a failed attempt rolls back
+// completely). A batch that opens its own BEGIN/COMMIT, or contains a
+// statement that cannot run inside a transaction block such as CREATE INDEX
+// CONCURRENTLY, breaks that invariant and must not be retried this way — the
+// schema-template tests in each consumer package pin it.
+//
+// The backoff is exponential with jitter: nodes that started together lose the
+// same race at the same instant, and retrying them in lockstep just recreates
+// the collision.
+func RetrySchemaExec(ctx context.Context, exec func(ctx context.Context) error) error {
+	var err error
+	for attempt := range schemaExecAttempts {
+		err = exec(ctx)
+		if err == nil {
+			return nil
+		}
+		if !IsRetryableSchemaExecErr(err) || attempt == schemaExecAttempts-1 {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(schemaExecBackoff(attempt)):
+		}
+	}
+	return err
+}
+
+// schemaExecBackoff returns the delay before the attempt after this one:
+// exponential from schemaExecBaseBackoff, capped at schemaExecMaxBackoff, and
+// spread over the upper half of that window so concurrent nodes separate
+// without any of them waiting the full cap.
+func schemaExecBackoff(attempt int) time.Duration {
+	d := schemaExecBaseBackoff << attempt
+	if d > schemaExecMaxBackoff {
+		d = schemaExecMaxBackoff
+	}
+	//nolint:gosec // it's a jitter.
+	return d/2 + time.Duration(rand.Int64N(int64(d/2)+1))
 }
 
 // ApplyMigrationInTx applies one migration step. For each variant in the
@@ -173,8 +228,8 @@ func IsConcurrentDDLErr(err error) bool {
 // conflicts (40P01 deadlock_detected, XX000 "tuple concurrently updated" —
 // surfaces from concurrent CREATE OR REPLACE in a rolling deploy). ctx
 // cancellation aborts the retry loop immediately. This is deliberately
-// narrower than IsConcurrentDDLErr — see the note there on why migrations
-// must not retry away duplicate-object errors.
+// narrower than IsRetryableSchemaExecErr — see the note there on why
+// migrations must not retry away duplicate-object errors.
 func ApplyMigrationInTx(ctx context.Context, p txBeginner, label string, version int, variants []MigrationVariant) error {
 	if len(variants) == 0 {
 		return fmt.Errorf("%s: ApplyMigrationInTx v%d called with no variants", label, version)

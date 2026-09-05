@@ -75,9 +75,9 @@ func TestCheckDowngrade_DBNewer_Rejected(t *testing.T) {
 	require.Contains(t, err.Error(), "downgrade not supported")
 }
 
-// ----- IsConcurrentDDLErr -----
+// ----- IsRetryableSchemaExecErr / RetrySchemaExec -----
 
-func TestIsConcurrentDDLErr(t *testing.T) {
+func TestIsRetryableSchemaExecErr(t *testing.T) {
 	cases := []struct {
 		name string
 		err  error
@@ -95,8 +95,66 @@ func TestIsConcurrentDDLErr(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.want, IsConcurrentDDLErr(tc.err))
+			require.Equal(t, tc.want, IsRetryableSchemaExecErr(tc.err))
 		})
+	}
+}
+
+func TestRetrySchemaExec_RetriesConflictThenSucceeds(t *testing.T) {
+	var calls int
+	err := RetrySchemaExec(context.Background(), func(context.Context) error {
+		calls++
+		if calls < 3 {
+			return &pgconn.PgError{Code: pgerrcode.DuplicateTable}
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, 3, calls)
+}
+
+func TestRetrySchemaExec_RealFailureNotRetried(t *testing.T) {
+	var calls int
+	want := &pgconn.PgError{Code: pgerrcode.InsufficientPrivilege}
+	err := RetrySchemaExec(context.Background(), func(context.Context) error {
+		calls++
+		return want
+	})
+	require.ErrorIs(t, err, want)
+	require.Equal(t, 1, calls, "a permission error must surface on the first attempt")
+}
+
+func TestRetrySchemaExec_ExhaustedReturnsLastError(t *testing.T) {
+	var calls int
+	err := RetrySchemaExec(context.Background(), func(context.Context) error {
+		calls++
+		return &pgconn.PgError{Code: pgerrcode.UniqueViolation}
+	})
+	var pgErr *pgconn.PgError
+	require.ErrorAs(t, err, &pgErr)
+	require.Equal(t, pgerrcode.UniqueViolation, pgErr.Code)
+	require.Equal(t, schemaExecAttempts, calls)
+}
+
+// A node shutting down mid-retry must report cancellation, not a schema
+// failure — pgoutbox's Run loop discriminates on it to keep shutdown quiet.
+func TestRetrySchemaExec_ContextCancelledDuringBackoff(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	var calls int
+	err := RetrySchemaExec(ctx, func(context.Context) error {
+		calls++
+		cancel()
+		return &pgconn.PgError{Code: pgerrcode.DeadlockDetected}
+	})
+	require.ErrorIs(t, err, context.Canceled)
+	require.Equal(t, 1, calls)
+}
+
+func TestSchemaExecBackoff_StaysInsideCap(t *testing.T) {
+	for attempt := range schemaExecAttempts {
+		d := schemaExecBackoff(attempt)
+		require.Positive(t, d)
+		require.LessOrEqual(t, d, schemaExecMaxBackoff)
 	}
 }
 

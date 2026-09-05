@@ -154,6 +154,77 @@ func waitForMessages(t *testing.T, counter *atomic.Int64, expectedCount int64, t
 	}
 }
 
+// TestPostgresController_EnsureSchema_ConcurrentNodes reproduces a cluster
+// whose nodes all start against the same empty database — the shape of a
+// fresh install rolled out to a whole deployment at once. CREATE TABLE/INDEX
+// IF NOT EXISTS probes the catalog before it takes any lock, so every node
+// but the winner loses the race and gets a hard error (42P07, or 23505 on
+// pg_type/pg_class when it reached its own catalog inserts first) instead of
+// the NOTICE a sequential re-run produces. EnsureSchema returning that error
+// means the node refuses to start, so every node here must come up clean.
+//
+// The race is timing-dependent and won't fire on every run — the test is a
+// regression guard, not a reproducer: it must never fail.
+func TestPostgresController_EnsureSchema_ConcurrentNodes(t *testing.T) {
+	const (
+		nodes  = 8
+		rounds = 3
+	)
+	ctx := context.Background()
+	prefix := fmt.Sprintf("test_concurrent_%d", time.Now().UnixNano()%100000)
+
+	// Separate controllers with separate pools — one per simulated node.
+	controllers := make([]*PostgresController, 0, nodes)
+	for range nodes {
+		node, err := centrifuge.New(centrifuge.Config{})
+		require.NoError(t, err)
+		c, err := NewPostgresController(node, PostgresControllerConfig{
+			DSN:          getPostgresConnString(t),
+			TablePrefix:  prefix,
+			PollInterval: time.Hour,
+		})
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			c.closeOnce.Do(func() {
+				close(c.closeCh)
+				c.cancelFunc()
+				c.pool.Close()
+			})
+			_ = node.Shutdown(context.Background())
+		})
+		controllers = append(controllers, c)
+	}
+
+	for round := range rounds {
+		dropTestControllerSchema(t, controllers[0])
+
+		start := make(chan struct{})
+		errs := make([]error, nodes)
+		var wg sync.WaitGroup
+		for i, c := range controllers {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-start
+				errs[i] = c.EnsureSchema(ctx)
+			}()
+		}
+		close(start)
+		wg.Wait()
+
+		for i, err := range errs {
+			require.NoErrorf(t, err, "round %d: node %d failed to bring up the schema", round, i)
+		}
+		for _, table := range []string{
+			controllers[0].names.messages, controllers[0].names.shardLock, controllers[0].names.schemaVersion,
+		} {
+			var reg *string
+			require.NoError(t, controllers[0].pool.QueryRow(ctx, "SELECT to_regclass($1)::text", table).Scan(&reg))
+			require.NotNilf(t, reg, "round %d: table %s missing after concurrent EnsureSchema", round, table)
+		}
+	}
+}
+
 func TestPostgresController_PublishAndReceive(t *testing.T) {
 	var received atomic.Int64
 	var receivedData []byte

@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/pgschema"
+
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -86,8 +88,9 @@ type Partitioner struct {
 // EnsureLookaheadPartitions creates today's daily partition and up to
 // LookaheadDays future daily partitions as PARTITION OF ParentTable.
 // The CREATE TABLE IF NOT EXISTS form makes this safe to call repeatedly, and
-// tolerating 42P07 makes it safe to call concurrently: every node runs the
-// partitioner, so the same partition is routinely created by two of them at once.
+// tolerating 42P07 (plus retrying the other concurrent-DDL conflicts) makes it
+// safe to call concurrently: every node runs the partitioner, so the same
+// partition is routinely created by two of them at once.
 //
 // Boundaries are written as fully-qualified UTC timestamps (e.g.
 // '2026-04-23 00:00:00+00'). Using a bare DATE/date-text literal would
@@ -102,13 +105,26 @@ func (p *Partitioner) EnsureLookaheadPartitions(ctx context.Context) error {
 		day := now.AddDate(0, 0, d)
 		nextDay := day.AddDate(0, 0, 1)
 		partName := fmt.Sprintf("%s_%s", p.ParentTable, day.Format("2006_01_02"))
-		_, err := p.Pool.Exec(ctx, fmt.Sprintf(
+		stmt := fmt.Sprintf(
 			`CREATE TABLE IF NOT EXISTS %s PARTITION OF %s FOR VALUES FROM ('%s') TO ('%s')`,
 			partName, p.ParentTable,
 			day.Format("2006-01-02 00:00:00+00"),
 			nextDay.Format("2006-01-02 00:00:00+00"),
-		))
-		if err != nil && !isDuplicateTableErr(err) {
+		)
+		// Nodes that start together run this at the same moment, so the same
+		// concurrent-DDL conflicts the schema batch retries apply here too —
+		// and this runs on the startup path (EnsureSchema pre-creates the
+		// lookahead), where a bare failure means the node refuses to start.
+		// 42P07 is the one conflict that needs no retry: the partition exists,
+		// which is the outcome the statement was asking for.
+		err := pgschema.RetrySchemaExec(ctx, func(ctx context.Context) error {
+			_, err := p.Pool.Exec(ctx, stmt)
+			if isDuplicateTableErr(err) {
+				return nil
+			}
+			return err
+		})
+		if err != nil {
 			return fmt.Errorf("create partition %s: %w", partName, err)
 		}
 	}
