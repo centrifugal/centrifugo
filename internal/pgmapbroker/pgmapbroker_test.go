@@ -1628,6 +1628,85 @@ func TestPostgresMapBroker_EnsureSchema_Idempotent(t *testing.T) {
 	verifySchemaComplete(t, ctx, broker.pool, "cf_binary_map_", false)
 }
 
+// TestPostgresMapBroker_EnsureSchema_FastPathReachable pins the probe the
+// fast path gates on. It used to look for the trimmed prefix (cf_map), a
+// relation this broker never creates — the shape pgstreambroker uses, where
+// the trimmed prefix IS the table. So it always reported "not present", the
+// fast path was unreachable, and every single node start re-ran the full DDL
+// for both variants, CREATE OR REPLACE FUNCTION included. Nothing failed
+// visibly, which is exactly why it needs a test.
+func TestPostgresMapBroker_EnsureSchema_FastPathReachable(t *testing.T) {
+	ctx := context.Background()
+	node, err := centrifuge.New(centrifuge.Config{})
+	require.NoError(t, err)
+	broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
+		DSN:        getPostgresConnString(t),
+		NumShards:  4,
+		BinaryData: true,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = broker.Close(ctx)
+		_ = node.Shutdown(ctx)
+	})
+
+	require.NoError(t, broker.EnsureSchema(ctx))
+	require.True(t, broker.bothVariantsPresent(ctx),
+		"both variants exist after EnsureSchema, so the fast path must be reachable on the next start")
+}
+
+// TestPostgresMapBroker_EnsureSchema_FastPathRestoresPartitions covers the
+// one part of the schema that expires on its own. Tables and functions are
+// created once and stay; the daily partitions only cover
+// PartitionLookaheadDays ahead, so a cluster that was down longer than that
+// comes back to a stream table with no partition for today, and every publish
+// fails with "no partition for value". The fast path is what a restart of a
+// healthy cluster takes, so it has to repair that — before, the gap stayed
+// open until the partition worker's first tick, a full CleanupInterval later.
+func TestPostgresMapBroker_EnsureSchema_FastPathRestoresPartitions(t *testing.T) {
+	connString := getPostgresConnString(t)
+	ctx := context.Background()
+
+	// Built directly rather than through the test helper: no event handler
+	// means no partition worker, so EnsureSchema is the only thing that can
+	// create a partition and the assertion below can't be satisfied by a
+	// background tick.
+	node, err := centrifuge.New(centrifuge.Config{})
+	require.NoError(t, err)
+	broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
+		DSN:        connString,
+		NumShards:  4,
+		BinaryData: true,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = broker.Close(ctx)
+		_ = node.Shutdown(ctx)
+	})
+
+	require.NoError(t, broker.EnsureSchema(ctx))
+
+	// Simulate the calendar having moved past the lookahead window.
+	today := fmt.Sprintf("%s_%s", broker.names.stream, time.Now().UTC().Format("2006_01_02"))
+	_, err = broker.pool.Exec(ctx, "DROP TABLE "+today)
+	require.NoError(t, err)
+	require.False(t, partitionExists(ctx, t, broker.pool, today))
+
+	// Schema version is current and both variants are present, so this call
+	// takes the fast path — the one a healthy restart takes.
+	require.NoError(t, broker.EnsureSchema(ctx))
+	require.True(t, partitionExists(ctx, t, broker.pool, today),
+		"fast path left today's partition missing — publishes would fail until the partition worker's first tick")
+}
+
+func partitionExists(ctx context.Context, t *testing.T, pool *pgxpool.Pool, name string) bool {
+	t.Helper()
+	var exists bool
+	require.NoError(t, pool.QueryRow(ctx,
+		"SELECT EXISTS(SELECT 1 FROM pg_class WHERE relname = $1 AND relkind = 'r')", name).Scan(&exists))
+	return exists
+}
+
 // TestPostgresMapBroker_EnsureSchema_ConcurrentNodes reproduces a cluster
 // whose nodes all start against the same empty database — the shape of a
 // fresh install rolled out to a whole deployment at once. CREATE TABLE/INDEX

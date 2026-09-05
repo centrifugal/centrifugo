@@ -157,6 +157,10 @@ var _ centrifuge.Controller = (*PostgresController)(nil)
 func NewPostgresController(node *centrifuge.Node, conf PostgresControllerConfig) (*PostgresController, error) {
 	conf.setDefaults()
 
+	if err := pgschema.ValidateTablePrefix("postgres controller", conf.TablePrefix); err != nil {
+		return nil, err
+	}
+
 	ctx := context.Background()
 
 	poolConfig, err := pgxpool.ParseConfig(conf.DSN)

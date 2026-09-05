@@ -13,6 +13,7 @@ import (
 	"hash/fnv"
 	"math/rand/v2"
 	"time"
+	"unicode"
 
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -54,6 +55,42 @@ func ValidateMigrationMap(label string, target int, migrations map[int]string) {
 			panic(fmt.Sprintf("%s: schemaMigrations[%d] is outside the valid range [2..%d]", label, v, target))
 		}
 	}
+}
+
+// ValidateTablePrefix rejects a configured table prefix that can never work as
+// a PostgreSQL identifier. Every table, index and function name is this prefix
+// concatenated with a fixed suffix and interpolated into DDL unquoted, so a bad
+// prefix surfaces as a syntax error deep inside a generated CREATE statement,
+// naming the table it failed to create rather than the setting that produced
+// it. Call it once at construction, after defaults are applied.
+//
+// The rule is PostgreSQL's own for unquoted identifiers, so it rejects only
+// what could never have worked: a letter or underscore first, then letters,
+// digits, underscores or dollar signs. Uppercase stays valid — PostgreSQL
+// folds it, so a prefix of "MyApp" yields myapp_* tables and every generated
+// query folds to match — and so do non-ASCII letters.
+//
+// It deliberately says nothing about length. PostgreSQL truncates identifiers
+// at 63 bytes rather than erroring, so a long prefix degrades (partition names
+// losing their date suffix, for one) instead of failing outright, and rejecting
+// it here would refuse deployments that are running today.
+func ValidateTablePrefix(label, prefix string) error {
+	if prefix == "" {
+		return fmt.Errorf("%s: table_prefix is empty", label)
+	}
+	for i, r := range prefix {
+		switch {
+		case unicode.IsLetter(r) || r == '_':
+			// Valid anywhere, including first.
+		case (unicode.IsDigit(r) || r == '$') && i > 0:
+			// Valid only after the first character.
+		default:
+			return fmt.Errorf(
+				"%s: table_prefix %q contains %q, which PostgreSQL does not accept in an unquoted identifier — use letters, digits and underscores, and don't start with a digit",
+				label, prefix, r)
+		}
+	}
+	return nil
 }
 
 // ReadSchemaVersion reads the schema_version row from `table` and discriminates

@@ -18,7 +18,6 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -97,14 +96,11 @@ func (e *PostgresMapBroker) execSchemaWithRetry(ctx context.Context, sql string)
 	if err == nil {
 		return nil
 	}
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) {
-		return &SchemaError{
-			Object: SchemaObject{Type: "schema", Name: pgErr.TableName},
-			Op:     "create",
-			Err:    err,
-		}
-	}
+	// No object name: the batch spans every table of one variant, and a server
+	// error's TableName is not the one that failed to be created — on the
+	// catalog unique violation a lost DDL race produces it reads "pg_class",
+	// which points the reader at PostgreSQL's own catalog. The wrapped error
+	// carries the statement's real detail.
 	return &SchemaError{
 		Object: SchemaObject{Type: "schema", Name: ""},
 		Op:     "create",
@@ -439,6 +435,9 @@ func NewPostgresMapBroker(n *centrifuge.Node, conf PostgresMapBrokerConfig) (*Po
 	if conf.DSN == "" {
 		return nil, errors.New("postgres map broker: DSN is required")
 	}
+	if err := pgschema.ValidateTablePrefix("postgres map broker", conf.TablePrefix); err != nil {
+		return nil, err
+	}
 
 	ctx := context.Background()
 
@@ -701,7 +700,12 @@ func (e *SchemaError) Unwrap() error {
 // install where only one variant was created.
 func (e *PostgresMapBroker) bothVariantsPresent(ctx context.Context) bool {
 	for _, prefix := range []string{e.names.jsonbPrefix, e.names.binaryPrefix} {
-		table := strings.TrimRight(prefix, "_")
+		// <prefix>stream, not the trimmed prefix: this broker's tables are all
+		// suffixed (cf_map_stream), unlike pgstreambroker where the trimmed
+		// prefix IS the table (cf_stream). Probing "cf_map" — a relation that
+		// never exists — made this return false every time, so the fast path
+		// below was dead and every start re-ran the whole DDL batch.
+		table := prefix + "stream"
 		if _, err := e.pool.Exec(ctx, fmt.Sprintf(`SELECT 1 FROM %s LIMIT 0`, table)); err != nil {
 			return false
 		}
@@ -818,8 +822,8 @@ func (e *PostgresMapBroker) EnsureSchema(ctx context.Context) error {
 	}
 
 	// 2. Fast path: version matches AND the primary table exists. Reconcile
-	//    shard_lock (load-bearing, see comment in reconcileShardLock) and
-	//    return without touching DDL.
+	//    shard_lock (load-bearing, see comment in reconcileShardLock), refresh
+	//    the partition lookahead, and return without touching DDL.
 	if !isFresh && dbVersion == schemaVersion {
 		// Probe BOTH variants' primary tables, not just the active one. The two
 		// variants (jsonb + binary) are created by separate Exec calls, so a
@@ -834,7 +838,15 @@ func (e *PostgresMapBroker) EnsureSchema(ctx context.Context) error {
 			if err := e.reconcileShardLock(ctx); err != nil {
 				return err
 			}
-			return nil
+			// Partitions are the one part of the schema that expires: the
+			// lookahead window advances with the calendar, so a node coming
+			// back after the cluster was down longer than
+			// PartitionLookaheadDays finds today's partition missing. Without
+			// this the gap stays open until the partition worker's first tick
+			// — a full CleanupInterval of publishes failing with "no partition
+			// for value". pgstreambroker and the Postgres controller already
+			// close it on their fast paths.
+			return e.ensurePartitionedStream(ctx)
 		}
 	}
 
@@ -2262,8 +2274,10 @@ func (e *PostgresMapBroker) cleanupExpiredBatched(ctx context.Context, query str
 //     clear "drop the legacy tables manually" error.
 //  2. Pre-create today's + lookahead partitions via the pgoutbox helper.
 //
-// pgmapbroker is unreleased, so no automatic migration is provided — the
-// operator drops the legacy tables and starts fresh.
+// The stream table has been PARTITION BY RANGE since the broker shipped, so
+// no released version can hold the legacy shape and no automatic migration is
+// provided — an operator carrying it over from a pre-release build drops the
+// legacy tables and starts fresh.
 func (e *PostgresMapBroker) ensurePartitionedStream(ctx context.Context) error {
 	// Probe: verify the stream table is actually partitioned. The CREATE TABLE
 	// IF NOT EXISTS in the schema template skips creation if a non-partitioned
