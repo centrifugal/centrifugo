@@ -6,7 +6,6 @@ import (
 	"errors"
 	"sync"
 	"time"
-	"unicode"
 
 	"github.com/centrifugal/centrifugo/v6/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v6/internal/clientstorage"
@@ -498,7 +497,7 @@ func (h *Handler) OnClientConnecting(
 				userID = credentials.UserID
 			}
 
-			validChannelName, err := h.validChannelName(rest, chOpts, ch)
+			validChannelName, err := h.cfgContainer.ValidChannelName(ch, rest, chOpts)
 			if err != nil {
 				return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
 			}
@@ -702,15 +701,6 @@ func (h *Handler) OnSubRefresh(c Client, subRefreshProxyHandler proxy.SubRefresh
 	}, SubRefreshExtra{}, nil
 }
 
-func isASCII(s string) bool {
-	for _, c := range s {
-		if c > unicode.MaxASCII {
-			return false
-		}
-	}
-	return true
-}
-
 // isSubscriptionTypeAllowed checks whether the given subscription type
 // matches the namespace's configured subscription_type.
 // When no type is configured, only stream subscriptions are allowed.
@@ -721,20 +711,8 @@ func isSubscriptionTypeAllowed(subType centrifuge.SubscriptionType, configuredTy
 	return configuredType == subType.String()
 }
 
-func (h *Handler) validChannelName(rest string, chOpts configtypes.ChannelOptions, channel string) (bool, error) {
-	if chOpts.ChannelRegex != "" {
-		regex := chOpts.Compiled.CompiledChannelRegex
-		if !regex.MatchString(rest) {
-			return false, nil
-		}
-	} else if !isASCII(channel) {
-		return false, nil
-	}
-	return true, nil
-}
-
 func (h *Handler) validateChannelName(c Client, rest string, chOpts configtypes.ChannelOptions, channel string) error {
-	ok, err := h.validChannelName(rest, chOpts, channel)
+	ok, err := h.cfgContainer.ValidChannelName(channel, rest, chOpts)
 	if err != nil {
 		log.Info().Err(err).Str("channel", channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("error checking channel name")
 		return centrifuge.ErrorInternal

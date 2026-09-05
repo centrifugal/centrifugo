@@ -199,6 +199,53 @@ func TestUserAllowed(t *testing.T) {
 	require.False(t, rules.UserAllowed("channel#1,2", "3"))
 }
 
+func TestValidChannelName(t *testing.T) {
+	c := defaultConfig(t)
+	c.Channel.Namespaces = []configtypes.ChannelNamespace{
+		{
+			Name: "digits",
+			ChannelOptions: configtypes.ChannelOptions{
+				ChannelRegex: `^\d+$`,
+			},
+		},
+		{
+			Name:           "plain",
+			ChannelOptions: configtypes.ChannelOptions{},
+		},
+		{
+			Name: "any",
+			ChannelOptions: configtypes.ChannelOptions{
+				ChannelRegex: `^.+$`,
+			},
+		},
+	}
+	container, err := NewContainer(c)
+	require.NoError(t, err)
+
+	tests := []struct {
+		name    string
+		channel string
+		valid   bool
+	}{
+		{"no regex, ascii channel", "plain:index", true},
+		{"no regex, non-ascii channel", "plain:индекс", false},
+		{"regex matches rest, not the whole channel", "digits:42", true},
+		{"regex does not match rest", "digits:abc", false},
+		{"regex replaces the ascii check", "any:индекс", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, rest, chOpts, found, err := container.ChannelOptions(tt.channel)
+			require.NoError(t, err)
+			require.True(t, found)
+			valid, err := container.ValidChannelName(tt.channel, rest, chOpts)
+			require.NoError(t, err)
+			require.Equal(t, tt.valid, valid)
+		})
+	}
+}
+
 func TestIsUserLimited(t *testing.T) {
 	rules, err := NewContainer(defaultConfig(t))
 	require.NoError(t, err)
