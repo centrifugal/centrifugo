@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+	"unicode"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 )
@@ -126,6 +127,30 @@ func (n *Container) ChannelOptions(ch string) (string, string, configtypes.Chann
 		n.channelOptionsCache.Set(ch, res, n.ChannelOptionsCacheTTL)
 	}
 	return res.nsName, res.rest, res.chOpts, res.ok, res.err
+}
+
+// ValidChannelName checks whether the channel name is valid for the resolved
+// channel options. When channel_regex is set it's matched against rest - the part
+// of the channel which follows the namespace, as returned by ChannelOptions. When
+// no channel_regex is set the channel must only contain ASCII characters.
+func (n *Container) ValidChannelName(ch string, rest string, chOpts configtypes.ChannelOptions) (bool, error) {
+	if chOpts.ChannelRegex != "" {
+		if !chOpts.Compiled.CompiledChannelRegex.MatchString(rest) {
+			return false, nil
+		}
+	} else if !isASCII(ch) {
+		return false, nil
+	}
+	return true, nil
+}
+
+func isASCII(s string) bool {
+	for _, c := range s {
+		if c > unicode.MaxASCII {
+			return false
+		}
+	}
+	return true
 }
 
 // NumNamespaces returns number of configured namespaces.
