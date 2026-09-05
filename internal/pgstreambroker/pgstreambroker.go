@@ -394,6 +394,9 @@ func NewPostgresStreamBroker(n *centrifuge.Node, conf PostgresStreamBrokerConfig
 	if conf.DSN == "" {
 		return nil, errors.New("postgres stream broker: DSN is required")
 	}
+	if err := pgschema.ValidateTablePrefix("postgres stream broker", conf.TablePrefix); err != nil {
+		return nil, err
+	}
 
 	ctx := context.Background()
 

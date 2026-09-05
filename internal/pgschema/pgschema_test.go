@@ -75,6 +75,44 @@ func TestCheckDowngrade_DBNewer_Rejected(t *testing.T) {
 	require.Contains(t, err.Error(), "downgrade not supported")
 }
 
+// ----- ValidateTablePrefix -----
+
+func TestValidateTablePrefix(t *testing.T) {
+	cases := []struct {
+		name    string
+		prefix  string
+		wantErr bool
+	}{
+		{"default", "cf", false},
+		{"underscores", "my_app_v2", false},
+		{"leading underscore", "_cf", false},
+		{"dollar after first", "cf$1", false},
+		// PostgreSQL folds unquoted identifiers, so this yields myapp_* tables
+		// and every generated query folds to match. Deployments run on it.
+		{"uppercase folds, stays valid", "MyApp", false},
+		{"non-ascii letter", "приложение", false},
+		{"empty", "", true},
+		{"leading digit", "1cf", true},
+		{"leading dollar", "$cf", true},
+		{"hyphen", "cf-prod", true},
+		{"space", "cf prod", true},
+		{"dot", "public.cf", true},
+		{"quote", `cf"x`, true},
+		{"semicolon", "cf;DROP TABLE x", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := ValidateTablePrefix("test", tc.prefix)
+			if tc.wantErr {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "test:")
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 // ----- IsRetryableSchemaExecErr / RetrySchemaExec -----
 
 func TestIsRetryableSchemaExecErr(t *testing.T) {

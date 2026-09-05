@@ -435,6 +435,9 @@ func NewPostgresMapBroker(n *centrifuge.Node, conf PostgresMapBrokerConfig) (*Po
 	if conf.DSN == "" {
 		return nil, errors.New("postgres map broker: DSN is required")
 	}
+	if err := pgschema.ValidateTablePrefix("postgres map broker", conf.TablePrefix); err != nil {
+		return nil, err
+	}
 
 	ctx := context.Background()
 
