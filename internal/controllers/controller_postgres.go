@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	_ "embed"
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/centrifugo/v6/internal/pgschema"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 )
@@ -322,6 +320,11 @@ func splitControllerSchemaSQL(sql string) (ddl, funcs string) {
 	return sql[:i], sql[i:]
 }
 
+// execSchemaWithRetry executes idempotent schema SQL, retrying on the
+// conflicts several nodes running the same DDL at once produce — see
+// pgschema.IsConcurrentDDLErr. The SQL is one multi-statement Exec, so the
+// server runs it in a single implicit transaction and a failed attempt rolls
+// back completely, which is what makes re-running the whole batch safe.
 func (c *PostgresController) execSchemaWithRetry(ctx context.Context, sql string) error {
 	const maxRetries = 3
 	for attempt := 0; attempt < maxRetries; attempt++ {
@@ -329,8 +332,7 @@ func (c *PostgresController) execSchemaWithRetry(ctx context.Context, sql string
 		if err == nil {
 			return nil
 		}
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && (pgErr.Code == "40P01" || pgErr.Code == "XX000") && attempt < maxRetries-1 {
+		if pgschema.IsConcurrentDDLErr(err) && attempt < maxRetries-1 {
 			time.Sleep(200 * time.Millisecond)
 			continue
 		}

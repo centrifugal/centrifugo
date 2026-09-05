@@ -13,6 +13,7 @@ import (
 	"hash/fnv"
 	"time"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -79,7 +80,7 @@ func ReadSchemaVersion(ctx context.Context, q querier, table string) (int, bool,
 		return 0, true, nil
 	}
 	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "42P01" {
+	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UndefinedTable {
 		return 0, true, nil
 	}
 	return 0, false, fmt.Errorf("read schema_version from %s: %w", table, err)
@@ -118,6 +119,46 @@ type MigrationVariant struct {
 	VersionTable string
 }
 
+// IsConcurrentDDLErr reports whether err is a conflict caused by several nodes
+// running the same idempotent schema DDL at the same time. That is the normal
+// situation on a cluster start or a rolling restart: every node runs its own
+// EnsureSchema against the same database and nothing serialises them.
+//
+//   - 40P01 deadlock_detected — nodes taking the same catalog locks in
+//     different orders.
+//   - XX000 internal_error, which is how "tuple concurrently updated" arrives
+//     — raised by concurrent CREATE OR REPLACE FUNCTION on the same function.
+//   - 42P07 duplicate_table and 23505 unique_violation — CREATE TABLE/INDEX
+//     IF NOT EXISTS probes the catalog before it takes any lock, so two nodes
+//     both pass the probe and the loser gets a hard error instead of the
+//     NOTICE a sequential re-run produces. Which of the two it gets depends on
+//     whether the winner had committed by the time the loser looked again:
+//     42P07 from the explicit check in heap_create_with_catalog if it had,
+//     23505 from the unique index on pg_type/pg_class if the loser reached its
+//     own catalog inserts first.
+//
+// Retrying is the right response to all four: either the object now exists,
+// which is the outcome the statement asked for, or the next attempt creates
+// it. Retrying is only safe for callers that run their schema batch as a
+// single implicit transaction — one multi-statement Exec with no explicit
+// BEGIN/COMMIT — so a failed attempt rolls back completely and the retry
+// starts from a clean state.
+//
+// Migrations deliberately do not use this: they run under
+// AcquireMigrationLock, which serialises nodes cluster-wide, so a duplicate
+// object there is a real bug and must surface rather than be retried away.
+func IsConcurrentDDLErr(err error) bool {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return false
+	}
+	switch pgErr.Code {
+	case pgerrcode.DeadlockDetected, pgerrcode.InternalError, pgerrcode.DuplicateTable, pgerrcode.UniqueViolation:
+		return true
+	}
+	return false
+}
+
 // ApplyMigrationInTx applies one migration step. For each variant in the
 // slice:
 //   - The variant's SQL is executed.
@@ -128,11 +169,12 @@ type MigrationVariant struct {
 // retries safe even when migration SQL is not perfectly idempotent — the
 // previous attempt has fully rolled back.
 //
-// The body is retried up to migrationRetryAttempts times on the same
-// transient codes execSchemaWithRetry retries (40P01 deadlock_detected,
-// XX000 "tuple concurrently updated" — surfaces from concurrent
-// CREATE OR REPLACE in a rolling deploy). ctx cancellation aborts the
-// retry loop immediately.
+// The body is retried up to migrationRetryAttempts times on transient
+// conflicts (40P01 deadlock_detected, XX000 "tuple concurrently updated" —
+// surfaces from concurrent CREATE OR REPLACE in a rolling deploy). ctx
+// cancellation aborts the retry loop immediately. This is deliberately
+// narrower than IsConcurrentDDLErr — see the note there on why migrations
+// must not retry away duplicate-object errors.
 func ApplyMigrationInTx(ctx context.Context, p txBeginner, label string, version int, variants []MigrationVariant) error {
 	if len(variants) == 0 {
 		return fmt.Errorf("%s: ApplyMigrationInTx v%d called with no variants", label, version)
@@ -144,7 +186,7 @@ func ApplyMigrationInTx(ctx context.Context, p txBeginner, label string, version
 			return nil
 		}
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && (pgErr.Code == "40P01" || pgErr.Code == "XX000") && attempt < migrationRetryAttempts-1 {
+		if errors.As(err, &pgErr) && (pgErr.Code == pgerrcode.DeadlockDetected || pgErr.Code == pgerrcode.InternalError) && attempt < migrationRetryAttempts-1 {
 			lastErr = err
 			select {
 			case <-ctx.Done():

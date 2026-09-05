@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -27,7 +28,7 @@ func isShutdownErr(err error) bool {
 // outcome the statement was asking for.
 func isDuplicateTableErr(err error) bool {
 	var pgErr *pgconn.PgError
-	return errors.As(err, &pgErr) && pgErr.Code == "42P07"
+	return errors.As(err, &pgErr) && pgErr.Code == pgerrcode.DuplicateTable
 }
 
 // Partitioner manages daily time-based partition maintenance for an

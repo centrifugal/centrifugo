@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
@@ -217,17 +218,17 @@ func TestIsDuplicateTableErr(t *testing.T) {
 	}{
 		{
 			name: "duplicate table from a concurrent creator",
-			err:  &pgconn.PgError{Code: "42P07", Message: `relation "cf_stream_history_2026_09_11" already exists`},
+			err:  &pgconn.PgError{Code: pgerrcode.DuplicateTable, Message: `relation "cf_stream_history_2026_09_11" already exists`},
 			want: true,
 		},
 		{
 			name: "wrapped duplicate table",
-			err:  fmt.Errorf("create partition: %w", &pgconn.PgError{Code: "42P07"}),
+			err:  fmt.Errorf("create partition: %w", &pgconn.PgError{Code: pgerrcode.DuplicateTable}),
 			want: true,
 		},
 		{
 			name: "a different server error is still a failure",
-			err:  &pgconn.PgError{Code: "42501", Message: "permission denied"},
+			err:  &pgconn.PgError{Code: pgerrcode.InsufficientPrivilege, Message: "permission denied"},
 			want: false,
 		},
 		{
