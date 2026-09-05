@@ -1628,6 +1628,75 @@ func TestPostgresMapBroker_EnsureSchema_Idempotent(t *testing.T) {
 	verifySchemaComplete(t, ctx, broker.pool, "cf_binary_map_", false)
 }
 
+// TestPostgresMapBroker_EnsureSchema_ConcurrentNodes reproduces a cluster
+// whose nodes all start against the same empty database — the shape of a
+// fresh install rolled out to a whole deployment at once. CREATE TABLE/INDEX
+// IF NOT EXISTS probes the catalog before it takes any lock, so every node
+// but the winner loses the race and gets a hard error (42P07, or 23505 on
+// pg_type/pg_class when it reached its own catalog inserts first) instead of
+// the NOTICE a sequential re-run produces. EnsureSchema returning that error
+// means the node refuses to start, so every node here must come up clean.
+//
+// The race is timing-dependent and won't fire on every run — the test is a
+// regression guard, not a reproducer: it must never fail.
+func TestPostgresMapBroker_EnsureSchema_ConcurrentNodes(t *testing.T) {
+	const (
+		nodes  = 8
+		rounds = 3
+	)
+	connString := getPostgresConnString(t)
+	ctx := context.Background()
+
+	// Separate brokers with separate pools — one per simulated node.
+	brokers := make([]*PostgresMapBroker, 0, nodes)
+	for range nodes {
+		node, _ := centrifuge.New(centrifuge.Config{
+			Map: centrifuge.MapConfig{
+				GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+					return centrifuge.MapChannelOptions{
+						Mode:   centrifuge.MapModeRecoverable,
+						KeyTTL: 60 * time.Second,
+					}
+				},
+			},
+		})
+		broker, err := NewPostgresMapBroker(node, PostgresMapBrokerConfig{
+			DSN:       connString,
+			NumShards: 4,
+		})
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			_ = broker.Close(ctx)
+			_ = node.Shutdown(ctx)
+		})
+		brokers = append(brokers, broker)
+	}
+
+	for round := range rounds {
+		dropAllSchemaObjects(ctx, brokers[0].pool)
+
+		start := make(chan struct{})
+		errs := make([]error, nodes)
+		var wg sync.WaitGroup
+		for i, broker := range brokers {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-start
+				errs[i] = broker.EnsureSchema(ctx)
+			}()
+		}
+		close(start)
+		wg.Wait()
+
+		for i, err := range errs {
+			require.NoErrorf(t, err, "round %d: node %d failed to bring up the schema", round, i)
+		}
+		verifySchemaComplete(t, ctx, brokers[0].pool, "cf_map_", true)
+		verifySchemaComplete(t, ctx, brokers[0].pool, "cf_binary_map_", false)
+	}
+}
+
 // TestPostgresMapBroker_EnsureSchema_PartialState tests that EnsureSchema handles partial schema.
 func TestPostgresMapBroker_EnsureSchema_PartialState(t *testing.T) {
 	connString := getPostgresConnString(t)

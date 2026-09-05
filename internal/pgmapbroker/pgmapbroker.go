@@ -84,36 +84,32 @@ func renderSchema(prefix string, binary bool) string {
 	return renderSchemaTemplate(postgresSchemaTemplate, prefix, binary)
 }
 
-// execSchemaWithRetry executes idempotent schema SQL, retrying on transient
-// conflicts: deadlock (40P01) and "tuple concurrently updated" (XX000).
-// The latter occurs when concurrent CREATE OR REPLACE FUNCTION statements
-// race on the same function (e.g. during rolling deploys).
+// execSchemaWithRetry executes idempotent schema SQL, retrying the batch on
+// the conflicts several nodes running the same DDL at once produce — see
+// pgschema.RetrySchemaExec for the policy and for the invariant the SQL has
+// to keep (one multi-statement Exec with no arguments, so the server runs it
+// in a single implicit transaction that rolls back completely on failure).
 func (e *PostgresMapBroker) execSchemaWithRetry(ctx context.Context, sql string) error {
-	const maxRetries = 3
-	for attempt := range maxRetries {
+	err := pgschema.RetrySchemaExec(ctx, func(ctx context.Context) error {
 		_, err := e.pool.Exec(ctx, sql)
-		if err == nil {
-			return nil
-		}
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && (pgErr.Code == "40P01" || pgErr.Code == "XX000") && attempt < maxRetries-1 {
-			time.Sleep(200 * time.Millisecond)
-			continue
-		}
-		if errors.As(err, &pgErr) {
-			return &SchemaError{
-				Object: SchemaObject{Type: "schema", Name: pgErr.TableName},
-				Op:     "create",
-				Err:    err,
-			}
-		}
+		return err
+	})
+	if err == nil {
+		return nil
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
 		return &SchemaError{
-			Object: SchemaObject{Type: "schema", Name: ""},
+			Object: SchemaObject{Type: "schema", Name: pgErr.TableName},
 			Op:     "create",
 			Err:    err,
 		}
 	}
-	return nil
+	return &SchemaError{
+		Object: SchemaObject{Type: "schema", Name: ""},
+		Op:     "create",
+		Err:    err,
+	}
 }
 
 // splitSchemaSQL splits the schema SQL into DDL (tables+indexes) and function

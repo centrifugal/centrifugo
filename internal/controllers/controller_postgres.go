@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	_ "embed"
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/centrifugo/v6/internal/pgschema"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 )
@@ -322,18 +320,17 @@ func splitControllerSchemaSQL(sql string) (ddl, funcs string) {
 	return sql[:i], sql[i:]
 }
 
+// execSchemaWithRetry executes idempotent schema SQL, retrying the batch on
+// the conflicts several nodes running the same DDL at once produce — see
+// pgschema.RetrySchemaExec for the policy and for the invariant the SQL has
+// to keep (one multi-statement Exec with no arguments, so the server runs it
+// in a single implicit transaction that rolls back completely on failure).
 func (c *PostgresController) execSchemaWithRetry(ctx context.Context, sql string) error {
-	const maxRetries = 3
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	err := pgschema.RetrySchemaExec(ctx, func(ctx context.Context) error {
 		_, err := c.pool.Exec(ctx, sql)
-		if err == nil {
-			return nil
-		}
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && (pgErr.Code == "40P01" || pgErr.Code == "XX000") && attempt < maxRetries-1 {
-			time.Sleep(200 * time.Millisecond)
-			continue
-		}
+		return err
+	})
+	if err != nil {
 		return fmt.Errorf("postgres controller: schema exec: %w", err)
 	}
 	return nil

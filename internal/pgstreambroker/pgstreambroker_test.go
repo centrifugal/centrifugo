@@ -138,6 +138,88 @@ func hardResetTestSchema(tb testing.TB, e *PostgresStreamBroker) {
 	}
 }
 
+// TestPostgresStreamBroker_EnsureSchema_ConcurrentNodes reproduces a cluster
+// whose nodes all start against the same empty database — the shape of a
+// fresh install rolled out to a whole deployment at once. CREATE TABLE/INDEX
+// IF NOT EXISTS probes the catalog before it takes any lock, so every node
+// but the winner loses the race and gets a hard error (42P07, or 23505 on
+// pg_type/pg_class when it reached its own catalog inserts first) instead of
+// the NOTICE a sequential re-run produces. EnsureSchema returning that error
+// means the node refuses to start, so every node here must come up clean.
+// The daily partitions EnsureSchema pre-creates race the same way.
+//
+// The race is timing-dependent and won't fire on every run — the test is a
+// regression guard, not a reproducer: it must never fail.
+func TestPostgresStreamBroker_EnsureSchema_ConcurrentNodes(t *testing.T) {
+	const (
+		nodes  = 8
+		rounds = 3
+	)
+	connString := getPostgresConnString(t)
+	ctx := context.Background()
+
+	// Separate brokers with separate pools — one per simulated node.
+	brokers := make([]*PostgresStreamBroker, 0, nodes)
+	for range nodes {
+		node, err := centrifuge.New(centrifuge.Config{})
+		require.NoError(t, err)
+		e, err := NewPostgresStreamBroker(node, PostgresStreamBrokerConfig{
+			DSN:                    connString,
+			NumShards:              4,
+			BinaryData:             true,
+			CleanupInterval:        time.Hour,
+			StreamRetention:        24 * time.Hour,
+			PartitionLookaheadDays: 1,
+			PartitionRetentionDays: 1,
+		})
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			_ = e.Close(context.Background())
+			_ = node.Shutdown(context.Background())
+		})
+		brokers = append(brokers, e)
+	}
+
+	for round := range rounds {
+		hardResetTestSchema(t, brokers[0])
+
+		start := make(chan struct{})
+		errs := make([]error, nodes)
+		var wg sync.WaitGroup
+		for i, e := range brokers {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-start
+				errs[i] = e.EnsureSchema(ctx)
+			}()
+		}
+		close(start)
+		wg.Wait()
+
+		for i, err := range errs {
+			require.NoErrorf(t, err, "round %d: node %d failed to bring up the schema", round, i)
+		}
+		// Every object the nodes raced to create must be present exactly once.
+		for _, prefix := range []string{brokers[0].names.jsonbPrefix, brokers[0].names.binaryPrefix} {
+			for _, table := range []string{
+				strings.TrimRight(prefix, "_"), prefix + "meta", prefix + "idempotency",
+				prefix + "shard_lock", prefix + "schema_version",
+			} {
+				var reg *string
+				require.NoError(t, brokers[0].pool.QueryRow(ctx, "SELECT to_regclass($1)::text", table).Scan(&reg))
+				require.NotNilf(t, reg, "round %d: table %s missing after concurrent EnsureSchema", round, table)
+			}
+		}
+		// And today's partition, created outside the schema batch.
+		var partitions int
+		require.NoError(t, brokers[0].pool.QueryRow(ctx,
+			"SELECT count(*) FROM pg_inherits WHERE inhparent = $1::regclass", brokers[0].names.stream,
+		).Scan(&partitions))
+		require.Positivef(t, partitions, "round %d: no partitions after concurrent EnsureSchema", round)
+	}
+}
+
 // TestPostgresStreamBroker_PublishAndHistory verifies basic publish + history
 // round-trip: a few messages with HistoryTTL set should be readable in order
 // from History().

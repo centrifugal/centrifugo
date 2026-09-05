@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -72,6 +73,89 @@ func TestCheckDowngrade_DBNewer_Rejected(t *testing.T) {
 	require.Contains(t, err.Error(), "schema_version is 5")
 	require.Contains(t, err.Error(), "supports only up to 3")
 	require.Contains(t, err.Error(), "downgrade not supported")
+}
+
+// ----- IsRetryableSchemaExecErr / RetrySchemaExec -----
+
+func TestIsRetryableSchemaExecErr(t *testing.T) {
+	cases := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"deadlock", &pgconn.PgError{Code: pgerrcode.DeadlockDetected}, true},
+		{"tuple concurrently updated", &pgconn.PgError{Code: pgerrcode.InternalError}, true},
+		{"duplicate table from a concurrent creator", &pgconn.PgError{Code: pgerrcode.DuplicateTable}, true},
+		{"catalog unique violation from a concurrent creator", &pgconn.PgError{Code: pgerrcode.UniqueViolation}, true},
+		{"wrapped", fmt.Errorf("schema exec: %w", &pgconn.PgError{Code: pgerrcode.DuplicateTable}), true},
+		{"permission denied is a real failure", &pgconn.PgError{Code: pgerrcode.InsufficientPrivilege}, false},
+		{"undefined table is a real failure", &pgconn.PgError{Code: pgerrcode.UndefinedTable}, false},
+		{"non-server error", errors.New("connection reset"), false},
+		{"nil", nil, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, IsRetryableSchemaExecErr(tc.err))
+		})
+	}
+}
+
+func TestRetrySchemaExec_RetriesConflictThenSucceeds(t *testing.T) {
+	var calls int
+	err := RetrySchemaExec(context.Background(), func(context.Context) error {
+		calls++
+		if calls < 3 {
+			return &pgconn.PgError{Code: pgerrcode.DuplicateTable}
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, 3, calls)
+}
+
+func TestRetrySchemaExec_RealFailureNotRetried(t *testing.T) {
+	var calls int
+	want := &pgconn.PgError{Code: pgerrcode.InsufficientPrivilege}
+	err := RetrySchemaExec(context.Background(), func(context.Context) error {
+		calls++
+		return want
+	})
+	require.ErrorIs(t, err, want)
+	require.Equal(t, 1, calls, "a permission error must surface on the first attempt")
+}
+
+func TestRetrySchemaExec_ExhaustedReturnsLastError(t *testing.T) {
+	var calls int
+	err := RetrySchemaExec(context.Background(), func(context.Context) error {
+		calls++
+		return &pgconn.PgError{Code: pgerrcode.UniqueViolation}
+	})
+	var pgErr *pgconn.PgError
+	require.ErrorAs(t, err, &pgErr)
+	require.Equal(t, pgerrcode.UniqueViolation, pgErr.Code)
+	require.Equal(t, schemaExecAttempts, calls)
+}
+
+// A node shutting down mid-retry must report cancellation, not a schema
+// failure — pgoutbox's Run loop discriminates on it to keep shutdown quiet.
+func TestRetrySchemaExec_ContextCancelledDuringBackoff(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	var calls int
+	err := RetrySchemaExec(ctx, func(context.Context) error {
+		calls++
+		cancel()
+		return &pgconn.PgError{Code: pgerrcode.DeadlockDetected}
+	})
+	require.ErrorIs(t, err, context.Canceled)
+	require.Equal(t, 1, calls)
+}
+
+func TestSchemaExecBackoff_StaysInsideCap(t *testing.T) {
+	for attempt := range schemaExecAttempts {
+		d := schemaExecBackoff(attempt)
+		require.Positive(t, d)
+		require.LessOrEqual(t, d, schemaExecMaxBackoff)
+	}
 }
 
 // ----- Integration helpers -----
@@ -213,7 +297,7 @@ func TestReadSchemaVersion_ColumnMissing_PropagatesError(t *testing.T) {
 	// Verify it surfaces as a pg error (column missing).
 	var pgErr *pgconn.PgError
 	require.True(t, errors.As(err, &pgErr))
-	require.Equal(t, "42703", pgErr.Code)
+	require.Equal(t, pgerrcode.UndefinedColumn, pgErr.Code)
 }
 
 // ----- ApplyMigrationInTx -----

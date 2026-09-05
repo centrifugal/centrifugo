@@ -11,8 +11,10 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"math/rand/v2"
 	"time"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -79,7 +81,7 @@ func ReadSchemaVersion(ctx context.Context, q querier, table string) (int, bool,
 		return 0, true, nil
 	}
 	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "42P01" {
+	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UndefinedTable {
 		return 0, true, nil
 	}
 	return 0, false, fmt.Errorf("read schema_version from %s: %w", table, err)
@@ -118,6 +120,100 @@ type MigrationVariant struct {
 	VersionTable string
 }
 
+// IsRetryableSchemaExecErr reports whether err is a conflict caused by several
+// nodes running the same idempotent schema DDL at the same time. That is the
+// normal situation on a cluster start or a rolling restart: every node runs its
+// own EnsureSchema against the same database and nothing serialises them.
+//
+//   - 40P01 deadlock_detected — nodes taking the same catalog locks in
+//     different orders.
+//   - XX000 internal_error, which is how "tuple concurrently updated" arrives
+//     — raised by concurrent CREATE OR REPLACE FUNCTION on the same function.
+//   - 42P07 duplicate_table and 23505 unique_violation — CREATE TABLE/INDEX
+//     IF NOT EXISTS probes the catalog before it takes any lock, so two nodes
+//     both pass the probe and the loser gets a hard error instead of the
+//     NOTICE a sequential re-run produces. Which of the two it gets depends on
+//     whether the winner had committed by the time the loser looked again:
+//     42P07 from the explicit check in heap_create_with_catalog if it had,
+//     23505 from the unique index on pg_type/pg_class if the loser reached its
+//     own catalog inserts first.
+//
+// The name is deliberately bound to schema execs: 23505 and XX000 are ordinary
+// application failures anywhere else, and retrying them on a data path would
+// paper over real bugs. Only classify statements from a schema batch with this.
+//
+// Migrations deliberately do not use it: they run under AcquireMigrationLock,
+// which serialises nodes cluster-wide, so a duplicate object there is a real
+// bug and must surface rather than be retried away.
+func IsRetryableSchemaExecErr(err error) bool {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return false
+	}
+	switch pgErr.Code {
+	case pgerrcode.DeadlockDetected, pgerrcode.InternalError, pgerrcode.DuplicateTable, pgerrcode.UniqueViolation:
+		return true
+	}
+	return false
+}
+
+const (
+	schemaExecAttempts    = 5
+	schemaExecBaseBackoff = 100 * time.Millisecond
+	schemaExecMaxBackoff  = 800 * time.Millisecond
+)
+
+// RetrySchemaExec runs exec, repeating it while it fails with a concurrent-DDL
+// conflict (see IsRetryableSchemaExecErr) and attempts remain. Any other error
+// is returned on the first occurrence, as is the last conflict once the
+// attempts are exhausted; a cancelled ctx aborts the loop and returns
+// ctx.Err(), so a shutdown mid-retry is reported as cancellation rather than
+// as a schema failure.
+//
+// Callers must make exec idempotent AND self-contained: a retry re-runs the
+// whole thing, so a schema batch has to be a single multi-statement Exec with
+// no arguments (pgx sends those over the simple query protocol, so the server
+// wraps them in one implicit transaction and a failed attempt rolls back
+// completely). A batch that opens its own BEGIN/COMMIT, or contains a
+// statement that cannot run inside a transaction block such as CREATE INDEX
+// CONCURRENTLY, breaks that invariant and must not be retried this way — the
+// schema-template tests in each consumer package pin it.
+//
+// The backoff is exponential with jitter: nodes that started together lose the
+// same race at the same instant, and retrying them in lockstep just recreates
+// the collision.
+func RetrySchemaExec(ctx context.Context, exec func(ctx context.Context) error) error {
+	var err error
+	for attempt := range schemaExecAttempts {
+		err = exec(ctx)
+		if err == nil {
+			return nil
+		}
+		if !IsRetryableSchemaExecErr(err) || attempt == schemaExecAttempts-1 {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(schemaExecBackoff(attempt)):
+		}
+	}
+	return err
+}
+
+// schemaExecBackoff returns the delay before the attempt after this one:
+// exponential from schemaExecBaseBackoff, capped at schemaExecMaxBackoff, and
+// spread over the upper half of that window so concurrent nodes separate
+// without any of them waiting the full cap.
+func schemaExecBackoff(attempt int) time.Duration {
+	d := schemaExecBaseBackoff << attempt
+	if d > schemaExecMaxBackoff {
+		d = schemaExecMaxBackoff
+	}
+	//nolint:gosec // it's a jitter.
+	return d/2 + time.Duration(rand.Int64N(int64(d/2)+1))
+}
+
 // ApplyMigrationInTx applies one migration step. For each variant in the
 // slice:
 //   - The variant's SQL is executed.
@@ -128,11 +224,12 @@ type MigrationVariant struct {
 // retries safe even when migration SQL is not perfectly idempotent — the
 // previous attempt has fully rolled back.
 //
-// The body is retried up to migrationRetryAttempts times on the same
-// transient codes execSchemaWithRetry retries (40P01 deadlock_detected,
-// XX000 "tuple concurrently updated" — surfaces from concurrent
-// CREATE OR REPLACE in a rolling deploy). ctx cancellation aborts the
-// retry loop immediately.
+// The body is retried up to migrationRetryAttempts times on transient
+// conflicts (40P01 deadlock_detected, XX000 "tuple concurrently updated" —
+// surfaces from concurrent CREATE OR REPLACE in a rolling deploy). ctx
+// cancellation aborts the retry loop immediately. This is deliberately
+// narrower than IsRetryableSchemaExecErr — see the note there on why
+// migrations must not retry away duplicate-object errors.
 func ApplyMigrationInTx(ctx context.Context, p txBeginner, label string, version int, variants []MigrationVariant) error {
 	if len(variants) == 0 {
 		return fmt.Errorf("%s: ApplyMigrationInTx v%d called with no variants", label, version)
@@ -144,7 +241,7 @@ func ApplyMigrationInTx(ctx context.Context, p txBeginner, label string, version
 			return nil
 		}
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && (pgErr.Code == "40P01" || pgErr.Code == "XX000") && attempt < migrationRetryAttempts-1 {
+		if errors.As(err, &pgErr) && (pgErr.Code == pgerrcode.DeadlockDetected || pgErr.Code == pgerrcode.InternalError) && attempt < migrationRetryAttempts-1 {
 			lastErr = err
 			select {
 			case <-ctx.Done():
