@@ -13,8 +13,12 @@ type cacheItem struct {
 }
 
 type cacheShard struct {
-	index  int32
-	size   int32
+	// index is unsigned on purpose: it only ever grows, and unsigned overflow
+	// wraps to zero cleanly. With a signed counter the wrap goes negative and
+	// the modulo below yields a negative buffer index, panicking the server
+	// after 2^31 Set calls land on the same shard.
+	index  atomic.Uint32
+	size   uint32
 	buffer []atomic.Value
 }
 
@@ -28,7 +32,7 @@ func newRollingCache(shardSize int, shardCount int) *rollingCache {
 	}
 	for i := range rc.shards {
 		shard := &cacheShard{
-			size:   int32(shardSize),
+			size:   uint32(shardSize),
 			buffer: make([]atomic.Value, shardSize),
 		}
 		for j := 0; j < shardSize; j++ {
@@ -59,7 +63,7 @@ func (c *rollingCache) Get(channel string) (channelOptionsResult, bool) {
 
 func (c *rollingCache) Set(channel string, value channelOptionsResult, ttl time.Duration) {
 	shard := c.shardForKey(channel)
-	index := int(atomic.AddInt32(&shard.index, 1) % shard.size)
+	index := int(shard.index.Add(1) % shard.size)
 	item := &cacheItem{
 		channel: channel,
 		value:   value,

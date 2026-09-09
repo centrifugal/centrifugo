@@ -1,6 +1,7 @@
 package config
 
 import (
+	"math"
 	"strconv"
 	"testing"
 	"time"
@@ -50,6 +51,30 @@ func TestRollingCache(t *testing.T) {
 		channel := "channel" + strconv.Itoa(i)
 		gotValue, ok := cache.Get(channel)
 		require.True(t, ok)
+		require.Equal(t, channelOptionsResult{nsName: "value" + strconv.Itoa(i)}, gotValue)
+	}
+}
+
+// TestRollingCacheIndexOverflow guards against the rolling index wrapping into
+// negative values. The index is bumped on every Set, so on a long-running node
+// it eventually overflows; with a signed counter the wrap made the modulo
+// negative and Set panicked with "index out of range".
+func TestRollingCacheIndexOverflow(t *testing.T) {
+	cache := newRollingCache(channelOptionsCacheSize, 1)
+	shard := cache.shardForKey("channel")
+	shard.index.Store(math.MaxUint32) // Next Set wraps the index.
+
+	ttl := time.Minute
+	for i := 0; i < 2*channelOptionsCacheSize; i++ {
+		channel := "channel" + strconv.Itoa(i)
+		cache.Set(channel, channelOptionsResult{nsName: "value" + strconv.Itoa(i)}, ttl)
+	}
+
+	// The most recent shardSize items must still be readable after the wrap.
+	for i := channelOptionsCacheSize; i < 2*channelOptionsCacheSize; i++ {
+		channel := "channel" + strconv.Itoa(i)
+		gotValue, ok := cache.Get(channel)
+		require.True(t, ok, channel)
 		require.Equal(t, channelOptionsResult{nsName: "value" + strconv.Itoa(i)}, gotValue)
 	}
 }
