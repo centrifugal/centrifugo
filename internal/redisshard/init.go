@@ -31,6 +31,7 @@ func addRedisShardCommonSettings(shardConf *RedisShardConfig, redisConf configty
 	shardConf.DB = redisConf.DB
 	shardConf.User = redisConf.User
 	shardConf.Password = redisConf.Password
+	shardConf.ClientName = redisConf.ClientName
 	if redisConf.TLS.Enabled {
 		tlsConfig, err := redisConf.TLS.ToGoTLSConfig("redis")
 		if err != nil {
