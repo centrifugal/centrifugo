@@ -8,25 +8,18 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## What's changed
 
-### Improvements
-
-* New [`centrifugo_transport_frame_size`](https://centrifugal.dev/docs/server/observability#centrifugo_transport_frame_size) metric – a histogram of frame sizes received from client connections. One frame may contain several commands, so this can't be calculated from the existing per-command counters. Use it to choose a good value for `websocket.message_size_limit`, which is applied to the whole frame ([centrifugal/centrifuge#620](https://github.com/centrifugal/centrifuge/pull/620)).
-* Fewer allocations when writing to Protobuf client connections. The same PR made whole-frame Protobuf command encoding ~2.1x faster – this mostly helps Go clients like `centrifuge-go` ([centrifugal/protocol#36](https://github.com/centrifugal/protocol/pull/36)).
-* Less work on every client command: config accessors and the channel options cache no longer copy structs on each call ([#1215](https://github.com/centrifugal/centrifugo/pull/1215)).
-* PostgreSQL broker, map broker and controller now validate `table_prefix` on start. A prefix with a hyphen, space or dot used to produce a confusing syntax error inside a generated `CREATE` statement ([#1223](https://github.com/centrifugal/centrifugo/pull/1223)).
-
 ### Fixes
 
-* Async consumers: a `context.Canceled` error returned by the message dispatcher was treated as a shutdown signal. In the Kafka consumer this could skip records and then commit an offset after them, losing messages. Fixed for Kafka and SQS ([#1221](https://github.com/centrifugal/centrifugo/pull/1221)).
-* PostgreSQL engine: handle the case when several nodes create the schema at the same time. Before that a node which lost the race could fail to start with `error initializing Postgres ... schema`. Thanks to [@AlexeyShalaev](https://github.com/AlexeyShalaev) for the initial fix ([#1220](https://github.com/centrifugal/centrifugo/pull/1220) and [#1222](https://github.com/centrifugal/centrifugo/pull/1222)).
-* PostgreSQL map broker: the fast path in `EnsureSchema` never worked, so every node start ran the full DDL batch again. It works now and also refreshes the partition lookahead ([#1223](https://github.com/centrifugal/centrifugo/pull/1223)).
-* Fix a race in log throttling of the connection limit check – it could print many duplicate warnings instead of one per throttle interval ([#1214](https://github.com/centrifugal/centrifugo/pull/1214)).
-* Some config validation errors mentioned keys which don't exist, so it was hard to find the option to fix ([#1213](https://github.com/centrifugal/centrifugo/pull/1213)).
-* Admin web UI: fix uptime formatting on the Status page ([centrifugal/web#71](https://github.com/centrifugal/web/pull/71)).
+* Fix possible panic in the channel options cache on long-running nodes. Its internal counter overflowed `int32` after enough cache misses, which gave a negative slot index and crashed the node with `index out of range` ([#1227](https://github.com/centrifugal/centrifugo/pull/1227)).
+* Map subscriptions: the subscribe reply did not include `expires`/`ttl`, so clients could not refresh the subscription token in time. Also, if the map state was loaded in several pages, the client's subscription refresh was rejected with a `bad request` disconnect. A subscription whose expiration time was already in the past was accepted ([centrifugal/centrifuge#626](https://github.com/centrifugal/centrifuge/pull/626)).
+* `allowed_origins` patterns with upper-case letters (e.g. `https://App.Example.com`) never matched, because the request `Origin` was lower-cased before matching and the pattern was not. Patterns are now matched case-insensitively ([#1230](https://github.com/centrifugal/centrifugo/pull/1230)).
+* `client_name` was ignored for Redis used by `redis_stream` async consumers ([#1229](https://github.com/centrifugal/centrifugo/pull/1229)).
+* PostgreSQL engine: handle one more case of several nodes creating the schema at the same time – a node could fail on start with `type ... already exists` (SQLSTATE `42710`) ([#1231](https://github.com/centrifugal/centrifugo/pull/1231)).
+* The `centrifugo_client_subscriptions_accepted` metric was registered but never incremented, so it always showed zero ([centrifugal/centrifuge#622](https://github.com/centrifugal/centrifuge/pull/622)).
+* The `client closed or unsubscribed after adding subscription` message is now logged at `info` level instead of `error`. It happens when a client goes away while its subscription is still being set up – this is expected and is not a server error ([centrifugal/centrifuge#621](https://github.com/centrifugal/centrifuge/pull/621)).
 
 ### Miscellaneous
 
 * This release is built with Go 1.26.8.
 * Dependency updates.
-* Embedded admin web UI updated ([#1225](https://github.com/centrifugal/centrifugo/pull/1225)).
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.9.4).
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.9.5).
