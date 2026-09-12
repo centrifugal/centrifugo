@@ -158,8 +158,9 @@ func waitForMessages(t *testing.T, counter *atomic.Int64, expectedCount int64, t
 // whose nodes all start against the same empty database — the shape of a
 // fresh install rolled out to a whole deployment at once. CREATE TABLE/INDEX
 // IF NOT EXISTS probes the catalog before it takes any lock, so every node
-// but the winner loses the race and gets a hard error (42P07, or 23505 on
-// pg_type/pg_class when it reached its own catalog inserts first) instead of
+// but the winner loses the race and gets a hard error (42P07, 42710 on the
+// table's row type, or 23505 on pg_type/pg_class when it reached its own
+// catalog inserts first) instead of
 // the NOTICE a sequential re-run produces. EnsureSchema returning that error
 // means the node refuses to start, so every node here must come up clean.
 //

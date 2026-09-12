@@ -166,14 +166,16 @@ type MigrationVariant struct {
 //     different orders.
 //   - XX000 internal_error, which is how "tuple concurrently updated" arrives
 //     — raised by concurrent CREATE OR REPLACE FUNCTION on the same function.
-//   - 42P07 duplicate_table and 23505 unique_violation — CREATE TABLE/INDEX
-//     IF NOT EXISTS probes the catalog before it takes any lock, so two nodes
-//     both pass the probe and the loser gets a hard error instead of the
-//     NOTICE a sequential re-run produces. Which of the two it gets depends on
-//     whether the winner had committed by the time the loser looked again:
-//     42P07 from the explicit check in heap_create_with_catalog if it had,
-//     23505 from the unique index on pg_type/pg_class if the loser reached its
-//     own catalog inserts first.
+//   - 42P07 duplicate_table, 42710 duplicate_object and 23505
+//     unique_violation — CREATE TABLE/INDEX IF NOT EXISTS probes the catalog
+//     before it takes any lock, so two nodes both pass the probe and the loser
+//     gets a hard error instead of the NOTICE a sequential re-run produces.
+//     Which one it gets depends on when the winner committed relative to the
+//     loser's later checks: 42P07 from the relation-name check in
+//     heap_create_with_catalog, 42710 ("type ... already exists") from the
+//     row-type-name check that follows it if the commit landed between the
+//     two, 23505 from the unique index on pg_type/pg_class if the loser reached
+//     its own catalog inserts first.
 //
 // The name is deliberately bound to schema execs: 23505 and XX000 are ordinary
 // application failures anywhere else, and retrying them on a data path would
@@ -188,7 +190,7 @@ func IsRetryableSchemaExecErr(err error) bool {
 		return false
 	}
 	switch pgErr.Code {
-	case pgerrcode.DeadlockDetected, pgerrcode.InternalError, pgerrcode.DuplicateTable, pgerrcode.UniqueViolation:
+	case pgerrcode.DeadlockDetected, pgerrcode.InternalError, pgerrcode.DuplicateTable, pgerrcode.DuplicateObject, pgerrcode.UniqueViolation:
 		return true
 	}
 	return false

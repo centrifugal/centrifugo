@@ -124,6 +124,7 @@ func TestIsRetryableSchemaExecErr(t *testing.T) {
 		{"deadlock", &pgconn.PgError{Code: pgerrcode.DeadlockDetected}, true},
 		{"tuple concurrently updated", &pgconn.PgError{Code: pgerrcode.InternalError}, true},
 		{"duplicate table from a concurrent creator", &pgconn.PgError{Code: pgerrcode.DuplicateTable}, true},
+		{"duplicate row type from a concurrent creator", &pgconn.PgError{Code: pgerrcode.DuplicateObject}, true},
 		{"catalog unique violation from a concurrent creator", &pgconn.PgError{Code: pgerrcode.UniqueViolation}, true},
 		{"wrapped", fmt.Errorf("schema exec: %w", &pgconn.PgError{Code: pgerrcode.DuplicateTable}), true},
 		{"permission denied is a real failure", &pgconn.PgError{Code: pgerrcode.InsufficientPrivilege}, false},
