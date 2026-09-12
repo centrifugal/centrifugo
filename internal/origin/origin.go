@@ -15,7 +15,10 @@ type PatternChecker struct {
 func NewPatternChecker(allowedOrigins []string) (*PatternChecker, error) {
 	var globs []*glob.Pattern
 	for _, pattern := range allowedOrigins {
-		g, err := glob.Compile(pattern)
+		// Origin is matched in lower case (scheme and host are case-insensitive),
+		// so patterns must be lower-cased too – otherwise a pattern containing
+		// upper-case letters could never match.
+		g, err := glob.Compile(strings.ToLower(pattern))
 		if err != nil {
 			return nil, fmt.Errorf("malformed origin pattern: %w", err)
 		}
@@ -32,8 +35,9 @@ func (a *PatternChecker) Check(r *http.Request) bool {
 		return true
 	}
 
+	origin = strings.ToLower(origin)
 	for _, pattern := range a.allowedOrigins {
-		if pattern.Match(strings.ToLower(origin)) {
+		if pattern.Match(origin) {
 			return true
 		}
 	}
