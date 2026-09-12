@@ -8,6 +8,10 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## What's changed
 
+### Improvements
+
+* Slightly less work when recording `centrifugo_client_ping_pong_duration_seconds` – the histogram observer is now cached instead of being looked up on every pong ([centrifugal/centrifuge#622](https://github.com/centrifugal/centrifuge/pull/622)).
+
 ### Fixes
 
 * Fix possible panic in the channel options cache on long-running nodes. Its internal counter overflowed `int32` after enough cache misses, which gave a negative slot index and crashed the node with `index out of range` ([#1227](https://github.com/centrifugal/centrifugo/pull/1227)).
