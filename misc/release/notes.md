@@ -8,22 +8,12 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ## What's changed
 
-### Improvements
-
-* Slightly less work when recording `centrifugo_client_ping_pong_duration_seconds` – the histogram observer is now cached instead of being looked up on every pong ([centrifugal/centrifuge#622](https://github.com/centrifugal/centrifuge/pull/622)).
-
 ### Fixes
 
-* Fix possible panic in the channel options cache on long-running nodes. Its internal counter overflowed `int32` after enough cache misses, which gave a negative slot index and crashed the node with `index out of range` ([#1227](https://github.com/centrifugal/centrifugo/pull/1227)).
-* Map subscriptions: the subscribe reply did not include `expires`/`ttl`, so clients could not refresh the subscription token in time. Also, if the map state was loaded in several pages, the client's subscription refresh was rejected with a `bad request` disconnect. A subscription whose expiration time was already in the past was accepted ([centrifugal/centrifuge#626](https://github.com/centrifugal/centrifuge/pull/626)).
-* `allowed_origins` patterns with upper-case letters (e.g. `https://App.Example.com`) never matched, because the request `Origin` was lower-cased before matching and the pattern was not. Patterns are now matched case-insensitively ([#1230](https://github.com/centrifugal/centrifugo/pull/1230)).
-* `client_name` was ignored for Redis used by `redis_stream` async consumers ([#1229](https://github.com/centrifugal/centrifugo/pull/1229)).
-* PostgreSQL engine: handle one more case of several nodes creating the schema at the same time – a node could fail on start with `type ... already exists` (SQLSTATE `42710`) ([#1231](https://github.com/centrifugal/centrifugo/pull/1231)).
-* The `centrifugo_client_subscriptions_accepted` metric was registered but never incremented, so it always showed zero ([centrifugal/centrifuge#622](https://github.com/centrifugal/centrifuge/pull/622)).
-* The `client closed or unsubscribed after adding subscription` message is now logged at `info` level instead of `error`. It happens when a client goes away while its subscription is still being set up – this is expected and is not a server error ([centrifugal/centrifuge#621](https://github.com/centrifugal/centrifuge/pull/621)).
+* A client-side subscription refresh with an already expired subscription token was accepted. The subscription's expiration time was then cleared, so the subscription never expired. Now Centrifugo closes the connection with the `3006` (`subscription expired`) disconnect code. The client reconnects, gets a token expired error on resubscribe and requests a new token – all official SDKs already handle this ([centrifugal/centrifuge#627](https://github.com/centrifugal/centrifuge/pull/627)).
+* Fossil delta compression with recovery: when a subscribe with recovery found no missed publications, the next publication was still sent as a delta. The client had no base data for it, so it could not decode that publication or any after it. Now the first publication after such a subscribe is sent with full data ([centrifugal/centrifuge#629](https://github.com/centrifugal/centrifuge/pull/629)).
 
 ### Miscellaneous
 
 * This release is built with Go 1.26.8.
-* Dependency updates.
-* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.9.5).
+* See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.9.6).
