@@ -67,6 +67,15 @@ EXECUTE FUNCTION %s();`, notificationChannel, notificationChannel, notificationC
 	return nil
 }
 
+// testPostgresCommon returns consumerCommon with the given name. Advisory lock keys are
+// derived from consumer name and PostgreSQL advisory locks are database-wide, so tests
+// running in parallel must use distinct names to not block each other.
+func testPostgresCommon(name string) *consumerCommon {
+	common := testCommon(prometheus.NewRegistry())
+	common.name = name
+	return common
+}
+
 func insertEvent(ctx context.Context, pool *pgxpool.Pool, tableName string, method string, payload []byte, partition int) error {
 	_, err := pool.Exec(ctx, "INSERT INTO "+tableName+" (method, payload, partition) VALUES ($1, $2, $3)", method, payload, partition)
 	return err
@@ -152,7 +161,7 @@ func TestPostgresConsumer_GreenScenario(t *testing.T) {
 					close(eventReceived)
 					return nil
 				},
-			}, testCommon(prometheus.NewRegistry()))
+			}, testPostgresCommon(testTableName))
 			require.NoError(t, err)
 
 			// Start the consumer
@@ -211,7 +220,7 @@ func TestPostgresConsumer_SeveralConsumers(t *testing.T) {
 				close(eventReceived)
 				return nil
 			},
-		}, testCommon(prometheus.NewRegistry()))
+		}, testPostgresCommon(testTableName))
 		require.NoError(t, err)
 
 		pool = consumer.pool
@@ -267,10 +276,16 @@ func TestPostgresConsumer_NotificationTrigger(t *testing.T) {
 			require.Equal(t, testMethod, method)
 			require.Equal(t, testPayload, data)
 			numEvents++
-			eventsReceived <- struct{}{}
-			return nil
+			// Events keep being inserted, so the consumer may dispatch more events than
+			// the test reads. Respect ctx to not block forever inside the transaction.
+			select {
+			case eventsReceived <- struct{}{}:
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			}
 		},
-	}, testCommon(prometheus.NewRegistry()))
+	}, testPostgresCommon(testTableName))
 	require.NoError(t, err)
 
 	go func() {
@@ -287,8 +302,13 @@ func TestPostgresConsumer_NotificationTrigger(t *testing.T) {
 			case <-ctx.Done():
 				return
 			case <-time.After(200 * time.Millisecond):
-				err = insertEvent(ctx, consumer.pool, testTableName, testMethod, testPayload, partition)
-				require.NoError(t, err)
+				err := insertEvent(ctx, consumer.pool, testTableName, testMethod, testPayload, partition)
+				if err != nil {
+					if ctx.Err() == nil {
+						t.Errorf("error inserting event: %v", err)
+					}
+					return
+				}
 			}
 		}
 	}()
@@ -340,7 +360,7 @@ func TestPostgresConsumer_DifferentPartitions(t *testing.T) {
 			eventsReceived <- struct{}{}
 			return nil
 		},
-	}, testCommon(prometheus.NewRegistry()))
+	}, testPostgresCommon(testTableName))
 	require.NoError(t, err)
 
 	go func() {
