@@ -145,6 +145,14 @@ message Reply {
 message BatchRequest {
     repeated Command commands = 1;
     bool parallel = 2;
+    // PRO only — defined in OSS api.proto for protocol-surface consistency; OSS handlers parse but do not act on it.
+    // Lets the server send the batch's publish commands to the broker together
+    // instead of one after another. A channel's own publications still take
+    // effect in the order they were written; what it gives up is the order
+    // between different channels, which a sequential batch otherwise keeps.
+    // Ignored when parallel is set, since a parallel batch promises no order
+    // to begin with.
+    bool group_publications = 3;
 }
 
 message BatchResponse {

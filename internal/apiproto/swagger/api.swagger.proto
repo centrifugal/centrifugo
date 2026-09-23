@@ -598,6 +598,11 @@ message Reply {
 message BatchRequest {
   repeated Command commands = 1;
   bool parallel = 2;
+  // PRO only — lets the server send the batch's publish commands to the broker
+  // together instead of one after another. A channel's own publications keep
+  // their order; the order between different channels is given up. Ignored
+  // when parallel is set.
+  bool group_publications = 3;
 }
 
 message BatchResponse {

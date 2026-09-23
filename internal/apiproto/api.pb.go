@@ -778,11 +778,19 @@ func (x *Reply) GetSharedPollPublish() *SharedPollPublishResult {
 }
 
 type BatchRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Commands      []*Command             `protobuf:"bytes,1,rep,name=commands,proto3" json:"commands,omitempty"`
-	Parallel      bool                   `protobuf:"varint,2,opt,name=parallel,proto3" json:"parallel,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Commands []*Command             `protobuf:"bytes,1,rep,name=commands,proto3" json:"commands,omitempty"`
+	Parallel bool                   `protobuf:"varint,2,opt,name=parallel,proto3" json:"parallel,omitempty"`
+	// PRO only — defined in OSS api.proto for protocol-surface consistency; OSS handlers parse but do not act on it.
+	// Lets the server send the batch's publish commands to the broker together
+	// instead of one after another. A channel's own publications still take
+	// effect in the order they were written; what it gives up is the order
+	// between different channels, which a sequential batch otherwise keeps.
+	// Ignored when parallel is set, since a parallel batch promises no order
+	// to begin with.
+	GroupPublications bool `protobuf:"varint,3,opt,name=group_publications,json=groupPublications,proto3" json:"group_publications,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *BatchRequest) Reset() {
@@ -825,6 +833,13 @@ func (x *BatchRequest) GetCommands() []*Command {
 func (x *BatchRequest) GetParallel() bool {
 	if x != nil {
 		return x.Parallel
+	}
+	return false
+}
+
+func (x *BatchRequest) GetGroupPublications() bool {
+	if x != nil {
+		return x.GroupPublications
 	}
 	return false
 }
@@ -10096,10 +10111,11 @@ const file_api_proto_rawDesc = "" +
 	"\x0fmap_read_stream\x18' \x01(\v2/.centrifugal.centrifugo.api.MapReadStreamResultR\rmapReadStream\x12G\n" +
 	"\tmap_stats\x18( \x01(\v2*.centrifugal.centrifugo.api.MapStatsResultR\bmapStats\x12G\n" +
 	"\tmap_clear\x18) \x01(\v2*.centrifugal.centrifugo.api.MapClearResultR\bmapClear\x12c\n" +
-	"\x13shared_poll_publish\x18* \x01(\v23.centrifugal.centrifugo.api.SharedPollPublishResultR\x11sharedPollPublishJ\x04\b\x01\x10\x02J\x04\b\x03\x10\x04\"k\n" +
+	"\x13shared_poll_publish\x18* \x01(\v23.centrifugal.centrifugo.api.SharedPollPublishResultR\x11sharedPollPublishJ\x04\b\x01\x10\x02J\x04\b\x03\x10\x04\"\x9a\x01\n" +
 	"\fBatchRequest\x12?\n" +
 	"\bcommands\x18\x01 \x03(\v2#.centrifugal.centrifugo.api.CommandR\bcommands\x12\x1a\n" +
-	"\bparallel\x18\x02 \x01(\bR\bparallel\"L\n" +
+	"\bparallel\x18\x02 \x01(\bR\bparallel\x12-\n" +
+	"\x12group_publications\x18\x03 \x01(\bR\x11groupPublications\"L\n" +
 	"\rBatchResponse\x12;\n" +
 	"\areplies\x18\x01 \x03(\v2!.centrifugal.centrifugo.api.ReplyR\areplies\"\xfc\x02\n" +
 	"\x0ePublishRequest\x12\x18\n" +
