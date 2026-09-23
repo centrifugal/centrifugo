@@ -787,7 +787,7 @@ type BatchRequest struct {
 	// effect in the order they were written; what it gives up is the order
 	// between different channels, which a sequential batch otherwise keeps.
 	// Ignored when parallel is set, since a parallel batch promises no order
-	// to begin with.
+	// to begin with. Has no effect in Centrifugo OSS.
 	GroupPublications bool `protobuf:"varint,3,opt,name=group_publications,json=groupPublications,proto3" json:"group_publications,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache

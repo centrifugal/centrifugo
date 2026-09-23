@@ -151,7 +151,7 @@ message BatchRequest {
     // effect in the order they were written; what it gives up is the order
     // between different channels, which a sequential batch otherwise keeps.
     // Ignored when parallel is set, since a parallel batch promises no order
-    // to begin with.
+    // to begin with. Has no effect in Centrifugo OSS.
     bool group_publications = 3;
 }
 
