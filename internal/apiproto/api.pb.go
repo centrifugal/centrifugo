@@ -783,11 +783,13 @@ type BatchRequest struct {
 	Parallel bool                   `protobuf:"varint,2,opt,name=parallel,proto3" json:"parallel,omitempty"`
 	// PRO only — defined in OSS api.proto for protocol-surface consistency; OSS handlers parse but do not act on it.
 	// Lets the server send the batch's publish commands to the broker together
-	// instead of one after another. A channel's own publications still take
-	// effect in the order they were written; what it gives up is the order
-	// between different channels, which a sequential batch otherwise keeps.
-	// Ignored when parallel is set, since a parallel batch promises no order
-	// to begin with. Has no effect in Centrifugo OSS.
+	// instead of one after another. Applies whether or not parallel is set.
+	// A channel's own publications still take effect in the order they were
+	// written; what a sequential batch gives up is the order between different
+	// channels. Either way, a grouped call answers all of its publications
+	// with the error of any one of them, so a reply carrying an error no
+	// longer means that publication alone failed. Has no effect in Centrifugo
+	// OSS.
 	GroupPublications bool `protobuf:"varint,3,opt,name=group_publications,json=groupPublications,proto3" json:"group_publications,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
