@@ -395,6 +395,11 @@ func checkEnvironmentVars(knownEnvVars map[string]envconfig.VarInfo) []string {
 			if isCustomEnvVar(envKey) {
 				continue
 			}
+			// A few variables are read directly rather than through
+			// configuration, so they are known without being config keys.
+			if _, ok := extraKnownEnvVars[envKey]; ok {
+				continue
+			}
 			if _, ok := knownEnvVars[envKey]; !ok {
 				unknownEnvs = append(unknownEnvs, envKey)
 			}
@@ -411,6 +416,18 @@ var k8sEnvRegex = regexp.MustCompile(`^CENTRIFUGO(?:_[A-Z0-9_]+)?_(PORT|SERVICE_
 
 func isKubernetesEnvVar(envKey string) bool {
 	return k8sEnvRegex.MatchString(envKey)
+}
+
+// extraKnownEnvVars holds environment variables Centrifugo reads directly
+// rather than through its configuration. They are not config keys, so nothing
+// else would know they exist and they would be reported as unknown. Registered
+// from an init in the package which reads them.
+var extraKnownEnvVars = map[string]struct{}{}
+
+// RegisterKnownEnvVar records an environment variable which Centrifugo reads
+// directly, so that setting it does not warn about an unknown variable.
+func RegisterKnownEnvVar(envKey string) {
+	extraKnownEnvVars[envKey] = struct{}{}
 }
 
 func isCustomEnvVar(envKey string) bool {
