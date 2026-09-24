@@ -1644,7 +1644,7 @@
         },
         "group_publications": {
           "type": "boolean",
-          "description": "PRO only — lets the server send the batch's publish commands to the broker\ntogether instead of one after another. A channel's own publications keep\ntheir order; the order between different channels is given up. Ignored\nwhen parallel is set. Has no effect in Centrifugo OSS."
+          "description": "PRO only — lets the server send the batch's publish commands to the broker\ntogether instead of one after another. Applies whether or not parallel is\nset. A channel's own publications keep their order; a sequential batch\ngives up the order between different channels. Either way, a grouped call\nanswers all of its publications with the error of any one of them. Has no\neffect in Centrifugo OSS."
         }
       }
     },

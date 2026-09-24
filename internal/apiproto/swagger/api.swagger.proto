@@ -599,9 +599,11 @@ message BatchRequest {
   repeated Command commands = 1;
   bool parallel = 2;
   // PRO only — lets the server send the batch's publish commands to the broker
-  // together instead of one after another. A channel's own publications keep
-  // their order; the order between different channels is given up. Ignored
-  // when parallel is set. Has no effect in Centrifugo OSS.
+  // together instead of one after another. Applies whether or not parallel is
+  // set. A channel's own publications keep their order; a sequential batch
+  // gives up the order between different channels. Either way, a grouped call
+  // answers all of its publications with the error of any one of them. Has no
+  // effect in Centrifugo OSS.
   bool group_publications = 3;
 }
 
