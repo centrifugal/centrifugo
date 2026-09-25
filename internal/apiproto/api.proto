@@ -501,8 +501,7 @@ message SubscribeResult {}
 
 // UnsubscribeRequest unsubscribes a user from a channel.
 message UnsubscribeRequest {
-    // channel is the name of the channel to unsubscribe from. If empty, the
-    // user is unsubscribed from all channels.
+    // channel is the name of the channel to unsubscribe from. Required.
     string channel = 1;
     // user is the ID of the user to unsubscribe. Required, unless all_users
     // is used in Centrifugo PRO.
@@ -953,8 +952,8 @@ message SubscriptionTokenInfo {
     int64 issued_at = 2;
 }
 
-// UpdateUserStatusRequest sets the last active time of users to now.
-// Centrifugo PRO only.
+// UpdateUserStatusRequest marks users as active and online now, and sets
+// their state when one is given. Centrifugo PRO only.
 message UpdateUserStatusRequest {
     // users is the list of user IDs to update the status for. Required.
     repeated string users = 1;
