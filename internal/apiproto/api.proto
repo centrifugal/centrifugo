@@ -308,7 +308,7 @@ message PublishRequest {
     // data is the payload to publish. Required unless b64data is set. In the
     // HTTP API it is any JSON value; over GRPC it may be binary.
     bytes data = 2;
-    // b64data is a base64-encoded binary payload, an alternative to data to
+    // b64data is a base64-encoded binary payload, an alternative to `data` to
     // send binary over the HTTP API. Centrifugo decodes it before publishing.
     string b64data = 3;
     // skip_history skips adding this publication to the channel history.
@@ -356,7 +356,7 @@ message BroadcastRequest {
     // b64data is set. In the HTTP API it is any JSON value; over GRPC it may
     // be binary.
     bytes data = 2;
-    // b64data is a base64-encoded binary payload, an alternative to data to
+    // b64data is a base64-encoded binary payload, an alternative to `data` to
     // send binary over the HTTP API. Centrifugo decodes it before publishing.
     string b64data = 3;
     // skip_history skips adding the publications to the channels' history.
@@ -646,8 +646,9 @@ message StreamPosition {
 message HistoryRequest {
     // channel is the name of the channel. Required.
     string channel = 1;
-    // limit is the maximum number of publications to return. If not set,
-    // only the current stream position is returned, without publications.
+    // limit is the maximum number of publications to return; -1 returns all
+    // the channel keeps. If not set, only the current stream position is
+    // returned, without publications.
     int32 limit = 2;
     // since returns publications after this stream position.
     StreamPosition since = 3;
@@ -708,7 +709,6 @@ message HistoryRemoveResponse {
 message HistoryRemoveResult {}
 
 // InfoRequest returns information about the running Centrifugo nodes.
-// Empty at the moment.
 message InfoRequest {}
 
 // InfoResponse is the response to an InfoRequest.
