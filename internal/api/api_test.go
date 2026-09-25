@@ -408,6 +408,11 @@ func TestUnsubscribeAPI(t *testing.T) {
 		Channel: "test",
 	})
 	require.Nil(t, resp.Error)
+
+	resp = api.Unsubscribe(context.Background(), &UnsubscribeRequest{
+		User: "test",
+	})
+	require.Equal(t, ErrorBadRequest, resp.Error)
 }
 
 func TestRefreshAPI(t *testing.T) {
