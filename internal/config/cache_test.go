@@ -23,7 +23,7 @@ func TestRollingCache(t *testing.T) {
 	// Testing Get after Set.
 	gotValue, ok := cache.Get(channel)
 	require.True(t, ok)
-	require.Equal(t, value, gotValue)
+	require.Equal(t, value, *gotValue)
 
 	// Testing Get after expiry.
 	time.Sleep(400 * time.Millisecond)
@@ -51,7 +51,7 @@ func TestRollingCache(t *testing.T) {
 		channel := "channel" + strconv.Itoa(i)
 		gotValue, ok := cache.Get(channel)
 		require.True(t, ok)
-		require.Equal(t, channelOptionsResult{nsName: "value" + strconv.Itoa(i)}, gotValue)
+		require.Equal(t, channelOptionsResult{nsName: "value" + strconv.Itoa(i)}, *gotValue)
 	}
 }
 
@@ -75,6 +75,6 @@ func TestRollingCacheIndexOverflow(t *testing.T) {
 		channel := "channel" + strconv.Itoa(i)
 		gotValue, ok := cache.Get(channel)
 		require.True(t, ok, channel)
-		require.Equal(t, channelOptionsResult{nsName: "value" + strconv.Itoa(i)}, gotValue)
+		require.Equal(t, channelOptionsResult{nsName: "value" + strconv.Itoa(i)}, *gotValue)
 	}
 }

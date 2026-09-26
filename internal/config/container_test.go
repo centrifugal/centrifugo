@@ -1,6 +1,7 @@
 package config
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -300,7 +301,7 @@ func TestPublicationDataFormatInheritance(t *testing.T) {
 		c.Channel.PublicationDataFormat = "json"
 		c.Channel.Namespaces = []configtypes.ChannelNamespace{
 			{
-				Name: "test",
+				Name:           "test",
 				ChannelOptions: configtypes.ChannelOptions{
 					// No PublicationDataFormat set
 				},
@@ -348,7 +349,7 @@ func TestPublicationDataFormatInheritance(t *testing.T) {
 		// No global format set
 		c.Channel.Namespaces = []configtypes.ChannelNamespace{
 			{
-				Name: "test",
+				Name:           "test",
 				ChannelOptions: configtypes.ChannelOptions{
 					// No PublicationDataFormat set
 				},
@@ -385,6 +386,94 @@ func BenchmarkContainer_Config(b *testing.B) {
 			testConfig = c.Config()
 			if len(testConfig.Channel.Namespaces) != 100 {
 				b.Fatal("wrong config")
+			}
+		}
+	})
+}
+
+func TestChannelOptionsRef(t *testing.T) {
+	newContainer := func(t *testing.T, historySize int, cacheTTL time.Duration) *Container {
+		c := defaultConfig(t)
+		c.Channel.PublicationDataFormat = "json"
+		c.Channel.Namespaces = []configtypes.ChannelNamespace{{
+			Name:           "test",
+			ChannelOptions: configtypes.ChannelOptions{HistorySize: historySize, HistoryTTL: configtypes.Duration(time.Minute)},
+		}}
+		container, err := NewContainer(c)
+		require.NoError(t, err)
+		container.ChannelOptionsCacheTTL = cacheTTL
+		return container
+	}
+
+	for _, cacheTTL := range []time.Duration{0, time.Minute} {
+		t.Run("cache "+cacheTTL.String(), func(t *testing.T) {
+			container := newContainer(t, 10, cacheTTL)
+
+			// The same options as ChannelOptions, the inherited global
+			// publication data format included.
+			for _, ch := range []string{"test:1", "mychannel"} {
+				ref, ok, err := container.ChannelOptionsRef(ch)
+				require.NoError(t, err)
+				require.True(t, ok)
+				_, _, chOpts, _, _ := container.ChannelOptions(ch)
+				require.Equal(t, chOpts, *ref)
+				require.Equal(t, "json", ref.PublicationDataFormat)
+			}
+
+			_, ok, err := container.ChannelOptionsRef("unknown:1")
+			require.NoError(t, err)
+			require.False(t, ok)
+		})
+	}
+
+	t.Run("cache hits share the options", func(t *testing.T) {
+		container := newContainer(t, 10, time.Minute)
+		first, _, _ := container.ChannelOptionsRef("test:1")
+		second, _, _ := container.ChannelOptionsRef("test:1")
+		require.Same(t, first, second)
+	})
+
+	t.Run("reload", func(t *testing.T) {
+		container := newContainer(t, 10, 0)
+		before, _, _ := container.ChannelOptionsRef("test:1")
+
+		cfg := container.Config()
+		// A copy of the namespaces: Config shares them with the live config.
+		cfg.Channel.Namespaces = slices.Clone(cfg.Channel.Namespaces)
+		cfg.Channel.Namespaces[0].HistorySize = 20
+		require.NoError(t, container.Reload(cfg))
+
+		after, _, _ := container.ChannelOptionsRef("test:1")
+		require.Equal(t, 20, after.HistorySize)
+		// Options handed out before the reload are left as they were.
+		require.Equal(t, 10, before.HistorySize)
+	})
+}
+
+func BenchmarkContainer_ChannelOptionsRef(b *testing.B) {
+	cfg := defaultConfig(b)
+	const numNamespaces = 128
+	var channels []string
+
+	var namespaces []configtypes.ChannelNamespace
+	for i := 0; i < numNamespaces; i++ {
+		namespaces = append(namespaces, configtypes.ChannelNamespace{
+			Name: "test" + strconv.Itoa(i),
+		})
+		channels = append(channels, "test"+strconv.Itoa(i)+":123")
+	}
+	cfg.Channel.Namespaces = namespaces
+
+	c, _ := NewContainer(cfg)
+	c.ChannelOptionsCacheTTL = 200 * time.Millisecond
+
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		i := 0
+		for pb.Next() {
+			i++
+			if _, ok, _ := c.ChannelOptionsRef(channels[i%numNamespaces]); !ok {
+				b.Fatal("ns not found")
 			}
 		}
 	})

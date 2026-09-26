@@ -50,18 +50,22 @@ func (c *rollingCache) shardForKey(key string) *cacheShard {
 	return c.shards[shardIndex]
 }
 
-func (c *rollingCache) Get(channel string) (channelOptionsResult, bool) {
+// Get returns the cached result for channel. The result belongs to the cache
+// and must not be modified.
+func (c *rollingCache) Get(channel string) (*channelOptionsResult, bool) {
 	shard := c.shardForKey(channel)
 	for i := 0; i < int(shard.size); i++ {
 		item := shard.buffer[i].Load().(*cacheItem)
 		if item.channel == channel && time.Now().UnixNano() < item.expires {
-			return item.value, true
+			return &item.value, true
 		}
 	}
-	return channelOptionsResult{}, false
+	return nil, false
 }
 
-func (c *rollingCache) Set(channel string, value channelOptionsResult, ttl time.Duration) {
+// Set caches value for channel and returns the cached copy, which must not be
+// modified. The copy is part of the one allocation the entry takes.
+func (c *rollingCache) Set(channel string, value channelOptionsResult, ttl time.Duration) *channelOptionsResult {
 	shard := c.shardForKey(channel)
 	index := int(shard.index.Add(1) % shard.size)
 	item := &cacheItem{
@@ -70,4 +74,5 @@ func (c *rollingCache) Set(channel string, value channelOptionsResult, ttl time.
 		expires: time.Now().Add(ttl).UnixNano(),
 	}
 	shard.buffer[index].Store(item)
+	return &item.value
 }
