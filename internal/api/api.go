@@ -508,19 +508,23 @@ func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *Unsu
 	user := cmd.User
 	channel := cmd.Channel
 
-	if channel != "" {
-		_, _, _, found, err := h.cfgContainer.ChannelOptions(channel)
-		if err != nil {
-			resp.Error = ErrorInternal
-			return resp
-		}
-		if !found {
-			resp.Error = ErrorUnknownChannel
-			return resp
-		}
+	// Without a channel there is nothing to unsubscribe from: every targeted
+	// connection would only be sent an unsubscribe push for an empty channel.
+	if channel == "" {
+		resp.Error = ErrorBadRequest
+		return resp
+	}
+	_, _, _, found, err := h.cfgContainer.ChannelOptions(channel)
+	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
+		resp.Error = ErrorUnknownChannel
+		return resp
 	}
 
-	err := h.node.Unsubscribe(user, channel, centrifuge.WithUnsubscribeClient(cmd.Client), centrifuge.WithUnsubscribeSession(cmd.Session))
+	err = h.node.Unsubscribe(user, channel, centrifuge.WithUnsubscribeClient(cmd.Client), centrifuge.WithUnsubscribeSession(cmd.Session))
 	if err != nil {
 		log.Error().Err(err).Str("channel", channel).Str("user", user).Msg("error unsubscribing user from channel")
 		resp.Error = ErrorInternal
