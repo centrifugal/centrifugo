@@ -478,3 +478,24 @@ func BenchmarkContainer_ChannelOptionsRef(b *testing.B) {
 		}
 	})
 }
+
+// A cache miss takes one allocation, for the cache entry the options are
+// kept in. Misses are frequent when many channels are looked up in turn - a
+// broadcast into thousands of channels - so an extra one would add up.
+func TestChannelOptionsCacheMissAllocs(t *testing.T) {
+	container, err := NewContainer(defaultConfig(t))
+	require.NoError(t, err)
+	container.ChannelOptionsCacheTTL = time.Minute
+
+	channels := make([]string, 1000)
+	for i := range channels {
+		channels[i] = "channel" + strconv.Itoa(i)
+	}
+	i := 0
+	allocs := testing.AllocsPerRun(500, func() {
+		_, _, _, _, _ = container.ChannelOptions(channels[i])
+		i++
+	})
+	t.Logf("allocations per cache miss: %v", allocs)
+	require.LessOrEqual(t, allocs, float64(1))
+}

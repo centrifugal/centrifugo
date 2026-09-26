@@ -151,7 +151,11 @@ func (n *Container) resolveChannelOptions(ch string) *channelOptionsResult {
 	if n.ChannelOptionsCacheTTL > 0 {
 		return n.channelOptionsCache.Set(ch, res, n.ChannelOptionsCacheTTL)
 	}
-	return &res
+	// A copy, so that only this branch allocates: returning &res would move res
+	// to the heap for every call, and a cache miss would pay for it on top of
+	// the cache entry.
+	uncached := res
+	return &uncached
 }
 
 // ValidChannelName checks whether the channel name is valid for the resolved
