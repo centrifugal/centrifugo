@@ -318,14 +318,14 @@ type HttpAPI struct {
 	Disabled      bool   `mapstructure:"disabled" json:"disabled" envconfig:"disabled" yaml:"disabled" toml:"disabled" doc:"Disables the HTTP API endpoint."`
 	HandlerPrefix string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/api" yaml:"handler_prefix" toml:"handler_prefix" expose:"full" doc:"URL prefix for the HTTP API handler. Default <</api>>."`
 	Key           string `mapstructure:"key" json:"key" envconfig:"key" yaml:"key" toml:"key" doc:"API key for HTTP API authentication. When set, requests must include this key."`
-	ErrorMode     string `mapstructure:"error_mode" json:"error_mode" envconfig:"error_mode" yaml:"error_mode" toml:"error_mode" expose:"full" doc:"Controls error response format for the HTTP API. Possible values: <<transport>> (default), <<custom>>."`
+	ErrorMode     string `mapstructure:"error_mode" json:"error_mode" envconfig:"error_mode" yaml:"error_mode" toml:"error_mode" expose:"full" doc:"Set to <<transport>> to return HTTP API errors as HTTP status codes, with the error in the response body. By default errors are returned inside a successful response. A request can also ask for it with the <<X-Centrifugo-Error-Mode: transport>> header."`
 	External      bool   `mapstructure:"external" json:"external" envconfig:"external" yaml:"external" toml:"external" doc:"Runs the HTTP API on the external port instead of the internal port."`
 	Insecure      bool   `mapstructure:"insecure" json:"insecure" envconfig:"insecure" yaml:"insecure" toml:"insecure" doc:"Disables API key authentication for the HTTP API. Use only in trusted network environments."`
 }
 
 type GrpcAPI struct {
 	Enabled               bool      `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled" doc:"Enables the gRPC API server."`
-	ErrorMode             string    `mapstructure:"error_mode" json:"error_mode" envconfig:"error_mode" yaml:"error_mode" toml:"error_mode" expose:"full" doc:"Controls error response format for the gRPC API. Possible values: <<transport>> (default), <<custom>>."`
+	ErrorMode             string    `mapstructure:"error_mode" json:"error_mode" envconfig:"error_mode" yaml:"error_mode" toml:"error_mode" expose:"full" doc:"Set to <<transport>> to return gRPC API errors as gRPC status codes, with the Centrifugo error in the status details. By default errors are returned inside a successful response. A request can also ask for it with the <<x-centrifugo-error-mode: transport>> metadata."`
 	Address               string    `mapstructure:"address" json:"address" envconfig:"address" yaml:"address" toml:"address" expose:"full" doc:"Address (host) to bind the gRPC API server to."`
 	Port                  int       `mapstructure:"port" json:"port" envconfig:"port" default:"10000" yaml:"port" toml:"port" doc:"Port to bind the gRPC API server to. Default <<10000>>."`
 	Key                   string    `mapstructure:"key" json:"key" envconfig:"key" yaml:"key" toml:"key" doc:"API key required in gRPC metadata for authentication. If not set, the gRPC API server runs without key authentication – protect the port with mutual TLS, network rules, or JWKS-based auth in Centrifugo PRO."`
