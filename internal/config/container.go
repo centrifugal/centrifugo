@@ -102,11 +102,36 @@ type channelOptionsResult struct {
 
 // ChannelOptions returns channel options for channel using current channel config.
 func (n *Container) ChannelOptions(ch string) (string, string, configtypes.ChannelOptions, bool, error) {
+	res := n.channelOptions(ch)
+	return res.nsName, res.rest, res.chOpts, res.ok, res.err
+}
+
+// ChannelOptionsRef is ChannelOptions for hot paths. It returns the options by
+// reference rather than copying them out: they are large, and a copy costs
+// stack space in every frame it passes through - enough for a goroutine which
+// starts on a small stack to have to grow it. The options are shared and must
+// not be modified.
+func (n *Container) ChannelOptionsRef(ch string) (*configtypes.ChannelOptions, bool, error) {
+	res := n.channelOptions(ch)
+	return &res.chOpts, res.ok, res.err
+}
+
+func (n *Container) channelOptions(ch string) *channelOptionsResult {
 	if n.ChannelOptionsCacheTTL > 0 {
 		if res, ok := n.channelOptionsCache.Get(ch); ok {
-			return res.nsName, res.rest, res.chOpts, res.ok, res.err
+			return res
 		}
 	}
+	return n.resolveChannelOptions(ch)
+}
+
+// resolveChannelOptions works the options out when the cache has none. It is
+// kept out of channelOptions on purpose: it needs a large stack frame for the
+// options it builds, and a function reserves its whole frame on every call -
+// so inlined, every cache hit would pay for it too.
+//
+//go:noinline
+func (n *Container) resolveChannelOptions(ch string) *channelOptionsResult {
 	cfg := n.configValue.Load().(*Config)
 	nsName, rest := n.namespaceName(cfg, ch)
 	chOpts, ok, err := channelOpts(cfg, nsName)
@@ -124,9 +149,9 @@ func (n *Container) ChannelOptions(ch string) (string, string, configtypes.Chann
 		err:    err,
 	}
 	if n.ChannelOptionsCacheTTL > 0 {
-		n.channelOptionsCache.Set(ch, res, n.ChannelOptionsCacheTTL)
+		return n.channelOptionsCache.Set(ch, res, n.ChannelOptionsCacheTTL)
 	}
-	return res.nsName, res.rest, res.chOpts, res.ok, res.err
+	return &res
 }
 
 // ValidChannelName checks whether the channel name is valid for the resolved
