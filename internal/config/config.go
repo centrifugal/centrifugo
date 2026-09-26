@@ -330,13 +330,15 @@ func findUnknownKeys(data map[string]interface{}, configStruct interface{}, pare
 
 			if (fieldValue.Kind() == reflect.Struct || (fieldValue.Kind() == reflect.Pointer && fieldValue.Type().Elem().Kind() == reflect.Struct)) && !field.Anonymous {
 				if nestedMap, ok := value.(map[string]interface{}); ok {
-					// Handle pointers to structs specifically
-					if fieldValue.Kind() == reflect.Pointer && fieldValue.IsNil() {
-						fieldValue.Set(reflect.New(fieldValue.Type().Elem())) // Create new struct if nil
-					}
 					nestedStruct := fieldValue.Interface()
 					if fieldValue.Kind() == reflect.Pointer {
-						nestedStruct = fieldValue.Elem().Interface()
+						// Only the type matters for finding keys, so a pointer
+						// is walked as a fresh instance of the struct it points
+						// to. Allocating into fieldValue instead would modify the
+						// config being checked, and fails where fieldValue is not
+						// settable - which is everywhere GetConfig calls this, as
+						// it passes the config by value.
+						nestedStruct = reflect.New(fieldValue.Type().Elem()).Interface()
 					}
 					unknownKeys = append(unknownKeys, findUnknownKeys(nestedMap, nestedStruct, appendKeyPath(parentKey, key))...)
 				}
