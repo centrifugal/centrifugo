@@ -283,16 +283,6 @@ message BatchRequest {
     // one after another. This may reduce latency (especially with the Redis
     // engine), but gives no ordering guarantee between commands.
     bool parallel = 2;
-    // group_publications lets the server send the batch's publish commands to
-    // the broker together instead of one after another. Applies whether or
-    // not parallel is set. A channel's own publications still take effect in
-    // the order they were written; what a sequential batch gives up is the
-    // order between different channels. Either way, a grouped call answers
-    // all of its publications with the error of any one of them, so a reply
-    // carrying an error no longer means that publication alone failed.
-    // Centrifugo PRO only: defined here for protocol-surface consistency,
-    // Centrifugo OSS parses it but ignores it.
-    bool group_publications = 3;
 }
 
 // BatchResponse contains the replies to a BatchRequest.
