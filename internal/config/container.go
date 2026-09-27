@@ -215,6 +215,15 @@ func (n *Container) Config() Config {
 	return *n.configValue.Load().(*Config)
 }
 
+// ConfigRef is Config for hot paths. It returns the current Config by
+// reference rather than copying it out: the Config is large, and a function
+// holding a copy reserves stack space for it - enough to make a goroutine which
+// starts on a small stack grow it on every call. The Config is shared and must
+// not be modified; a Reload replaces it rather than changing it in place.
+func (n *Container) ConfigRef() *Config {
+	return n.configValue.Load().(*Config)
+}
+
 // IsPrivateChannel checks if channel requires token to subscribe. In case of
 // token-protected channel subscription request must contain a proper token.
 func (n *Container) IsPrivateChannel(ch string) bool {
