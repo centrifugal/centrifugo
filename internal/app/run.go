@@ -122,7 +122,6 @@ func Run(cmd *cobra.Command, configFile string) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("error creating config")
 	}
-	cfgContainer.ChannelOptionsCacheTTL = 200 * time.Millisecond
 
 	// Initialize centralized metrics registry.
 	err = metrics.Init(metrics.Config{

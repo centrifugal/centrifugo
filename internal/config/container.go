@@ -4,7 +4,6 @@ import (
 	"regexp"
 	"strings"
 	"sync/atomic"
-	"time"
 	"unicode"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
@@ -12,15 +11,8 @@ import (
 
 // Container wraps configuration providing sync access, reload and compilation of required parts.
 type Container struct {
-	configValue            atomic.Value
-	channelOptionsCache    *rollingCache
-	ChannelOptionsCacheTTL time.Duration
+	configValue atomic.Value
 }
-
-const (
-	channelOptionsCacheSize   = 8
-	channelOptionsCacheShards = 128
-)
 
 // NewContainer creates new Container.
 func NewContainer(config Config) (*Container, error) {
@@ -28,9 +20,7 @@ func NewContainer(config Config) (*Container, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &Container{
-		channelOptionsCache: newRollingCache(channelOptionsCacheSize, channelOptionsCacheShards),
-	}
+	c := &Container{}
 	c.configValue.Store(preparedConfig)
 	return c, nil
 }
@@ -43,7 +33,33 @@ func getPreparedConfig(config Config) (*Config, error) {
 	if err != nil {
 		return &config, err
 	}
+	config.namespaceOptions = buildNamespaceOptions(&config)
 	return &config, nil
+}
+
+// buildNamespaceOptions resolves the channel options of every namespace once,
+// so that looking up the options of a channel is a map lookup rather than a
+// search through the namespaces and a copy of the options found.
+func buildNamespaceOptions(config *Config) map[string]*configtypes.ChannelOptions {
+	options := make(map[string]*configtypes.ChannelOptions, len(config.Channel.Namespaces)+1)
+	add := func(name string, chOpts configtypes.ChannelOptions) {
+		if _, ok := options[name]; ok {
+			// The first namespace of a name wins, as it did when namespaces
+			// were searched in order.
+			return
+		}
+		// Apply global publication_data_format default if not set at
+		// namespace level.
+		if chOpts.PublicationDataFormat == "" {
+			chOpts.PublicationDataFormat = config.Channel.PublicationDataFormat
+		}
+		options[name] = &chOpts
+	}
+	add("", config.Channel.WithoutNamespace)
+	for _, ns := range config.Channel.Namespaces {
+		add(ns.Name, ns.ChannelOptions)
+	}
+	return options
 }
 
 // Reload node config.
@@ -85,25 +101,22 @@ func buildCompiledRegexes(config Config) (Config, error) {
 // namespaceName returns namespace name from channel if exists.
 func (n *Container) namespaceName(config *Config, ch string) (string, string) {
 	cTrim := strings.TrimPrefix(ch, config.Channel.PrivatePrefix)
-	if config.Channel.NamespaceBoundary != "" && strings.Contains(cTrim, config.Channel.NamespaceBoundary) {
-		parts := strings.SplitN(cTrim, config.Channel.NamespaceBoundary, 2)
-		return parts[0], parts[1]
+	if config.Channel.NamespaceBoundary != "" {
+		if nsName, rest, found := strings.Cut(cTrim, config.Channel.NamespaceBoundary); found {
+			return nsName, rest
+		}
 	}
 	return "", ch
 }
 
-type channelOptionsResult struct {
-	nsName string
-	rest   string
-	chOpts configtypes.ChannelOptions
-	ok     bool
-	err    error
-}
+// noChannelOptions is what a lookup of a channel in an unknown namespace
+// returns along with ok false.
+var noChannelOptions configtypes.ChannelOptions
 
 // ChannelOptions returns channel options for channel using current channel config.
 func (n *Container) ChannelOptions(ch string) (string, string, configtypes.ChannelOptions, bool, error) {
-	res := n.channelOptions(ch)
-	return res.nsName, res.rest, res.chOpts, res.ok, res.err
+	nsName, rest, chOpts, ok := n.channelOptions(ch)
+	return nsName, rest, *chOpts, ok, nil
 }
 
 // ChannelOptionsRef is ChannelOptions for hot paths. It returns the options by
@@ -112,50 +125,20 @@ func (n *Container) ChannelOptions(ch string) (string, string, configtypes.Chann
 // starts on a small stack to have to grow it. The options are shared and must
 // not be modified.
 func (n *Container) ChannelOptionsRef(ch string) (*configtypes.ChannelOptions, bool, error) {
-	res := n.channelOptions(ch)
-	return &res.chOpts, res.ok, res.err
+	_, _, chOpts, ok := n.channelOptions(ch)
+	return chOpts, ok, nil
 }
 
-func (n *Container) channelOptions(ch string) *channelOptionsResult {
-	if n.ChannelOptionsCacheTTL > 0 {
-		if res, ok := n.channelOptionsCache.Get(ch); ok {
-			return res
-		}
-	}
-	return n.resolveChannelOptions(ch)
-}
-
-// resolveChannelOptions works the options out when the cache has none. It is
-// kept out of channelOptions on purpose: it needs a large stack frame for the
-// options it builds, and a function reserves its whole frame on every call -
-// so inlined, every cache hit would pay for it too.
-//
-//go:noinline
-func (n *Container) resolveChannelOptions(ch string) *channelOptionsResult {
+// channelOptions finds the options of the channel's namespace among the ones
+// resolved when the config was prepared. It does not allocate.
+func (n *Container) channelOptions(ch string) (string, string, *configtypes.ChannelOptions, bool) {
 	cfg := n.configValue.Load().(*Config)
 	nsName, rest := n.namespaceName(cfg, ch)
-	chOpts, ok, err := channelOpts(cfg, nsName)
-
-	// Apply global publication_data_format default if not set at namespace level
-	if chOpts.PublicationDataFormat == "" && cfg.Channel.PublicationDataFormat != "" {
-		chOpts.PublicationDataFormat = cfg.Channel.PublicationDataFormat
+	chOpts, ok := cfg.namespaceOptions[nsName]
+	if !ok {
+		return nsName, rest, &noChannelOptions, false
 	}
-
-	res := channelOptionsResult{
-		nsName: nsName,
-		rest:   rest,
-		chOpts: chOpts,
-		ok:     ok,
-		err:    err,
-	}
-	if n.ChannelOptionsCacheTTL > 0 {
-		return n.channelOptionsCache.Set(ch, res, n.ChannelOptionsCacheTTL)
-	}
-	// A copy, so that only this branch allocates: returning &res would move res
-	// to the heap for every call, and a cache miss would pay for it on top of
-	// the cache entry.
-	uncached := res
-	return &uncached
+	return nsName, rest, chOpts, true
 }
 
 // ValidChannelName checks whether the channel name is valid for the resolved
