@@ -32,7 +32,7 @@ func (l *ConnLimit) Middleware(h http.Handler) http.Handler {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
-		connLimit := l.cfgContainer.Config().Client.ConnectionLimit
+		connLimit := l.cfgContainer.ConfigRef().Client.ConnectionLimit
 		if connLimit > 0 && l.node.Hub().NumClients() >= connLimit {
 			metrics.ConnLimitReached.Inc()
 			if connLimitReachedLogLimiter.Allow() {

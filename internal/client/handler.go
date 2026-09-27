@@ -187,7 +187,7 @@ func (h *Handler) Setup() error {
 		})
 	}
 
-	cfg := h.cfgContainer.Config()
+	cfg := h.cfgContainer.ConfigRef()
 	concurrency := cfg.Client.Concurrency
 
 	h.node.OnConnect(func(client *centrifuge.Client) {
@@ -354,7 +354,7 @@ func (h *Handler) OnClientConnecting(
 	)
 
 	subscriptions := make(map[string]centrifuge.SubscribeOptions)
-	cfg := h.cfgContainer.Config()
+	cfg := h.cfgContainer.ConfigRef()
 	var processClientChannels bool
 
 	storage := map[string]any{}
@@ -609,7 +609,7 @@ func (h *Handler) OnRefresh(c Client, e centrifuge.RefreshEvent, refreshProxyHan
 		}
 		return r, RefreshExtra{}, err
 	}
-	token, err := h.tokenVerifier.VerifyConnectToken(e.Token, h.cfgContainer.Config().Client.InsecureSkipTokenSignatureVerify)
+	token, err := h.tokenVerifier.VerifyConnectToken(e.Token, h.cfgContainer.ConfigRef().Client.InsecureSkipTokenSignatureVerify)
 	if err != nil {
 		if errors.Is(err, jwtverify.ErrTokenExpired) {
 			return centrifuge.RefreshReply{Expired: true}, RefreshExtra{}, nil
@@ -667,7 +667,7 @@ func (h *Handler) OnSubRefresh(c Client, subRefreshProxyHandler proxy.SubRefresh
 	if h.subTokenVerifier != nil {
 		tokenVerifier = h.subTokenVerifier
 	}
-	token, err := tokenVerifier.VerifySubscribeToken(e.Token, h.cfgContainer.Config().Client.InsecureSkipTokenSignatureVerify)
+	token, err := tokenVerifier.VerifySubscribeToken(e.Token, h.cfgContainer.ConfigRef().Client.InsecureSkipTokenSignatureVerify)
 	if err != nil {
 		if errors.Is(err, jwtverify.ErrTokenExpired) {
 			return centrifuge.SubRefreshReply{Expired: true}, SubRefreshExtra{}, nil
@@ -729,7 +729,7 @@ type SubscribeExtra struct {
 
 // OnSubscribe ...
 func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribeProxyHandler proxy.SubscribeHandlerFunc, subscribeStreamHandlerFunc proxy.SubscribeStreamHandlerFunc) (centrifuge.SubscribeReply, SubscribeExtra, error) {
-	cfg := h.cfgContainer.Config()
+	cfg := h.cfgContainer.ConfigRef()
 
 	if e.Channel == "" {
 		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("subscribe empty channel")
@@ -788,7 +788,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		if h.subTokenVerifier != nil {
 			tokenVerifier = h.subTokenVerifier
 		}
-		token, err := tokenVerifier.VerifySubscribeToken(e.Token, h.cfgContainer.Config().Client.InsecureSkipTokenSignatureVerify)
+		token, err := tokenVerifier.VerifySubscribeToken(e.Token, h.cfgContainer.ConfigRef().Client.InsecureSkipTokenSignatureVerify)
 		if err != nil {
 			if errors.Is(err, jwtverify.ErrTokenExpired) {
 				return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorTokenExpired
@@ -893,7 +893,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 
 // OnPublish ...
 func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHandler proxy.PublishHandlerFunc) (centrifuge.PublishReply, error) {
-	cfg := h.cfgContainer.Config()
+	cfg := h.cfgContainer.ConfigRef()
 
 	_, rest, chOpts, found, err := h.cfgContainer.ChannelOptions(e.Channel)
 	if err != nil {
@@ -992,7 +992,7 @@ func validateSharedPollRefreshData(channel string, format string, items []centri
 
 // OnMapPublish ...
 func (h *Handler) OnMapPublish(c Client, e centrifuge.MapPublishEvent, mapPublishProxyHandler proxy.MapPublishHandlerFunc) (centrifuge.MapPublishReply, error) {
-	cfg := h.cfgContainer.Config()
+	cfg := h.cfgContainer.ConfigRef()
 
 	_, rest, chOpts, found, err := h.cfgContainer.ChannelOptions(e.Channel)
 	if err != nil {
@@ -1063,7 +1063,7 @@ func (h *Handler) OnMapPublish(c Client, e centrifuge.MapPublishEvent, mapPublis
 
 // OnMapRemove ...
 func (h *Handler) OnMapRemove(c Client, e centrifuge.MapRemoveEvent, mapRemoveProxyHandler proxy.MapRemoveHandlerFunc) (centrifuge.MapRemoveReply, error) {
-	cfg := h.cfgContainer.Config()
+	cfg := h.cfgContainer.ConfigRef()
 
 	_, rest, chOpts, found, err := h.cfgContainer.ChannelOptions(e.Channel)
 	if err != nil {
@@ -1138,7 +1138,7 @@ func (h *Handler) OnTrack(c Client, e centrifuge.TrackEvent) (centrifuge.TrackRe
 		return centrifuge.TrackReply{}, centrifuge.ErrorPermissionDenied
 	}
 
-	sharedPollCfg := h.cfgContainer.Config().SharedPoll
+	sharedPollCfg := h.cfgContainer.ConfigRef().SharedPoll
 	if sharedPollCfg.HMACSecretKey == "" {
 		log.Error().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("shared poll hmac_secret_key not configured")
 		return centrifuge.TrackReply{}, centrifuge.ErrorInternal
@@ -1230,7 +1230,7 @@ func (h *Handler) hasAccessToPresence(c Client, channel string, chOpts configtyp
 		return true
 	} else if chOpts.PresenceForSubscriber && (forceSubscribed || c.IsSubscribed(channel)) && (c.UserID() != "" || chOpts.PresenceForAnonymous) {
 		return true
-	} else if h.cfgContainer.Config().Client.Insecure {
+	} else if h.cfgContainer.ConfigRef().Client.Insecure {
 		return true
 	}
 	return false
@@ -1297,7 +1297,7 @@ func (h *Handler) hasAccessToHistory(c Client, channel string, chOpts configtype
 		return true
 	} else if chOpts.HistoryForSubscriber && (forceSubscribed || c.IsSubscribed(channel)) && (c.UserID() != "" || chOpts.HistoryForAnonymous) {
 		return true
-	} else if h.cfgContainer.Config().Client.Insecure {
+	} else if h.cfgContainer.ConfigRef().Client.Insecure {
 		return true
 	}
 	return false
