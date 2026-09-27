@@ -276,7 +276,6 @@ func BenchmarkContainer_ChannelOptions(b *testing.B) {
 	cfg.Channel.Namespaces = namespaces
 
 	c, _ := NewContainer(cfg)
-	c.ChannelOptionsCacheTTL = 200 * time.Millisecond
 
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
@@ -378,7 +377,6 @@ func BenchmarkContainer_Config(b *testing.B) {
 	}
 	cfg.Channel.Namespaces = namespaces
 	c, _ := NewContainer(cfg)
-	c.ChannelOptionsCacheTTL = 200 * time.Millisecond
 
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
@@ -392,7 +390,7 @@ func BenchmarkContainer_Config(b *testing.B) {
 }
 
 func TestChannelOptionsRef(t *testing.T) {
-	newContainer := func(t *testing.T, historySize int, cacheTTL time.Duration) *Container {
+	newContainer := func(t *testing.T, historySize int) *Container {
 		c := defaultConfig(t)
 		c.Channel.PublicationDataFormat = "json"
 		c.Channel.Namespaces = []configtypes.ChannelNamespace{{
@@ -401,40 +399,34 @@ func TestChannelOptionsRef(t *testing.T) {
 		}}
 		container, err := NewContainer(c)
 		require.NoError(t, err)
-		container.ChannelOptionsCacheTTL = cacheTTL
 		return container
 	}
 
-	for _, cacheTTL := range []time.Duration{0, time.Minute} {
-		t.Run("cache "+cacheTTL.String(), func(t *testing.T) {
-			container := newContainer(t, 10, cacheTTL)
+	container := newContainer(t, 10)
 
-			// The same options as ChannelOptions, the inherited global
-			// publication data format included.
-			for _, ch := range []string{"test:1", "mychannel"} {
-				ref, ok, err := container.ChannelOptionsRef(ch)
-				require.NoError(t, err)
-				require.True(t, ok)
-				_, _, chOpts, _, _ := container.ChannelOptions(ch)
-				require.Equal(t, chOpts, *ref)
-				require.Equal(t, "json", ref.PublicationDataFormat)
-			}
-
-			_, ok, err := container.ChannelOptionsRef("unknown:1")
-			require.NoError(t, err)
-			require.False(t, ok)
-		})
+	// The same options as ChannelOptions, the inherited global publication
+	// data format included.
+	for _, ch := range []string{"test:1", "mychannel"} {
+		ref, ok, err := container.ChannelOptionsRef(ch)
+		require.NoError(t, err)
+		require.True(t, ok)
+		_, _, chOpts, _, _ := container.ChannelOptions(ch)
+		require.Equal(t, chOpts, *ref)
+		require.Equal(t, "json", ref.PublicationDataFormat)
 	}
 
-	t.Run("cache hits share the options", func(t *testing.T) {
-		container := newContainer(t, 10, time.Minute)
+	_, ok, err := container.ChannelOptionsRef("unknown:1")
+	require.NoError(t, err)
+	require.False(t, ok)
+
+	t.Run("channels of a namespace share the options", func(t *testing.T) {
 		first, _, _ := container.ChannelOptionsRef("test:1")
-		second, _, _ := container.ChannelOptionsRef("test:1")
+		second, _, _ := container.ChannelOptionsRef("test:2")
 		require.Same(t, first, second)
 	})
 
 	t.Run("reload", func(t *testing.T) {
-		container := newContainer(t, 10, 0)
+		container := newContainer(t, 10)
 		before, _, _ := container.ChannelOptionsRef("test:1")
 
 		cfg := container.Config()
@@ -465,7 +457,6 @@ func BenchmarkContainer_ChannelOptionsRef(b *testing.B) {
 	cfg.Channel.Namespaces = namespaces
 
 	c, _ := NewContainer(cfg)
-	c.ChannelOptionsCacheTTL = 200 * time.Millisecond
 
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
@@ -479,23 +470,97 @@ func BenchmarkContainer_ChannelOptionsRef(b *testing.B) {
 	})
 }
 
-// A cache miss takes one allocation, for the cache entry the options are
-// kept in. Misses are frequent when many channels are looked up in turn - a
-// broadcast into thousands of channels - so an extra one would add up.
-func TestChannelOptionsCacheMissAllocs(t *testing.T) {
-	container, err := NewContainer(defaultConfig(t))
+// BenchmarkContainer_ChannelOptionsRefManyChannels looks up many distinct
+// channels in turn, as a broadcast into thousands of channels or a server with
+// many personal channels does.
+func BenchmarkContainer_ChannelOptionsRefManyChannels(b *testing.B) {
+	cfg := defaultConfig(b)
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{{Name: "user"}}
+	c, _ := NewContainer(cfg)
+
+	channels := make([]string, 10000)
+	for i := range channels {
+		channels[i] = "user:" + strconv.Itoa(i)
+	}
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		i := 0
+		for pb.Next() {
+			i++
+			if _, ok, _ := c.ChannelOptionsRef(channels[i%len(channels)]); !ok {
+				b.Fatal("ns not found")
+			}
+		}
+	})
+}
+
+// TestChannelOptionsLookupAllocs checks looking up channel options does not
+// allocate, however many different channels are looked up. A broadcast into
+// thousands of channels looks up each of them.
+func TestChannelOptionsLookupAllocs(t *testing.T) {
+	cfg := defaultConfig(t)
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{{Name: "user"}}
+	container, err := NewContainer(cfg)
 	require.NoError(t, err)
-	container.ChannelOptionsCacheTTL = time.Minute
 
 	channels := make([]string, 1000)
 	for i := range channels {
-		channels[i] = "channel" + strconv.Itoa(i)
+		if i%2 == 0 {
+			channels[i] = "user:" + strconv.Itoa(i)
+		} else {
+			channels[i] = "channel" + strconv.Itoa(i)
+		}
 	}
 	i := 0
 	allocs := testing.AllocsPerRun(500, func() {
-		_, _, _, _, _ = container.ChannelOptions(channels[i])
+		_, ok, _ := container.ChannelOptionsRef(channels[i%len(channels)])
+		require.True(t, ok)
+		_, _, _, ok, _ = container.ChannelOptions(channels[i%len(channels)])
+		require.True(t, ok)
 		i++
 	})
-	t.Logf("allocations per cache miss: %v", allocs)
-	require.LessOrEqual(t, allocs, float64(1))
+	require.Zero(t, allocs)
+}
+
+// TestChannelOptionsMatchNamespaceSearch checks looking up precomputed
+// options finds the same namespace, rest and options as searching the
+// namespaces does, for channel names at the edges of the naming rules.
+func TestChannelOptionsMatchNamespaceSearch(t *testing.T) {
+	cfg := defaultConfig(t)
+	cfg.Channel.PublicationDataFormat = "json"
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
+		{Name: "ns", ChannelOptions: configtypes.ChannelOptions{HistorySize: 1, HistoryTTL: configtypes.Duration(time.Minute)}},
+		{Name: "other", ChannelOptions: configtypes.ChannelOptions{PublicationDataFormat: "binary"}},
+	}
+	container, err := NewContainer(cfg)
+	require.NoError(t, err)
+	prepared := container.Config()
+
+	channels := []string{
+		"ns:a", "ns:a:b", "ns:", ":a", "a", "", "$ns:a", "$a", "$", "other:x",
+		"unknown:x", "ns", "a#1", "ns:a#1",
+	}
+	for _, ch := range channels {
+		// What searching the namespaces gives, as lookups worked before.
+		wantNs, wantRest := "", ch
+		trimmed := strings.TrimPrefix(ch, prepared.Channel.PrivatePrefix)
+		if strings.Contains(trimmed, prepared.Channel.NamespaceBoundary) {
+			parts := strings.SplitN(trimmed, prepared.Channel.NamespaceBoundary, 2)
+			wantNs, wantRest = parts[0], parts[1]
+		}
+		wantOpts, wantOk, err := channelOpts(&prepared, wantNs)
+		require.NoError(t, err)
+		if wantOk && wantOpts.PublicationDataFormat == "" {
+			wantOpts.PublicationDataFormat = prepared.Channel.PublicationDataFormat
+		}
+
+		nsName, rest, chOpts, ok, err := container.ChannelOptions(ch)
+		require.NoError(t, err)
+		require.Equal(t, wantNs, nsName, "channel %q", ch)
+		require.Equal(t, wantRest, rest, "channel %q", ch)
+		require.Equal(t, wantOk, ok, "channel %q", ch)
+		if ok {
+			require.Equal(t, wantOpts, chOpts, "channel %q", ch)
+		}
+	}
 }

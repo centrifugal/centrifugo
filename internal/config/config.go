@@ -120,6 +120,11 @@ type Config struct {
 	// EnableUnreleasedFeatures enables unreleased features. These features are not stable and may be removed even
 	// in minor release update. Evaluate and share feedback if you find some feature useful and want it to be stabilized.
 	EnableUnreleasedFeatures bool `mapstructure:"enable_unreleased_features" json:"enable_unreleased_features" envconfig:"enable_unreleased_features" toml:"enable_unreleased_features" yaml:"enable_unreleased_features" doc:"Enables unstable, unreleased features. These may change or be removed even in a minor release - do not rely on them in production."`
+
+	// namespaceOptions holds the channel options of each namespace by name,
+	// "" for channels without namespace, with defaults applied. Set when the
+	// config is prepared for a Container, see ChannelOptionsRef.
+	namespaceOptions map[string]*configtypes.ChannelOptions
 }
 
 type Meta struct {
