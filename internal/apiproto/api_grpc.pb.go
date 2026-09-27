@@ -64,6 +64,10 @@ const (
 // CentrifugoApiClient is the client API for CentrifugoApi service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// CentrifugoApi is the Centrifugo server API. HTTP and GRPC API share this
+// schema. API-level errors are returned in the error field of each response,
+// not as transport errors (unless transport error mode is enabled).
 type CentrifugoApiClient interface {
 	Batch(ctx context.Context, in *BatchRequest, opts ...grpc.CallOption) (*BatchResponse, error)
 	Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error)
@@ -518,6 +522,10 @@ func (c *centrifugoApiClient) SharedPollPublish(ctx context.Context, in *SharedP
 // CentrifugoApiServer is the server API for CentrifugoApi service.
 // All implementations must embed UnimplementedCentrifugoApiServer
 // for forward compatibility.
+//
+// CentrifugoApi is the Centrifugo server API. HTTP and GRPC API share this
+// schema. API-level errors are returned in the error field of each response,
+// not as transport errors (unless transport error mode is enabled).
 type CentrifugoApiServer interface {
 	Batch(context.Context, *BatchRequest) (*BatchResponse, error)
 	Publish(context.Context, *PublishRequest) (*PublishResponse, error)

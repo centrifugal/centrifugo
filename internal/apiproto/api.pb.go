@@ -21,49 +21,111 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Command is a single command inside a BatchRequest. Set exactly one of its
+// request fields; a command with none of them set gets a not found error.
 type Command struct {
-	state                protoimpl.MessageState       `protogen:"open.v1"`
-	Publish              *PublishRequest              `protobuf:"bytes,4,opt,name=publish,proto3" json:"publish,omitempty"`
-	Broadcast            *BroadcastRequest            `protobuf:"bytes,5,opt,name=broadcast,proto3" json:"broadcast,omitempty"`
-	Subscribe            *SubscribeRequest            `protobuf:"bytes,6,opt,name=subscribe,proto3" json:"subscribe,omitempty"`
-	Unsubscribe          *UnsubscribeRequest          `protobuf:"bytes,7,opt,name=unsubscribe,proto3" json:"unsubscribe,omitempty"`
-	Disconnect           *DisconnectRequest           `protobuf:"bytes,8,opt,name=disconnect,proto3" json:"disconnect,omitempty"`
-	Presence             *PresenceRequest             `protobuf:"bytes,9,opt,name=presence,proto3" json:"presence,omitempty"`
-	PresenceStats        *PresenceStatsRequest        `protobuf:"bytes,10,opt,name=presence_stats,json=presenceStats,proto3" json:"presence_stats,omitempty"`
-	History              *HistoryRequest              `protobuf:"bytes,11,opt,name=history,proto3" json:"history,omitempty"`
-	HistoryRemove        *HistoryRemoveRequest        `protobuf:"bytes,12,opt,name=history_remove,json=historyRemove,proto3" json:"history_remove,omitempty"`
-	Info                 *InfoRequest                 `protobuf:"bytes,13,opt,name=info,proto3" json:"info,omitempty"`
-	Rpc                  *RPCRequest                  `protobuf:"bytes,14,opt,name=rpc,proto3" json:"rpc,omitempty"`
-	Refresh              *RefreshRequest              `protobuf:"bytes,15,opt,name=refresh,proto3" json:"refresh,omitempty"`
-	Channels             *ChannelsRequest             `protobuf:"bytes,16,opt,name=channels,proto3" json:"channels,omitempty"`
-	Connections          *ConnectionsRequest          `protobuf:"bytes,17,opt,name=connections,proto3" json:"connections,omitempty"`
-	UpdateUserStatus     *UpdateUserStatusRequest     `protobuf:"bytes,18,opt,name=update_user_status,json=updateUserStatus,proto3" json:"update_user_status,omitempty"`
-	GetUserStatus        *GetUserStatusRequest        `protobuf:"bytes,19,opt,name=get_user_status,json=getUserStatus,proto3" json:"get_user_status,omitempty"`
-	DeleteUserStatus     *DeleteUserStatusRequest     `protobuf:"bytes,20,opt,name=delete_user_status,json=deleteUserStatus,proto3" json:"delete_user_status,omitempty"`
-	BlockUser            *BlockUserRequest            `protobuf:"bytes,21,opt,name=block_user,json=blockUser,proto3" json:"block_user,omitempty"`
-	UnblockUser          *UnblockUserRequest          `protobuf:"bytes,22,opt,name=unblock_user,json=unblockUser,proto3" json:"unblock_user,omitempty"`
-	RevokeToken          *RevokeTokenRequest          `protobuf:"bytes,23,opt,name=revoke_token,json=revokeToken,proto3" json:"revoke_token,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// publish is a publish command, see PublishRequest.
+	Publish *PublishRequest `protobuf:"bytes,4,opt,name=publish,proto3" json:"publish,omitempty"`
+	// broadcast is a broadcast command, see BroadcastRequest.
+	Broadcast *BroadcastRequest `protobuf:"bytes,5,opt,name=broadcast,proto3" json:"broadcast,omitempty"`
+	// subscribe is a subscribe command, see SubscribeRequest.
+	Subscribe *SubscribeRequest `protobuf:"bytes,6,opt,name=subscribe,proto3" json:"subscribe,omitempty"`
+	// unsubscribe is an unsubscribe command, see UnsubscribeRequest.
+	Unsubscribe *UnsubscribeRequest `protobuf:"bytes,7,opt,name=unsubscribe,proto3" json:"unsubscribe,omitempty"`
+	// disconnect is a disconnect command, see DisconnectRequest.
+	Disconnect *DisconnectRequest `protobuf:"bytes,8,opt,name=disconnect,proto3" json:"disconnect,omitempty"`
+	// presence is a presence command, see PresenceRequest.
+	Presence *PresenceRequest `protobuf:"bytes,9,opt,name=presence,proto3" json:"presence,omitempty"`
+	// presence_stats is a presence stats command, see PresenceStatsRequest.
+	PresenceStats *PresenceStatsRequest `protobuf:"bytes,10,opt,name=presence_stats,json=presenceStats,proto3" json:"presence_stats,omitempty"`
+	// history is a history command, see HistoryRequest.
+	History *HistoryRequest `protobuf:"bytes,11,opt,name=history,proto3" json:"history,omitempty"`
+	// history_remove is a history remove command, see HistoryRemoveRequest.
+	HistoryRemove *HistoryRemoveRequest `protobuf:"bytes,12,opt,name=history_remove,json=historyRemove,proto3" json:"history_remove,omitempty"`
+	// info is an info command, see InfoRequest.
+	Info *InfoRequest `protobuf:"bytes,13,opt,name=info,proto3" json:"info,omitempty"`
+	// rpc is an RPC command, see RPCRequest.
+	Rpc *RPCRequest `protobuf:"bytes,14,opt,name=rpc,proto3" json:"rpc,omitempty"`
+	// refresh is a refresh command, see RefreshRequest.
+	Refresh *RefreshRequest `protobuf:"bytes,15,opt,name=refresh,proto3" json:"refresh,omitempty"`
+	// channels is a channels command, see ChannelsRequest.
+	Channels *ChannelsRequest `protobuf:"bytes,16,opt,name=channels,proto3" json:"channels,omitempty"`
+	// connections is a connections command, see ConnectionsRequest.
+	// Centrifugo PRO only.
+	Connections *ConnectionsRequest `protobuf:"bytes,17,opt,name=connections,proto3" json:"connections,omitempty"`
+	// update_user_status is an update user status command, see
+	// UpdateUserStatusRequest. Centrifugo PRO only.
+	UpdateUserStatus *UpdateUserStatusRequest `protobuf:"bytes,18,opt,name=update_user_status,json=updateUserStatus,proto3" json:"update_user_status,omitempty"`
+	// get_user_status is a get user status command, see GetUserStatusRequest.
+	// Centrifugo PRO only.
+	GetUserStatus *GetUserStatusRequest `protobuf:"bytes,19,opt,name=get_user_status,json=getUserStatus,proto3" json:"get_user_status,omitempty"`
+	// delete_user_status is a delete user status command, see
+	// DeleteUserStatusRequest. Centrifugo PRO only.
+	DeleteUserStatus *DeleteUserStatusRequest `protobuf:"bytes,20,opt,name=delete_user_status,json=deleteUserStatus,proto3" json:"delete_user_status,omitempty"`
+	// block_user is a block user command, see BlockUserRequest.
+	// Centrifugo PRO only.
+	BlockUser *BlockUserRequest `protobuf:"bytes,21,opt,name=block_user,json=blockUser,proto3" json:"block_user,omitempty"`
+	// unblock_user is an unblock user command, see UnblockUserRequest.
+	// Centrifugo PRO only.
+	UnblockUser *UnblockUserRequest `protobuf:"bytes,22,opt,name=unblock_user,json=unblockUser,proto3" json:"unblock_user,omitempty"`
+	// revoke_token is a revoke token command, see RevokeTokenRequest.
+	// Centrifugo PRO only.
+	RevokeToken *RevokeTokenRequest `protobuf:"bytes,23,opt,name=revoke_token,json=revokeToken,proto3" json:"revoke_token,omitempty"`
+	// invalidate_user_tokens is an invalidate user tokens command, see
+	// InvalidateUserTokensRequest. Centrifugo PRO only.
 	InvalidateUserTokens *InvalidateUserTokensRequest `protobuf:"bytes,24,opt,name=invalidate_user_tokens,json=invalidateUserTokens,proto3" json:"invalidate_user_tokens,omitempty"`
-	DeviceRegister       *DeviceRegisterRequest       `protobuf:"bytes,25,opt,name=device_register,json=deviceRegister,proto3" json:"device_register,omitempty"`
-	DeviceUpdate         *DeviceUpdateRequest         `protobuf:"bytes,26,opt,name=device_update,json=deviceUpdate,proto3" json:"device_update,omitempty"`
-	DeviceRemove         *DeviceRemoveRequest         `protobuf:"bytes,27,opt,name=device_remove,json=deviceRemove,proto3" json:"device_remove,omitempty"`
-	DeviceList           *DeviceListRequest           `protobuf:"bytes,28,opt,name=device_list,json=deviceList,proto3" json:"device_list,omitempty"`
-	DeviceTopicList      *DeviceTopicListRequest      `protobuf:"bytes,29,opt,name=device_topic_list,json=deviceTopicList,proto3" json:"device_topic_list,omitempty"`
-	DeviceTopicUpdate    *DeviceTopicUpdateRequest    `protobuf:"bytes,30,opt,name=device_topic_update,json=deviceTopicUpdate,proto3" json:"device_topic_update,omitempty"`
-	UserTopicList        *UserTopicListRequest        `protobuf:"bytes,31,opt,name=user_topic_list,json=userTopicList,proto3" json:"user_topic_list,omitempty"`
-	UserTopicUpdate      *UserTopicUpdateRequest      `protobuf:"bytes,32,opt,name=user_topic_update,json=userTopicUpdate,proto3" json:"user_topic_update,omitempty"`
+	// device_register is a device register command, see
+	// DeviceRegisterRequest. Centrifugo PRO only.
+	DeviceRegister *DeviceRegisterRequest `protobuf:"bytes,25,opt,name=device_register,json=deviceRegister,proto3" json:"device_register,omitempty"`
+	// device_update is a device update command, see DeviceUpdateRequest.
+	// Centrifugo PRO only.
+	DeviceUpdate *DeviceUpdateRequest `protobuf:"bytes,26,opt,name=device_update,json=deviceUpdate,proto3" json:"device_update,omitempty"`
+	// device_remove is a device remove command, see DeviceRemoveRequest.
+	// Centrifugo PRO only.
+	DeviceRemove *DeviceRemoveRequest `protobuf:"bytes,27,opt,name=device_remove,json=deviceRemove,proto3" json:"device_remove,omitempty"`
+	// device_list is a device list command, see DeviceListRequest.
+	// Centrifugo PRO only.
+	DeviceList *DeviceListRequest `protobuf:"bytes,28,opt,name=device_list,json=deviceList,proto3" json:"device_list,omitempty"`
+	// device_topic_list is a device topic list command, see
+	// DeviceTopicListRequest. Centrifugo PRO only.
+	DeviceTopicList *DeviceTopicListRequest `protobuf:"bytes,29,opt,name=device_topic_list,json=deviceTopicList,proto3" json:"device_topic_list,omitempty"`
+	// device_topic_update is a device topic update command, see
+	// DeviceTopicUpdateRequest. Centrifugo PRO only.
+	DeviceTopicUpdate *DeviceTopicUpdateRequest `protobuf:"bytes,30,opt,name=device_topic_update,json=deviceTopicUpdate,proto3" json:"device_topic_update,omitempty"`
+	// user_topic_list is a user topic list command, see
+	// UserTopicListRequest. Centrifugo PRO only.
+	UserTopicList *UserTopicListRequest `protobuf:"bytes,31,opt,name=user_topic_list,json=userTopicList,proto3" json:"user_topic_list,omitempty"`
+	// user_topic_update is a user topic update command, see
+	// UserTopicUpdateRequest. Centrifugo PRO only.
+	UserTopicUpdate *UserTopicUpdateRequest `protobuf:"bytes,32,opt,name=user_topic_update,json=userTopicUpdate,proto3" json:"user_topic_update,omitempty"`
+	// send_push_notification is a send push notification command, see
+	// SendPushNotificationRequest. Centrifugo PRO only.
 	SendPushNotification *SendPushNotificationRequest `protobuf:"bytes,33,opt,name=send_push_notification,json=sendPushNotification,proto3" json:"send_push_notification,omitempty"`
-	UpdatePushStatus     *UpdatePushStatusRequest     `protobuf:"bytes,34,opt,name=update_push_status,json=updatePushStatus,proto3" json:"update_push_status,omitempty"`
-	CancelPush           *CancelPushRequest           `protobuf:"bytes,35,opt,name=cancel_push,json=cancelPush,proto3" json:"cancel_push,omitempty"`
-	MapPublish           *MapPublishRequest           `protobuf:"bytes,36,opt,name=map_publish,json=mapPublish,proto3" json:"map_publish,omitempty"`
-	MapRemove            *MapRemoveRequest            `protobuf:"bytes,37,opt,name=map_remove,json=mapRemove,proto3" json:"map_remove,omitempty"`
-	MapReadState         *MapReadStateRequest         `protobuf:"bytes,38,opt,name=map_read_state,json=mapReadState,proto3" json:"map_read_state,omitempty"`
-	MapReadStream        *MapReadStreamRequest        `protobuf:"bytes,39,opt,name=map_read_stream,json=mapReadStream,proto3" json:"map_read_stream,omitempty"`
-	MapStats             *MapStatsRequest             `protobuf:"bytes,40,opt,name=map_stats,json=mapStats,proto3" json:"map_stats,omitempty"`
-	MapClear             *MapClearRequest             `protobuf:"bytes,41,opt,name=map_clear,json=mapClear,proto3" json:"map_clear,omitempty"`
-	SharedPollPublish    *SharedPollPublishRequest    `protobuf:"bytes,42,opt,name=shared_poll_publish,json=sharedPollPublish,proto3" json:"shared_poll_publish,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// update_push_status is an update push status command, see
+	// UpdatePushStatusRequest. Centrifugo PRO only.
+	UpdatePushStatus *UpdatePushStatusRequest `protobuf:"bytes,34,opt,name=update_push_status,json=updatePushStatus,proto3" json:"update_push_status,omitempty"`
+	// cancel_push is a cancel push command, see CancelPushRequest.
+	// Centrifugo PRO only.
+	CancelPush *CancelPushRequest `protobuf:"bytes,35,opt,name=cancel_push,json=cancelPush,proto3" json:"cancel_push,omitempty"`
+	// map_publish is a map publish command, see MapPublishRequest.
+	MapPublish *MapPublishRequest `protobuf:"bytes,36,opt,name=map_publish,json=mapPublish,proto3" json:"map_publish,omitempty"`
+	// map_remove is a map remove command, see MapRemoveRequest.
+	MapRemove *MapRemoveRequest `protobuf:"bytes,37,opt,name=map_remove,json=mapRemove,proto3" json:"map_remove,omitempty"`
+	// map_read_state is a map read state command, see MapReadStateRequest.
+	MapReadState *MapReadStateRequest `protobuf:"bytes,38,opt,name=map_read_state,json=mapReadState,proto3" json:"map_read_state,omitempty"`
+	// map_read_stream is a map read stream command, see
+	// MapReadStreamRequest.
+	MapReadStream *MapReadStreamRequest `protobuf:"bytes,39,opt,name=map_read_stream,json=mapReadStream,proto3" json:"map_read_stream,omitempty"`
+	// map_stats is a map stats command, see MapStatsRequest.
+	MapStats *MapStatsRequest `protobuf:"bytes,40,opt,name=map_stats,json=mapStats,proto3" json:"map_stats,omitempty"`
+	// map_clear is a map clear command, see MapClearRequest.
+	MapClear *MapClearRequest `protobuf:"bytes,41,opt,name=map_clear,json=mapClear,proto3" json:"map_clear,omitempty"`
+	// shared_poll_publish is a shared poll publish command, see
+	// SharedPollPublishRequest.
+	SharedPollPublish *SharedPollPublishRequest `protobuf:"bytes,42,opt,name=shared_poll_publish,json=sharedPollPublish,proto3" json:"shared_poll_publish,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Command) Reset() {
@@ -369,10 +431,16 @@ func (x *Command) GetSharedPollPublish() *SharedPollPublishRequest {
 	return nil
 }
 
+// Error is a Centrifugo API error. It has the same structure in every API
+// response.
 type Error struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          uint32                 `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
-	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// code is the Centrifugo error code, for example 100 (internal error),
+	// 102 (unknown channel), 104 (not found), 107 (bad request) or
+	// 108 (not available).
+	Code uint32 `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	// message is a human-readable description of the error.
+	Message       string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -421,50 +489,111 @@ func (x *Error) GetMessage() string {
 	return ""
 }
 
+// Reply is the reply to a single Command of a BatchRequest. It carries
+// either error or the result field matching the command.
 type Reply struct {
-	state                protoimpl.MessageState      `protogen:"open.v1"`
-	Error                *Error                      `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
-	Publish              *PublishResult              `protobuf:"bytes,4,opt,name=publish,proto3" json:"publish,omitempty"`
-	Broadcast            *BroadcastResult            `protobuf:"bytes,5,opt,name=broadcast,proto3" json:"broadcast,omitempty"`
-	Subscribe            *SubscribeResult            `protobuf:"bytes,6,opt,name=subscribe,proto3" json:"subscribe,omitempty"`
-	Unsubscribe          *UnsubscribeResult          `protobuf:"bytes,7,opt,name=unsubscribe,proto3" json:"unsubscribe,omitempty"`
-	Disconnect           *DisconnectResult           `protobuf:"bytes,8,opt,name=disconnect,proto3" json:"disconnect,omitempty"`
-	Presence             *PresenceResult             `protobuf:"bytes,9,opt,name=presence,proto3" json:"presence,omitempty"`
-	PresenceStats        *PresenceStatsResult        `protobuf:"bytes,10,opt,name=presence_stats,json=presenceStats,proto3" json:"presence_stats,omitempty"`
-	History              *HistoryResult              `protobuf:"bytes,11,opt,name=history,proto3" json:"history,omitempty"`
-	HistoryRemove        *HistoryRemoveResult        `protobuf:"bytes,12,opt,name=history_remove,json=historyRemove,proto3" json:"history_remove,omitempty"`
-	Info                 *InfoResult                 `protobuf:"bytes,13,opt,name=info,proto3" json:"info,omitempty"`
-	Rpc                  *RPCResult                  `protobuf:"bytes,14,opt,name=rpc,proto3" json:"rpc,omitempty"`
-	Refresh              *RefreshResult              `protobuf:"bytes,15,opt,name=refresh,proto3" json:"refresh,omitempty"`
-	Channels             *ChannelsResult             `protobuf:"bytes,16,opt,name=channels,proto3" json:"channels,omitempty"`
-	Connections          *ConnectionsResult          `protobuf:"bytes,17,opt,name=connections,proto3" json:"connections,omitempty"`
-	UpdateUserStatus     *UpdateUserStatusResult     `protobuf:"bytes,18,opt,name=update_user_status,json=updateUserStatus,proto3" json:"update_user_status,omitempty"`
-	GetUserStatus        *GetUserStatusResult        `protobuf:"bytes,19,opt,name=get_user_status,json=getUserStatus,proto3" json:"get_user_status,omitempty"`
-	DeleteUserStatus     *DeleteUserStatusResult     `protobuf:"bytes,20,opt,name=delete_user_status,json=deleteUserStatus,proto3" json:"delete_user_status,omitempty"`
-	BlockUser            *BlockUserResult            `protobuf:"bytes,21,opt,name=block_user,json=blockUser,proto3" json:"block_user,omitempty"`
-	UnblockUser          *UnblockUserResult          `protobuf:"bytes,22,opt,name=unblock_user,json=unblockUser,proto3" json:"unblock_user,omitempty"`
-	RevokeToken          *RevokeTokenResult          `protobuf:"bytes,23,opt,name=revoke_token,json=revokeToken,proto3" json:"revoke_token,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the command failed.
+	Error *Error `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	// publish is the result of a publish command.
+	Publish *PublishResult `protobuf:"bytes,4,opt,name=publish,proto3" json:"publish,omitempty"`
+	// broadcast is the result of a broadcast command.
+	Broadcast *BroadcastResult `protobuf:"bytes,5,opt,name=broadcast,proto3" json:"broadcast,omitempty"`
+	// subscribe is the result of a subscribe command.
+	Subscribe *SubscribeResult `protobuf:"bytes,6,opt,name=subscribe,proto3" json:"subscribe,omitempty"`
+	// unsubscribe is the result of an unsubscribe command.
+	Unsubscribe *UnsubscribeResult `protobuf:"bytes,7,opt,name=unsubscribe,proto3" json:"unsubscribe,omitempty"`
+	// disconnect is the result of a disconnect command.
+	Disconnect *DisconnectResult `protobuf:"bytes,8,opt,name=disconnect,proto3" json:"disconnect,omitempty"`
+	// presence is the result of a presence command.
+	Presence *PresenceResult `protobuf:"bytes,9,opt,name=presence,proto3" json:"presence,omitempty"`
+	// presence_stats is the result of a presence stats command.
+	PresenceStats *PresenceStatsResult `protobuf:"bytes,10,opt,name=presence_stats,json=presenceStats,proto3" json:"presence_stats,omitempty"`
+	// history is the result of a history command.
+	History *HistoryResult `protobuf:"bytes,11,opt,name=history,proto3" json:"history,omitempty"`
+	// history_remove is the result of a history remove command.
+	HistoryRemove *HistoryRemoveResult `protobuf:"bytes,12,opt,name=history_remove,json=historyRemove,proto3" json:"history_remove,omitempty"`
+	// info is the result of an info command.
+	Info *InfoResult `protobuf:"bytes,13,opt,name=info,proto3" json:"info,omitempty"`
+	// rpc is the result of an RPC command.
+	Rpc *RPCResult `protobuf:"bytes,14,opt,name=rpc,proto3" json:"rpc,omitempty"`
+	// refresh is the result of a refresh command.
+	Refresh *RefreshResult `protobuf:"bytes,15,opt,name=refresh,proto3" json:"refresh,omitempty"`
+	// channels is the result of a channels command.
+	Channels *ChannelsResult `protobuf:"bytes,16,opt,name=channels,proto3" json:"channels,omitempty"`
+	// connections is the result of a connections command.
+	// Centrifugo PRO only.
+	Connections *ConnectionsResult `protobuf:"bytes,17,opt,name=connections,proto3" json:"connections,omitempty"`
+	// update_user_status is the result of an update user status command.
+	// Centrifugo PRO only.
+	UpdateUserStatus *UpdateUserStatusResult `protobuf:"bytes,18,opt,name=update_user_status,json=updateUserStatus,proto3" json:"update_user_status,omitempty"`
+	// get_user_status is the result of a get user status command.
+	// Centrifugo PRO only.
+	GetUserStatus *GetUserStatusResult `protobuf:"bytes,19,opt,name=get_user_status,json=getUserStatus,proto3" json:"get_user_status,omitempty"`
+	// delete_user_status is the result of a delete user status command.
+	// Centrifugo PRO only.
+	DeleteUserStatus *DeleteUserStatusResult `protobuf:"bytes,20,opt,name=delete_user_status,json=deleteUserStatus,proto3" json:"delete_user_status,omitempty"`
+	// block_user is the result of a block user command.
+	// Centrifugo PRO only.
+	BlockUser *BlockUserResult `protobuf:"bytes,21,opt,name=block_user,json=blockUser,proto3" json:"block_user,omitempty"`
+	// unblock_user is the result of an unblock user command.
+	// Centrifugo PRO only.
+	UnblockUser *UnblockUserResult `protobuf:"bytes,22,opt,name=unblock_user,json=unblockUser,proto3" json:"unblock_user,omitempty"`
+	// revoke_token is the result of a revoke token command.
+	// Centrifugo PRO only.
+	RevokeToken *RevokeTokenResult `protobuf:"bytes,23,opt,name=revoke_token,json=revokeToken,proto3" json:"revoke_token,omitempty"`
+	// invalidate_user_tokens is the result of an invalidate user tokens
+	// command. Centrifugo PRO only.
 	InvalidateUserTokens *InvalidateUserTokensResult `protobuf:"bytes,24,opt,name=invalidate_user_tokens,json=invalidateUserTokens,proto3" json:"invalidate_user_tokens,omitempty"`
-	DeviceRegister       *DeviceRegisterResult       `protobuf:"bytes,25,opt,name=device_register,json=deviceRegister,proto3" json:"device_register,omitempty"`
-	DeviceUpdate         *DeviceUpdateResult         `protobuf:"bytes,26,opt,name=device_update,json=deviceUpdate,proto3" json:"device_update,omitempty"`
-	DeviceRemove         *DeviceRemoveResult         `protobuf:"bytes,27,opt,name=device_remove,json=deviceRemove,proto3" json:"device_remove,omitempty"`
-	DeviceList           *DeviceListResult           `protobuf:"bytes,28,opt,name=device_list,json=deviceList,proto3" json:"device_list,omitempty"`
-	DeviceTopicList      *DeviceTopicListResult      `protobuf:"bytes,29,opt,name=device_topic_list,json=deviceTopicList,proto3" json:"device_topic_list,omitempty"`
-	DeviceTopicUpdate    *DeviceTopicUpdateResult    `protobuf:"bytes,30,opt,name=device_topic_update,json=deviceTopicUpdate,proto3" json:"device_topic_update,omitempty"`
-	UserTopicList        *UserTopicListResult        `protobuf:"bytes,31,opt,name=user_topic_list,json=userTopicList,proto3" json:"user_topic_list,omitempty"`
-	UserTopicUpdate      *UserTopicUpdateResult      `protobuf:"bytes,32,opt,name=user_topic_update,json=userTopicUpdate,proto3" json:"user_topic_update,omitempty"`
+	// device_register is the result of a device register command.
+	// Centrifugo PRO only.
+	DeviceRegister *DeviceRegisterResult `protobuf:"bytes,25,opt,name=device_register,json=deviceRegister,proto3" json:"device_register,omitempty"`
+	// device_update is the result of a device update command.
+	// Centrifugo PRO only.
+	DeviceUpdate *DeviceUpdateResult `protobuf:"bytes,26,opt,name=device_update,json=deviceUpdate,proto3" json:"device_update,omitempty"`
+	// device_remove is the result of a device remove command.
+	// Centrifugo PRO only.
+	DeviceRemove *DeviceRemoveResult `protobuf:"bytes,27,opt,name=device_remove,json=deviceRemove,proto3" json:"device_remove,omitempty"`
+	// device_list is the result of a device list command.
+	// Centrifugo PRO only.
+	DeviceList *DeviceListResult `protobuf:"bytes,28,opt,name=device_list,json=deviceList,proto3" json:"device_list,omitempty"`
+	// device_topic_list is the result of a device topic list command.
+	// Centrifugo PRO only.
+	DeviceTopicList *DeviceTopicListResult `protobuf:"bytes,29,opt,name=device_topic_list,json=deviceTopicList,proto3" json:"device_topic_list,omitempty"`
+	// device_topic_update is the result of a device topic update command.
+	// Centrifugo PRO only.
+	DeviceTopicUpdate *DeviceTopicUpdateResult `protobuf:"bytes,30,opt,name=device_topic_update,json=deviceTopicUpdate,proto3" json:"device_topic_update,omitempty"`
+	// user_topic_list is the result of a user topic list command.
+	// Centrifugo PRO only.
+	UserTopicList *UserTopicListResult `protobuf:"bytes,31,opt,name=user_topic_list,json=userTopicList,proto3" json:"user_topic_list,omitempty"`
+	// user_topic_update is the result of a user topic update command.
+	// Centrifugo PRO only.
+	UserTopicUpdate *UserTopicUpdateResult `protobuf:"bytes,32,opt,name=user_topic_update,json=userTopicUpdate,proto3" json:"user_topic_update,omitempty"`
+	// send_push_notification is the result of a send push notification
+	// command. Centrifugo PRO only.
 	SendPushNotification *SendPushNotificationResult `protobuf:"bytes,33,opt,name=send_push_notification,json=sendPushNotification,proto3" json:"send_push_notification,omitempty"`
-	UpdatePushStatus     *UpdatePushStatusResult     `protobuf:"bytes,34,opt,name=update_push_status,json=updatePushStatus,proto3" json:"update_push_status,omitempty"`
-	CancelPush           *CancelPushResult           `protobuf:"bytes,35,opt,name=cancel_push,json=cancelPush,proto3" json:"cancel_push,omitempty"`
-	MapPublish           *MapPublishResult           `protobuf:"bytes,36,opt,name=map_publish,json=mapPublish,proto3" json:"map_publish,omitempty"`
-	MapRemove            *MapRemoveResult            `protobuf:"bytes,37,opt,name=map_remove,json=mapRemove,proto3" json:"map_remove,omitempty"`
-	MapReadState         *MapReadStateResult         `protobuf:"bytes,38,opt,name=map_read_state,json=mapReadState,proto3" json:"map_read_state,omitempty"`
-	MapReadStream        *MapReadStreamResult        `protobuf:"bytes,39,opt,name=map_read_stream,json=mapReadStream,proto3" json:"map_read_stream,omitempty"`
-	MapStats             *MapStatsResult             `protobuf:"bytes,40,opt,name=map_stats,json=mapStats,proto3" json:"map_stats,omitempty"`
-	MapClear             *MapClearResult             `protobuf:"bytes,41,opt,name=map_clear,json=mapClear,proto3" json:"map_clear,omitempty"`
-	SharedPollPublish    *SharedPollPublishResult    `protobuf:"bytes,42,opt,name=shared_poll_publish,json=sharedPollPublish,proto3" json:"shared_poll_publish,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// update_push_status is the result of an update push status command.
+	// Centrifugo PRO only.
+	UpdatePushStatus *UpdatePushStatusResult `protobuf:"bytes,34,opt,name=update_push_status,json=updatePushStatus,proto3" json:"update_push_status,omitempty"`
+	// cancel_push is the result of a cancel push command.
+	// Centrifugo PRO only.
+	CancelPush *CancelPushResult `protobuf:"bytes,35,opt,name=cancel_push,json=cancelPush,proto3" json:"cancel_push,omitempty"`
+	// map_publish is the result of a map publish command.
+	MapPublish *MapPublishResult `protobuf:"bytes,36,opt,name=map_publish,json=mapPublish,proto3" json:"map_publish,omitempty"`
+	// map_remove is the result of a map remove command.
+	MapRemove *MapRemoveResult `protobuf:"bytes,37,opt,name=map_remove,json=mapRemove,proto3" json:"map_remove,omitempty"`
+	// map_read_state is the result of a map read state command.
+	MapReadState *MapReadStateResult `protobuf:"bytes,38,opt,name=map_read_state,json=mapReadState,proto3" json:"map_read_state,omitempty"`
+	// map_read_stream is the result of a map read stream command.
+	MapReadStream *MapReadStreamResult `protobuf:"bytes,39,opt,name=map_read_stream,json=mapReadStream,proto3" json:"map_read_stream,omitempty"`
+	// map_stats is the result of a map stats command.
+	MapStats *MapStatsResult `protobuf:"bytes,40,opt,name=map_stats,json=mapStats,proto3" json:"map_stats,omitempty"`
+	// map_clear is the result of a map clear command.
+	MapClear *MapClearResult `protobuf:"bytes,41,opt,name=map_clear,json=mapClear,proto3" json:"map_clear,omitempty"`
+	// shared_poll_publish is the result of a shared poll publish command.
+	SharedPollPublish *SharedPollPublishResult `protobuf:"bytes,42,opt,name=shared_poll_publish,json=sharedPollPublish,proto3" json:"shared_poll_publish,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Reply) Reset() {
@@ -777,22 +906,18 @@ func (x *Reply) GetSharedPollPublish() *SharedPollPublishResult {
 	return nil
 }
 
+// BatchRequest sends many commands in one request, which avoids paying a
+// round trip per command. Check the error of each reply individually.
 type BatchRequest struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	Commands []*Command             `protobuf:"bytes,1,rep,name=commands,proto3" json:"commands,omitempty"`
-	Parallel bool                   `protobuf:"varint,2,opt,name=parallel,proto3" json:"parallel,omitempty"`
-	// PRO only — defined in OSS api.proto for protocol-surface consistency; OSS handlers parse but do not act on it.
-	// Lets the server send the batch's publish commands to the broker together
-	// instead of one after another. Applies whether or not parallel is set.
-	// A channel's own publications still take effect in the order they were
-	// written; what a sequential batch gives up is the order between different
-	// channels. Either way, a grouped call answers all of its publications
-	// with the error of any one of them, so a reply carrying an error no
-	// longer means that publication alone failed. Has no effect in Centrifugo
-	// OSS.
-	GroupPublications bool `protobuf:"varint,3,opt,name=group_publications,json=groupPublications,proto3" json:"group_publications,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// commands to execute. Replies come back in the same order.
+	Commands []*Command `protobuf:"bytes,1,rep,name=commands,proto3" json:"commands,omitempty"`
+	// parallel makes Centrifugo process the commands concurrently instead of
+	// one after another. This may reduce latency (especially with the Redis
+	// engine), but gives no ordering guarantee between commands.
+	Parallel      bool `protobuf:"varint,2,opt,name=parallel,proto3" json:"parallel,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *BatchRequest) Reset() {
@@ -839,16 +964,11 @@ func (x *BatchRequest) GetParallel() bool {
 	return false
 }
 
-func (x *BatchRequest) GetGroupPublications() bool {
-	if x != nil {
-		return x.GroupPublications
-	}
-	return false
-}
-
+// BatchResponse contains the replies to a BatchRequest.
 type BatchResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Replies       []*Reply               `protobuf:"bytes,1,rep,name=replies,proto3" json:"replies,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// replies to the commands, in the order of BatchRequest.commands.
+	Replies       []*Reply `protobuf:"bytes,1,rep,name=replies,proto3" json:"replies,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -890,19 +1010,38 @@ func (x *BatchResponse) GetReplies() []*Reply {
 	return nil
 }
 
+// PublishRequest publishes data into a channel.
 type PublishRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Channel        string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
-	Data           Raw                    `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data        string                 `protobuf:"bytes,3,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	SkipHistory    bool                   `protobuf:"varint,4,opt,name=skip_history,json=skipHistory,proto3" json:"skip_history,omitempty"`
-	Tags           map[string]string      `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	IdempotencyKey string                 `protobuf:"bytes,6,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
-	Delta          bool                   `protobuf:"varint,7,opt,name=delta,proto3" json:"delta,omitempty"`
-	Version        uint64                 `protobuf:"varint,8,opt,name=version,proto3" json:"version,omitempty"`
-	VersionEpoch   string                 `protobuf:"bytes,9,opt,name=version_epoch,json=versionEpoch,proto3" json:"version_epoch,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channel is the name of the channel to publish into. Required.
+	Channel string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	// data is the payload to publish. Required unless b64data is set. In the
+	// HTTP API it is any JSON value; over GRPC it may be binary.
+	Data Raw `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	// b64data is a base64-encoded binary payload, an alternative to `data` to
+	// send binary over the HTTP API. Centrifugo decodes it before publishing.
+	B64Data string `protobuf:"bytes,3,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	// skip_history skips adding this publication to the channel history.
+	SkipHistory bool `protobuf:"varint,4,opt,name=skip_history,json=skipHistory,proto3" json:"skip_history,omitempty"`
+	// tags is a map of arbitrary string keys and values attached to the
+	// publication and delivered to clients.
+	Tags map[string]string `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// idempotency_key drops duplicate publications upon retries. It acts per
+	// channel; results are cached for 5 minutes. Supported only by Memory and
+	// Redis engines.
+	IdempotencyKey string `protobuf:"bytes,6,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	// delta tells Centrifugo to construct a delta update, if possible, when
+	// broadcasting the publication to subscribers.
+	Delta bool `protobuf:"varint,7,opt,name=delta,proto3" json:"delta,omitempty"`
+	// version, when > 0, is the version of the document being sent:
+	// publications with a version less than or equal to one already seen are
+	// ignored. Only works in channels with history enabled.
+	Version uint64 `protobuf:"varint,8,opt,name=version,proto3" json:"version,omitempty"`
+	// version_epoch is the epoch of version. When it changes, Centrifugo
+	// accepts the publication even if its version is lower than before.
+	VersionEpoch  string `protobuf:"bytes,9,opt,name=version_epoch,json=versionEpoch,proto3" json:"version_epoch,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PublishRequest) Reset() {
@@ -998,10 +1137,13 @@ func (x *PublishRequest) GetVersionEpoch() string {
 	return ""
 }
 
+// PublishResponse is the response to a PublishRequest.
 type PublishResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *PublishResult         `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the publish failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *PublishResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1050,10 +1192,13 @@ func (x *PublishResponse) GetResult() *PublishResult {
 	return nil
 }
 
+// PublishResult is the result of a successful publish.
 type PublishResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Offset        uint64                 `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
-	Epoch         string                 `protobuf:"bytes,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// offset is the offset of the publication in the channel history stream.
+	Offset uint64 `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
+	// epoch is the epoch of the channel history stream.
+	Epoch         string `protobuf:"bytes,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1102,19 +1247,38 @@ func (x *PublishResult) GetEpoch() string {
 	return ""
 }
 
+// BroadcastRequest publishes the same data into many channels.
 type BroadcastRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Channels       []string               `protobuf:"bytes,1,rep,name=channels,proto3" json:"channels,omitempty"`
-	Data           Raw                    `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data        string                 `protobuf:"bytes,3,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	SkipHistory    bool                   `protobuf:"varint,4,opt,name=skip_history,json=skipHistory,proto3" json:"skip_history,omitempty"`
-	Tags           map[string]string      `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	IdempotencyKey string                 `protobuf:"bytes,6,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
-	Delta          bool                   `protobuf:"varint,7,opt,name=delta,proto3" json:"delta,omitempty"`
-	Version        uint64                 `protobuf:"varint,8,opt,name=version,proto3" json:"version,omitempty"`
-	VersionEpoch   string                 `protobuf:"bytes,9,opt,name=version_epoch,json=versionEpoch,proto3" json:"version_epoch,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channels is the list of channels to publish into. Required.
+	Channels []string `protobuf:"bytes,1,rep,name=channels,proto3" json:"channels,omitempty"`
+	// data is the payload to publish into each channel. Required unless
+	// b64data is set. In the HTTP API it is any JSON value; over GRPC it may
+	// be binary.
+	Data Raw `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	// b64data is a base64-encoded binary payload, an alternative to `data` to
+	// send binary over the HTTP API. Centrifugo decodes it before publishing.
+	B64Data string `protobuf:"bytes,3,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	// skip_history skips adding the publications to the channels' history.
+	SkipHistory bool `protobuf:"varint,4,opt,name=skip_history,json=skipHistory,proto3" json:"skip_history,omitempty"`
+	// tags is a map of arbitrary string keys and values attached to each
+	// publication and delivered to clients.
+	Tags map[string]string `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// idempotency_key drops duplicate publications upon retries. It acts per
+	// channel; results are cached for 5 minutes.
+	IdempotencyKey string `protobuf:"bytes,6,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	// delta tells Centrifugo to construct a delta update, if possible, when
+	// broadcasting the publications to subscribers.
+	Delta bool `protobuf:"varint,7,opt,name=delta,proto3" json:"delta,omitempty"`
+	// version, when > 0, is the version of the document being sent:
+	// publications with a version less than or equal to one already seen are
+	// ignored. Only works in channels with history enabled.
+	Version uint64 `protobuf:"varint,8,opt,name=version,proto3" json:"version,omitempty"`
+	// version_epoch is the epoch of version. When it changes, Centrifugo
+	// accepts the publication even if its version is lower than before.
+	VersionEpoch  string `protobuf:"bytes,9,opt,name=version_epoch,json=versionEpoch,proto3" json:"version_epoch,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *BroadcastRequest) Reset() {
@@ -1210,10 +1374,13 @@ func (x *BroadcastRequest) GetVersionEpoch() string {
 	return ""
 }
 
+// BroadcastResponse is the response to a BroadcastRequest.
 type BroadcastResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *BroadcastResult       `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the whole broadcast failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success. Check the error of each response in it.
+	Result        *BroadcastResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1262,9 +1429,12 @@ func (x *BroadcastResponse) GetResult() *BroadcastResult {
 	return nil
 }
 
+// BroadcastResult is the result of a broadcast.
 type BroadcastResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Responses     []*PublishResponse     `protobuf:"bytes,1,rep,name=responses,proto3" json:"responses,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// responses is a publish response for each channel, in the order of
+	// BroadcastRequest.channels. Each may carry its own error.
+	Responses     []*PublishResponse `protobuf:"bytes,1,rep,name=responses,proto3" json:"responses,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1306,17 +1476,28 @@ func (x *BroadcastResult) GetResponses() []*PublishResponse {
 	return nil
 }
 
-// FilterNode is a tree describing a label predicate.
-// Used as label_filter on Subscribe/Unsubscribe/Disconnect/Refresh/Connections requests.
-// PRO only — defined in OSS api.proto for protocol-surface consistency; OSS handlers parse but do not act on it.
+// FilterNode is a tree describing a predicate over client labels. Used as
+// label_filter on Subscribe, Unsubscribe, Disconnect, Refresh and
+// Connections requests. A node is either a leaf comparison (key, cmp, val or
+// vals) or a logical operation (op) over child nodes.
+// Centrifugo PRO only: defined here for protocol-surface consistency,
+// Centrifugo OSS parses it but ignores it.
 type FilterNode struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Op            string                 `protobuf:"bytes,1,opt,name=op,proto3" json:"op,omitempty"`
-	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	Cmp           string                 `protobuf:"bytes,3,opt,name=cmp,proto3" json:"cmp,omitempty"`
-	Val           string                 `protobuf:"bytes,4,opt,name=val,proto3" json:"val,omitempty"`
-	Vals          []string               `protobuf:"bytes,5,rep,name=vals,proto3" json:"vals,omitempty"`
-	Nodes         []*FilterNode          `protobuf:"bytes,6,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// op is the logical operation of a non-leaf node: "and", "or" or "not".
+	// Empty for a leaf node.
+	Op string `protobuf:"bytes,1,opt,name=op,proto3" json:"op,omitempty"`
+	// key is the label key a leaf node compares.
+	Key string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	// cmp is the comparison of a leaf node: "eq", "neq", "in", "nin", "ex",
+	// "nex", "sw", "ew", "ct", "gt", "gte", "lt" or "lte".
+	Cmp string `protobuf:"bytes,3,opt,name=cmp,proto3" json:"cmp,omitempty"`
+	// val is the value to compare with, for single-value comparisons.
+	Val string `protobuf:"bytes,4,opt,name=val,proto3" json:"val,omitempty"`
+	// vals are the values to compare with, for "in" and "nin".
+	Vals []string `protobuf:"bytes,5,rep,name=vals,proto3" json:"vals,omitempty"`
+	// nodes are the child nodes of a logical operation.
+	Nodes         []*FilterNode `protobuf:"bytes,6,rep,name=nodes,proto3" json:"nodes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1393,23 +1574,45 @@ func (x *FilterNode) GetNodes() []*FilterNode {
 	return nil
 }
 
+// SubscribeRequest subscribes active sessions of a user to a channel
+// (server-side subscription). It does not create a streaming subscription
+// for the caller.
 type SubscribeRequest struct {
-	state        protoimpl.MessageState   `protogen:"open.v1"`
-	Channel      string                   `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
-	User         string                   `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
-	ExpireAt     int64                    `protobuf:"varint,3,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	Info         Raw                      `protobuf:"bytes,4,opt,name=info,proto3" json:"info,omitempty"`
-	B64Info      string                   `protobuf:"bytes,5,opt,name=b64info,proto3" json:"b64info,omitempty"`
-	Client       string                   `protobuf:"bytes,6,opt,name=client,proto3" json:"client,omitempty"`
-	Data         Raw                      `protobuf:"bytes,7,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data      string                   `protobuf:"bytes,8,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	RecoverSince *StreamPosition          `protobuf:"bytes,9,opt,name=recover_since,json=recoverSince,proto3" json:"recover_since,omitempty"`
-	Override     *SubscribeOptionOverride `protobuf:"bytes,10,opt,name=override,proto3" json:"override,omitempty"`
-	Session      string                   `protobuf:"bytes,11,opt,name=session,proto3" json:"session,omitempty"`
-	// PRO only — restrict the call to clients whose labels match this filter.
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channel is the name of the channel to subscribe to. Required.
+	Channel string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	// user is the ID of the user to subscribe. Required, unless all_users is
+	// used in Centrifugo PRO.
+	User string `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
+	// expire_at is the Unix time in seconds when the subscription expires.
+	ExpireAt int64 `protobuf:"varint,3,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	// info is custom channel info attached to the subscription, used in
+	// presence and join/leave messages.
+	Info Raw `protobuf:"bytes,4,opt,name=info,proto3" json:"info,omitempty"`
+	// b64info is info as base64, for binary. Centrifugo decodes it.
+	B64Info string `protobuf:"bytes,5,opt,name=b64info,proto3" json:"b64info,omitempty"`
+	// client limits the call to the connection with this client ID. user is
+	// still required.
+	Client string `protobuf:"bytes,6,opt,name=client,proto3" json:"client,omitempty"`
+	// data is custom subscription data sent to the client in the Subscribe
+	// push.
+	Data Raw `protobuf:"bytes,7,opt,name=data,proto3" json:"data,omitempty"`
+	// b64data is data as base64, for binary. Centrifugo decodes it.
+	B64Data string `protobuf:"bytes,8,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	// recover_since is the stream position to recover publications from.
+	RecoverSince *StreamPosition `protobuf:"bytes,9,opt,name=recover_since,json=recoverSince,proto3" json:"recover_since,omitempty"`
+	// override dynamically overrides some channel options set in the
+	// Centrifugo configuration.
+	Override *SubscribeOptionOverride `protobuf:"bytes,10,opt,name=override,proto3" json:"override,omitempty"`
+	// session limits the call to the connection with this session ID. user
+	// is still required.
+	Session string `protobuf:"bytes,11,opt,name=session,proto3" json:"session,omitempty"`
+	// label_filter restricts the call to clients whose labels match this
+	// filter. Centrifugo PRO only.
 	LabelFilter *FilterNode `protobuf:"bytes,12,opt,name=label_filter,json=labelFilter,proto3" json:"label_filter,omitempty"`
-	// PRO only — when `user` is empty, target every connection on every node
-	// instead of the anonymous-only bucket. No effect when `user` is non-empty.
+	// all_users, when user is empty, targets every connection on every node
+	// instead of the anonymous-only bucket. No effect when user is non-empty.
+	// Without label_filter it acts on every connection. Centrifugo PRO only.
 	AllUsers      bool `protobuf:"varint,13,opt,name=all_users,json=allUsers,proto3" json:"all_users,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1536,10 +1739,13 @@ func (x *SubscribeRequest) GetAllUsers() bool {
 	return false
 }
 
+// SubscribeResponse is the response to a SubscribeRequest.
 type SubscribeResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *SubscribeResult       `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *SubscribeResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1588,9 +1794,12 @@ func (x *SubscribeResponse) GetResult() *SubscribeResult {
 	return nil
 }
 
+// BoolValue wraps a bool so that an unset value can be told apart from
+// false.
 type BoolValue struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Value         bool                   `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// value is the wrapped value.
+	Value         bool `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1632,9 +1841,12 @@ func (x *BoolValue) GetValue() bool {
 	return false
 }
 
+// Int32Value wraps an int32 so that an unset value can be told apart from
+// zero.
 type Int32Value struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Value         int32                  `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// value is the wrapped value.
+	Value         int32 `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1676,13 +1888,21 @@ func (x *Int32Value) GetValue() int32 {
 	return 0
 }
 
+// SubscribeOptionOverride overrides channel options for a server-side
+// subscription. Unset fields keep the value from the channel configuration.
 type SubscribeOptionOverride struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Presence           *BoolValue             `protobuf:"bytes,1,opt,name=presence,proto3" json:"presence,omitempty"`
-	JoinLeave          *BoolValue             `protobuf:"bytes,2,opt,name=join_leave,json=joinLeave,proto3" json:"join_leave,omitempty"`
-	ForceRecovery      *BoolValue             `protobuf:"bytes,3,opt,name=force_recovery,json=forceRecovery,proto3" json:"force_recovery,omitempty"`
-	ForcePositioning   *BoolValue             `protobuf:"bytes,4,opt,name=force_positioning,json=forcePositioning,proto3" json:"force_positioning,omitempty"`
-	ForcePushJoinLeave *BoolValue             `protobuf:"bytes,5,opt,name=force_push_join_leave,json=forcePushJoinLeave,proto3" json:"force_push_join_leave,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// presence overrides the presence channel option.
+	Presence *BoolValue `protobuf:"bytes,1,opt,name=presence,proto3" json:"presence,omitempty"`
+	// join_leave overrides the join_leave channel option.
+	JoinLeave *BoolValue `protobuf:"bytes,2,opt,name=join_leave,json=joinLeave,proto3" json:"join_leave,omitempty"`
+	// force_recovery overrides the force_recovery channel option.
+	ForceRecovery *BoolValue `protobuf:"bytes,3,opt,name=force_recovery,json=forceRecovery,proto3" json:"force_recovery,omitempty"`
+	// force_positioning overrides the force_positioning channel option.
+	ForcePositioning *BoolValue `protobuf:"bytes,4,opt,name=force_positioning,json=forcePositioning,proto3" json:"force_positioning,omitempty"`
+	// force_push_join_leave overrides the force_push_join_leave channel
+	// option.
+	ForcePushJoinLeave *BoolValue `protobuf:"bytes,5,opt,name=force_push_join_leave,json=forcePushJoinLeave,proto3" json:"force_push_join_leave,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -1752,6 +1972,7 @@ func (x *SubscribeOptionOverride) GetForcePushJoinLeave() *BoolValue {
 	return nil
 }
 
+// SubscribeResult is the result of a subscribe call. Empty at the moment.
 type SubscribeResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1788,15 +2009,24 @@ func (*SubscribeResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{17}
 }
 
+// UnsubscribeRequest unsubscribes a user from a channel.
 type UnsubscribeRequest struct {
-	state   protoimpl.MessageState `protogen:"open.v1"`
-	Channel string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
-	User    string                 `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
-	Client  string                 `protobuf:"bytes,3,opt,name=client,proto3" json:"client,omitempty"`
-	Session string                 `protobuf:"bytes,4,opt,name=session,proto3" json:"session,omitempty"`
-	// PRO only — restrict the call to clients whose labels match this filter.
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channel is the name of the channel to unsubscribe from. Required.
+	Channel string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	// user is the ID of the user to unsubscribe. Required, unless all_users
+	// is used in Centrifugo PRO.
+	User string `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
+	// client limits the call to the connection with this client ID. user is
+	// still required.
+	Client string `protobuf:"bytes,3,opt,name=client,proto3" json:"client,omitempty"`
+	// session limits the call to the connection with this session ID. user
+	// is still required.
+	Session string `protobuf:"bytes,4,opt,name=session,proto3" json:"session,omitempty"`
+	// label_filter restricts the call to clients whose labels match this
+	// filter. Centrifugo PRO only.
 	LabelFilter *FilterNode `protobuf:"bytes,5,opt,name=label_filter,json=labelFilter,proto3" json:"label_filter,omitempty"`
-	// PRO only — see SubscribeRequest.all_users.
+	// all_users works as SubscribeRequest.all_users. Centrifugo PRO only.
 	AllUsers      bool `protobuf:"varint,6,opt,name=all_users,json=allUsers,proto3" json:"all_users,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1874,10 +2104,13 @@ func (x *UnsubscribeRequest) GetAllUsers() bool {
 	return false
 }
 
+// UnsubscribeResponse is the response to an UnsubscribeRequest.
 type UnsubscribeResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *UnsubscribeResult     `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *UnsubscribeResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1926,6 +2159,8 @@ func (x *UnsubscribeResponse) GetResult() *UnsubscribeResult {
 	return nil
 }
 
+// UnsubscribeResult is the result of an unsubscribe call. Empty at the
+// moment.
 type UnsubscribeResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1962,10 +2197,13 @@ func (*UnsubscribeResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{20}
 }
 
+// Disconnect describes the code and reason clients are disconnected with.
 type Disconnect struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          uint32                 `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
-	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// code is the disconnect code.
+	Code uint32 `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	// reason is the disconnect reason.
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2014,16 +2252,27 @@ func (x *Disconnect) GetReason() string {
 	return ""
 }
 
+// DisconnectRequest disconnects a user's connections.
 type DisconnectRequest struct {
-	state      protoimpl.MessageState `protogen:"open.v1"`
-	User       string                 `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	Disconnect *Disconnect            `protobuf:"bytes,2,opt,name=disconnect,proto3" json:"disconnect,omitempty"`
-	Client     string                 `protobuf:"bytes,3,opt,name=client,proto3" json:"client,omitempty"`
-	Whitelist  []string               `protobuf:"bytes,4,rep,name=whitelist,proto3" json:"whitelist,omitempty"`
-	Session    string                 `protobuf:"bytes,5,opt,name=session,proto3" json:"session,omitempty"`
-	// PRO only — restrict the call to clients whose labels match this filter.
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// user is the ID of the user to disconnect. Required, unless all_users is
+	// used in Centrifugo PRO.
+	User string `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	// disconnect is a custom disconnect code and reason. If not set, clients
+	// are disconnected with a force no-reconnect disconnect.
+	Disconnect *Disconnect `protobuf:"bytes,2,opt,name=disconnect,proto3" json:"disconnect,omitempty"`
+	// client limits the call to the connection with this client ID. user is
+	// still required.
+	Client string `protobuf:"bytes,3,opt,name=client,proto3" json:"client,omitempty"`
+	// whitelist is a list of client IDs to keep connected.
+	Whitelist []string `protobuf:"bytes,4,rep,name=whitelist,proto3" json:"whitelist,omitempty"`
+	// session limits the call to the connection with this session ID. user
+	// is still required.
+	Session string `protobuf:"bytes,5,opt,name=session,proto3" json:"session,omitempty"`
+	// label_filter restricts the call to clients whose labels match this
+	// filter. Centrifugo PRO only.
 	LabelFilter *FilterNode `protobuf:"bytes,6,opt,name=label_filter,json=labelFilter,proto3" json:"label_filter,omitempty"`
-	// PRO only — see SubscribeRequest.all_users.
+	// all_users works as SubscribeRequest.all_users. Centrifugo PRO only.
 	AllUsers      bool `protobuf:"varint,7,opt,name=all_users,json=allUsers,proto3" json:"all_users,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2108,10 +2357,13 @@ func (x *DisconnectRequest) GetAllUsers() bool {
 	return false
 }
 
+// DisconnectResponse is the response to a DisconnectRequest.
 type DisconnectResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *DisconnectResult      `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *DisconnectResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2160,6 +2412,7 @@ func (x *DisconnectResponse) GetResult() *DisconnectResult {
 	return nil
 }
 
+// DisconnectResult is the result of a disconnect call. Empty at the moment.
 type DisconnectResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -2196,9 +2449,12 @@ func (*DisconnectResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{24}
 }
 
+// PresenceRequest returns the online presence of a channel: all clients
+// currently subscribed to it. Presence must be enabled for the channel.
 type PresenceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channel       string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channel is the name of the channel. Required.
+	Channel       string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2240,10 +2496,13 @@ func (x *PresenceRequest) GetChannel() string {
 	return ""
 }
 
+// PresenceResponse is the response to a PresenceRequest.
 type PresenceResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *PresenceResult        `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *PresenceResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2292,12 +2551,17 @@ func (x *PresenceResponse) GetResult() *PresenceResult {
 	return nil
 }
 
+// ClientInfo describes a client connection.
 type ClientInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          string                 `protobuf:"bytes,1,opt,name=user,proto3" json:"user"`
-	Client        string                 `protobuf:"bytes,2,opt,name=client,proto3" json:"client"`
-	ConnInfo      Raw                    `protobuf:"bytes,3,opt,name=conn_info,json=connInfo,proto3" json:"conn_info,omitempty"`
-	ChanInfo      Raw                    `protobuf:"bytes,4,opt,name=chan_info,json=chanInfo,proto3" json:"chan_info,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// user is the user ID.
+	User string `protobuf:"bytes,1,opt,name=user,proto3" json:"user"`
+	// client is the client ID.
+	Client string `protobuf:"bytes,2,opt,name=client,proto3" json:"client"`
+	// conn_info is optional connection info.
+	ConnInfo Raw `protobuf:"bytes,3,opt,name=conn_info,json=connInfo,proto3" json:"conn_info,omitempty"`
+	// chan_info is optional channel info.
+	ChanInfo      Raw `protobuf:"bytes,4,opt,name=chan_info,json=chanInfo,proto3" json:"chan_info,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2360,8 +2624,10 @@ func (x *ClientInfo) GetChanInfo() []byte {
 	return nil
 }
 
+// PresenceResult is the result of a presence call.
 type PresenceResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// presence maps client ID to information about the client.
 	Presence      map[string]*ClientInfo `protobuf:"bytes,1,rep,name=presence,proto3" json:"presence" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2404,9 +2670,13 @@ func (x *PresenceResult) GetPresence() map[string]*ClientInfo {
 	return nil
 }
 
+// PresenceStatsRequest returns short presence information of a channel: the
+// number of clients and of unique users. Presence must be enabled for the
+// channel.
 type PresenceStatsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channel       string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channel is the name of the channel. Required.
+	Channel       string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2448,10 +2718,13 @@ func (x *PresenceStatsRequest) GetChannel() string {
 	return ""
 }
 
+// PresenceStatsResponse is the response to a PresenceStatsRequest.
 type PresenceStatsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *PresenceStatsResult   `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *PresenceStatsResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2500,10 +2773,13 @@ func (x *PresenceStatsResponse) GetResult() *PresenceStatsResult {
 	return nil
 }
 
+// PresenceStatsResult is the result of a presence stats call.
 type PresenceStatsResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NumClients    uint32                 `protobuf:"varint,1,opt,name=num_clients,json=numClients,proto3" json:"num_clients"`
-	NumUsers      uint32                 `protobuf:"varint,2,opt,name=num_users,json=numUsers,proto3" json:"num_users"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// num_clients is the total number of clients in the channel.
+	NumClients uint32 `protobuf:"varint,1,opt,name=num_clients,json=numClients,proto3" json:"num_clients"`
+	// num_users is the number of unique users in the channel.
+	NumUsers      uint32 `protobuf:"varint,2,opt,name=num_users,json=numUsers,proto3" json:"num_users"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2552,10 +2828,13 @@ func (x *PresenceStatsResult) GetNumUsers() uint32 {
 	return 0
 }
 
+// StreamPosition is a position in a channel stream.
 type StreamPosition struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Offset        uint64                 `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
-	Epoch         string                 `protobuf:"bytes,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// offset is the offset in the stream.
+	Offset uint64 `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
+	// epoch is the stream epoch.
+	Epoch         string `protobuf:"bytes,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2604,12 +2883,20 @@ func (x *StreamPosition) GetEpoch() string {
 	return ""
 }
 
+// HistoryRequest returns publications from the history of a channel.
+// History must be enabled for the channel.
 type HistoryRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channel       string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
-	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
-	Since         *StreamPosition        `protobuf:"bytes,3,opt,name=since,proto3" json:"since,omitempty"`
-	Reverse       bool                   `protobuf:"varint,4,opt,name=reverse,proto3" json:"reverse,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channel is the name of the channel. Required.
+	Channel string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	// limit is the maximum number of publications to return; -1 returns all
+	// the channel keeps. If not set, only the current stream position is
+	// returned, without publications.
+	Limit int32 `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	// since returns publications after this stream position.
+	Since *StreamPosition `protobuf:"bytes,3,opt,name=since,proto3" json:"since,omitempty"`
+	// reverse iterates in reverse order, from latest to earliest.
+	Reverse       bool `protobuf:"varint,4,opt,name=reverse,proto3" json:"reverse,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2672,10 +2959,13 @@ func (x *HistoryRequest) GetReverse() bool {
 	return false
 }
 
+// HistoryResponse is the response to a HistoryRequest.
 type HistoryResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *HistoryResult         `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *HistoryResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2724,12 +3014,16 @@ func (x *HistoryResponse) GetResult() *HistoryResult {
 	return nil
 }
 
+// Publication is a publication in a channel history.
 type Publication struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Removed: string uid = 1;
-	Data          Raw               `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	Info          *ClientInfo       `protobuf:"bytes,3,opt,name=info,proto3" json:"info,omitempty"`
-	Offset        uint64            `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
+	// data is the publication payload.
+	Data Raw `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	// info is information about the client that published, if any.
+	Info *ClientInfo `protobuf:"bytes,3,opt,name=info,proto3" json:"info,omitempty"`
+	// offset is the offset of the publication in the history stream.
+	Offset uint64 `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
+	// tags are the publication tags.
 	Tags          map[string]string `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2793,11 +3087,15 @@ func (x *Publication) GetTags() map[string]string {
 	return nil
 }
 
+// HistoryResult is the result of a history call.
 type HistoryResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Publications  []*Publication         `protobuf:"bytes,1,rep,name=publications,proto3" json:"publications"`
-	Epoch         string                 `protobuf:"bytes,2,opt,name=epoch,proto3" json:"epoch"`
-	Offset        uint64                 `protobuf:"varint,3,opt,name=offset,proto3" json:"offset"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// publications is the list of publications.
+	Publications []*Publication `protobuf:"bytes,1,rep,name=publications,proto3" json:"publications"`
+	// epoch is the epoch of the current stream.
+	Epoch string `protobuf:"bytes,2,opt,name=epoch,proto3" json:"epoch"`
+	// offset is the top offset of the history stream.
+	Offset        uint64 `protobuf:"varint,3,opt,name=offset,proto3" json:"offset"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2853,9 +3151,13 @@ func (x *HistoryResult) GetOffset() uint64 {
 	return 0
 }
 
+// HistoryRemoveRequest removes publications from the history of a channel.
+// The current top stream position is kept, so clients do not get
+// disconnected because of insufficient state.
 type HistoryRemoveRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channel       string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channel is the name of the channel. Required.
+	Channel       string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2897,10 +3199,13 @@ func (x *HistoryRemoveRequest) GetChannel() string {
 	return ""
 }
 
+// HistoryRemoveResponse is the response to a HistoryRemoveRequest.
 type HistoryRemoveResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *HistoryRemoveResult   `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *HistoryRemoveResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2949,6 +3254,8 @@ func (x *HistoryRemoveResponse) GetResult() *HistoryRemoveResult {
 	return nil
 }
 
+// HistoryRemoveResult is the result of a history remove call. Empty at the
+// moment.
 type HistoryRemoveResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -2985,6 +3292,7 @@ func (*HistoryRemoveResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{39}
 }
 
+// InfoRequest returns information about the running Centrifugo nodes.
 type InfoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -3021,10 +3329,13 @@ func (*InfoRequest) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{40}
 }
 
+// InfoResponse is the response to an InfoRequest.
 type InfoResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *InfoResult            `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *InfoResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3073,9 +3384,11 @@ func (x *InfoResponse) GetResult() *InfoResult {
 	return nil
 }
 
+// InfoResult is the result of an info call.
 type InfoResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Nodes         []*NodeResult          `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// nodes is information about all nodes of the cluster.
+	Nodes         []*NodeResult `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3117,10 +3430,14 @@ func (x *InfoResult) GetNodes() []*NodeResult {
 	return nil
 }
 
+// RPCRequest calls a custom server API method registered as an RPC
+// extension.
 type RPCRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Method        string                 `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
-	Params        Raw                    `protobuf:"bytes,2,opt,name=params,proto3" json:"params,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// method is the name of the method to call. Required.
+	Method string `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
+	// params are the method parameters.
+	Params        Raw `protobuf:"bytes,2,opt,name=params,proto3" json:"params,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3169,10 +3486,13 @@ func (x *RPCRequest) GetParams() []byte {
 	return nil
 }
 
+// RPCResponse is the response to an RPCRequest.
 type RPCResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *RPCResult             `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *RPCResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3221,9 +3541,11 @@ func (x *RPCResponse) GetResult() *RPCResult {
 	return nil
 }
 
+// RPCResult is the result of an RPC call.
 type RPCResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Data          Raw                    `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// data is the data returned by the method.
+	Data          Raw `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3265,17 +3587,31 @@ func (x *RPCResult) GetData() []byte {
 	return nil
 }
 
+// RefreshRequest refreshes a user's connections, mostly useful with
+// unidirectional transports. Without expire_at the connections become
+// non-expiring.
 type RefreshRequest struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	User     string                 `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	Client   string                 `protobuf:"bytes,2,opt,name=client,proto3" json:"client,omitempty"`
-	Expired  bool                   `protobuf:"varint,3,opt,name=expired,proto3" json:"expired,omitempty"`
-	ExpireAt int64                  `protobuf:"varint,4,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	Info     Raw                    `protobuf:"bytes,5,opt,name=info,proto3" json:"info,omitempty"`
-	Session  string                 `protobuf:"bytes,6,opt,name=session,proto3" json:"session,omitempty"`
-	// PRO only — restrict the call to clients whose labels match this filter.
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// user is the ID of the user to refresh. Required, unless all_users is
+	// used in Centrifugo PRO.
+	User string `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	// client limits the call to the connection with this client ID. user is
+	// still required.
+	Client string `protobuf:"bytes,2,opt,name=client,proto3" json:"client,omitempty"`
+	// expired marks the connections as expired and closes them with an
+	// expired disconnect reason.
+	Expired bool `protobuf:"varint,3,opt,name=expired,proto3" json:"expired,omitempty"`
+	// expire_at is the Unix time in seconds when the connections expire.
+	ExpireAt int64 `protobuf:"varint,4,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	// info attaches or replaces the connection info.
+	Info Raw `protobuf:"bytes,5,opt,name=info,proto3" json:"info,omitempty"`
+	// session limits the call to the connection with this session ID. user
+	// is still required.
+	Session string `protobuf:"bytes,6,opt,name=session,proto3" json:"session,omitempty"`
+	// label_filter restricts the call to clients whose labels match this
+	// filter. Centrifugo PRO only.
 	LabelFilter *FilterNode `protobuf:"bytes,7,opt,name=label_filter,json=labelFilter,proto3" json:"label_filter,omitempty"`
-	// PRO only — see SubscribeRequest.all_users.
+	// all_users works as SubscribeRequest.all_users. Centrifugo PRO only.
 	AllUsers      bool `protobuf:"varint,8,opt,name=all_users,json=allUsers,proto3" json:"all_users,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -3367,10 +3703,13 @@ func (x *RefreshRequest) GetAllUsers() bool {
 	return false
 }
 
+// RefreshResponse is the response to a RefreshRequest.
 type RefreshResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *RefreshResult         `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *RefreshResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3419,6 +3758,7 @@ func (x *RefreshResponse) GetResult() *RefreshResult {
 	return nil
 }
 
+// RefreshResult is the result of a refresh call. Empty at the moment.
 type RefreshResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -3455,18 +3795,30 @@ func (*RefreshResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{48}
 }
 
+// NodeResult is information about a Centrifugo node.
 type NodeResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Uid           string                 `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name"`
-	Version       string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version"`
-	NumClients    uint32                 `protobuf:"varint,4,opt,name=num_clients,json=numClients,proto3" json:"num_clients"`
-	NumUsers      uint32                 `protobuf:"varint,5,opt,name=num_users,json=numUsers,proto3" json:"num_users"`
-	NumChannels   uint32                 `protobuf:"varint,6,opt,name=num_channels,json=numChannels,proto3" json:"num_channels"`
-	Uptime        uint32                 `protobuf:"varint,7,opt,name=uptime,proto3" json:"uptime,omitempty"`
-	Metrics       *Metrics               `protobuf:"bytes,8,opt,name=metrics,proto3" json:"metrics,omitempty"`
-	Process       *Process               `protobuf:"bytes,9,opt,name=process,proto3" json:"process,omitempty"`
-	NumSubs       uint32                 `protobuf:"varint,10,opt,name=num_subs,json=numSubs,proto3" json:"num_subs"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// uid is the unique ID of the node.
+	Uid string `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid"`
+	// name is the node name.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name"`
+	// version is the Centrifugo version of the node.
+	Version string `protobuf:"bytes,3,opt,name=version,proto3" json:"version"`
+	// num_clients is the number of clients connected to the node.
+	NumClients uint32 `protobuf:"varint,4,opt,name=num_clients,json=numClients,proto3" json:"num_clients"`
+	// num_users is the number of unique users connected to the node.
+	NumUsers uint32 `protobuf:"varint,5,opt,name=num_users,json=numUsers,proto3" json:"num_users"`
+	// num_channels is the number of active channels on the node.
+	NumChannels uint32 `protobuf:"varint,6,opt,name=num_channels,json=numChannels,proto3" json:"num_channels"`
+	// uptime is the node uptime in seconds.
+	Uptime uint32 `protobuf:"varint,7,opt,name=uptime,proto3" json:"uptime,omitempty"`
+	// metrics are aggregated node metrics, if available.
+	Metrics *Metrics `protobuf:"bytes,8,opt,name=metrics,proto3" json:"metrics,omitempty"`
+	// process is CPU and memory usage of the node process.
+	// Centrifugo PRO only.
+	Process *Process `protobuf:"bytes,9,opt,name=process,proto3" json:"process,omitempty"`
+	// num_subs is the number of subscriptions on the node.
+	NumSubs       uint32 `protobuf:"varint,10,opt,name=num_subs,json=numSubs,proto3" json:"num_subs"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3571,10 +3923,13 @@ func (x *NodeResult) GetNumSubs() uint32 {
 	return 0
 }
 
+// Metrics are aggregated metrics of a node.
 type Metrics struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Interval      float64                `protobuf:"fixed64,1,opt,name=interval,proto3" json:"interval,omitempty"`
-	Items         map[string]float64     `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"fixed64,2,opt,name=value"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// interval is the metrics aggregation interval in seconds.
+	Interval float64 `protobuf:"fixed64,1,opt,name=interval,proto3" json:"interval,omitempty"`
+	// items maps metric name to value.
+	Items         map[string]float64 `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"fixed64,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3623,10 +3978,13 @@ func (x *Metrics) GetItems() map[string]float64 {
 	return nil
 }
 
+// Process is resource usage of a node process. Centrifugo PRO only.
 type Process struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Cpu           float64                `protobuf:"fixed64,1,opt,name=cpu,proto3" json:"cpu,omitempty"`
-	Rss           int64                  `protobuf:"varint,2,opt,name=rss,proto3" json:"rss,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// cpu is the CPU usage of the process in percent.
+	Cpu float64 `protobuf:"fixed64,1,opt,name=cpu,proto3" json:"cpu,omitempty"`
+	// rss is the resident set size of the process in bytes.
+	Rss           int64 `protobuf:"varint,2,opt,name=rss,proto3" json:"rss,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3675,9 +4033,12 @@ func (x *Process) GetRss() int64 {
 	return 0
 }
 
+// ChannelsRequest returns active channels (with one or more subscribers).
+// It can be heavy on large deployments: there is no pagination.
 type ChannelsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Pattern       string                 `protobuf:"bytes,1,opt,name=pattern,proto3" json:"pattern,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// pattern filters channels by name, using gobwas/glob syntax.
+	Pattern       string `protobuf:"bytes,1,opt,name=pattern,proto3" json:"pattern,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3719,10 +4080,13 @@ func (x *ChannelsRequest) GetPattern() string {
 	return ""
 }
 
+// ChannelsResponse is the response to a ChannelsRequest.
 type ChannelsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *ChannelsResult        `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *ChannelsResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3771,8 +4135,10 @@ func (x *ChannelsResponse) GetResult() *ChannelsResult {
 	return nil
 }
 
+// ChannelsResult is the result of a channels call.
 type ChannelsResult struct {
-	state         protoimpl.MessageState  `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channels maps channel name to information about the channel.
 	Channels      map[string]*ChannelInfo `protobuf:"bytes,1,rep,name=channels,proto3" json:"channels" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -3815,9 +4181,11 @@ func (x *ChannelsResult) GetChannels() map[string]*ChannelInfo {
 	return nil
 }
 
+// ChannelInfo is information about an active channel.
 type ChannelInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NumClients    uint32                 `protobuf:"varint,1,opt,name=num_clients,json=numClients,proto3" json:"num_clients,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// num_clients is the number of connections subscribed to the channel.
+	NumClients    uint32 `protobuf:"varint,1,opt,name=num_clients,json=numClients,proto3" json:"num_clients,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3859,11 +4227,17 @@ func (x *ChannelInfo) GetNumClients() uint32 {
 	return 0
 }
 
+// ConnectionsRequest returns information about active connections, without
+// the need to enable presence. At least one of user, expression or
+// label_filter must be set. Centrifugo PRO only.
 type ConnectionsRequest struct {
-	state      protoimpl.MessageState `protogen:"open.v1"`
-	User       string                 `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	Expression string                 `protobuf:"bytes,2,opt,name=expression,proto3" json:"expression,omitempty"`
-	// PRO only — restrict the listing to clients whose labels match this filter.
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// user returns only the connections of this user ID.
+	User string `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	// expression is a CEL expression to filter connections.
+	Expression string `protobuf:"bytes,2,opt,name=expression,proto3" json:"expression,omitempty"`
+	// label_filter restricts the listing to clients whose labels match this
+	// filter. Centrifugo PRO only.
 	LabelFilter   *FilterNode `protobuf:"bytes,3,opt,name=label_filter,json=labelFilter,proto3" json:"label_filter,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -3920,10 +4294,14 @@ func (x *ConnectionsRequest) GetLabelFilter() *FilterNode {
 	return nil
 }
 
+// ConnectionsResponse is the response to a ConnectionsRequest.
+// Centrifugo PRO only.
 type ConnectionsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *ConnectionsResult     `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *ConnectionsResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3972,8 +4350,11 @@ func (x *ConnectionsResponse) GetResult() *ConnectionsResult {
 	return nil
 }
 
+// ConnectionsResult is the result of a connections call.
+// Centrifugo PRO only.
 type ConnectionsResult struct {
-	state         protoimpl.MessageState     `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// connections maps client ID to information about the connection.
 	Connections   map[string]*ConnectionInfo `protobuf:"bytes,1,rep,name=connections,proto3" json:"connections" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -4016,17 +4397,30 @@ func (x *ConnectionsResult) GetConnections() map[string]*ConnectionInfo {
 	return nil
 }
 
+// ConnectionInfo is information about a client connection.
+// Centrifugo PRO only.
 type ConnectionInfo struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	AppName           string                 `protobuf:"bytes,1,opt,name=app_name,json=appName,proto3" json:"app_name,omitempty"`
-	AppVersion        string                 `protobuf:"bytes,2,opt,name=app_version,json=appVersion,proto3" json:"app_version,omitempty"`
-	Transport         string                 `protobuf:"bytes,3,opt,name=transport,proto3" json:"transport,omitempty"`
-	Protocol          string                 `protobuf:"bytes,4,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	User              string                 `protobuf:"bytes,8,opt,name=user,proto3" json:"user,omitempty"`
-	State             *ConnectionState       `protobuf:"bytes,9,opt,name=state,proto3" json:"state,omitempty"`
-	ConnectedAtMs     int64                  `protobuf:"varint,10,opt,name=connected_at_ms,json=connectedAtMs,proto3" json:"connected_at_ms,omitempty"`
-	PingPongLatencyMs int64                  `protobuf:"varint,11,opt,name=ping_pong_latency_ms,json=pingPongLatencyMs,proto3" json:"ping_pong_latency_ms,omitempty"` // can be -1 if not available.
-	// PRO only — client labels attached to the centrifuge.Client by Centrifugo PRO.
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// app_name is the client application name, if provided by the client.
+	AppName string `protobuf:"bytes,1,opt,name=app_name,json=appName,proto3" json:"app_name,omitempty"`
+	// app_version is the client application version, if provided by the
+	// client.
+	AppVersion string `protobuf:"bytes,2,opt,name=app_version,json=appVersion,proto3" json:"app_version,omitempty"`
+	// transport is the name of the connection transport.
+	Transport string `protobuf:"bytes,3,opt,name=transport,proto3" json:"transport,omitempty"`
+	// protocol is the connection protocol: json or protobuf.
+	Protocol string `protobuf:"bytes,4,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	// user is the user ID of the connection.
+	User string `protobuf:"bytes,8,opt,name=user,proto3" json:"user,omitempty"`
+	// state is the connection state.
+	State *ConnectionState `protobuf:"bytes,9,opt,name=state,proto3" json:"state,omitempty"`
+	// connected_at_ms is the Unix time in milliseconds when the connection
+	// was established.
+	ConnectedAtMs int64 `protobuf:"varint,10,opt,name=connected_at_ms,json=connectedAtMs,proto3" json:"connected_at_ms,omitempty"`
+	// ping_pong_latency_ms is the last measured client ping/pong round-trip
+	// latency in milliseconds. Can be -1 if not available.
+	PingPongLatencyMs int64 `protobuf:"varint,11,opt,name=ping_pong_latency_ms,json=pingPongLatencyMs,proto3" json:"ping_pong_latency_ms,omitempty"`
+	// labels are the client labels attached to the connection.
 	Labels        map[string]string `protobuf:"bytes,12,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -4125,14 +4519,23 @@ func (x *ConnectionInfo) GetLabels() map[string]string {
 	return nil
 }
 
+// ConnectionState is the state of a client connection.
+// Centrifugo PRO only.
 type ConnectionState struct {
-	state              protoimpl.MessageState            `protogen:"open.v1"`
-	Channels           map[string]*ChannelContext        `protobuf:"bytes,1,rep,name=channels,proto3" json:"channels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	ConnectionToken    *ConnectionTokenInfo              `protobuf:"bytes,2,opt,name=connection_token,json=connectionToken,proto3" json:"connection_token,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channels maps the channels the client is subscribed to to their
+	// context.
+	Channels map[string]*ChannelContext `protobuf:"bytes,1,rep,name=channels,proto3" json:"channels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// connection_token is information about the connection token.
+	ConnectionToken *ConnectionTokenInfo `protobuf:"bytes,2,opt,name=connection_token,json=connectionToken,proto3" json:"connection_token,omitempty"`
+	// subscription_tokens maps channel to information about the subscription
+	// token used to subscribe to it.
 	SubscriptionTokens map[string]*SubscriptionTokenInfo `protobuf:"bytes,3,rep,name=subscription_tokens,json=subscriptionTokens,proto3" json:"subscription_tokens,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Meta               Raw                               `protobuf:"bytes,4,opt,name=meta,proto3" json:"meta,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// meta is the meta information attached to the connection. It is not
+	// visible to the client.
+	Meta          Raw `protobuf:"bytes,4,opt,name=meta,proto3" json:"meta,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ConnectionState) Reset() {
@@ -4193,9 +4596,13 @@ func (x *ConnectionState) GetMeta() []byte {
 	return nil
 }
 
+// ChannelContext is context of a channel subscription.
+// Centrifugo PRO only.
 type ChannelContext struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Source        uint32                 `protobuf:"varint,1,opt,name=source,proto3" json:"source,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// source is the source of the channel subscription (for example,
+	// subscription token, subscribe proxy or server API).
+	Source        uint32 `protobuf:"varint,1,opt,name=source,proto3" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4237,10 +4644,14 @@ func (x *ChannelContext) GetSource() uint32 {
 	return 0
 }
 
+// ConnectionTokenInfo is information about a connection token.
+// Centrifugo PRO only.
 type ConnectionTokenInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Uid           string                 `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
-	IssuedAt      int64                  `protobuf:"varint,2,opt,name=issued_at,json=issuedAt,proto3" json:"issued_at,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// uid is the unique token ID (jti claim).
+	Uid string `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
+	// issued_at is the Unix time in seconds when the token was issued.
+	IssuedAt      int64 `protobuf:"varint,2,opt,name=issued_at,json=issuedAt,proto3" json:"issued_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4289,10 +4700,14 @@ func (x *ConnectionTokenInfo) GetIssuedAt() int64 {
 	return 0
 }
 
+// SubscriptionTokenInfo is information about a subscription token.
+// Centrifugo PRO only.
 type SubscriptionTokenInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Uid           string                 `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
-	IssuedAt      int64                  `protobuf:"varint,2,opt,name=issued_at,json=issuedAt,proto3" json:"issued_at,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// uid is the unique token ID (jti claim).
+	Uid string `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
+	// issued_at is the Unix time in seconds when the token was issued.
+	IssuedAt      int64 `protobuf:"varint,2,opt,name=issued_at,json=issuedAt,proto3" json:"issued_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4341,10 +4756,15 @@ func (x *SubscriptionTokenInfo) GetIssuedAt() int64 {
 	return 0
 }
 
+// UpdateUserStatusRequest marks users as active and online now, and sets
+// their state when one is given. Centrifugo PRO only.
 type UpdateUserStatusRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Users         []string               `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
-	State         string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// users is the list of user IDs to update the status for. Required.
+	Users []string `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	// state is an optional custom state to store in the user status. It can
+	// be restricted by the user_status.state_regex option.
+	State         string `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4393,9 +4813,13 @@ func (x *UpdateUserStatusRequest) GetState() string {
 	return ""
 }
 
+// UpdateUserStatusResponse is the response to an UpdateUserStatusRequest.
+// Centrifugo PRO only.
 type UpdateUserStatusResponse struct {
-	state         protoimpl.MessageState  `protogen:"open.v1"`
-	Error         *Error                  `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
 	Result        *UpdateUserStatusResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -4445,6 +4869,8 @@ func (x *UpdateUserStatusResponse) GetResult() *UpdateUserStatusResult {
 	return nil
 }
 
+// UpdateUserStatusResult is the result of an update user status call. Empty
+// at the moment. Centrifugo PRO only.
 type UpdateUserStatusResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -4481,9 +4907,11 @@ func (*UpdateUserStatusResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{66}
 }
 
+// GetUserStatusRequest returns the status of users. Centrifugo PRO only.
 type GetUserStatusRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Users         []string               `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// users is the list of user IDs to get the status for. Required.
+	Users         []string `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4525,10 +4953,14 @@ func (x *GetUserStatusRequest) GetUsers() []string {
 	return nil
 }
 
+// GetUserStatusResponse is the response to a GetUserStatusRequest.
+// Centrifugo PRO only.
 type GetUserStatusResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *GetUserStatusResult   `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *GetUserStatusResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4577,9 +5009,12 @@ func (x *GetUserStatusResponse) GetResult() *GetUserStatusResult {
 	return nil
 }
 
+// GetUserStatusResult is the result of a get user status call.
+// Centrifugo PRO only.
 type GetUserStatusResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Statuses      []*UserStatus          `protobuf:"bytes,1,rep,name=statuses,proto3" json:"statuses"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// statuses are the statuses of the requested users, in the same order.
+	Statuses      []*UserStatus `protobuf:"bytes,1,rep,name=statuses,proto3" json:"statuses"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4621,12 +5056,19 @@ func (x *GetUserStatusResult) GetStatuses() []*UserStatus {
 	return nil
 }
 
+// UserStatus is the status of a user. Centrifugo PRO only.
 type UserStatus struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          string                 `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	Active        int64                  `protobuf:"varint,2,opt,name=active,proto3" json:"active,omitempty"`
-	Online        int64                  `protobuf:"varint,3,opt,name=online,proto3" json:"online,omitempty"`
-	State         string                 `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// user is the user ID.
+	User string `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	// active is the last active time as Unix seconds. Not set if unknown.
+	Active int64 `protobuf:"varint,2,opt,name=active,proto3" json:"active,omitempty"`
+	// online is the last online time as Unix seconds, updated by Centrifugo
+	// while the user is connected. Not set if unknown.
+	Online int64 `protobuf:"varint,3,opt,name=online,proto3" json:"online,omitempty"`
+	// state is the custom state set with UpdateUserStatusRequest.state, if
+	// any.
+	State         string `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4689,9 +5131,11 @@ func (x *UserStatus) GetState() string {
 	return ""
 }
 
+// DeleteUserStatusRequest deletes the status of users. Centrifugo PRO only.
 type DeleteUserStatusRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Users         []string               `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// users is the list of user IDs to delete the status for. Required.
+	Users         []string `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4733,9 +5177,13 @@ func (x *DeleteUserStatusRequest) GetUsers() []string {
 	return nil
 }
 
+// DeleteUserStatusResponse is the response to a DeleteUserStatusRequest.
+// Centrifugo PRO only.
 type DeleteUserStatusResponse struct {
-	state         protoimpl.MessageState  `protogen:"open.v1"`
-	Error         *Error                  `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
 	Result        *DeleteUserStatusResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -4785,6 +5233,8 @@ func (x *DeleteUserStatusResponse) GetResult() *DeleteUserStatusResult {
 	return nil
 }
 
+// DeleteUserStatusResult is the result of a delete user status call. Empty
+// at the moment. Centrifugo PRO only.
 type DeleteUserStatusResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -4821,10 +5271,16 @@ func (*DeleteUserStatusResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{73}
 }
 
+// BlockUserRequest blocks a user: the user is disconnected and can not
+// connect again until unblocked or the block expires. Centrifugo PRO only.
 type BlockUserRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ExpireAt      int64                  `protobuf:"varint,1,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	User          string                 `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// expire_at is the Unix time in seconds when the block expires. Optional,
+	// but a reasonably small value is recommended to keep the set of blocked
+	// users small.
+	ExpireAt int64 `protobuf:"varint,1,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	// user is the ID of the user to block. Required.
+	User          string `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4873,6 +5329,8 @@ func (x *BlockUserRequest) GetUser() string {
 	return ""
 }
 
+// BlockUserResult is the result of a block user call. Empty at the moment.
+// Centrifugo PRO only.
 type BlockUserResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -4909,10 +5367,14 @@ func (*BlockUserResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{75}
 }
 
+// BlockUserResponse is the response to a BlockUserRequest.
+// Centrifugo PRO only.
 type BlockUserResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *BlockUserResult       `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *BlockUserResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4961,9 +5423,11 @@ func (x *BlockUserResponse) GetResult() *BlockUserResult {
 	return nil
 }
 
+// UnblockUserRequest unblocks a user. Centrifugo PRO only.
 type UnblockUserRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          string                 `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// user is the ID of the user to unblock. Required.
+	User          string `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5005,6 +5469,8 @@ func (x *UnblockUserRequest) GetUser() string {
 	return ""
 }
 
+// UnblockUserResult is the result of an unblock user call. Empty at the
+// moment. Centrifugo PRO only.
 type UnblockUserResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -5041,10 +5507,14 @@ func (*UnblockUserResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{78}
 }
 
+// UnblockUserResponse is the response to an UnblockUserRequest.
+// Centrifugo PRO only.
 type UnblockUserResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *UnblockUserResult     `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *UnblockUserResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5093,10 +5563,16 @@ func (x *UnblockUserResponse) GetResult() *UnblockUserResult {
 	return nil
 }
 
+// RevokeTokenRequest revokes a token by its unique ID (jti claim of a JWT).
+// Clients using the token are disconnected shortly, and can not connect
+// with it again. Centrifugo PRO only.
 type RevokeTokenRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ExpireAt      int64                  `protobuf:"varint,1,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	Uid           string                 `protobuf:"bytes,2,opt,name=uid,proto3" json:"uid,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// expire_at is the Unix time in seconds when the revocation expires.
+	// Optional, but a value matching the token expiration is recommended.
+	ExpireAt int64 `protobuf:"varint,1,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	// uid is the unique ID of the token to revoke (jti claim). Required.
+	Uid           string `protobuf:"bytes,2,opt,name=uid,proto3" json:"uid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5145,6 +5621,8 @@ func (x *RevokeTokenRequest) GetUid() string {
 	return ""
 }
 
+// RevokeTokenResult is the result of a revoke token call. Empty at the
+// moment. Centrifugo PRO only.
 type RevokeTokenResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -5181,10 +5659,14 @@ func (*RevokeTokenResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{81}
 }
 
+// RevokeTokenResponse is the response to a RevokeTokenRequest.
+// Centrifugo PRO only.
 type RevokeTokenResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *RevokeTokenResult     `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *RevokeTokenResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5233,12 +5715,21 @@ func (x *RevokeTokenResponse) GetResult() *RevokeTokenResult {
 	return nil
 }
 
+// InvalidateUserTokensRequest revokes all tokens of a user issued before a
+// certain time (based on the iat claim of a JWT). Centrifugo PRO only.
 type InvalidateUserTokensRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ExpireAt      int64                  `protobuf:"varint,1,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	User          string                 `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
-	IssuedBefore  int64                  `protobuf:"varint,3,opt,name=issued_before,json=issuedBefore,proto3" json:"issued_before,omitempty"`
-	Channel       string                 `protobuf:"bytes,4,opt,name=channel,proto3" json:"channel,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// expire_at is the Unix time in seconds when the invalidation expires.
+	// Optional, but a value matching the token expiration is recommended.
+	ExpireAt int64 `protobuf:"varint,1,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	// user is the ID of the user whose tokens to invalidate. Required.
+	User string `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
+	// issued_before is the Unix time in seconds: tokens issued before it are
+	// considered revoked. If not set, the current time is used.
+	IssuedBefore int64 `protobuf:"varint,3,opt,name=issued_before,json=issuedBefore,proto3" json:"issued_before,omitempty"`
+	// channel limits the invalidation to subscription tokens for this
+	// channel.
+	Channel       string `protobuf:"bytes,4,opt,name=channel,proto3" json:"channel,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5301,6 +5792,8 @@ func (x *InvalidateUserTokensRequest) GetChannel() string {
 	return ""
 }
 
+// InvalidateUserTokensResult is the result of an invalidate user tokens
+// call. Empty at the moment. Centrifugo PRO only.
 type InvalidateUserTokensResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -5337,9 +5830,13 @@ func (*InvalidateUserTokensResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{84}
 }
 
+// InvalidateUserTokensResponse is the response to an
+// InvalidateUserTokensRequest. Centrifugo PRO only.
 type InvalidateUserTokensResponse struct {
-	state         protoimpl.MessageState      `protogen:"open.v1"`
-	Error         *Error                      `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
 	Result        *InvalidateUserTokensResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -5389,17 +5886,35 @@ func (x *InvalidateUserTokensResponse) GetResult() *InvalidateUserTokensResult {
 	return nil
 }
 
+// DeviceRegisterRequest registers a device for push notifications, or
+// updates a registered one. Centrifugo PRO only.
 type DeviceRegisterRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Provider      string                 `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
-	Token         string                 `protobuf:"bytes,3,opt,name=token,proto3" json:"token,omitempty"`
-	Platform      string                 `protobuf:"bytes,4,opt,name=platform,proto3" json:"platform,omitempty"`
-	User          string                 `protobuf:"bytes,5,opt,name=user,proto3" json:"user,omitempty"`
-	Meta          map[string]string      `protobuf:"bytes,6,rep,name=meta,proto3" json:"meta,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Topics        []string               `protobuf:"bytes,7,rep,name=topics,proto3" json:"topics,omitempty"`
-	Timezone      string                 `protobuf:"bytes,8,opt,name=timezone,proto3" json:"timezone,omitempty"`
-	Locale        string                 `protobuf:"bytes,9,opt,name=locale,proto3" json:"locale,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// id is the device ID. Omit it on first registration: Centrifugo
+	// generates one and returns it. Pass the stored value to update the
+	// device.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// provider is the provider of the device token: fcm, hms, apns or
+	// webpush. Required.
+	Provider string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	// token is the push token of the device. For webpush, it is the browser
+	// PushSubscription serialized as a JSON string. Required.
+	Token string `protobuf:"bytes,3,opt,name=token,proto3" json:"token,omitempty"`
+	// platform is the device platform: ios, android or web. Required.
+	Platform string `protobuf:"bytes,4,opt,name=platform,proto3" json:"platform,omitempty"`
+	// user is the user associated with the device.
+	User string `protobuf:"bytes,5,opt,name=user,proto3" json:"user,omitempty"`
+	// meta is additional custom metadata of the device.
+	Meta map[string]string `protobuf:"bytes,6,rep,name=meta,proto3" json:"meta,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// topics is the full list of the device's topic subscriptions, replacing
+	// the previous one. The user's topics are attached automatically.
+	Topics []string `protobuf:"bytes,7,rep,name=topics,proto3" json:"topics,omitempty"`
+	// timezone is the IANA time zone of the device user, for example
+	// Europe/Nicosia.
+	Timezone string `protobuf:"bytes,8,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	// locale is the locale of the device user as an IETF BCP 47 language
+	// tag, for example en-US.
+	Locale        string `protobuf:"bytes,9,opt,name=locale,proto3" json:"locale,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5497,17 +6012,28 @@ func (x *DeviceRegisterRequest) GetLocale() string {
 	return ""
 }
 
+// DeviceUpdateRequest updates registered devices, selected by ids and/or
+// users. Centrifugo PRO only.
 type DeviceUpdateRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Ids            []string               `protobuf:"bytes,1,rep,name=ids,proto3" json:"ids,omitempty"`
-	Users          []string               `protobuf:"bytes,2,rep,name=users,proto3" json:"users,omitempty"`
-	UserUpdate     *DeviceUserUpdate      `protobuf:"bytes,4,opt,name=user_update,json=userUpdate,proto3" json:"user_update,omitempty"`
-	MetaUpdate     *DeviceMetaUpdate      `protobuf:"bytes,5,opt,name=meta_update,json=metaUpdate,proto3" json:"meta_update,omitempty"`
-	TopicsUpdate   *DeviceTopicsUpdate    `protobuf:"bytes,6,opt,name=topics_update,json=topicsUpdate,proto3" json:"topics_update,omitempty"`
-	TimezoneUpdate *DeviceTimezoneUpdate  `protobuf:"bytes,7,opt,name=timezone_update,json=timezoneUpdate,proto3" json:"timezone_update,omitempty"`
-	LocaleUpdate   *DeviceLocaleUpdate    `protobuf:"bytes,8,opt,name=locale_update,json=localeUpdate,proto3" json:"locale_update,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ids selects devices by ID.
+	Ids []string `protobuf:"bytes,1,rep,name=ids,proto3" json:"ids,omitempty"`
+	// users selects devices by user.
+	Users []string `protobuf:"bytes,2,rep,name=users,proto3" json:"users,omitempty"`
+	// user_update changes the user ID of the devices. It does not re-sync
+	// user-bound topics; use DeviceRegisterRequest to assign a device to
+	// another user.
+	UserUpdate *DeviceUserUpdate `protobuf:"bytes,4,opt,name=user_update,json=userUpdate,proto3" json:"user_update,omitempty"`
+	// meta_update updates the device meta.
+	MetaUpdate *DeviceMetaUpdate `protobuf:"bytes,5,opt,name=meta_update,json=metaUpdate,proto3" json:"meta_update,omitempty"`
+	// topics_update updates the device topics.
+	TopicsUpdate *DeviceTopicsUpdate `protobuf:"bytes,6,opt,name=topics_update,json=topicsUpdate,proto3" json:"topics_update,omitempty"`
+	// timezone_update updates the device timezone.
+	TimezoneUpdate *DeviceTimezoneUpdate `protobuf:"bytes,7,opt,name=timezone_update,json=timezoneUpdate,proto3" json:"timezone_update,omitempty"`
+	// locale_update updates the device locale.
+	LocaleUpdate  *DeviceLocaleUpdate `protobuf:"bytes,8,opt,name=locale_update,json=localeUpdate,proto3" json:"locale_update,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DeviceUpdateRequest) Reset() {
@@ -5589,10 +6115,14 @@ func (x *DeviceUpdateRequest) GetLocaleUpdate() *DeviceLocaleUpdate {
 	return nil
 }
 
+// DeviceRemoveRequest removes devices, selected by ids and/or users.
+// Centrifugo PRO only.
 type DeviceRemoveRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ids           []string               `protobuf:"bytes,1,rep,name=ids,proto3" json:"ids,omitempty"`
-	Users         []string               `protobuf:"bytes,2,rep,name=users,proto3" json:"users,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ids selects devices to remove by ID.
+	Ids []string `protobuf:"bytes,1,rep,name=ids,proto3" json:"ids,omitempty"`
+	// users selects devices to remove by user.
+	Users         []string `protobuf:"bytes,2,rep,name=users,proto3" json:"users,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5641,9 +6171,11 @@ func (x *DeviceRemoveRequest) GetUsers() []string {
 	return nil
 }
 
+// DeviceUserUpdate sets the user of devices. Centrifugo PRO only.
 type DeviceUserUpdate struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          string                 `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// user is the user ID to set. Required.
+	User          string `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5685,9 +6217,11 @@ func (x *DeviceUserUpdate) GetUser() string {
 	return ""
 }
 
+// DeviceTimezoneUpdate sets the timezone of devices. Centrifugo PRO only.
 type DeviceTimezoneUpdate struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Timezone      string                 `protobuf:"bytes,1,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// timezone is the IANA time zone to set. Required.
+	Timezone      string `protobuf:"bytes,1,opt,name=timezone,proto3" json:"timezone,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5729,9 +6263,11 @@ func (x *DeviceTimezoneUpdate) GetTimezone() string {
 	return ""
 }
 
+// DeviceLocaleUpdate sets the locale of devices. Centrifugo PRO only.
 type DeviceLocaleUpdate struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Locale        string                 `protobuf:"bytes,1,opt,name=locale,proto3" json:"locale,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// locale is the locale to set. Required.
+	Locale        string `protobuf:"bytes,1,opt,name=locale,proto3" json:"locale,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5773,9 +6309,11 @@ func (x *DeviceLocaleUpdate) GetLocale() string {
 	return ""
 }
 
+// DeviceMetaUpdate sets the meta of devices. Centrifugo PRO only.
 type DeviceMetaUpdate struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Meta          map[string]string      `protobuf:"bytes,1,rep,name=meta,proto3" json:"meta,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// meta is the meta to set. Required.
+	Meta          map[string]string `protobuf:"bytes,1,rep,name=meta,proto3" json:"meta,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5817,10 +6355,13 @@ func (x *DeviceMetaUpdate) GetMeta() map[string]string {
 	return nil
 }
 
+// DeviceTopicsUpdate changes the topics of devices. Centrifugo PRO only.
 type DeviceTopicsUpdate struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Op            string                 `protobuf:"bytes,1,opt,name=op,proto3" json:"op,omitempty"` // add | remove | set
-	Topics        []string               `protobuf:"bytes,2,rep,name=topics,proto3" json:"topics,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// op is the operation: add, remove or set. Required.
+	Op string `protobuf:"bytes,1,opt,name=op,proto3" json:"op,omitempty"`
+	// topics are the topics for the operation.
+	Topics        []string `protobuf:"bytes,2,rep,name=topics,proto3" json:"topics,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5869,13 +6410,19 @@ func (x *DeviceTopicsUpdate) GetTopics() []string {
 	return nil
 }
 
+// DeviceFilter selects devices. Centrifugo PRO only.
 type DeviceFilter struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ids           []string               `protobuf:"bytes,1,rep,name=ids,proto3" json:"ids,omitempty"`
-	Users         []string               `protobuf:"bytes,2,rep,name=users,proto3" json:"users,omitempty"`
-	Topics        []string               `protobuf:"bytes,3,rep,name=topics,proto3" json:"topics,omitempty"`
-	Providers     []string               `protobuf:"bytes,4,rep,name=providers,proto3" json:"providers,omitempty"`
-	Platforms     []string               `protobuf:"bytes,5,rep,name=platforms,proto3" json:"platforms,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ids selects devices by ID.
+	Ids []string `protobuf:"bytes,1,rep,name=ids,proto3" json:"ids,omitempty"`
+	// users selects devices by user.
+	Users []string `protobuf:"bytes,2,rep,name=users,proto3" json:"users,omitempty"`
+	// topics selects devices by subscribed topic.
+	Topics []string `protobuf:"bytes,3,rep,name=topics,proto3" json:"topics,omitempty"`
+	// providers selects devices by token provider.
+	Providers []string `protobuf:"bytes,4,rep,name=providers,proto3" json:"providers,omitempty"`
+	// platforms selects devices by platform.
+	Platforms     []string `protobuf:"bytes,5,rep,name=platforms,proto3" json:"platforms,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5945,17 +6492,29 @@ func (x *DeviceFilter) GetPlatforms() []string {
 	return nil
 }
 
+// DeviceListRequest returns a paginated list of registered devices.
+// Centrifugo PRO only.
 type DeviceListRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Filter             *DeviceFilter          `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
-	IncludeTotalCount  bool                   `protobuf:"varint,2,opt,name=include_total_count,json=includeTotalCount,proto3" json:"include_total_count,omitempty"`
-	IncludeMeta        bool                   `protobuf:"varint,3,opt,name=include_meta,json=includeMeta,proto3" json:"include_meta,omitempty"`
-	IncludeTopics      bool                   `protobuf:"varint,4,opt,name=include_topics,json=includeTopics,proto3" json:"include_topics,omitempty"`
-	IncludeWebpushKeys bool                   `protobuf:"varint,5,opt,name=include_webpush_keys,json=includeWebpushKeys,proto3" json:"include_webpush_keys,omitempty"`
-	Cursor             string                 `protobuf:"bytes,10,opt,name=cursor,proto3" json:"cursor,omitempty"`
-	Limit              int32                  `protobuf:"varint,11,opt,name=limit,proto3" json:"limit,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// filter selects the devices to list. Required.
+	Filter *DeviceFilter `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
+	// include_total_count includes the total count for the filter in the
+	// result.
+	IncludeTotalCount bool `protobuf:"varint,2,opt,name=include_total_count,json=includeTotalCount,proto3" json:"include_total_count,omitempty"`
+	// include_meta includes meta of each device.
+	IncludeMeta bool `protobuf:"varint,3,opt,name=include_meta,json=includeMeta,proto3" json:"include_meta,omitempty"`
+	// include_topics includes topics of each device.
+	IncludeTopics bool `protobuf:"varint,4,opt,name=include_topics,json=includeTopics,proto3" json:"include_topics,omitempty"`
+	// include_webpush_keys includes webpush_keys of each device (webpush
+	// only).
+	IncludeWebpushKeys bool `protobuf:"varint,5,opt,name=include_webpush_keys,json=includeWebpushKeys,proto3" json:"include_webpush_keys,omitempty"`
+	// cursor is the pagination cursor: next_cursor of the previous page,
+	// empty for the first page.
+	Cursor string `protobuf:"bytes,10,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	// limit is the maximum number of devices to return.
+	Limit         int32 `protobuf:"varint,11,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DeviceListRequest) Reset() {
@@ -6037,16 +6596,23 @@ func (x *DeviceListRequest) GetLimit() int32 {
 	return 0
 }
 
+// DeviceTopicFilter selects device topic subscriptions. Centrifugo PRO only.
 type DeviceTopicFilter struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	DeviceIds       []string               `protobuf:"bytes,1,rep,name=device_ids,json=deviceIds,proto3" json:"device_ids,omitempty"`
-	DeviceProviders []string               `protobuf:"bytes,2,rep,name=device_providers,json=deviceProviders,proto3" json:"device_providers,omitempty"`
-	DevicePlatforms []string               `protobuf:"bytes,3,rep,name=device_platforms,json=devicePlatforms,proto3" json:"device_platforms,omitempty"`
-	DeviceUsers     []string               `protobuf:"bytes,4,rep,name=device_users,json=deviceUsers,proto3" json:"device_users,omitempty"`
-	Topics          []string               `protobuf:"bytes,5,rep,name=topics,proto3" json:"topics,omitempty"`
-	TopicPrefix     string                 `protobuf:"bytes,6,opt,name=topic_prefix,json=topicPrefix,proto3" json:"topic_prefix,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// device_ids selects by device ID.
+	DeviceIds []string `protobuf:"bytes,1,rep,name=device_ids,json=deviceIds,proto3" json:"device_ids,omitempty"`
+	// device_providers selects by device token provider.
+	DeviceProviders []string `protobuf:"bytes,2,rep,name=device_providers,json=deviceProviders,proto3" json:"device_providers,omitempty"`
+	// device_platforms selects by device platform.
+	DevicePlatforms []string `protobuf:"bytes,3,rep,name=device_platforms,json=devicePlatforms,proto3" json:"device_platforms,omitempty"`
+	// device_users selects by device user.
+	DeviceUsers []string `protobuf:"bytes,4,rep,name=device_users,json=deviceUsers,proto3" json:"device_users,omitempty"`
+	// topics selects by topic.
+	Topics []string `protobuf:"bytes,5,rep,name=topics,proto3" json:"topics,omitempty"`
+	// topic_prefix selects by topic prefix.
+	TopicPrefix   string `protobuf:"bytes,6,opt,name=topic_prefix,json=topicPrefix,proto3" json:"topic_prefix,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DeviceTopicFilter) Reset() {
@@ -6121,15 +6687,24 @@ func (x *DeviceTopicFilter) GetTopicPrefix() string {
 	return ""
 }
 
+// DeviceTopicListRequest returns a paginated list of device topic
+// subscriptions. Centrifugo PRO only.
 type DeviceTopicListRequest struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Filter            *DeviceTopicFilter     `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
-	IncludeTotalCount bool                   `protobuf:"varint,2,opt,name=include_total_count,json=includeTotalCount,proto3" json:"include_total_count,omitempty"`
-	IncludeDevice     bool                   `protobuf:"varint,3,opt,name=include_device,json=includeDevice,proto3" json:"include_device,omitempty"`
-	Cursor            string                 `protobuf:"bytes,10,opt,name=cursor,proto3" json:"cursor,omitempty"`
-	Limit             int32                  `protobuf:"varint,11,opt,name=limit,proto3" json:"limit,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// filter selects the device topics to list.
+	Filter *DeviceTopicFilter `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
+	// include_total_count includes the total count for the filter in the
+	// result.
+	IncludeTotalCount bool `protobuf:"varint,2,opt,name=include_total_count,json=includeTotalCount,proto3" json:"include_total_count,omitempty"`
+	// include_device includes the Device of each item.
+	IncludeDevice bool `protobuf:"varint,3,opt,name=include_device,json=includeDevice,proto3" json:"include_device,omitempty"`
+	// cursor is the pagination cursor: next_cursor of the previous page,
+	// empty for the first page.
+	Cursor string `protobuf:"bytes,10,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	// limit is the maximum number of items to return.
+	Limit         int32 `protobuf:"varint,11,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DeviceTopicListRequest) Reset() {
@@ -6197,11 +6772,15 @@ func (x *DeviceTopicListRequest) GetLimit() int32 {
 	return 0
 }
 
+// UserTopicFilter selects user topic subscriptions. Centrifugo PRO only.
 type UserTopicFilter struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Users         []string               `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
-	Topics        []string               `protobuf:"bytes,2,rep,name=topics,proto3" json:"topics,omitempty"`
-	TopicPrefix   string                 `protobuf:"bytes,3,opt,name=topic_prefix,json=topicPrefix,proto3" json:"topic_prefix,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// users selects by user.
+	Users []string `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	// topics selects by topic.
+	Topics []string `protobuf:"bytes,2,rep,name=topics,proto3" json:"topics,omitempty"`
+	// topic_prefix selects by topic prefix.
+	TopicPrefix   string `protobuf:"bytes,3,opt,name=topic_prefix,json=topicPrefix,proto3" json:"topic_prefix,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6257,14 +6836,22 @@ func (x *UserTopicFilter) GetTopicPrefix() string {
 	return ""
 }
 
+// UserTopicListRequest returns a paginated list of user topic
+// subscriptions. Centrifugo PRO only.
 type UserTopicListRequest struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Filter            *UserTopicFilter       `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
-	IncludeTotalCount bool                   `protobuf:"varint,2,opt,name=include_total_count,json=includeTotalCount,proto3" json:"include_total_count,omitempty"`
-	Cursor            string                 `protobuf:"bytes,10,opt,name=cursor,proto3" json:"cursor,omitempty"`
-	Limit             int32                  `protobuf:"varint,11,opt,name=limit,proto3" json:"limit,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// filter selects the user topics to list.
+	Filter *UserTopicFilter `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
+	// include_total_count includes the total count for the filter in the
+	// result.
+	IncludeTotalCount bool `protobuf:"varint,2,opt,name=include_total_count,json=includeTotalCount,proto3" json:"include_total_count,omitempty"`
+	// cursor is the pagination cursor: next_cursor of the previous page,
+	// empty for the first page.
+	Cursor string `protobuf:"bytes,10,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	// limit is the maximum number of items to return.
+	Limit         int32 `protobuf:"varint,11,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UserTopicListRequest) Reset() {
@@ -6325,12 +6912,21 @@ func (x *UserTopicListRequest) GetLimit() int32 {
 	return 0
 }
 
+// DeviceTopicUpdateRequest changes the topics of a device. The device topic
+// list is what decides who gets a push sent to a topic.
+// Centrifugo PRO only.
 type DeviceTopicUpdateRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	DeviceId      string                 `protobuf:"bytes,1,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
-	Op            string                 `protobuf:"bytes,2,opt,name=op,proto3" json:"op,omitempty"` // add | remove | set
-	Topics        []string               `protobuf:"bytes,3,rep,name=topics,proto3" json:"topics,omitempty"`
-	User          string                 `protobuf:"bytes,4,opt,name=user,proto3" json:"user,omitempty"` // optional ownership guard: apply only if the device currently belongs to this user
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// device_id is the ID of the device. Required.
+	DeviceId string `protobuf:"bytes,1,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	// op is the operation: add, remove or set. Required.
+	Op string `protobuf:"bytes,2,opt,name=op,proto3" json:"op,omitempty"`
+	// topics are the topics for the operation.
+	Topics []string `protobuf:"bytes,3,rep,name=topics,proto3" json:"topics,omitempty"`
+	// user is an optional ownership guard: the update is applied only if the
+	// device currently belongs to this user. Otherwise the call fails with a
+	// conflict error (or not found if there is no such device).
+	User          string `protobuf:"bytes,4,opt,name=user,proto3" json:"user,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6393,11 +6989,16 @@ func (x *DeviceTopicUpdateRequest) GetUser() string {
 	return ""
 }
 
+// UserTopicUpdateRequest changes the topics of a user. The change is also
+// applied to the user's registered devices. Centrifugo PRO only.
 type UserTopicUpdateRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          string                 `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	Op            string                 `protobuf:"bytes,2,opt,name=op,proto3" json:"op,omitempty"` // add | remove | set
-	Topics        []string               `protobuf:"bytes,3,rep,name=topics,proto3" json:"topics,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// user is the user ID. Required.
+	User string `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	// op is the operation: add, remove or set. Required.
+	Op string `protobuf:"bytes,2,opt,name=op,proto3" json:"op,omitempty"`
+	// topics are the topics for the operation.
+	Topics        []string `protobuf:"bytes,3,rep,name=topics,proto3" json:"topics,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6453,10 +7054,14 @@ func (x *UserTopicUpdateRequest) GetTopics() []string {
 	return nil
 }
 
+// DeviceRegisterResponse is the response to a DeviceRegisterRequest.
+// Centrifugo PRO only.
 type DeviceRegisterResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *DeviceRegisterResult  `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *DeviceRegisterResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6505,10 +7110,14 @@ func (x *DeviceRegisterResponse) GetResult() *DeviceRegisterResult {
 	return nil
 }
 
+// DeviceUpdateResponse is the response to a DeviceUpdateRequest.
+// Centrifugo PRO only.
 type DeviceUpdateResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *DeviceUpdateResult    `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *DeviceUpdateResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6557,10 +7166,14 @@ func (x *DeviceUpdateResponse) GetResult() *DeviceUpdateResult {
 	return nil
 }
 
+// DeviceRemoveResponse is the response to a DeviceRemoveRequest.
+// Centrifugo PRO only.
 type DeviceRemoveResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *DeviceRemoveResult    `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *DeviceRemoveResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6609,10 +7222,14 @@ func (x *DeviceRemoveResponse) GetResult() *DeviceRemoveResult {
 	return nil
 }
 
+// DeviceListResponse is the response to a DeviceListRequest.
+// Centrifugo PRO only.
 type DeviceListResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *DeviceListResult      `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *DeviceListResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6661,9 +7278,13 @@ func (x *DeviceListResponse) GetResult() *DeviceListResult {
 	return nil
 }
 
+// DeviceTopicListResponse is the response to a DeviceTopicListRequest.
+// Centrifugo PRO only.
 type DeviceTopicListResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
 	Result        *DeviceTopicListResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -6713,10 +7334,14 @@ func (x *DeviceTopicListResponse) GetResult() *DeviceTopicListResult {
 	return nil
 }
 
+// UserTopicListResponse is the response to a UserTopicListRequest.
+// Centrifugo PRO only.
 type UserTopicListResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *UserTopicListResult   `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *UserTopicListResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6765,9 +7390,13 @@ func (x *UserTopicListResponse) GetResult() *UserTopicListResult {
 	return nil
 }
 
+// DeviceTopicUpdateResponse is the response to a DeviceTopicUpdateRequest.
+// Centrifugo PRO only.
 type DeviceTopicUpdateResponse struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Error         *Error                   `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
 	Result        *DeviceTopicUpdateResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -6817,9 +7446,13 @@ func (x *DeviceTopicUpdateResponse) GetResult() *DeviceTopicUpdateResult {
 	return nil
 }
 
+// UserTopicUpdateResponse is the response to a UserTopicUpdateRequest.
+// Centrifugo PRO only.
 type UserTopicUpdateResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
 	Result        *UserTopicUpdateResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -6869,9 +7502,12 @@ func (x *UserTopicUpdateResponse) GetResult() *UserTopicUpdateResult {
 	return nil
 }
 
+// DeviceRegisterResult is the result of a device register call.
+// Centrifugo PRO only.
 type DeviceRegisterResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// id is the ID of the registered or updated device.
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6913,6 +7549,8 @@ func (x *DeviceRegisterResult) GetId() string {
 	return ""
 }
 
+// DeviceUpdateResult is the result of a device update call. Empty at the
+// moment. Centrifugo PRO only.
 type DeviceUpdateResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -6949,6 +7587,8 @@ func (*DeviceUpdateResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{111}
 }
 
+// DeviceRemoveResult is the result of a device remove call. Empty at the
+// moment. Centrifugo PRO only.
 type DeviceRemoveResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -6985,11 +7625,18 @@ func (*DeviceRemoveResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{112}
 }
 
+// DeviceListResult is the result of a device list call.
+// Centrifugo PRO only.
 type DeviceListResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Items         []*Device              `protobuf:"bytes,1,rep,name=items,proto3" json:"items"`
-	NextCursor    string                 `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
-	TotalCount    int64                  `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// items are the devices of this page.
+	Items []*Device `protobuf:"bytes,1,rep,name=items,proto3" json:"items"`
+	// next_cursor is the cursor of the next page. Empty if there is no next
+	// page.
+	NextCursor string `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
+	// total_count is the total count for the filter, if include_total_count
+	// was set.
+	TotalCount    int64 `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7045,20 +7692,38 @@ func (x *DeviceListResult) GetTotalCount() int64 {
 	return 0
 }
 
+// Device is a device registered for push notifications. Centrifugo PRO only.
 type Device struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Platform      string                 `protobuf:"bytes,2,opt,name=platform,proto3" json:"platform,omitempty"`
-	Provider      string                 `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`
-	Token         string                 `protobuf:"bytes,4,opt,name=token,proto3" json:"token,omitempty"`
-	User          string                 `protobuf:"bytes,5,opt,name=user,proto3" json:"user,omitempty"`
-	CreatedAt     int64                  `protobuf:"varint,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     int64                  `protobuf:"varint,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	Meta          map[string]string      `protobuf:"bytes,10,rep,name=meta,proto3" json:"meta,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Topics        []string               `protobuf:"bytes,11,rep,name=topics,proto3" json:"topics,omitempty"`
-	Timezone      string                 `protobuf:"bytes,12,opt,name=timezone,proto3" json:"timezone,omitempty"`
-	Locale        string                 `protobuf:"bytes,13,opt,name=locale,proto3" json:"locale,omitempty"`
-	WebpushKeys   string                 `protobuf:"bytes,14,opt,name=webpush_keys,json=webpushKeys,proto3" json:"webpush_keys,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// id is the device ID.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// platform is the device platform.
+	Platform string `protobuf:"bytes,2,opt,name=platform,proto3" json:"platform,omitempty"`
+	// provider is the device token provider.
+	Provider string `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`
+	// token is the device token. For webpush, it is the subscription
+	// endpoint.
+	Token string `protobuf:"bytes,4,opt,name=token,proto3" json:"token,omitempty"`
+	// user is the user associated with the device.
+	User string `protobuf:"bytes,5,opt,name=user,proto3" json:"user,omitempty"`
+	// created_at is the Unix time in milliseconds when the device was
+	// created.
+	CreatedAt int64 `protobuf:"varint,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// updated_at is the Unix time in milliseconds when the device was last
+	// updated.
+	UpdatedAt int64 `protobuf:"varint,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// meta is the device meta. Only set if include_meta was requested.
+	Meta map[string]string `protobuf:"bytes,10,rep,name=meta,proto3" json:"meta,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// topics are the device topics. Only set if include_topics was
+	// requested.
+	Topics []string `protobuf:"bytes,11,rep,name=topics,proto3" json:"topics,omitempty"`
+	// timezone is the device timezone.
+	Timezone string `protobuf:"bytes,12,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	// locale is the device locale.
+	Locale string `protobuf:"bytes,13,opt,name=locale,proto3" json:"locale,omitempty"`
+	// webpush_keys is the Web Push subscription keys JSON ({p256dh, auth}).
+	// Only set if include_webpush_keys was requested.
+	WebpushKeys   string `protobuf:"bytes,14,opt,name=webpush_keys,json=webpushKeys,proto3" json:"webpush_keys,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7177,11 +7842,18 @@ func (x *Device) GetWebpushKeys() string {
 	return ""
 }
 
+// DeviceTopicListResult is the result of a device topic list call.
+// Centrifugo PRO only.
 type DeviceTopicListResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Items         []*DeviceTopic         `protobuf:"bytes,1,rep,name=items,proto3" json:"items"`
-	NextCursor    string                 `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
-	TotalCount    int64                  `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// items are the device topics of this page.
+	Items []*DeviceTopic `protobuf:"bytes,1,rep,name=items,proto3" json:"items"`
+	// next_cursor is the cursor of the next page. Empty if there is no next
+	// page.
+	NextCursor string `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
+	// total_count is the total count for the filter, if include_total_count
+	// was set.
+	TotalCount    int64 `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7237,11 +7909,15 @@ func (x *DeviceTopicListResult) GetTotalCount() int64 {
 	return 0
 }
 
+// DeviceTopic is a topic subscription of a device. Centrifugo PRO only.
 type DeviceTopic struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Topic         string                 `protobuf:"bytes,2,opt,name=topic,proto3" json:"topic,omitempty"`
-	Device        *Device                `protobuf:"bytes,3,opt,name=device,proto3" json:"device,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// id is the ID of the device topic.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// topic is the topic.
+	Topic string `protobuf:"bytes,2,opt,name=topic,proto3" json:"topic,omitempty"`
+	// device is the device. Only set if include_device was requested.
+	Device        *Device `protobuf:"bytes,3,opt,name=device,proto3" json:"device,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7297,11 +7973,18 @@ func (x *DeviceTopic) GetDevice() *Device {
 	return nil
 }
 
+// UserTopicListResult is the result of a user topic list call.
+// Centrifugo PRO only.
 type UserTopicListResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Items         []*UserTopic           `protobuf:"bytes,1,rep,name=items,proto3" json:"items"`
-	NextCursor    string                 `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
-	TotalCount    int64                  `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// items are the user topics of this page.
+	Items []*UserTopic `protobuf:"bytes,1,rep,name=items,proto3" json:"items"`
+	// next_cursor is the cursor of the next page. Empty if there is no next
+	// page.
+	NextCursor string `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
+	// total_count is the total count for the filter, if include_total_count
+	// was set.
+	TotalCount    int64 `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7357,6 +8040,8 @@ func (x *UserTopicListResult) GetTotalCount() int64 {
 	return 0
 }
 
+// DeviceTopicUpdateResult is the result of a device topic update call.
+// Empty at the moment. Centrifugo PRO only.
 type DeviceTopicUpdateResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -7393,6 +8078,8 @@ func (*DeviceTopicUpdateResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{118}
 }
 
+// UserTopicUpdateResult is the result of a user topic update call. Empty at
+// the moment. Centrifugo PRO only.
 type UserTopicUpdateResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -7429,11 +8116,15 @@ func (*UserTopicUpdateResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{119}
 }
 
+// UserTopic is a topic subscription of a user. Centrifugo PRO only.
 type UserTopic struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	User          string                 `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
-	Topic         string                 `protobuf:"bytes,3,opt,name=topic,proto3" json:"topic,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// id is the ID of the user topic.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// user is the user ID.
+	User string `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
+	// topic is the topic.
+	Topic         string `protobuf:"bytes,3,opt,name=topic,proto3" json:"topic,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7489,17 +8180,30 @@ func (x *UserTopic) GetTopic() string {
 	return ""
 }
 
+// PushRecipient describes who receives a push notification. Set only one
+// of its fields. Centrifugo PRO only.
 type PushRecipient struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Filter        *DeviceFilter          `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
-	FcmTokens     []string               `protobuf:"bytes,2,rep,name=fcm_tokens,json=fcmTokens,proto3" json:"fcm_tokens,omitempty"`
-	FcmTopic      string                 `protobuf:"bytes,3,opt,name=fcm_topic,json=fcmTopic,proto3" json:"fcm_topic,omitempty"`
-	FcmCondition  string                 `protobuf:"bytes,4,opt,name=fcm_condition,json=fcmCondition,proto3" json:"fcm_condition,omitempty"`
-	HmsTokens     []string               `protobuf:"bytes,5,rep,name=hms_tokens,json=hmsTokens,proto3" json:"hms_tokens,omitempty"`
-	HmsTopic      string                 `protobuf:"bytes,6,opt,name=hms_topic,json=hmsTopic,proto3" json:"hms_topic,omitempty"`
-	HmsCondition  string                 `protobuf:"bytes,7,opt,name=hms_condition,json=hmsCondition,proto3" json:"hms_condition,omitempty"`
-	ApnsTokens    []string               `protobuf:"bytes,8,rep,name=apns_tokens,json=apnsTokens,proto3" json:"apns_tokens,omitempty"`
-	WebpushTokens []string               `protobuf:"bytes,9,rep,name=webpush_tokens,json=webpushTokens,proto3" json:"webpush_tokens,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// filter sends to devices from Centrifugo device storage that match the
+	// filter.
+	Filter *DeviceFilter `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
+	// fcm_tokens sends to a list of FCM native tokens.
+	FcmTokens []string `protobuf:"bytes,2,rep,name=fcm_tokens,json=fcmTokens,proto3" json:"fcm_tokens,omitempty"`
+	// fcm_topic sends to an FCM native topic.
+	FcmTopic string `protobuf:"bytes,3,opt,name=fcm_topic,json=fcmTopic,proto3" json:"fcm_topic,omitempty"`
+	// fcm_condition sends to an FCM native condition.
+	FcmCondition string `protobuf:"bytes,4,opt,name=fcm_condition,json=fcmCondition,proto3" json:"fcm_condition,omitempty"`
+	// hms_tokens sends to a list of HMS native tokens.
+	HmsTokens []string `protobuf:"bytes,5,rep,name=hms_tokens,json=hmsTokens,proto3" json:"hms_tokens,omitempty"`
+	// hms_topic sends to an HMS native topic.
+	HmsTopic string `protobuf:"bytes,6,opt,name=hms_topic,json=hmsTopic,proto3" json:"hms_topic,omitempty"`
+	// hms_condition sends to an HMS native condition.
+	HmsCondition string `protobuf:"bytes,7,opt,name=hms_condition,json=hmsCondition,proto3" json:"hms_condition,omitempty"`
+	// apns_tokens sends to a list of APNs native tokens.
+	ApnsTokens []string `protobuf:"bytes,8,rep,name=apns_tokens,json=apnsTokens,proto3" json:"apns_tokens,omitempty"`
+	// webpush_tokens sends to a list of raw Web Push subscriptions, each a
+	// PushSubscription JSON string.
+	WebpushTokens []string `protobuf:"bytes,9,rep,name=webpush_tokens,json=webpushTokens,proto3" json:"webpush_tokens,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7597,13 +8301,21 @@ func (x *PushRecipient) GetWebpushTokens() []string {
 	return nil
 }
 
+// PushNotification is a push notification in the format of each provider.
+// Centrifugo PRO only.
 type PushNotification struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Fcm           *FcmPushNotification     `protobuf:"bytes,1,opt,name=fcm,proto3" json:"fcm,omitempty"`
-	Hms           *HmsPushNotification     `protobuf:"bytes,2,opt,name=hms,proto3" json:"hms,omitempty"`
-	Apns          *ApnsPushNotification    `protobuf:"bytes,3,opt,name=apns,proto3" json:"apns,omitempty"`
-	Webpush       *WebPushPushNotification `protobuf:"bytes,4,opt,name=webpush,proto3" json:"webpush,omitempty"`
-	ExpireAt      int64                    `protobuf:"varint,5,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"` // timestamp in the future when Centrifugo should stop trying to send push notification.
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// fcm is the notification for FCM.
+	Fcm *FcmPushNotification `protobuf:"bytes,1,opt,name=fcm,proto3" json:"fcm,omitempty"`
+	// hms is the notification for HMS.
+	Hms *HmsPushNotification `protobuf:"bytes,2,opt,name=hms,proto3" json:"hms,omitempty"`
+	// apns is the notification for APNs.
+	Apns *ApnsPushNotification `protobuf:"bytes,3,opt,name=apns,proto3" json:"apns,omitempty"`
+	// webpush is the notification for Web Push.
+	Webpush *WebPushPushNotification `protobuf:"bytes,4,opt,name=webpush,proto3" json:"webpush,omitempty"`
+	// expire_at is the Unix time in seconds when Centrifugo stops trying to
+	// send the notification. Not related to the providers' TTL fields.
+	ExpireAt      int64 `protobuf:"varint,5,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7673,9 +8385,11 @@ func (x *PushNotification) GetExpireAt() int64 {
 	return 0
 }
 
+// FcmPushNotification is a notification for FCM. Centrifugo PRO only.
 type FcmPushNotification struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Message       Raw                    `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// message is the FCM Message object as JSON. Required.
+	Message       Raw `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7717,9 +8431,11 @@ func (x *FcmPushNotification) GetMessage() []byte {
 	return nil
 }
 
+// HmsPushNotification is a notification for HMS. Centrifugo PRO only.
 type HmsPushNotification struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Message       Raw                    `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// message is the HMS Message object as JSON. Required.
+	Message       Raw `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7761,10 +8477,13 @@ func (x *HmsPushNotification) GetMessage() []byte {
 	return nil
 }
 
+// ApnsPushNotification is a notification for APNs. Centrifugo PRO only.
 type ApnsPushNotification struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Headers       map[string]string      `protobuf:"bytes,1,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Payload       Raw                    `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// headers are the APNs request headers.
+	Headers map[string]string `protobuf:"bytes,1,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// payload is the APNs payload as JSON. Required.
+	Payload       Raw `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7813,10 +8532,16 @@ func (x *ApnsPushNotification) GetPayload() []byte {
 	return nil
 }
 
+// WebPushPushNotification is a notification for Web Push.
+// Centrifugo PRO only.
 type WebPushPushNotification struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Headers       map[string]string      `protobuf:"bytes,1,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Payload       Raw                    `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// headers are Web Push HTTP headers. Recognized keys: TTL (seconds,
+	// default 4 weeks), Urgency (very-low, low, normal, high) and Topic.
+	Headers map[string]string `protobuf:"bytes,1,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// payload is the JSON payload delivered to the browser service worker.
+	// Required.
+	Payload       Raw `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7865,20 +8590,44 @@ func (x *WebPushPushNotification) GetPayload() []byte {
 	return nil
 }
 
+// SendPushNotificationRequest sends a push notification. The request is
+// queued and sent to the provider by Centrifugo workers.
+// Centrifugo PRO only.
 type SendPushNotificationRequest struct {
-	state                  protoimpl.MessageState       `protogen:"open.v1"`
-	Recipient              *PushRecipient               `protobuf:"bytes,1,opt,name=recipient,proto3" json:"recipient,omitempty"`
-	Notification           *PushNotification            `protobuf:"bytes,2,opt,name=notification,proto3" json:"notification,omitempty"`
-	Uid                    string                       `protobuf:"bytes,3,opt,name=uid,proto3" json:"uid,omitempty"`                                                                                               // unique identifier for each push notification request, can be used to cancel push.
-	SendAt                 int64                        `protobuf:"varint,4,opt,name=send_at,json=sendAt,proto3" json:"send_at,omitempty"`                                                                          // Unix seconds, if set - push will be sent at this time, if not set - immediately.
-	OptimizeForReliability bool                         `protobuf:"varint,5,opt,name=optimize_for_reliability,json=optimizeForReliability,proto3" json:"optimize_for_reliability,omitempty"`                        // makes processing heavier, but tolerates edge cases, like not losing inflight pushes due to temporary queue unavailability.
-	LimitStrategy          *PushLimitStrategy           `protobuf:"bytes,6,opt,name=limit_strategy,json=limitStrategy,proto3" json:"limit_strategy,omitempty"`                                                      // strategy for sending push notifications. Applicable only for pushes with filter recipient. When using this field Centrifugo processes devices one by one.
-	AnalyticsUid           string                       `protobuf:"bytes,7,opt,name=analytics_uid,json=analyticsUid,proto3" json:"analytics_uid,omitempty"`                                                         // uid for push notification analytics, if not set - Centrifugo will use uid field.
-	Localizations          map[string]*PushLocalization `protobuf:"bytes,8,rep,name=localizations,proto3" json:"localizations,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // optional per language/locale localizations for push notification.
-	UseTemplating          bool                         `protobuf:"varint,9,opt,name=use_templating,json=useTemplating,proto3" json:"use_templating,omitempty"`                                                     // if set - Centrifugo will use templating for push notification. Note that setting localizations enables templating automatically.
-	UseMeta                bool                         `protobuf:"varint,10,opt,name=use_meta,json=useMeta,proto3" json:"use_meta,omitempty"`                                                                      // if set - Centrifugo will additionally load device meta during push sending, this meta becomes available in templating.
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// recipient is who receives the notification. Required.
+	Recipient *PushRecipient `protobuf:"bytes,1,opt,name=recipient,proto3" json:"recipient,omitempty"`
+	// notification is the notification to send. Required.
+	Notification *PushNotification `protobuf:"bytes,2,opt,name=notification,proto3" json:"notification,omitempty"`
+	// uid is a unique identifier of the request, can be used to cancel the
+	// push. UUID v4 is recommended; different requests must use different
+	// uids.
+	Uid string `protobuf:"bytes,3,opt,name=uid,proto3" json:"uid,omitempty"`
+	// send_at is the Unix time in seconds when to send the notification. If
+	// not set, the notification is sent immediately.
+	SendAt int64 `protobuf:"varint,4,opt,name=send_at,json=sendAt,proto3" json:"send_at,omitempty"`
+	// optimize_for_reliability makes processing heavier, but tolerates edge
+	// cases, like not losing inflight pushes when the queue is briefly
+	// unavailable.
+	OptimizeForReliability bool `protobuf:"varint,5,opt,name=optimize_for_reliability,json=optimizeForReliability,proto3" json:"optimize_for_reliability,omitempty"`
+	// limit_strategy sets time constraints and rate limits. Only applies
+	// with a filter recipient; devices are then processed one by one
+	// instead of in batches.
+	LimitStrategy *PushLimitStrategy `protobuf:"bytes,6,opt,name=limit_strategy,json=limitStrategy,proto3" json:"limit_strategy,omitempty"`
+	// analytics_uid is the identifier for push notification analytics. If
+	// not set, uid is used.
+	AnalyticsUid string `protobuf:"bytes,7,opt,name=analytics_uid,json=analyticsUid,proto3" json:"analytics_uid,omitempty"`
+	// localizations are optional per language/locale localizations. Setting
+	// them enables templating.
+	Localizations map[string]*PushLocalization `protobuf:"bytes,8,rep,name=localizations,proto3" json:"localizations,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// use_templating enables templating of the notification. Only works
+	// with a filter recipient.
+	UseTemplating bool `protobuf:"varint,9,opt,name=use_templating,json=useTemplating,proto3" json:"use_templating,omitempty"`
+	// use_meta additionally loads device meta while sending, making it
+	// available in templating.
+	UseMeta       bool `protobuf:"varint,10,opt,name=use_meta,json=useMeta,proto3" json:"use_meta,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SendPushNotificationRequest) Reset() {
@@ -7981,9 +8730,12 @@ func (x *SendPushNotificationRequest) GetUseMeta() bool {
 	return false
 }
 
+// PushLocalization holds translations for one language/locale.
+// Centrifugo PRO only.
 type PushLocalization struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Translations  map[string]string      `protobuf:"bytes,1,rep,name=translations,proto3" json:"translations,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // variable name to value for the specific language/locale.
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// translations maps variable name to value for the language/locale.
+	Translations  map[string]string `protobuf:"bytes,1,rep,name=translations,proto3" json:"translations,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -8025,9 +8777,13 @@ func (x *PushLocalization) GetTranslations() map[string]string {
 	return nil
 }
 
+// PushLimitStrategy limits when and how often pushes are sent.
+// Centrifugo PRO only.
 type PushLimitStrategy struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RateLimit     *PushRateLimitStrategy `protobuf:"bytes,1,opt,name=rate_limit,json=rateLimit,proto3" json:"rate_limit,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// rate_limit sets rate limit policies.
+	RateLimit *PushRateLimitStrategy `protobuf:"bytes,1,opt,name=rate_limit,json=rateLimit,proto3" json:"rate_limit,omitempty"`
+	// time_limit sets a time limit policy based on the device timezone.
 	TimeLimit     *PushTimeLimitStrategy `protobuf:"bytes,2,opt,name=time_limit,json=timeLimit,proto3" json:"time_limit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -8077,13 +8833,21 @@ func (x *PushLimitStrategy) GetTimeLimit() *PushTimeLimitStrategy {
 	return nil
 }
 
+// PushTimeLimitStrategy sends pushes within a window of the device local
+// time. Centrifugo PRO only.
 type PushTimeLimitStrategy struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	SendAfterTime  string                 `protobuf:"bytes,1,opt,name=send_after_time,json=sendAfterTime,proto3" json:"send_after_time,omitempty"`    // HH:MM:SS
-	SendBeforeTime string                 `protobuf:"bytes,2,opt,name=send_before_time,json=sendBeforeTime,proto3" json:"send_before_time,omitempty"` // HH:MM:SS
-	NoTzSendNow    bool                   `protobuf:"varint,3,opt,name=no_tz_send_now,json=noTzSendNow,proto3" json:"no_tz_send_now,omitempty"`       // If device timezone is not set - send push now, by default will be dropped.
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// send_after_time is the local time, as HH:MM:SS, after which the push
+	// may be sent. Required.
+	SendAfterTime string `protobuf:"bytes,1,opt,name=send_after_time,json=sendAfterTime,proto3" json:"send_after_time,omitempty"`
+	// send_before_time is the local time, as HH:MM:SS, before which the push
+	// must be sent. Required.
+	SendBeforeTime string `protobuf:"bytes,2,opt,name=send_before_time,json=sendBeforeTime,proto3" json:"send_before_time,omitempty"`
+	// no_tz_send_now sends the push immediately if the device timezone is
+	// not set. By default such pushes are dropped.
+	NoTzSendNow   bool `protobuf:"varint,3,opt,name=no_tz_send_now,json=noTzSendNow,proto3" json:"no_tz_send_now,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PushTimeLimitStrategy) Reset() {
@@ -8137,11 +8901,17 @@ func (x *PushTimeLimitStrategy) GetNoTzSendNow() bool {
 	return false
 }
 
+// PushRateLimitStrategy rate limits pushes per device. Centrifugo PRO only.
 type PushRateLimitStrategy struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Key               string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"` // optional key for rate limit policy, supports variables.
-	Policies          []*RateLimitPolicy     `protobuf:"bytes,2,rep,name=policies,proto3" json:"policies,omitempty"`
-	DropIfRateLimited bool                   `protobuf:"varint,3,opt,name=drop_if_rate_limited,json=dropIfRateLimited,proto3" json:"drop_if_rate_limited,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// key is an optional key for the rate limit policy. Supports variables
+	// (device.id and device.user).
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// policies are the rate limit policies to apply.
+	Policies []*RateLimitPolicy `protobuf:"bytes,2,rep,name=policies,proto3" json:"policies,omitempty"`
+	// drop_if_rate_limited drops a rate limited push instead of queuing it
+	// for later.
+	DropIfRateLimited bool `protobuf:"varint,3,opt,name=drop_if_rate_limited,json=dropIfRateLimited,proto3" json:"drop_if_rate_limited,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -8197,10 +8967,13 @@ func (x *PushRateLimitStrategy) GetDropIfRateLimited() bool {
 	return false
 }
 
+// RateLimitPolicy allows rate pushes per interval_ms. Centrifugo PRO only.
 type RateLimitPolicy struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Rate          int64                  `protobuf:"varint,1,opt,name=rate,proto3" json:"rate,omitempty"`
-	IntervalMs    int32                  `protobuf:"varint,2,opt,name=interval_ms,json=intervalMs,proto3" json:"interval_ms,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// rate is the allowed number of pushes per interval. Required.
+	Rate int64 `protobuf:"varint,1,opt,name=rate,proto3" json:"rate,omitempty"`
+	// interval_ms is the interval in milliseconds. Required.
+	IntervalMs    int32 `protobuf:"varint,2,opt,name=interval_ms,json=intervalMs,proto3" json:"interval_ms,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -8249,9 +9022,13 @@ func (x *RateLimitPolicy) GetIntervalMs() int32 {
 	return 0
 }
 
+// SendPushNotificationResponse is the response to a
+// SendPushNotificationRequest. Centrifugo PRO only.
 type SendPushNotificationResponse struct {
-	state         protoimpl.MessageState      `protogen:"open.v1"`
-	Error         *Error                      `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
 	Result        *SendPushNotificationResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -8301,9 +9078,13 @@ func (x *SendPushNotificationResponse) GetResult() *SendPushNotificationResult {
 	return nil
 }
 
+// SendPushNotificationResult is the result of a send push notification
+// call. Centrifugo PRO only.
 type SendPushNotificationResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Uid           string                 `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"` // Unique identifier of notification send request (it's not a FCM message id).
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// uid is the unique identifier of the send request (not a provider
+	// message ID). Matches the request uid if it was set.
+	Uid           string `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -8345,12 +9126,20 @@ func (x *SendPushNotificationResult) GetUid() string {
 	return ""
 }
 
+// UpdatePushStatusRequest saves the delivery or interaction status of a
+// push notification to analytics. Experimental. Centrifugo PRO only.
 type UpdatePushStatusRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AnalyticsUid  string                 `protobuf:"bytes,1,opt,name=analytics_uid,json=analyticsUid,proto3" json:"analytics_uid,omitempty"` // analytics uid of push notification (should match SendPushNotificationRequest.analytics_uid)
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`                                 // delivered | interacted
-	DeviceId      string                 `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`             // Centrifugo device id.
-	MsgId         string                 `protobuf:"bytes,4,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`                      // Provider issued message id.
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// analytics_uid is the analytics_uid of the push notification (as in
+	// SendPushNotificationRequest). Required.
+	AnalyticsUid string `protobuf:"bytes,1,opt,name=analytics_uid,json=analyticsUid,proto3" json:"analytics_uid,omitempty"`
+	// status is the status of the push notification: delivered or
+	// interacted. Required.
+	Status string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	// device_id is the Centrifugo device ID. Required.
+	DeviceId string `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	// msg_id is the message ID issued by the provider.
+	MsgId         string `protobuf:"bytes,4,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -8413,9 +9202,13 @@ func (x *UpdatePushStatusRequest) GetMsgId() string {
 	return ""
 }
 
+// UpdatePushStatusResponse is the response to an UpdatePushStatusRequest.
+// Centrifugo PRO only.
 type UpdatePushStatusResponse struct {
-	state         protoimpl.MessageState  `protogen:"open.v1"`
-	Error         *Error                  `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
 	Result        *UpdatePushStatusResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -8465,6 +9258,8 @@ func (x *UpdatePushStatusResponse) GetResult() *UpdatePushStatusResult {
 	return nil
 }
 
+// UpdatePushStatusResult is the result of an update push status call.
+// Empty at the moment. Centrifugo PRO only.
 type UpdatePushStatusResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -8501,9 +9296,12 @@ func (*UpdatePushStatusResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{137}
 }
 
+// CancelPushRequest cancels a delayed push notification (sent with
+// send_at). Centrifugo PRO only.
 type CancelPushRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Uid           string                 `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// uid is the uid of the push notification to cancel. Required.
+	Uid           string `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -8545,10 +9343,14 @@ func (x *CancelPushRequest) GetUid() string {
 	return ""
 }
 
+// CancelPushResponse is the response to a CancelPushRequest.
+// Centrifugo PRO only.
 type CancelPushResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *CancelPushResult      `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *CancelPushResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -8597,6 +9399,8 @@ func (x *CancelPushResponse) GetResult() *CancelPushResult {
 	return nil
 }
 
+// CancelPushResult is the result of a cancel push call. Empty at the
+// moment. Centrifugo PRO only.
 type CancelPushResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -8633,23 +9437,44 @@ func (*CancelPushResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{140}
 }
 
+// MapPublishRequest publishes or updates a key in a map channel.
 type MapPublishRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Channel        string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
-	Key            string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	Data           Raw                    `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data        string                 `protobuf:"bytes,4,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	StreamData     Raw                    `protobuf:"bytes,5,opt,name=stream_data,json=streamData,proto3" json:"stream_data,omitempty"`
-	B64StreamData  string                 `protobuf:"bytes,6,opt,name=b64stream_data,json=b64streamData,proto3" json:"b64stream_data,omitempty"`
-	Tags           map[string]string      `protobuf:"bytes,7,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	IdempotencyKey string                 `protobuf:"bytes,8,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
-	Delta          bool                   `protobuf:"varint,9,opt,name=delta,proto3" json:"delta,omitempty"`
-	Version        uint64                 `protobuf:"varint,10,opt,name=version,proto3" json:"version,omitempty"`
-	VersionEpoch   string                 `protobuf:"bytes,11,opt,name=version_epoch,json=versionEpoch,proto3" json:"version_epoch,omitempty"`
-	Score          int64                  `protobuf:"varint,12,opt,name=score,proto3" json:"score,omitempty"`
-	KeyMode        string                 `protobuf:"bytes,13,opt,name=key_mode,json=keyMode,proto3" json:"key_mode,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channel is the name of the map channel. Required.
+	Channel string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	// key is the entry key. Required.
+	Key string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	// data is the entry data. In the HTTP API it is any JSON value; over GRPC
+	// it may be binary.
+	Data Raw `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	// b64data is data as base64, for binary over the HTTP API. Centrifugo
+	// decodes it.
+	B64Data string `protobuf:"bytes,4,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	// stream_data is currently not used by the server API.
+	StreamData Raw `protobuf:"bytes,5,opt,name=stream_data,json=streamData,proto3" json:"stream_data,omitempty"`
+	// b64stream_data is currently not used by the server API.
+	B64StreamData string `protobuf:"bytes,6,opt,name=b64stream_data,json=b64streamData,proto3" json:"b64stream_data,omitempty"`
+	// tags are key-value metadata attached to the publication.
+	Tags map[string]string `protobuf:"bytes,7,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// idempotency_key is a duplicate detection key for safe retries.
+	// Duplicates are suppressed in the result.
+	IdempotencyKey string `protobuf:"bytes,8,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	// delta enables delta compression for this publication.
+	Delta bool `protobuf:"varint,9,opt,name=delta,proto3" json:"delta,omitempty"`
+	// version is a per-key version: publications with a version not higher
+	// than the key's current one are suppressed.
+	Version uint64 `protobuf:"varint,10,opt,name=version,proto3" json:"version,omitempty"`
+	// version_epoch scopes version. A different epoch resets version
+	// comparison.
+	VersionEpoch string `protobuf:"bytes,11,opt,name=version_epoch,json=versionEpoch,proto3" json:"version_epoch,omitempty"`
+	// score is currently not used by the server API.
+	Score int64 `protobuf:"varint,12,opt,name=score,proto3" json:"score,omitempty"`
+	// key_mode makes the publish conditional: "if_new" writes only if the
+	// key does not exist, "if_exists" only if it exists. Empty always
+	// writes.
+	KeyMode       string `protobuf:"bytes,13,opt,name=key_mode,json=keyMode,proto3" json:"key_mode,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MapPublishRequest) Reset() {
@@ -8773,10 +9598,13 @@ func (x *MapPublishRequest) GetKeyMode() string {
 	return ""
 }
 
+// MapPublishResponse is the response to a MapPublishRequest.
 type MapPublishResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *MapPublishResult      `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *MapPublishResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -8825,12 +9653,19 @@ func (x *MapPublishResponse) GetResult() *MapPublishResult {
 	return nil
 }
 
+// MapPublishResult is the result of a map publish call.
 type MapPublishResult struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Offset         uint64                 `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
-	Epoch          string                 `protobuf:"bytes,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
-	Suppressed     bool                   `protobuf:"varint,3,opt,name=suppressed,proto3" json:"suppressed,omitempty"`
-	SuppressReason string                 `protobuf:"bytes,4,opt,name=suppress_reason,json=suppressReason,proto3" json:"suppress_reason,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// offset is the offset in the channel stream.
+	Offset uint64 `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
+	// epoch is the epoch of the channel stream.
+	Epoch string `protobuf:"bytes,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	// suppressed is true if the publish was not applied, see
+	// suppress_reason.
+	Suppressed bool `protobuf:"varint,3,opt,name=suppressed,proto3" json:"suppressed,omitempty"`
+	// suppress_reason explains why the publish was suppressed, for example
+	// "idempotency", "version", "key_exists" or "key_not_found".
+	SuppressReason string `protobuf:"bytes,4,opt,name=suppress_reason,json=suppressReason,proto3" json:"suppress_reason,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -8893,11 +9728,15 @@ func (x *MapPublishResult) GetSuppressReason() string {
 	return ""
 }
 
+// MapRemoveRequest removes a key from a map channel.
 type MapRemoveRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Channel        string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
-	Key            string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	IdempotencyKey string                 `protobuf:"bytes,3,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channel is the name of the map channel. Required.
+	Channel string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	// key is the key to remove. Required.
+	Key string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	// idempotency_key is a duplicate detection key for safe retries.
+	IdempotencyKey string `protobuf:"bytes,3,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -8953,10 +9792,13 @@ func (x *MapRemoveRequest) GetIdempotencyKey() string {
 	return ""
 }
 
+// MapRemoveResponse is the response to a MapRemoveRequest.
 type MapRemoveResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *MapRemoveResult       `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *MapRemoveResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9005,12 +9847,19 @@ func (x *MapRemoveResponse) GetResult() *MapRemoveResult {
 	return nil
 }
 
+// MapRemoveResult is the result of a map remove call.
 type MapRemoveResult struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Offset         uint64                 `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
-	Epoch          string                 `protobuf:"bytes,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
-	Suppressed     bool                   `protobuf:"varint,3,opt,name=suppressed,proto3" json:"suppressed,omitempty"`
-	SuppressReason string                 `protobuf:"bytes,4,opt,name=suppress_reason,json=suppressReason,proto3" json:"suppress_reason,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// offset is the offset in the channel stream.
+	Offset uint64 `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
+	// epoch is the epoch of the channel stream.
+	Epoch string `protobuf:"bytes,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	// suppressed is true if the removal was not applied, see
+	// suppress_reason.
+	Suppressed bool `protobuf:"varint,3,opt,name=suppressed,proto3" json:"suppressed,omitempty"`
+	// suppress_reason explains why the removal was suppressed, for example
+	// "idempotency" or "key_not_found".
+	SuppressReason string `protobuf:"bytes,4,opt,name=suppress_reason,json=suppressReason,proto3" json:"suppress_reason,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -9073,17 +9922,34 @@ func (x *MapRemoveResult) GetSuppressReason() string {
 	return ""
 }
 
+// MapReadStateRequest reads the current state of a map channel, with
+// optional pagination.
 type MapReadStateRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Channel        string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
-	Cursor         string                 `protobuf:"bytes,2,opt,name=cursor,proto3" json:"cursor,omitempty"`
-	Limit          int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
-	Key            string                 `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty"`
-	Asc            bool                   `protobuf:"varint,5,opt,name=asc,proto3" json:"asc,omitempty"`
-	RevisionOffset uint64                 `protobuf:"varint,6,opt,name=revision_offset,json=revisionOffset,proto3" json:"revision_offset,omitempty"`
-	RevisionEpoch  string                 `protobuf:"bytes,7,opt,name=revision_epoch,json=revisionEpoch,proto3" json:"revision_epoch,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channel is the name of the map channel. Required.
+	Channel string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	// cursor is the pagination cursor from the previous page. Empty starts
+	// from the beginning.
+	Cursor string `protobuf:"bytes,2,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	// limit is the maximum number of entries per page: -1 means no limit, 0
+	// returns only the stream position. Page sizes may exceed it with the
+	// Redis map broker.
+	Limit int32 `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	// key reads a single entry by exact key. cursor and limit are ignored
+	// when it is set.
+	Key string `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty"`
+	// asc sorts ordered state by score ascending instead of descending.
+	// Ignored for unordered channels.
+	Asc bool `protobuf:"varint,5,opt,name=asc,proto3" json:"asc,omitempty"`
+	// revision_offset is the offset of the position from a previous state
+	// read, used with revision_epoch.
+	RevisionOffset uint64 `protobuf:"varint,6,opt,name=revision_offset,json=revisionOffset,proto3" json:"revision_offset,omitempty"`
+	// revision_epoch is the epoch of the position from a previous state
+	// read. If the epoch changed, the call fails with an unrecoverable
+	// position error.
+	RevisionEpoch string `protobuf:"bytes,7,opt,name=revision_epoch,json=revisionEpoch,proto3" json:"revision_epoch,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MapReadStateRequest) Reset() {
@@ -9165,10 +10031,13 @@ func (x *MapReadStateRequest) GetRevisionEpoch() string {
 	return ""
 }
 
+// MapReadStateResponse is the response to a MapReadStateRequest.
 type MapReadStateResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *MapReadStateResult    `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *MapReadStateResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9217,12 +10086,18 @@ func (x *MapReadStateResponse) GetResult() *MapReadStateResult {
 	return nil
 }
 
+// MapReadStateResult is the result of a map read state call.
 type MapReadStateResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Entries       []*MapEntry            `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
-	Offset        uint64                 `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
-	Epoch         string                 `protobuf:"bytes,3,opt,name=epoch,proto3" json:"epoch,omitempty"`
-	Cursor        string                 `protobuf:"bytes,4,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// entries are the state entries of this page.
+	Entries []*MapEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// offset is the offset of the channel stream position.
+	Offset uint64 `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
+	// epoch is the epoch of the channel stream position.
+	Epoch string `protobuf:"bytes,3,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	// cursor is the cursor of the next page. Empty if there are no more
+	// entries.
+	Cursor        string `protobuf:"bytes,4,opt,name=cursor,proto3" json:"cursor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9285,15 +10160,23 @@ func (x *MapReadStateResult) GetCursor() string {
 	return ""
 }
 
+// MapEntry is an entry of a map channel state or stream.
 type MapEntry struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Data          Raw                    `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	Tags          map[string]string      `protobuf:"bytes,3,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Offset        uint64                 `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
-	Score         int64                  `protobuf:"varint,5,opt,name=score,proto3" json:"score,omitempty"`
-	Removed       bool                   `protobuf:"varint,6,opt,name=removed,proto3" json:"removed,omitempty"`
-	Time          int64                  `protobuf:"varint,7,opt,name=time,proto3" json:"time,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// key is the entry key.
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// data is the entry data.
+	Data Raw `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	// tags are the entry tags.
+	Tags map[string]string `protobuf:"bytes,3,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// offset is the offset of the entry in the channel stream.
+	Offset uint64 `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
+	// score is the sort value of the entry in ordered map channels.
+	Score int64 `protobuf:"varint,5,opt,name=score,proto3" json:"score,omitempty"`
+	// removed is true for a removal event.
+	Removed bool `protobuf:"varint,6,opt,name=removed,proto3" json:"removed,omitempty"`
+	// time is the time of the publication as Unix milliseconds, if known.
+	Time          int64 `protobuf:"varint,7,opt,name=time,proto3" json:"time,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9377,13 +10260,22 @@ func (x *MapEntry) GetTime() int64 {
 	return 0
 }
 
+// MapReadStreamRequest reads the change stream of a map channel.
 type MapReadStreamRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channel       string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
-	SinceOffset   uint64                 `protobuf:"varint,2,opt,name=since_offset,json=sinceOffset,proto3" json:"since_offset,omitempty"`
-	SinceEpoch    string                 `protobuf:"bytes,3,opt,name=since_epoch,json=sinceEpoch,proto3" json:"since_epoch,omitempty"`
-	Limit         int32                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
-	Reverse       bool                   `protobuf:"varint,5,opt,name=reverse,proto3" json:"reverse,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channel is the name of the map channel. Required.
+	Channel string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	// since_offset returns entries after this offset, used with
+	// since_epoch.
+	SinceOffset uint64 `protobuf:"varint,2,opt,name=since_offset,json=sinceOffset,proto3" json:"since_offset,omitempty"`
+	// since_epoch is the epoch of the since position. It must match the
+	// current stream epoch.
+	SinceEpoch string `protobuf:"bytes,3,opt,name=since_epoch,json=sinceEpoch,proto3" json:"since_epoch,omitempty"`
+	// limit is the maximum number of entries: -1 means no limit, 0 returns
+	// only the stream position.
+	Limit int32 `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
+	// reverse returns entries newest first.
+	Reverse       bool `protobuf:"varint,5,opt,name=reverse,proto3" json:"reverse,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9453,10 +10345,13 @@ func (x *MapReadStreamRequest) GetReverse() bool {
 	return false
 }
 
+// MapReadStreamResponse is the response to a MapReadStreamRequest.
 type MapReadStreamResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *MapReadStreamResult   `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *MapReadStreamResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9505,11 +10400,15 @@ func (x *MapReadStreamResponse) GetResult() *MapReadStreamResult {
 	return nil
 }
 
+// MapReadStreamResult is the result of a map read stream call.
 type MapReadStreamResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Entries       []*MapEntry            `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
-	Offset        uint64                 `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
-	Epoch         string                 `protobuf:"bytes,3,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// entries are the stream entries.
+	Entries []*MapEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// offset is the top offset of the channel stream.
+	Offset uint64 `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
+	// epoch is the epoch of the channel stream.
+	Epoch         string `protobuf:"bytes,3,opt,name=epoch,proto3" json:"epoch,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9565,9 +10464,11 @@ func (x *MapReadStreamResult) GetEpoch() string {
 	return ""
 }
 
+// MapStatsRequest returns statistics about a map channel.
 type MapStatsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channel       string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channel is the name of the map channel. Required.
+	Channel       string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9609,10 +10510,13 @@ func (x *MapStatsRequest) GetChannel() string {
 	return ""
 }
 
+// MapStatsResponse is the response to a MapStatsRequest.
 type MapStatsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *MapStatsResult        `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *MapStatsResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9661,9 +10565,11 @@ func (x *MapStatsResponse) GetResult() *MapStatsResult {
 	return nil
 }
 
+// MapStatsResult is the result of a map stats call.
 type MapStatsResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NumKeys       int32                  `protobuf:"varint,1,opt,name=num_keys,json=numKeys,proto3" json:"num_keys,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// num_keys is the number of entries in the channel state.
+	NumKeys       int32 `protobuf:"varint,1,opt,name=num_keys,json=numKeys,proto3" json:"num_keys,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9705,9 +10611,11 @@ func (x *MapStatsResult) GetNumKeys() int32 {
 	return 0
 }
 
+// MapClearRequest removes all state and stream data of a map channel.
 type MapClearRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channel       string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channel is the name of the map channel. Required.
+	Channel       string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9749,10 +10657,13 @@ func (x *MapClearRequest) GetChannel() string {
 	return ""
 }
 
+// MapClearResponse is the response to a MapClearRequest.
 type MapClearResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *Error                 `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Result        *MapClearResult        `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
+	Result        *MapClearResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9801,6 +10712,7 @@ func (x *MapClearResponse) GetResult() *MapClearResult {
 	return nil
 }
 
+// MapClearResult is the result of a map clear call. Empty at the moment.
 type MapClearResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -9837,14 +10749,25 @@ func (*MapClearResult) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{159}
 }
 
+// SharedPollPublishRequest pushes data for a key directly to clients of a
+// shared poll channel, without waiting for the next poll cycle. Requires
+// versioned mode and publish_enabled on the namespace.
 type SharedPollPublishRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channel       string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
-	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	Data          Raw                    `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data       string                 `protobuf:"bytes,4,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	Version       uint64                 `protobuf:"varint,5,opt,name=version,proto3" json:"version,omitempty"`
-	Epoch         string                 `protobuf:"bytes,6,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channel is the name of the shared poll channel. Required.
+	Channel string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	// key is the item key. Required.
+	Key string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	// data is the item data, delivered to clients as is.
+	Data Raw `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	// b64data is data as base64, for binary payloads. Centrifugo decodes it.
+	B64Data string `protobuf:"bytes,4,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	// version is the item version, must be >= 1. Required. A version not
+	// higher than the current one within the same epoch is silently dropped.
+	Version uint64 `protobuf:"varint,5,opt,name=version,proto3" json:"version,omitempty"`
+	// epoch is the channel-level publisher epoch. A change resets per-key
+	// versions and unsubscribes current subscribers with insufficient state.
+	Epoch         string `protobuf:"bytes,6,opt,name=epoch,proto3" json:"epoch,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9921,9 +10844,12 @@ func (x *SharedPollPublishRequest) GetEpoch() string {
 	return ""
 }
 
+// SharedPollPublishResponse is the response to a SharedPollPublishRequest.
 type SharedPollPublishResponse struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Error         *Error                   `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// error is set if the call failed.
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// result is set on success.
 	Result        *SharedPollPublishResult `protobuf:"bytes,2,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -9973,6 +10899,8 @@ func (x *SharedPollPublishResponse) GetResult() *SharedPollPublishResult {
 	return nil
 }
 
+// SharedPollPublishResult is the result of a shared poll publish call.
+// Empty at the moment.
 type SharedPollPublishResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -10113,11 +11041,10 @@ const file_api_proto_rawDesc = "" +
 	"\x0fmap_read_stream\x18' \x01(\v2/.centrifugal.centrifugo.api.MapReadStreamResultR\rmapReadStream\x12G\n" +
 	"\tmap_stats\x18( \x01(\v2*.centrifugal.centrifugo.api.MapStatsResultR\bmapStats\x12G\n" +
 	"\tmap_clear\x18) \x01(\v2*.centrifugal.centrifugo.api.MapClearResultR\bmapClear\x12c\n" +
-	"\x13shared_poll_publish\x18* \x01(\v23.centrifugal.centrifugo.api.SharedPollPublishResultR\x11sharedPollPublishJ\x04\b\x01\x10\x02J\x04\b\x03\x10\x04\"\x9a\x01\n" +
+	"\x13shared_poll_publish\x18* \x01(\v23.centrifugal.centrifugo.api.SharedPollPublishResultR\x11sharedPollPublishJ\x04\b\x01\x10\x02J\x04\b\x03\x10\x04\"k\n" +
 	"\fBatchRequest\x12?\n" +
 	"\bcommands\x18\x01 \x03(\v2#.centrifugal.centrifugo.api.CommandR\bcommands\x12\x1a\n" +
-	"\bparallel\x18\x02 \x01(\bR\bparallel\x12-\n" +
-	"\x12group_publications\x18\x03 \x01(\bR\x11groupPublications\"L\n" +
+	"\bparallel\x18\x02 \x01(\bR\bparallel\"L\n" +
 	"\rBatchResponse\x12;\n" +
 	"\areplies\x18\x01 \x03(\v2!.centrifugal.centrifugo.api.ReplyR\areplies\"\xfc\x02\n" +
 	"\x0ePublishRequest\x12\x18\n" +
