@@ -80,6 +80,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "BatchRequest sends many commands in one request, which avoids paying a\nround trip per command. Check the error of each reply individually.",
             "in": "body",
             "required": true,
             "schema": {
@@ -119,6 +120,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "BlockUserRequest blocks a user: the user is disconnected and can not\nconnect again until unblocked or the block expires. Centrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -158,6 +160,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "BroadcastRequest publishes the same data into many channels.",
             "in": "body",
             "required": true,
             "schema": {
@@ -197,6 +200,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "CancelPushRequest cancels a delayed push notification (sent with\nsend_at). Centrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -236,6 +240,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "ChannelsRequest returns active channels (with one or more subscribers).\nIt can be heavy on large deployments: there is no pagination.",
             "in": "body",
             "required": true,
             "schema": {
@@ -275,6 +280,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "ConnectionsRequest returns information about active connections, without\nthe need to enable presence. At least one of user, expression or\nlabel_filter must be set. Centrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -314,6 +320,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "DeleteUserStatusRequest deletes the status of users. Centrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -353,6 +360,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "DeviceListRequest returns a paginated list of registered devices.\nCentrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -392,6 +400,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "DeviceRegisterRequest registers a device for push notifications, or\nupdates a registered one. Centrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -431,6 +440,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "DeviceRemoveRequest removes devices, selected by ids and/or users.\nCentrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -470,6 +480,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "DeviceTopicListRequest returns a paginated list of device topic\nsubscriptions. Centrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -509,6 +520,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "DeviceTopicUpdateRequest changes the topics of a device. The device topic\nlist is what decides who gets a push sent to a topic.\nCentrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -548,6 +560,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "DeviceUpdateRequest updates registered devices, selected by ids and/or\nusers. Centrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -587,6 +600,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "DisconnectRequest disconnects a user's connections.",
             "in": "body",
             "required": true,
             "schema": {
@@ -626,6 +640,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "GetUserStatusRequest returns the status of users. Centrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -665,6 +680,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "HistoryRequest returns publications from the history of a channel.\nHistory must be enabled for the channel.",
             "in": "body",
             "required": true,
             "schema": {
@@ -704,6 +720,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "HistoryRemoveRequest removes publications from the history of a channel.\nThe current top stream position is kept, so clients do not get\ndisconnected because of insufficient state.",
             "in": "body",
             "required": true,
             "schema": {
@@ -743,6 +760,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "InfoRequest returns information about the running Centrifugo nodes.",
             "in": "body",
             "required": true,
             "schema": {
@@ -782,6 +800,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "InvalidateUserTokensRequest revokes all tokens of a user issued before a\ncertain time (based on the iat claim of a JWT). Centrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -821,6 +840,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "MapClearRequest removes all state and stream data of a map channel.",
             "in": "body",
             "required": true,
             "schema": {
@@ -860,6 +880,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "MapPublishRequest publishes or updates a key in a map channel.",
             "in": "body",
             "required": true,
             "schema": {
@@ -899,6 +920,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "MapReadStateRequest reads the current state of a map channel, with\noptional pagination.",
             "in": "body",
             "required": true,
             "schema": {
@@ -938,6 +960,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "MapReadStreamRequest reads the change stream of a map channel.",
             "in": "body",
             "required": true,
             "schema": {
@@ -977,6 +1000,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "MapRemoveRequest removes a key from a map channel.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1016,6 +1040,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "MapStatsRequest returns statistics about a map channel.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1055,6 +1080,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "PresenceRequest returns the online presence of a channel: all clients\ncurrently subscribed to it. Presence must be enabled for the channel.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1094,6 +1120,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "PresenceStatsRequest returns short presence information of a channel: the\nnumber of clients and of unique users. Presence must be enabled for the\nchannel.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1133,6 +1160,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "PublishRequest publishes data into a channel.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1172,6 +1200,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "RefreshRequest refreshes a user's connections, mostly useful with\nunidirectional transports. Without expire_at the connections become\nnon-expiring.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1211,6 +1240,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "RevokeTokenRequest revokes a token by its unique ID (jti claim of a JWT).\nClients using the token are disconnected shortly, and can not connect\nwith it again. Centrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1250,6 +1280,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "RPCRequest calls a custom server API method registered as an RPC\nextension.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1289,6 +1320,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "SendPushNotificationRequest sends a push notification. The request is\nqueued and sent to the provider by Centrifugo workers.\nCentrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1328,6 +1360,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "SharedPollPublishRequest pushes data for a key directly to clients of a\nshared poll channel, without waiting for the next poll cycle. Requires\nversioned mode and publish_enabled on the namespace.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1367,6 +1400,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "SubscribeRequest subscribes active sessions of a user to a channel\n(server-side subscription). It does not create a streaming subscription\nfor the caller.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1406,6 +1440,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "UnblockUserRequest unblocks a user. Centrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1445,6 +1480,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "UnsubscribeRequest unsubscribes a user from a channel.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1484,6 +1520,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "UpdatePushStatusRequest saves the delivery or interaction status of a\npush notification to analytics. Experimental. Centrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1523,6 +1560,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "UpdateUserStatusRequest marks users as active and online now, and sets\ntheir state when one is given. Centrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1562,6 +1600,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "UserTopicListRequest returns a paginated list of user topic\nsubscriptions. Centrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1601,6 +1640,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "UserTopicUpdateRequest changes the topics of a user. The change is also\napplied to the user's registered devices. Centrifugo PRO only.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1622,12 +1662,15 @@
           "type": "object",
           "additionalProperties": {
             "type": "string"
-          }
+          },
+          "description": "headers are the APNs request headers."
         },
         "payload": {
-          "type": "object"
+          "type": "object",
+          "description": "payload is the APNs payload as JSON. Required."
         }
-      }
+      },
+      "description": "ApnsPushNotification is a notification for APNs. Centrifugo PRO only."
     },
     "BatchRequest": {
       "type": "object",
@@ -1637,12 +1680,15 @@
           "items": {
             "type": "object",
             "$ref": "#/definitions/Command"
-          }
+          },
+          "description": "commands to execute. Replies come back in the same order."
         },
         "parallel": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "parallel makes Centrifugo process the commands concurrently instead of\none after another. This may reduce latency (especially with the Redis\nengine), but gives no ordering guarantee between commands."
         }
-      }
+      },
+      "description": "BatchRequest sends many commands in one request, which avoids paying a\nround trip per command. Check the error of each reply individually."
     },
     "BatchResponse": {
       "type": "object",
@@ -1652,42 +1698,53 @@
           "items": {
             "type": "object",
             "$ref": "#/definitions/Reply"
-          }
+          },
+          "description": "replies to the commands, in the order of BatchRequest.commands."
         }
-      }
+      },
+      "description": "BatchResponse contains the replies to a BatchRequest."
     },
     "BlockUserRequest": {
       "type": "object",
       "properties": {
         "expire_at": {
-          "type": "integer"
+          "type": "integer",
+          "description": "expire_at is the Unix time in seconds when the block expires. Optional,\nbut a reasonably small value is recommended to keep the set of blocked\nusers small."
         },
         "user": {
-          "type": "string"
+          "type": "string",
+          "description": "user is the ID of the user to block. Required."
         }
-      }
+      },
+      "description": "BlockUserRequest blocks a user: the user is disconnected and can not\nconnect again until unblocked or the block expires. Centrifugo PRO only."
     },
     "BlockUserResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/BlockUserResult"
+          "$ref": "#/definitions/BlockUserResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "BlockUserResponse is the response to a BlockUserRequest.\nCentrifugo PRO only."
     },
     "BlockUserResult": {
-      "type": "object"
+      "type": "object",
+      "description": "BlockUserResult is the result of a block user call. Empty at the moment.\nCentrifugo PRO only."
     },
     "BoolValue": {
       "type": "object",
       "properties": {
         "value": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "value is the wrapped value."
         }
-      }
+      },
+      "description": "BoolValue wraps a bool so that an unset value can be told apart from\nfalse."
     },
     "BroadcastRequest": {
       "type": "object",
@@ -1696,47 +1753,60 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "channels is the list of channels to publish into. Required."
         },
         "data": {
-          "type": "object"
+          "type": "object",
+          "description": "data is the payload to publish into each channel. Required unless\nb64data is set. In the HTTP API it is any JSON value; over GRPC it may\nbe binary."
         },
         "b64data": {
-          "type": "string"
+          "type": "string",
+          "description": "b64data is a base64-encoded binary payload, an alternative to `data` to\nsend binary over the HTTP API. Centrifugo decodes it before publishing."
         },
         "skip_history": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "skip_history skips adding the publications to the channels' history."
         },
         "tags": {
           "type": "object",
           "additionalProperties": {
             "type": "string"
-          }
+          },
+          "description": "tags is a map of arbitrary string keys and values attached to each\npublication and delivered to clients."
         },
         "idempotency_key": {
-          "type": "string"
+          "type": "string",
+          "description": "idempotency_key drops duplicate publications upon retries. It acts per\nchannel; results are cached for 5 minutes."
         },
         "delta": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "delta tells Centrifugo to construct a delta update, if possible, when\nbroadcasting the publications to subscribers."
         },
         "version": {
-          "type": "integer"
+          "type": "integer",
+          "description": "version, when \u003e 0, is the version of the document being sent:\npublications with a version less than or equal to one already seen are\nignored. Only works in channels with history enabled."
         },
         "version_epoch": {
-          "type": "string"
+          "type": "string",
+          "description": "version_epoch is the epoch of version. When it changes, Centrifugo\naccepts the publication even if its version is lower than before."
         }
-      }
+      },
+      "description": "BroadcastRequest publishes the same data into many channels."
     },
     "BroadcastResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the whole broadcast failed."
         },
         "result": {
-          "$ref": "#/definitions/BroadcastResult"
+          "$ref": "#/definitions/BroadcastResult",
+          "description": "result is set on success. Check the error of each response in it."
         }
-      }
+      },
+      "description": "BroadcastResponse is the response to a BroadcastRequest."
     },
     "BroadcastResult": {
       "type": "object",
@@ -1746,68 +1816,85 @@
           "items": {
             "type": "object",
             "$ref": "#/definitions/PublishResponse"
-          }
+          },
+          "description": "responses is a publish response for each channel, in the order of\nBroadcastRequest.channels. Each may carry its own error."
         }
-      }
+      },
+      "description": "BroadcastResult is the result of a broadcast."
     },
     "CancelPushRequest": {
       "type": "object",
       "properties": {
         "uid": {
-          "type": "string"
+          "type": "string",
+          "description": "uid is the uid of the push notification to cancel. Required."
         }
-      }
+      },
+      "description": "CancelPushRequest cancels a delayed push notification (sent with\nsend_at). Centrifugo PRO only."
     },
     "CancelPushResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/CancelPushResult"
+          "$ref": "#/definitions/CancelPushResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "CancelPushResponse is the response to a CancelPushRequest.\nCentrifugo PRO only."
     },
     "CancelPushResult": {
-      "type": "object"
+      "type": "object",
+      "description": "CancelPushResult is the result of a cancel push call. Empty at the\nmoment. Centrifugo PRO only."
     },
     "ChannelContext": {
       "type": "object",
       "properties": {
         "source": {
           "type": "integer",
-          "format": "int64"
+          "format": "int64",
+          "description": "source is the source of the channel subscription (for example,\nsubscription token, subscribe proxy or server API)."
         }
-      }
+      },
+      "description": "ChannelContext is context of a channel subscription.\nCentrifugo PRO only."
     },
     "ChannelInfo": {
       "type": "object",
       "properties": {
         "num_clients": {
           "type": "integer",
-          "format": "int64"
+          "format": "int64",
+          "description": "num_clients is the number of connections subscribed to the channel."
         }
-      }
+      },
+      "description": "ChannelInfo is information about an active channel."
     },
     "ChannelsRequest": {
       "type": "object",
       "properties": {
         "pattern": {
-          "type": "string"
+          "type": "string",
+          "description": "pattern filters channels by name, using gobwas/glob syntax."
         }
-      }
+      },
+      "description": "ChannelsRequest returns active channels (with one or more subscribers).\nIt can be heavy on large deployments: there is no pagination."
     },
     "ChannelsResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/ChannelsResult"
+          "$ref": "#/definitions/ChannelsResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "ChannelsResponse is the response to a ChannelsRequest."
     },
     "ChannelsResult": {
       "type": "object",
@@ -1816,185 +1903,240 @@
           "type": "object",
           "additionalProperties": {
             "$ref": "#/definitions/ChannelInfo"
-          }
+          },
+          "description": "channels maps channel name to information about the channel."
         }
-      }
+      },
+      "description": "ChannelsResult is the result of a channels call."
     },
     "ClientInfo": {
       "type": "object",
       "properties": {
         "user": {
-          "type": "string"
+          "type": "string",
+          "description": "user is the user ID."
         },
         "client": {
-          "type": "string"
+          "type": "string",
+          "description": "client is the client ID."
         },
         "conn_info": {
-          "type": "object"
+          "type": "object",
+          "description": "conn_info is optional connection info."
         },
         "chan_info": {
-          "type": "object"
+          "type": "object",
+          "description": "chan_info is optional channel info."
         }
-      }
+      },
+      "description": "ClientInfo describes a client connection."
     },
     "Command": {
       "type": "object",
       "properties": {
         "publish": {
-          "$ref": "#/definitions/PublishRequest"
+          "$ref": "#/definitions/PublishRequest",
+          "description": "publish is a publish command, see PublishRequest."
         },
         "broadcast": {
-          "$ref": "#/definitions/BroadcastRequest"
+          "$ref": "#/definitions/BroadcastRequest",
+          "description": "broadcast is a broadcast command, see BroadcastRequest."
         },
         "subscribe": {
-          "$ref": "#/definitions/SubscribeRequest"
+          "$ref": "#/definitions/SubscribeRequest",
+          "description": "subscribe is a subscribe command, see SubscribeRequest."
         },
         "unsubscribe": {
-          "$ref": "#/definitions/UnsubscribeRequest"
+          "$ref": "#/definitions/UnsubscribeRequest",
+          "description": "unsubscribe is an unsubscribe command, see UnsubscribeRequest."
         },
         "disconnect": {
-          "$ref": "#/definitions/DisconnectRequest"
+          "$ref": "#/definitions/DisconnectRequest",
+          "description": "disconnect is a disconnect command, see DisconnectRequest."
         },
         "presence": {
-          "$ref": "#/definitions/PresenceRequest"
+          "$ref": "#/definitions/PresenceRequest",
+          "description": "presence is a presence command, see PresenceRequest."
         },
         "presence_stats": {
-          "$ref": "#/definitions/PresenceStatsRequest"
+          "$ref": "#/definitions/PresenceStatsRequest",
+          "description": "presence_stats is a presence stats command, see PresenceStatsRequest."
         },
         "history": {
-          "$ref": "#/definitions/HistoryRequest"
+          "$ref": "#/definitions/HistoryRequest",
+          "description": "history is a history command, see HistoryRequest."
         },
         "history_remove": {
-          "$ref": "#/definitions/HistoryRemoveRequest"
+          "$ref": "#/definitions/HistoryRemoveRequest",
+          "description": "history_remove is a history remove command, see HistoryRemoveRequest."
         },
         "info": {
-          "$ref": "#/definitions/InfoRequest"
+          "$ref": "#/definitions/InfoRequest",
+          "description": "info is an info command, see InfoRequest."
         },
         "rpc": {
-          "$ref": "#/definitions/RPCRequest"
+          "$ref": "#/definitions/RPCRequest",
+          "description": "rpc is an RPC command, see RPCRequest."
         },
         "refresh": {
-          "$ref": "#/definitions/RefreshRequest"
+          "$ref": "#/definitions/RefreshRequest",
+          "description": "refresh is a refresh command, see RefreshRequest."
         },
         "channels": {
-          "$ref": "#/definitions/ChannelsRequest"
+          "$ref": "#/definitions/ChannelsRequest",
+          "description": "channels is a channels command, see ChannelsRequest."
         },
         "connections": {
-          "$ref": "#/definitions/ConnectionsRequest"
+          "$ref": "#/definitions/ConnectionsRequest",
+          "description": "connections is a connections command, see ConnectionsRequest.\nCentrifugo PRO only."
         },
         "update_user_status": {
-          "$ref": "#/definitions/UpdateUserStatusRequest"
+          "$ref": "#/definitions/UpdateUserStatusRequest",
+          "description": "update_user_status is an update user status command, see\nUpdateUserStatusRequest. Centrifugo PRO only."
         },
         "get_user_status": {
-          "$ref": "#/definitions/GetUserStatusRequest"
+          "$ref": "#/definitions/GetUserStatusRequest",
+          "description": "get_user_status is a get user status command, see GetUserStatusRequest.\nCentrifugo PRO only."
         },
         "delete_user_status": {
-          "$ref": "#/definitions/DeleteUserStatusRequest"
+          "$ref": "#/definitions/DeleteUserStatusRequest",
+          "description": "delete_user_status is a delete user status command, see\nDeleteUserStatusRequest. Centrifugo PRO only."
         },
         "block_user": {
-          "$ref": "#/definitions/BlockUserRequest"
+          "$ref": "#/definitions/BlockUserRequest",
+          "description": "block_user is a block user command, see BlockUserRequest.\nCentrifugo PRO only."
         },
         "unblock_user": {
-          "$ref": "#/definitions/UnblockUserRequest"
+          "$ref": "#/definitions/UnblockUserRequest",
+          "description": "unblock_user is an unblock user command, see UnblockUserRequest.\nCentrifugo PRO only."
         },
         "revoke_token": {
-          "$ref": "#/definitions/RevokeTokenRequest"
+          "$ref": "#/definitions/RevokeTokenRequest",
+          "description": "revoke_token is a revoke token command, see RevokeTokenRequest.\nCentrifugo PRO only."
         },
         "invalidate_user_tokens": {
-          "$ref": "#/definitions/InvalidateUserTokensRequest"
+          "$ref": "#/definitions/InvalidateUserTokensRequest",
+          "description": "invalidate_user_tokens is an invalidate user tokens command, see\nInvalidateUserTokensRequest. Centrifugo PRO only."
         },
         "device_register": {
-          "$ref": "#/definitions/DeviceRegisterRequest"
+          "$ref": "#/definitions/DeviceRegisterRequest",
+          "description": "device_register is a device register command, see\nDeviceRegisterRequest. Centrifugo PRO only."
         },
         "device_update": {
-          "$ref": "#/definitions/DeviceUpdateRequest"
+          "$ref": "#/definitions/DeviceUpdateRequest",
+          "description": "device_update is a device update command, see DeviceUpdateRequest.\nCentrifugo PRO only."
         },
         "device_remove": {
-          "$ref": "#/definitions/DeviceRemoveRequest"
+          "$ref": "#/definitions/DeviceRemoveRequest",
+          "description": "device_remove is a device remove command, see DeviceRemoveRequest.\nCentrifugo PRO only."
         },
         "device_list": {
-          "$ref": "#/definitions/DeviceListRequest"
+          "$ref": "#/definitions/DeviceListRequest",
+          "description": "device_list is a device list command, see DeviceListRequest.\nCentrifugo PRO only."
         },
         "device_topic_list": {
-          "$ref": "#/definitions/DeviceTopicListRequest"
+          "$ref": "#/definitions/DeviceTopicListRequest",
+          "description": "device_topic_list is a device topic list command, see\nDeviceTopicListRequest. Centrifugo PRO only."
         },
         "device_topic_update": {
-          "$ref": "#/definitions/DeviceTopicUpdateRequest"
+          "$ref": "#/definitions/DeviceTopicUpdateRequest",
+          "description": "device_topic_update is a device topic update command, see\nDeviceTopicUpdateRequest. Centrifugo PRO only."
         },
         "user_topic_list": {
-          "$ref": "#/definitions/UserTopicListRequest"
+          "$ref": "#/definitions/UserTopicListRequest",
+          "description": "user_topic_list is a user topic list command, see\nUserTopicListRequest. Centrifugo PRO only."
         },
         "user_topic_update": {
-          "$ref": "#/definitions/UserTopicUpdateRequest"
+          "$ref": "#/definitions/UserTopicUpdateRequest",
+          "description": "user_topic_update is a user topic update command, see\nUserTopicUpdateRequest. Centrifugo PRO only."
         },
         "send_push_notification": {
-          "$ref": "#/definitions/SendPushNotificationRequest"
+          "$ref": "#/definitions/SendPushNotificationRequest",
+          "description": "send_push_notification is a send push notification command, see\nSendPushNotificationRequest. Centrifugo PRO only."
         },
         "update_push_status": {
-          "$ref": "#/definitions/UpdatePushStatusRequest"
+          "$ref": "#/definitions/UpdatePushStatusRequest",
+          "description": "update_push_status is an update push status command, see\nUpdatePushStatusRequest. Centrifugo PRO only."
         },
         "cancel_push": {
-          "$ref": "#/definitions/CancelPushRequest"
+          "$ref": "#/definitions/CancelPushRequest",
+          "description": "cancel_push is a cancel push command, see CancelPushRequest.\nCentrifugo PRO only."
         },
         "map_publish": {
-          "$ref": "#/definitions/MapPublishRequest"
+          "$ref": "#/definitions/MapPublishRequest",
+          "description": "map_publish is a map publish command, see MapPublishRequest."
         },
         "map_remove": {
-          "$ref": "#/definitions/MapRemoveRequest"
+          "$ref": "#/definitions/MapRemoveRequest",
+          "description": "map_remove is a map remove command, see MapRemoveRequest."
         },
         "map_read_state": {
-          "$ref": "#/definitions/MapReadStateRequest"
+          "$ref": "#/definitions/MapReadStateRequest",
+          "description": "map_read_state is a map read state command, see MapReadStateRequest."
         },
         "map_read_stream": {
-          "$ref": "#/definitions/MapReadStreamRequest"
+          "$ref": "#/definitions/MapReadStreamRequest",
+          "description": "map_read_stream is a map read stream command, see\nMapReadStreamRequest."
         },
         "map_stats": {
-          "$ref": "#/definitions/MapStatsRequest"
+          "$ref": "#/definitions/MapStatsRequest",
+          "description": "map_stats is a map stats command, see MapStatsRequest."
         },
         "map_clear": {
-          "$ref": "#/definitions/MapClearRequest"
+          "$ref": "#/definitions/MapClearRequest",
+          "description": "map_clear is a map clear command, see MapClearRequest."
         },
         "shared_poll_publish": {
-          "$ref": "#/definitions/SharedPollPublishRequest"
+          "$ref": "#/definitions/SharedPollPublishRequest",
+          "description": "shared_poll_publish is a shared poll publish command, see\nSharedPollPublishRequest."
         }
-      }
+      },
+      "description": "Command is a single command inside a BatchRequest. Set exactly one of its\nrequest fields; a command with none of them set gets a not found error."
     },
     "ConnectionInfo": {
       "type": "object",
       "properties": {
         "app_name": {
-          "type": "string"
+          "type": "string",
+          "description": "app_name is the client application name, if provided by the client."
         },
         "app_version": {
-          "type": "string"
+          "type": "string",
+          "description": "app_version is the client application version, if provided by the\nclient."
         },
         "transport": {
-          "type": "string"
+          "type": "string",
+          "description": "transport is the name of the connection transport."
         },
         "protocol": {
-          "type": "string"
+          "type": "string",
+          "description": "protocol is the connection protocol: json or protobuf."
         },
         "user": {
-          "type": "string"
+          "type": "string",
+          "description": "user is the user ID of the connection."
         },
         "state": {
-          "$ref": "#/definitions/ConnectionState"
+          "$ref": "#/definitions/ConnectionState",
+          "description": "state is the connection state."
         },
         "connected_at_ms": {
-          "type": "integer"
+          "type": "integer",
+          "description": "connected_at_ms is the Unix time in milliseconds when the connection\nwas established."
         },
         "ping_pong_latency_ms": {
           "type": "integer",
-          "description": "can be -1 if not available."
+          "description": "ping_pong_latency_ms is the last measured client ping/pong round-trip\nlatency in milliseconds. Can be -1 if not available."
         },
         "labels": {
           "type": "object",
           "additionalProperties": {
             "type": "string"
           },
-          "description": "PRO only — client labels attached to the centrifuge.Client by Centrifugo PRO."
+          "description": "labels are the client labels attached to the connection."
         }
-      }
+      },
+      "description": "ConnectionInfo is information about a client connection.\nCentrifugo PRO only."
     },
     "ConnectionState": {
       "type": "object",
@@ -2003,58 +2145,72 @@
           "type": "object",
           "additionalProperties": {
             "$ref": "#/definitions/ChannelContext"
-          }
+          },
+          "description": "channels maps the channels the client is subscribed to to their\ncontext."
         },
         "connection_token": {
-          "$ref": "#/definitions/ConnectionTokenInfo"
+          "$ref": "#/definitions/ConnectionTokenInfo",
+          "description": "connection_token is information about the connection token."
         },
         "subscription_tokens": {
           "type": "object",
           "additionalProperties": {
             "$ref": "#/definitions/SubscriptionTokenInfo"
-          }
+          },
+          "description": "subscription_tokens maps channel to information about the subscription\ntoken used to subscribe to it."
         },
         "meta": {
-          "type": "object"
+          "type": "object",
+          "description": "meta is the meta information attached to the connection. It is not\nvisible to the client."
         }
-      }
+      },
+      "description": "ConnectionState is the state of a client connection.\nCentrifugo PRO only."
     },
     "ConnectionTokenInfo": {
       "type": "object",
       "properties": {
         "uid": {
-          "type": "string"
+          "type": "string",
+          "description": "uid is the unique token ID (jti claim)."
         },
         "issued_at": {
-          "type": "integer"
+          "type": "integer",
+          "description": "issued_at is the Unix time in seconds when the token was issued."
         }
-      }
+      },
+      "description": "ConnectionTokenInfo is information about a connection token.\nCentrifugo PRO only."
     },
     "ConnectionsRequest": {
       "type": "object",
       "properties": {
         "user": {
-          "type": "string"
+          "type": "string",
+          "description": "user returns only the connections of this user ID."
         },
         "expression": {
-          "type": "string"
+          "type": "string",
+          "description": "expression is a CEL expression to filter connections."
         },
         "label_filter": {
           "$ref": "#/definitions/FilterNode",
-          "description": "PRO only — restrict the listing to clients whose labels match this filter."
+          "description": "label_filter restricts the listing to clients whose labels match this\nfilter. Centrifugo PRO only."
         }
-      }
+      },
+      "description": "ConnectionsRequest returns information about active connections, without\nthe need to enable presence. At least one of user, expression or\nlabel_filter must be set. Centrifugo PRO only."
     },
     "ConnectionsResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/ConnectionsResult"
+          "$ref": "#/definitions/ConnectionsResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "ConnectionsResponse is the response to a ConnectionsRequest.\nCentrifugo PRO only."
     },
     "ConnectionsResult": {
       "type": "object",
@@ -2063,9 +2219,11 @@
           "type": "object",
           "additionalProperties": {
             "$ref": "#/definitions/ConnectionInfo"
-          }
+          },
+          "description": "connections maps client ID to information about the connection."
         }
-      }
+      },
+      "description": "ConnectionsResult is the result of a connections call.\nCentrifugo PRO only."
     },
     "DeleteUserStatusRequest": {
       "type": "object",
@@ -2074,70 +2232,89 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "users is the list of user IDs to delete the status for. Required."
         }
-      }
+      },
+      "description": "DeleteUserStatusRequest deletes the status of users. Centrifugo PRO only."
     },
     "DeleteUserStatusResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/DeleteUserStatusResult"
+          "$ref": "#/definitions/DeleteUserStatusResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "DeleteUserStatusResponse is the response to a DeleteUserStatusRequest.\nCentrifugo PRO only."
     },
     "DeleteUserStatusResult": {
-      "type": "object"
+      "type": "object",
+      "description": "DeleteUserStatusResult is the result of a delete user status call. Empty\nat the moment. Centrifugo PRO only."
     },
     "Device": {
       "type": "object",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "id is the device ID."
         },
         "platform": {
-          "type": "string"
+          "type": "string",
+          "description": "platform is the device platform."
         },
         "provider": {
-          "type": "string"
+          "type": "string",
+          "description": "provider is the device token provider."
         },
         "token": {
-          "type": "string"
+          "type": "string",
+          "description": "token is the device token. For webpush, it is the subscription\nendpoint."
         },
         "user": {
-          "type": "string"
+          "type": "string",
+          "description": "user is the user associated with the device."
         },
         "created_at": {
-          "type": "integer"
+          "type": "integer",
+          "description": "created_at is the Unix time in milliseconds when the device was\ncreated."
         },
         "updated_at": {
-          "type": "integer"
+          "type": "integer",
+          "description": "updated_at is the Unix time in milliseconds when the device was last\nupdated."
         },
         "meta": {
           "type": "object",
           "additionalProperties": {
             "type": "string"
-          }
+          },
+          "description": "meta is the device meta. Only set if include_meta was requested."
         },
         "topics": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "topics are the device topics. Only set if include_topics was\nrequested."
         },
         "timezone": {
-          "type": "string"
+          "type": "string",
+          "description": "timezone is the device timezone."
         },
         "locale": {
-          "type": "string"
+          "type": "string",
+          "description": "locale is the device locale."
         },
         "webpush_keys": {
-          "type": "string"
+          "type": "string",
+          "description": "webpush_keys is the Web Push subscription keys JSON ({p256dh, auth}).\nOnly set if include_webpush_keys was requested."
         }
-      }
+      },
+      "description": "Device is a device registered for push notifications. Centrifugo PRO only."
     },
     "DeviceFilter": {
       "type": "object",
@@ -2146,71 +2323,88 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "ids selects devices by ID."
         },
         "users": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "users selects devices by user."
         },
         "topics": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "topics selects devices by subscribed topic."
         },
         "providers": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "providers selects devices by token provider."
         },
         "platforms": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "platforms selects devices by platform."
         }
-      }
+      },
+      "description": "DeviceFilter selects devices. Centrifugo PRO only."
     },
     "DeviceListRequest": {
       "type": "object",
       "properties": {
         "filter": {
-          "$ref": "#/definitions/DeviceFilter"
+          "$ref": "#/definitions/DeviceFilter",
+          "description": "filter selects the devices to list. Required."
         },
         "include_total_count": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "include_total_count includes the total count for the filter in the\nresult."
         },
         "include_meta": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "include_meta includes meta of each device."
         },
         "include_topics": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "include_topics includes topics of each device."
         },
         "include_webpush_keys": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "include_webpush_keys includes webpush_keys of each device (webpush\nonly)."
         },
         "cursor": {
-          "type": "string"
+          "type": "string",
+          "description": "cursor is the pagination cursor: next_cursor of the previous page,\nempty for the first page."
         },
         "limit": {
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "description": "limit is the maximum number of devices to return."
         }
-      }
+      },
+      "description": "DeviceListRequest returns a paginated list of registered devices.\nCentrifugo PRO only."
     },
     "DeviceListResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/DeviceListResult"
+          "$ref": "#/definitions/DeviceListResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "DeviceListResponse is the response to a DeviceListRequest.\nCentrifugo PRO only."
     },
     "DeviceListResult": {
       "type": "object",
@@ -2220,23 +2414,29 @@
           "items": {
             "type": "object",
             "$ref": "#/definitions/Device"
-          }
+          },
+          "description": "items are the devices of this page."
         },
         "next_cursor": {
-          "type": "string"
+          "type": "string",
+          "description": "next_cursor is the cursor of the next page. Empty if there is no next\npage."
         },
         "total_count": {
-          "type": "integer"
+          "type": "integer",
+          "description": "total_count is the total count for the filter, if include_total_count\nwas set."
         }
-      }
+      },
+      "description": "DeviceListResult is the result of a device list call.\nCentrifugo PRO only."
     },
     "DeviceLocaleUpdate": {
       "type": "object",
       "properties": {
         "locale": {
-          "type": "string"
+          "type": "string",
+          "description": "locale is the locale to set. Required."
         }
-      }
+      },
+      "description": "DeviceLocaleUpdate sets the locale of devices. Centrifugo PRO only."
     },
     "DeviceMetaUpdate": {
       "type": "object",
@@ -2245,66 +2445,83 @@
           "type": "object",
           "additionalProperties": {
             "type": "string"
-          }
+          },
+          "description": "meta is the meta to set. Required."
         }
-      }
+      },
+      "description": "DeviceMetaUpdate sets the meta of devices. Centrifugo PRO only."
     },
     "DeviceRegisterRequest": {
       "type": "object",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "id is the device ID. Omit it on first registration: Centrifugo\ngenerates one and returns it. Pass the stored value to update the\ndevice."
         },
         "provider": {
-          "type": "string"
+          "type": "string",
+          "description": "provider is the provider of the device token: fcm, hms, apns or\nwebpush. Required."
         },
         "token": {
-          "type": "string"
+          "type": "string",
+          "description": "token is the push token of the device. For webpush, it is the browser\nPushSubscription serialized as a JSON string. Required."
         },
         "platform": {
-          "type": "string"
+          "type": "string",
+          "description": "platform is the device platform: ios, android or web. Required."
         },
         "user": {
-          "type": "string"
+          "type": "string",
+          "description": "user is the user associated with the device."
         },
         "meta": {
           "type": "object",
           "additionalProperties": {
             "type": "string"
-          }
+          },
+          "description": "meta is additional custom metadata of the device."
         },
         "topics": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "topics is the full list of the device's topic subscriptions, replacing\nthe previous one. The user's topics are attached automatically."
         },
         "timezone": {
-          "type": "string"
+          "type": "string",
+          "description": "timezone is the IANA time zone of the device user, for example\nEurope/Nicosia."
         },
         "locale": {
-          "type": "string"
+          "type": "string",
+          "description": "locale is the locale of the device user as an IETF BCP 47 language\ntag, for example en-US."
         }
-      }
+      },
+      "description": "DeviceRegisterRequest registers a device for push notifications, or\nupdates a registered one. Centrifugo PRO only."
     },
     "DeviceRegisterResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/DeviceRegisterResult"
+          "$ref": "#/definitions/DeviceRegisterResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "DeviceRegisterResponse is the response to a DeviceRegisterRequest.\nCentrifugo PRO only."
     },
     "DeviceRegisterResult": {
       "type": "object",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "id is the ID of the registered or updated device."
         }
-      }
+      },
+      "description": "DeviceRegisterResult is the result of a device register call.\nCentrifugo PRO only."
     },
     "DeviceRemoveRequest": {
       "type": "object",
@@ -2313,51 +2530,64 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "ids selects devices to remove by ID."
         },
         "users": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "users selects devices to remove by user."
         }
-      }
+      },
+      "description": "DeviceRemoveRequest removes devices, selected by ids and/or users.\nCentrifugo PRO only."
     },
     "DeviceRemoveResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/DeviceRemoveResult"
+          "$ref": "#/definitions/DeviceRemoveResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "DeviceRemoveResponse is the response to a DeviceRemoveRequest.\nCentrifugo PRO only."
     },
     "DeviceRemoveResult": {
-      "type": "object"
+      "type": "object",
+      "description": "DeviceRemoveResult is the result of a device remove call. Empty at the\nmoment. Centrifugo PRO only."
     },
     "DeviceTimezoneUpdate": {
       "type": "object",
       "properties": {
         "timezone": {
-          "type": "string"
+          "type": "string",
+          "description": "timezone is the IANA time zone to set. Required."
         }
-      }
+      },
+      "description": "DeviceTimezoneUpdate sets the timezone of devices. Centrifugo PRO only."
     },
     "DeviceTopic": {
       "type": "object",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "id is the ID of the device topic."
         },
         "topic": {
-          "type": "string"
+          "type": "string",
+          "description": "topic is the topic."
         },
         "device": {
-          "$ref": "#/definitions/Device"
+          "$ref": "#/definitions/Device",
+          "description": "device is the device. Only set if include_device was requested."
         }
-      }
+      },
+      "description": "DeviceTopic is a topic subscription of a device. Centrifugo PRO only."
     },
     "DeviceTopicFilter": {
       "type": "object",
@@ -2366,68 +2596,84 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "device_ids selects by device ID."
         },
         "device_providers": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "device_providers selects by device token provider."
         },
         "device_platforms": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "device_platforms selects by device platform."
         },
         "device_users": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "device_users selects by device user."
         },
         "topics": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "topics selects by topic."
         },
         "topic_prefix": {
-          "type": "string"
+          "type": "string",
+          "description": "topic_prefix selects by topic prefix."
         }
-      }
+      },
+      "description": "DeviceTopicFilter selects device topic subscriptions. Centrifugo PRO only."
     },
     "DeviceTopicListRequest": {
       "type": "object",
       "properties": {
         "filter": {
-          "$ref": "#/definitions/DeviceTopicFilter"
+          "$ref": "#/definitions/DeviceTopicFilter",
+          "description": "filter selects the device topics to list."
         },
         "include_total_count": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "include_total_count includes the total count for the filter in the\nresult."
         },
         "include_device": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "include_device includes the Device of each item."
         },
         "cursor": {
-          "type": "string"
+          "type": "string",
+          "description": "cursor is the pagination cursor: next_cursor of the previous page,\nempty for the first page."
         },
         "limit": {
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "description": "limit is the maximum number of items to return."
         }
-      }
+      },
+      "description": "DeviceTopicListRequest returns a paginated list of device topic\nsubscriptions. Centrifugo PRO only."
     },
     "DeviceTopicListResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/DeviceTopicListResult"
+          "$ref": "#/definitions/DeviceTopicListResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "DeviceTopicListResponse is the response to a DeviceTopicListRequest.\nCentrifugo PRO only."
     },
     "DeviceTopicListResult": {
       "type": "object",
@@ -2437,66 +2683,79 @@
           "items": {
             "type": "object",
             "$ref": "#/definitions/DeviceTopic"
-          }
+          },
+          "description": "items are the device topics of this page."
         },
         "next_cursor": {
-          "type": "string"
+          "type": "string",
+          "description": "next_cursor is the cursor of the next page. Empty if there is no next\npage."
         },
         "total_count": {
-          "type": "integer"
+          "type": "integer",
+          "description": "total_count is the total count for the filter, if include_total_count\nwas set."
         }
-      }
+      },
+      "description": "DeviceTopicListResult is the result of a device topic list call.\nCentrifugo PRO only."
     },
     "DeviceTopicUpdateRequest": {
       "type": "object",
       "properties": {
         "device_id": {
-          "type": "string"
+          "type": "string",
+          "description": "device_id is the ID of the device. Required."
         },
         "op": {
           "type": "string",
-          "title": "add | remove | set"
+          "description": "op is the operation: add, remove or set. Required."
         },
         "topics": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "topics are the topics for the operation."
         },
         "user": {
           "type": "string",
-          "title": "optional ownership guard: apply only if the device currently belongs to this user"
+          "description": "user is an optional ownership guard: the update is applied only if the\ndevice currently belongs to this user. Otherwise the call fails with a\nconflict error (or not found if there is no such device)."
         }
-      }
+      },
+      "description": "DeviceTopicUpdateRequest changes the topics of a device. The device topic\nlist is what decides who gets a push sent to a topic.\nCentrifugo PRO only."
     },
     "DeviceTopicUpdateResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/DeviceTopicUpdateResult"
+          "$ref": "#/definitions/DeviceTopicUpdateResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "DeviceTopicUpdateResponse is the response to a DeviceTopicUpdateRequest.\nCentrifugo PRO only."
     },
     "DeviceTopicUpdateResult": {
-      "type": "object"
+      "type": "object",
+      "description": "DeviceTopicUpdateResult is the result of a device topic update call.\nEmpty at the moment. Centrifugo PRO only."
     },
     "DeviceTopicsUpdate": {
       "type": "object",
       "properties": {
         "op": {
           "type": "string",
-          "title": "add | remove | set"
+          "description": "op is the operation: add, remove or set. Required."
         },
         "topics": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "topics are the topics for the operation."
         }
-      }
+      },
+      "description": "DeviceTopicsUpdate changes the topics of devices. Centrifugo PRO only."
     },
     "DeviceUpdateRequest": {
       "type": "object",
@@ -2505,148 +2764,183 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "ids selects devices by ID."
         },
         "users": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "users selects devices by user."
         },
         "user_update": {
-          "$ref": "#/definitions/DeviceUserUpdate"
+          "$ref": "#/definitions/DeviceUserUpdate",
+          "description": "user_update changes the user ID of the devices. It does not re-sync\nuser-bound topics; use DeviceRegisterRequest to assign a device to\nanother user."
         },
         "meta_update": {
-          "$ref": "#/definitions/DeviceMetaUpdate"
+          "$ref": "#/definitions/DeviceMetaUpdate",
+          "description": "meta_update updates the device meta."
         },
         "topics_update": {
-          "$ref": "#/definitions/DeviceTopicsUpdate"
+          "$ref": "#/definitions/DeviceTopicsUpdate",
+          "description": "topics_update updates the device topics."
         },
         "timezone_update": {
-          "$ref": "#/definitions/DeviceTimezoneUpdate"
+          "$ref": "#/definitions/DeviceTimezoneUpdate",
+          "description": "timezone_update updates the device timezone."
         },
         "locale_update": {
-          "$ref": "#/definitions/DeviceLocaleUpdate"
+          "$ref": "#/definitions/DeviceLocaleUpdate",
+          "description": "locale_update updates the device locale."
         }
-      }
+      },
+      "description": "DeviceUpdateRequest updates registered devices, selected by ids and/or\nusers. Centrifugo PRO only."
     },
     "DeviceUpdateResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/DeviceUpdateResult"
+          "$ref": "#/definitions/DeviceUpdateResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "DeviceUpdateResponse is the response to a DeviceUpdateRequest.\nCentrifugo PRO only."
     },
     "DeviceUpdateResult": {
-      "type": "object"
+      "type": "object",
+      "description": "DeviceUpdateResult is the result of a device update call. Empty at the\nmoment. Centrifugo PRO only."
     },
     "DeviceUserUpdate": {
       "type": "object",
       "properties": {
         "user": {
-          "type": "string"
+          "type": "string",
+          "description": "user is the user ID to set. Required."
         }
-      }
+      },
+      "description": "DeviceUserUpdate sets the user of devices. Centrifugo PRO only."
     },
     "DisconnectRequest": {
       "type": "object",
       "properties": {
         "user": {
-          "type": "string"
+          "type": "string",
+          "description": "user is the ID of the user to disconnect. Required, unless all_users is\nused in Centrifugo PRO."
         },
         "disconnect": {
-          "$ref": "#/definitions/api.Disconnect"
+          "$ref": "#/definitions/api.Disconnect",
+          "description": "disconnect is a custom disconnect code and reason. If not set, clients\nare disconnected with a force no-reconnect disconnect."
         },
         "client": {
-          "type": "string"
+          "type": "string",
+          "description": "client limits the call to the connection with this client ID. user is\nstill required."
         },
         "whitelist": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "whitelist is a list of client IDs to keep connected."
         },
         "session": {
-          "type": "string"
+          "type": "string",
+          "description": "session limits the call to the connection with this session ID. user\nis still required."
         },
         "label_filter": {
           "$ref": "#/definitions/FilterNode",
-          "description": "PRO only — restrict the call to clients whose labels match this filter."
+          "description": "label_filter restricts the call to clients whose labels match this\nfilter. Centrifugo PRO only."
         },
         "all_users": {
           "type": "boolean",
-          "description": "PRO only — see SubscribeRequest.all_users."
+          "description": "all_users works as SubscribeRequest.all_users. Centrifugo PRO only."
         }
-      }
+      },
+      "description": "DisconnectRequest disconnects a user's connections."
     },
     "DisconnectResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/DisconnectResult"
+          "$ref": "#/definitions/DisconnectResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "DisconnectResponse is the response to a DisconnectRequest."
     },
     "DisconnectResult": {
-      "type": "object"
+      "type": "object",
+      "description": "DisconnectResult is the result of a disconnect call. Empty at the moment."
     },
     "Error": {
       "type": "object",
       "properties": {
         "code": {
           "type": "integer",
-          "format": "int64"
+          "format": "int64",
+          "description": "code is the Centrifugo error code, for example 100 (internal error),\n102 (unknown channel), 104 (not found), 107 (bad request) or\n108 (not available)."
         },
         "message": {
-          "type": "string"
+          "type": "string",
+          "description": "message is a human-readable description of the error."
         }
-      }
+      },
+      "description": "Error is a Centrifugo API error. It has the same structure in every API\nresponse."
     },
     "FcmPushNotification": {
       "type": "object",
       "properties": {
         "message": {
-          "type": "object"
+          "type": "object",
+          "description": "message is the FCM Message object as JSON. Required."
         }
-      }
+      },
+      "description": "FcmPushNotification is a notification for FCM. Centrifugo PRO only."
     },
     "FilterNode": {
       "type": "object",
       "properties": {
         "op": {
-          "type": "string"
+          "type": "string",
+          "description": "op is the logical operation of a non-leaf node: \"and\", \"or\" or \"not\".\nEmpty for a leaf node."
         },
         "key": {
-          "type": "string"
+          "type": "string",
+          "description": "key is the label key a leaf node compares."
         },
         "cmp": {
-          "type": "string"
+          "type": "string",
+          "description": "cmp is the comparison of a leaf node: \"eq\", \"neq\", \"in\", \"nin\", \"ex\",\n\"nex\", \"sw\", \"ew\", \"ct\", \"gt\", \"gte\", \"lt\" or \"lte\"."
         },
         "val": {
-          "type": "string"
+          "type": "string",
+          "description": "val is the value to compare with, for single-value comparisons."
         },
         "vals": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "vals are the values to compare with, for \"in\" and \"nin\"."
         },
         "nodes": {
           "type": "array",
           "items": {
             "type": "object",
             "$ref": "#/definitions/FilterNode"
-          }
+          },
+          "description": "nodes are the child nodes of a logical operation."
         }
       },
-      "description": "FilterNode is a tree describing a label predicate.\nUsed as label_filter on Subscribe/Unsubscribe/Disconnect/Refresh/Connections requests.\nPRO only — defined in OSS api.proto for protocol-surface consistency; OSS handlers parse but do not act on it."
+      "description": "FilterNode is a tree describing a predicate over client labels. Used as\nlabel_filter on Subscribe, Unsubscribe, Disconnect, Refresh and\nConnections requests. A node is either a leaf comparison (key, cmp, val or\nvals) or a logical operation (op) over child nodes.\nCentrifugo PRO only: defined here for protocol-surface consistency,\nCentrifugo OSS parses it but ignores it."
     },
     "GetUserStatusRequest": {
       "type": "object",
@@ -2655,20 +2949,25 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "users is the list of user IDs to get the status for. Required."
         }
-      }
+      },
+      "description": "GetUserStatusRequest returns the status of users. Centrifugo PRO only."
     },
     "GetUserStatusResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/GetUserStatusResult"
+          "$ref": "#/definitions/GetUserStatusResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "GetUserStatusResponse is the response to a GetUserStatusRequest.\nCentrifugo PRO only."
     },
     "GetUserStatusResult": {
       "type": "object",
@@ -2678,60 +2977,76 @@
           "items": {
             "type": "object",
             "$ref": "#/definitions/UserStatus"
-          }
+          },
+          "description": "statuses are the statuses of the requested users, in the same order."
         }
-      }
+      },
+      "description": "GetUserStatusResult is the result of a get user status call.\nCentrifugo PRO only."
     },
     "HistoryRemoveRequest": {
       "type": "object",
       "properties": {
         "channel": {
-          "type": "string"
+          "type": "string",
+          "description": "channel is the name of the channel. Required."
         }
-      }
+      },
+      "description": "HistoryRemoveRequest removes publications from the history of a channel.\nThe current top stream position is kept, so clients do not get\ndisconnected because of insufficient state."
     },
     "HistoryRemoveResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/HistoryRemoveResult"
+          "$ref": "#/definitions/HistoryRemoveResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "HistoryRemoveResponse is the response to a HistoryRemoveRequest."
     },
     "HistoryRemoveResult": {
-      "type": "object"
+      "type": "object",
+      "description": "HistoryRemoveResult is the result of a history remove call. Empty at the\nmoment."
     },
     "HistoryRequest": {
       "type": "object",
       "properties": {
         "channel": {
-          "type": "string"
+          "type": "string",
+          "description": "channel is the name of the channel. Required."
         },
         "limit": {
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "description": "limit is the maximum number of publications to return; -1 returns all\nthe channel keeps. If not set, only the current stream position is\nreturned, without publications."
         },
         "since": {
-          "$ref": "#/definitions/StreamPosition"
+          "$ref": "#/definitions/StreamPosition",
+          "description": "since returns publications after this stream position."
         },
         "reverse": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "reverse iterates in reverse order, from latest to earliest."
         }
-      }
+      },
+      "description": "HistoryRequest returns publications from the history of a channel.\nHistory must be enabled for the channel."
     },
     "HistoryResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/HistoryResult"
+          "$ref": "#/definitions/HistoryResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "HistoryResponse is the response to a HistoryRequest."
     },
     "HistoryResult": {
       "type": "object",
@@ -2741,37 +3056,47 @@
           "items": {
             "type": "object",
             "$ref": "#/definitions/Publication"
-          }
+          },
+          "description": "publications is the list of publications."
         },
         "epoch": {
-          "type": "string"
+          "type": "string",
+          "description": "epoch is the epoch of the current stream."
         },
         "offset": {
-          "type": "integer"
+          "type": "integer",
+          "description": "offset is the top offset of the history stream."
         }
-      }
+      },
+      "description": "HistoryResult is the result of a history call."
     },
     "HmsPushNotification": {
       "type": "object",
       "properties": {
         "message": {
-          "type": "object"
+          "type": "object",
+          "description": "message is the HMS Message object as JSON. Required."
         }
-      }
+      },
+      "description": "HmsPushNotification is a notification for HMS. Centrifugo PRO only."
     },
     "InfoRequest": {
-      "type": "object"
+      "type": "object",
+      "description": "InfoRequest returns information about the running Centrifugo nodes."
     },
     "InfoResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/InfoResult"
+          "$ref": "#/definitions/InfoResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "InfoResponse is the response to an InfoRequest."
     },
     "InfoResult": {
       "type": "object",
@@ -2781,204 +3106,262 @@
           "items": {
             "type": "object",
             "$ref": "#/definitions/NodeResult"
-          }
+          },
+          "description": "nodes is information about all nodes of the cluster."
         }
-      }
+      },
+      "description": "InfoResult is the result of an info call."
     },
     "InvalidateUserTokensRequest": {
       "type": "object",
       "properties": {
         "expire_at": {
-          "type": "integer"
+          "type": "integer",
+          "description": "expire_at is the Unix time in seconds when the invalidation expires.\nOptional, but a value matching the token expiration is recommended."
         },
         "user": {
-          "type": "string"
+          "type": "string",
+          "description": "user is the ID of the user whose tokens to invalidate. Required."
         },
         "issued_before": {
-          "type": "integer"
+          "type": "integer",
+          "description": "issued_before is the Unix time in seconds: tokens issued before it are\nconsidered revoked. If not set, the current time is used."
         },
         "channel": {
-          "type": "string"
+          "type": "string",
+          "description": "channel limits the invalidation to subscription tokens for this\nchannel."
         }
-      }
+      },
+      "description": "InvalidateUserTokensRequest revokes all tokens of a user issued before a\ncertain time (based on the iat claim of a JWT). Centrifugo PRO only."
     },
     "InvalidateUserTokensResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/InvalidateUserTokensResult"
+          "$ref": "#/definitions/InvalidateUserTokensResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "InvalidateUserTokensResponse is the response to an\nInvalidateUserTokensRequest. Centrifugo PRO only."
     },
     "InvalidateUserTokensResult": {
-      "type": "object"
+      "type": "object",
+      "description": "InvalidateUserTokensResult is the result of an invalidate user tokens\ncall. Empty at the moment. Centrifugo PRO only."
     },
     "MapClearRequest": {
       "type": "object",
       "properties": {
         "channel": {
-          "type": "string"
+          "type": "string",
+          "description": "channel is the name of the map channel. Required."
         }
-      }
+      },
+      "description": "MapClearRequest removes all state and stream data of a map channel."
     },
     "MapClearResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/MapClearResult"
+          "$ref": "#/definitions/MapClearResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "MapClearResponse is the response to a MapClearRequest."
     },
     "MapClearResult": {
-      "type": "object"
+      "type": "object",
+      "description": "MapClearResult is the result of a map clear call. Empty at the moment."
     },
     "MapEntry": {
       "type": "object",
       "properties": {
         "key": {
-          "type": "string"
+          "type": "string",
+          "description": "key is the entry key."
         },
         "data": {
-          "type": "object"
+          "type": "object",
+          "description": "data is the entry data."
         },
         "tags": {
           "type": "object",
           "additionalProperties": {
             "type": "string"
-          }
+          },
+          "description": "tags are the entry tags."
         },
         "offset": {
-          "type": "integer"
+          "type": "integer",
+          "description": "offset is the offset of the entry in the channel stream."
         },
         "score": {
-          "type": "integer"
+          "type": "integer",
+          "description": "score is the sort value of the entry in ordered map channels."
         },
         "removed": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "removed is true for a removal event."
         },
         "time": {
-          "type": "integer"
+          "type": "integer",
+          "description": "time is the time of the publication as Unix milliseconds, if known."
         }
-      }
+      },
+      "description": "MapEntry is an entry of a map channel state or stream."
     },
     "MapPublishRequest": {
       "type": "object",
       "properties": {
         "channel": {
-          "type": "string"
+          "type": "string",
+          "description": "channel is the name of the map channel. Required."
         },
         "key": {
-          "type": "string"
+          "type": "string",
+          "description": "key is the entry key. Required."
         },
         "data": {
-          "type": "object"
+          "type": "object",
+          "description": "data is the entry data. In the HTTP API it is any JSON value; over GRPC\nit may be binary."
         },
         "b64data": {
-          "type": "string"
+          "type": "string",
+          "description": "b64data is data as base64, for binary over the HTTP API. Centrifugo\ndecodes it."
         },
         "stream_data": {
-          "type": "object"
+          "type": "object",
+          "description": "stream_data is currently not used by the server API."
         },
         "b64stream_data": {
-          "type": "string"
+          "type": "string",
+          "description": "b64stream_data is currently not used by the server API."
         },
         "tags": {
           "type": "object",
           "additionalProperties": {
             "type": "string"
-          }
+          },
+          "description": "tags are key-value metadata attached to the publication."
         },
         "idempotency_key": {
-          "type": "string"
+          "type": "string",
+          "description": "idempotency_key is a duplicate detection key for safe retries.\nDuplicates are suppressed in the result."
         },
         "delta": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "delta enables delta compression for this publication."
         },
         "version": {
-          "type": "integer"
+          "type": "integer",
+          "description": "version is a per-key version: publications with a version not higher\nthan the key's current one are suppressed."
         },
         "version_epoch": {
-          "type": "string"
+          "type": "string",
+          "description": "version_epoch scopes version. A different epoch resets version\ncomparison."
         },
         "score": {
-          "type": "integer"
+          "type": "integer",
+          "description": "score is currently not used by the server API."
         },
         "key_mode": {
-          "type": "string"
+          "type": "string",
+          "description": "key_mode makes the publish conditional: \"if_new\" writes only if the\nkey does not exist, \"if_exists\" only if it exists. Empty always\nwrites."
         }
-      }
+      },
+      "description": "MapPublishRequest publishes or updates a key in a map channel."
     },
     "MapPublishResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/MapPublishResult"
+          "$ref": "#/definitions/MapPublishResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "MapPublishResponse is the response to a MapPublishRequest."
     },
     "MapPublishResult": {
       "type": "object",
       "properties": {
         "offset": {
-          "type": "integer"
+          "type": "integer",
+          "description": "offset is the offset in the channel stream."
         },
         "epoch": {
-          "type": "string"
+          "type": "string",
+          "description": "epoch is the epoch of the channel stream."
         },
         "suppressed": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "suppressed is true if the publish was not applied, see\nsuppress_reason."
         },
         "suppress_reason": {
-          "type": "string"
+          "type": "string",
+          "description": "suppress_reason explains why the publish was suppressed, for example\n\"idempotency\", \"version\", \"key_exists\" or \"key_not_found\"."
         }
-      }
+      },
+      "description": "MapPublishResult is the result of a map publish call."
     },
     "MapReadStateRequest": {
       "type": "object",
       "properties": {
         "channel": {
-          "type": "string"
+          "type": "string",
+          "description": "channel is the name of the map channel. Required."
         },
         "cursor": {
-          "type": "string"
+          "type": "string",
+          "description": "cursor is the pagination cursor from the previous page. Empty starts\nfrom the beginning."
         },
         "limit": {
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "description": "limit is the maximum number of entries per page: -1 means no limit, 0\nreturns only the stream position. Page sizes may exceed it with the\nRedis map broker."
         },
         "key": {
-          "type": "string"
+          "type": "string",
+          "description": "key reads a single entry by exact key. cursor and limit are ignored\nwhen it is set."
         },
         "asc": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "asc sorts ordered state by score ascending instead of descending.\nIgnored for unordered channels."
         },
         "revision_offset": {
-          "type": "integer"
+          "type": "integer",
+          "description": "revision_offset is the offset of the position from a previous state\nread, used with revision_epoch."
         },
         "revision_epoch": {
-          "type": "string"
+          "type": "string",
+          "description": "revision_epoch is the epoch of the position from a previous state\nread. If the epoch changed, the call fails with an unrecoverable\nposition error."
         }
-      }
+      },
+      "description": "MapReadStateRequest reads the current state of a map channel, with\noptional pagination."
     },
     "MapReadStateResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/MapReadStateResult"
+          "$ref": "#/definitions/MapReadStateResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "MapReadStateResponse is the response to a MapReadStateRequest."
     },
     "MapReadStateResult": {
       "type": "object",
@@ -2988,50 +3371,64 @@
           "items": {
             "type": "object",
             "$ref": "#/definitions/MapEntry"
-          }
+          },
+          "description": "entries are the state entries of this page."
         },
         "offset": {
-          "type": "integer"
+          "type": "integer",
+          "description": "offset is the offset of the channel stream position."
         },
         "epoch": {
-          "type": "string"
+          "type": "string",
+          "description": "epoch is the epoch of the channel stream position."
         },
         "cursor": {
-          "type": "string"
+          "type": "string",
+          "description": "cursor is the cursor of the next page. Empty if there are no more\nentries."
         }
-      }
+      },
+      "description": "MapReadStateResult is the result of a map read state call."
     },
     "MapReadStreamRequest": {
       "type": "object",
       "properties": {
         "channel": {
-          "type": "string"
+          "type": "string",
+          "description": "channel is the name of the map channel. Required."
         },
         "since_offset": {
-          "type": "integer"
+          "type": "integer",
+          "description": "since_offset returns entries after this offset, used with\nsince_epoch."
         },
         "since_epoch": {
-          "type": "string"
+          "type": "string",
+          "description": "since_epoch is the epoch of the since position. It must match the\ncurrent stream epoch."
         },
         "limit": {
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "description": "limit is the maximum number of entries: -1 means no limit, 0 returns\nonly the stream position."
         },
         "reverse": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "reverse returns entries newest first."
         }
-      }
+      },
+      "description": "MapReadStreamRequest reads the change stream of a map channel."
     },
     "MapReadStreamResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/MapReadStreamResult"
+          "$ref": "#/definitions/MapReadStreamResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "MapReadStreamResponse is the response to a MapReadStreamRequest."
     },
     "MapReadStreamResult": {
       "type": "object",
@@ -3041,160 +3438,202 @@
           "items": {
             "type": "object",
             "$ref": "#/definitions/MapEntry"
-          }
+          },
+          "description": "entries are the stream entries."
         },
         "offset": {
-          "type": "integer"
+          "type": "integer",
+          "description": "offset is the top offset of the channel stream."
         },
         "epoch": {
-          "type": "string"
+          "type": "string",
+          "description": "epoch is the epoch of the channel stream."
         }
-      }
+      },
+      "description": "MapReadStreamResult is the result of a map read stream call."
     },
     "MapRemoveRequest": {
       "type": "object",
       "properties": {
         "channel": {
-          "type": "string"
+          "type": "string",
+          "description": "channel is the name of the map channel. Required."
         },
         "key": {
-          "type": "string"
+          "type": "string",
+          "description": "key is the key to remove. Required."
         },
         "idempotency_key": {
-          "type": "string"
+          "type": "string",
+          "description": "idempotency_key is a duplicate detection key for safe retries."
         }
-      }
+      },
+      "description": "MapRemoveRequest removes a key from a map channel."
     },
     "MapRemoveResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/MapRemoveResult"
+          "$ref": "#/definitions/MapRemoveResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "MapRemoveResponse is the response to a MapRemoveRequest."
     },
     "MapRemoveResult": {
       "type": "object",
       "properties": {
         "offset": {
-          "type": "integer"
+          "type": "integer",
+          "description": "offset is the offset in the channel stream."
         },
         "epoch": {
-          "type": "string"
+          "type": "string",
+          "description": "epoch is the epoch of the channel stream."
         },
         "suppressed": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "suppressed is true if the removal was not applied, see\nsuppress_reason."
         },
         "suppress_reason": {
-          "type": "string"
+          "type": "string",
+          "description": "suppress_reason explains why the removal was suppressed, for example\n\"idempotency\" or \"key_not_found\"."
         }
-      }
+      },
+      "description": "MapRemoveResult is the result of a map remove call."
     },
     "MapStatsRequest": {
       "type": "object",
       "properties": {
         "channel": {
-          "type": "string"
+          "type": "string",
+          "description": "channel is the name of the map channel. Required."
         }
-      }
+      },
+      "description": "MapStatsRequest returns statistics about a map channel."
     },
     "MapStatsResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/MapStatsResult"
+          "$ref": "#/definitions/MapStatsResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "MapStatsResponse is the response to a MapStatsRequest."
     },
     "MapStatsResult": {
       "type": "object",
       "properties": {
         "num_keys": {
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "description": "num_keys is the number of entries in the channel state."
         }
-      }
+      },
+      "description": "MapStatsResult is the result of a map stats call."
     },
     "Metrics": {
       "type": "object",
       "properties": {
         "interval": {
           "type": "number",
-          "format": "double"
+          "format": "double",
+          "description": "interval is the metrics aggregation interval in seconds."
         },
         "items": {
           "type": "object",
           "additionalProperties": {
             "type": "number",
             "format": "double"
-          }
+          },
+          "description": "items maps metric name to value."
         }
-      }
+      },
+      "description": "Metrics are aggregated metrics of a node."
     },
     "NodeResult": {
       "type": "object",
       "properties": {
         "uid": {
-          "type": "string"
+          "type": "string",
+          "description": "uid is the unique ID of the node."
         },
         "name": {
-          "type": "string"
+          "type": "string",
+          "description": "name is the node name."
         },
         "version": {
-          "type": "string"
+          "type": "string",
+          "description": "version is the Centrifugo version of the node."
         },
         "num_clients": {
           "type": "integer",
-          "format": "int64"
+          "format": "int64",
+          "description": "num_clients is the number of clients connected to the node."
         },
         "num_users": {
           "type": "integer",
-          "format": "int64"
+          "format": "int64",
+          "description": "num_users is the number of unique users connected to the node."
         },
         "num_channels": {
           "type": "integer",
-          "format": "int64"
+          "format": "int64",
+          "description": "num_channels is the number of active channels on the node."
         },
         "uptime": {
           "type": "integer",
-          "format": "int64"
+          "format": "int64",
+          "description": "uptime is the node uptime in seconds."
         },
         "metrics": {
-          "$ref": "#/definitions/Metrics"
+          "$ref": "#/definitions/Metrics",
+          "description": "metrics are aggregated node metrics, if available."
         },
         "process": {
-          "$ref": "#/definitions/Process"
+          "$ref": "#/definitions/Process",
+          "description": "process is CPU and memory usage of the node process.\nCentrifugo PRO only."
         },
         "num_subs": {
           "type": "integer",
-          "format": "int64"
+          "format": "int64",
+          "description": "num_subs is the number of subscriptions on the node."
         }
-      }
+      },
+      "description": "NodeResult is information about a Centrifugo node."
     },
     "PresenceRequest": {
       "type": "object",
       "properties": {
         "channel": {
-          "type": "string"
+          "type": "string",
+          "description": "channel is the name of the channel. Required."
         }
-      }
+      },
+      "description": "PresenceRequest returns the online presence of a channel: all clients\ncurrently subscribed to it. Presence must be enabled for the channel."
     },
     "PresenceResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/PresenceResult"
+          "$ref": "#/definitions/PresenceResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "PresenceResponse is the response to a PresenceRequest."
     },
     "PresenceResult": {
       "type": "object",
@@ -3203,142 +3642,178 @@
           "type": "object",
           "additionalProperties": {
             "$ref": "#/definitions/ClientInfo"
-          }
+          },
+          "description": "presence maps client ID to information about the client."
         }
-      }
+      },
+      "description": "PresenceResult is the result of a presence call."
     },
     "PresenceStatsRequest": {
       "type": "object",
       "properties": {
         "channel": {
-          "type": "string"
+          "type": "string",
+          "description": "channel is the name of the channel. Required."
         }
-      }
+      },
+      "description": "PresenceStatsRequest returns short presence information of a channel: the\nnumber of clients and of unique users. Presence must be enabled for the\nchannel."
     },
     "PresenceStatsResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/PresenceStatsResult"
+          "$ref": "#/definitions/PresenceStatsResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "PresenceStatsResponse is the response to a PresenceStatsRequest."
     },
     "PresenceStatsResult": {
       "type": "object",
       "properties": {
         "num_clients": {
           "type": "integer",
-          "format": "int64"
+          "format": "int64",
+          "description": "num_clients is the total number of clients in the channel."
         },
         "num_users": {
           "type": "integer",
-          "format": "int64"
+          "format": "int64",
+          "description": "num_users is the number of unique users in the channel."
         }
-      }
+      },
+      "description": "PresenceStatsResult is the result of a presence stats call."
     },
     "Process": {
       "type": "object",
       "properties": {
         "cpu": {
           "type": "number",
-          "format": "double"
+          "format": "double",
+          "description": "cpu is the CPU usage of the process in percent."
         },
         "rss": {
-          "type": "integer"
+          "type": "integer",
+          "description": "rss is the resident set size of the process in bytes."
         }
-      }
+      },
+      "description": "Process is resource usage of a node process. Centrifugo PRO only."
     },
     "Publication": {
       "type": "object",
       "properties": {
         "data": {
           "type": "object",
-          "title": "Removed: string uid = 1;"
+          "description": "data is the publication payload."
         },
         "info": {
-          "$ref": "#/definitions/ClientInfo"
+          "$ref": "#/definitions/ClientInfo",
+          "description": "info is information about the client that published, if any."
         },
         "offset": {
-          "type": "integer"
+          "type": "integer",
+          "description": "offset is the offset of the publication in the history stream."
         },
         "tags": {
           "type": "object",
           "additionalProperties": {
             "type": "string"
-          }
+          },
+          "description": "tags are the publication tags."
         }
-      }
+      },
+      "description": "Publication is a publication in a channel history.\n\nRemoved: string uid = 1;"
     },
     "PublishRequest": {
       "type": "object",
       "properties": {
         "channel": {
-          "type": "string"
+          "type": "string",
+          "description": "channel is the name of the channel to publish into. Required."
         },
         "data": {
-          "type": "object"
+          "type": "object",
+          "description": "data is the payload to publish. Required unless b64data is set. In the\nHTTP API it is any JSON value; over GRPC it may be binary."
         },
         "b64data": {
-          "type": "string"
+          "type": "string",
+          "description": "b64data is a base64-encoded binary payload, an alternative to `data` to\nsend binary over the HTTP API. Centrifugo decodes it before publishing."
         },
         "skip_history": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "skip_history skips adding this publication to the channel history."
         },
         "tags": {
           "type": "object",
           "additionalProperties": {
             "type": "string"
-          }
+          },
+          "description": "tags is a map of arbitrary string keys and values attached to the\npublication and delivered to clients."
         },
         "idempotency_key": {
-          "type": "string"
+          "type": "string",
+          "description": "idempotency_key drops duplicate publications upon retries. It acts per\nchannel; results are cached for 5 minutes. Supported only by Memory and\nRedis engines."
         },
         "delta": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "delta tells Centrifugo to construct a delta update, if possible, when\nbroadcasting the publication to subscribers."
         },
         "version": {
-          "type": "integer"
+          "type": "integer",
+          "description": "version, when \u003e 0, is the version of the document being sent:\npublications with a version less than or equal to one already seen are\nignored. Only works in channels with history enabled."
         },
         "version_epoch": {
-          "type": "string"
+          "type": "string",
+          "description": "version_epoch is the epoch of version. When it changes, Centrifugo\naccepts the publication even if its version is lower than before."
         }
-      }
+      },
+      "description": "PublishRequest publishes data into a channel."
     },
     "PublishResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the publish failed."
         },
         "result": {
-          "$ref": "#/definitions/PublishResult"
+          "$ref": "#/definitions/PublishResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "PublishResponse is the response to a PublishRequest."
     },
     "PublishResult": {
       "type": "object",
       "properties": {
         "offset": {
-          "type": "integer"
+          "type": "integer",
+          "description": "offset is the offset of the publication in the channel history stream."
         },
         "epoch": {
-          "type": "string"
+          "type": "string",
+          "description": "epoch is the epoch of the channel history stream."
         }
-      }
+      },
+      "description": "PublishResult is the result of a successful publish."
     },
     "PushLimitStrategy": {
       "type": "object",
       "properties": {
         "rate_limit": {
-          "$ref": "#/definitions/PushRateLimitStrategy"
+          "$ref": "#/definitions/PushRateLimitStrategy",
+          "description": "rate_limit sets rate limit policies."
         },
         "time_limit": {
-          "$ref": "#/definitions/PushTimeLimitStrategy"
+          "$ref": "#/definitions/PushTimeLimitStrategy",
+          "description": "time_limit sets a time limit policy based on the device timezone."
         }
-      }
+      },
+      "description": "PushLimitStrategy limits when and how often pushes are sent.\nCentrifugo PRO only."
     },
     "PushLocalization": {
       "type": "object",
@@ -3348,648 +3823,804 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "variable name to value for the specific language/locale."
+          "description": "translations maps variable name to value for the language/locale."
         }
-      }
+      },
+      "description": "PushLocalization holds translations for one language/locale.\nCentrifugo PRO only."
     },
     "PushNotification": {
       "type": "object",
       "properties": {
         "fcm": {
-          "$ref": "#/definitions/FcmPushNotification"
+          "$ref": "#/definitions/FcmPushNotification",
+          "description": "fcm is the notification for FCM."
         },
         "hms": {
-          "$ref": "#/definitions/HmsPushNotification"
+          "$ref": "#/definitions/HmsPushNotification",
+          "description": "hms is the notification for HMS."
         },
         "apns": {
-          "$ref": "#/definitions/ApnsPushNotification"
+          "$ref": "#/definitions/ApnsPushNotification",
+          "description": "apns is the notification for APNs."
         },
         "webpush": {
-          "$ref": "#/definitions/WebPushPushNotification"
+          "$ref": "#/definitions/WebPushPushNotification",
+          "description": "webpush is the notification for Web Push."
         },
         "expire_at": {
           "type": "integer",
-          "description": "timestamp in the future when Centrifugo should stop trying to send push notification."
+          "description": "expire_at is the Unix time in seconds when Centrifugo stops trying to\nsend the notification. Not related to the providers' TTL fields."
         }
-      }
+      },
+      "description": "PushNotification is a push notification in the format of each provider.\nCentrifugo PRO only."
     },
     "PushRateLimitStrategy": {
       "type": "object",
       "properties": {
         "key": {
           "type": "string",
-          "description": "optional key for rate limit policy, supports variables."
+          "description": "key is an optional key for the rate limit policy. Supports variables\n(device.id and device.user)."
         },
         "policies": {
           "type": "array",
           "items": {
             "type": "object",
             "$ref": "#/definitions/RateLimitPolicy"
-          }
+          },
+          "description": "policies are the rate limit policies to apply."
         },
         "drop_if_rate_limited": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "drop_if_rate_limited drops a rate limited push instead of queuing it\nfor later."
         }
-      }
+      },
+      "description": "PushRateLimitStrategy rate limits pushes per device. Centrifugo PRO only."
     },
     "PushRecipient": {
       "type": "object",
       "properties": {
         "filter": {
-          "$ref": "#/definitions/DeviceFilter"
+          "$ref": "#/definitions/DeviceFilter",
+          "description": "filter sends to devices from Centrifugo device storage that match the\nfilter."
         },
         "fcm_tokens": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "fcm_tokens sends to a list of FCM native tokens."
         },
         "fcm_topic": {
-          "type": "string"
+          "type": "string",
+          "description": "fcm_topic sends to an FCM native topic."
         },
         "fcm_condition": {
-          "type": "string"
+          "type": "string",
+          "description": "fcm_condition sends to an FCM native condition."
         },
         "hms_tokens": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "hms_tokens sends to a list of HMS native tokens."
         },
         "hms_topic": {
-          "type": "string"
+          "type": "string",
+          "description": "hms_topic sends to an HMS native topic."
         },
         "hms_condition": {
-          "type": "string"
+          "type": "string",
+          "description": "hms_condition sends to an HMS native condition."
         },
         "apns_tokens": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "apns_tokens sends to a list of APNs native tokens."
         },
         "webpush_tokens": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "webpush_tokens sends to a list of raw Web Push subscriptions, each a\nPushSubscription JSON string."
         }
-      }
+      },
+      "description": "PushRecipient describes who receives a push notification. Set only one\nof its fields. Centrifugo PRO only."
     },
     "PushTimeLimitStrategy": {
       "type": "object",
       "properties": {
         "send_after_time": {
           "type": "string",
-          "title": "HH:MM:SS"
+          "description": "send_after_time is the local time, as HH:MM:SS, after which the push\nmay be sent. Required."
         },
         "send_before_time": {
           "type": "string",
-          "title": "HH:MM:SS"
+          "description": "send_before_time is the local time, as HH:MM:SS, before which the push\nmust be sent. Required."
         },
         "no_tz_send_now": {
           "type": "boolean",
-          "description": "If device timezone is not set - send push now, by default will be dropped."
+          "description": "no_tz_send_now sends the push immediately if the device timezone is\nnot set. By default such pushes are dropped."
         }
-      }
+      },
+      "description": "PushTimeLimitStrategy sends pushes within a window of the device local\ntime. Centrifugo PRO only."
     },
     "RPCRequest": {
       "type": "object",
       "properties": {
         "method": {
-          "type": "string"
+          "type": "string",
+          "description": "method is the name of the method to call. Required."
         },
         "params": {
-          "type": "object"
+          "type": "object",
+          "description": "params are the method parameters."
         }
-      }
+      },
+      "description": "RPCRequest calls a custom server API method registered as an RPC\nextension."
     },
     "RPCResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/RPCResult"
+          "$ref": "#/definitions/RPCResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "RPCResponse is the response to an RPCRequest."
     },
     "RPCResult": {
       "type": "object",
       "properties": {
         "data": {
-          "type": "object"
+          "type": "object",
+          "description": "data is the data returned by the method."
         }
-      }
+      },
+      "description": "RPCResult is the result of an RPC call."
     },
     "RateLimitPolicy": {
       "type": "object",
       "properties": {
         "rate": {
-          "type": "integer"
+          "type": "integer",
+          "description": "rate is the allowed number of pushes per interval. Required."
         },
         "interval_ms": {
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "description": "interval_ms is the interval in milliseconds. Required."
         }
-      }
+      },
+      "description": "RateLimitPolicy allows rate pushes per interval_ms. Centrifugo PRO only."
     },
     "RefreshRequest": {
       "type": "object",
       "properties": {
         "user": {
-          "type": "string"
+          "type": "string",
+          "description": "user is the ID of the user to refresh. Required, unless all_users is\nused in Centrifugo PRO."
         },
         "client": {
-          "type": "string"
+          "type": "string",
+          "description": "client limits the call to the connection with this client ID. user is\nstill required."
         },
         "expired": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "expired marks the connections as expired and closes them with an\nexpired disconnect reason."
         },
         "expire_at": {
-          "type": "integer"
+          "type": "integer",
+          "description": "expire_at is the Unix time in seconds when the connections expire."
         },
         "info": {
-          "type": "object"
+          "type": "object",
+          "description": "info attaches or replaces the connection info."
         },
         "session": {
-          "type": "string"
+          "type": "string",
+          "description": "session limits the call to the connection with this session ID. user\nis still required."
         },
         "label_filter": {
           "$ref": "#/definitions/FilterNode",
-          "description": "PRO only — restrict the call to clients whose labels match this filter."
+          "description": "label_filter restricts the call to clients whose labels match this\nfilter. Centrifugo PRO only."
         },
         "all_users": {
           "type": "boolean",
-          "description": "PRO only — see SubscribeRequest.all_users."
+          "description": "all_users works as SubscribeRequest.all_users. Centrifugo PRO only."
         }
-      }
+      },
+      "description": "RefreshRequest refreshes a user's connections, mostly useful with\nunidirectional transports. Without expire_at the connections become\nnon-expiring."
     },
     "RefreshResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/RefreshResult"
+          "$ref": "#/definitions/RefreshResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "RefreshResponse is the response to a RefreshRequest."
     },
     "RefreshResult": {
-      "type": "object"
+      "type": "object",
+      "description": "RefreshResult is the result of a refresh call. Empty at the moment."
     },
     "Reply": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the command failed."
         },
         "publish": {
-          "$ref": "#/definitions/PublishResult"
+          "$ref": "#/definitions/PublishResult",
+          "description": "publish is the result of a publish command."
         },
         "broadcast": {
-          "$ref": "#/definitions/BroadcastResult"
+          "$ref": "#/definitions/BroadcastResult",
+          "description": "broadcast is the result of a broadcast command."
         },
         "subscribe": {
-          "$ref": "#/definitions/SubscribeResult"
+          "$ref": "#/definitions/SubscribeResult",
+          "description": "subscribe is the result of a subscribe command."
         },
         "unsubscribe": {
-          "$ref": "#/definitions/UnsubscribeResult"
+          "$ref": "#/definitions/UnsubscribeResult",
+          "description": "unsubscribe is the result of an unsubscribe command."
         },
         "disconnect": {
-          "$ref": "#/definitions/DisconnectResult"
+          "$ref": "#/definitions/DisconnectResult",
+          "description": "disconnect is the result of a disconnect command."
         },
         "presence": {
-          "$ref": "#/definitions/PresenceResult"
+          "$ref": "#/definitions/PresenceResult",
+          "description": "presence is the result of a presence command."
         },
         "presence_stats": {
-          "$ref": "#/definitions/PresenceStatsResult"
+          "$ref": "#/definitions/PresenceStatsResult",
+          "description": "presence_stats is the result of a presence stats command."
         },
         "history": {
-          "$ref": "#/definitions/HistoryResult"
+          "$ref": "#/definitions/HistoryResult",
+          "description": "history is the result of a history command."
         },
         "history_remove": {
-          "$ref": "#/definitions/HistoryRemoveResult"
+          "$ref": "#/definitions/HistoryRemoveResult",
+          "description": "history_remove is the result of a history remove command."
         },
         "info": {
-          "$ref": "#/definitions/InfoResult"
+          "$ref": "#/definitions/InfoResult",
+          "description": "info is the result of an info command."
         },
         "rpc": {
-          "$ref": "#/definitions/RPCResult"
+          "$ref": "#/definitions/RPCResult",
+          "description": "rpc is the result of an RPC command."
         },
         "refresh": {
-          "$ref": "#/definitions/RefreshResult"
+          "$ref": "#/definitions/RefreshResult",
+          "description": "refresh is the result of a refresh command."
         },
         "channels": {
-          "$ref": "#/definitions/ChannelsResult"
+          "$ref": "#/definitions/ChannelsResult",
+          "description": "channels is the result of a channels command."
         },
         "connections": {
-          "$ref": "#/definitions/ConnectionsResult"
+          "$ref": "#/definitions/ConnectionsResult",
+          "description": "connections is the result of a connections command.\nCentrifugo PRO only."
         },
         "update_user_status": {
-          "$ref": "#/definitions/UpdateUserStatusResult"
+          "$ref": "#/definitions/UpdateUserStatusResult",
+          "description": "update_user_status is the result of an update user status command.\nCentrifugo PRO only."
         },
         "get_user_status": {
-          "$ref": "#/definitions/GetUserStatusResult"
+          "$ref": "#/definitions/GetUserStatusResult",
+          "description": "get_user_status is the result of a get user status command.\nCentrifugo PRO only."
         },
         "delete_user_status": {
-          "$ref": "#/definitions/DeleteUserStatusResult"
+          "$ref": "#/definitions/DeleteUserStatusResult",
+          "description": "delete_user_status is the result of a delete user status command.\nCentrifugo PRO only."
         },
         "block_user": {
-          "$ref": "#/definitions/BlockUserResult"
+          "$ref": "#/definitions/BlockUserResult",
+          "description": "block_user is the result of a block user command.\nCentrifugo PRO only."
         },
         "unblock_user": {
-          "$ref": "#/definitions/UnblockUserResult"
+          "$ref": "#/definitions/UnblockUserResult",
+          "description": "unblock_user is the result of an unblock user command.\nCentrifugo PRO only."
         },
         "revoke_token": {
-          "$ref": "#/definitions/RevokeTokenResult"
+          "$ref": "#/definitions/RevokeTokenResult",
+          "description": "revoke_token is the result of a revoke token command.\nCentrifugo PRO only."
         },
         "invalidate_user_tokens": {
-          "$ref": "#/definitions/InvalidateUserTokensResult"
+          "$ref": "#/definitions/InvalidateUserTokensResult",
+          "description": "invalidate_user_tokens is the result of an invalidate user tokens\ncommand. Centrifugo PRO only."
         },
         "device_register": {
-          "$ref": "#/definitions/DeviceRegisterResult"
+          "$ref": "#/definitions/DeviceRegisterResult",
+          "description": "device_register is the result of a device register command.\nCentrifugo PRO only."
         },
         "device_update": {
-          "$ref": "#/definitions/DeviceUpdateResult"
+          "$ref": "#/definitions/DeviceUpdateResult",
+          "description": "device_update is the result of a device update command.\nCentrifugo PRO only."
         },
         "device_remove": {
-          "$ref": "#/definitions/DeviceRemoveResult"
+          "$ref": "#/definitions/DeviceRemoveResult",
+          "description": "device_remove is the result of a device remove command.\nCentrifugo PRO only."
         },
         "device_list": {
-          "$ref": "#/definitions/DeviceListResult"
+          "$ref": "#/definitions/DeviceListResult",
+          "description": "device_list is the result of a device list command.\nCentrifugo PRO only."
         },
         "device_topic_list": {
-          "$ref": "#/definitions/DeviceTopicListResult"
+          "$ref": "#/definitions/DeviceTopicListResult",
+          "description": "device_topic_list is the result of a device topic list command.\nCentrifugo PRO only."
         },
         "device_topic_update": {
-          "$ref": "#/definitions/DeviceTopicUpdateResult"
+          "$ref": "#/definitions/DeviceTopicUpdateResult",
+          "description": "device_topic_update is the result of a device topic update command.\nCentrifugo PRO only."
         },
         "user_topic_list": {
-          "$ref": "#/definitions/UserTopicListResult"
+          "$ref": "#/definitions/UserTopicListResult",
+          "description": "user_topic_list is the result of a user topic list command.\nCentrifugo PRO only."
         },
         "user_topic_update": {
-          "$ref": "#/definitions/UserTopicUpdateResult"
+          "$ref": "#/definitions/UserTopicUpdateResult",
+          "description": "user_topic_update is the result of a user topic update command.\nCentrifugo PRO only."
         },
         "send_push_notification": {
-          "$ref": "#/definitions/SendPushNotificationResult"
+          "$ref": "#/definitions/SendPushNotificationResult",
+          "description": "send_push_notification is the result of a send push notification\ncommand. Centrifugo PRO only."
         },
         "update_push_status": {
-          "$ref": "#/definitions/UpdatePushStatusResult"
+          "$ref": "#/definitions/UpdatePushStatusResult",
+          "description": "update_push_status is the result of an update push status command.\nCentrifugo PRO only."
         },
         "cancel_push": {
-          "$ref": "#/definitions/CancelPushResult"
+          "$ref": "#/definitions/CancelPushResult",
+          "description": "cancel_push is the result of a cancel push command.\nCentrifugo PRO only."
         },
         "map_publish": {
-          "$ref": "#/definitions/MapPublishResult"
+          "$ref": "#/definitions/MapPublishResult",
+          "description": "map_publish is the result of a map publish command."
         },
         "map_remove": {
-          "$ref": "#/definitions/MapRemoveResult"
+          "$ref": "#/definitions/MapRemoveResult",
+          "description": "map_remove is the result of a map remove command."
         },
         "map_read_state": {
-          "$ref": "#/definitions/MapReadStateResult"
+          "$ref": "#/definitions/MapReadStateResult",
+          "description": "map_read_state is the result of a map read state command."
         },
         "map_read_stream": {
-          "$ref": "#/definitions/MapReadStreamResult"
+          "$ref": "#/definitions/MapReadStreamResult",
+          "description": "map_read_stream is the result of a map read stream command."
         },
         "map_stats": {
-          "$ref": "#/definitions/MapStatsResult"
+          "$ref": "#/definitions/MapStatsResult",
+          "description": "map_stats is the result of a map stats command."
         },
         "map_clear": {
-          "$ref": "#/definitions/MapClearResult"
+          "$ref": "#/definitions/MapClearResult",
+          "description": "map_clear is the result of a map clear command."
         },
         "shared_poll_publish": {
-          "$ref": "#/definitions/SharedPollPublishResult"
+          "$ref": "#/definitions/SharedPollPublishResult",
+          "description": "shared_poll_publish is the result of a shared poll publish command."
         }
-      }
+      },
+      "description": "Reply is the reply to a single Command of a BatchRequest. It carries\neither error or the result field matching the command."
     },
     "RevokeTokenRequest": {
       "type": "object",
       "properties": {
         "expire_at": {
-          "type": "integer"
+          "type": "integer",
+          "description": "expire_at is the Unix time in seconds when the revocation expires.\nOptional, but a value matching the token expiration is recommended."
         },
         "uid": {
-          "type": "string"
+          "type": "string",
+          "description": "uid is the unique ID of the token to revoke (jti claim). Required."
         }
-      }
+      },
+      "description": "RevokeTokenRequest revokes a token by its unique ID (jti claim of a JWT).\nClients using the token are disconnected shortly, and can not connect\nwith it again. Centrifugo PRO only."
     },
     "RevokeTokenResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/RevokeTokenResult"
+          "$ref": "#/definitions/RevokeTokenResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "RevokeTokenResponse is the response to a RevokeTokenRequest.\nCentrifugo PRO only."
     },
     "RevokeTokenResult": {
-      "type": "object"
+      "type": "object",
+      "description": "RevokeTokenResult is the result of a revoke token call. Empty at the\nmoment. Centrifugo PRO only."
     },
     "SendPushNotificationRequest": {
       "type": "object",
       "properties": {
         "recipient": {
-          "$ref": "#/definitions/PushRecipient"
+          "$ref": "#/definitions/PushRecipient",
+          "description": "recipient is who receives the notification. Required."
         },
         "notification": {
-          "$ref": "#/definitions/PushNotification"
+          "$ref": "#/definitions/PushNotification",
+          "description": "notification is the notification to send. Required."
         },
         "uid": {
           "type": "string",
-          "description": "unique identifier for each push notification request, can be used to cancel push."
+          "description": "uid is a unique identifier of the request, can be used to cancel the\npush. UUID v4 is recommended; different requests must use different\nuids."
         },
         "send_at": {
           "type": "integer",
-          "description": "Unix seconds, if set - push will be sent at this time, if not set - immediately."
+          "description": "send_at is the Unix time in seconds when to send the notification. If\nnot set, the notification is sent immediately."
         },
         "optimize_for_reliability": {
           "type": "boolean",
-          "description": "makes processing heavier, but tolerates edge cases, like not losing inflight pushes due to temporary queue unavailability."
+          "description": "optimize_for_reliability makes processing heavier, but tolerates edge\ncases, like not losing inflight pushes when the queue is briefly\nunavailable."
         },
         "limit_strategy": {
           "$ref": "#/definitions/PushLimitStrategy",
-          "description": "strategy for sending push notifications. Applicable only for pushes with filter recipient. When using this field Centrifugo processes devices one by one."
+          "description": "limit_strategy sets time constraints and rate limits. Only applies\nwith a filter recipient; devices are then processed one by one\ninstead of in batches."
         },
         "analytics_uid": {
           "type": "string",
-          "description": "uid for push notification analytics, if not set - Centrifugo will use uid field."
+          "description": "analytics_uid is the identifier for push notification analytics. If\nnot set, uid is used."
         },
         "localizations": {
           "type": "object",
           "additionalProperties": {
             "$ref": "#/definitions/PushLocalization"
           },
-          "description": "optional per language/locale localizations for push notification."
+          "description": "localizations are optional per language/locale localizations. Setting\nthem enables templating."
         },
         "use_templating": {
           "type": "boolean",
-          "description": "if set - Centrifugo will use templating for push notification. Note that setting localizations enables templating automatically."
+          "description": "use_templating enables templating of the notification. Only works\nwith a filter recipient."
         },
         "use_meta": {
           "type": "boolean",
-          "description": "if set - Centrifugo will additionally load device meta during push sending, this meta becomes available in templating."
+          "description": "use_meta additionally loads device meta while sending, making it\navailable in templating."
         }
-      }
+      },
+      "description": "SendPushNotificationRequest sends a push notification. The request is\nqueued and sent to the provider by Centrifugo workers.\nCentrifugo PRO only."
     },
     "SendPushNotificationResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/SendPushNotificationResult"
+          "$ref": "#/definitions/SendPushNotificationResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "SendPushNotificationResponse is the response to a\nSendPushNotificationRequest. Centrifugo PRO only."
     },
     "SendPushNotificationResult": {
       "type": "object",
       "properties": {
         "uid": {
           "type": "string",
-          "description": "Unique identifier of notification send request (it's not a FCM message id)."
+          "description": "uid is the unique identifier of the send request (not a provider\nmessage ID). Matches the request uid if it was set."
         }
-      }
+      },
+      "description": "SendPushNotificationResult is the result of a send push notification\ncall. Centrifugo PRO only."
     },
     "SharedPollPublishRequest": {
       "type": "object",
       "properties": {
         "channel": {
-          "type": "string"
+          "type": "string",
+          "description": "channel is the name of the shared poll channel. Required."
         },
         "key": {
-          "type": "string"
+          "type": "string",
+          "description": "key is the item key. Required."
         },
         "data": {
-          "type": "object"
+          "type": "object",
+          "description": "data is the item data, delivered to clients as is."
         },
         "b64data": {
-          "type": "string"
+          "type": "string",
+          "description": "b64data is data as base64, for binary payloads. Centrifugo decodes it."
         },
         "version": {
-          "type": "integer"
+          "type": "integer",
+          "description": "version is the item version, must be \u003e= 1. Required. A version not\nhigher than the current one within the same epoch is silently dropped."
         },
         "epoch": {
-          "type": "string"
+          "type": "string",
+          "description": "epoch is the channel-level publisher epoch. A change resets per-key\nversions and unsubscribes current subscribers with insufficient state."
         }
-      }
+      },
+      "description": "SharedPollPublishRequest pushes data for a key directly to clients of a\nshared poll channel, without waiting for the next poll cycle. Requires\nversioned mode and publish_enabled on the namespace."
     },
     "SharedPollPublishResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/SharedPollPublishResult"
+          "$ref": "#/definitions/SharedPollPublishResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "SharedPollPublishResponse is the response to a SharedPollPublishRequest."
     },
     "SharedPollPublishResult": {
-      "type": "object"
+      "type": "object",
+      "description": "SharedPollPublishResult is the result of a shared poll publish call.\nEmpty at the moment."
     },
     "StreamPosition": {
       "type": "object",
       "properties": {
         "offset": {
-          "type": "integer"
+          "type": "integer",
+          "description": "offset is the offset in the stream."
         },
         "epoch": {
-          "type": "string"
+          "type": "string",
+          "description": "epoch is the stream epoch."
         }
-      }
+      },
+      "description": "StreamPosition is a position in a channel stream."
     },
     "SubscribeOptionOverride": {
       "type": "object",
       "properties": {
         "presence": {
-          "$ref": "#/definitions/BoolValue"
+          "$ref": "#/definitions/BoolValue",
+          "description": "presence overrides the presence channel option."
         },
         "join_leave": {
-          "$ref": "#/definitions/BoolValue"
+          "$ref": "#/definitions/BoolValue",
+          "description": "join_leave overrides the join_leave channel option."
         },
         "force_recovery": {
-          "$ref": "#/definitions/BoolValue"
+          "$ref": "#/definitions/BoolValue",
+          "description": "force_recovery overrides the force_recovery channel option."
         },
         "force_positioning": {
-          "$ref": "#/definitions/BoolValue"
+          "$ref": "#/definitions/BoolValue",
+          "description": "force_positioning overrides the force_positioning channel option."
         },
         "force_push_join_leave": {
-          "$ref": "#/definitions/BoolValue"
+          "$ref": "#/definitions/BoolValue",
+          "description": "force_push_join_leave overrides the force_push_join_leave channel\noption."
         }
-      }
+      },
+      "description": "SubscribeOptionOverride overrides channel options for a server-side\nsubscription. Unset fields keep the value from the channel configuration."
     },
     "SubscribeRequest": {
       "type": "object",
       "properties": {
         "channel": {
-          "type": "string"
+          "type": "string",
+          "description": "channel is the name of the channel to subscribe to. Required."
         },
         "user": {
-          "type": "string"
+          "type": "string",
+          "description": "user is the ID of the user to subscribe. Required, unless all_users is\nused in Centrifugo PRO."
         },
         "expire_at": {
-          "type": "integer"
+          "type": "integer",
+          "description": "expire_at is the Unix time in seconds when the subscription expires."
         },
         "info": {
-          "type": "object"
+          "type": "object",
+          "description": "info is custom channel info attached to the subscription, used in\npresence and join/leave messages."
         },
         "b64info": {
-          "type": "string"
+          "type": "string",
+          "description": "b64info is info as base64, for binary. Centrifugo decodes it."
         },
         "client": {
-          "type": "string"
+          "type": "string",
+          "description": "client limits the call to the connection with this client ID. user is\nstill required."
         },
         "data": {
-          "type": "object"
+          "type": "object",
+          "description": "data is custom subscription data sent to the client in the Subscribe\npush."
         },
         "b64data": {
-          "type": "string"
+          "type": "string",
+          "description": "b64data is data as base64, for binary. Centrifugo decodes it."
         },
         "recover_since": {
-          "$ref": "#/definitions/StreamPosition"
+          "$ref": "#/definitions/StreamPosition",
+          "description": "recover_since is the stream position to recover publications from."
         },
         "override": {
-          "$ref": "#/definitions/SubscribeOptionOverride"
+          "$ref": "#/definitions/SubscribeOptionOverride",
+          "description": "override dynamically overrides some channel options set in the\nCentrifugo configuration."
         },
         "session": {
-          "type": "string"
+          "type": "string",
+          "description": "session limits the call to the connection with this session ID. user\nis still required."
         },
         "label_filter": {
           "$ref": "#/definitions/FilterNode",
-          "description": "PRO only — restrict the call to clients whose labels match this filter."
+          "description": "label_filter restricts the call to clients whose labels match this\nfilter. Centrifugo PRO only."
         },
         "all_users": {
           "type": "boolean",
-          "description": "PRO only — when `user` is empty, target every connection on every node\ninstead of the anonymous-only bucket. No effect when `user` is non-empty."
+          "description": "all_users, when user is empty, targets every connection on every node\ninstead of the anonymous-only bucket. No effect when user is non-empty.\nWithout label_filter it acts on every connection. Centrifugo PRO only."
         }
-      }
+      },
+      "description": "SubscribeRequest subscribes active sessions of a user to a channel\n(server-side subscription). It does not create a streaming subscription\nfor the caller."
     },
     "SubscribeResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/SubscribeResult"
+          "$ref": "#/definitions/SubscribeResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "SubscribeResponse is the response to a SubscribeRequest."
     },
     "SubscribeResult": {
-      "type": "object"
+      "type": "object",
+      "description": "SubscribeResult is the result of a subscribe call. Empty at the moment."
     },
     "SubscriptionTokenInfo": {
       "type": "object",
       "properties": {
         "uid": {
-          "type": "string"
+          "type": "string",
+          "description": "uid is the unique token ID (jti claim)."
         },
         "issued_at": {
-          "type": "integer"
+          "type": "integer",
+          "description": "issued_at is the Unix time in seconds when the token was issued."
         }
-      }
+      },
+      "description": "SubscriptionTokenInfo is information about a subscription token.\nCentrifugo PRO only."
     },
     "UnblockUserRequest": {
       "type": "object",
       "properties": {
         "user": {
-          "type": "string"
+          "type": "string",
+          "description": "user is the ID of the user to unblock. Required."
         }
-      }
+      },
+      "description": "UnblockUserRequest unblocks a user. Centrifugo PRO only."
     },
     "UnblockUserResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/UnblockUserResult"
+          "$ref": "#/definitions/UnblockUserResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "UnblockUserResponse is the response to an UnblockUserRequest.\nCentrifugo PRO only."
     },
     "UnblockUserResult": {
-      "type": "object"
+      "type": "object",
+      "description": "UnblockUserResult is the result of an unblock user call. Empty at the\nmoment. Centrifugo PRO only."
     },
     "UnsubscribeRequest": {
       "type": "object",
       "properties": {
         "channel": {
-          "type": "string"
+          "type": "string",
+          "description": "channel is the name of the channel to unsubscribe from. Required."
         },
         "user": {
-          "type": "string"
+          "type": "string",
+          "description": "user is the ID of the user to unsubscribe. Required, unless all_users\nis used in Centrifugo PRO."
         },
         "client": {
-          "type": "string"
+          "type": "string",
+          "description": "client limits the call to the connection with this client ID. user is\nstill required."
         },
         "session": {
-          "type": "string"
+          "type": "string",
+          "description": "session limits the call to the connection with this session ID. user\nis still required."
         },
         "label_filter": {
           "$ref": "#/definitions/FilterNode",
-          "description": "PRO only — restrict the call to clients whose labels match this filter."
+          "description": "label_filter restricts the call to clients whose labels match this\nfilter. Centrifugo PRO only."
         },
         "all_users": {
           "type": "boolean",
-          "description": "PRO only — see SubscribeRequest.all_users."
+          "description": "all_users works as SubscribeRequest.all_users. Centrifugo PRO only."
         }
-      }
+      },
+      "description": "UnsubscribeRequest unsubscribes a user from a channel."
     },
     "UnsubscribeResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/UnsubscribeResult"
+          "$ref": "#/definitions/UnsubscribeResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "UnsubscribeResponse is the response to an UnsubscribeRequest."
     },
     "UnsubscribeResult": {
-      "type": "object"
+      "type": "object",
+      "description": "UnsubscribeResult is the result of an unsubscribe call. Empty at the\nmoment."
     },
     "UpdatePushStatusRequest": {
       "type": "object",
       "properties": {
         "analytics_uid": {
           "type": "string",
-          "title": "analytics uid of push notification (should match SendPushNotificationRequest.analytics_uid)"
+          "description": "analytics_uid is the analytics_uid of the push notification (as in\nSendPushNotificationRequest). Required."
         },
         "status": {
           "type": "string",
-          "title": "delivered | interacted"
+          "description": "status is the status of the push notification: delivered or\ninteracted. Required."
         },
         "device_id": {
           "type": "string",
-          "description": "Centrifugo device id."
+          "description": "device_id is the Centrifugo device ID. Required."
         },
         "msg_id": {
           "type": "string",
-          "description": "Provider issued message id."
+          "description": "msg_id is the message ID issued by the provider."
         }
-      }
+      },
+      "description": "UpdatePushStatusRequest saves the delivery or interaction status of a\npush notification to analytics. Experimental. Centrifugo PRO only."
     },
     "UpdatePushStatusResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/UpdatePushStatusResult"
+          "$ref": "#/definitions/UpdatePushStatusResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "UpdatePushStatusResponse is the response to an UpdatePushStatusRequest.\nCentrifugo PRO only."
     },
     "UpdatePushStatusResult": {
-      "type": "object"
+      "type": "object",
+      "description": "UpdatePushStatusResult is the result of an update push status call.\nEmpty at the moment. Centrifugo PRO only."
     },
     "UpdateUserStatusRequest": {
       "type": "object",
@@ -3998,57 +4629,73 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "users is the list of user IDs to update the status for. Required."
         },
         "state": {
-          "type": "string"
+          "type": "string",
+          "description": "state is an optional custom state to store in the user status. It can\nbe restricted by the user_status.state_regex option."
         }
-      }
+      },
+      "description": "UpdateUserStatusRequest marks users as active and online now, and sets\ntheir state when one is given. Centrifugo PRO only."
     },
     "UpdateUserStatusResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/UpdateUserStatusResult"
+          "$ref": "#/definitions/UpdateUserStatusResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "UpdateUserStatusResponse is the response to an UpdateUserStatusRequest.\nCentrifugo PRO only."
     },
     "UpdateUserStatusResult": {
-      "type": "object"
+      "type": "object",
+      "description": "UpdateUserStatusResult is the result of an update user status call. Empty\nat the moment. Centrifugo PRO only."
     },
     "UserStatus": {
       "type": "object",
       "properties": {
         "user": {
-          "type": "string"
+          "type": "string",
+          "description": "user is the user ID."
         },
         "active": {
-          "type": "integer"
+          "type": "integer",
+          "description": "active is the last active time as Unix seconds. Not set if unknown."
         },
         "online": {
-          "type": "integer"
+          "type": "integer",
+          "description": "online is the last online time as Unix seconds, updated by Centrifugo\nwhile the user is connected. Not set if unknown."
         },
         "state": {
-          "type": "string"
+          "type": "string",
+          "description": "state is the custom state set with UpdateUserStatusRequest.state, if\nany."
         }
-      }
+      },
+      "description": "UserStatus is the status of a user. Centrifugo PRO only."
     },
     "UserTopic": {
       "type": "object",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "id is the ID of the user topic."
         },
         "user": {
-          "type": "string"
+          "type": "string",
+          "description": "user is the user ID."
         },
         "topic": {
-          "type": "string"
+          "type": "string",
+          "description": "topic is the topic."
         }
-      }
+      },
+      "description": "UserTopic is a topic subscription of a user. Centrifugo PRO only."
     },
     "UserTopicFilter": {
       "type": "object",
@@ -4057,47 +4704,59 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "users selects by user."
         },
         "topics": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "topics selects by topic."
         },
         "topic_prefix": {
-          "type": "string"
+          "type": "string",
+          "description": "topic_prefix selects by topic prefix."
         }
-      }
+      },
+      "description": "UserTopicFilter selects user topic subscriptions. Centrifugo PRO only."
     },
     "UserTopicListRequest": {
       "type": "object",
       "properties": {
         "filter": {
-          "$ref": "#/definitions/UserTopicFilter"
+          "$ref": "#/definitions/UserTopicFilter",
+          "description": "filter selects the user topics to list."
         },
         "include_total_count": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "include_total_count includes the total count for the filter in the\nresult."
         },
         "cursor": {
-          "type": "string"
+          "type": "string",
+          "description": "cursor is the pagination cursor: next_cursor of the previous page,\nempty for the first page."
         },
         "limit": {
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "description": "limit is the maximum number of items to return."
         }
-      }
+      },
+      "description": "UserTopicListRequest returns a paginated list of user topic\nsubscriptions. Centrifugo PRO only."
     },
     "UserTopicListResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/UserTopicListResult"
+          "$ref": "#/definitions/UserTopicListResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "UserTopicListResponse is the response to a UserTopicListRequest.\nCentrifugo PRO only."
     },
     "UserTopicListResult": {
       "type": "object",
@@ -4107,47 +4766,58 @@
           "items": {
             "type": "object",
             "$ref": "#/definitions/UserTopic"
-          }
+          },
+          "description": "items are the user topics of this page."
         },
         "next_cursor": {
-          "type": "string"
+          "type": "string",
+          "description": "next_cursor is the cursor of the next page. Empty if there is no next\npage."
         },
         "total_count": {
-          "type": "integer"
+          "type": "integer",
+          "description": "total_count is the total count for the filter, if include_total_count\nwas set."
         }
-      }
+      },
+      "description": "UserTopicListResult is the result of a user topic list call.\nCentrifugo PRO only."
     },
     "UserTopicUpdateRequest": {
       "type": "object",
       "properties": {
         "user": {
-          "type": "string"
+          "type": "string",
+          "description": "user is the user ID. Required."
         },
         "op": {
           "type": "string",
-          "title": "add | remove | set"
+          "description": "op is the operation: add, remove or set. Required."
         },
         "topics": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "topics are the topics for the operation."
         }
-      }
+      },
+      "description": "UserTopicUpdateRequest changes the topics of a user. The change is also\napplied to the user's registered devices. Centrifugo PRO only."
     },
     "UserTopicUpdateResponse": {
       "type": "object",
       "properties": {
         "error": {
-          "$ref": "#/definitions/Error"
+          "$ref": "#/definitions/Error",
+          "description": "error is set if the call failed."
         },
         "result": {
-          "$ref": "#/definitions/UserTopicUpdateResult"
+          "$ref": "#/definitions/UserTopicUpdateResult",
+          "description": "result is set on success."
         }
-      }
+      },
+      "description": "UserTopicUpdateResponse is the response to a UserTopicUpdateRequest.\nCentrifugo PRO only."
     },
     "UserTopicUpdateResult": {
-      "type": "object"
+      "type": "object",
+      "description": "UserTopicUpdateResult is the result of a user topic update call. Empty at\nthe moment. Centrifugo PRO only."
     },
     "WebPushPushNotification": {
       "type": "object",
@@ -4156,24 +4826,30 @@
           "type": "object",
           "additionalProperties": {
             "type": "string"
-          }
+          },
+          "description": "headers are Web Push HTTP headers. Recognized keys: TTL (seconds,\ndefault 4 weeks), Urgency (very-low, low, normal, high) and Topic."
         },
         "payload": {
-          "type": "object"
+          "type": "object",
+          "description": "payload is the JSON payload delivered to the browser service worker.\nRequired."
         }
-      }
+      },
+      "description": "WebPushPushNotification is a notification for Web Push.\nCentrifugo PRO only."
     },
     "api.Disconnect": {
       "type": "object",
       "properties": {
         "code": {
           "type": "integer",
-          "format": "int64"
+          "format": "int64",
+          "description": "code is the disconnect code."
         },
         "reason": {
-          "type": "string"
+          "type": "string",
+          "description": "reason is the disconnect reason."
         }
-      }
+      },
+      "description": "Disconnect describes the code and reason clients are disconnected with."
     }
   },
   "securityDefinitions": {
