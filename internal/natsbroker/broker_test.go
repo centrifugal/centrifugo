@@ -286,6 +286,61 @@ func TestNatsPubSubTwoNodes_ChannelReplacement(t *testing.T) {
 	}
 }
 
+// PublishWithStreamPosition must deliver the stream position to subscribers
+// without exposing the internal epoch tag, and must leave the caller's tags
+// untouched: API broadcast shares one tags map between concurrent publishes.
+func TestNatsPublishWithStreamPosition(t *testing.T) {
+	tests := []struct {
+		name     string
+		tags     map[string]string
+		wantTags map[string]string
+	}{
+		{"with_tags", map[string]string{"k": "v"}, map[string]string{"k": "v"}},
+		{"nil_tags", nil, nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			node, err := centrifuge.New(centrifuge.Config{})
+			require.NoError(t, err)
+			b, _ := New(node, Config{NatsPrefixed: configtypes.NatsPrefixed{Prefix: getUniquePrefix()}})
+			node.SetBroker(b)
+			defer func() { _ = node.Shutdown(context.Background()) }()
+			defer stopNatsBroker(b)
+
+			type received struct {
+				pub *centrifuge.Publication
+				sp  centrifuge.StreamPosition
+			}
+			recvCh := make(chan received, 1)
+			handler := &testBrokerEventHandler{
+				HandlePublicationFunc: func(ch string, pub *centrifuge.Publication, sp centrifuge.StreamPosition, delta bool, prevPub *centrifuge.Publication) error {
+					recvCh <- received{pub: pub, sp: sp}
+					return nil
+				},
+			}
+			_ = b.RegisterControlEventHandler(handler)
+			_ = b.RegisterBrokerEventHandler(handler)
+			require.NoError(t, b.Subscribe("test"))
+
+			sp := centrifuge.StreamPosition{Offset: 5, Epoch: "epoch"}
+			err = b.PublishWithStreamPosition("test", []byte("123"), centrifuge.PublishOptions{Tags: tt.tags}, sp)
+			require.NoError(t, err)
+			require.Equal(t, tt.wantTags, tt.tags)
+
+			select {
+			case r := <-recvCh:
+				require.Equal(t, centrifuge.StreamPosition{Offset: 5, Epoch: "epoch"}, r.sp)
+				require.Len(t, r.pub.Tags, len(tt.wantTags))
+				for k, v := range tt.wantTags {
+					require.Equal(t, v, r.pub.Tags[k])
+				}
+			case <-time.After(time.Second):
+				require.Fail(t, "timeout waiting for publication")
+			}
+		})
+	}
+}
+
 type testBrokerEventHandler struct {
 	// Publication must register callback func to handle Publications received.
 	HandlePublicationFunc func(ch string, pub *centrifuge.Publication, sp centrifuge.StreamPosition, delta bool, prevPub *centrifuge.Publication) error
