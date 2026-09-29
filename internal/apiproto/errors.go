@@ -16,8 +16,9 @@ var (
 	// ErrorInternal means server error, if returned this is a signal
 	// that something went wrong with Centrifugo itself.
 	ErrorInternal = &Error{
-		Code:    100,
-		Message: "internal server error",
+		Code:      100,
+		Message:   "internal server error",
+		Temporary: true,
 	}
 	// ErrorUnknownChannel means that namespace in channel name does not exist.
 	ErrorUnknownChannel = &Error{
@@ -39,6 +40,13 @@ var (
 	ErrorNotAvailable = &Error{
 		Code:    108,
 		Message: "not available",
+	}
+	// ErrorTooManyRequests means that a rate limit was reached. The request
+	// may succeed when retried later.
+	ErrorTooManyRequests = &Error{
+		Code:      111,
+		Message:   "too many requests",
+		Temporary: true,
 	}
 	// ErrorUnrecoverablePosition means that stream does not contain required
 	// range of publications to fulfill a history query. This can be happen to
@@ -62,6 +70,8 @@ func MapErrorToHTTPCode(err *Error) int {
 		return http.StatusNotFound
 	case ErrorBadRequest.Code, ErrorNotAvailable.Code:
 		return http.StatusBadRequest
+	case ErrorTooManyRequests.Code:
+		return http.StatusTooManyRequests
 	case ErrorUnrecoverablePosition.Code:
 		return http.StatusRequestedRangeNotSatisfiable
 	case ErrorConflict.Code:
@@ -81,6 +91,8 @@ func MapErrorToGRPCCode(err *Error) codes.Code {
 		return codes.NotFound
 	case ErrorBadRequest.Code, ErrorNotAvailable.Code:
 		return codes.InvalidArgument
+	case ErrorTooManyRequests.Code:
+		return codes.ResourceExhausted
 	case ErrorUnrecoverablePosition.Code:
 		return codes.OutOfRange
 	case ErrorConflict.Code:
