@@ -22,24 +22,28 @@ var (
 	}
 	// ErrorUnknownChannel means that namespace in channel name does not exist.
 	ErrorUnknownChannel = &Error{
-		Code:    102,
-		Message: "unknown channel",
+		Code:      102,
+		Message:   "unknown channel",
+		Temporary: false,
 	}
 	// ErrorNotFound means that method sent in command does not exist.
 	ErrorNotFound = &Error{
-		Code:    104,
-		Message: "not found",
+		Code:      104,
+		Message:   "not found",
+		Temporary: false,
 	}
 	// ErrorBadRequest says that Centrifugo can not parse received data
 	// because it is malformed.
 	ErrorBadRequest = &Error{
-		Code:    107,
-		Message: "bad request",
+		Code:      107,
+		Message:   "bad request",
+		Temporary: false,
 	}
 	// ErrorNotAvailable means that resource is not enabled.
 	ErrorNotAvailable = &Error{
-		Code:    108,
-		Message: "not available",
+		Code:      108,
+		Message:   "not available",
+		Temporary: false,
 	}
 	// ErrorTooManyRequests means that a rate limit was reached. The request
 	// may succeed when retried later.
@@ -52,13 +56,15 @@ var (
 	// range of publications to fulfill a history query. This can be happen to
 	// expiration, size limitation or due to wrong epoch.
 	ErrorUnrecoverablePosition = &Error{
-		Code:    112,
-		Message: "unrecoverable position",
+		Code:      112,
+		Message:   "unrecoverable position",
+		Temporary: false,
 	}
 	// ErrorConflict ...
 	ErrorConflict = &Error{
-		Code:    113,
-		Message: "conflict",
+		Code:      113,
+		Message:   "conflict",
+		Temporary: false,
 	}
 )
 
