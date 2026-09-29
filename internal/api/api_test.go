@@ -5,6 +5,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -298,6 +301,115 @@ func TestBroadcastAPI_DataFormat_Binary(t *testing.T) {
 	require.Nil(t, resp.Error)
 	require.Nil(t, resp.Result.Responses[0].Error)
 	require.Nil(t, resp.Result.Responses[1].Error)
+}
+
+// newMixedFormatExecutor returns an executor whose channels use different
+// publication data formats: "json:*" JSON, "object:*" JSON object, "binary:*"
+// binary, and channels without a namespace the default format.
+func newMixedFormatExecutor(t testing.TB) *Executor {
+	node := nodeWithMemoryEngine()
+	t.Cleanup(func() { _ = node.Shutdown(context.Background()) })
+	cfg := config.DefaultConfig()
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{
+		{Name: "json", ChannelOptions: configtypes.ChannelOptions{PublicationDataFormat: configtypes.PublicationDataFormatJSON}},
+		{Name: "object", ChannelOptions: configtypes.ChannelOptions{PublicationDataFormat: configtypes.PublicationDataFormatJSONObject}},
+		{Name: "binary", ChannelOptions: configtypes.ChannelOptions{PublicationDataFormat: configtypes.PublicationDataFormatBinary}},
+	}
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+	return NewExecutor(node, cfgContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test", UseOpenTelemetry: false})
+}
+
+// Each channel of a broadcast validates the data against its own format.
+func TestBroadcastAPI_DataFormat_PerChannel(t *testing.T) {
+	api := newMixedFormatExecutor(t)
+	channels := []string{"json:a", "object:a", "binary:a", "plain", "json:b", "object:b", "binary:b"}
+	bad := ErrorBadRequest.Code
+	tests := []struct {
+		data []byte
+		want []uint32 // Error code per channel, 0 for success.
+	}{
+		{[]byte(`{"k":"v"}`), []uint32{0, 0, 0, 0, 0, 0, 0}},
+		{[]byte(`[1]`), []uint32{0, bad, 0, 0, 0, bad, 0}},
+		{[]byte(`not json`), []uint32{bad, bad, 0, 0, bad, bad, 0}},
+		{[]byte{}, []uint32{bad, bad, 0, bad, bad, bad, 0}},
+	}
+	for _, tt := range tests {
+		resp := api.Broadcast(context.Background(), &BroadcastRequest{Channels: channels, Data: tt.data})
+		require.Nil(t, resp.Error)
+		got := make([]uint32, len(channels))
+		for i, r := range resp.Result.Responses {
+			if r.Error != nil {
+				got[i] = r.Error.Code
+			}
+		}
+		require.Equal(t, tt.want, got, "data %q", tt.data)
+	}
+}
+
+// All channels of a broadcast share the data, and validating it as JSON
+// scans the whole payload, so a broadcast validates it once per JSON format
+// rather than once per channel.
+func TestBroadcastAPI_ValidatesJSONDataOncePerFormat(t *testing.T) {
+	api := newMixedFormatExecutor(t)
+
+	var mu sync.Mutex
+	calls := map[string]int{}
+	orig := validatePublicationData
+	validatePublicationData = func(data []byte, format string) error {
+		mu.Lock()
+		calls[format]++
+		mu.Unlock()
+		return orig(data, format)
+	}
+	t.Cleanup(func() { validatePublicationData = orig })
+
+	var channels []string
+	for i := 0; i < 100; i++ {
+		n := strconv.Itoa(i)
+		channels = append(channels, "json:"+n, "object:"+n, "plain"+n)
+	}
+	resp := api.Broadcast(context.Background(), &BroadcastRequest{Channels: channels, Data: []byte(`{"k":"v"}`)})
+	require.Nil(t, resp.Error)
+	for i, r := range resp.Result.Responses {
+		require.Nil(t, r.Error, channels[i])
+	}
+	require.Equal(t, 1, calls[configtypes.PublicationDataFormatJSON])
+	require.Equal(t, 1, calls[configtypes.PublicationDataFormatJSONObject])
+}
+
+func BenchmarkBroadcastAPI(b *testing.B) {
+	for _, format := range []string{"", configtypes.PublicationDataFormatJSON} {
+		for _, size := range []int{1 << 10, 10 << 10} {
+			name := fmt.Sprintf("format=%q/size=%dKB", format, size>>10)
+			b.Run(name, func(b *testing.B) {
+				node := nodeWithMemoryEngine()
+				b.Cleanup(func() { _ = node.Shutdown(context.Background()) })
+				cfg := config.DefaultConfig()
+				cfg.Channel.PublicationDataFormat = format
+				cfgContainer, err := config.NewContainer(cfg)
+				require.NoError(b, err)
+				api := NewExecutor(node, cfgContainer, &testSurveyCaller{}, ExecutorConfig{Protocol: "test"})
+
+				channels := make([]string, 1000)
+				for i := range channels {
+					channels[i] = "channel" + strconv.Itoa(i)
+				}
+				cmd := &BroadcastRequest{
+					Channels: channels,
+					Data:     []byte(`{"p":"` + strings.Repeat("x", size) + `"}`),
+				}
+				b.ReportAllocs()
+				b.ResetTimer()
+				for i := 0; i < b.N; i++ {
+					resp := api.Broadcast(context.Background(), cmd)
+					if resp.Error != nil {
+						b.Fatal(resp.Error)
+					}
+				}
+			})
+		}
+	}
 }
 
 func TestHistoryAPI(t *testing.T) {
