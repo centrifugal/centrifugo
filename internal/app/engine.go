@@ -55,7 +55,7 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) err
 		case "redis":
 			broker, brokerMode, err = createRedisBroker(node, cfgContainer)
 		case "nats":
-			broker, err = NatsBroker(node, cfg)
+			broker, err = NatsBroker(node, cfgContainer)
 			brokerMode = "nats"
 		case "postgres":
 			broker, err = createPostgresStreamBroker(node, cfg.Broker.Postgres)
@@ -70,7 +70,7 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) err
 				return fmt.Errorf("error creating redis broker: %v", err)
 			}
 			brokerMode = redisBrokerMode + "+nats"
-			natsBroker, err := NatsBroker(node, cfg)
+			natsBroker, err := NatsBroker(node, cfgContainer)
 			if err != nil {
 				return fmt.Errorf("error creating nats broker: %v", err)
 			}
@@ -203,8 +203,31 @@ func memoryPresenceManagerConfig() (*centrifuge.MemoryPresenceManagerConfig, err
 	return &centrifuge.MemoryPresenceManagerConfig{}, nil
 }
 
-func NatsBroker(node *centrifuge.Node, cfg config.Config) (*natsbroker.NatsBroker, error) {
-	return natsbroker.New(node, cfg.Broker.Nats)
+func NatsBroker(node *centrifuge.Node, cfgContainer *config.Container) (*natsbroker.NatsBroker, error) {
+	broker, err := natsbroker.New(node, cfgContainer.Config().Broker.Nats)
+	if err != nil {
+		return nil, err
+	}
+	broker.SetRawModeDataCheck(rawModeDataCheck(cfgContainer))
+	return broker, nil
+}
+
+// rawModeDataCheck applies publication_data_format of a channel to messages
+// which come from Nats in raw mode. They do not go through the publish API,
+// where the format is checked otherwise. Only a format which asks for JSON is
+// checked: raw mode has always passed on messages without data.
+func rawModeDataCheck(cfgContainer *config.Container) func(channel string, data []byte) error {
+	return func(channel string, data []byte) error {
+		chOpts, ok, err := cfgContainer.ChannelOptionsRef(channel)
+		if err != nil || !ok {
+			return nil
+		}
+		switch chOpts.PublicationDataFormat {
+		case configtypes.PublicationDataFormatJSON, configtypes.PublicationDataFormatJSONObject:
+			return config.ValidatePublicationData(data, chOpts.PublicationDataFormat)
+		}
+		return nil
+	}
 }
 
 func createRedisEngine(n *centrifuge.Node, cfgContainer *config.Container) (*centrifuge.RedisBroker, centrifuge.PresenceManager, string, error) {
