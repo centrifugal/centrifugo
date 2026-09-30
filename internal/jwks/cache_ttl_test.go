@@ -160,25 +160,82 @@ func TestTTLCacheCleanup(t *testing.T) {
 	require.Equal(t, 0, n)
 }
 
-// An item lives for the TTL since it was last got, and expires when not got
-// for longer than that.
-func TestTTLCacheGetExtendsTTL(t *testing.T) {
-	const ttl = 300 * time.Millisecond
+// An item expires the TTL after it was added, however often it is got in
+// between: a key rotated out of the JWKS endpoint must be re-fetched.
+func TestTTLCacheGetDoesNotExtendTTL(t *testing.T) {
+	const ttl = 400 * time.Millisecond
 	cache := NewTTLCache(ttl)
 	t.Cleanup(func() { _ = cache.Stop() })
 	require.NoError(t, cache.Add("kid", &JWK{Kid: "kid"}))
 
-	// Each Get comes within the TTL of the previous one, while the last one
-	// comes well past the TTL since Add.
-	for i := 0; i < 3; i++ {
-		time.Sleep(ttl / 2)
-		_, err := cache.Get("kid")
-		require.NoError(t, err, "get #%d", i)
-	}
+	time.Sleep(ttl / 2)
+	_, err := cache.Get("kid")
+	require.NoError(t, err)
+
+	// Past the TTL since Add, within the TTL since the Get.
+	time.Sleep(3 * ttl / 4)
+	_, err = cache.Get("kid")
+	require.ErrorIs(t, err, ErrCacheNotFound)
+}
+
+// GetStale gets an expired item, and lets Get find it for retryAfter more.
+func TestTTLCacheGetStale(t *testing.T) {
+	const ttl = 100 * time.Millisecond
+	cache := NewTTLCache(ttl)
+	t.Cleanup(func() { _ = cache.Stop() })
+
+	_, err := cache.GetStale("kid", time.Minute)
+	require.ErrorIs(t, err, ErrCacheNotFound)
+
+	require.NoError(t, cache.Add("kid", &JWK{Kid: "kid"}))
+	time.Sleep(2 * ttl)
+	_, err = cache.Get("kid")
+	require.ErrorIs(t, err, ErrCacheNotFound)
+
+	key, err := cache.GetStale("kid", time.Minute)
+	require.NoError(t, err)
+	require.Equal(t, "kid", key.Kid)
+	key, err = cache.Get("kid")
+	require.NoError(t, err)
+	require.Equal(t, "kid", key.Kid)
+}
+
+// Cleanup removes expired items unless they were used within the TTL, so a
+// key still in use stays for GetStale to fall back on.
+func TestTTLCacheCleanupKeepsUsedItems(t *testing.T) {
+	const ttl = 100 * time.Millisecond
+	cache := NewTTLCache(ttl)
+	t.Cleanup(func() { _ = cache.Stop() })
+	require.NoError(t, cache.Add("used", &JWK{Kid: "used"}))
+	require.NoError(t, cache.Add("unused", &JWK{Kid: "unused"}))
 
 	time.Sleep(2 * ttl)
-	_, err := cache.Get("kid")
+	_, err := cache.GetStale("used", 0)
+	require.NoError(t, err)
+	cache.cleanup()
+
+	_, err = cache.GetStale("used", 0)
+	require.NoError(t, err)
+	_, err = cache.GetStale("unused", 0)
 	require.ErrorIs(t, err, ErrCacheNotFound)
+}
+
+// ReplacePrefix replaces the items under the prefix only.
+func TestTTLCacheReplacePrefix(t *testing.T) {
+	cache := NewTTLCache(time.Minute)
+	t.Cleanup(func() { _ = cache.Stop() })
+	require.NoError(t, cache.Add("a/1", &JWK{Kid: "1"}))
+	require.NoError(t, cache.Add("a/2", &JWK{Kid: "2"}))
+	require.NoError(t, cache.Add("b/1", &JWK{Kid: "1"}))
+
+	require.NoError(t, cache.ReplacePrefix("a/", map[string]*JWK{"a/2": {Kid: "2"}, "a/3": {Kid: "3"}}))
+
+	_, err := cache.Get("a/1")
+	require.ErrorIs(t, err, ErrCacheNotFound)
+	for _, cacheKey := range []string{"a/2", "a/3", "b/1"} {
+		_, err := cache.Get(cacheKey)
+		require.NoError(t, err, cacheKey)
+	}
 }
 
 // Every JWKS token verification goes through Get, so a cache hit must not

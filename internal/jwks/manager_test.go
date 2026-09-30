@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/rakutentech/jwk-go/jwk"
 	"github.com/stretchr/testify/require"
@@ -288,4 +289,143 @@ func TestManagerFetchKey_CacheScopedByResolvedURL(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int32(1), atomic.LoadInt32(&tenantARequests))
 	require.Equal(t, int32(1), atomic.LoadInt32(&tenantBRequests))
+}
+
+// rotatingJWKSServer serves the keys set with setKeys, or fails with 500 after
+// setDown.
+type rotatingJWKSServer struct {
+	*httptest.Server
+	handler  atomic.Value // http.Handler
+	requests atomic.Int32
+}
+
+func newRotatingJWKSServer(t *testing.T, keys ...testKey) *rotatingJWKSServer {
+	s := &rotatingJWKSServer{}
+	s.setKeys(keys...)
+	s.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.requests.Add(1)
+		s.handler.Load().(http.Handler).ServeHTTP(w, r)
+	}))
+	t.Cleanup(s.Close)
+	return s
+}
+
+func (s *rotatingJWKSServer) setKeys(keys ...testKey) {
+	s.handler.Store(jwksHandler(keys...))
+}
+
+func (s *rotatingJWKSServer) setDown() {
+	s.handler.Store(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "unavailable", http.StatusServiceUnavailable)
+	}))
+}
+
+func newRotationTestManager(t *testing.T, url string, ttl time.Duration) *Manager {
+	cache := NewTTLCache(ttl)
+	t.Cleanup(func() { _ = cache.Stop() })
+	manager, err := NewManager(url, WithCache(cache))
+	require.NoError(t, err)
+	return manager
+}
+
+// A key removed from the JWKS endpoint stops being trusted once its cache TTL
+// passes, however often it is used.
+func TestManagerFetchKey_RemovedKeyExpires(t *testing.T) {
+	const ttl = 200 * time.Millisecond
+	_, pubKey, err := randomKeys()
+	require.NoError(t, err)
+	_, newPubKey, err := randomKeys()
+	require.NoError(t, err)
+
+	ts := newRotatingJWKSServer(t, testKey{"old", pubKey})
+	manager := newRotationTestManager(t, ts.URL, ttl)
+	ctx := context.Background()
+
+	_, err = manager.FetchKey(ctx, "old", nil)
+	require.NoError(t, err)
+
+	ts.setKeys(testKey{"new", newPubKey})
+	deadline := time.Now().Add(2 * ttl)
+	for time.Now().Before(deadline) {
+		_, err = manager.FetchKey(ctx, "old", nil)
+		if err != nil {
+			break
+		}
+		time.Sleep(ttl / 10)
+	}
+	require.ErrorIs(t, err, ErrPublicKeyNotFound)
+
+	key, err := manager.FetchKey(ctx, "new", nil)
+	require.NoError(t, err)
+	require.Equal(t, newPubKey.N, parseRSA(t, key).N)
+}
+
+// While the JWKS endpoint can't be reached, an expired key keeps being used,
+// and is fetched again at most once per stale retry interval.
+func TestManagerFetchKey_EndpointDownUsesFetchedKey(t *testing.T) {
+	const ttl = 100 * time.Millisecond
+	_, pubKey, err := randomKeys()
+	require.NoError(t, err)
+
+	ts := newRotatingJWKSServer(t, testKey{"kid", pubKey})
+	manager := newRotationTestManager(t, ts.URL, ttl)
+	manager.staleRetryInterval = time.Minute
+	ctx := context.Background()
+
+	_, err = manager.FetchKey(ctx, "kid", nil)
+	require.NoError(t, err)
+
+	ts.setDown()
+	time.Sleep(2 * ttl)
+	for i := 0; i < 10; i++ {
+		key, err := manager.FetchKey(ctx, "kid", nil)
+		require.NoError(t, err)
+		require.Equal(t, pubKey.N, parseRSA(t, key).N)
+	}
+	// The initial fetch, then one failed fetch with its retries.
+	require.Equal(t, int32(1+_defaultRetries), ts.requests.Load())
+}
+
+// A key removed from the JWKS endpoint is not used when the endpoint can't be
+// reached later.
+func TestManagerFetchKey_EndpointDownDoesNotUseRemovedKey(t *testing.T) {
+	const ttl = 100 * time.Millisecond
+	_, pubKey1, err := randomKeys()
+	require.NoError(t, err)
+	_, pubKey2, err := randomKeys()
+	require.NoError(t, err)
+
+	ts := newRotatingJWKSServer(t, testKey{"1", pubKey1}, testKey{"2", pubKey2})
+	manager := newRotationTestManager(t, ts.URL, ttl)
+	ctx := context.Background()
+
+	_, err = manager.FetchKey(ctx, "1", nil)
+	require.NoError(t, err)
+
+	// Key 2 is removed, which the fetch of expired key 1 learns.
+	ts.setKeys(testKey{"1", pubKey1})
+	time.Sleep(2 * ttl)
+	_, err = manager.FetchKey(ctx, "1", nil)
+	require.NoError(t, err)
+
+	ts.setDown()
+	_, err = manager.FetchKey(ctx, "2", nil)
+	require.ErrorIs(t, err, errUnexpectedStatusCode)
+}
+
+// Without the cache, a failed fetch fails the lookup.
+func TestManagerFetchKey_EndpointDownNoCache(t *testing.T) {
+	_, pubKey, err := randomKeys()
+	require.NoError(t, err)
+
+	ts := newRotatingJWKSServer(t, testKey{"kid", pubKey})
+	manager, err := NewManager(ts.URL, WithUseCache(false))
+	require.NoError(t, err)
+	ctx := context.Background()
+
+	_, err = manager.FetchKey(ctx, "kid", nil)
+	require.NoError(t, err)
+	ts.setDown()
+	_, err = manager.FetchKey(ctx, "kid", nil)
+	require.ErrorIs(t, err, errUnexpectedStatusCode)
 }

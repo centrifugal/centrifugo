@@ -2,6 +2,7 @@ package jwks
 
 import (
 	"errors"
+	"time"
 )
 
 var (
@@ -15,6 +16,12 @@ var (
 // satisfy lookups for another. See Manager.FetchKey.
 type Cache interface {
 	Add(cacheKey string, key *JWK) error
+	// ReplacePrefix replaces the keys under the cache keys starting with
+	// prefix, removing those missing from keys.
+	ReplacePrefix(prefix string, keys map[string]*JWK) error
 	Get(cacheKey string) (*JWK, error)
+	// GetStale gets the key even if it expired, and lets Get find it for
+	// retryAfter more.
+	GetStale(cacheKey string, retryAfter time.Duration) (*JWK, error)
 	Len() (int, error)
 }
