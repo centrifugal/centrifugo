@@ -281,10 +281,6 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 
 const broadcastRequestMaxConcurrency = 1024
 
-// validatePublicationData is config.ValidatePublicationData, a variable so
-// that tests can count the validations a broadcast makes.
-var validatePublicationData = config.ValidatePublicationData
-
 // Broadcast publishes the same data into many channels.
 func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *BroadcastResponse {
 	defer metrics.ObserveAPICommand(time.Now(), h.config.Protocol, "broadcast")
@@ -399,32 +395,6 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 	wg.Wait()
 	resp.Result = &BroadcastResult{Responses: responses}
 	return resp
-}
-
-// broadcastDataValidation validates the data of one broadcast. All its
-// channels share the data, so the JSON formats, which scan the whole payload,
-// are checked once per broadcast rather than once per channel.
-type broadcastDataValidation struct {
-	data []byte
-
-	jsonOnce       sync.Once
-	jsonErr        error
-	jsonObjectOnce sync.Once
-	jsonObjectErr  error
-}
-
-func (v *broadcastDataValidation) validate(format string) error {
-	switch format {
-	case configtypes.PublicationDataFormatJSON:
-		v.jsonOnce.Do(func() { v.jsonErr = validatePublicationData(v.data, format) })
-		return v.jsonErr
-	case configtypes.PublicationDataFormatJSONObject:
-		v.jsonObjectOnce.Do(func() { v.jsonObjectErr = validatePublicationData(v.data, format) })
-		return v.jsonObjectErr
-	default:
-		// The other formats check the data length at most.
-		return validatePublicationData(v.data, format)
-	}
 }
 
 // Subscribe subscribes user to a channel and sends subscribe
