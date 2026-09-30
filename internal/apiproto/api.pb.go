@@ -435,12 +435,20 @@ func (x *Command) GetSharedPollPublish() *SharedPollPublishRequest {
 // response.
 type Error struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// code is the Centrifugo error code, for example 100 (internal error),
-	// 102 (unknown channel), 104 (not found), 107 (bad request) or
-	// 108 (not available).
+	// code is the Centrifugo error code: 100 (internal error), 102 (unknown
+	// channel), 104 (not found), 107 (bad request), 108 (not available),
+	// 111 (too many requests), 112 (unrecoverable position) or 113
+	// (conflict).
 	Code uint32 `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
 	// message is a human-readable description of the error.
-	Message       string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	// temporary is true when the same request may succeed if retried later:
+	// the error came from a temporary condition, such as a broker being
+	// unavailable or a rate limit, not from the request itself. It does not
+	// mean nothing was done: a publication may have happened despite the
+	// error. Retry a publication with the same idempotency_key, so that it
+	// is not published twice.
+	Temporary     bool `protobuf:"varint,3,opt,name=temporary,proto3" json:"temporary,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -487,6 +495,13 @@ func (x *Error) GetMessage() string {
 		return x.Message
 	}
 	return ""
+}
+
+func (x *Error) GetTemporary() bool {
+	if x != nil {
+		return x.Temporary
+	}
+	return false
 }
 
 // Reply is the reply to a single Command of a BatchRequest. It carries
@@ -10989,10 +11004,11 @@ const file_api_proto_rawDesc = "" +
 	"\x0fmap_read_stream\x18' \x01(\v20.centrifugal.centrifugo.api.MapReadStreamRequestR\rmapReadStream\x12H\n" +
 	"\tmap_stats\x18( \x01(\v2+.centrifugal.centrifugo.api.MapStatsRequestR\bmapStats\x12H\n" +
 	"\tmap_clear\x18) \x01(\v2+.centrifugal.centrifugo.api.MapClearRequestR\bmapClear\x12d\n" +
-	"\x13shared_poll_publish\x18* \x01(\v24.centrifugal.centrifugo.api.SharedPollPublishRequestR\x11sharedPollPublishJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\x03\x10\x04\"5\n" +
+	"\x13shared_poll_publish\x18* \x01(\v24.centrifugal.centrifugo.api.SharedPollPublishRequestR\x11sharedPollPublishJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\x03\x10\x04\"S\n" +
 	"\x05Error\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\rR\x04code\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\x81\x1a\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12\x1c\n" +
+	"\ttemporary\x18\x03 \x01(\bR\ttemporary\"\x81\x1a\n" +
 	"\x05Reply\x127\n" +
 	"\x05error\x18\x02 \x01(\v2!.centrifugal.centrifugo.api.ErrorR\x05error\x12C\n" +
 	"\apublish\x18\x04 \x01(\v2).centrifugal.centrifugo.api.PublishResultR\apublish\x12I\n" +
