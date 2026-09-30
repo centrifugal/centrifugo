@@ -378,7 +378,7 @@ func TestBroadcastAPI_ValidatesJSONDataOncePerFormat(t *testing.T) {
 	require.Equal(t, 1, calls[configtypes.PublicationDataFormatJSONObject])
 }
 
-func BenchmarkBroadcastAPI(b *testing.B) {
+func BenchmarkBroadcastAPIDataFormat(b *testing.B) {
 	for _, format := range []string{"", configtypes.PublicationDataFormatJSON} {
 		for _, size := range []int{1 << 10, 10 << 10} {
 			name := fmt.Sprintf("format=%q/size=%dKB", format, size>>10)
