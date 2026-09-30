@@ -444,9 +444,10 @@ type Error struct {
 	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 	// temporary is true when the same request may succeed if retried later:
 	// the error came from a temporary condition, such as a broker being
-	// unavailable or a rate limit, not from the request itself. Retry a
-	// publication with the same idempotency_key, so that it is not
-	// published twice.
+	// unavailable or a rate limit, not from the request itself. It does not
+	// mean nothing was done: a publication may have happened despite the
+	// error. Retry a publication with the same idempotency_key, so that it
+	// is not published twice.
 	Temporary     bool `protobuf:"varint,3,opt,name=temporary,proto3" json:"temporary,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -269,7 +269,7 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 	)
 	if err != nil {
 		log.Error().Err(err).Str("channel", cmd.Channel).Msg("error publishing data to channel")
-		resp.Error = ErrorInternal
+		resp.Error = toAPIErr(err)
 		return resp
 	}
 	resp.Result = &PublishResult{
@@ -383,7 +383,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 					Epoch:  result.StreamPosition.Epoch,
 				}
 			} else {
-				respError := ErrorInternal
+				respError := toAPIErr(err)
 				metrics.IncAPIError(h.config.Protocol, "broadcast_publish", respError.Code)
 				log.Error().Err(err).Str("channel", ch).Msg("error publishing data to channel during broadcast")
 				resp.Error = respError
@@ -491,7 +491,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 	)
 	if err != nil {
 		log.Error().Err(err).Str("channel", channel).Str("user", user).Msg("error subscribing user to channel")
-		resp.Error = ErrorInternal
+		resp.Error = toAPIErr(err)
 		return resp
 	}
 	resp.Result = &SubscribeResult{}
@@ -527,7 +527,7 @@ func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *Unsu
 	err = h.node.Unsubscribe(user, channel, centrifuge.WithUnsubscribeClient(cmd.Client), centrifuge.WithUnsubscribeSession(cmd.Session))
 	if err != nil {
 		log.Error().Err(err).Str("channel", channel).Str("user", user).Msg("error unsubscribing user from channel")
-		resp.Error = ErrorInternal
+		resp.Error = toAPIErr(err)
 		return resp
 	}
 	resp.Result = &UnsubscribeResult{}
@@ -559,7 +559,7 @@ func (h *Executor) Disconnect(_ context.Context, cmd *DisconnectRequest) *Discon
 		centrifuge.WithDisconnectClientWhitelist(cmd.Whitelist))
 	if err != nil {
 		log.Error().Err(err).Str("user", user).Msg("error disconnecting user")
-		resp.Error = ErrorInternal
+		resp.Error = toAPIErr(err)
 		return resp
 	}
 	resp.Result = &DisconnectResult{}
@@ -583,7 +583,7 @@ func (h *Executor) Refresh(_ context.Context, cmd *RefreshRequest) *RefreshRespo
 	)
 	if err != nil {
 		log.Error().Err(err).Str("user", user).Msg("error refreshing user")
-		resp.Error = ErrorInternal
+		resp.Error = toAPIErr(err)
 		return resp
 	}
 	resp.Result = &RefreshResult{}
@@ -622,7 +622,7 @@ func (h *Executor) Presence(_ context.Context, cmd *PresenceRequest) *PresenceRe
 	presence, err := h.node.Presence(ch)
 	if err != nil {
 		log.Error().Err(err).Str("channel", ch).Msg("error getting presence for channel")
-		resp.Error = ErrorInternal
+		resp.Error = toAPIErr(err)
 		return resp
 	}
 
@@ -674,7 +674,7 @@ func (h *Executor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest) *
 	stats, err := h.node.PresenceStats(cmd.Channel)
 	if err != nil {
 		log.Error().Err(err).Str("channel", ch).Msg("error getting presence stats for channel")
-		resp.Error = ErrorInternal
+		resp.Error = toAPIErr(err)
 		return resp
 	}
 
@@ -738,7 +738,7 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 			resp.Error = ErrorUnrecoverablePosition
 			return resp
 		}
-		resp.Error = ErrorInternal
+		resp.Error = toAPIErr(err)
 		return resp
 	}
 
@@ -801,7 +801,7 @@ func (h *Executor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest) *
 	err = h.node.RemoveHistory(ch)
 	if err != nil {
 		log.Error().Err(err).Str("channel", ch).Msg("error removing history for channel")
-		resp.Error = ErrorInternal
+		resp.Error = toAPIErr(err)
 		return resp
 	}
 	resp.Result = &HistoryRemoveResult{}
@@ -817,7 +817,7 @@ func (h *Executor) Info(_ context.Context, _ *InfoRequest) *InfoResponse {
 	info, err := h.node.Info()
 	if err != nil {
 		log.Error().Err(err).Msg("error calling info")
-		resp.Error = ErrorInternal
+		resp.Error = toAPIErr(err)
 		return resp
 	}
 
@@ -980,7 +980,7 @@ func (h *Executor) MapPublish(ctx context.Context, cmd *MapPublishRequest) *MapP
 	result, err := h.node.MapPublish(ctx, ch, cmd.Key, opts)
 	if err != nil {
 		log.Error().Err(err).Str("channel", ch).Msg("error in map publish")
-		resp.Error = ErrorInternal
+		resp.Error = toAPIErr(err)
 		return resp
 	}
 	resp.Result = &MapPublishResult{
@@ -1030,7 +1030,7 @@ func (h *Executor) MapRemove(ctx context.Context, cmd *MapRemoveRequest) *MapRem
 	result, err := h.node.MapRemove(ctx, ch, cmd.Key, opts)
 	if err != nil {
 		log.Error().Err(err).Str("channel", ch).Msg("error in map remove")
-		resp.Error = ErrorInternal
+		resp.Error = toAPIErr(err)
 		return resp
 	}
 	resp.Result = &MapRemoveResult{
@@ -1090,7 +1090,7 @@ func (h *Executor) MapReadState(ctx context.Context, cmd *MapReadStateRequest) *
 			return resp
 		}
 		log.Error().Err(err).Str("channel", ch).Msg("error in map read state")
-		resp.Error = ErrorInternal
+		resp.Error = toAPIErr(err)
 		return resp
 	}
 
@@ -1164,7 +1164,7 @@ func (h *Executor) MapReadStream(ctx context.Context, cmd *MapReadStreamRequest)
 			return resp
 		}
 		log.Error().Err(err).Str("channel", ch).Msg("error in map read stream")
-		resp.Error = ErrorInternal
+		resp.Error = toAPIErr(err)
 		return resp
 	}
 
@@ -1223,7 +1223,7 @@ func (h *Executor) MapStats(ctx context.Context, cmd *MapStatsRequest) *MapStats
 	result, err := h.node.MapStats(ctx, ch)
 	if err != nil {
 		log.Error().Err(err).Str("channel", ch).Msg("error in map stats")
-		resp.Error = ErrorInternal
+		resp.Error = toAPIErr(err)
 		return resp
 	}
 	resp.Result = &MapStatsResult{
@@ -1266,7 +1266,7 @@ func (h *Executor) MapClear(ctx context.Context, cmd *MapClearRequest) *MapClear
 	err = h.node.MapClear(ctx, ch, centrifuge.MapClearOptions{})
 	if err != nil {
 		log.Error().Err(err).Str("channel", ch).Msg("error in map clear")
-		resp.Error = ErrorInternal
+		resp.Error = toAPIErr(err)
 		return resp
 	}
 	resp.Result = &MapClearResult{}
@@ -1328,17 +1328,43 @@ func (h *Executor) SharedPollPublish(ctx context.Context, cmd *SharedPollPublish
 	err = h.node.SharedPollPublish(ctx, ch, cmd.Key, cmd.Version, cmd.Epoch, data)
 	if err != nil {
 		log.Error().Err(err).Str("channel", ch).Msg("error in shared poll publish")
-		resp.Error = ErrorInternal
+		resp.Error = toAPIErr(err)
 		return resp
 	}
 	resp.Result = &SharedPollPublishResult{}
 	return resp
 }
 
+// toAPIErr converts an error to an API error. An error of the client protocol,
+// which the Node returns for a request it refused, becomes the API error with
+// the same meaning. Codes are not shared as a whole: 113 is a conflict in the
+// API but concurrent pagination in the client protocol. Without an API
+// equivalent, it keeps being temporary or not. Any other error - a broker
+// failing, say - is an internal error.
 func toAPIErr(err error) *Error {
 	var apiErr *Error
 	if errors.As(err, &apiErr) {
 		return apiErr
 	}
-	return ErrorInternal
+	var protocolErr *centrifuge.Error
+	if !errors.As(err, &protocolErr) {
+		return ErrorInternal
+	}
+	switch protocolErr.Code {
+	case centrifuge.ErrorUnknownChannel.Code:
+		return ErrorUnknownChannel
+	case centrifuge.ErrorBadRequest.Code:
+		return ErrorBadRequest
+	case centrifuge.ErrorNotAvailable.Code:
+		return ErrorNotAvailable
+	case centrifuge.ErrorTooManyRequests.Code:
+		return ErrorTooManyRequests
+	case centrifuge.ErrorUnrecoverablePosition.Code:
+		return ErrorUnrecoverablePosition
+	}
+	if protocolErr.Temporary {
+		return ErrorInternal
+	}
+	// Retrying cannot help: the request was refused.
+	return ErrorBadRequest
 }

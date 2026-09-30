@@ -2894,7 +2894,7 @@
         },
         "temporary": {
           "type": "boolean",
-          "description": "temporary is true when the same request may succeed if retried later:\nthe error came from a temporary condition, such as a broker being\nunavailable or a rate limit, not from the request itself. Retry a\npublication with the same idempotency_key, so that it is not\npublished twice."
+          "description": "temporary is true when the same request may succeed if retried later:\nthe error came from a temporary condition, such as a broker being\nunavailable or a rate limit, not from the request itself. It does not\nmean nothing was done: a publication may have happened despite the\nerror. Retry a publication with the same idempotency_key, so that it\nis not published twice."
         }
       },
       "description": "Error is a Centrifugo API error. It has the same structure in every API\nresponse."
