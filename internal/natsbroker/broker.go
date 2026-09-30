@@ -43,6 +43,7 @@ type NatsBroker struct {
 	controlEventHandler centrifuge.ControlEventHandler
 	clientChannelPrefix string
 	rawModeReplacer     *strings.Replacer
+	rawModeDataCheck    func(channel string, data []byte) error
 }
 
 var _ centrifuge.Broker = (*NatsBroker)(nil)
@@ -67,6 +68,15 @@ func New(n *centrifuge.Node, conf Config) (*NatsBroker, error) {
 		}
 	}
 	return b, nil
+}
+
+// SetRawModeDataCheck sets a function to check the data of messages which come
+// from Nats in raw mode. Such messages are published to Nats by other systems,
+// so nothing has looked at them before: a message the function returns an
+// error for is not delivered to subscribers. Must be called before the broker
+// is used.
+func (b *NatsBroker) SetRawModeDataCheck(check func(channel string, data []byte) error) {
+	b.rawModeDataCheck = check
 }
 
 func (b *NatsBroker) controlChannel() channelID {
@@ -294,6 +304,12 @@ func (b *NatsBroker) handleClientMessage(subject string, data []byte, sub *nats.
 			return
 		}
 		channel := subWrap.origChannel
+		if b.rawModeDataCheck != nil {
+			if err := b.rawModeDataCheck(channel, data); err != nil {
+				log.Info().Err(err).Str("channel", channel).Str("subject", subject).Msg("skip raw mode message: data validation failed")
+				return
+			}
+		}
 		_ = b.eventHandler.HandlePublication(
 			channel,
 			&centrifuge.Publication{Data: data, Channel: strings.TrimPrefix(subject, b.config.RawMode.Prefix)},
