@@ -37,9 +37,11 @@ func TestToAPIErr(t *testing.T) {
 	}
 }
 
-// failingBroker fails every publication with err.
+// failingBroker fails every publication with err. It embeds the Broker
+// interface, not a broker, so that it has no methods but Broker's: a broker
+// which publishes in batches would take publications past Publish.
 type failingBroker struct {
-	*centrifuge.MemoryBroker
+	centrifuge.Broker
 	err error
 }
 
@@ -64,7 +66,7 @@ func TestNodeErrorsReachAPI(t *testing.T) {
 			require.NoError(t, err)
 			memory, err := centrifuge.NewMemoryBroker(node, centrifuge.MemoryBrokerConfig{})
 			require.NoError(t, err)
-			node.SetBroker(&failingBroker{MemoryBroker: memory, err: tc.err})
+			node.SetBroker(&failingBroker{Broker: memory, err: tc.err})
 			require.NoError(t, node.Run())
 			defer func() { _ = node.Shutdown(context.Background()) }()
 
