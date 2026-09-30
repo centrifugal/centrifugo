@@ -30,6 +30,9 @@ func NewHandler(n *centrifuge.Node, c Config, pingPong centrifuge.PingPongConfig
 
 const streamWriteTimeout = time.Second
 
+// newline separates messages in the stream.
+var newline = []byte("\n")
+
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		w.Header().Set("Access-Control-Max-Age", "300")
@@ -148,7 +151,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					sendAck()
 					return
 				}
-				_, err = w.Write([]byte("\n"))
+				_, err = w.Write(newline)
 				if err != nil {
 					sendAck()
 					return
