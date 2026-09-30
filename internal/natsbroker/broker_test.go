@@ -16,25 +16,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestNatsBroker() *NatsBroker {
-	return NewTestNatsBrokerWithPrefix("centrifugo-test")
-}
-
-func NewTestNatsBrokerWithPrefix(prefix string) *NatsBroker {
-	n, _ := centrifuge.New(centrifuge.Config{})
-	b, _ := New(n, Config{NatsPrefixed: configtypes.NatsPrefixed{
-		Prefix: prefix,
+func newTestNatsBroker(tb testing.TB) *NatsBroker {
+	tb.Helper()
+	n, err := centrifuge.New(centrifuge.Config{})
+	require.NoError(tb, err)
+	b, err := New(n, Config{NatsPrefixed: configtypes.NatsPrefixed{
+		Prefix: "centrifugo-test",
 	}})
+	require.NoError(tb, err)
 	n.SetBroker(b)
-	err := n.Run()
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(tb, n.Run())
+	// Node.Shutdown closes the broker, and with it the NATS connection.
+	tb.Cleanup(func() { _ = n.Shutdown(context.Background()) })
 	return b
 }
 
 func BenchmarkNatsEnginePublish(b *testing.B) {
-	broker := newTestNatsBroker()
+	broker := newTestNatsBroker(b)
 	rawData := []byte(`{"bench": true}`)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -46,7 +44,7 @@ func BenchmarkNatsEnginePublish(b *testing.B) {
 }
 
 func BenchmarkNatsEnginePublishParallel(b *testing.B) {
-	broker := newTestNatsBroker()
+	broker := newTestNatsBroker(b)
 	rawData := []byte(`{"bench": true}`)
 	b.SetParallelism(128)
 	b.ResetTimer()
@@ -61,7 +59,7 @@ func BenchmarkNatsEnginePublishParallel(b *testing.B) {
 }
 
 func BenchmarkNatsEngineSubscribe(b *testing.B) {
-	broker := newTestNatsBroker()
+	broker := newTestNatsBroker(b)
 	j := 0
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -74,7 +72,7 @@ func BenchmarkNatsEngineSubscribe(b *testing.B) {
 }
 
 func BenchmarkNatsEngineSubscribeParallel(b *testing.B) {
-	broker := newTestNatsBroker()
+	broker := newTestNatsBroker(b)
 	i := 0
 	b.SetParallelism(128)
 	b.ResetTimer()

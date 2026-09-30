@@ -1,6 +1,9 @@
 package redisnatsbroker
 
 import (
+	"context"
+	"errors"
+
 	"github.com/centrifugal/centrifugo/v6/internal/natsbroker"
 
 	"github.com/centrifugal/centrifuge"
@@ -47,6 +50,12 @@ func (b *Broker) Publish(ch string, data []byte, opts centrifuge.PublishOptions)
 // History ...
 func (b *Broker) History(ch string, opts centrifuge.HistoryOptions) ([]*centrifuge.Publication, centrifuge.StreamPosition, error) {
 	return b.redis.History(ch, opts)
+}
+
+// Close closes both brokers. Otherwise the Close promoted from the embedded
+// NatsBroker would be the one called, leaving the Redis broker running.
+func (b *Broker) Close(ctx context.Context) error {
+	return errors.Join(b.redis.Close(ctx), b.NatsBroker.Close(ctx))
 }
 
 // RemoveHistory ...

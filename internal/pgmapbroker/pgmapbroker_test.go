@@ -2757,6 +2757,12 @@ func newTestRedisBrokerForFanout(tb testing.TB, n *centrifuge.Node) *centrifuge.
 		Shards: []*centrifuge.RedisShard{s},
 	})
 	require.NoError(tb, err)
+	// Registered before the caller's cleanup, so runs after it: the PG broker
+	// stops using the Redis broker before the connection goes away.
+	tb.Cleanup(func() {
+		_ = broker.Close(context.Background())
+		s.Close()
+	})
 	return broker
 }
 
