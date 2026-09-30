@@ -66,6 +66,11 @@ func TestRedisStreamConsumer(t *testing.T) {
 
 	shards, err := redisshard.BuildRedisShards(cfg.Redis)
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		for _, s := range shards {
+			s.Close()
+		}
+	})
 	require.Len(t, shards, 1)
 
 	producer, err := redisqueue.NewProducer(shards[0], redisqueue.ProducerOptions{
@@ -132,6 +137,11 @@ func TestRedisStreamConsumer_ConcurrentConsumers(t *testing.T) {
 		Address: []string{"localhost:6379"},
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		for _, s := range shards {
+			s.Close()
+		}
+	})
 
 	// Start first consumer
 	ctx1, cancel1 := context.WithCancel(context.Background())

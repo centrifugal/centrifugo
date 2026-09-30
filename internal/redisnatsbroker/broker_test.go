@@ -34,7 +34,11 @@ func newTestBroker(t *testing.T) *Broker {
 	require.NoError(t, err)
 	n.SetBroker(b)
 	require.NoError(t, n.Run())
-	t.Cleanup(func() { _ = n.Shutdown(context.Background()) })
+	// Node.Shutdown closes both brokers, but not the Redis shard they use.
+	t.Cleanup(func() {
+		_ = n.Shutdown(context.Background())
+		shard.Close()
+	})
 	return b
 }
 
