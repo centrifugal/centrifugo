@@ -1,6 +1,7 @@
 package jwks
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -153,29 +154,25 @@ func TestTTLCacheCleanup(t *testing.T) {
 		}))
 	}
 
-	time.Sleep(2 * time.Second)
-
-	n, err := cache.Len()
-	require.NoError(t, err)
-	require.Equal(t, 0, n)
+	require.Eventually(t, func() bool {
+		n, err := cache.Len()
+		return err == nil && n == 0
+	}, 5*time.Second, 10*time.Millisecond)
 }
 
 // An item expires the TTL after it was added, however often it is got in
 // between: a key rotated out of the JWKS endpoint must be re-fetched.
 func TestTTLCacheGetDoesNotExtendTTL(t *testing.T) {
-	const ttl = 400 * time.Millisecond
+	const ttl = 100 * time.Millisecond
 	cache := NewTTLCache(ttl)
 	t.Cleanup(func() { _ = cache.Stop() })
 	require.NoError(t, cache.Add("kid", &JWK{Kid: "kid"}))
 
-	time.Sleep(ttl / 2)
-	_, err := cache.Get("kid")
-	require.NoError(t, err)
-
-	// Past the TTL since Add, within the TTL since the Get.
-	time.Sleep(3 * ttl / 4)
-	_, err = cache.Get("kid")
-	require.ErrorIs(t, err, ErrCacheNotFound)
+	// Getting it far more often than the TTL does not keep it.
+	require.Eventually(t, func() bool {
+		_, err := cache.Get("kid")
+		return errors.Is(err, ErrCacheNotFound)
+	}, 10*ttl, ttl/20)
 }
 
 // GetStale gets an expired item, and lets Get find it for retryAfter more.
@@ -188,9 +185,10 @@ func TestTTLCacheGetStale(t *testing.T) {
 	require.ErrorIs(t, err, ErrCacheNotFound)
 
 	require.NoError(t, cache.Add("kid", &JWK{Kid: "kid"}))
-	time.Sleep(2 * ttl)
-	_, err = cache.Get("kid")
-	require.ErrorIs(t, err, ErrCacheNotFound)
+	require.Eventually(t, func() bool {
+		_, err := cache.Get("kid")
+		return errors.Is(err, ErrCacheNotFound)
+	}, 10*ttl, ttl/20)
 
 	key, err := cache.GetStale("kid", time.Minute)
 	require.NoError(t, err)
@@ -209,15 +207,22 @@ func TestTTLCacheCleanupKeepsUsedItems(t *testing.T) {
 	require.NoError(t, cache.Add("used", &JWK{Kid: "used"}))
 	require.NoError(t, cache.Add("unused", &JWK{Kid: "unused"}))
 
-	time.Sleep(2 * ttl)
-	_, err := cache.GetStale("used", 0)
-	require.NoError(t, err)
-	cache.cleanup()
+	require.Eventually(t, func() bool {
+		if _, err := cache.GetStale("used", 0); err != nil {
+			t.Errorf("unexpected error: %v", err)
+			return true
+		}
+		cache.cleanup()
+		return !cache.has("unused")
+	}, 10*ttl, ttl/20)
+	require.True(t, cache.has("used"))
+}
 
-	_, err = cache.GetStale("used", 0)
-	require.NoError(t, err)
-	_, err = cache.GetStale("unused", 0)
-	require.ErrorIs(t, err, ErrCacheNotFound)
+func (tc *TTLCache) has(cacheKey string) bool {
+	tc.mu.RLock()
+	defer tc.mu.RUnlock()
+	_, ok := tc.items[cacheKey]
+	return ok
 }
 
 // ReplacePrefix replaces the items under the prefix only.

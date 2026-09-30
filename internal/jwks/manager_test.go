@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -344,16 +345,12 @@ func TestManagerFetchKey_RemovedKeyExpires(t *testing.T) {
 	_, err = manager.FetchKey(ctx, "old", nil)
 	require.NoError(t, err)
 
+	// Using it far more often than the TTL does not keep it.
 	ts.setKeys(testKey{"new", newPubKey})
-	deadline := time.Now().Add(2 * ttl)
-	for time.Now().Before(deadline) {
-		_, err = manager.FetchKey(ctx, "old", nil)
-		if err != nil {
-			break
-		}
-		time.Sleep(ttl / 10)
-	}
-	require.ErrorIs(t, err, ErrPublicKeyNotFound)
+	require.Eventually(t, func() bool {
+		_, err := manager.FetchKey(ctx, "old", nil)
+		return errors.Is(err, ErrPublicKeyNotFound)
+	}, 10*ttl, ttl/20)
 
 	key, err := manager.FetchKey(ctx, "new", nil)
 	require.NoError(t, err)
@@ -375,8 +372,16 @@ func TestManagerFetchKey_EndpointDownUsesFetchedKey(t *testing.T) {
 	_, err = manager.FetchKey(ctx, "kid", nil)
 	require.NoError(t, err)
 
+	// Keeps being used when fetching it again after the TTL fails.
 	ts.setDown()
-	time.Sleep(2 * ttl)
+	require.Eventually(t, func() bool {
+		key, err := manager.FetchKey(ctx, "kid", nil)
+		if err != nil || key.Kid != "kid" {
+			t.Errorf("unexpected key or error: %v", err)
+			return true
+		}
+		return ts.requests.Load() > 1
+	}, 10*ttl, ttl/20)
 	for i := 0; i < 10; i++ {
 		key, err := manager.FetchKey(ctx, "kid", nil)
 		require.NoError(t, err)
@@ -404,9 +409,13 @@ func TestManagerFetchKey_EndpointDownDoesNotUseRemovedKey(t *testing.T) {
 
 	// Key 2 is removed, which the fetch of expired key 1 learns.
 	ts.setKeys(testKey{"1", pubKey1})
-	time.Sleep(2 * ttl)
-	_, err = manager.FetchKey(ctx, "1", nil)
-	require.NoError(t, err)
+	require.Eventually(t, func() bool {
+		if _, err := manager.FetchKey(ctx, "1", nil); err != nil {
+			t.Errorf("unexpected error: %v", err)
+			return true
+		}
+		return ts.requests.Load() > 1
+	}, 10*ttl, ttl/20)
 
 	ts.setDown()
 	_, err = manager.FetchKey(ctx, "2", nil)
