@@ -159,3 +159,54 @@ func TestTTLCacheCleanup(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 0, n)
 }
+
+// An item lives for the TTL since it was last got, and expires when not got
+// for longer than that.
+func TestTTLCacheGetExtendsTTL(t *testing.T) {
+	const ttl = 300 * time.Millisecond
+	cache := NewTTLCache(ttl)
+	t.Cleanup(func() { _ = cache.Stop() })
+	require.NoError(t, cache.Add("kid", &JWK{Kid: "kid"}))
+
+	// Each Get comes within the TTL of the previous one, while the last one
+	// comes well past the TTL since Add.
+	for i := 0; i < 3; i++ {
+		time.Sleep(ttl / 2)
+		_, err := cache.Get("kid")
+		require.NoError(t, err, "get #%d", i)
+	}
+
+	time.Sleep(2 * ttl)
+	_, err := cache.Get("kid")
+	require.ErrorIs(t, err, ErrCacheNotFound)
+}
+
+// Every JWKS token verification goes through Get, so a cache hit must not
+// allocate.
+func TestTTLCacheGetDoesNotAllocate(t *testing.T) {
+	cache := NewTTLCache(time.Minute)
+	t.Cleanup(func() { _ = cache.Stop() })
+	require.NoError(t, cache.Add("kid", &JWK{Kid: "kid"}))
+
+	allocs := testing.AllocsPerRun(100, func() {
+		if _, err := cache.Get("kid"); err != nil {
+			t.Fatal(err)
+		}
+	})
+	require.Zero(t, allocs)
+}
+
+// Concurrent token verifications with the same key id get the same item.
+func BenchmarkTTLCacheGetParallel(b *testing.B) {
+	cache := NewTTLCache(time.Minute)
+	b.Cleanup(func() { _ = cache.Stop() })
+	require.NoError(b, cache.Add("kid", &JWK{Kid: "kid"}))
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if _, err := cache.Get("kid"); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
