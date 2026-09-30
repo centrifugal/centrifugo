@@ -4,6 +4,7 @@ package natsbroker
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strings"
 	"sync"
 	"time"
@@ -205,10 +206,10 @@ func (b *NatsBroker) PublishWithStreamPosition(ch string, data []byte, opts cent
 		// Do not support stream positions in raw mode.
 		return centrifuge.ErrorBadRequest
 	}
-	tags := opts.Tags
-	if tags == nil {
-		tags = map[string]string{}
-	}
+	// Copy: opts.Tags belongs to the caller and may be shared between
+	// concurrent publishes (API broadcast passes one map to every channel).
+	tags := make(map[string]string, len(opts.Tags)+1)
+	maps.Copy(tags, opts.Tags)
 	tags[epochTagsKey] = sp.Epoch
 	push := &protocol.Push{
 		Channel: ch,
