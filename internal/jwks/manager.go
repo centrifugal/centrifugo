@@ -22,6 +22,9 @@ const (
 	_defaultTimeout            = 1 * time.Second
 	_defaultMaxIdleConnPerHost = 255
 	_defaultTTL                = 1 * time.Hour
+	// _defaultStaleRetryInterval is how often an expired key is fetched again
+	// while the JWKS endpoint can't be reached and the key keeps being used.
+	_defaultStaleRetryInterval = 1 * time.Minute
 )
 
 // JWK represents an unparsed JSON Web Key (JWK) in its wire format.
@@ -50,6 +53,8 @@ type Manager struct {
 	useCache bool
 	retries  uint
 	group    singleflight.Group
+
+	staleRetryInterval time.Duration
 }
 
 func defaultHTTPClient() *http.Client {
@@ -79,6 +84,8 @@ func NewManager(rawURL string, opts ...Option) (*Manager, error) {
 		client:   defaultHTTPClient(),
 		useCache: true,
 		retries:  _defaultRetries,
+
+		staleRetryInterval: _defaultStaleRetryInterval,
 	}
 
 	for _, opt := range opts {
@@ -125,6 +132,16 @@ func (m *Manager) FetchKey(ctx context.Context, kid string, tokenVars map[string
 		return m.fetchKey(ctx, jwkURL, kid)
 	})
 	if err != nil {
+		// Keys expire from the cache to pick up keys removed from the JWKS
+		// endpoint. When the endpoint can't tell, as it can't be reached or
+		// returns an error, keep using the key fetched before: an unavailable
+		// endpoint must not fail verification of the tokens it issued.
+		if m.useCache && !errors.Is(err, ErrPublicKeyNotFound) {
+			if key, staleErr := m.cache.GetStale(cacheKey, m.staleRetryInterval); staleErr == nil {
+				log.Warn().Err(err).Str("kid", kid).Msg("error fetching JWKS, using previously fetched key")
+				return key, nil
+			}
+		}
 		return nil, err
 	}
 
@@ -200,13 +217,9 @@ func (m *Manager) fetchKey(ctx context.Context, jwkURL, kid string) (*JWK, error
 		return nil, fmt.Errorf("%w: %v", errUnmarshal, err)
 	}
 
-	if len(set.Keys) == 0 {
-		return nil, ErrPublicKeyNotFound
-	}
-
 	var res *JWK
 
-	// Save new set into cache.
+	keys := make(map[string]*JWK, len(set.Keys))
 	for _, spec := range set.Keys {
 		key, err := spec.ToJWK()
 		if err != nil {
@@ -218,13 +231,17 @@ func (m *Manager) fetchKey(ctx context.Context, jwkURL, kid string) (*JWK, error
 			continue
 		}
 
-		if m.useCache {
-			_ = m.cache.Add(cacheKey(jwkURL, key.Kid), key)
-		}
+		keys[cacheKey(jwkURL, key.Kid)] = key
 
 		if key.Kid == kid {
 			res = key
 		}
+	}
+
+	// Save new set into cache. Keys the endpoint no longer returns are
+	// removed, so they are not used when it can't be reached later.
+	if m.useCache {
+		_ = m.cache.ReplacePrefix(cacheKey(jwkURL, ""), keys)
 	}
 
 	if res == nil {
