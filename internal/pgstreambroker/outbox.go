@@ -143,14 +143,6 @@ func (e *PostgresStreamBroker) processOutboxBatch(
 	}
 	defer rows.Close()
 
-	allocHint := e.conf.Outbox.BatchSize
-	if allocHint > 1001 {
-		allocHint = 1001
-	}
-	arena := byteArena{buf: make([]byte, 0, allocHint*64)}
-	pubBacking := make([]centrifuge.Publication, 0, allocHint)
-	infoBacking := make([]centrifuge.ClientInfo, 0, allocHint)
-
 	type batchEntry struct {
 		id      int64
 		channel string
@@ -159,13 +151,28 @@ func (e *PostgresStreamBroker) processOutboxBatch(
 		info    *centrifuge.ClientInfo
 		epoch   string
 	}
-	entries := make([]batchEntry, 0, allocHint)
+	var (
+		arena       byteArena
+		pubBacking  []centrifuge.Publication
+		infoBacking []centrifuge.ClientInfo
+		entries     []batchEntry
+	)
 
 	var fmts pgColFormats
 	maxID := cursor
 	for rows.Next() {
 		if fmts == nil {
 			fmts = pgColFormatsFromRows(rows)
+			// Size the buffers for a full batch on the first row: an idle
+			// poll finds no rows and should not pay for them.
+			allocHint := e.conf.Outbox.BatchSize
+			if allocHint > 1001 {
+				allocHint = 1001
+			}
+			arena = byteArena{buf: make([]byte, 0, allocHint*64)}
+			pubBacking = make([]centrifuge.Publication, 0, allocHint)
+			infoBacking = make([]centrifuge.ClientInfo, 0, allocHint)
+			entries = make([]batchEntry, 0, allocHint)
 		}
 		raw := rows.RawValues()
 		// Column order:

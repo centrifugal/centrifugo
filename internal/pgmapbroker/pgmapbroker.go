@@ -1925,12 +1925,10 @@ func (e *PostgresMapBroker) processOutboxBatch(ctx context.Context, pool *pgxpoo
 
 	buf.reset()
 	arena := byteArena{}
-	allocHint := batchSize
-	if allocHint > 1001 {
-		allocHint = 1001
-	}
-	pubBacking := make([]centrifuge.Publication, 0, allocHint)
-	infoBacking := make([]centrifuge.ClientInfo, 0, allocHint/4+1)
+	var (
+		pubBacking  []centrifuge.Publication
+		infoBacking []centrifuge.ClientInfo
+	)
 
 	var maxID int64
 
@@ -1943,6 +1941,14 @@ func (e *PostgresMapBroker) processOutboxBatch(ctx context.Context, pool *pgxpoo
 	for rows.Next() {
 		if fmts == nil {
 			fmts = pgColFormatsFromRows(rows)
+			// Size the buffers for a full batch on the first row: an idle
+			// poll finds no rows and should not pay for them.
+			allocHint := batchSize
+			if allocHint > 1001 {
+				allocHint = 1001
+			}
+			pubBacking = make([]centrifuge.Publication, 0, allocHint)
+			infoBacking = make([]centrifuge.ClientInfo, 0, allocHint/4+1)
 		}
 		raw := rows.RawValues()
 
