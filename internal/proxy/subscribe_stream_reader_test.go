@@ -81,22 +81,25 @@ func TestReadStreamEndReported(t *testing.T) {
 }
 
 // firstMessageClient answers SubscribeUnidirectional with a stream whose
-// first message comes right away, or, with afterCancel, only once the stream
-// is cancelled: as a message already in flight comes back after a cancel.
+// first Recv returns right away, or, with afterCancel, only once the stream
+// is cancelled: with a message already in flight, or, with failAfterCancel,
+// with the cancellation error, as gRPC returns it.
 type firstMessageClient struct {
 	proxyproto.CentrifugoProxyClient
-	afterCancel bool
+	afterCancel     bool
+	failAfterCancel bool
 }
 
 func (c firstMessageClient) SubscribeUnidirectional(ctx context.Context, _ *proxyproto.SubscribeRequest, _ ...grpc.CallOption) (proxyproto.CentrifugoProxy_SubscribeUnidirectionalClient, error) {
-	return &firstMessageStream{ctx: ctx, afterCancel: c.afterCancel}, nil
+	return &firstMessageStream{ctx: ctx, afterCancel: c.afterCancel, failAfterCancel: c.failAfterCancel}, nil
 }
 
 type firstMessageStream struct {
 	grpc.ClientStream
-	ctx         context.Context
-	afterCancel bool
-	sent        bool
+	ctx             context.Context
+	afterCancel     bool
+	failAfterCancel bool
+	sent            bool
 }
 
 func (s *firstMessageStream) Recv() (*proxyproto.StreamSubscribeResponse, error) {
@@ -104,6 +107,9 @@ func (s *firstMessageStream) Recv() (*proxyproto.StreamSubscribeResponse, error)
 		s.sent = true
 		if s.afterCancel {
 			<-s.ctx.Done()
+			if s.failAfterCancel {
+				return nil, s.ctx.Err()
+			}
 		}
 		return &proxyproto.StreamSubscribeResponse{SubscribeResponse: &proxyproto.SubscribeResponse{}}, nil
 	}
@@ -126,7 +132,14 @@ func TestSubscribeStreamFirstMessageAfterTimeout(t *testing.T) {
 	require.ErrorContains(t, err, "timeout waiting for first message")
 	require.Nil(t, cancel)
 
-	p.config.Timeout = configtypes.Duration(time.Second)
+	// The usual case: the timeout fails the first Recv. The error names the
+	// timeout rather than the context cancellation it caused.
+	p.client = firstMessageClient{afterCancel: true, failAfterCancel: true}
+	_, _, cancel, err = p.SubscribeStream(context.Background(), false, &proxyproto.SubscribeRequest{}, func(*proxyproto.Publication, error) {})
+	require.ErrorContains(t, err, "timeout waiting for first message")
+	require.Nil(t, cancel)
+
+	p.config.Timeout = configtypes.Duration(10 * time.Second)
 	p.client = firstMessageClient{}
 	resp, _, cancel, err := p.SubscribeStream(context.Background(), false, &proxyproto.SubscribeRequest{}, func(*proxyproto.Publication, error) {})
 	require.NoError(t, err)
