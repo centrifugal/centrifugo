@@ -332,26 +332,24 @@ func (p *SubscribeStreamProxy) SubscribeStream(
 		}
 	}
 
-	firstMessageReceived := make(chan struct{})
-
-	go func() {
-		select {
-		case <-ctx.Done():
-			cancel()
-			return
-		case <-time.After(p.config.Timeout.ToDuration()):
-			cancel()
-			return
-		case <-firstMessageReceived:
-		}
-	}()
+	// Only this timer cancels the stream before its first message. Once it
+	// has fired, the stream is refused even if a message raced in: its reader
+	// would find it cancelled and, as for any stream its owner closed, not
+	// report it — leaving the subscription with a dead stream.
+	timer := time.AfterFunc(p.config.Timeout.ToDuration(), cancel)
 
 	resp, err := stream.Recv()
+	if !timer.Stop() {
+		cancel()
+		if err == nil {
+			err = errors.New("timeout waiting for first message from stream proxy")
+		}
+		return nil, nil, nil, err
+	}
 	if err != nil {
 		cancel()
 		return nil, nil, nil, err
 	}
-	close(firstMessageReceived)
 
 	go readStream(ctx, cancel, stream, pubFunc)
 
