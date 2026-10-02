@@ -182,7 +182,7 @@ type OutboxConfig struct {
 
 	// AdvisoryLockBaseID is the base ID for PostgreSQL advisory locks used to
 	// claim shards when Broker fan-out is enabled. Lock ID = AdvisoryLockBaseID + shardID.
-	// Default: 726966531 (one above the map broker base to avoid collision).
+	// Default: 5_067_067_000 (the map broker uses 4_067_067_000).
 	AdvisoryLockBaseID int64
 
 	// AdvisoryLockRetryInterval is how often to retry advisory lock acquisition
@@ -539,6 +539,12 @@ func (e *PostgresStreamBroker) RegisterBrokerEventHandler(h centrifuge.BrokerEve
 	if err != nil {
 		e.logErrorMsg("pre-init outbox cursor", err)
 		initialCursor = 0
+	}
+
+	if len(e.readPools) > 0 {
+		if err := pgshard.Check(e.cancelCtx, e.pool); err != nil {
+			e.logErrorMsg("replica reads may not follow live delivery", err)
+		}
 	}
 
 	if e.conf.Broker != nil {

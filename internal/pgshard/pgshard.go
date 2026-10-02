@@ -3,7 +3,13 @@
 // shard.
 package pgshard
 
-import "math/bits"
+import (
+	"context"
+	"fmt"
+	"math/bits"
+
+	"github.com/jackc/pgx/v5"
+)
 
 // Of returns the shard of channel among numShards, the same as the SQL
 // expression abs(hashtext(channel)::bigint) % num_shards.
@@ -13,6 +19,34 @@ func Of(channel string, numShards int) int {
 		h = -h
 	}
 	return int(h % int64(numShards))
+}
+
+// Querier runs a query returning one row, as a pgx pool does.
+type Querier interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
+// checkKeys are hashed by Check: an ASCII one, and one with a character
+// whose bytes change when the connection converts encodings.
+var checkKeys = []string{"chat:room", "chat:é"}
+
+// Check reports an error when the database's hashtext() of channels sent over
+// db differs from the one Of computes: replica reads would then not follow
+// the shards SQL assigns. It happens with a big-endian server, or when the
+// connection converts non-ASCII channels to a server encoding other than
+// UTF8, as with client_encoding=UTF8 set for a LATIN1 database. By default
+// the client encoding is the database one, and channels are hashed as sent.
+func Check(ctx context.Context, db Querier) error {
+	for _, key := range checkKeys {
+		var dbHash int32
+		if err := db.QueryRow(ctx, "SELECT hashtext($1)", key).Scan(&dbHash); err != nil {
+			return fmt.Errorf("hashtext(%q): %w", key, err)
+		}
+		if goHash := int32(hashBytes([]byte(key))); dbHash != goHash {
+			return fmt.Errorf("hashtext(%q) is %d in the database but %d in Centrifugo", key, dbHash, goHash)
+		}
+	}
+	return nil
 }
 
 // hashBytes is PostgreSQL's hash_bytes (src/common/hashfn.c), Bob Jenkins'
