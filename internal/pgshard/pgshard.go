@@ -5,8 +5,10 @@ package pgshard
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/bits"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -26,6 +28,10 @@ type Querier interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
+// ErrMismatch is returned by Check when the database shards channels
+// differently from Of.
+var ErrMismatch = errors.New("database hashtext() differs from Centrifugo")
+
 // checkKeys are hashed by Check: an ASCII one, and one with a character
 // whose bytes change when the connection converts encodings.
 var checkKeys = []string{"chat:room", "chat:é"}
@@ -43,10 +49,29 @@ func Check(ctx context.Context, db Querier) error {
 			return fmt.Errorf("hashtext(%q): %w", key, err)
 		}
 		if goHash := int32(hashBytes([]byte(key))); dbHash != goHash {
-			return fmt.Errorf("hashtext(%q) is %d in the database but %d in Centrifugo", key, dbHash, goHash)
+			return fmt.Errorf("%w: hashtext(%q) is %d in the database, %d in Centrifugo", ErrMismatch, key, dbHash, goHash)
 		}
 	}
 	return nil
+}
+
+// checkTimeout bounds the start check: it must not hold up a start any longer
+// when the database does not answer.
+const checkTimeout = 5 * time.Second
+
+// LogCheck runs Check with its own timeout and reports the outcome with
+// logError: a mismatch, or a database the check could not be run with.
+func LogCheck(ctx context.Context, db Querier, logError func(msg string, err error)) {
+	ctx, cancel := context.WithTimeout(ctx, checkTimeout)
+	defer cancel()
+	err := Check(ctx, db)
+	switch {
+	case err == nil:
+	case errors.Is(err, ErrMismatch):
+		logError("replica reads may not follow live delivery", err)
+	default:
+		logError("could not check how the database shards channels", err)
+	}
 }
 
 // hashBytes is PostgreSQL's hash_bytes (src/common/hashfn.c), Bob Jenkins'

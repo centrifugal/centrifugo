@@ -2,6 +2,7 @@ package pgshard
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
@@ -34,5 +35,36 @@ func TestCheck(t *testing.T) {
 		}
 		return int32(hashBytes([]byte(key)))
 	})
-	require.ErrorContains(t, Check(context.Background(), latin1), `hashtext("chat:é") is -1932169419 in the database`)
+	err := Check(context.Background(), latin1)
+	require.ErrorIs(t, err, ErrMismatch)
+	require.ErrorContains(t, err, `hashtext("chat:é") is -1932169419 in the database`)
+
+	// Every key differs on a big-endian server, ASCII ones included.
+	bigEndian := hashQuerier(func(key string) int32 { return int32(hashBytes([]byte(key))) + 1 })
+	require.ErrorIs(t, Check(context.Background(), bigEndian), ErrMismatch)
+}
+
+type failingQuerier struct{}
+
+type failingRow struct{}
+
+func (failingRow) Scan(...any) error { return errors.New("connection refused") }
+
+func (failingQuerier) QueryRow(context.Context, string, ...any) pgx.Row { return failingRow{} }
+
+// A database the check can't be run with is not reported as one which
+// shards differently.
+func TestLogCheck(t *testing.T) {
+	var msgs []string
+	logError := func(msg string, _ error) { msgs = append(msgs, msg) }
+
+	LogCheck(context.Background(), hashQuerier(func(key string) int32 { return int32(hashBytes([]byte(key))) }), logError)
+	require.Empty(t, msgs)
+
+	LogCheck(context.Background(), failingQuerier{}, logError)
+	require.Equal(t, []string{"could not check how the database shards channels"}, msgs)
+
+	msgs = nil
+	LogCheck(context.Background(), hashQuerier(func(string) int32 { return 1 }), logError)
+	require.Equal(t, []string{"replica reads may not follow live delivery"}, msgs)
 }

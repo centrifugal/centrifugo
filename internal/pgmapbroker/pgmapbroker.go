@@ -586,9 +586,7 @@ func (e *PostgresMapBroker) RegisterEventHandler(h centrifuge.BrokerEventHandler
 	}
 
 	if len(e.readPools) > 0 {
-		if err := pgshard.Check(e.cancelCtx, e.pool); err != nil {
-			e.logErrorMsg("replica reads may not follow live delivery", err)
-		}
+		pgshard.LogCheck(e.cancelCtx, e.pool, e.logErrorMsg)
 	}
 
 	if e.conf.Broker != nil {

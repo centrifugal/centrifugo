@@ -20,4 +20,19 @@ func TestCheckAgainstPostgres(t *testing.T) {
 	require.NoError(t, err)
 	defer pool.Close()
 	require.NoError(t, Check(context.Background(), pool))
+
+	// A connection converting channels to another encoding hashes non-ASCII
+	// ones differently from Centrifugo, whatever the database encoding.
+	conf, err := pgxpool.ParseConfig(dsn)
+	require.NoError(t, err)
+	conf.ConnConfig.RuntimeParams["client_encoding"] = "LATIN1"
+	converting, err := pgxpool.NewWithConfig(context.Background(), conf)
+	require.NoError(t, err)
+	defer converting.Close()
+	var serverEncoding string
+	require.NoError(t, converting.QueryRow(context.Background(), "SHOW server_encoding").Scan(&serverEncoding))
+	if serverEncoding == "LATIN1" {
+		t.Skip("the database is LATIN1 itself: nothing to convert")
+	}
+	require.ErrorIs(t, Check(context.Background(), converting), ErrMismatch)
 }
