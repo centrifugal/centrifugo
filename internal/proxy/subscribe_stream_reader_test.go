@@ -80,30 +80,31 @@ func TestReadStreamEndReported(t *testing.T) {
 	}
 }
 
-// slowFirstMessageClient answers SubscribeUnidirectional with a stream whose
-// first message comes after a delay.
-type slowFirstMessageClient struct {
+// firstMessageClient answers SubscribeUnidirectional with a stream whose
+// first message comes right away, or, with afterCancel, only once the stream
+// is cancelled: as a message already in flight comes back after a cancel.
+type firstMessageClient struct {
 	proxyproto.CentrifugoProxyClient
-	delay time.Duration
+	afterCancel bool
 }
 
-func (c slowFirstMessageClient) SubscribeUnidirectional(ctx context.Context, _ *proxyproto.SubscribeRequest, _ ...grpc.CallOption) (proxyproto.CentrifugoProxy_SubscribeUnidirectionalClient, error) {
-	return &slowFirstMessageStream{ctx: ctx, delay: c.delay}, nil
+func (c firstMessageClient) SubscribeUnidirectional(ctx context.Context, _ *proxyproto.SubscribeRequest, _ ...grpc.CallOption) (proxyproto.CentrifugoProxy_SubscribeUnidirectionalClient, error) {
+	return &firstMessageStream{ctx: ctx, afterCancel: c.afterCancel}, nil
 }
 
-type slowFirstMessageStream struct {
+type firstMessageStream struct {
 	grpc.ClientStream
-	ctx   context.Context
-	delay time.Duration
-	sent  bool
+	ctx         context.Context
+	afterCancel bool
+	sent        bool
 }
 
-func (s *slowFirstMessageStream) Recv() (*proxyproto.StreamSubscribeResponse, error) {
+func (s *firstMessageStream) Recv() (*proxyproto.StreamSubscribeResponse, error) {
 	if !s.sent {
 		s.sent = true
-		// The message arrives whatever the context says, as one already in
-		// flight would.
-		time.Sleep(s.delay)
+		if s.afterCancel {
+			<-s.ctx.Done()
+		}
 		return &proxyproto.StreamSubscribeResponse{SubscribeResponse: &proxyproto.SubscribeResponse{}}, nil
 	}
 	<-s.ctx.Done()
@@ -115,16 +116,18 @@ func (s *slowFirstMessageStream) Recv() (*proxyproto.StreamSubscribeResponse, er
 // the subscription stayed with a dead stream. Once the timeout fired the
 // stream is refused.
 func TestSubscribeStreamFirstMessageAfterTimeout(t *testing.T) {
+	// Only the timeout cancels the stream here, so the first message comes
+	// after it fired, whatever the timing.
 	p := &SubscribeStreamProxy{
-		config: Config{Timeout: configtypes.Duration(10 * time.Millisecond)},
-		client: slowFirstMessageClient{delay: 50 * time.Millisecond},
+		config: Config{Timeout: configtypes.Duration(time.Millisecond)},
+		client: firstMessageClient{afterCancel: true},
 	}
 	_, _, cancel, err := p.SubscribeStream(context.Background(), false, &proxyproto.SubscribeRequest{}, func(*proxyproto.Publication, error) {})
-	require.Error(t, err)
+	require.ErrorContains(t, err, "timeout waiting for first message")
 	require.Nil(t, cancel)
 
 	p.config.Timeout = configtypes.Duration(time.Second)
-	p.client = slowFirstMessageClient{}
+	p.client = firstMessageClient{}
 	resp, _, cancel, err := p.SubscribeStream(context.Background(), false, &proxyproto.SubscribeRequest{}, func(*proxyproto.Publication, error) {})
 	require.NoError(t, err)
 	require.NotNil(t, resp)

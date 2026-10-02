@@ -341,10 +341,7 @@ func (p *SubscribeStreamProxy) SubscribeStream(
 	resp, err := stream.Recv()
 	if !timer.Stop() {
 		cancel()
-		if err == nil {
-			err = errors.New("timeout waiting for first message from stream proxy")
-		}
-		return nil, nil, nil, err
+		return nil, nil, nil, errors.New("timeout waiting for first message from stream proxy")
 	}
 	if err != nil {
 		cancel()
