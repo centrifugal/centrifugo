@@ -7,12 +7,12 @@ import (
 
 	"github.com/centrifugal/centrifugo/v6/internal/convert"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
+	"github.com/centrifugal/centrifugo/v6/internal/tools"
 	"github.com/centrifugal/centrifugo/v6/internal/websocket"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
 	"github.com/rs/zerolog/log"
-	"github.com/segmentio/encoding/json"
 )
 
 // Handler handles WebSocket client connections. Usually WebSocket protocol
@@ -66,7 +66,7 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	var req *protocol.ConnectRequest
 	connectRequestString := r.URL.Query().Get(connectUrlParam)
 	if connectRequestString != "" {
-		_, err := json.Parse(convert.StringToBytes(connectRequestString), &req, json.ZeroCopy)
+		err := tools.UnmarshalJSONPtr(convert.StringToBytes(connectRequestString), &req)
 		if err != nil {
 			log.Info().Err(err).Str("transport", transportName).Msg("error unmarshalling connect request")
 			http.Error(rw, "invalid connect request", http.StatusBadRequest)
@@ -198,7 +198,7 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 				waitClose()
 				return
 			}
-			_, err = json.Parse(data, &req, json.ZeroCopy)
+			err = tools.UnmarshalJSONPtr(data, &req)
 			if err != nil {
 				log.Info().Err(err).Str("transport", transportName).Msg("error unmarshalling connect request")
 				if !s.config.DisableClosingHandshake {

@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"github.com/cristalhq/jwt/v5"
-	sjson "github.com/segmentio/encoding/json"
 )
 
 func generateKeys(n int) []string {
@@ -224,7 +224,7 @@ func BenchmarkTrackSignature_JWT_Create_Segmentio_10kKeys(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		rawClaims, err := sjson.Marshal(claims)
+		rawClaims, err := json.Marshal(claims)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -325,7 +325,7 @@ func BenchmarkTrackSignature_JWT_Verify_Segmentio_10kKeys(b *testing.B) {
 			b.Fatal(err)
 		}
 		var parsed trackClaims
-		if _, err := sjson.Parse(parsedToken.Claims(), &parsed, sjson.ZeroCopy); err != nil {
+		if err := json.Unmarshal(parsedToken.Claims(), &parsed); err != nil {
 			b.Fatal(err)
 		}
 	}

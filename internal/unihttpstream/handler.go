@@ -11,7 +11,6 @@ import (
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
 	"github.com/rs/zerolog/log"
-	"github.com/segmentio/encoding/json"
 )
 
 type Handler struct {
@@ -62,7 +61,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	_, err = json.Parse(connectRequestData, &req, json.ZeroCopy)
+	err = tools.UnmarshalJSONPtr(connectRequestData, &req)
 	if err != nil {
 		if logging.Enabled(logging.DebugLevel) {
 			log.Debug().Err(err).Str("transport", transportName).Msg("malformed connect request")
