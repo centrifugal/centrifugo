@@ -32,6 +32,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/pgschema"
+	"github.com/centrifugal/centrifugo/v6/internal/pgshard"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/jackc/pgx/v5"
@@ -167,20 +168,6 @@ func durationToIntervalString(d time.Duration) string {
 		return strconv.FormatInt(ms, 10) + " milliseconds"
 	}
 	return "1 milliseconds"
-}
-
-// hashtext is a simple polynomial hash used only for in-process read-replica
-// routing. It only needs consistency within a process, not cross-process
-// compatibility with PostgreSQL's hashtext() (which uses Jenkins lookup3 and is
-// used separately inside SQL for shard assignment). It returns uint32 so the
-// result is always non-negative and can be taken modulo NumShards directly (no
-// abs, and no math.MinInt32 overflow edge case).
-func hashtext(s string) uint32 {
-	var h uint32
-	for i := 0; i < len(s); i++ {
-		h = h*31 + uint32(s[i])
-	}
-	return h
 }
 
 // OutboxConfig configures outbox-based delivery.
@@ -593,12 +580,14 @@ func (e *PostgresStreamBroker) Unsubscribe(channels ...string) error {
 }
 
 // getReadPool returns the appropriate pool for read queries. If allowCached
-// is true and replicas are configured, routes by shard hash to a replica.
+// is true and replicas are configured, routes by shard, computed as the SQL
+// functions do, to the replica the outbox worker of the shard polls: history
+// of a channel holds at least what was delivered from it live.
 func (e *PostgresStreamBroker) getReadPool(channel string, allowCached bool) *pgxpool.Pool {
 	if !allowCached || len(e.readPools) == 0 {
 		return e.pool
 	}
-	shardID := int(hashtext(channel) % uint32(e.conf.NumShards))
+	shardID := pgshard.Of(channel, e.conf.NumShards)
 	replicaIdx := shardID % len(e.readPools)
 	return e.readPools[replicaIdx]
 }
