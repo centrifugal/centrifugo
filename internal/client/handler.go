@@ -859,12 +859,12 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		options.Source = subsource.ClientInsecure
 	}
 
-	applyNamespaceSubscribeOptions(&options, chOpts, e.Channel)
-
 	if !allowed {
 		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("attempt to subscribe without sufficient permission")
 		return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorPermissionDenied
 	}
+
+	applyNamespaceSubscribeOptions(&options, chOpts, e.Channel)
 
 	// Note, using forceSubscribed here because all checks are passed but connection is not yet
 	// subscribed in Centrifuge registry.
