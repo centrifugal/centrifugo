@@ -264,6 +264,31 @@ type ChannelStreamReader interface {
 	Recv() (*proxyproto.StreamSubscribeResponse, error)
 }
 
+// readStream passes the publications of a stream to pubFunc until the stream
+// ends, then reports why it ended. A stream closed by its own context is not
+// reported: it was closed on purpose — on unsubscribe, for a subscription
+// refused after the stream was opened, or with the client — and nobody waits
+// for the error then. Reporting it would block on a subscription which never
+// became ready, or unsubscribe a newer subscription to the same channel.
+func readStream(ctx context.Context, cancel context.CancelFunc, stream ChannelStreamReader, pubFunc OnPublication) {
+	for {
+		pubResp, err := stream.Recv()
+		if err != nil {
+			if ctx.Err() != nil {
+				return
+			}
+			cancel()
+			pubFunc(nil, err)
+			return
+		}
+		pub := pubResp.GetPublication()
+		if pub != nil {
+			// TODO: better handling of unexpected nil publication.
+			pubFunc(pub, nil)
+		}
+	}
+}
+
 // SubscribeStream ...
 func (p *SubscribeStreamProxy) SubscribeStream(
 	ctx context.Context,
@@ -328,21 +353,7 @@ func (p *SubscribeStreamProxy) SubscribeStream(
 	}
 	close(firstMessageReceived)
 
-	go func() {
-		for {
-			pubResp, err := stream.Recv()
-			if err != nil {
-				cancel()
-				pubFunc(nil, err)
-				return
-			}
-			pub := pubResp.GetPublication()
-			if pub != nil {
-				// TODO: better handling of unexpected nil publication.
-				pubFunc(pub, nil)
-			}
-		}
-	}()
+	go readStream(ctx, cancel, stream, pubFunc)
 
 	if resp.SubscribeResponse == nil {
 		// The reader goroutine was already spawned above, so cancel before
