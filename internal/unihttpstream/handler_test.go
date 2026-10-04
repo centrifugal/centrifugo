@@ -75,6 +75,19 @@ func TestUnidirectionalHTTPStream(t *testing.T) {
 		ensureHTTPStreamMessageHasClient(t, message)
 	})
 
+	t.Run("null connect request in POST body", func(t *testing.T) {
+		// null is an empty connect request; it must never reach the
+		// connect handler as a nil request.
+		resp, err := http.Post(server.URL, "application/json", strings.NewReader("null"))
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		message, err := readHTTPStreamMessage(bufio.NewReader(resp.Body))
+		require.NoError(t, err)
+		ensureHTTPStreamMessageHasClient(t, message)
+	})
+
 	t.Run("invalid connect request in POST body", func(t *testing.T) {
 		resp, err := http.Post(server.URL, "application/json", strings.NewReader("invalid-json"))
 		require.NoError(t, err)

@@ -131,6 +131,29 @@ func TestUnidirectionalWebSocket(t *testing.T) {
 		ensureMessageHasClient(t, data)
 	})
 
+	t.Run("null connect request", func(t *testing.T) {
+		// null is an empty connect request, in the URL or as the first
+		// message; it must never reach the connect handler as a nil request
+		// (that runs in a goroutine with no recover).
+		params := url.Values{}
+		params.Set(connectUrlParam, "null")
+		dialer := websocket.Dialer{}
+		conn, _, _, err := dialer.Dial(wsURL+"?"+params.Encode(), nil)
+		require.NoError(t, err)
+		defer func() { _ = conn.Close() }()
+		_, data, err := conn.ReadMessage()
+		require.NoError(t, err)
+		ensureMessageHasClient(t, data)
+
+		conn2, _, _, err := dialer.Dial(wsURL, nil)
+		require.NoError(t, err)
+		defer func() { _ = conn2.Close() }()
+		require.NoError(t, conn2.WriteMessage(websocket.TextMessage, []byte("null")))
+		_, data, err = conn2.ReadMessage()
+		require.NoError(t, err)
+		ensureMessageHasClient(t, data)
+	})
+
 	t.Run("invalid connect request in URL params", func(t *testing.T) {
 		params := url.Values{}
 		params.Set(connectUrlParam, "invalid-json")

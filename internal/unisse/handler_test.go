@@ -115,6 +115,30 @@ func TestUnidirectionalSSE(t *testing.T) {
 		ensureSSEMessageHasClient(t, message)
 	})
 
+	t.Run("null connect request in URL params", func(t *testing.T) {
+		// null is an empty connect request; it must never reach the
+		// connect handler as a nil request.
+		params := url.Values{}
+		params.Set(connectUrlParam, "null")
+		resp, err := http.Get(server.URL + "?" + params.Encode())
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		message, err := readSSEMessage(bufio.NewReader(resp.Body))
+		require.NoError(t, err)
+		ensureSSEMessageHasClient(t, message)
+	})
+
+	t.Run("null connect request in POST body", func(t *testing.T) {
+		resp, err := http.Post(server.URL, "application/json", strings.NewReader("null"))
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		message, err := readSSEMessage(bufio.NewReader(resp.Body))
+		require.NoError(t, err)
+		ensureSSEMessageHasClient(t, message)
+	})
+
 	t.Run("invalid connect request in URL params", func(t *testing.T) {
 		params := url.Values{}
 		params.Set(connectUrlParam, "invalid-json")

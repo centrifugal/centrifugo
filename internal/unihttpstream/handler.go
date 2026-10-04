@@ -10,8 +10,8 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
+	"github.com/centrifugal/protocol/cfjson"
 	"github.com/rs/zerolog/log"
-	"github.com/segmentio/encoding/json"
 )
 
 type Handler struct {
@@ -49,7 +49,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "expected http.ResponseWriter to be http.Flusher", http.StatusInternalServerError)
 		return
 	}
-	var req *protocol.ConnectRequest
+	req := &protocol.ConnectRequest{}
 
 	maxBytesSize := int64(h.config.MaxRequestBodySize)
 	r.Body = http.MaxBytesReader(w, r.Body, maxBytesSize)
@@ -62,20 +62,13 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	_, err = json.Parse(connectRequestData, &req, json.ZeroCopy)
+	err = cfjson.Unmarshal(connectRequestData, req, 0)
 	if err != nil {
 		if logging.Enabled(logging.DebugLevel) {
 			log.Debug().Err(err).Str("transport", transportName).Msg("malformed connect request")
 		}
 		w.WriteHeader(http.StatusBadRequest)
 		return
-	}
-
-	if req == nil {
-		// A literal `null` connect request decodes to a nil request with no error;
-		// treat it as an empty request rather than passing nil to the connect
-		// handler, which would nil-deref.
-		req = &protocol.ConnectRequest{}
 	}
 
 	ack := make(chan struct{})

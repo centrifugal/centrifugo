@@ -197,7 +197,7 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 			Time:  time.Now().UnixMilli(),
 		},
 	}
-	byteMessage, err := push.MarshalVT()
+	byteMessage, err := push.MarshalCF()
 	if err != nil {
 		return centrifuge.PublishResult{}, err
 	}
@@ -231,7 +231,7 @@ func (b *NatsBroker) PublishWithStreamPosition(ch string, data []byte, opts cent
 			Delta:  opts.UseDelta, // Will be cleaned up before passing to Node.
 		},
 	}
-	byteMessage, err := push.MarshalVT()
+	byteMessage, err := push.MarshalCF()
 	if err != nil {
 		return err
 	}
@@ -249,7 +249,7 @@ func (b *NatsBroker) PublishJoin(ch string, info *centrifuge.ClientInfo) error {
 			Info: infoToProto(info),
 		},
 	}
-	byteMessage, err := push.MarshalVT()
+	byteMessage, err := push.MarshalCF()
 	if err != nil {
 		return err
 	}
@@ -267,7 +267,7 @@ func (b *NatsBroker) PublishLeave(ch string, info *centrifuge.ClientInfo) error 
 			Info: infoToProto(info),
 		},
 	}
-	byteMessage, err := push.MarshalVT()
+	byteMessage, err := push.MarshalCF()
 	if err != nil {
 		return err
 	}
@@ -318,7 +318,7 @@ func (b *NatsBroker) handleClientMessage(subject string, data []byte, sub *nats.
 	}
 
 	var push protocol.Push
-	err := push.UnmarshalVT(data)
+	err := push.UnmarshalCF(data)
 	if err != nil {
 		log.Error().Err(err).Msg("error unmarshal push from Nats")
 		return
