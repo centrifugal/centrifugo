@@ -612,12 +612,20 @@ message Command {
 // Error is a Centrifugo API error. It has the same structure in every API
 // response.
 message Error {
-    // code is the Centrifugo error code, for example 100 (internal error),
-    // 102 (unknown channel), 104 (not found), 107 (bad request) or
-    // 108 (not available).
+    // code is the Centrifugo error code: 100 (internal error), 102 (unknown
+    // channel), 104 (not found), 107 (bad request), 108 (not available),
+    // 111 (too many requests), 112 (unrecoverable position) or 113
+    // (conflict).
     uint32 code = 1;
     // message is a human-readable description of the error.
     string message = 2;
+    // temporary is true when the same request may succeed if retried later:
+    // the error came from a temporary condition, such as a broker being
+    // unavailable or a rate limit, not from the request itself. It does not
+    // mean nothing was done: a publication may have happened despite the
+    // error. Retry a publication with the same idempotency_key, so that it
+    // is not published twice.
+    bool temporary = 3;
 }
 
 // Reply is the reply to a single Command of a BatchRequest. It carries

@@ -2886,11 +2886,15 @@
         "code": {
           "type": "integer",
           "format": "int64",
-          "description": "code is the Centrifugo error code, for example 100 (internal error),\n102 (unknown channel), 104 (not found), 107 (bad request) or\n108 (not available)."
+          "description": "code is the Centrifugo error code: 100 (internal error), 102 (unknown\nchannel), 104 (not found), 107 (bad request), 108 (not available),\n111 (too many requests), 112 (unrecoverable position) or 113\n(conflict)."
         },
         "message": {
           "type": "string",
           "description": "message is a human-readable description of the error."
+        },
+        "temporary": {
+          "type": "boolean",
+          "description": "temporary is true when the same request may succeed if retried later:\nthe error came from a temporary condition, such as a broker being\nunavailable or a rate limit, not from the request itself. It does not\nmean nothing was done: a publication may have happened despite the\nerror. Retry a publication with the same idempotency_key, so that it\nis not published twice."
         }
       },
       "description": "Error is a Centrifugo API error. It has the same structure in every API\nresponse."
