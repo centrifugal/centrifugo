@@ -8,12 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// With no address configured the engine default is used.
-func TestGetRedisShardConfigs_DefaultAddress(t *testing.T) {
-	confs, err := getRedisShardConfigs(configtypes.Redis{})
-	require.NoError(t, err)
-	require.Len(t, confs, 1)
-	require.Equal(t, "127.0.0.1:6379", confs[0].Address)
+// An explicitly empty address is an error, not a fallback to localhost.
+func TestGetRedisShardConfigs_NoAddress(t *testing.T) {
+	_, err := getRedisShardConfigs(configtypes.Redis{Password: "secret"})
+	require.Error(t, err)
 }
 
 // A TLS configuration which cannot be built is an error to return, not a

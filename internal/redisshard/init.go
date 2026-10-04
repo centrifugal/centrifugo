@@ -113,7 +113,9 @@ func getRedisShardConfigs(redisConf configtypes.Redis) ([]RedisShardConfig, erro
 
 	redisAddresses := redisConf.Address
 	if len(redisAddresses) == 0 {
-		redisAddresses = []string{"127.0.0.1:6379"}
+		// The address has a default, so it is empty only when set so (an empty
+		// env var, say). Refuse rather than send the credentials to localhost.
+		return nil, fmt.Errorf("no Redis address configured")
 	}
 	for _, redisAddress := range redisAddresses {
 		conf := &RedisShardConfig{
