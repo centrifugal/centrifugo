@@ -7,11 +7,11 @@ import (
 
 	"github.com/centrifugal/centrifugo/v6/internal/convert"
 	"github.com/centrifugal/centrifugo/v6/internal/logging"
-	"github.com/centrifugal/centrifugo/v6/internal/tools"
 	"github.com/centrifugal/centrifugo/v6/internal/websocket"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
+	"github.com/centrifugal/protocol/cfjson"
 	"github.com/rs/zerolog/log"
 )
 
@@ -66,7 +66,8 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	var req *protocol.ConnectRequest
 	connectRequestString := r.URL.Query().Get(connectUrlParam)
 	if connectRequestString != "" {
-		err := tools.UnmarshalJSONPtr(convert.StringToBytes(connectRequestString), &req)
+		req = &protocol.ConnectRequest{}
+		err := cfjson.Unmarshal(convert.StringToBytes(connectRequestString), req, 0)
 		if err != nil {
 			log.Info().Err(err).Str("transport", transportName).Msg("error unmarshalling connect request")
 			http.Error(rw, "invalid connect request", http.StatusBadRequest)
@@ -198,7 +199,8 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 				waitClose()
 				return
 			}
-			err = tools.UnmarshalJSONPtr(data, &req)
+			req = &protocol.ConnectRequest{}
+			err = cfjson.Unmarshal(data, req, 0)
 			if err != nil {
 				log.Info().Err(err).Str("transport", transportName).Msg("error unmarshalling connect request")
 				if !s.config.DisableClosingHandshake {
@@ -216,14 +218,6 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 				waitClose()
 				return
 			}
-		}
-
-		if req == nil {
-			// A literal `null` connect frame decodes to a nil request with no error;
-			// treat it as an empty connect request. Passing nil to the connect
-			// handler nil-derefs, and this runs in a bare goroutine (ServeHTTP has
-			// already returned), so the panic would crash the whole process.
-			req = &protocol.ConnectRequest{}
 		}
 
 		c.ProtocolConnect(req)

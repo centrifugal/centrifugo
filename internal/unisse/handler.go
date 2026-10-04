@@ -11,6 +11,7 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
+	"github.com/centrifugal/protocol/cfjson"
 	"github.com/rs/zerolog/log"
 )
 
@@ -47,18 +48,16 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req *protocol.ConnectRequest
+	req := &protocol.ConnectRequest{}
 	if r.Method == http.MethodGet {
 		connectRequestString := r.URL.Query().Get(connectUrlParam)
 		if connectRequestString != "" {
-			err := tools.UnmarshalJSONPtr(convert.StringToBytes(connectRequestString), &req)
+			err := cfjson.Unmarshal(convert.StringToBytes(connectRequestString), req, 0)
 			if err != nil {
 				log.Info().Err(err).Str("transport", transportName).Msg("error unmarshalling connect request")
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-		} else {
-			req = &protocol.ConnectRequest{}
 		}
 	} else if r.Method == http.MethodPost {
 		maxBytesSize := h.config.MaxRequestBodySize
@@ -72,7 +71,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		err = tools.UnmarshalJSONPtr(connectRequestData, &req)
+		err = cfjson.Unmarshal(connectRequestData, req, 0)
 		if err != nil {
 			if logging.Enabled(logging.DebugLevel) {
 				log.Debug().Err(err).Str("transport", transportName).Msg("malformed connect request")
@@ -83,13 +82,6 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
-	}
-
-	if req == nil {
-		// A literal `null` connect request decodes to a nil request with no error;
-		// treat it as an empty request rather than passing nil to the connect
-		// handler, which would nil-deref.
-		req = &protocol.ConnectRequest{}
 	}
 
 	ack := make(chan struct{})
