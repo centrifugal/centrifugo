@@ -342,6 +342,9 @@ message SubRefreshResult {
   int64 expire_at = 2;
   bytes info = 3;
   string b64info = 4;
+  // server_tags_filter, when set, replaces the server-side tags filter of the
+  // subscription (Centrifugo PRO). When not set the filter is kept as it is.
+  FilterNode server_tags_filter = 5;
 }
 
 message SubRefreshResponse {
