@@ -14,8 +14,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.52.1
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.1
 	github.com/aws/smithy-go v1.28.2
-	github.com/centrifugal/centrifuge v0.39.3-0.20260927184221-2c3e5140281a
-	github.com/centrifugal/protocol v0.22.2-0.20261001162733-b91d74f2531f
+	github.com/centrifugal/centrifuge v0.39.4-0.20261004112839-e1f9e3d72c02
+	github.com/centrifugal/protocol v0.23.0
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/gobwas/glob v1.0.0
@@ -120,7 +120,7 @@ require (
 	github.com/nats-io/nkeys v0.4.16 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/prometheus/client_model v0.6.3
-	github.com/prometheus/common v0.71.0 // indirect
+	github.com/prometheus/common v0.72.0 // indirect
 	github.com/prometheus/procfs v0.22.0 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/redis/rueidis v1.0.78
@@ -138,5 +138,3 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260921155816-b14227669459 // indirect
 	gopkg.in/yaml.v3 v3.0.1
 )
-
-replace github.com/centrifugal/centrifuge => /private/tmp/claude-501/-Users-fz-centrifugal-protocol/fe1d6684-0e51-455d-8fd3-41a315560ccc/scratchpad/centrifuge-cf
