@@ -15,6 +15,7 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/pgoutbox"
 	"github.com/centrifugal/centrifugo/v6/internal/pgschema"
+	"github.com/centrifugal/centrifugo/v6/internal/pgshard"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/jackc/pgx/v5"
@@ -239,7 +240,7 @@ type OutboxConfig struct {
 
 	// AdvisoryLockBaseID is the base ID for PostgreSQL advisory locks used to
 	// claim shards when Broker fan-out is enabled. Lock ID = AdvisoryLockBaseID + shardID.
-	// Default: 726966530.
+	// Default: 4_067_067_000.
 	AdvisoryLockBaseID int64
 
 	// AdvisoryLockRetryInterval is how often to retry advisory lock acquisition
@@ -553,29 +554,16 @@ func NewPostgresMapBroker(n *centrifuge.Node, conf PostgresMapBrokerConfig) (*Po
 
 // getReadPool returns the pool for reading the given channel.
 // Only routes to replica when allowCached is true AND replicas are configured.
-// Routes by shard: hash(channel) % NumShards % len(readPools) → replica index.
+// Routes by shard, computed as the SQL functions do, to the replica the
+// outbox worker of the shard polls: reads of a channel see at least what was
+// delivered from it live.
 func (e *PostgresMapBroker) getReadPool(channel string, allowCached bool) *pgxpool.Pool {
 	if !allowCached || len(e.readPools) == 0 {
 		return e.pool
 	}
-	shardID := int(hashtext(channel) % uint32(e.conf.NumShards))
+	shardID := pgshard.Of(channel, e.conf.NumShards)
 	replicaIdx := shardID % len(e.readPools)
 	return e.readPools[replicaIdx]
-}
-
-// hashtext is a simple polynomial hash used only for in-process read-replica
-// routing. It does NOT match PostgreSQL's hashtext() (which uses Jenkins
-// lookup3) — values differ for the same input, which is fine: replicas are
-// interchangeable, and the PostgreSQL function is used separately inside SQL for
-// shard assignment. It returns uint32 so the result is always non-negative and
-// can be taken modulo NumShards directly (no abs, and no math.MinInt32 overflow
-// edge case).
-func hashtext(s string) uint32 {
-	var h uint32
-	for i := 0; i < len(s); i++ {
-		h = h*31 + uint32(s[i])
-	}
-	return h
 }
 
 // RegisterEventHandler registers the event handler and starts background workers.
@@ -595,6 +583,10 @@ func (e *PostgresMapBroker) RegisterEventHandler(h centrifuge.BrokerEventHandler
 	if err != nil {
 		e.logErrorMsg("pre-init outbox cursor", err)
 		initialCursor = 0
+	}
+
+	if len(e.readPools) > 0 {
+		pgshard.LogCheck(e.cancelCtx, e.pool, e.logErrorMsg)
 	}
 
 	if e.conf.Broker != nil {
