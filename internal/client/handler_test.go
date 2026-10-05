@@ -245,6 +245,33 @@ func TestClientConnectWithMalformedToken(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestClientConnectWithInvalidBase64Info(t *testing.T) {
+	node := tools.NodeWithMemoryEngine()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+	verifier := hmacJWTVerifier(t, cfgContainer)
+	h := NewHandler(node, cfgContainer, verifier, nil, &ProxyMap{})
+
+	token, err := getTokenBuilder(nil, "secret").Build(&jwtverify.ConnectTokenClaims{
+		Base64Info:       "not base64",
+		RegisteredClaims: jwt.RegisteredClaims{Subject: "42"},
+	})
+	require.NoError(t, err)
+
+	_, err = h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
+		Token: token.String(),
+	}, nil, false)
+	require.Equal(t, centrifuge.DisconnectInvalidToken, err)
+
+	_, _, err = h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
+		Token: token.String(),
+	}, nil)
+	require.Equal(t, centrifuge.DisconnectInvalidToken, err)
+}
+
 func TestClientConnectWithValidTokenHMAC(t *testing.T) {
 	node := tools.NodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()

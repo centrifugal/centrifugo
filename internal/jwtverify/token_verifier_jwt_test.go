@@ -972,6 +972,41 @@ func getHMACConnToken(user string, exp int64, secret string) string {
 	return token.String()
 }
 
+func Test_tokenVerifierJWT_InvalidBase64Info(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+	verifier, err := NewTokenVerifierJWT(VerifierConfig{HMACSecretKey: "secret"}, cfgContainer)
+	require.NoError(t, err)
+	signer, err := jwt.NewSignerHS(jwt.HS256, []byte("secret"))
+	require.NoError(t, err)
+
+	token, err := jwt.NewBuilder(signer).Build(&ConnectTokenClaims{
+		Base64Info:       "not base64",
+		RegisteredClaims: jwt.RegisteredClaims{Subject: "user1"},
+	})
+	require.NoError(t, err)
+	_, err = verifier.VerifyConnectToken(token.String(), false)
+	require.ErrorIs(t, err, ErrInvalidToken)
+
+	token, err = jwt.NewBuilder(signer).Build(&ConnectTokenClaims{
+		Subs:             map[string]SubscribeOptions{"channel": {Base64Info: "not base64"}},
+		RegisteredClaims: jwt.RegisteredClaims{Subject: "user1"},
+	})
+	require.NoError(t, err)
+	_, err = verifier.VerifyConnectToken(token.String(), false)
+	require.ErrorIs(t, err, ErrInvalidToken)
+
+	token, err = jwt.NewBuilder(signer).Build(&SubscribeTokenClaims{
+		SubscribeOptions: SubscribeOptions{Base64Info: "not base64"},
+		Channel:          "channel",
+		RegisteredClaims: jwt.RegisteredClaims{Subject: "user1"},
+	})
+	require.NoError(t, err)
+	_, err = verifier.VerifySubscribeToken(token.String(), false)
+	require.ErrorIs(t, err, ErrInvalidToken)
+}
+
 func Test_tokenVerifierJWT_PreviousHMACKey(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfgContainer, err := config.NewContainer(cfg)

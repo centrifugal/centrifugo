@@ -683,7 +683,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 	if claims.Base64Info != "" {
 		byteInfo, err := base64.StdEncoding.DecodeString(claims.Base64Info)
 		if err != nil {
-			return ConnectToken{}, err
+			return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 		}
 		info = byteInfo
 	} else {
