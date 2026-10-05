@@ -150,6 +150,11 @@ func (m *Manager) FetchKey(ctx context.Context, kid string, tokenVars map[string
 		// extended: a key the endpoint starts to return is picked up at most one
 		// interval later.
 		if m.fetchedRecently(jwkURL) {
+			// A concurrent fetch may have completed after the lookup above. It
+			// updates the cache before recording the fetch time, so look again.
+			if key, err := m.cache.Get(cacheKey); err == nil {
+				return key, nil
+			}
 			return nil, ErrPublicKeyNotFound
 		}
 	}
@@ -299,8 +304,9 @@ func (m *Manager) fetchKeys(ctx context.Context, jwkURL string) (map[string]*JWK
 	// Save new set into cache. Keys the endpoint no longer returns are
 	// removed, so they are not used when it can't be reached later.
 	if m.useCache {
-		_ = m.cache.ReplacePrefix(cacheKey(jwkURL, ""), cached)
-		m.markFetched(jwkURL)
+		if err := m.cache.ReplacePrefix(cacheKey(jwkURL, ""), cached); err == nil {
+			m.markFetched(jwkURL)
+		}
 	}
 
 	return keys, nil

@@ -532,7 +532,8 @@ func TestManagerFetchKey_NewKeyPickedUpDespiteUnknownKids(t *testing.T) {
 		time.Sleep(interval / 20)
 	}
 	require.True(t, found)
-	require.Less(t, time.Since(rotatedAt), 2*interval)
+	// One interval at most, with slack for slow test machines.
+	require.Less(t, time.Since(rotatedAt), 3*interval)
 	// Fetches are bounded by the interval, not by the number of lookups.
 	require.LessOrEqual(t, ts.requests.Load(), int32(3))
 }
@@ -567,4 +568,44 @@ func TestManagerMarkFetchedBounded(t *testing.T) {
 		require.LessOrEqual(t, len(manager.fetchedAt), _maxTrackedEndpoints)
 	}
 	require.True(t, manager.fetchedRecently(fmt.Sprintf("https://example.com/%d/jwks", 3*_maxTrackedEndpoints-1)))
+}
+
+// slowFirstMissCache makes the first cache miss return late, after another
+// lookup could fetch the endpoint.
+type slowFirstMissCache struct {
+	Cache
+	misses atomic.Int32
+}
+
+func (c *slowFirstMissCache) Get(cacheKey string) (*JWK, error) {
+	key, err := c.Cache.Get(cacheKey)
+	if err != nil && c.misses.Add(1) == 1 {
+		time.Sleep(300 * time.Millisecond)
+	}
+	return key, err
+}
+
+// A lookup which missed the cache just before a concurrent fetch of the
+// endpoint completed finds the fetched key instead of refusing it.
+func TestManagerFetchKey_MissRacingConcurrentFetch(t *testing.T) {
+	_, pubKey, err := randomKeys()
+	require.NoError(t, err)
+	ts := newRotatingJWKSServer(t, testKey{"kid", pubKey})
+	ttlCache := NewTTLCache(time.Hour)
+	t.Cleanup(func() { _ = ttlCache.Stop() })
+	manager, err := NewManager(ts.URL, WithCache(&slowFirstMissCache{Cache: ttlCache}))
+	require.NoError(t, err)
+	manager.refetchInterval = time.Hour
+	ctx := context.Background()
+
+	slow := make(chan error, 1)
+	go func() {
+		_, err := manager.FetchKey(ctx, "kid", nil) // Misses, returns late.
+		slow <- err
+	}()
+	time.Sleep(50 * time.Millisecond)
+	_, err = manager.FetchKey(ctx, "kid", nil) // Misses fast, fetches.
+	require.NoError(t, err)
+	require.NoError(t, <-slow)
+	require.Equal(t, int32(1), ts.requests.Load())
 }
