@@ -26,8 +26,8 @@ func throttleTestHandler() http.Handler {
 
 func doReq(h http.Handler, ip, pw string) *httptest.ResponseRecorder {
 	r := httptest.NewRequest(http.MethodPost, "/auth?pw="+pw, nil)
-	r.RemoteAddr = "10.0.0.1:12345" // trusted local proxy peer, so X-Real-IP is honored.
-	r.Header.Set("X-Real-IP", ip)
+	r.RemoteAddr = "10.0.0.1:12345" // trusted local proxy peer, so X-Forwarded-For is honored.
+	r.Header.Set("X-Forwarded-For", ip)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	return w
@@ -70,13 +70,33 @@ func TestAuthThrottle_DoesNotBlockOtherIPsOrSuccess(t *testing.T) {
 
 func TestAuthThrottle_PublicPeerCannotSpoofHeader(t *testing.T) {
 	h := NewAuthThrottle(3, time.Minute, nil).Middleware(throttleTestHandler())
-	// A direct public client rotating X-Real-IP cannot evade the limit: the header
-	// is untrusted (peer is not a local proxy), so every attempt keys on the real
-	// socket peer and the IP is throttled after the limit regardless of the header.
+	// A direct public client rotating X-Forwarded-For cannot evade the limit: the
+	// header is untrusted (peer is not a local proxy), so every attempt keys on the
+	// real socket peer and the IP is throttled after the limit regardless of it.
 	req := func(spoofedIP string) int {
 		r := httptest.NewRequest(http.MethodPost, "/auth?pw=wrong", nil)
 		r.RemoteAddr = "203.0.113.5:9999" // public peer.
-		r.Header.Set("X-Real-IP", spoofedIP)
+		r.Header.Set("X-Forwarded-For", spoofedIP)
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		return w.Code
+	}
+	require.Equal(t, http.StatusBadRequest, req("1.1.1.1"))
+	require.Equal(t, http.StatusBadRequest, req("2.2.2.2"))
+	require.Equal(t, http.StatusBadRequest, req("3.3.3.3"))
+	require.Equal(t, http.StatusTooManyRequests, req("4.4.4.4"))
+}
+
+func TestAuthThrottle_ClientEntriesBehindProxy(t *testing.T) {
+	h := NewAuthThrottle(3, time.Minute, nil).Middleware(throttleTestHandler())
+	// Behind a local proxy which appends the address it saw, entries a client
+	// puts into X-Forwarded-For itself don't change the key: attempts are
+	// counted under the address the proxy appended.
+	req := func(clientEntry string) int {
+		r := httptest.NewRequest(http.MethodPost, "/auth?pw=wrong", nil)
+		r.RemoteAddr = "10.0.0.1:12345" // local proxy.
+		r.Header.Set("X-Forwarded-For", clientEntry+", 203.0.113.5")
+		r.Header.Set("X-Real-IP", clientEntry)
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, r)
 		return w.Code
@@ -118,31 +138,50 @@ func TestAuthThrottle_MapBounded(t *testing.T) {
 }
 
 func TestClientIP(t *testing.T) {
-	newReq := func(realIP, xff, remote string) *http.Request {
+	newReq := func(remote string, xff ...string) *http.Request {
 		r := httptest.NewRequest(http.MethodPost, "/", nil)
 		r.RemoteAddr = remote
-		if realIP != "" {
-			r.Header.Set("X-Real-IP", realIP)
-		}
-		if xff != "" {
-			r.Header.Set("X-Forwarded-For", xff)
+		for _, v := range xff {
+			r.Header.Add("X-Forwarded-For", v)
 		}
 		return r
 	}
-	// Trusted local proxy peer (private / loopback): forwarded headers are used.
-	require.Equal(t, "5.5.5.5", clientIP(newReq("5.5.5.5", "1.1.1.1", "10.0.0.9:1")))
-	require.Equal(t, "1.1.1.1", clientIP(newReq("", "1.1.1.1, 2.2.2.2", "10.0.0.9:1")))
-	require.Equal(t, "8.8.8.8", clientIP(newReq("8.8.8.8", "", "127.0.0.1:1")))
 
-	// Direct public peer: forwarded headers are client-controlled, so ignored -
-	// the socket peer is used and a spoofed header cannot change the key.
-	require.Equal(t, "9.9.9.9", clientIP(newReq("", "", "9.9.9.9:12345")))
-	require.Equal(t, "9.9.9.9", clientIP(newReq("1.2.3.4", "1.2.3.4", "9.9.9.9:12345")))
+	// Trusted local proxy peer (private / loopback): the address the proxy
+	// appended is used.
+	require.Equal(t, "1.1.1.1", clientIP(newReq("10.0.0.9:1", "1.1.1.1")))
+	require.Equal(t, "8.8.8.8", clientIP(newReq("127.0.0.1:1", "8.8.8.8")))
 
-	// Behind a trusted proxy, a non-IP header value falls back to the peer, so an
-	// attacker cannot inflate map keys or fragment the keyspace with junk.
-	require.Equal(t, "10.0.0.9", clientIP(newReq(strings.Repeat("x", 5000), "", "10.0.0.9:1")))
-	require.Equal(t, "10.0.0.9", clientIP(newReq("", "not-an-ip", "10.0.0.9:1")))
+	// Entries left of the one the proxy appended come from the client and are
+	// not used.
+	require.Equal(t, "2.2.2.2", clientIP(newReq("10.0.0.9:1", "1.1.1.1, 2.2.2.2")))
+	require.Equal(t, "2.2.2.2", clientIP(newReq("10.0.0.9:1", "1.1.1.1", "2.2.2.2")))
 
-	require.Equal(t, "raw-addr", clientIP(newReq("", "", "raw-addr")))
+	// Internal hops (several local proxies) are skipped.
+	require.Equal(t, "2.2.2.2", clientIP(newReq("10.0.0.9:1", "1.1.1.1, 2.2.2.2, 10.0.0.3, 192.168.1.1")))
+	// Only internal entries: the farthest one, an internal client.
+	require.Equal(t, "10.0.0.3", clientIP(newReq("10.0.0.9:1", "10.0.0.3, 192.168.1.1")))
+	// No header: the proxy itself.
+	require.Equal(t, "10.0.0.9", clientIP(newReq("10.0.0.9:1")))
+
+	// Ports and IPv6 are understood, addresses canonicalized.
+	require.Equal(t, "2.2.2.2", clientIP(newReq("10.0.0.9:1", "2.2.2.2:4567")))
+	require.Equal(t, "2001:db8::1", clientIP(newReq("[::1]:1", "[2001:DB8::1]:443")))
+	require.Equal(t, "2.2.2.2", clientIP(newReq("10.0.0.9:1", "::ffff:2.2.2.2")))
+
+	// A value which is not an address stops the walk at the last trusted hop,
+	// so junk cannot inflate map keys or fragment the keyspace.
+	require.Equal(t, "10.0.0.9", clientIP(newReq("10.0.0.9:1", "not-an-ip")))
+	require.Equal(t, "10.0.0.3", clientIP(newReq("10.0.0.9:1", strings.Repeat("x", 5000)+", 10.0.0.3")))
+
+	// X-Real-IP is not used.
+	r := newReq("10.0.0.9:1", "2.2.2.2")
+	r.Header.Set("X-Real-IP", "5.5.5.5")
+	require.Equal(t, "2.2.2.2", clientIP(r))
+
+	// Direct public peer: forwarded headers are client-controlled, so ignored.
+	require.Equal(t, "9.9.9.9", clientIP(newReq("9.9.9.9:12345")))
+	require.Equal(t, "9.9.9.9", clientIP(newReq("9.9.9.9:12345", "1.2.3.4")))
+
+	require.Equal(t, "raw-addr", clientIP(newReq("raw-addr")))
 }
