@@ -310,3 +310,27 @@ func joinStrings(ss []string) string {
 	}
 	return result
 }
+
+func TestRefreshProxy_HTTP_NullItem(t *testing.T) {
+	handler, server := newTestSharedPollHTTPProxy(t, func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"result": {"items": [null, {"key": "key1", "version": 1, "data": {"v": 1}}, null]}}`))
+	})
+	defer server.Close()
+
+	node, _ := centrifuge.New(centrifuge.Config{})
+	_ = node.Run()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	fn := handler.Handle(node)
+	var res centrifuge.SharedPollResult
+	require.NotPanics(t, func() {
+		var err error
+		res, err = fn(context.Background(), centrifuge.SharedPollEvent{
+			Channel: "test:channel",
+			Items:   []centrifuge.SharedPollItem{{Key: "key1"}},
+		})
+		require.NoError(t, err)
+	})
+	require.Len(t, res.Items, 1)
+	require.Equal(t, "key1", res.Items[0].Key)
+}
