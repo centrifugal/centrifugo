@@ -108,11 +108,13 @@ func (t *AuthThrottle) recordFailure(ip string) {
 // client-controlled and ignored.
 //
 // Behind such a proxy X-Forwarded-For is read from right to left: every proxy
-// appends the address it received the request from, so the entries on the right
-// are added by the trusted proxies and the first public address met is the one
-// the closest proxy saw - entries further left are whatever the client sent and
-// are never used. Private and loopback entries are skipped as further internal
-// hops. On an entry which is not an address the walk stops at the last trusted
+// appends the address it received the request from, so the first public address
+// met is the one the proxy nearest to the client recorded for it - entries
+// further left are whatever the client sent and are never used. Private and
+// loopback entries are skipped as further internal hops: private and loopback
+// addresses are treated as trusted infrastructure, so this protects against
+// clients outside the private network. Proxies must append to (or overwrite)
+// X-Forwarded-For rather than pass a client's value on unchanged. On an entry which is not an address the walk stops at the last trusted
 // hop. X-Real-IP is not used: a proxy which sets it also appends X-Forwarded-For,
 // and one which does not overwrite it passes a client's value on. Values are
 // canonicalized as IPs before use, so junk cannot inflate map keys or fragment
