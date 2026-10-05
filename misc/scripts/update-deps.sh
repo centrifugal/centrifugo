@@ -13,7 +13,6 @@ pwd
 # Packages to exclude from automatic updates (updated manually).
 EXCLUDE=(
     "github.com/centrifugal/centrifuge"
-    "github.com/mailru/easyjson"
 )
 
 # Record current versions of excluded packages.
