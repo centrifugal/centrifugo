@@ -192,100 +192,126 @@ func (h *Handler) Setup() error {
 
 	h.node.OnConnect(func(client *centrifuge.Client) {
 
+		// Without concurrency, commands are handled directly. The closures passed to
+		// runConcurrently escape to the heap, so they are only built when needed.
 		var semaphore chan struct{}
 		if concurrency > 1 {
 			semaphore = make(chan struct{}, concurrency)
 		}
 
 		client.OnRefresh(func(event centrifuge.RefreshEvent, cb centrifuge.RefreshCallback) {
-			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-				reply, extra, err := h.OnRefresh(client, event, refreshProxyHandler)
-				if err != nil {
-					cb(reply, err)
-					return
-				}
-				if extra.CheckSubs && tokenChannelsChanged(client, extra.Subs) {
-					// Check whether server-side subscriptions changed. If yes – disconnect
-					// the client to make its token-based server-side subscriptions actual.
-					// Theoretically we could avoid disconnection here using Subscribe/Unsubscribe
-					// methods, but disconnection seems the good first step for the scenario which
-					// should be pretty rare given the stable nature of server-side subscriptions.
-					cb(reply, centrifuge.DisconnectInsufficientState)
-					return
-				}
-				cb(reply, nil)
+			if semaphore == nil {
+				cb(h.refreshClient(client, event, refreshProxyHandler))
+				return
+			}
+			h.runConcurrently(client.Context(), semaphore, func() {
+				cb(h.refreshClient(client, event, refreshProxyHandler))
 			})
 		})
 
 		if rpcProxyHandler != nil || len(h.rpcExtension) > 0 {
 			client.OnRPC(func(event centrifuge.RPCEvent, cb centrifuge.RPCCallback) {
-				h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-					reply, err := h.OnRPC(client, event, rpcProxyHandler)
-					cb(reply, err)
+				if semaphore == nil {
+					cb(h.OnRPC(client, event, rpcProxyHandler))
+					return
+				}
+				h.runConcurrently(client.Context(), semaphore, func() {
+					cb(h.OnRPC(client, event, rpcProxyHandler))
 				})
 			})
 		}
 
 		client.OnSubscribe(func(event centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
-			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
+			if semaphore == nil {
+				reply, _, err := h.OnSubscribe(client, event, subscribeProxyHandler, proxySubscribeStreamHandler)
+				cb(reply, err)
+				return
+			}
+			h.runConcurrently(client.Context(), semaphore, func() {
 				reply, _, err := h.OnSubscribe(client, event, subscribeProxyHandler, proxySubscribeStreamHandler)
 				cb(reply, err)
 			})
 		})
 
 		client.OnSubRefresh(func(event centrifuge.SubRefreshEvent, cb centrifuge.SubRefreshCallback) {
-			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
+			if semaphore == nil {
+				reply, _, err := h.OnSubRefresh(client, subRefreshProxyHandler, event)
+				cb(reply, err)
+				return
+			}
+			h.runConcurrently(client.Context(), semaphore, func() {
 				reply, _, err := h.OnSubRefresh(client, subRefreshProxyHandler, event)
 				cb(reply, err)
 			})
 		})
 
 		client.OnPublish(func(event centrifuge.PublishEvent, cb centrifuge.PublishCallback) {
-			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-				reply, err := h.OnPublish(client, event, publishProxyHandler)
-				cb(reply, err)
+			if semaphore == nil {
+				cb(h.OnPublish(client, event, publishProxyHandler))
+				return
+			}
+			h.runConcurrently(client.Context(), semaphore, func() {
+				cb(h.OnPublish(client, event, publishProxyHandler))
 			})
 		})
 
 		client.OnMapPublish(func(event centrifuge.MapPublishEvent, cb centrifuge.MapPublishCallback) {
-			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-				reply, err := h.OnMapPublish(client, event, mapPublishProxyHandler)
-				cb(reply, err)
+			if semaphore == nil {
+				cb(h.OnMapPublish(client, event, mapPublishProxyHandler))
+				return
+			}
+			h.runConcurrently(client.Context(), semaphore, func() {
+				cb(h.OnMapPublish(client, event, mapPublishProxyHandler))
 			})
 		})
 
 		client.OnMapRemove(func(event centrifuge.MapRemoveEvent, cb centrifuge.MapRemoveCallback) {
-			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-				reply, err := h.OnMapRemove(client, event, mapRemoveProxyHandler)
-				cb(reply, err)
+			if semaphore == nil {
+				cb(h.OnMapRemove(client, event, mapRemoveProxyHandler))
+				return
+			}
+			h.runConcurrently(client.Context(), semaphore, func() {
+				cb(h.OnMapRemove(client, event, mapRemoveProxyHandler))
 			})
 		})
 
 		client.OnTrack(func(event centrifuge.TrackEvent, cb centrifuge.TrackCallback) {
-			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-				reply, err := h.OnTrack(client, event)
-				cb(reply, err)
+			if semaphore == nil {
+				cb(h.OnTrack(client, event))
+				return
+			}
+			h.runConcurrently(client.Context(), semaphore, func() {
+				cb(h.OnTrack(client, event))
 			})
 		})
 
 		client.OnPresence(func(event centrifuge.PresenceEvent, cb centrifuge.PresenceCallback) {
-			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-				reply, err := h.OnPresence(client, event)
-				cb(reply, err)
+			if semaphore == nil {
+				cb(h.OnPresence(client, event))
+				return
+			}
+			h.runConcurrently(client.Context(), semaphore, func() {
+				cb(h.OnPresence(client, event))
 			})
 		})
 
 		client.OnPresenceStats(func(event centrifuge.PresenceStatsEvent, cb centrifuge.PresenceStatsCallback) {
-			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-				reply, err := h.OnPresenceStats(client, event)
-				cb(reply, err)
+			if semaphore == nil {
+				cb(h.OnPresenceStats(client, event))
+				return
+			}
+			h.runConcurrently(client.Context(), semaphore, func() {
+				cb(h.OnPresenceStats(client, event))
 			})
 		})
 
 		client.OnHistory(func(event centrifuge.HistoryEvent, cb centrifuge.HistoryCallback) {
-			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
-				reply, err := h.OnHistory(client, event)
-				cb(reply, err)
+			if semaphore == nil {
+				cb(h.OnHistory(client, event))
+				return
+			}
+			h.runConcurrently(client.Context(), semaphore, func() {
+				cb(h.OnHistory(client, event))
 			})
 		})
 
@@ -324,20 +350,34 @@ func tokenChannelsChanged(client *centrifuge.Client, subs map[string]centrifuge.
 	return false
 }
 
-func (h *Handler) runConcurrentlyIfNeeded(ctx context.Context, concurrency int, semaphore chan struct{}, fn func()) {
-	if concurrency > 1 {
-		select {
-		case <-ctx.Done():
-			return
-		case semaphore <- struct{}{}:
-		}
-		go func() {
-			defer func() { <-semaphore }()
-			fn()
-		}()
-	} else {
-		fn()
+// refreshClient handles a refresh command of client.
+func (h *Handler) refreshClient(client *centrifuge.Client, event centrifuge.RefreshEvent, refreshProxyHandler proxy.RefreshHandlerFunc) (centrifuge.RefreshReply, error) {
+	reply, extra, err := h.OnRefresh(client, event, refreshProxyHandler)
+	if err != nil {
+		return reply, err
 	}
+	if extra.CheckSubs && tokenChannelsChanged(client, extra.Subs) {
+		// Check whether server-side subscriptions changed. If yes – disconnect
+		// the client to make its token-based server-side subscriptions actual.
+		// Theoretically we could avoid disconnection here using Subscribe/Unsubscribe
+		// methods, but disconnection seems the good first step for the scenario which
+		// should be pretty rare given the stable nature of server-side subscriptions.
+		return reply, centrifuge.DisconnectInsufficientState
+	}
+	return reply, nil
+}
+
+// runConcurrently runs fn in a new goroutine once semaphore has room for it.
+func (h *Handler) runConcurrently(ctx context.Context, semaphore chan struct{}, fn func()) {
+	select {
+	case <-ctx.Done():
+		return
+	case semaphore <- struct{}{}:
+	}
+	go func() {
+		defer func() { <-semaphore }()
+		fn()
+	}()
 }
 
 // OnClientConnecting ...

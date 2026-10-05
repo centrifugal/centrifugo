@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"sync"
 	"testing"
 	"time"
 
@@ -1873,4 +1874,141 @@ func TestValidateSharedPollRefreshData(t *testing.T) {
 		})
 		require.NoError(t, err)
 	})
+}
+
+// replyTransport keeps only the last frame written to it. It reuses one buffer
+// so that it does not add to the allocations of the command being measured.
+type replyTransport struct {
+	*tools.TestTransport
+	mu   sync.Mutex
+	last []byte
+}
+
+func (t *replyTransport) Write(data []byte) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.last = append(t.last[:0], data...)
+	return nil
+}
+
+func (t *replyTransport) WriteMany(data ...[]byte) error {
+	for _, d := range data {
+		_ = t.Write(d)
+	}
+	return nil
+}
+
+func (t *replyTransport) lastFrame() string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return string(t.last)
+}
+
+// newCommandTestClient connects an insecure client to a node whose client
+// commands are handled by a Handler. With direct set, the node calls
+// Handler.OnPublish and Handler.OnRPC itself instead of the handlers
+// registered by Handler.Setup.
+func newCommandTestClient(tb testing.TB, concurrency int, direct bool) (*centrifuge.Client, *replyTransport) {
+	node := tools.NodeWithMemoryEngineNoHandlers()
+	tb.Cleanup(func() { _ = node.Shutdown(context.Background()) })
+
+	cfg := config.DefaultConfig()
+	cfg.Client.Insecure = true
+	cfg.Client.Concurrency = concurrency
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(tb, err)
+	h := NewHandler(node, cfgContainer, nil, nil, &ProxyMap{})
+	h.SetRPCExtension("test", func(Client, centrifuge.RPCEvent) (centrifuge.RPCReply, error) {
+		return centrifuge.RPCReply{Data: []byte(`{}`)}, nil
+	})
+	require.NoError(tb, h.Setup())
+	if direct {
+		node.OnConnect(func(client *centrifuge.Client) {
+			client.OnPublish(func(e centrifuge.PublishEvent, cb centrifuge.PublishCallback) {
+				cb(h.OnPublish(client, e, nil))
+			})
+			client.OnRPC(func(e centrifuge.RPCEvent, cb centrifuge.RPCCallback) {
+				cb(h.OnRPC(client, e, nil))
+			})
+		})
+	}
+
+	transport := &replyTransport{TestTransport: tools.NewTestTransport()}
+	client, closeFn, err := centrifuge.NewClient(context.Background(), node, transport)
+	require.NoError(tb, err)
+	tb.Cleanup(func() { _ = closeFn() })
+	handleCommandFunc(tb, client, &protocol.Command{Id: 1, Connect: &protocol.ConnectRequest{}})()
+	return client, transport
+}
+
+var clientTestCommands = []struct {
+	name  string
+	cmd   *protocol.Command
+	reply string
+}{
+	{
+		name:  "publish",
+		cmd:   &protocol.Command{Id: 2, Publish: &protocol.PublishRequest{Channel: "test", Data: []byte(`{}`)}},
+		reply: `{"id":2,"publish":{}}`,
+	},
+	{
+		name:  "rpc",
+		cmd:   &protocol.Command{Id: 2, Rpc: &protocol.RPCRequest{Method: "test"}},
+		reply: `{"id":2,"rpc":{"data":{}}}`,
+	},
+}
+
+// handleCommandFunc returns a function that makes client handle cmd.
+func handleCommandFunc(tb testing.TB, client *centrifuge.Client, cmd *protocol.Command) func() {
+	frame, err := protocol.NewJSONCommandEncoder().Encode(cmd)
+	require.NoError(tb, err)
+	r := bytes.NewReader(frame)
+	return func() {
+		r.Reset(frame)
+		centrifuge.HandleReadFrame(client, r, 1<<20)
+	}
+}
+
+func TestClientCommandHandlersAddNoAllocations(t *testing.T) {
+	if raceEnabled {
+		t.Skip("allocation counts are unreliable under the race detector")
+	}
+	for _, tc := range clientTestCommands {
+		t.Run(tc.name, func(t *testing.T) {
+			allocs := func(direct bool) float64 {
+				client, transport := newCommandTestClient(t, 0, direct)
+				n := testing.AllocsPerRun(100, handleCommandFunc(t, client, tc.cmd))
+				require.Eventually(t, func() bool {
+					return transport.lastFrame() == tc.reply
+				}, time.Second, time.Millisecond)
+				return n
+			}
+			require.Equal(t, allocs(true), allocs(false), "allocations per command: direct call vs handler registered by Setup")
+		})
+	}
+}
+
+func TestClientCommandsWithConcurrency(t *testing.T) {
+	for _, tc := range clientTestCommands {
+		t.Run(tc.name, func(t *testing.T) {
+			client, transport := newCommandTestClient(t, 2, false)
+			handleCommandFunc(t, client, tc.cmd)()
+			require.Eventually(t, func() bool {
+				return transport.lastFrame() == tc.reply
+			}, time.Second, time.Millisecond)
+		})
+	}
+}
+
+func BenchmarkClientCommand(b *testing.B) {
+	for _, tc := range clientTestCommands {
+		b.Run(tc.name, func(b *testing.B) {
+			client, _ := newCommandTestClient(b, 0, false)
+			handle := handleCommandFunc(b, client, tc.cmd)
+			b.ReportAllocs()
+			for b.Loop() {
+				handle()
+			}
+		})
+	}
 }
