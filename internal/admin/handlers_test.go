@@ -119,8 +119,8 @@ func TestAuthHandler_Throttled(t *testing.T) {
 		form.Add("password", password)
 		req := httptest.NewRequest("POST", "/admin/auth", strings.NewReader(form.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.RemoteAddr = "10.0.0.1:12345" // trusted local proxy peer, so X-Real-IP is honored.
-		req.Header.Set("X-Real-IP", ip)
+		req.RemoteAddr = "10.0.0.1:12345" // trusted local proxy peer, so X-Forwarded-For is honored.
+		req.Header.Set("X-Forwarded-For", ip)
 		resp := httptest.NewRecorder()
 		handler.ServeHTTP(resp, req)
 		return resp.Code
