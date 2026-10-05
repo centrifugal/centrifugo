@@ -77,15 +77,20 @@ func (h *SharedPollRefreshHandler) Handle(node *centrifuge.Node) centrifuge.Shar
 		}
 
 		h.responseItems.Observe(float64(len(resp.Result.Items)))
-		items := make([]centrifuge.SharedPollRefreshItem, len(resp.Result.Items))
-		for i, item := range resp.Result.Items {
-			items[i] = centrifuge.SharedPollRefreshItem{
+		items := make([]centrifuge.SharedPollRefreshItem, 0, len(resp.Result.Items))
+		for _, item := range resp.Result.Items {
+			if item == nil {
+				// A JSON null in the items array. Skip it: there is no key to
+				// refresh.
+				continue
+			}
+			items = append(items, centrifuge.SharedPollRefreshItem{
 				Key:      item.Key,
 				Data:     item.Data,
 				PrevData: item.PrevData,
 				Version:  item.Version,
 				Removed:  item.Removed,
-			}
+			})
 		}
 		return centrifuge.SharedPollResult{Items: items, Epoch: resp.Result.Epoch}, nil
 	}

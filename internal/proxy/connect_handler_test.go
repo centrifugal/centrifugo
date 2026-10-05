@@ -447,3 +447,26 @@ func TestHandleConnectWithHTTPCodeTransform(t *testing.T) {
 		require.Equal(t, centrifuge.ConnectReply{}, reply, c.protocol)
 	}
 }
+
+func TestHandleConnectWithNullSubscriptionOptions(t *testing.T) {
+	httpTestCase := newConnHandleHTTPTestCase(context.Background(), "/proxy")
+	httpTestCase.Mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
+		_, _ = w.Write([]byte(`{"result": {"user": "56", "subs": {"test_ch": null}}}`))
+	})
+	defer httpTestCase.Teardown()
+
+	c := connHandleTestCase{
+		connectProxyHandler: httpTestCase.connectProxyHandler,
+		node:                httpTestCase.Node,
+		protocol:            "http",
+	}
+	var err error
+	var subscriptions map[string]centrifuge.SubscribeOptions
+	require.NotPanics(t, func() {
+		var reply centrifuge.ConnectReply
+		reply, err = c.invokeHandle(context.Background())
+		subscriptions = reply.Subscriptions
+	})
+	require.NoError(t, err)
+	require.Contains(t, subscriptions, "test_ch")
+}
