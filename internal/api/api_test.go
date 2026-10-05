@@ -15,6 +15,7 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/metrics"
+	"github.com/centrifugal/centrifugo/v6/internal/survey"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
@@ -50,6 +51,21 @@ func (t testSurveyCaller) Channels(_ context.Context, _ *ChannelsRequest) (map[s
 
 func (t testSurveyCaller) Connections(_ context.Context, _ *ConnectionsRequest) (map[string]*ConnectionInfo, error) {
 	return nil, nil
+}
+
+func TestChannelsAPI(t *testing.T) {
+	node := nodeWithMemoryEngine()
+
+	cfg := config.DefaultConfig()
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	api := NewExecutor(node, cfgContainer, survey.NewCaller(node), ExecutorConfig{Protocol: "test", UseOpenTelemetry: false})
+	resp := api.Channels(context.Background(), &ChannelsRequest{Pattern: "test*"})
+	require.Nil(t, resp.Error)
+
+	resp = api.Channels(context.Background(), &ChannelsRequest{Pattern: "["})
+	require.Equal(t, ErrorBadRequest, resp.Error)
 }
 
 func TestPublishAPI(t *testing.T) {

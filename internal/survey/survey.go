@@ -48,6 +48,13 @@ func (c *Caller) Channels(ctx context.Context, cmd *apiproto.ChannelsRequest) (m
 }
 
 func surveyChannels(ctx context.Context, node *centrifuge.Node, cmd *apiproto.ChannelsRequest) (map[string]*apiproto.ChannelInfo, error) {
+	if cmd.Pattern != "" {
+		// Nodes reply with InvalidRequest code to a pattern which does not compile,
+		// check it here to return bad request instead of an internal error.
+		if _, err := glob.Compile(cmd.Pattern); err != nil {
+			return nil, centrifuge.ErrorBadRequest
+		}
+	}
 	req, _ := proto.Marshal(cmd)
 	results, err := node.Survey(ctx, "channels", req, "")
 	if err != nil {
