@@ -840,64 +840,34 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 	return st, nil
 }
 
+// PrepareReload builds everything the verifier needs for config without changing
+// the verifier. Calling the returned function applies the new config and can't
+// fail, so several verifiers may be reloaded all or nothing.
+func (verifier *VerifierJWT) PrepareReload(config VerifierConfig) (func(), error) {
+	next, err := NewTokenVerifierJWT(config, verifier.cfgContainer)
+	if err != nil {
+		return nil, err
+	}
+	return func() {
+		verifier.mu.Lock()
+		defer verifier.mu.Unlock()
+		verifier.jwksManager = next.jwksManager
+		verifier.algorithms = next.algorithms
+		verifier.previousHMACAlgorithms = next.previousHMACAlgorithms
+		verifier.hmacPreviousSecretKeyValidUntil = next.hmacPreviousSecretKeyValidUntil
+		verifier.audience = next.audience
+		verifier.audienceRe = next.audienceRe
+		verifier.issuer = next.issuer
+		verifier.issuerRe = next.issuerRe
+		verifier.userIDClaim = next.userIDClaim
+	}, nil
+}
+
 func (verifier *VerifierJWT) Reload(config VerifierConfig) error {
-	if err := config.Validate(); err != nil {
-		return fmt.Errorf("error validating token verifier config: %w", err)
+	apply, err := verifier.PrepareReload(config)
+	if err != nil {
+		return err
 	}
-
-	verifier.mu.Lock()
-	defer verifier.mu.Unlock()
-
-	var audienceRe *regexp.Regexp
-	var issuerRe *regexp.Regexp
-	if config.AudienceRegex != "" {
-		var err error
-		audienceRe, err = regexp.Compile(config.AudienceRegex)
-		if err != nil {
-			return fmt.Errorf("error compiling audience regex: %w", err)
-		}
-	}
-	if config.IssuerRegex != "" {
-		var err error
-		issuerRe, err = regexp.Compile(config.IssuerRegex)
-		if err != nil {
-			return fmt.Errorf("error compiling issuer regex: %w", err)
-		}
-	}
-
-	if config.JWKSPublicEndpoint != "" {
-		mng, err := jwks.NewManager(config.JWKSPublicEndpoint)
-		if err != nil {
-			return fmt.Errorf("error creating JWK manager: %w", err)
-		}
-		verifier.jwksManager = &jwksManager{mng}
-		verifier.algorithms = nil
-		verifier.previousHMACAlgorithms = nil
-		verifier.hmacPreviousSecretKeyValidUntil = 0
-	} else {
-		alg, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey, config.ECDSAPublicKey)
-		if err != nil {
-			return err
-		}
-		verifier.algorithms = alg
-		verifier.jwksManager = nil
-		if config.HMACPreviousSecretKey != "" {
-			prevAlg, err := newAlgorithms(config.HMACPreviousSecretKey, nil, nil)
-			if err != nil {
-				return fmt.Errorf("error initializing previous HMAC token algorithms: %w", err)
-			}
-			verifier.previousHMACAlgorithms = prevAlg
-			verifier.hmacPreviousSecretKeyValidUntil = config.HMACPreviousSecretKeyValidUntil
-		} else {
-			verifier.previousHMACAlgorithms = nil
-			verifier.hmacPreviousSecretKeyValidUntil = 0
-		}
-	}
-
-	verifier.audience = config.Audience
-	verifier.audienceRe = audienceRe
-	verifier.issuer = config.Issuer
-	verifier.issuerRe = issuerRe
-	verifier.userIDClaim = config.UserIDClaim
+	apply()
 	return nil
 }
