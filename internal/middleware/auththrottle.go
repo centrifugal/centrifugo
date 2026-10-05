@@ -107,18 +107,14 @@ func (t *AuthThrottle) recordFailure(ip string) {
 // commonly deployed behind one). For a direct public client the headers are
 // client-controlled and ignored.
 //
-// Behind such a proxy X-Forwarded-For is read from right to left: every proxy
-// appends the address it received the request from, so the first public address
-// met is the one the proxy nearest to the client recorded for it - entries
-// further left are whatever the client sent and are never used. Private and
-// loopback entries are skipped as further internal hops: private and loopback
-// addresses are treated as trusted infrastructure, so this protects against
-// clients outside the private network. Proxies must append to (or overwrite)
-// X-Forwarded-For rather than pass a client's value on unchanged. On an entry which is not an address the walk stops at the last trusted
-// hop. X-Real-IP is not used: a proxy which sets it also appends X-Forwarded-For,
-// and one which does not overwrite it passes a client's value on. Values are
-// canonicalized as IPs before use, so junk cannot inflate map keys or fragment
-// the keyspace.
+// Behind such a proxy the last (rightmost) X-Forwarded-For entry is used: it is
+// the address the proxy in front of Centrifugo appended for the connection it
+// received, while entries further left can come from the client. With several
+// proxies in a row this is the address of the previous proxy, so their clients
+// share one key - coarse, but not something a client can choose. Proxies must
+// append to (or overwrite) X-Forwarded-For rather than pass a client's value on
+// unchanged. X-Real-IP is not used. A value which is not an address falls back
+// to the peer, so junk cannot inflate map keys or fragment the keyspace.
 func clientIP(r *http.Request) string {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
@@ -128,23 +124,19 @@ func clientIP(r *http.Request) string {
 	if peer == nil || !isInternalIP(peer) {
 		return host
 	}
-	// Peer is a trusted local proxy: use the forwarded client address.
-	addr := peer.String()
+	// Peer is a trusted local proxy: use the address it appended.
 	values := r.Header.Values("X-Forwarded-For")
-	for i := len(values) - 1; i >= 0; i-- {
-		entries := strings.Split(values[i], ",")
-		for j := len(entries) - 1; j >= 0; j-- {
-			ip := parseForwardedIP(entries[j])
-			if ip == nil {
-				return addr
-			}
-			addr = ip.String()
-			if !isInternalIP(ip) {
-				return addr
-			}
-		}
+	if len(values) == 0 {
+		return peer.String()
 	}
-	return addr
+	last := values[len(values)-1]
+	if i := strings.LastIndexByte(last, ','); i >= 0 {
+		last = last[i+1:]
+	}
+	if ip := parseForwardedIP(last); ip != nil {
+		return ip.String()
+	}
+	return peer.String()
 }
 
 func isInternalIP(ip net.IP) bool {

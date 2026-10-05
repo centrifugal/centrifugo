@@ -148,19 +148,17 @@ func TestClientIP(t *testing.T) {
 	}
 
 	// Trusted local proxy peer (private / loopback): the address the proxy
-	// appended is used.
+	// appended (rightmost entry) is used.
 	require.Equal(t, "1.1.1.1", clientIP(newReq("10.0.0.9:1", "1.1.1.1")))
 	require.Equal(t, "8.8.8.8", clientIP(newReq("127.0.0.1:1", "8.8.8.8")))
 
-	// Entries left of the one the proxy appended come from the client and are
-	// not used.
+	// Entries left of it can come from the client and are not used.
 	require.Equal(t, "2.2.2.2", clientIP(newReq("10.0.0.9:1", "1.1.1.1, 2.2.2.2")))
 	require.Equal(t, "2.2.2.2", clientIP(newReq("10.0.0.9:1", "1.1.1.1", "2.2.2.2")))
-
-	// Internal hops (several local proxies) are skipped.
-	require.Equal(t, "2.2.2.2", clientIP(newReq("10.0.0.9:1", "1.1.1.1, 2.2.2.2, 10.0.0.3, 192.168.1.1")))
-	// Only internal entries: the farthest one, an internal client.
-	require.Equal(t, "10.0.0.3", clientIP(newReq("10.0.0.9:1", "10.0.0.3, 192.168.1.1")))
+	// Even when the appended address is private (a client on the private
+	// network, an SNAT hop, a previous proxy): no further entries are used.
+	require.Equal(t, "10.5.5.5", clientIP(newReq("10.0.0.9:1", "8.8.8.8, 10.5.5.5")))
+	require.Equal(t, "10.0.0.2", clientIP(newReq("10.0.0.9:1", "1.1.1.1, 2.2.2.2, 10.0.0.2")))
 	// No header: the proxy itself.
 	require.Equal(t, "10.0.0.9", clientIP(newReq("10.0.0.9:1")))
 
@@ -169,10 +167,10 @@ func TestClientIP(t *testing.T) {
 	require.Equal(t, "2001:db8::1", clientIP(newReq("[::1]:1", "[2001:DB8::1]:443")))
 	require.Equal(t, "2.2.2.2", clientIP(newReq("10.0.0.9:1", "::ffff:2.2.2.2")))
 
-	// A value which is not an address stops the walk at the last trusted hop,
-	// so junk cannot inflate map keys or fragment the keyspace.
+	// A value which is not an address falls back to the peer, so junk cannot
+	// inflate map keys or fragment the keyspace.
 	require.Equal(t, "10.0.0.9", clientIP(newReq("10.0.0.9:1", "not-an-ip")))
-	require.Equal(t, "10.0.0.3", clientIP(newReq("10.0.0.9:1", strings.Repeat("x", 5000)+", 10.0.0.3")))
+	require.Equal(t, "10.0.0.9", clientIP(newReq("10.0.0.9:1", "1.1.1.1, "+strings.Repeat("x", 5000))))
 
 	// X-Real-IP is not used.
 	r := newReq("10.0.0.9:1", "2.2.2.2")
