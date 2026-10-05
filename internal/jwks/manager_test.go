@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -326,6 +327,9 @@ func newRotationTestManager(t *testing.T, url string, ttl time.Duration) *Manage
 	t.Cleanup(func() { _ = cache.Stop() })
 	manager, err := NewManager(url, WithCache(cache))
 	require.NoError(t, err)
+	// These tests use a TTL below the refetch interval, which production never
+	// does: let every cache miss fetch.
+	manager.refetchInterval = 0
 	return manager
 }
 
@@ -437,4 +441,171 @@ func TestManagerFetchKey_EndpointDownNoCache(t *testing.T) {
 	ts.setDown()
 	_, err = manager.FetchKey(ctx, "kid", nil)
 	require.ErrorIs(t, err, errUnexpectedStatusCode)
+}
+
+// Lookups of kids missing in the cache fetch the endpoint at most once per
+// refetch interval, however many different kids are asked for.
+func TestManagerFetchKey_UnknownKidsFetchOncePerInterval(t *testing.T) {
+	_, pubKey, err := randomKeys()
+	require.NoError(t, err)
+	ts := newRotatingJWKSServer(t, testKey{"kid", pubKey})
+	manager, err := NewManager(ts.URL)
+	require.NoError(t, err)
+	manager.refetchInterval = time.Hour
+	ctx := context.Background()
+
+	for i := 0; i < 100; i++ {
+		_, err := manager.FetchKey(ctx, fmt.Sprintf("bogus-%d", i), nil)
+		require.ErrorIs(t, err, ErrPublicKeyNotFound)
+	}
+	require.Equal(t, int32(1), ts.requests.Load())
+
+	// Keys returned by that fetch are served from the cache.
+	key, err := manager.FetchKey(ctx, "kid", nil)
+	require.NoError(t, err)
+	require.Equal(t, pubKey.N, parseRSA(t, key).N)
+	require.Equal(t, int32(1), ts.requests.Load())
+}
+
+// Concurrent lookups of different unknown kids share one fetch.
+func TestManagerFetchKey_ConcurrentUnknownKidsShareFetch(t *testing.T) {
+	_, pubKey, err := randomKeys()
+	require.NoError(t, err)
+	release := make(chan struct{})
+	var requests atomic.Int32
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		<-release
+		jwksHandler(testKey{"kid", pubKey}).ServeHTTP(w, r)
+	}))
+	t.Cleanup(ts.Close)
+	manager, err := NewManager(ts.URL, WithHTTPClient(&http.Client{Timeout: 10 * time.Second}))
+	require.NoError(t, err)
+	ctx := context.Background()
+
+	const n = 20
+	errs := make(chan error, n)
+	for i := 0; i < n; i++ {
+		go func(i int) {
+			_, err := manager.FetchKey(ctx, fmt.Sprintf("bogus-%d", i), nil)
+			errs <- err
+		}(i)
+	}
+	require.Eventually(t, func() bool { return requests.Load() == 1 }, time.Second, time.Millisecond)
+	time.Sleep(50 * time.Millisecond) // Let the other lookups join the fetch.
+	close(release)
+	for i := 0; i < n; i++ {
+		require.ErrorIs(t, <-errs, ErrPublicKeyNotFound)
+	}
+	require.Equal(t, int32(1), requests.Load())
+}
+
+// A key the endpoint starts to return is picked up at most one refetch
+// interval after the last fetch, however many unknown kids are asked for in
+// between: rejected lookups do not extend the interval.
+func TestManagerFetchKey_NewKeyPickedUpDespiteUnknownKids(t *testing.T) {
+	const interval = 200 * time.Millisecond
+	_, oldKey, err := randomKeys()
+	require.NoError(t, err)
+	_, newKey, err := randomKeys()
+	require.NoError(t, err)
+	ts := newRotatingJWKSServer(t, testKey{"old", oldKey})
+	manager, err := NewManager(ts.URL)
+	require.NoError(t, err)
+	manager.refetchInterval = interval
+	ctx := context.Background()
+
+	_, err = manager.FetchKey(ctx, "old", nil)
+	require.NoError(t, err)
+	ts.setKeys(testKey{"old", oldKey}, testKey{"new", newKey})
+	rotatedAt := time.Now()
+
+	// Unknown kids keep arriving; the new key is found within the interval.
+	var found bool
+	for !found && time.Since(rotatedAt) < 5*interval {
+		_, _ = manager.FetchKey(ctx, "bogus", nil)
+		key, err := manager.FetchKey(ctx, "new", nil)
+		if err == nil {
+			require.Equal(t, newKey.N, parseRSA(t, key).N)
+			found = true
+		}
+		time.Sleep(interval / 20)
+	}
+	require.True(t, found)
+	// One interval at most, with slack for slow test machines.
+	require.Less(t, time.Since(rotatedAt), 3*interval)
+	// Fetches are bounded by the interval, not by the number of lookups.
+	require.LessOrEqual(t, ts.requests.Load(), int32(3))
+}
+
+// A failed fetch does not start the interval: the endpoint is tried again
+// once it is back.
+func TestManagerFetchKey_FailedFetchDoesNotStartInterval(t *testing.T) {
+	_, pubKey, err := randomKeys()
+	require.NoError(t, err)
+	ts := newRotatingJWKSServer(t, testKey{"kid", pubKey})
+	ts.setDown()
+	manager, err := NewManager(ts.URL)
+	require.NoError(t, err)
+	manager.refetchInterval = time.Hour
+	ctx := context.Background()
+
+	_, err = manager.FetchKey(ctx, "kid", nil)
+	require.ErrorIs(t, err, errUnexpectedStatusCode)
+	ts.setKeys(testKey{"kid", pubKey})
+	_, err = manager.FetchKey(ctx, "kid", nil)
+	require.NoError(t, err)
+}
+
+// The fetch time bookkeeping stays bounded whatever URLs token claims resolve
+// the endpoint template to.
+func TestManagerMarkFetchedBounded(t *testing.T) {
+	manager, err := NewManager("https://example.com/{{tenant}}/jwks")
+	require.NoError(t, err)
+	manager.refetchInterval = time.Hour
+	for i := 0; i < 3*_maxTrackedEndpoints; i++ {
+		manager.markFetched(fmt.Sprintf("https://example.com/%d/jwks", i))
+		require.LessOrEqual(t, len(manager.fetchedAt), _maxTrackedEndpoints)
+	}
+	require.True(t, manager.fetchedRecently(fmt.Sprintf("https://example.com/%d/jwks", 3*_maxTrackedEndpoints-1)))
+}
+
+// slowFirstMissCache makes the first cache miss return late, after another
+// lookup could fetch the endpoint.
+type slowFirstMissCache struct {
+	Cache
+	misses atomic.Int32
+}
+
+func (c *slowFirstMissCache) Get(cacheKey string) (*JWK, error) {
+	key, err := c.Cache.Get(cacheKey)
+	if err != nil && c.misses.Add(1) == 1 {
+		time.Sleep(300 * time.Millisecond)
+	}
+	return key, err
+}
+
+// A lookup which missed the cache just before a concurrent fetch of the
+// endpoint completed finds the fetched key instead of refusing it.
+func TestManagerFetchKey_MissRacingConcurrentFetch(t *testing.T) {
+	_, pubKey, err := randomKeys()
+	require.NoError(t, err)
+	ts := newRotatingJWKSServer(t, testKey{"kid", pubKey})
+	ttlCache := NewTTLCache(time.Hour)
+	t.Cleanup(func() { _ = ttlCache.Stop() })
+	manager, err := NewManager(ts.URL, WithCache(&slowFirstMissCache{Cache: ttlCache}))
+	require.NoError(t, err)
+	manager.refetchInterval = time.Hour
+	ctx := context.Background()
+
+	slow := make(chan error, 1)
+	go func() {
+		_, err := manager.FetchKey(ctx, "kid", nil) // Misses, returns late.
+		slow <- err
+	}()
+	time.Sleep(50 * time.Millisecond)
+	_, err = manager.FetchKey(ctx, "kid", nil) // Misses fast, fetches.
+	require.NoError(t, err)
+	require.NoError(t, <-slow)
+	require.Equal(t, int32(1), ts.requests.Load())
 }
