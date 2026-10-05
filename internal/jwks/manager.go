@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"sync"
 	"time"
 
 	"github.com/rakutentech/jwk-go/jwk"
@@ -25,6 +26,17 @@ const (
 	// _defaultStaleRetryInterval is how often an expired key is fetched again
 	// while the JWKS endpoint can't be reached and the key keeps being used.
 	_defaultStaleRetryInterval = 1 * time.Minute
+	// _defaultRefetchInterval is the minimal interval between fetches of a JWKS
+	// endpoint caused by keys missing in the cache. Tokens are not verified yet
+	// when their key is looked up, so without it every token with a new random
+	// kid would make a request to the JWKS endpoint. It must stay well below the
+	// cache TTL: a key missing in the cache within it after a fetch is a key the
+	// endpoint did not return.
+	_defaultRefetchInterval = 5 * time.Second
+	// _maxTrackedEndpoints bounds how many resolved JWKS URLs remember their last
+	// fetch time. URL templates are filled from token claims, which are not
+	// verified at this point either.
+	_maxTrackedEndpoints = 1024
 )
 
 // JWK represents an unparsed JSON Web Key (JWK) in its wire format.
@@ -55,6 +67,10 @@ type Manager struct {
 	group    singleflight.Group
 
 	staleRetryInterval time.Duration
+	refetchInterval    time.Duration
+
+	fetchedMu sync.Mutex
+	fetchedAt map[string]time.Time // Resolved JWKS URL -> last successful fetch.
 }
 
 func defaultHTTPClient() *http.Client {
@@ -86,6 +102,8 @@ func NewManager(rawURL string, opts ...Option) (*Manager, error) {
 		retries:  _defaultRetries,
 
 		staleRetryInterval: _defaultStaleRetryInterval,
+		refetchInterval:    _defaultRefetchInterval,
+		fetchedAt:          make(map[string]time.Time),
 	}
 
 	for _, opt := range opts {
@@ -125,27 +143,69 @@ func (m *Manager) FetchKey(ctx context.Context, kid string, tokenVars map[string
 		if err == nil {
 			return key, nil
 		}
+		// The endpoint was fetched a moment ago and did not return this kid.
+		// Fetching it again for every such token would let anyone send requests
+		// to the JWKS endpoint, so the kid is unknown until the interval passes.
+		// The interval is counted from the last fetch only, so it can't be
+		// extended: a key the endpoint starts to return is picked up at most one
+		// interval later.
+		if m.fetchedRecently(jwkURL) {
+			return nil, ErrPublicKeyNotFound
+		}
 	}
 
-	// Otherwise fetch from public JWKS.
-	v, err, _ := m.group.Do(cacheKey, func() (any, error) {
-		return m.fetchKey(ctx, jwkURL, kid)
+	// Otherwise fetch from public JWKS. Lookups of different kids share one
+	// fetch of the endpoint: it returns the whole key set.
+	v, err, _ := m.group.Do(jwkURL, func() (any, error) {
+		return m.fetchKeys(ctx, jwkURL)
 	})
-	if err != nil {
-		// Keys expire from the cache to pick up keys removed from the JWKS
-		// endpoint. When the endpoint can't tell, as it can't be reached or
-		// returns an error, keep using the key fetched before: an unavailable
-		// endpoint must not fail verification of the tokens it issued.
-		if m.useCache && !errors.Is(err, ErrPublicKeyNotFound) {
-			if key, staleErr := m.cache.GetStale(cacheKey, m.staleRetryInterval); staleErr == nil {
-				log.Warn().Err(err).Str("kid", kid).Msg("error fetching JWKS, using previously fetched key")
-				return key, nil
+	if err == nil {
+		key, ok := v.(map[string]*JWK)[kid]
+		if !ok {
+			return nil, ErrPublicKeyNotFound
+		}
+		return key, nil
+	}
+	// Keys expire from the cache to pick up keys removed from the JWKS
+	// endpoint. When the endpoint can't tell, as it can't be reached or
+	// returns an error, keep using the key fetched before: an unavailable
+	// endpoint must not fail verification of the tokens it issued.
+	if m.useCache {
+		if key, staleErr := m.cache.GetStale(cacheKey, m.staleRetryInterval); staleErr == nil {
+			log.Warn().Err(err).Str("kid", kid).Msg("error fetching JWKS, using previously fetched key")
+			return key, nil
+		}
+	}
+	return nil, err
+}
+
+// fetchedRecently reports whether the endpoint was fetched successfully within
+// the refetch interval.
+func (m *Manager) fetchedRecently(jwkURL string) bool {
+	m.fetchedMu.Lock()
+	defer m.fetchedMu.Unlock()
+	at, ok := m.fetchedAt[jwkURL]
+	return ok && time.Since(at) < m.refetchInterval
+}
+
+// markFetched remembers a successful fetch of the endpoint.
+func (m *Manager) markFetched(jwkURL string) {
+	now := time.Now()
+	m.fetchedMu.Lock()
+	defer m.fetchedMu.Unlock()
+	if len(m.fetchedAt) >= _maxTrackedEndpoints {
+		// Entries past the interval have no effect, drop them. If all are
+		// recent, forget them all: that only allows extra fetches.
+		for u, at := range m.fetchedAt {
+			if now.Sub(at) >= m.refetchInterval {
+				delete(m.fetchedAt, u)
 			}
 		}
-		return nil, err
+		if len(m.fetchedAt) >= _maxTrackedEndpoints {
+			clear(m.fetchedAt)
+		}
 	}
-
-	return v.(*JWK), nil
+	m.fetchedAt[jwkURL] = now
 }
 
 // cacheKey builds a cache/singleflight key namespaced by the resolved JWKS URL.
@@ -188,7 +248,9 @@ func (m *Manager) resolveURL(tokenVars map[string]any) (string, error) {
 	return jwkURL, nil
 }
 
-func (m *Manager) fetchKey(ctx context.Context, jwkURL, kid string) (*JWK, error) {
+// fetchKeys fetches the key set of the endpoint, keyed by kid, and replaces
+// the cached keys of the endpoint with it.
+func (m *Manager) fetchKeys(ctx context.Context, jwkURL string) (map[string]*JWK, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, jwkURL, nil)
 	if err != nil {
 		return nil, err
@@ -217,9 +279,8 @@ func (m *Manager) fetchKey(ctx context.Context, jwkURL, kid string) (*JWK, error
 		return nil, fmt.Errorf("%w: %v", errUnmarshal, err)
 	}
 
-	var res *JWK
-
 	keys := make(map[string]*JWK, len(set.Keys))
+	cached := make(map[string]*JWK, len(set.Keys))
 	for _, spec := range set.Keys {
 		key, err := spec.ToJWK()
 		if err != nil {
@@ -231,22 +292,16 @@ func (m *Manager) fetchKey(ctx context.Context, jwkURL, kid string) (*JWK, error
 			continue
 		}
 
-		keys[cacheKey(jwkURL, key.Kid)] = key
-
-		if key.Kid == kid {
-			res = key
-		}
+		keys[key.Kid] = key
+		cached[cacheKey(jwkURL, key.Kid)] = key
 	}
 
 	// Save new set into cache. Keys the endpoint no longer returns are
 	// removed, so they are not used when it can't be reached later.
 	if m.useCache {
-		_ = m.cache.ReplacePrefix(cacheKey(jwkURL, ""), keys)
+		_ = m.cache.ReplacePrefix(cacheKey(jwkURL, ""), cached)
+		m.markFetched(jwkURL)
 	}
 
-	if res == nil {
-		return nil, ErrPublicKeyNotFound
-	}
-
-	return res, nil
+	return keys, nil
 }
