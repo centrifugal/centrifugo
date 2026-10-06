@@ -330,6 +330,40 @@ func runServices(ctx context.Context, manager *service.Manager) chan struct{} {
 	return done
 }
 
+// reloadConfig applies newCfg to the token verifiers and the config container.
+// Everything which can fail is done before any verifier changes, so the new
+// config is applied either fully or not at all.
+func reloadConfig(
+	newCfg config.Config, cfgContainer *config.Container,
+	tokenVerifier *jwtverify.VerifierJWT, subTokenVerifier *jwtverify.VerifierJWT,
+) error {
+	verifierConfig, err := confighelpers.MakeVerifierConfig(newCfg.Client.Token)
+	if err != nil {
+		return err
+	}
+	applyTokenVerifier, err := tokenVerifier.PrepareReload(verifierConfig)
+	if err != nil {
+		return err
+	}
+	applySubTokenVerifier := func() {}
+	if subTokenVerifier != nil {
+		subVerifierConfig, err := confighelpers.MakeVerifierConfig(newCfg.Client.SubscriptionToken.Token)
+		if err != nil {
+			return err
+		}
+		applySubTokenVerifier, err = subTokenVerifier.PrepareReload(subVerifierConfig)
+		if err != nil {
+			return err
+		}
+	}
+	if err = cfgContainer.Reload(newCfg); err != nil {
+		return err
+	}
+	applyTokenVerifier()
+	applySubTokenVerifier()
+	return nil
+}
+
 func handleSignals(
 	cmd *cobra.Command, configFile string, n *centrifuge.Node, cfgContainer *config.Container,
 	tokenVerifier *jwtverify.VerifierJWT, subTokenVerifier *jwtverify.VerifierJWT, httpServers []*http.Server,
@@ -357,27 +391,7 @@ func handleSignals(
 				log.Error().Msgf("error validating config: %v", err)
 				continue
 			}
-			verifierConfig, err := confighelpers.MakeVerifierConfig(newCfg.Client.Token)
-			if err != nil {
-				log.Error().Msgf("error reloading: %v", err)
-				continue
-			}
-			if err = tokenVerifier.Reload(verifierConfig); err != nil {
-				log.Error().Msgf("error reloading: %v", err)
-				continue
-			}
-			if subTokenVerifier != nil {
-				subVerifierConfig, err := confighelpers.MakeVerifierConfig(newCfg.Client.SubscriptionToken.Token)
-				if err != nil {
-					log.Error().Msgf("error reloading: %v", err)
-					continue
-				}
-				if err := subTokenVerifier.Reload(subVerifierConfig); err != nil {
-					log.Error().Msgf("error reloading: %v", err)
-					continue
-				}
-			}
-			if err = cfgContainer.Reload(newCfg); err != nil {
+			if err = reloadConfig(newCfg, cfgContainer, tokenVerifier, subTokenVerifier); err != nil {
 				log.Error().Msgf("error reloading: %v", err)
 				continue
 			}
