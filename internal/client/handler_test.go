@@ -1874,3 +1874,28 @@ func TestValidateSharedPollRefreshData(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+func TestRunConcurrentlyIfNeeded(t *testing.T) {
+	t.Parallel()
+	h := &Handler{}
+
+	// Without concurrency fn runs inline.
+	ran := false
+	require.True(t, h.runConcurrentlyIfNeeded(context.Background(), 0, nil, func() { ran = true }))
+	require.True(t, ran)
+
+	// With concurrency fn runs in a goroutine holding a semaphore slot.
+	semaphore := make(chan struct{}, 2)
+	done := make(chan struct{})
+	require.True(t, h.runConcurrentlyIfNeeded(context.Background(), 2, semaphore, func() { close(done) }))
+	<-done
+	require.Eventually(t, func() bool { return len(semaphore) == 0 }, time.Second, time.Millisecond)
+
+	// A context done while waiting for a slot: fn is not run, and the caller is
+	// told so (a subscribe callback must still be invoked).
+	semaphore <- struct{}{}
+	semaphore <- struct{}{}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	require.False(t, h.runConcurrentlyIfNeeded(ctx, 2, semaphore, func() { t.Fatal("must not run") }))
+}
