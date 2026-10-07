@@ -294,8 +294,8 @@ func TestPostgresController_BroadcastReachesAll(t *testing.T) {
 		TablePrefix: prefix,
 	}, h1)
 	_ = newTestPostgresController(t, PostgresControllerConfig{
-		DSN:            connString,
-		TablePrefix:    prefix,
+		DSN:         connString,
+		TablePrefix: prefix,
 	}, h2)
 
 	time.Sleep(50 * time.Millisecond)
@@ -339,8 +339,8 @@ func TestPostgresController_TargetedMessage(t *testing.T) {
 		TablePrefix: prefix,
 	}, h1)
 	c2 := newTestPostgresController(t, PostgresControllerConfig{
-		DSN:            connString,
-		TablePrefix:    prefix,
+		DSN:         connString,
+		TablePrefix: prefix,
 	}, h2)
 
 	time.Sleep(50 * time.Millisecond)
@@ -558,8 +558,8 @@ func TestPostgresController_ReconnectResumesFromCursor(t *testing.T) {
 	}
 
 	_ = newTestPostgresController(t, PostgresControllerConfig{
-		DSN:            connString,
-		TablePrefix:    prefix,
+		DSN:         connString,
+		TablePrefix: prefix,
 	}, h2)
 
 	time.Sleep(200 * time.Millisecond)
@@ -805,4 +805,3 @@ func TestPostgresController_PublishControlWithPool(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "some-node", nodeID)
 }
-

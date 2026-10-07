@@ -202,4 +202,3 @@ func BenchmarkPostgresStreamBroker_RetentionDrop(b *testing.B) {
 		require.NoError(b, err)
 	}
 }
-

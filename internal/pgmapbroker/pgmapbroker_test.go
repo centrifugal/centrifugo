@@ -1334,7 +1334,7 @@ func TestPostgresMapBroker_Delta_Outbox(t *testing.T) {
 	require.False(t, ev.delta)
 	require.Nil(t, ev.prevPub, "UseDelta=false means no delta")
 
-	// 6. Third publish to key1 - prevPub should have previous data.
+	// 5. Third publish to key1 - prevPub should have previous data.
 	_, err = e.Publish(ctx, channel, "key1", centrifuge.MapPublishOptions{
 		Data:     []byte("data1_v3"),
 		UseDelta: true,
@@ -2572,8 +2572,8 @@ func TestPostgresMapBroker_AllColumnTypes(t *testing.T) {
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 				return centrifuge.MapChannelOptions{
-					Mode:    centrifuge.MapModeRecoverable,
-					KeyTTL:  60 * time.Second,
+					Mode:   centrifuge.MapModeRecoverable,
+					KeyTTL: 60 * time.Second,
 				}
 			},
 		},
@@ -2630,9 +2630,9 @@ func TestPostgresMapBroker_AllColumnTypes(t *testing.T) {
 
 	// Publish with all fields populated.
 	_, err = e.Publish(ctx, channel, "k1", centrifuge.MapPublishOptions{
-		Data:       []byte(`{"price":100}`),
-		Tags:       tags,
-		
+		Data: []byte(`{"price":100}`),
+		Tags: tags,
+
 		ClientInfo: info,
 	})
 	require.NoError(t, err)
@@ -2703,9 +2703,9 @@ func TestPostgresMapBroker_AllColumnTypes(t *testing.T) {
 	// --- Verify ReadState (key was removed, so state should be empty) ---
 	// Publish again to have a key in state for verification.
 	_, err = e.Publish(ctx, channel, "k2", centrifuge.MapPublishOptions{
-		Data:       []byte(`{"price":200}`),
-		Tags:       map[string]string{"sector": "finance"},
-		
+		Data: []byte(`{"price":200}`),
+		Tags: map[string]string{"sector": "finance"},
+
 		ClientInfo: info,
 	})
 	require.NoError(t, err)
