@@ -29,8 +29,8 @@ import (
 func TestJWKSCacheKeyIsScopedToTemplatedEndpoint(t *testing.T) {
 	const kid = "shared-kid"
 
-	tenantAPrivateKey, tenantAPublicKey := generateTestRSAKeys(t)
-	_, tenantBPublicKey := generateTestRSAKeys(t)
+	tenantAPrivateKey, tenantAPublicKey := testRSAKey(t, 0)
+	_, tenantBPublicKey := testRSAKey(t, 1)
 
 	var tenantARequests, tenantBRequests int32
 

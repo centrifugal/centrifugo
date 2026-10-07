@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -31,12 +32,26 @@ func parseRSA(t *testing.T, k *JWK) *rsa.PublicKey {
 	return pub
 }
 
-func randomKeys() (*rsa.PrivateKey, *rsa.PublicKey, error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
-	if err != nil {
-		return nil, nil, err
-	}
+var (
+	testKeysMu sync.Mutex
+	testKeys   = map[int]*rsa.PrivateKey{}
+)
 
+// randomKeys returns the n-th test RSA key pair. RSA key generation is slow
+// (especially with -race), so keys are generated once and shared by tests.
+// Tests needing several distinct keys use different n.
+func randomKeys(n int) (*rsa.PrivateKey, *rsa.PublicKey, error) {
+	testKeysMu.Lock()
+	defer testKeysMu.Unlock()
+	privateKey, ok := testKeys[n]
+	if !ok {
+		var err error
+		privateKey, err = rsa.GenerateKey(rand.Reader, 1024)
+		if err != nil {
+			return nil, nil, err
+		}
+		testKeys[n] = privateKey
+	}
 	return privateKey, &privateKey.PublicKey, nil
 }
 
@@ -112,7 +127,7 @@ func TestManagerFetchKey_WrongStatusCode(t *testing.T) {
 }
 
 func TestManagerInitialFetchKey(t *testing.T) {
-	_, pubKey, err := randomKeys()
+	_, pubKey, err := randomKeys(0)
 	require.NoError(t, err)
 
 	testCases := []struct {
@@ -180,7 +195,7 @@ func TestManagerFetchKey_PathTraversalRejected(t *testing.T) {
 	require.Contains(t, err.Error(), "traversal")
 
 	// Clean value — must succeed (uses real server).
-	_, pubKey, err := randomKeys()
+	_, pubKey, err := randomKeys(0)
 	require.NoError(t, err)
 
 	ts2 := httptest.NewServer(jwksHandler(testKey{kid, pubKey}))
@@ -219,7 +234,7 @@ func TestManagerCachedFetchKey(t *testing.T) {
 			ctx := context.Background()
 			kid := "202101"
 
-			_, pubKey, err := randomKeys()
+			_, pubKey, err := randomKeys(0)
 			r.NoError(err)
 
 			ts := httptest.NewServer(jwksHandler(testKey{kid, pubKey}))
@@ -248,9 +263,9 @@ func TestManagerCachedFetchKey(t *testing.T) {
 func TestManagerFetchKey_CacheScopedByResolvedURL(t *testing.T) {
 	const sharedKid = "shared-kid"
 
-	_, tenantAPubKey, err := randomKeys()
+	_, tenantAPubKey, err := randomKeys(0)
 	require.NoError(t, err)
-	_, tenantBPubKey, err := randomKeys()
+	_, tenantBPubKey, err := randomKeys(1)
 	require.NoError(t, err)
 
 	var tenantARequests, tenantBRequests int32
@@ -337,9 +352,9 @@ func newRotationTestManager(t *testing.T, url string, ttl time.Duration) *Manage
 // passes, however often it is used.
 func TestManagerFetchKey_RemovedKeyExpires(t *testing.T) {
 	const ttl = 200 * time.Millisecond
-	_, pubKey, err := randomKeys()
+	_, pubKey, err := randomKeys(0)
 	require.NoError(t, err)
-	_, newPubKey, err := randomKeys()
+	_, newPubKey, err := randomKeys(1)
 	require.NoError(t, err)
 
 	ts := newRotatingJWKSServer(t, testKey{"old", pubKey})
@@ -365,7 +380,7 @@ func TestManagerFetchKey_RemovedKeyExpires(t *testing.T) {
 // and is fetched again at most once per stale retry interval.
 func TestManagerFetchKey_EndpointDownUsesFetchedKey(t *testing.T) {
 	const ttl = 100 * time.Millisecond
-	_, pubKey, err := randomKeys()
+	_, pubKey, err := randomKeys(0)
 	require.NoError(t, err)
 
 	ts := newRotatingJWKSServer(t, testKey{"kid", pubKey})
@@ -399,9 +414,9 @@ func TestManagerFetchKey_EndpointDownUsesFetchedKey(t *testing.T) {
 // reached later.
 func TestManagerFetchKey_EndpointDownDoesNotUseRemovedKey(t *testing.T) {
 	const ttl = 100 * time.Millisecond
-	_, pubKey1, err := randomKeys()
+	_, pubKey1, err := randomKeys(0)
 	require.NoError(t, err)
-	_, pubKey2, err := randomKeys()
+	_, pubKey2, err := randomKeys(1)
 	require.NoError(t, err)
 
 	ts := newRotatingJWKSServer(t, testKey{"1", pubKey1}, testKey{"2", pubKey2})
@@ -428,7 +443,7 @@ func TestManagerFetchKey_EndpointDownDoesNotUseRemovedKey(t *testing.T) {
 
 // Without the cache, a failed fetch fails the lookup.
 func TestManagerFetchKey_EndpointDownNoCache(t *testing.T) {
-	_, pubKey, err := randomKeys()
+	_, pubKey, err := randomKeys(0)
 	require.NoError(t, err)
 
 	ts := newRotatingJWKSServer(t, testKey{"kid", pubKey})
@@ -446,7 +461,7 @@ func TestManagerFetchKey_EndpointDownNoCache(t *testing.T) {
 // Lookups of kids missing in the cache fetch the endpoint at most once per
 // refetch interval, however many different kids are asked for.
 func TestManagerFetchKey_UnknownKidsFetchOncePerInterval(t *testing.T) {
-	_, pubKey, err := randomKeys()
+	_, pubKey, err := randomKeys(0)
 	require.NoError(t, err)
 	ts := newRotatingJWKSServer(t, testKey{"kid", pubKey})
 	manager, err := NewManager(ts.URL)
@@ -469,7 +484,7 @@ func TestManagerFetchKey_UnknownKidsFetchOncePerInterval(t *testing.T) {
 
 // Concurrent lookups of different unknown kids share one fetch.
 func TestManagerFetchKey_ConcurrentUnknownKidsShareFetch(t *testing.T) {
-	_, pubKey, err := randomKeys()
+	_, pubKey, err := randomKeys(0)
 	require.NoError(t, err)
 	release := make(chan struct{})
 	var requests atomic.Int32
@@ -505,9 +520,9 @@ func TestManagerFetchKey_ConcurrentUnknownKidsShareFetch(t *testing.T) {
 // between: rejected lookups do not extend the interval.
 func TestManagerFetchKey_NewKeyPickedUpDespiteUnknownKids(t *testing.T) {
 	const interval = 200 * time.Millisecond
-	_, oldKey, err := randomKeys()
+	_, oldKey, err := randomKeys(0)
 	require.NoError(t, err)
-	_, newKey, err := randomKeys()
+	_, newKey, err := randomKeys(1)
 	require.NoError(t, err)
 	ts := newRotatingJWKSServer(t, testKey{"old", oldKey})
 	manager, err := NewManager(ts.URL)
@@ -541,7 +556,7 @@ func TestManagerFetchKey_NewKeyPickedUpDespiteUnknownKids(t *testing.T) {
 // A failed fetch does not start the interval: the endpoint is tried again
 // once it is back.
 func TestManagerFetchKey_FailedFetchDoesNotStartInterval(t *testing.T) {
-	_, pubKey, err := randomKeys()
+	_, pubKey, err := randomKeys(0)
 	require.NoError(t, err)
 	ts := newRotatingJWKSServer(t, testKey{"kid", pubKey})
 	ts.setDown()
@@ -588,7 +603,7 @@ func (c *slowFirstMissCache) Get(cacheKey string) (*JWK, error) {
 // A lookup which missed the cache just before a concurrent fetch of the
 // endpoint completed finds the fetched key instead of refusing it.
 func TestManagerFetchKey_MissRacingConcurrentFetch(t *testing.T) {
-	_, pubKey, err := randomKeys()
+	_, pubKey, err := randomKeys(0)
 	require.NoError(t, err)
 	ts := newRotatingJWKSServer(t, testKey{"kid", pubKey})
 	ttlCache := NewTTLCache(time.Hour)
