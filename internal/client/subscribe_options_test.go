@@ -21,16 +21,18 @@ func TestApplyNamespaceSubscribeOptions(t *testing.T) {
 	chOpts.Map.RemoveClientOnUnsubscribe = true
 
 	options := centrifuge.SubscribeOptions{ExpireAt: 42, EnableRecovery: true}
-	applyNamespaceSubscribeOptions(&options, chOpts, "ns:room")
+	applyNamespaceSubscribeOptions(&options, chOpts, "ns:room", centrifuge.SubscriptionTypeMap)
 	require.Equal(t, 48*time.Hour, options.HistoryMetaTTL)
 	require.True(t, options.MapRemoveClientOnUnsubscribe)
 	require.Equal(t, "clients:ns:room", options.MapClientPresenceChannel)
 	require.Equal(t, "users:ns:room", options.MapUserPresenceChannel)
 	require.Equal(t, int64(42), options.ExpireAt)
 	require.True(t, options.EnableRecovery)
+	require.Equal(t, centrifuge.SubscriptionTypeMap, options.Type)
 
 	options = centrifuge.SubscribeOptions{}
-	applyNamespaceSubscribeOptions(&options, configtypes.ChannelOptions{}, "room")
+	applyNamespaceSubscribeOptions(&options, configtypes.ChannelOptions{}, "room", centrifuge.SubscriptionTypeStream)
+	require.Equal(t, centrifuge.SubscriptionTypeStream, options.Type)
 	require.Empty(t, options.MapClientPresenceChannel)
 	require.Empty(t, options.MapUserPresenceChannel)
 }
