@@ -13,6 +13,7 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/pgtest"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 )
 
@@ -805,4 +806,39 @@ func TestPostgresController_PublishControlWithPool(t *testing.T) {
 		`SELECT node_id FROM %s ORDER BY id DESC LIMIT 1`, c.names.messages)).Scan(&nodeID)
 	require.NoError(t, err)
 	require.Equal(t, "some-node", nodeID)
+}
+
+// Outbox workers poll new messages through ReadPool when it is set (e.g. a
+// pool to a read replica), and the controller closes it when stopped.
+func TestPostgresController_ReadPool(t *testing.T) {
+	t.Parallel()
+	c := newTestPostgresController(t, PostgresControllerConfig{}, nil)
+	require.Equal(t, c.pool, c.getReadPool(), "the primary pool is used without ReadPool")
+
+	readPool, err := pgxpool.New(context.Background(), getPostgresConnString(t))
+	require.NoError(t, err)
+	received := make(chan struct{}, 1)
+	handler := &testControlEventHandler{HandleControlFunc: func([]byte) error {
+		select {
+		case received <- struct{}{}:
+		default:
+		}
+		return nil
+	}}
+	c2 := newTestPostgresController(t, PostgresControllerConfig{ReadPool: readPool}, handler)
+	require.Equal(t, readPool, c2.getReadPool())
+
+	acquired := readPool.Stat().AcquireCount()
+	require.NoError(t, c2.PublishControl([]byte("via-read-pool"), "", ""))
+	select {
+	case <-received:
+	case <-time.After(5 * time.Second):
+		t.Fatal("message not delivered")
+	}
+	require.Greater(t, readPool.Stat().AcquireCount(), acquired, "messages are polled through the read pool")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	require.ErrorIs(t, c2.Run(ctx), context.Canceled)
+	require.Error(t, readPool.Ping(context.Background()), "the read pool is closed")
 }
