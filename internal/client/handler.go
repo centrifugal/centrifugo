@@ -837,6 +837,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		if chOpts.SubRefreshProxyEnabled {
 			r.ClientSideRefresh = false
 		}
+		h.applyRequestedJoinLeave(c, e, chOpts, &r.Options)
 		applyNamespaceSubscribeOptions(&r.Options, chOpts, e.Channel, e.Type)
 		return r, SubscribeExtra{}, err
 	} else if (chOpts.SubscribeStreamProxyEnabled) && !isUserLimitedChannel {
@@ -859,6 +860,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		if chOpts.SubRefreshProxyEnabled {
 			r.ClientSideRefresh = false
 		}
+		h.applyRequestedJoinLeave(c, e, chOpts, &r.Options)
 		// Only stream subscriptions: the namespace's subscription type is checked
 		// at config validation.
 		applyNamespaceSubscribeOptions(&r.Options, chOpts, e.Channel, centrifuge.SubscriptionTypeStream)
@@ -900,6 +902,14 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		Options:           options,
 		ClientSideRefresh: !chOpts.SubRefreshProxyEnabled,
 	}, SubscribeExtra{}, nil
+}
+
+// applyRequestedJoinLeave pushes join/leave messages to a proxied subscription
+// which asked for them, like for non-proxied subscriptions.
+func (h *Handler) applyRequestedJoinLeave(c Client, e centrifuge.SubscribeEvent, chOpts configtypes.ChannelOptions, options *centrifuge.SubscribeOptions) {
+	if e.JoinLeave && options.EmitJoinLeave && h.hasAccessToPresence(c, e.Channel, chOpts, true) {
+		options.PushJoinLeave = true
+	}
 }
 
 // OnPublish ...

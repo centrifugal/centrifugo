@@ -1326,6 +1326,52 @@ func TestClientOnSubscribe_SubRefreshProxy(t *testing.T) {
 	require.False(t, reply.ClientSideRefresh)
 }
 
+func TestClientOnSubscribe_SubscribeProxyJoinLeave(t *testing.T) {
+	node := tools.NodeWithMemoryEngineNoHandlers()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	cfg.Channel.Proxy.Subscribe.Endpoint = "http://localhost:8080"
+	cfg.Channel.WithoutNamespace.SubscribeProxyEnabled = true
+	cfg.Channel.WithoutNamespace.Presence = true
+	cfg.Channel.WithoutNamespace.JoinLeave = true
+	cfg.Channel.WithoutNamespace.PresenceForSubscriber = true
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	h := NewHandler(node, cfgContainer, nil, nil, &ProxyMap{})
+
+	emitJoinLeave := true
+	proxyFunc := func(c proxy.Client, e centrifuge.SubscribeEvent, chOpts configtypes.ChannelOptions, pcd proxy.PerCallData) (centrifuge.SubscribeReply, proxy.SubscribeExtra, error) {
+		return centrifuge.SubscribeReply{
+			Options: centrifuge.SubscribeOptions{EmitPresence: true, EmitJoinLeave: emitJoinLeave},
+		}, proxy.SubscribeExtra{}, nil
+	}
+	subscribe := func(joinLeave bool) centrifuge.SubscribeReply {
+		reply, _, err := h.OnSubscribe(&tools.TestClientMock{
+			UserIDFunc: func() string {
+				return "42"
+			},
+		}, centrifuge.SubscribeEvent{
+			Channel:   "room",
+			JoinLeave: joinLeave,
+		}, proxyFunc, nil)
+		require.NoError(t, err)
+		return reply
+	}
+
+	require.True(t, subscribe(true).Options.PushJoinLeave)
+	require.False(t, subscribe(false).Options.PushJoinLeave)
+
+	emitJoinLeave = false
+	require.False(t, subscribe(true).Options.PushJoinLeave)
+
+	emitJoinLeave = true
+	cfg.Channel.WithoutNamespace.PresenceForSubscriber = false
+	require.NoError(t, cfgContainer.Reload(cfg))
+	require.False(t, subscribe(true).Options.PushJoinLeave)
+}
+
 // TestClientOnSubscribe_StreamProxyStoresCancelFunc is a regression test for
 // https://github.com/centrifugal/centrifugo/issues/1147 – the cancel function of a
 // subscribe stream proxy must be stored in client storage for BOTH unidirectional and
