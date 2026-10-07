@@ -112,10 +112,17 @@ func TestRefreshProxy_HTTP_RemovedItem(t *testing.T) {
 }
 
 func TestRefreshProxy_HTTP_Timeout(t *testing.T) {
+	// Respond far later than the proxy timeout. Unblock on test end so
+	// server.Close does not wait for the full delay.
+	release := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(2 * time.Second)
+		select {
+		case <-time.After(2 * time.Second):
+		case <-release:
+		}
 	}))
 	t.Cleanup(server.Close)
+	t.Cleanup(func() { close(release) })
 
 	proxy, err := NewHTTPSharedPollRefreshProxy(Config{
 		Endpoint: server.URL,

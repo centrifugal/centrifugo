@@ -5,11 +5,12 @@ package pgmapbroker
 import (
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/centrifugal/centrifugo/v6/internal/pgtest"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -53,12 +54,10 @@ func (b *testBrokerEventHandler) HandleControl(data []byte) error {
 	return nil
 }
 
+// getPostgresConnString returns a DSN pointing to a schema private to tb, so
+// tests do not see each other's tables and can run in parallel.
 func getPostgresConnString(tb testing.TB) string {
-	connString := os.Getenv("CENTRIFUGE_POSTGRES_URL")
-	if connString == "" {
-		connString = "postgres://test:test@localhost:5432/test?sslmode=disable"
-	}
-	return connString
+	return pgtest.SchemaDSN(tb)
 }
 
 // newTestPostgresMapBroker creates a test broker with default outbox mode.
@@ -84,9 +83,6 @@ func newTestPostgresMapBrokerWithOutbox(tb testing.TB, n *centrifuge.Node) *Post
 	ctx := context.Background()
 	require.NoError(tb, e.EnsureSchema(ctx))
 
-	// Clean up tables before test
-	cleanupTestTables(ctx, e)
-
 	err = e.RegisterEventHandler(nil)
 	require.NoError(tb, err)
 
@@ -95,13 +91,6 @@ func newTestPostgresMapBrokerWithOutbox(tb testing.TB, n *centrifuge.Node) *Post
 		_ = n.Shutdown(context.Background())
 	})
 	return e
-}
-
-func cleanupTestTables(ctx context.Context, e *PostgresMapBroker) {
-	_, _ = e.pool.Exec(ctx, fmt.Sprintf("DELETE FROM %s WHERE channel LIKE 'test_%%'", e.names.stream))
-	_, _ = e.pool.Exec(ctx, fmt.Sprintf("DELETE FROM %s WHERE channel LIKE 'test_%%'", e.names.state))
-	_, _ = e.pool.Exec(ctx, fmt.Sprintf("DELETE FROM %s WHERE channel LIKE 'test_%%'", e.names.meta))
-	_, _ = e.pool.Exec(ctx, fmt.Sprintf("DELETE FROM %s WHERE channel LIKE 'test_%%'", e.names.idempotency))
 }
 
 // stateToMapPostgres converts []Publication to map for easier testing.
@@ -115,6 +104,7 @@ func stateToMapPostgres(pubs []*centrifuge.Publication) map[string][]byte {
 
 // TestPostgresMapBroker_StatefulChannel tests stateful channel with keyed state and revisions.
 func TestPostgresMapBroker_StatefulChannel(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -173,6 +163,7 @@ func TestPostgresMapBroker_StatefulChannel(t *testing.T) {
 
 // TestPostgresMapBroker_StateRevision tests that state values include revisions.
 func TestPostgresMapBroker_StateRevision(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -226,6 +217,7 @@ func TestPostgresMapBroker_StateRevision(t *testing.T) {
 
 // TestPostgresMapBroker_StatePagination tests cursor-based state pagination.
 func TestPostgresMapBroker_StatePagination(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -288,6 +280,7 @@ func TestPostgresMapBroker_StatePagination(t *testing.T) {
 
 // TestPostgresMapBroker_StreamRecovery tests stream recovery.
 func TestPostgresMapBroker_StreamRecovery(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -328,6 +321,7 @@ func TestPostgresMapBroker_StreamRecovery(t *testing.T) {
 
 // TestPostgresMapBroker_Idempotency tests idempotent publishing.
 func TestPostgresMapBroker_Idempotency(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -377,6 +371,7 @@ func TestPostgresMapBroker_Idempotency(t *testing.T) {
 
 // TestPostgresMapBroker_KeyMode tests KeyMode (IfNew, IfExists).
 func TestPostgresMapBroker_KeyMode(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -439,6 +434,7 @@ func TestPostgresMapBroker_KeyMode(t *testing.T) {
 
 // TestPostgresMapBroker_CAS tests Compare-And-Swap operations.
 func TestPostgresMapBroker_CAS(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -498,6 +494,7 @@ func TestPostgresMapBroker_CAS(t *testing.T) {
 // brokers already compare epoch — this test pins PostgreSQL to the same
 // behavior.
 func TestPostgresMapBroker_CAS_StaleEpoch(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -544,6 +541,7 @@ func TestPostgresMapBroker_CAS_StaleEpoch(t *testing.T) {
 }
 
 func TestPostgresMapBroker_CleanupMetrics(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skipping cleanup metrics test in short mode")
 	}
@@ -554,7 +552,7 @@ func TestPostgresMapBroker_CleanupMetrics(t *testing.T) {
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 				return centrifuge.MapChannelOptions{
 					Mode:   centrifuge.MapModeRecoverable,
-					KeyTTL: 2 * time.Second,
+					KeyTTL: time.Second,
 				}
 			},
 		},
@@ -577,10 +575,7 @@ func TestPostgresMapBroker_CleanupMetrics(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Wait for TTL to expire.
-	time.Sleep(3 * time.Second)
-
-	// Poll until the cleanup metric reflects both removals. Both the
+	// Poll until the cleanup metric reflects both removals (after the 1s TTL). Both the
 	// background TTL worker (every TTLCheckInterval=1s) and our explicit
 	// expireKeys call contribute to the counter; Eventually handles timing
 	// variations on slow CI where:
@@ -610,16 +605,18 @@ func TestPostgresMapBroker_CleanupMetrics(t *testing.T) {
 
 // TestPostgresMapBroker_KeyTTL tests key TTL (this is a slower test).
 func TestPostgresMapBroker_KeyTTL(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("skipping TTL test in short mode")
 	}
 
+	const keyTTL = time.Second
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
 				return centrifuge.MapChannelOptions{
 					Mode:   centrifuge.MapModeRecoverable,
-					KeyTTL: 2 * time.Second,
+					KeyTTL: keyTTL,
 				}
 			},
 		},
@@ -629,7 +626,8 @@ func TestPostgresMapBroker_KeyTTL(t *testing.T) {
 	ctx := context.Background()
 	channel := fmt.Sprintf("test_key_ttl_%d", time.Now().UnixNano())
 
-	// Publish with short TTL (2s from channel config)
+	// Publish with short TTL (from channel config)
+	publishedAt := time.Now()
 	_, err := broker.Publish(ctx, channel, "ephemeral", centrifuge.MapPublishOptions{
 		Data: []byte("temporary"),
 	})
@@ -643,23 +641,21 @@ func TestPostgresMapBroker_KeyTTL(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
 
-	// Wait for TTL to expire
-	time.Sleep(3 * time.Second)
-
-	// Trigger TTL check
-	broker.expireKeys(ctx)
-
-	// Key should be gone
-	stateRes, err = broker.ReadState(ctx, channel, centrifuge.MapReadStateOptions{
-		Key: "ephemeral",
-	})
-	entries, _, _ = stateRes.Publications, stateRes.Position, stateRes.Cursor
-	require.NoError(t, err)
-	require.Empty(t, entries)
+	// Trigger TTL checks until the key is gone, which must not happen
+	// before TTL expires (half of it to tolerate host vs database clock skew).
+	require.Eventually(t, func() bool {
+		broker.expireKeys(ctx)
+		res, err := broker.ReadState(ctx, channel, centrifuge.MapReadStateOptions{
+			Key: "ephemeral",
+		})
+		return err == nil && len(res.Publications) == 0
+	}, 10*time.Second, 50*time.Millisecond, "key should expire")
+	require.GreaterOrEqual(t, time.Since(publishedAt), keyTTL/2, "key expired before its TTL")
 }
 
 // TestPostgresMapBroker_Version tests version-based ordering.
 func TestPostgresMapBroker_Version(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -711,6 +707,7 @@ func TestPostgresMapBroker_Version(t *testing.T) {
 
 // TestPostgresMapBroker_PerKeyVersion tests that version tracking is per-key independent.
 func TestPostgresMapBroker_PerKeyVersion(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -775,6 +772,7 @@ func TestPostgresMapBroker_PerKeyVersion(t *testing.T) {
 
 // TestPostgresMapBroker_Remove tests removing keys.
 func TestPostgresMapBroker_Remove(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -843,6 +841,7 @@ func TestPostgresMapBroker_Remove(t *testing.T) {
 
 // TestPostgresMapBroker_Stats tests state statistics.
 func TestPostgresMapBroker_Stats(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -879,6 +878,7 @@ func TestPostgresMapBroker_Stats(t *testing.T) {
 
 // TestPostgresMapBroker_EpochMismatch tests epoch validation.
 func TestPostgresMapBroker_EpochMismatch(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -940,6 +940,7 @@ func TestPostgresMapBroker_EpochMismatch(t *testing.T) {
 
 // TestPostgresMapBroker_ConcurrentPublishOrdering tests that concurrent publishes maintain per-channel ordering.
 func TestPostgresMapBroker_ConcurrentPublishOrdering(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -1002,6 +1003,7 @@ func TestPostgresMapBroker_ConcurrentPublishOrdering(t *testing.T) {
 
 // TestPostgresMapBroker_OutboxOrdering tests that publications are delivered in channel_offset order.
 func TestPostgresMapBroker_OutboxOrdering(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -1035,7 +1037,6 @@ func TestPostgresMapBroker_OutboxOrdering(t *testing.T) {
 	channel := fmt.Sprintf("test_outbox_order_%d", time.Now().UnixNano())
 
 	// Clean up tables
-	cleanupTestTables(ctx, broker)
 
 	t.Cleanup(func() {
 		_ = broker.Close(context.Background())
@@ -1100,6 +1101,7 @@ func TestPostgresMapBroker_OutboxOrdering(t *testing.T) {
 
 // TestPostgresMapBroker_OutboxConcurrentPublish tests concurrent publishes maintain ordering.
 func TestPostgresMapBroker_OutboxConcurrentPublish(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -1128,7 +1130,6 @@ func TestPostgresMapBroker_OutboxConcurrentPublish(t *testing.T) {
 	require.NoError(t, broker.EnsureSchema(ctx))
 
 	channel := fmt.Sprintf("test_outbox_concurrent_%d", time.Now().UnixNano())
-	cleanupTestTables(ctx, broker)
 
 	t.Cleanup(func() {
 		_ = broker.Close(context.Background())
@@ -1213,6 +1214,7 @@ func TestPostgresMapBroker_OutboxConcurrentPublish(t *testing.T) {
 
 // TestPostgresMapBroker_Delta_Outbox tests key-based delta delivery via outbox workers.
 func TestPostgresMapBroker_Delta_Outbox(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
@@ -1254,7 +1256,6 @@ func TestPostgresMapBroker_Delta_Outbox(t *testing.T) {
 
 	ctx := context.Background()
 	require.NoError(t, e.EnsureSchema(ctx))
-	cleanupTestTables(ctx, e)
 
 	err = e.RegisterEventHandler(handler)
 	require.NoError(t, err)
@@ -1347,6 +1348,7 @@ func TestPostgresMapBroker_Delta_Outbox(t *testing.T) {
 }
 
 func TestPostgresMapBroker_Clear(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -1406,6 +1408,7 @@ func TestPostgresMapBroker_Clear(t *testing.T) {
 }
 
 func TestPostgresMapBroker_ClearDoesNotAffectOtherChannels(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -1480,7 +1483,7 @@ func verifySchemaComplete(t *testing.T, ctx context.Context, pool *pgxpool.Pool,
 		table := prefix + suffix
 		var exists bool
 		err := pool.QueryRow(ctx,
-			`SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = $1)`, table).Scan(&exists)
+			`SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = $1)`, table).Scan(&exists)
 		require.NoError(t, err)
 		require.True(t, exists, "table %s should exist", table)
 	}
@@ -1498,7 +1501,7 @@ func verifySchemaComplete(t *testing.T, ctx context.Context, pool *pgxpool.Pool,
 		idx := prefix + suffix
 		var exists bool
 		err := pool.QueryRow(ctx,
-			`SELECT EXISTS(SELECT 1 FROM pg_indexes WHERE indexname = $1)`, idx).Scan(&exists)
+			`SELECT EXISTS(SELECT 1 FROM pg_indexes WHERE schemaname = current_schema() AND indexname = $1)`, idx).Scan(&exists)
 		require.NoError(t, err)
 		require.True(t, exists, "index %s should exist", idx)
 	}
@@ -1508,7 +1511,7 @@ func verifySchemaComplete(t *testing.T, ctx context.Context, pool *pgxpool.Pool,
 		fn := prefix + suffix
 		var exists bool
 		err := pool.QueryRow(ctx,
-			`SELECT EXISTS(SELECT 1 FROM pg_proc WHERE proname = $1)`, fn).Scan(&exists)
+			`SELECT EXISTS(SELECT 1 FROM pg_proc WHERE pronamespace = current_schema()::regnamespace AND proname = $1)`, fn).Scan(&exists)
 		require.NoError(t, err)
 		require.True(t, exists, "function %s should exist", fn)
 	}
@@ -1534,7 +1537,7 @@ func verifySchemaComplete(t *testing.T, ctx context.Context, pool *pgxpool.Pool,
 	for _, dc := range dataColumns {
 		var dataType string
 		err := pool.QueryRow(ctx,
-			`SELECT data_type FROM information_schema.columns WHERE table_name = $1 AND column_name = $2`,
+			`SELECT data_type FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1 AND column_name = $2`,
 			dc.table, dc.column).Scan(&dataType)
 		require.NoError(t, err, "column %s.%s should exist", dc.table, dc.column)
 		require.Equal(t, expectedType, dataType, "column %s.%s should be %s", dc.table, dc.column, expectedType)
@@ -1545,7 +1548,7 @@ func verifySchemaComplete(t *testing.T, ctx context.Context, pool *pgxpool.Pool,
 		table := prefix + suffix
 		var dataType string
 		err := pool.QueryRow(ctx,
-			`SELECT data_type FROM information_schema.columns WHERE table_name = $1 AND column_name = 'tags'`,
+			`SELECT data_type FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1 AND column_name = 'tags'`,
 			table).Scan(&dataType)
 		require.NoError(t, err)
 		require.Equal(t, "jsonb", dataType, "%s.tags should always be jsonb", table)
@@ -1554,6 +1557,7 @@ func verifySchemaComplete(t *testing.T, ctx context.Context, pool *pgxpool.Pool,
 
 // TestPostgresMapBroker_EnsureSchema_Fresh tests creating schema from scratch.
 func TestPostgresMapBroker_EnsureSchema_Fresh(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -1591,6 +1595,7 @@ func TestPostgresMapBroker_EnsureSchema_Fresh(t *testing.T) {
 
 // TestPostgresMapBroker_EnsureSchema_Idempotent tests calling EnsureSchema twice.
 func TestPostgresMapBroker_EnsureSchema_Idempotent(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -1636,6 +1641,7 @@ func TestPostgresMapBroker_EnsureSchema_Idempotent(t *testing.T) {
 // for both variants, CREATE OR REPLACE FUNCTION included. Nothing failed
 // visibly, which is exactly why it needs a test.
 func TestPostgresMapBroker_EnsureSchema_FastPathReachable(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	node, err := centrifuge.New(centrifuge.Config{})
 	require.NoError(t, err)
@@ -1664,6 +1670,7 @@ func TestPostgresMapBroker_EnsureSchema_FastPathReachable(t *testing.T) {
 // healthy cluster takes, so it has to repair that — before, the gap stayed
 // open until the partition worker's first tick, a full CleanupInterval later.
 func TestPostgresMapBroker_EnsureSchema_FastPathRestoresPartitions(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -1703,7 +1710,7 @@ func partitionExists(ctx context.Context, t *testing.T, pool *pgxpool.Pool, name
 	t.Helper()
 	var exists bool
 	require.NoError(t, pool.QueryRow(ctx,
-		"SELECT EXISTS(SELECT 1 FROM pg_class WHERE relname = $1 AND relkind = 'r')", name).Scan(&exists))
+		"SELECT EXISTS(SELECT 1 FROM pg_class WHERE relnamespace = current_schema()::regnamespace AND relname = $1 AND relkind = 'r')", name).Scan(&exists))
 	return exists
 }
 
@@ -1720,6 +1727,7 @@ func partitionExists(ctx context.Context, t *testing.T, pool *pgxpool.Pool, name
 // The race is timing-dependent and won't fire on every run — the test is a
 // regression guard, not a reproducer: it must never fail.
 func TestPostgresMapBroker_EnsureSchema_ConcurrentNodes(t *testing.T) {
+	t.Parallel()
 	const (
 		nodes  = 8
 		rounds = 3
@@ -1779,6 +1787,7 @@ func TestPostgresMapBroker_EnsureSchema_ConcurrentNodes(t *testing.T) {
 
 // TestPostgresMapBroker_EnsureSchema_PartialState tests that EnsureSchema handles partial schema.
 func TestPostgresMapBroker_EnsureSchema_PartialState(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -1824,6 +1833,7 @@ func TestPostgresMapBroker_EnsureSchema_PartialState(t *testing.T) {
 
 // TestPostgresMapBroker_EnsureSchema_BinaryData tests BYTEA columns when BinaryData=true.
 func TestPostgresMapBroker_EnsureSchema_BinaryData(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -1860,6 +1870,7 @@ func TestPostgresMapBroker_EnsureSchema_BinaryData(t *testing.T) {
 
 // TestPostgresMapBroker_EnsureSchema_FunctionalAfterSetup tests that the broker works after EnsureSchema.
 func TestPostgresMapBroker_EnsureSchema_FunctionalAfterSetup(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -1927,6 +1938,7 @@ func TestPostgresMapBroker_EnsureSchema_FunctionalAfterSetup(t *testing.T) {
 
 // TestPostgresMapBroker_EnsureSchema_VersionTracking tests that schema version is tracked.
 func TestPostgresMapBroker_EnsureSchema_VersionTracking(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -1968,6 +1980,7 @@ func TestPostgresMapBroker_EnsureSchema_VersionTracking(t *testing.T) {
 
 // TestPostgresMapBroker_EnsureSchema_BothPrefixesCreated tests that EnsureSchema creates both variants.
 func TestPostgresMapBroker_EnsureSchema_BothPrefixesCreated(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -2079,7 +2092,7 @@ func TestPostgresMapBroker_EnsureSchema_MigrationExecution(t *testing.T) {
 	for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
 		var exists bool
 		err := broker.pool.QueryRow(ctx,
-			`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = 'test_col')`,
+			`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1 AND column_name = 'test_col')`,
 			prefix+"state",
 		).Scan(&exists)
 		require.NoError(t, err)
@@ -2353,6 +2366,7 @@ func TestPostgresMapBroker_EnsureSchema_FunctionalAfterMigration(t *testing.T) {
 }
 
 func TestPostgresMapBroker_ClientInfoInState(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -2415,6 +2429,7 @@ func TestPostgresMapBroker_ClientInfoInState(t *testing.T) {
 }
 
 func TestPostgresMapBroker_ClientInfoInStream(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -2459,6 +2474,7 @@ func TestPostgresMapBroker_ClientInfoInStream(t *testing.T) {
 // TestPostgresMapBroker_ClientInfoDelivery_Outbox tests that ClientInfo is delivered
 // via outbox workers (single-node, local delivery).
 func TestPostgresMapBroker_ClientInfoDelivery_Outbox(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	node, err := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
@@ -2500,7 +2516,6 @@ func TestPostgresMapBroker_ClientInfoDelivery_Outbox(t *testing.T) {
 
 	ctx := context.Background()
 	require.NoError(t, e.EnsureSchema(ctx))
-	cleanupTestTables(ctx, e)
 
 	err = e.RegisterEventHandler(handler)
 	require.NoError(t, err)
@@ -2551,6 +2566,7 @@ func TestPostgresMapBroker_ClientInfoDelivery_Outbox(t *testing.T) {
 // ReadStream, and outbox delivery (HandlePublication). This catches wire-format
 // mismatches (binary vs text) for all column types.
 func TestPostgresMapBroker_AllColumnTypes(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	node, err := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
@@ -2591,7 +2607,6 @@ func TestPostgresMapBroker_AllColumnTypes(t *testing.T) {
 
 	ctx := context.Background()
 	require.NoError(t, e.EnsureSchema(ctx))
-	cleanupTestTables(ctx, e)
 
 	err = e.RegisterEventHandler(handler)
 	require.NoError(t, err)
@@ -2818,7 +2833,6 @@ func TestPostgresMapBroker_RedisFanout_Delivery(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NoError(t, broker.EnsureSchema(ctx))
-	cleanupTestTables(ctx, broker)
 
 	err = broker.RegisterEventHandler(handler)
 	require.NoError(t, err)
@@ -2928,7 +2942,6 @@ func TestPostgresMapBroker_RedisFanout_Delta(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NoError(t, broker.EnsureSchema(ctx))
-	cleanupTestTables(ctx, broker)
 
 	err = broker.RegisterEventHandler(handler)
 	require.NoError(t, err)
@@ -3088,7 +3101,6 @@ func TestPostgresMapBroker_RedisFanout_AdvisoryLockExclusion(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NoError(t, broker1.EnsureSchema(ctx))
-	cleanupTestTables(ctx, broker1)
 
 	broker2, err := NewPostgresMapBroker(node2, PostgresMapBrokerConfig{
 		DSN:        connString,
@@ -3239,7 +3251,6 @@ func TestPostgresMapBroker_RedisFanout_ClientInfo(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NoError(t, broker.EnsureSchema(ctx))
-	cleanupTestTables(ctx, broker)
 
 	err = broker.RegisterEventHandler(handler)
 	require.NoError(t, err)
@@ -3299,6 +3310,7 @@ func TestPostgresMapBroker_RedisFanout_ClientInfo(t *testing.T) {
 // custom prefix and can publish/read state normally — the full multi-tenant
 // use case.
 func TestPostgresMapBroker_TablePrefix_CustomPrefix(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -3363,13 +3375,11 @@ func TestPostgresMapBroker_TablePrefix_CustomPrefix(t *testing.T) {
 	// custom prefix is honored, not just appended to the default).
 	var defaultExists bool
 	err = e.pool.QueryRow(ctx, `
-		SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'cf_map_state')
+		SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = 'cf_map_state')
 	`).Scan(&defaultExists)
 	require.NoError(t, err)
-	// Note: cf_map_state may exist from other tests in this run. We can't
-	// assert its absence — we only assert the custom-prefix tables DO exist.
-	// The key invariant is that the broker uses custom-prefix tables, which
-	// the publish/read below exercises.
+	// The test schema is private, so no other test could have created it.
+	require.False(t, defaultExists, "default-prefix tables must not be created under a custom prefix")
 
 	// Publish and read state to confirm the broker actually uses the custom tables.
 	channel := "test_custom_prefix_channel"
@@ -3396,6 +3406,7 @@ func TestPostgresMapBroker_TablePrefix_CustomPrefix(t *testing.T) {
 // TablePrefix values ending in one or more underscores are normalized by
 // setDefaults — both "cf" and "cf_" and "cf__" produce the same full prefix.
 func TestPostgresMapBroker_TablePrefix_TrailingUnderscoreTrimmed(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		input    string
 		wantRoot string
@@ -3449,7 +3460,6 @@ func newTestPostgresMapBrokerWithPartitioning(tb testing.TB, n *centrifuge.Node)
 	require.NoError(tb, e.EnsureSchema(ctx))
 	// Force partitioning setup in case EnsureSchema took the fast path.
 	require.NoError(tb, e.ensurePartitionedStream(ctx))
-	cleanupTestTables(ctx, e)
 
 	err = e.RegisterEventHandler(nil)
 	require.NoError(tb, err)
@@ -3469,7 +3479,7 @@ func listChildPartitions(ctx context.Context, e *PostgresMapBroker) ([]string, e
 		FROM pg_inherits i
 		JOIN pg_class c ON c.oid = i.inhrelid
 		JOIN pg_class p ON p.oid = i.inhparent
-		WHERE p.relname = $1
+		WHERE p.relname = $1 AND p.relnamespace = current_schema()::regnamespace
 		ORDER BY c.relname
 	`, e.names.stream)
 	if err != nil {
@@ -3503,6 +3513,7 @@ func isPartitioned(ctx context.Context, e *PostgresMapBroker) (bool, error) {
 // partitioning refactor: parent is PARTITION BY RANGE, lookahead partitions
 // exist, and the cleanup ticker drops partitions older than retention.
 func TestPostgresMapBroker_Partitioning_LookaheadAndDrop(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{})
 	broker := newTestPostgresMapBrokerWithPartitioning(t, node)
 	ctx := context.Background()
@@ -3575,6 +3586,7 @@ func TestPostgresMapBroker_Partitioning_LookaheadAndDrop(t *testing.T) {
 // lookahead partitions but never drops old ones. The pgoutbox.Partitioner
 // guard treats RetentionDays <= 0 as a no-op DROP — old partitions accumulate.
 func TestPostgresMapBroker_PartitionRetention_RetentionZero_NeverDrops(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 
 	node, _ := centrifuge.New(centrifuge.Config{})
@@ -3634,6 +3646,7 @@ func TestPostgresMapBroker_PartitionRetention_RetentionZero_NeverDrops(t *testin
 // calling ensurePartitionedStream twice is safe and does not duplicate
 // partitions.
 func TestPostgresMapBroker_Partitioning_EnsureLookahead_Idempotent(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{})
 	broker := newTestPostgresMapBrokerWithPartitioning(t, node)
 	ctx := context.Background()
@@ -3657,6 +3670,7 @@ func TestPostgresMapBroker_Partitioning_EnsureLookahead_Idempotent(t *testing.T)
 // verifies that partitions with names that don't match the expected
 // {parent}_{YYYY}_{MM}_{DD} convention are left alone by cleanup.
 func TestPostgresMapBroker_Partitioning_DropOldPartitions_IgnoresInvalidNames(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{})
 	broker := newTestPostgresMapBrokerWithPartitioning(t, node)
 	ctx := context.Background()
@@ -3692,6 +3706,7 @@ func TestPostgresMapBroker_Partitioning_DropOldPartitions_IgnoresInvalidNames(t 
 // brokers: Idempotency → Version → KeyMode → CAS. Mirrors the Centrifuge
 // shared conformance tests so PG semantics stay aligned with Memory and Redis.
 func TestPostgresMapBroker_CheckOrder(t *testing.T) {
+	t.Parallel()
 	makeBroker := func(t *testing.T) *PostgresMapBroker {
 		node, _ := centrifuge.New(centrifuge.Config{
 			Map: centrifuge.MapConfig{
@@ -3781,6 +3796,7 @@ func TestPostgresMapBroker_CheckOrder(t *testing.T) {
 // without a version does NOT reset the stored version (matches Redis +
 // Memory). Mirrors the Centrifuge shared conformance test.
 func TestPostgresMapBroker_VersionPreserved(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -3831,6 +3847,7 @@ func TestPostgresMapBroker_VersionPreserved(t *testing.T) {
 // steady-state and the next publish creates a new epoch — clients see a
 // spurious ErrorUnrecoverablePosition.
 func TestPostgresMapBroker_RefreshTTLOnSuppress_RefreshesMetaTTL(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -3862,8 +3879,9 @@ func TestPostgresMapBroker_RefreshTTLOnSuppress_RefreshesMetaTTL(t *testing.T) {
 	require.False(t, firstExpiresAt.IsZero(), "meta expires_at must be set when MetaTTL > 0")
 
 	// Wait long enough for NOW()+MetaTTL on the second call to clearly exceed
-	// the first expires_at; needs to be larger than clock resolution.
-	time.Sleep(1100 * time.Millisecond)
+	// the first expires_at; needs to be larger than clock resolution
+	// (TIMESTAMPTZ has microsecond resolution).
+	time.Sleep(100 * time.Millisecond)
 
 	// Suppressed keepalive: same key, if_new + refresh_ttl_on_suppress.
 	res, err := broker.Publish(ctx, ch, "k", centrifuge.MapPublishOptions{
@@ -3889,6 +3907,7 @@ func TestPostgresMapBroker_RefreshTTLOnSuppress_RefreshesMetaTTL(t *testing.T) {
 // the negative case — without RefreshTTLOnSuppress, meta TTL is unchanged.
 // Guards against accidentally bumping meta on every suppressed publish.
 func TestPostgresMapBroker_RefreshTTLOnSuppress_DoesNotExtendWhenFlagOff(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -3917,7 +3936,8 @@ func TestPostgresMapBroker_RefreshTTLOnSuppress_DoesNotExtendWhenFlagOff(t *test
 	).Scan(&firstExpiresAt)
 	require.NoError(t, err)
 
-	time.Sleep(1100 * time.Millisecond)
+	// Long enough for NOW() to move past clock resolution, see above.
+	time.Sleep(100 * time.Millisecond)
 
 	// Suppressed publish without RefreshTTLOnSuppress.
 	res, err := broker.Publish(ctx, ch, "k", centrifuge.MapPublishOptions{
@@ -3941,6 +3961,7 @@ func TestPostgresMapBroker_RefreshTTLOnSuppress_DoesNotExtendWhenFlagOff(t *test
 // table after meta TTL expiry + recreation. Reproduces the bug where a fresh
 // subscriber received hundreds of stale publications.
 func TestPostgresMapBroker_ReadStream_FiltersDeadEpoch(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -4028,6 +4049,7 @@ func TestPostgresMapBroker_ReadStream_FiltersDeadEpoch(t *testing.T) {
 // return zombie keys with stale key_offsets under the new meta's epoch — a
 // transient inconsistency that lasts until expire_keys cleans them up.
 func TestPostgresMapBroker_PublishWipesStateOnEpochReset(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -4094,6 +4116,7 @@ func TestPostgresMapBroker_PublishWipesStateOnEpochReset(t *testing.T) {
 // the wipe firing when meta already exists — every subsequent publish must
 // preserve other keys' state, only the conflict path runs.
 func TestPostgresMapBroker_PublishDoesNotWipeStateOnNormalPublish(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -4135,6 +4158,7 @@ func TestPostgresMapBroker_PublishDoesNotWipeStateOnNormalPublish(t *testing.T) 
 // DELETE the meta row first and then call Remove the function correctly
 // returns key_not_found instead of leaving a phantom stream row.
 func TestPostgresMapBroker_RemoveAtomicVsCleanup(t *testing.T) {
+	t.Parallel()
 	node, _ := centrifuge.New(centrifuge.Config{
 		Map: centrifuge.MapConfig{
 			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
@@ -4185,6 +4209,7 @@ func TestPostgresMapBroker_RemoveAtomicVsCleanup(t *testing.T) {
 // older DB snapshot), EnsureSchema must REFUSE rather than silently rewrite
 // the row backward and leave columns from the newer migrations stranded.
 func TestPostgresMapBroker_EnsureSchema_DowngradeRejected(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -4253,6 +4278,7 @@ func TestPostgresMapBroker_EnsureSchema_DowngradeRejected(t *testing.T) {
 // 42703 (undefined_column), the same propagation path as a permission denied
 // or timeout would take.
 func TestPostgresMapBroker_EnsureSchema_TransientReadPropagates(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -4358,7 +4384,7 @@ func TestPostgresMapBroker_EnsureSchema_MigrationFailureRollsBackVersion(t *test
 	for _, prefix := range []string{"cf_map_", "cf_binary_map_"} {
 		var exists bool
 		err := broker.pool.QueryRow(ctx,
-			`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = 'rollback_probe_col')`,
+			`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1 AND column_name = 'rollback_probe_col')`,
 			prefix+"state",
 		).Scan(&exists)
 		require.NoError(t, err)
@@ -4433,7 +4459,7 @@ func TestPostgresMapBroker_EnsureSchema_MultiStepMigrationChain(t *testing.T) {
 		for _, col := range []string{"chain_col_a", "chain_col_b"} {
 			var exists bool
 			err = broker.pool.QueryRow(ctx,
-				`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = $2)`,
+				`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1 AND column_name = $2)`,
 				prefix+"state", col,
 			).Scan(&exists)
 			require.NoError(t, err)
@@ -4537,7 +4563,7 @@ func TestPostgresMapBroker_EnsureSchema_LargeVersionJump(t *testing.T) {
 		for _, col := range []string{"jump_col_v2", "jump_col_v3", "jump_col_v4"} {
 			var exists bool
 			err = broker.pool.QueryRow(ctx,
-				`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = $2)`,
+				`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1 AND column_name = $2)`,
 				prefix+"state", col,
 			).Scan(&exists)
 			require.NoError(t, err)
@@ -4728,7 +4754,7 @@ func TestPostgresMapBroker_EnsureSchema_MigrationTemplateUsesCustomTablePrefix(t
 	for _, prefix := range []string{customPrefix + "_map_", customPrefix + "_binary_map_"} {
 		var exists bool
 		err = broker.pool.QueryRow(ctx,
-			`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = 'template_probe_col')`,
+			`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1 AND column_name = 'template_probe_col')`,
 			prefix+"state",
 		).Scan(&exists)
 		require.NoError(t, err)
@@ -4739,7 +4765,7 @@ func TestPostgresMapBroker_EnsureSchema_MigrationTemplateUsesCustomTablePrefix(t
 	// custom prefix really was used in the migration SQL).
 	var defaultExists bool
 	err = broker.pool.QueryRow(ctx,
-		`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = 'template_probe_col')`,
+		`SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1 AND column_name = 'template_probe_col')`,
 		"cf_map_state",
 	).Scan(&defaultExists)
 	require.NoError(t, err)

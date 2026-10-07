@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/metrics"
+	"github.com/centrifugal/centrifugo/v6/internal/pgtest"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
@@ -59,12 +60,10 @@ func (b *testBrokerEventHandler) HandleLeave(ch string, info *centrifuge.ClientI
 	return nil
 }
 
+// getPostgresConnString returns a DSN pointing to a schema private to tb, so
+// tests do not see each other's tables and can run in parallel.
 func getPostgresConnString(tb testing.TB) string {
-	connString := os.Getenv("CENTRIFUGE_POSTGRES_URL")
-	if connString == "" {
-		connString = "postgres://test:test@localhost:5432/test?sslmode=disable"
-	}
-	return connString
+	return pgtest.SchemaDSN(tb)
 }
 
 // newTestPostgresStreamBroker creates a test broker with a tiny CleanupInterval
@@ -90,10 +89,7 @@ func newTestPostgresStreamBroker(tb testing.TB) (*PostgresStreamBroker, *centrif
 	require.NoError(tb, err)
 
 	ctx := context.Background()
-	hardResetTestSchema(tb, e)
 	require.NoError(tb, e.EnsureSchema(ctx))
-
-	cleanupTestTables(ctx, e)
 
 	handler := &testBrokerEventHandler{}
 	require.NoError(tb, e.RegisterBrokerEventHandler(handler))
@@ -107,16 +103,9 @@ func newTestPostgresStreamBroker(tb testing.TB) (*PostgresStreamBroker, *centrif
 	return e, node, handler
 }
 
-func cleanupTestTables(ctx context.Context, e *PostgresStreamBroker) {
-	_, _ = e.pool.Exec(ctx, fmt.Sprintf("DELETE FROM %s WHERE channel LIKE 'test_%%'", e.names.stream))
-	_, _ = e.pool.Exec(ctx, fmt.Sprintf("DELETE FROM %s WHERE channel LIKE 'test_%%'", e.names.meta))
-	_, _ = e.pool.Exec(ctx, fmt.Sprintf("DELETE FROM %s WHERE channel LIKE 'test_%%'", e.names.idempotency))
-}
-
 // hardResetTestSchema drops all broker objects (tables and functions) for both
-// jsonb and binary variants. Used before EnsureSchema in tests so dev iteration
-// (changing function signatures, table shapes) doesn't get blocked by PG's
-// "cannot change return type" error from a stale CREATE OR REPLACE call.
+// jsonb and binary variants. Every test gets a fresh schema already (see
+// getPostgresConnString), this is for tests re-creating the schema in a loop.
 func hardResetTestSchema(tb testing.TB, e *PostgresStreamBroker) {
 	ctx := context.Background()
 	for _, prefix := range []string{e.names.jsonbPrefix, e.names.binaryPrefix} {
@@ -152,6 +141,7 @@ func hardResetTestSchema(tb testing.TB, e *PostgresStreamBroker) {
 // The race is timing-dependent and won't fire on every run — the test is a
 // regression guard, not a reproducer: it must never fail.
 func TestPostgresStreamBroker_EnsureSchema_ConcurrentNodes(t *testing.T) {
+	t.Parallel()
 	const (
 		nodes  = 8
 		rounds = 3
@@ -225,6 +215,7 @@ func TestPostgresStreamBroker_EnsureSchema_ConcurrentNodes(t *testing.T) {
 // round-trip: a few messages with HistoryTTL set should be readable in order
 // from History().
 func TestPostgresStreamBroker_PublishAndHistory(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 
 	channel := "test_publish_history"
@@ -256,6 +247,7 @@ func TestPostgresStreamBroker_PublishAndHistory(t *testing.T) {
 // HistoryTTL=0 returns an empty StreamPosition (per the Broker contract)
 // but still gets delivered to a subscriber via the outbox worker.
 func TestPostgresStreamBroker_PublishNoHistory(t *testing.T) {
+	t.Parallel()
 	e, _, handler := newTestPostgresStreamBroker(t)
 
 	channel := "test_no_history"
@@ -288,6 +280,7 @@ func TestPostgresStreamBroker_PublishNoHistory(t *testing.T) {
 // TestPostgresStreamBroker_Idempotency verifies a duplicate publish with the
 // same idempotency key returns Suppressed=true with the cached offset.
 func TestPostgresStreamBroker_Idempotency(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 
 	channel := "test_idempotency"
@@ -319,6 +312,7 @@ func TestPostgresStreamBroker_Idempotency(t *testing.T) {
 // TestPostgresStreamBroker_VersionSuppression verifies that a publish with
 // a stale version is suppressed with SuppressReasonVersion.
 func TestPostgresStreamBroker_VersionSuppression(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 
 	channel := "test_version"
@@ -354,6 +348,7 @@ func TestPostgresStreamBroker_VersionSuppression(t *testing.T) {
 // HistorySize clamp returns only the most recent N entries even when the table
 // holds more (because the broker doesn't enforce HistorySize at write time).
 func TestPostgresStreamBroker_HistorySizeClampOnRead(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 
 	channel := "test_size_clamp"
@@ -392,6 +387,7 @@ func TestPostgresStreamBroker_HistorySizeClampOnRead(t *testing.T) {
 // publications and a subsequent History() returns empty rows but a non-zero
 // position (because the meta is preserved).
 func TestPostgresStreamBroker_RemoveHistory(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 
 	channel := "test_remove"
@@ -419,6 +415,7 @@ func TestPostgresStreamBroker_RemoveHistory(t *testing.T) {
 // PublishLeave events are delivered to the broker event handler in non-fanout
 // mode via the outbox worker.
 func TestPostgresStreamBroker_PublishJoinLeave(t *testing.T) {
+	t.Parallel()
 	e, _, handler := newTestPostgresStreamBroker(t)
 
 	channel := "test_join_leave"
@@ -467,6 +464,7 @@ func TestPostgresStreamBroker_PublishJoinLeave(t *testing.T) {
 // TestPostgresStreamBroker_OutboxOrdering verifies that concurrent publishes
 // to a channel are delivered in per-channel offset order via the outbox.
 func TestPostgresStreamBroker_OutboxOrdering(t *testing.T) {
+	t.Parallel()
 	e, _, handler := newTestPostgresStreamBroker(t)
 
 	channel := "test_ordering"
@@ -517,6 +515,7 @@ func TestPostgresStreamBroker_OutboxOrdering(t *testing.T) {
 // UPSERT — History is now a pure read that can use replicas). The first
 // Publish creates the meta and assigns the epoch.
 func TestPostgresStreamBroker_HistoryOnNonExistentChannel(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 
 	channel := "test_history_no_meta"
@@ -548,6 +547,7 @@ func TestPostgresStreamBroker_HistoryOnNonExistentChannel(t *testing.T) {
 // TestPostgresStreamBroker_DefensiveClampMatrix exercises the SQL function's
 // defensive clamp for various combinations of (history_ttl, meta_ttl).
 func TestPostgresStreamBroker_DefensiveClampMatrix(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 
 	cases := []struct {
@@ -587,6 +587,7 @@ func TestPostgresStreamBroker_DefensiveClampMatrix(t *testing.T) {
 // TestPostgresStreamBroker_TablePrefixCustom verifies that a custom TablePrefix
 // produces tables under the custom namespace and round-trips publish + read.
 func TestPostgresStreamBroker_TablePrefixCustom(t *testing.T) {
+	t.Parallel()
 	node, err := centrifuge.New(centrifuge.Config{})
 	require.NoError(t, err)
 
@@ -652,6 +653,7 @@ func TestPostgresStreamBroker_TablePrefixCustom(t *testing.T) {
 // resets the version comparison: a publish with a lower numeric version but
 // a different version_epoch is NOT suppressed.
 func TestPostgresStreamBroker_VersionEpochReset(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 
 	channel := "test_version_epoch_reset"
@@ -693,6 +695,7 @@ func TestPostgresStreamBroker_VersionEpochReset(t *testing.T) {
 // hides rows older than meta.history_ttl, even when cleanup hasn't run yet.
 // Functional correctness is independent of cleanup timing.
 func TestPostgresStreamBroker_HistoryTTLExpiry(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 
 	channel := "test_history_ttl_expiry"
@@ -726,6 +729,7 @@ func TestPostgresStreamBroker_HistoryTTLExpiry(t *testing.T) {
 // (via the read-time filter) while the channel meta survives, allowing
 // reconnecting clients to still see a consistent epoch.
 func TestPostgresStreamBroker_DualTTL_HistoryShorterThanMeta(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 
 	channel := "test_dual_ttl"
@@ -766,6 +770,7 @@ func TestPostgresStreamBroker_DualTTL_HistoryShorterThanMeta(t *testing.T) {
 // foot-gun case where meta_ttl < history_ttl. The defensive clamp in the SQL
 // function should ensure meta survives at least as long as history.
 func TestPostgresStreamBroker_PublishSQL_ClampMatrix(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 	ctx := context.Background()
 
@@ -810,6 +815,7 @@ func TestPostgresStreamBroker_PublishSQL_ClampMatrix(t *testing.T) {
 // UseDelta=true cause the publish SQL function to look up the previous
 // publication's data and store it in prev_data on the new row.
 func TestPostgresStreamBroker_DeltaCompression(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 	ctx := context.Background()
 
@@ -848,6 +854,7 @@ func TestPostgresStreamBroker_DeltaCompression(t *testing.T) {
 // publication's id could be committed AFTER the join's id, causing the
 // outbox worker to advance cursor past the in-progress publication.
 func TestPostgresStreamBroker_PublishJoinLeave_ShardLockSerialization(t *testing.T) {
+	t.Parallel()
 	e, _, handler := newTestPostgresStreamBroker(t)
 
 	channel := "test_shard_lock_race"
@@ -935,9 +942,7 @@ func TestPostgresStreamBroker_RedisFanout(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	hardResetTestSchema(t, e)
 	require.NoError(t, e.EnsureSchema(ctx))
-	cleanupTestTables(ctx, e)
 
 	handler := &testBrokerEventHandler{}
 	require.NoError(t, e.RegisterBrokerEventHandler(handler))
@@ -986,6 +991,7 @@ func TestPostgresStreamBroker_RedisFanout(t *testing.T) {
 // to a channel generates a new epoch, subsequent publishes reuse it, and
 // RemoveHistory does NOT reset the epoch (matches Redis broker semantics).
 func TestPostgresStreamBroker_EpochGeneration(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 
 	channel := "test_epoch_gen"
@@ -1020,6 +1026,7 @@ func TestPostgresStreamBroker_EpochGeneration(t *testing.T) {
 // the partition worker creates lookahead partitions and (with RetentionDays > 0)
 // drops old partitions.
 func TestPostgresStreamBroker_PartitionRetention_LookaheadAndDrop(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 	ctx := context.Background()
 
@@ -1044,7 +1051,7 @@ func TestPostgresStreamBroker_PartitionRetention_LookaheadAndDrop(t *testing.T) 
 
 	var existsBefore bool
 	err := e.pool.QueryRow(ctx, `
-		SELECT EXISTS(SELECT 1 FROM pg_class WHERE relname = $1)
+		SELECT EXISTS(SELECT 1 FROM pg_class WHERE relnamespace = current_schema()::regnamespace AND relname = $1)
 	`, oldPartName).Scan(&existsBefore)
 	require.NoError(t, err)
 	require.Falsef(t, existsBefore,
@@ -1060,7 +1067,7 @@ func TestPostgresStreamBroker_PartitionRetention_LookaheadAndDrop(t *testing.T) 
 	require.Eventually(t, func() bool {
 		var exists bool
 		_ = e.pool.QueryRow(ctx, `
-			SELECT EXISTS(SELECT 1 FROM pg_class WHERE relname = $1)
+			SELECT EXISTS(SELECT 1 FROM pg_class WHERE relnamespace = current_schema()::regnamespace AND relname = $1)
 		`, oldPartName).Scan(&exists)
 		return !exists
 	}, 5*time.Second, 100*time.Millisecond, "old partition should be dropped")
@@ -1069,7 +1076,7 @@ func TestPostgresStreamBroker_PartitionRetention_LookaheadAndDrop(t *testing.T) 
 	todayPartName := fmt.Sprintf("%s_%s", e.names.stream, time.Now().UTC().Format("2006_01_02"))
 	var todayExists bool
 	err = e.pool.QueryRow(ctx, `
-		SELECT EXISTS(SELECT 1 FROM pg_class WHERE relname = $1)
+		SELECT EXISTS(SELECT 1 FROM pg_class WHERE relnamespace = current_schema()::regnamespace AND relname = $1)
 	`, todayPartName).Scan(&todayExists)
 	require.NoError(t, err)
 	require.True(t, todayExists, "today's partition should exist")
@@ -1079,6 +1086,7 @@ func TestPostgresStreamBroker_PartitionRetention_LookaheadAndDrop(t *testing.T) 
 // the OSS-equivalent path: with PartitionRetentionDays = 0, the broker creates
 // lookahead partitions but never drops old ones.
 func TestPostgresStreamBroker_PartitionRetention_RetentionZero_NeverDrops(t *testing.T) {
+	t.Parallel()
 	node, err := centrifuge.New(centrifuge.Config{})
 	require.NoError(t, err)
 
@@ -1100,7 +1108,6 @@ func TestPostgresStreamBroker_PartitionRetention_RetentionZero_NeverDrops(t *tes
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	hardResetTestSchema(t, e)
 	require.NoError(t, e.EnsureSchema(ctx))
 
 	require.NoError(t, e.RegisterBrokerEventHandler(&testBrokerEventHandler{}))
@@ -1127,7 +1134,7 @@ func TestPostgresStreamBroker_PartitionRetention_RetentionZero_NeverDrops(t *tes
 
 	var exists bool
 	err = e.pool.QueryRow(ctx, `
-		SELECT EXISTS(SELECT 1 FROM pg_class WHERE relname = $1)
+		SELECT EXISTS(SELECT 1 FROM pg_class WHERE relnamespace = current_schema()::regnamespace AND relname = $1)
 	`, oldPartName).Scan(&exists)
 	require.NoError(t, err)
 	require.True(t, exists, "old partition should NOT be dropped with RetentionDays=0")
@@ -1143,6 +1150,7 @@ func TestPostgresStreamBroker_PartitionRetention_RetentionZero_NeverDrops(t *tes
 // arrive within seconds must have been NOTIFY-driven (polling can't fire
 // for 30s).
 func TestPostgresStreamBroker_UseNotify_WakesIdleWorker(t *testing.T) {
+	t.Parallel()
 	node, err := centrifuge.New(centrifuge.Config{})
 	require.NoError(t, err)
 
@@ -1165,9 +1173,7 @@ func TestPostgresStreamBroker_UseNotify_WakesIdleWorker(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	hardResetTestSchema(t, e)
 	require.NoError(t, e.EnsureSchema(ctx))
-	cleanupTestTables(ctx, e)
 
 	channel := "test_notify_wakes"
 	var deliveredPtr atomic.Pointer[chan struct{}]
@@ -1234,6 +1240,7 @@ func TestPostgresStreamBroker_UseNotify_WakesIdleWorker(t *testing.T) {
 // the Redis broker (which refreshes on read) but matches the map broker
 // pattern and allows History to use read replicas.
 func TestPostgresStreamBroker_HistoryDoesNotRefreshMetaTTL(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 	ctx := context.Background()
 
@@ -1280,6 +1287,7 @@ func TestPostgresStreamBroker_HistoryDoesNotRefreshMetaTTL(t *testing.T) {
 // The shard lock on RemoveHistory ensures any in-progress publish either
 // commits before the DELETE or runs after.
 func TestPostgresStreamBroker_RemoveHistoryRaceWithPublish(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 
 	channel := "test_remove_race"
@@ -1319,6 +1327,7 @@ func TestPostgresStreamBroker_RemoveHistoryRaceWithPublish(t *testing.T) {
 // 3-tier fallback for meta TTL: when opts.HistoryMetaTTL is 0, the broker
 // falls back to node.Config().HistoryMetaTTL, then to StreamRetention.
 func TestPostgresStreamBroker_HistoryMetaTTL_NodeConfigFallback(t *testing.T) {
+	t.Parallel()
 	// Use a short StreamRetention to make the fallback observable.
 	node, err := centrifuge.New(centrifuge.Config{
 		HistoryMetaTTL: 7 * time.Hour,
@@ -1344,9 +1353,7 @@ func TestPostgresStreamBroker_HistoryMetaTTL_NodeConfigFallback(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	hardResetTestSchema(t, e)
 	require.NoError(t, e.EnsureSchema(ctx))
-	cleanupTestTables(ctx, e)
 
 	require.NoError(t, e.RegisterBrokerEventHandler(&testBrokerEventHandler{}))
 	require.NoError(t, node.Run())
@@ -1382,6 +1389,7 @@ func TestPostgresStreamBroker_HistoryMetaTTL_NodeConfigFallback(t *testing.T) {
 // UPDATE atomic-lock pattern, cleanup could delete a meta row mid-publish
 // and the publish would fail or write a garbage offset.
 func TestPostgresStreamBroker_PublishCleanupRace(t *testing.T) {
+	t.Parallel()
 	node, err := centrifuge.New(centrifuge.Config{})
 	require.NoError(t, err)
 
@@ -1405,9 +1413,7 @@ func TestPostgresStreamBroker_PublishCleanupRace(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	hardResetTestSchema(t, e)
 	require.NoError(t, e.EnsureSchema(ctx))
-	cleanupTestTables(ctx, e)
 
 	require.NoError(t, e.RegisterBrokerEventHandler(&testBrokerEventHandler{}))
 	require.NoError(t, node.Run())
@@ -1447,6 +1453,7 @@ func TestPostgresStreamBroker_PublishCleanupRace(t *testing.T) {
 // Rather than manipulating system time, we directly INSERT a row with a
 // tomorrow created_at and verify it lands in the lookahead partition.
 func TestPostgresStreamBroker_DayRolloverWithLookahead(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 	ctx := context.Background()
 
@@ -1456,7 +1463,7 @@ func TestPostgresStreamBroker_DayRolloverWithLookahead(t *testing.T) {
 	// Verify tomorrow's partition exists (created by EnsureSchema's lookahead).
 	var exists bool
 	err := e.pool.QueryRow(ctx, `
-		SELECT EXISTS(SELECT 1 FROM pg_class WHERE relname = $1)
+		SELECT EXISTS(SELECT 1 FROM pg_class WHERE relnamespace = current_schema()::regnamespace AND relname = $1)
 	`, tomorrowPartName).Scan(&exists)
 	require.NoError(t, err)
 	require.True(t, exists, "tomorrow's partition should be pre-created by lookahead worker")
@@ -1474,6 +1481,7 @@ func TestPostgresStreamBroker_DayRolloverWithLookahead(t *testing.T) {
 // sampler. Publish/history counts are tracked by centrifuge at the Node
 // level — the PG broker only contributes cleanup and partition gauges.
 func TestPostgresStreamBroker_Metrics(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 
 	channel := "test_metrics"
@@ -1493,6 +1501,7 @@ func TestPostgresStreamBroker_Metrics(t *testing.T) {
 // TestPostgresStreamBroker_OutboxCursorLag verifies the outbox cursor lag
 // gauge is sampled without panicking after publications are processed.
 func TestPostgresStreamBroker_OutboxCursorLag(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 
 	channel := "test_cursor_lag"
@@ -1534,6 +1543,7 @@ func testutilGaugeValue(t *testing.T, vec *prometheus.GaugeVec, lvs ...string) f
 // epoch's last publish and the read; this test reproduces that scenario and
 // confirms the new `epoch =` predicate closes it.
 func TestPostgresStreamBroker_History_FiltersDeadEpoch(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 	ctx := context.Background()
 
@@ -1615,6 +1625,7 @@ func TestPostgresStreamBroker_History_FiltersDeadEpoch(t *testing.T) {
 // without the epoch filter the delta would point at a stale row's payload —
 // poisoning the delta sent to subscribers.
 func TestPostgresStreamBroker_DeltaPrev_FiltersDeadEpoch(t *testing.T) {
+	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
 	ctx := context.Background()
 

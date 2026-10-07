@@ -5,6 +5,7 @@ package consuming
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -27,6 +28,7 @@ func TestNatsJetStreamConsumer(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			testNatsJetStreamConsumer(t, tc.useExistingConsumer)
 		})
 	}
@@ -168,7 +170,8 @@ func TestNatsJetStreamConsumer_RecreateOnConsumerDeleted(t *testing.T) {
 		MethodHeader:        "test-method",
 	}
 
-	consumer, err := NewNatsJetStreamConsumer(cfg, dispatcher, testCommon(prometheus.NewRegistry()))
+	var logBuf syncBuffer
+	consumer, err := NewNatsJetStreamConsumer(cfg, dispatcher, testCommonWithLogBuf(&logBuf))
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -187,9 +190,14 @@ func TestNatsJetStreamConsumer_RecreateOnConsumerDeleted(t *testing.T) {
 			msg.Data = []byte("hello")
 			msg.Header.Set("test-method", "publish")
 			_, _ = js.PublishMsg(msg)
-			time.Sleep(300 * time.Millisecond)
-			if receivedNum.Load() > before {
-				return
+			// Re-publish periodically: a message published before the
+			// consumer is (re-)created is not delivered with DeliverPolicy new.
+			publishedAt := time.Now()
+			for time.Since(publishedAt) < 300*time.Millisecond {
+				if receivedNum.Load() > before {
+					return
+				}
+				time.Sleep(10 * time.Millisecond)
 			}
 		}
 		t.Fatalf("timeout waiting for message processing: %s", stage)
@@ -200,8 +208,10 @@ func TestNatsJetStreamConsumer_RecreateOnConsumerDeleted(t *testing.T) {
 
 	// Delete the stream: the durable consumer is destroyed together with it.
 	require.NoError(t, js.DeleteStream(streamName))
-	// Give the consumer some time to observe the loss.
-	time.Sleep(2 * time.Second)
+	// Wait for the consumer to observe the loss.
+	require.Eventually(t, func() bool {
+		return strings.Contains(logBuf.String(), "consumer unavailable, triggering consumer recreation")
+	}, 30*time.Second, 10*time.Millisecond, "consumer did not observe the stream deletion")
 
 	// Re-create the stream (as an operator like NACK would do). The consumer
 	// must re-create its durable and resume consuming without a restart.

@@ -31,6 +31,12 @@ const (
 	testKafkaBrokerURL = "localhost:29092"
 )
 
+func init() {
+	// Tests create topics concurrently: do not wait franz-go's default 5s
+	// before refreshing metadata which missed a just created topic.
+	testKafkaMetadataMinAge = 100 * time.Millisecond
+}
+
 // MockDispatcher implements the Dispatcher interface for testing.
 type MockDispatcher struct {
 	onDispatchCommand     func(ctx context.Context, method string, data []byte) error
@@ -1822,6 +1828,7 @@ func TestKafkaConsumer_ReInitPreservesCommittedOffsets(t *testing.T) {
 	consumer, err := NewKafkaConsumer(config, mockDispatcher, testCommonWithLogBuf(&logBuf))
 	require.NoError(t, err)
 	consumer.testOnlyConfig.injectFatalPollErrorCh = fatalErrCh
+	consumer.testOnlyConfig.autoCommitInterval = 200 * time.Millisecond
 
 	consumerCtx, consumerCancel := context.WithCancel(ctx)
 	consumerErr := runConsumerAsync(t, consumerCtx, consumer)

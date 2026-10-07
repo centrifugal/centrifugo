@@ -39,9 +39,7 @@ func newBenchPostgresStreamBroker(b *testing.B) (*PostgresStreamBroker, *centrif
 	require.NoError(b, err)
 
 	ctx := context.Background()
-	hardResetTestSchema(b, e)
 	require.NoError(b, e.EnsureSchema(ctx))
-	cleanupTestTables(ctx, e)
 
 	handler := &testBrokerEventHandler{}
 	require.NoError(b, e.RegisterBrokerEventHandler(handler))

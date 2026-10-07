@@ -39,7 +39,6 @@ func setupBench(b *testing.B) (*PostgresMapBroker, func()) {
 		b.Fatal(err)
 	}
 	_ = broker.RegisterEventHandler(nil)
-	cleanupTestTables(ctx, broker)
 	return broker, func() {
 		_ = broker.Close(context.Background())
 		_ = node.Shutdown(context.Background())
@@ -80,7 +79,6 @@ func setupBenchOutbox(b *testing.B, handler centrifuge.BrokerEventHandler) (*Pos
 	if err := broker.EnsureSchema(ctx); err != nil {
 		b.Fatal(err)
 	}
-	cleanupTestTables(ctx, broker)
 	_ = broker.RegisterEventHandler(handler)
 	return broker, func() {
 		_ = broker.Close(context.Background())

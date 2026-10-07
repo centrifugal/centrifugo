@@ -29,6 +29,16 @@ services:
       - "hot_standby=on"
       - "-c"
       - "wal_writer_delay=10ms"
+      # Tests run in parallel, each with its own schema and pools.
+      - "-c"
+      - "max_connections=500"
+      # Durability is not needed for tests and makes schema creation slow.
+      - "-c"
+      - "fsync=off"
+      - "-c"
+      - "synchronous_commit=off"
+      - "-c"
+      - "full_page_writes=off"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U test -d test"]
       interval: 5s
@@ -57,7 +67,8 @@ services:
       chown postgres:postgres /var/lib/postgresql/data
       chmod 700 /var/lib/postgresql/data
       gosu postgres pg_basebackup -h postgres -U test -D /var/lib/postgresql/data -Fp -Xs -R
-      exec gosu postgres postgres
+      # A hot standby needs max_connections >= the primary one.
+      exec gosu postgres postgres -c max_connections=500
       '
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U test -d test"]
@@ -117,6 +128,9 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       CLUSTER_ID: centrifugo-kafka
+      # Tests create a fresh consumer group per test: do not wait the default
+      # 3s for more members before the first rebalance.
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
 
   redis:
     image: redis:${REDIS_VERSION:-7}-alpine

@@ -83,6 +83,16 @@ type LockWorker struct {
 
 	// InfoFn is called on successful lock acquisition. Optional.
 	InfoFn func(msg string)
+
+	// livenessInterval overrides lockLivenessInterval in tests.
+	livenessInterval time.Duration
+}
+
+func (lw *LockWorker) lockLivenessInterval() time.Duration {
+	if lw.livenessInterval > 0 {
+		return lw.livenessInterval
+	}
+	return lockLivenessInterval
 }
 
 // Run starts the advisory-lock poll loop. Returns when ctx is cancelled
@@ -223,7 +233,7 @@ func (lw *LockWorker) runLockedSession(ctx context.Context, closeCh <-chan struc
 		// wait below — so this liveness ping must run here, not only when idle. On
 		// failure, drop the session and re-acquire, restoring single-writer
 		// semantics.
-		if time.Since(lastLockPing) >= lockLivenessInterval {
+		if time.Since(lastLockPing) >= lw.lockLivenessInterval() {
 			alive, ctxDone := lw.pingLockConn(ctx, lockConn)
 			if ctxDone {
 				return true
