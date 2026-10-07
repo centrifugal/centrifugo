@@ -113,6 +113,14 @@ func (h *SubscribeStreamHandler) Handle() SubscribeStreamHandlerFunc {
 		subscriptionReady := make(chan struct{})
 		var subscriptionReadyOnce sync.Once
 
+		// streamMu and streamClosed keep a closed stream away from the client: once
+		// the cancel func returned below was called (by OnUnsubscribe), the
+		// callback writes no publication and doesn't unsubscribe. Both are done by
+		// channel name, so they would act on a newer subscription to the channel,
+		// which Centrifuge starts only after the previous one's OnUnsubscribe.
+		var streamMu sync.Mutex
+		streamClosed := false
+
 		subscribeRep, publishFunc, cancelFunc, err := p.SubscribeStream(
 			client.Context(),
 			bidi,
@@ -130,7 +138,16 @@ func (h *SubscribeStreamHandler) Handle() SubscribeStreamHandlerFunc {
 					return
 				default:
 				}
+				streamMu.Lock()
+				if streamClosed {
+					streamMu.Unlock()
+					return
+				}
 				if err != nil {
+					// The stream ended: nothing more comes from it. Unsubscribe
+					// outside the lock, Unsubscribe calls OnUnsubscribe, which cancels.
+					streamClosed = true
+					streamMu.Unlock()
 					if errors.Is(err, io.EOF) {
 						client.Unsubscribe(e.Channel, centrifuge.Unsubscribe{
 							Code:   centrifuge.UnsubscribeCodeServer,
@@ -148,6 +165,7 @@ func (h *SubscribeStreamHandler) Handle() SubscribeStreamHandlerFunc {
 					Data: pub.Data,
 					Tags: pub.Tags,
 				}, centrifuge.StreamPosition{})
+				streamMu.Unlock()
 			},
 		)
 
@@ -254,7 +272,12 @@ func (h *SubscribeStreamHandler) Handle() SubscribeStreamHandlerFunc {
 			},
 			ClientSideRefresh: true,
 			SubscriptionReady: subscriptionReady,
-		}, publishFunc, cancelFunc, nil
+		}, publishFunc, func() {
+			streamMu.Lock()
+			streamClosed = true
+			streamMu.Unlock()
+			cancelFunc()
+		}, nil
 	}
 }
 

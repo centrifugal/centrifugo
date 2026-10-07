@@ -4,11 +4,15 @@ import (
 	"context"
 	"errors"
 	"io"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/v6/internal/tools"
+
+	"github.com/centrifugal/centrifuge"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -145,4 +149,94 @@ func TestSubscribeStreamFirstMessageAfterTimeout(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	cancel()
+}
+
+// feedClient answers SubscribeUnidirectional with a feedStream.
+type feedClient struct {
+	proxyproto.CentrifugoProxyClient
+	stream *feedStream
+}
+
+func (c feedClient) SubscribeUnidirectional(context.Context, *proxyproto.SubscribeRequest, ...grpc.CallOption) (proxyproto.CentrifugoProxy_SubscribeUnidirectionalClient, error) {
+	return c.stream, nil
+}
+
+// feedStream returns the subscribe response, then what is fed to it, whether
+// or not the stream was cancelled: a message can already be in flight.
+type feedStream struct {
+	grpc.ClientStream
+	sent bool
+	feed chan *proxyproto.StreamSubscribeResponse
+}
+
+func (s *feedStream) Recv() (*proxyproto.StreamSubscribeResponse, error) {
+	if !s.sent {
+		s.sent = true
+		return &proxyproto.StreamSubscribeResponse{SubscribeResponse: &proxyproto.SubscribeResponse{}}, nil
+	}
+	resp, ok := <-s.feed
+	if !ok {
+		return nil, io.EOF
+	}
+	return resp, nil
+}
+
+// streamClient records what a stream does to the client.
+type streamClient struct {
+	*tools.TestClientMock
+	mu           sync.Mutex
+	publications int
+	unsubscribes int
+	published    chan struct{}
+}
+
+func (c *streamClient) WritePublication(string, *centrifuge.Publication, centrifuge.StreamPosition) error {
+	c.mu.Lock()
+	c.publications++
+	c.mu.Unlock()
+	c.published <- struct{}{}
+	return nil
+}
+
+func (c *streamClient) Unsubscribe(string, ...centrifuge.Unsubscribe) {
+	c.mu.Lock()
+	c.unsubscribes++
+	c.mu.Unlock()
+}
+
+// Once the stream of a subscription is cancelled (by OnUnsubscribe), a
+// publication it still receives is not written, and its end does not
+// unsubscribe: both go by channel name, so they would reach a newer
+// subscription to the channel.
+func TestSubscribeStreamNothingAfterCancel(t *testing.T) {
+	stream := &feedStream{feed: make(chan *proxyproto.StreamSubscribeResponse, 1)}
+	h := NewSubscribeStreamHandler(SubscribeStreamHandlerConfig{Proxies: map[string]*SubscribeStreamProxy{
+		"default": {config: Config{Timeout: configtypes.Duration(10 * time.Second)}, client: feedClient{stream: stream}},
+	}})
+	client := &streamClient{
+		TestClientMock: &tools.TestClientMock{
+			IDFunc:        func() string { return "client" },
+			UserIDFunc:    func() string { return "user" },
+			ContextFunc:   context.Background,
+			TransportFunc: func() centrifuge.TransportInfo { return tools.NewTestTransport() },
+		},
+		published: make(chan struct{}, 2),
+	}
+	reply, _, cancel, err := h.Handle()(client, false, centrifuge.SubscribeEvent{Channel: "ch"},
+		configtypes.ChannelOptions{SubscribeStreamProxyEnabled: true, SubscribeStreamProxyName: "default"}, PerCallData{})
+	require.NoError(t, err)
+	close(reply.SubscriptionReady) // Centrifuge does after the subscribe callback.
+
+	stream.feed <- &proxyproto.StreamSubscribeResponse{Publication: &proxyproto.Publication{Data: []byte(`1`)}}
+	<-client.published
+
+	cancel()
+	stream.feed <- &proxyproto.StreamSubscribeResponse{Publication: &proxyproto.Publication{Data: []byte(`2`)}}
+	close(stream.feed) // The stream ends.
+	time.Sleep(100 * time.Millisecond)
+
+	client.mu.Lock()
+	defer client.mu.Unlock()
+	require.Equal(t, 1, client.publications)
+	require.Zero(t, client.unsubscribes)
 }
