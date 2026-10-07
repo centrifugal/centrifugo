@@ -67,6 +67,9 @@ jobs:
           - { name: integration 2/2, kind: integration, index: 2, total: 2 }
     env:
       SHARD_KIND: ${{ matrix.shard.kind }}
+      # Race-enabled test binaries sleep 1s at exit waiting for late race
+      # reports by default; races during tests still fail them.
+      GORACE: atexit_sleep_ms=0
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
