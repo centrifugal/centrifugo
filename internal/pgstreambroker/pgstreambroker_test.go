@@ -862,9 +862,12 @@ func TestPostgresStreamBroker_PublishJoinLeave_ShardLockSerialization(t *testing
 	const totalPublishes = 50
 	const totalJoins = 50
 
+	var probeReceived int32
 	var pubCount, joinCount int32
 	handler.HandlePublicationFunc = func(ch string, pub *centrifuge.Publication, sp centrifuge.StreamPosition, delta bool, prevPub *centrifuge.Publication) error {
-		if ch == channel {
+		if ch == channel+"_probe" {
+			atomic.StoreInt32(&probeReceived, 1)
+		} else if ch == channel {
 			atomic.AddInt32(&pubCount, 1)
 		}
 		return nil
@@ -875,6 +878,19 @@ func TestPostgresStreamBroker_PublishJoinLeave_ShardLockSerialization(t *testing
 		}
 		return nil
 	}
+
+	// Publish a probe message and wait for delivery — confirms outbox workers
+	// have finished initCursor and are actively polling. Without this, the
+	// workers' SELECT MAX(id) can race with the INSERTs below, setting the
+	// cursor past already-committed rows (permanent loss, not a timing issue).
+	_, err := e.Publish(channel+"_probe", []byte("probe"), centrifuge.PublishOptions{
+		HistoryTTL:  10 * time.Minute,
+		HistorySize: 10,
+	})
+	require.NoError(t, err)
+	require.Eventually(t, func() bool {
+		return atomic.LoadInt32(&probeReceived) == 1
+	}, 10*time.Second, 10*time.Millisecond, "outbox workers not ready: probe not delivered")
 
 	var wg sync.WaitGroup
 	wg.Add(2)
