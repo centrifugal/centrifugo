@@ -227,10 +227,16 @@ func (h *Handler) Setup() error {
 		}
 
 		client.OnSubscribe(func(event centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
-			h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
+			started := h.runConcurrentlyIfNeeded(client.Context(), concurrency, semaphore, func() {
 				reply, _, err := h.OnSubscribe(client, event, subscribeProxyHandler, proxySubscribeStreamHandler)
 				cb(reply, err)
 			})
+			if !started {
+				// The callback must be invoked exactly once, also when the client
+				// went away: until then the subscription stays reserved, and the
+				// disconnect waits for the subscribe in progress.
+				cb(centrifuge.SubscribeReply{}, centrifuge.DisconnectConnectionClosed)
+			}
 		})
 
 		client.OnSubRefresh(func(event centrifuge.SubRefreshEvent, cb centrifuge.SubRefreshCallback) {
@@ -324,11 +330,14 @@ func tokenChannelsChanged(client *centrifuge.Client, subs map[string]centrifuge.
 	return false
 }
 
-func (h *Handler) runConcurrentlyIfNeeded(ctx context.Context, concurrency int, semaphore chan struct{}, fn func()) {
+// runConcurrentlyIfNeeded runs fn, in a separate goroutine if concurrency is
+// enabled. It returns false if fn was not run because ctx was done while waiting
+// for the concurrency semaphore.
+func (h *Handler) runConcurrentlyIfNeeded(ctx context.Context, concurrency int, semaphore chan struct{}, fn func()) bool {
 	if concurrency > 1 {
 		select {
 		case <-ctx.Done():
-			return
+			return false
 		case semaphore <- struct{}{}:
 		}
 		go func() {
@@ -338,6 +347,7 @@ func (h *Handler) runConcurrentlyIfNeeded(ctx context.Context, concurrency int, 
 	} else {
 		fn()
 	}
+	return true
 }
 
 // OnClientConnecting ...
