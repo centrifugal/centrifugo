@@ -51,7 +51,7 @@ func TestUnidirectionalHTTPStream(t *testing.T) {
 	}
 
 	pingPong := centrifuge.PingPongConfig{
-		PingInterval: 5 * time.Second,
+		PingInterval: time.Second,
 		PongTimeout:  1 * time.Second,
 	}
 

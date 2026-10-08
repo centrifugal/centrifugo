@@ -42,7 +42,16 @@ type testOnlyConfig struct {
 	// check on each pollUntilFatal entry), causes pollUntilFatal to return it as a fatal
 	// error instead of actually polling — used to exercise the client re-init path in tests.
 	injectFatalPollErrorCh chan error
+	// autoCommitInterval overrides franz-go's default auto-commit interval (5s)
+	// so tests waiting for committed offsets do not wait on the production default.
+	autoCommitInterval time.Duration
 }
+
+// testKafkaMetadataMinAge overrides franz-go's MetadataMinAge (5s by default)
+// when set. Set by tests only: they create topics concurrently, and a consumer
+// that loaded metadata before its topic became visible waits the min age
+// before refreshing it.
+var testKafkaMetadataMinAge time.Duration
 
 type topicPartition struct {
 	topic     string
@@ -254,6 +263,12 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 	}
 	if c.config.InstanceID != "" { // Important to keep separate, otherwise pointer to empty string is used in kgo.InstanceID.
 		opts = append(opts, kgo.InstanceID(c.config.InstanceID))
+	}
+	if testKafkaMetadataMinAge > 0 {
+		opts = append(opts, kgo.MetadataMinAge(testKafkaMetadataMinAge))
+	}
+	if c.testOnlyConfig.autoCommitInterval > 0 {
+		opts = append(opts, kgo.AutoCommitInterval(c.testOnlyConfig.autoCommitInterval))
 	}
 	if c.config.FetchMaxBytes > 0 {
 		opts = append(opts, kgo.FetchMaxBytes(c.config.FetchMaxBytes))

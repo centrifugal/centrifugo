@@ -5,22 +5,22 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"os"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/pgtest"
+
 	"github.com/centrifugal/centrifuge"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 )
 
+// getPostgresConnString returns a DSN pointing to a schema private to tb, so
+// tests do not see each other's tables and can run in parallel.
 func getPostgresConnString(tb testing.TB) string {
-	connString := os.Getenv("CENTRIFUGE_POSTGRES_URL")
-	if connString == "" {
-		connString = "postgres://test:test@localhost:5432/test?sslmode=disable"
-	}
-	return connString
+	return pgtest.SchemaDSN(tb)
 }
 
 // testControlEventHandler implements centrifuge.ControlEventHandler for tests.
@@ -120,7 +120,7 @@ func cleanupTestControllerMessages(ctx context.Context, c *PostgresController) {
 		FROM pg_inherits i
 		JOIN pg_class c ON c.oid = i.inhrelid
 		JOIN pg_class pp ON pp.oid = i.inhparent
-		WHERE pp.relname = $1
+		WHERE pp.relname = $1 AND pp.relnamespace = current_schema()::regnamespace
 	`, c.names.messages)
 	if err != nil {
 		return
@@ -167,6 +167,7 @@ func waitForMessages(t *testing.T, counter *atomic.Int64, expectedCount int64, t
 // The race is timing-dependent and won't fire on every run — the test is a
 // regression guard, not a reproducer: it must never fail.
 func TestPostgresController_EnsureSchema_ConcurrentNodes(t *testing.T) {
+	t.Parallel()
 	const (
 		nodes  = 8
 		rounds = 3
@@ -227,6 +228,7 @@ func TestPostgresController_EnsureSchema_ConcurrentNodes(t *testing.T) {
 }
 
 func TestPostgresController_PublishAndReceive(t *testing.T) {
+	t.Parallel()
 	var received atomic.Int64
 	var receivedData []byte
 	var mu sync.Mutex
@@ -263,6 +265,7 @@ func TestPostgresController_PublishAndReceive(t *testing.T) {
 }
 
 func TestPostgresController_BroadcastReachesAll(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	prefix := fmt.Sprintf("test_%d", time.Now().UnixNano()%100000)
 
@@ -292,8 +295,8 @@ func TestPostgresController_BroadcastReachesAll(t *testing.T) {
 		TablePrefix: prefix,
 	}, h1)
 	_ = newTestPostgresController(t, PostgresControllerConfig{
-		DSN:            connString,
-		TablePrefix:    prefix,
+		DSN:         connString,
+		TablePrefix: prefix,
 	}, h2)
 
 	time.Sleep(50 * time.Millisecond)
@@ -313,6 +316,7 @@ func TestPostgresController_BroadcastReachesAll(t *testing.T) {
 }
 
 func TestPostgresController_TargetedMessage(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	prefix := fmt.Sprintf("test_%d", time.Now().UnixNano()%100000)
 
@@ -336,8 +340,8 @@ func TestPostgresController_TargetedMessage(t *testing.T) {
 		TablePrefix: prefix,
 	}, h1)
 	c2 := newTestPostgresController(t, PostgresControllerConfig{
-		DSN:            connString,
-		TablePrefix:    prefix,
+		DSN:         connString,
+		TablePrefix: prefix,
 	}, h2)
 
 	time.Sleep(50 * time.Millisecond)
@@ -354,6 +358,7 @@ func TestPostgresController_TargetedMessage(t *testing.T) {
 }
 
 func TestPostgresController_UseNotify_LowLatency(t *testing.T) {
+	t.Parallel()
 	receivedCh := make(chan time.Time, 1)
 	handler := &testControlEventHandler{
 		HandleControlFunc: func(data []byte) error {
@@ -365,14 +370,15 @@ func TestPostgresController_UseNotify_LowLatency(t *testing.T) {
 		},
 	}
 
+	// A poll interval far longer than the latency asserted below: only NOTIFY
+	// can deliver in time, however loaded the machine running tests is.
 	c := newTestPostgresController(t, PostgresControllerConfig{
-		PollInterval: 500 * time.Millisecond,
+		PollInterval: time.Minute,
 		UseNotify:    true,
 	}, handler)
 
 	// Wait for the LISTEN to be bound — a publish whose NOTIFY fires before
-	// LISTEN runs would be dropped and the test would observe PollInterval
-	// (500ms) instead of the sub-200ms NOTIFY latency it asserts on.
+	// LISTEN runs would be dropped and the test would wait for the next poll.
 	require.Eventually(t, c.notifyListenerReady.Load,
 		5*time.Second, 25*time.Millisecond,
 		"notification listener did not bind LISTEN")
@@ -384,13 +390,14 @@ func TestPostgresController_UseNotify_LowLatency(t *testing.T) {
 	case received := <-receivedCh:
 		latency := received.Sub(start)
 		t.Logf("NOTIFY latency: %v", latency)
-		require.Less(t, latency, 200*time.Millisecond, "NOTIFY should deliver well under PollInterval")
+		require.Less(t, latency, 2*time.Second, "NOTIFY should deliver well under PollInterval")
 	case <-time.After(5 * time.Second):
 		t.Fatal("timeout waiting for NOTIFY-driven delivery")
 	}
 }
 
 func TestPostgresController_SchemaCreation(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	prefix := fmt.Sprintf("test_%d", time.Now().UnixNano()%100000)
 
@@ -442,13 +449,14 @@ func TestPostgresController_SchemaCreation(t *testing.T) {
 		FROM pg_inherits i
 		JOIN pg_class c ON c.oid = i.inhrelid
 		JOIN pg_class pp ON pp.oid = i.inhparent
-		WHERE pp.relname = $1
+		WHERE pp.relname = $1 AND pp.relnamespace = current_schema()::regnamespace
 	`, names.messages).Scan(&partCount)
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, partCount, 1, "at least today's partition should exist")
 }
 
 func TestPostgresController_TablePrefix(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	prefix := fmt.Sprintf("custom_%d", time.Now().UnixNano()%100000)
 
@@ -486,6 +494,7 @@ func TestPostgresController_TablePrefix(t *testing.T) {
 }
 
 func TestPostgresController_HighVolume(t *testing.T) {
+	t.Parallel()
 	const msgCount = 1000
 	var received atomic.Int64
 	doneCh := make(chan struct{})
@@ -515,6 +524,7 @@ func TestPostgresController_HighVolume(t *testing.T) {
 }
 
 func TestPostgresController_ReconnectResumesFromCursor(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	prefix := fmt.Sprintf("test_%d", time.Now().UnixNano()%100000)
 
@@ -550,8 +560,8 @@ func TestPostgresController_ReconnectResumesFromCursor(t *testing.T) {
 	}
 
 	_ = newTestPostgresController(t, PostgresControllerConfig{
-		DSN:            connString,
-		TablePrefix:    prefix,
+		DSN:         connString,
+		TablePrefix: prefix,
 	}, h2)
 
 	time.Sleep(200 * time.Millisecond)
@@ -564,6 +574,7 @@ func TestPostgresController_ReconnectResumesFromCursor(t *testing.T) {
 }
 
 func TestPostgresController_EnsureSchema_Idempotent(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	prefix := fmt.Sprintf("test_%d", time.Now().UnixNano()%100000)
 
@@ -585,6 +596,7 @@ func TestPostgresController_EnsureSchema_Idempotent(t *testing.T) {
 }
 
 func TestPostgresController_PartitionRetention(t *testing.T) {
+	t.Parallel()
 	connString := getPostgresConnString(t)
 	prefix := fmt.Sprintf("test_%d", time.Now().UnixNano()%100000)
 
@@ -609,19 +621,20 @@ func TestPostgresController_PartitionRetention(t *testing.T) {
 	require.NoError(t, err)
 
 	var exists bool
-	err = c.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_class WHERE relname = $1)`, oldPartName).Scan(&exists)
+	err = c.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_class WHERE relnamespace = current_schema()::regnamespace AND relname = $1)`, oldPartName).Scan(&exists)
 	require.NoError(t, err)
 	require.True(t, exists, "old partition should exist before cleanup")
 
 	p := c.newPartitioner()
 	p.DropOldPartitions(ctx)
 
-	err = c.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_class WHERE relname = $1)`, oldPartName).Scan(&exists)
+	err = c.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM pg_class WHERE relnamespace = current_schema()::regnamespace AND relname = $1)`, oldPartName).Scan(&exists)
 	require.NoError(t, err)
 	require.False(t, exists, "old partition should be dropped by retention cleanup")
 }
 
 func TestPostgresController_ConcurrentPublish(t *testing.T) {
+	t.Parallel()
 	// With shard_lock serialization, concurrent publishes are serialized
 	// within each shard — no BIGSERIAL gaps, 100% delivery guaranteed.
 	const goroutines = 10
@@ -665,6 +678,7 @@ func TestPostgresController_ConcurrentPublish(t *testing.T) {
 }
 
 func TestPostgresController_DirectPoolPublish(t *testing.T) {
+	t.Parallel()
 	var received atomic.Int64
 	doneCh := make(chan struct{})
 	handler := &testControlEventHandler{
@@ -698,6 +712,7 @@ func TestPostgresController_DirectPoolPublish(t *testing.T) {
 }
 
 func TestPostgresController_PoolSizeDefaults(t *testing.T) {
+	t.Parallel()
 	var conf PostgresControllerConfig
 	conf.setDefaults()
 
@@ -712,6 +727,7 @@ func TestPostgresController_PoolSizeDefaults(t *testing.T) {
 }
 
 func TestPostgresController_NewControllerNames(t *testing.T) {
+	t.Parallel()
 	names := newControllerNames("cf")
 	require.Equal(t, "cf_controller_messages", names.messages)
 	require.Equal(t, "cf_controller_shard_lock", names.shardLock)
@@ -734,6 +750,7 @@ func TestPostgresController_NewControllerNames(t *testing.T) {
 }
 
 func TestPostgresController_VerifyInterface(t *testing.T) {
+	t.Parallel()
 	// Compile-time check that PostgresController implements centrifuge.Controller.
 	var _ centrifuge.Controller = (*PostgresController)(nil)
 
@@ -752,6 +769,7 @@ func TestPostgresController_VerifyInterface(t *testing.T) {
 }
 
 func TestPostgresController_PublishControlWithPool(t *testing.T) {
+	t.Parallel()
 	// Test that PublishControl works independently (no outbox worker needed).
 	connString := getPostgresConnString(t)
 	prefix := fmt.Sprintf("test_%d", time.Now().UnixNano()%100000)
@@ -790,3 +808,37 @@ func TestPostgresController_PublishControlWithPool(t *testing.T) {
 	require.Equal(t, "some-node", nodeID)
 }
 
+// Outbox workers poll new messages through ReadPool when it is set (e.g. a
+// pool to a read replica), and the controller closes it when stopped.
+func TestPostgresController_ReadPool(t *testing.T) {
+	t.Parallel()
+	c := newTestPostgresController(t, PostgresControllerConfig{}, nil)
+	require.Equal(t, c.pool, c.getReadPool(), "the primary pool is used without ReadPool")
+
+	readPool, err := pgxpool.New(context.Background(), getPostgresConnString(t))
+	require.NoError(t, err)
+	received := make(chan struct{}, 1)
+	handler := &testControlEventHandler{HandleControlFunc: func([]byte) error {
+		select {
+		case received <- struct{}{}:
+		default:
+		}
+		return nil
+	}}
+	c2 := newTestPostgresController(t, PostgresControllerConfig{ReadPool: readPool}, handler)
+	require.Equal(t, readPool, c2.getReadPool())
+
+	acquired := readPool.Stat().AcquireCount()
+	require.NoError(t, c2.PublishControl([]byte("via-read-pool"), "", ""))
+	select {
+	case <-received:
+	case <-time.After(5 * time.Second):
+		t.Fatal("message not delivered")
+	}
+	require.Greater(t, readPool.Stat().AcquireCount(), acquired, "messages are polled through the read pool")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	require.ErrorIs(t, c2.Run(ctx), context.Canceled)
+	require.Error(t, readPool.Ping(context.Background()), "the read pool is closed")
+}

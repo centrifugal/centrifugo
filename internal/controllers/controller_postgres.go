@@ -79,6 +79,11 @@ type PostgresControllerConfig struct {
 	// BatchSize is the maximum number of rows to process per batch.
 	// Default: 1000.
 	BatchSize int
+	// ReadPool is an optional pool through which outbox workers poll new
+	// control messages instead of the primary pool, e.g. a pool to a read
+	// replica. Once the controller is created it owns the pool and closes it
+	// when stopped.
+	ReadPool *pgxpool.Pool
 }
 
 func (c *PostgresControllerConfig) setDefaults() {
@@ -135,6 +140,7 @@ type PostgresController struct {
 	conf         PostgresControllerConfig
 	pool         *pgxpool.Pool
 	notifyPool   *pgxpool.Pool // Dedicated single-conn pool for LISTEN; nil = use pool
+	readPool     *pgxpool.Pool // Pool to poll messages through; nil = use pool
 	names        controllerNames
 	eventHandler centrifuge.ControlEventHandler
 	myNodeID     string
@@ -191,6 +197,7 @@ func NewPostgresController(node *centrifuge.Node, conf PostgresControllerConfig)
 		cancelCtx:  cancelCtx,
 		cancelFunc: cancelFunc,
 		notifyCh:   make(chan struct{}, 1),
+		readPool:   conf.ReadPool,
 	}
 
 	if conf.NotifyDSN != "" {
@@ -220,6 +227,15 @@ func NewPostgresController(node *centrifuge.Node, conf PostgresControllerConfig)
 	}
 
 	return c, nil
+}
+
+// getReadPool returns the pool to poll messages through: ReadPool if set,
+// the primary pool otherwise.
+func (c *PostgresController) getReadPool() *pgxpool.Pool {
+	if c.readPool != nil {
+		return c.readPool
+	}
+	return c.pool
 }
 
 func (c *PostgresController) logError(msg string, err error) {
@@ -437,6 +453,9 @@ func (c *PostgresController) Run(ctx context.Context) error {
 			c.notifyPool.Close()
 		}
 		c.pool.Close()
+		if c.readPool != nil {
+			c.readPool.Close()
+		}
 	})
 	return ctx.Err()
 }
@@ -455,7 +474,7 @@ func (c *PostgresController) initCursor(ctx context.Context, pool *pgxpool.Pool)
 // see RegisterControlEventHandler for the race this avoids.
 func (c *PostgresController) runOutboxWorker(shardIdx int, initialCursor int64) {
 	w := &pgoutbox.Worker{
-		Pool:         c.pool,
+		Pool:         c.getReadPool(),
 		ShardIDs:     []int{shardIdx},
 		PollInterval: c.conf.PollInterval,
 		NotifyCh:     c.notifyCh,

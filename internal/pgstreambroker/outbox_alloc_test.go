@@ -44,7 +44,6 @@ func TestPostgresStreamBroker_EmptyOutboxBatchDoesNotAllocateBatchBuffers(t *tes
 	})
 	require.NoError(t, err)
 	ctx := context.Background()
-	hardResetTestSchema(t, e)
 	require.NoError(t, e.EnsureSchema(ctx))
 	t.Cleanup(func() { _ = e.Close(ctx) })
 

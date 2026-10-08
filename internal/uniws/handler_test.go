@@ -50,7 +50,7 @@ func TestUnidirectionalWebSocket(t *testing.T) {
 	}
 
 	pingPong := centrifuge.PingPongConfig{
-		PingInterval: 5 * time.Second,
+		PingInterval: time.Second,
 		PongTimeout:  1 * time.Second,
 	}
 
@@ -203,17 +203,15 @@ func TestUnidirectionalWebSocket(t *testing.T) {
 		err = conn.SetReadDeadline(time.Now().Add(10 * time.Second))
 		require.NoError(t, err)
 
-		for {
+		appPingReceived := false
+		for !pingReceived || !appPingReceived {
 			_, data, err := conn.ReadMessage()
-			if err != nil {
-				break
-			}
+			require.NoError(t, err, "frame ping received: %v, protocol ping received: %v", pingReceived, appPingReceived)
 			if string(data) == `{}` {
+				appPingReceived = true
 				t.Logf("centrifugal protocol ping received: %s", string(data))
 			}
 		}
-
-		require.True(t, pingReceived, "Expected to receive ping message")
 	})
 }
 

@@ -17,6 +17,30 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version: stable
+          # Caches below: setup-go keys the cache by go.sum only and never
+          # updates it, so the build cache it restores gets stale.
+          cache: false
+      - name: Go cache paths
+        id: go-cache-paths
+        run: |
+          echo "build=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
+          echo "mod=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
+      - name: Go module cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.go-cache-paths.outputs.mod }}
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-mod-
+      - name: Go build cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.go-cache-paths.outputs.build }}
+          # Saved on every run, restored from the most recent one.
+          key: ${{ runner.os }}-go-lint-${{ hashFiles('**/go.sum') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-go-lint-${{ hashFiles('**/go.sum') }}-
+            ${{ runner.os }}-go-lint-
       - name: Read golangci-lint version
         id: golangci-lint-version
         run: echo "version=$(cat .golangci-lint-version)" >> "$GITHUB_OUTPUT"
@@ -33,17 +57,73 @@ jobs:
     strategy:
       matrix:
         go-version: [1.26.8]
+    env:
+      # Race-enabled test binaries sleep 1s at exit waiting for late race
+      # reports by default; races during tests still fail them.
+      GORACE: atexit_sleep_ms=0
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+
+      - name: Start services in background
+        # Pull images and start containers while tests compile and unit tests
+        # run, see "Wait for services" below.
+        run: |
+          { docker compose up -d > "$RUNNER_TEMP/compose-up.log" 2>&1; echo $? > "$RUNNER_TEMP/compose-up.exit"; } &
 
       - name: Install Go
         uses: actions/setup-go@v7
         with:
           go-version: ${{ matrix.go-version }}
+          # Caches below: setup-go keys the cache by go.sum only and never
+          # updates it, so the build cache it restores gets stale.
+          cache: false
 
-      - name: Start services
-        run: docker compose up -d --wait
+      - name: Go cache paths
+        id: go-cache-paths
+        run: |
+          echo "build=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
+          echo "mod=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
 
-      - name: Test
-        run: make test-integration
+      - name: Go module cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.go-cache-paths.outputs.mod }}
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-mod-
+
+      - name: Go build cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.go-cache-paths.outputs.build }}
+          # Saved on every run (the key contains the commit) and restored from
+          # the most recent one. GOCACHE trims entries unused for a few days
+          # itself, so it does not grow without bound.
+          key: ${{ runner.os }}-go-test-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-go-test-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}-
+            ${{ runner.os }}-go-test-${{ matrix.go-version }}-
+
+      - name: List packages
+        id: packages
+        # Unit packages run without services, integration ones need them.
+        run: |
+          echo "unit=$(bash misc/scripts/test_packages.sh unit | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+          echo "integration=$(bash misc/scripts/test_packages.sh integration | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+
+      - name: Build integration tests
+        # Compile before services are needed (-exec skips running).
+        run: go test -count=1 -cover -race --tags=integration -run '^$' -exec /bin/true ${{ steps.packages.outputs.integration }} > /dev/null
+
+      - name: Unit tests
+        run: make test TEST_PACKAGES="${{ steps.packages.outputs.unit }}"
+
+      - name: Wait for services
+        run: |
+          for _ in $(seq 900); do [ -f "$RUNNER_TEMP/compose-up.exit" ] && break; sleep 1; done
+          cat "$RUNNER_TEMP/compose-up.log"
+          docker compose up -d --wait
+
+      - name: Integration tests
+        run: make test-integration TEST_PACKAGES="${{ steps.packages.outputs.integration }}"
