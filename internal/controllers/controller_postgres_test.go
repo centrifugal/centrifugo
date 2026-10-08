@@ -369,14 +369,15 @@ func TestPostgresController_UseNotify_LowLatency(t *testing.T) {
 		},
 	}
 
+	// A poll interval far longer than the latency asserted below: only NOTIFY
+	// can deliver in time, however loaded the machine running tests is.
 	c := newTestPostgresController(t, PostgresControllerConfig{
-		PollInterval: 500 * time.Millisecond,
+		PollInterval: time.Minute,
 		UseNotify:    true,
 	}, handler)
 
 	// Wait for the LISTEN to be bound — a publish whose NOTIFY fires before
-	// LISTEN runs would be dropped and the test would observe PollInterval
-	// (500ms) instead of the sub-200ms NOTIFY latency it asserts on.
+	// LISTEN runs would be dropped and the test would wait for the next poll.
 	require.Eventually(t, c.notifyListenerReady.Load,
 		5*time.Second, 25*time.Millisecond,
 		"notification listener did not bind LISTEN")
@@ -388,7 +389,7 @@ func TestPostgresController_UseNotify_LowLatency(t *testing.T) {
 	case received := <-receivedCh:
 		latency := received.Sub(start)
 		t.Logf("NOTIFY latency: %v", latency)
-		require.Less(t, latency, 200*time.Millisecond, "NOTIFY should deliver well under PollInterval")
+		require.Less(t, latency, 2*time.Second, "NOTIFY should deliver well under PollInterval")
 	case <-time.After(5 * time.Second):
 		t.Fatal("timeout waiting for NOTIFY-driven delivery")
 	}
