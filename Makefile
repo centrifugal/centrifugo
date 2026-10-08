@@ -2,7 +2,7 @@ VERSION := $(shell git describe --tags | sed -e 's/^v//g' | awk -F "-" '{print $
 ITERATION := $(shell git describe --tags --long | awk -F "-" '{print $$2}')
 TESTFOLDERS := $(shell go list ./... | grep -v /misc/)
 # Packages to test, all by default. To run a part of them like CI does:
-#   make test-integration TEST_PACKAGES="$(bash misc/scripts/test_packages.sh integration 1 2)"
+#   make test-integration TEST_PACKAGES="$(bash misc/scripts/test_packages.sh integration)"
 TEST_PACKAGES ?= $(TESTFOLDERS)
 
 all: test

@@ -50,23 +50,14 @@ jobs:
           version: ${{ steps.golangci-lint-version.outputs.version }}
           args: --timeout 10m0s --verbose
   test:
-    name: Test ${{ matrix.shard.name }} with Go ${{ matrix.go-version }}
+    name: Test with Go ${{ matrix.go-version }}
     runs-on: ubuntu-latest
     # Prevent duplicate builds on internal PRs.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     strategy:
-      fail-fast: false
       matrix:
         go-version: [1.26.8]
-        # Packages are split by misc/scripts/test_packages.sh: unit packages run
-        # without services, packages needing docker-compose services are spread
-        # over the integration shards. Each package runs in exactly one job.
-        shard:
-          - { name: unit, kind: unit, index: 1, total: 1 }
-          - { name: integration 1/2, kind: integration, index: 1, total: 2 }
-          - { name: integration 2/2, kind: integration, index: 2, total: 2 }
     env:
-      SHARD_KIND: ${{ matrix.shard.kind }}
       # Race-enabled test binaries sleep 1s at exit waiting for late race
       # reports by default; races during tests still fail them.
       GORACE: atexit_sleep_ms=0
@@ -75,9 +66,8 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Start services in background
-        if: matrix.shard.kind == 'integration'
-        # Pull images and start containers while test binaries compile, see
-        # "Wait for services" below.
+        # Pull images and start containers while tests compile and unit tests
+        # run, see "Wait for services" below.
         run: |
           { docker compose up -d > "$RUNNER_TEMP/compose-up.log" 2>&1; echo $? > "$RUNNER_TEMP/compose-up.exit"; } &
 
@@ -108,37 +98,32 @@ jobs:
         with:
           path: ${{ steps.go-cache-paths.outputs.build }}
           # Saved on every run (the key contains the commit) and restored from
-          # the most recent run of the same shard. GOCACHE trims entries unused
-          # for a few days itself, so it does not grow without bound.
-          key: ${{ runner.os }}-go-test-${{ matrix.go-version }}-${{ matrix.shard.kind }}-${{ matrix.shard.index }}of${{ matrix.shard.total }}-${{ hashFiles('**/go.sum') }}-${{ github.sha }}
+          # the most recent one. GOCACHE trims entries unused for a few days
+          # itself, so it does not grow without bound.
+          key: ${{ runner.os }}-go-test-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-go-test-${{ matrix.go-version }}-${{ matrix.shard.kind }}-${{ matrix.shard.index }}of${{ matrix.shard.total }}-${{ hashFiles('**/go.sum') }}-
-            ${{ runner.os }}-go-test-${{ matrix.go-version }}-${{ matrix.shard.kind }}-${{ matrix.shard.index }}of${{ matrix.shard.total }}-
+            ${{ runner.os }}-go-test-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}-
             ${{ runner.os }}-go-test-${{ matrix.go-version }}-
 
       - name: List packages
         id: packages
+        # Unit packages run without services, integration ones need them.
         run: |
-          packages=$(bash misc/scripts/test_packages.sh "$SHARD_KIND" ${{ matrix.shard.index }} ${{ matrix.shard.total }} | tr '\n' ' ')
-          echo "$packages" | tr ' ' '\n'
-          echo "list=$packages" >> "$GITHUB_OUTPUT"
+          echo "unit=$(bash misc/scripts/test_packages.sh unit | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+          echo "integration=$(bash misc/scripts/test_packages.sh integration | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
 
-      - name: Build tests
-        if: matrix.shard.kind == 'integration'
-        # Compile everything before services are needed (-exec skips running).
-        run: go test -count=1 -cover -race --tags=integration -run '^$' -exec /bin/true ${{ steps.packages.outputs.list }} > /dev/null
+      - name: Build integration tests
+        # Compile before services are needed (-exec skips running).
+        run: go test -count=1 -cover -race --tags=integration -run '^$' -exec /bin/true ${{ steps.packages.outputs.integration }} > /dev/null
+
+      - name: Unit tests
+        run: make test TEST_PACKAGES="${{ steps.packages.outputs.unit }}"
 
       - name: Wait for services
-        if: matrix.shard.kind == 'integration'
         run: |
           for _ in $(seq 900); do [ -f "$RUNNER_TEMP/compose-up.exit" ] && break; sleep 1; done
           cat "$RUNNER_TEMP/compose-up.log"
           docker compose up -d --wait
 
-      - name: Test
-        run: |
-          if [ "$SHARD_KIND" = integration ]; then
-            make test-integration TEST_PACKAGES="${{ steps.packages.outputs.list }}"
-          else
-            make test TEST_PACKAGES="${{ steps.packages.outputs.list }}"
-          fi
+      - name: Integration tests
+        run: make test-integration TEST_PACKAGES="${{ steps.packages.outputs.integration }}"
