@@ -859,7 +859,9 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		if chOpts.SubRefreshProxyEnabled {
 			r.ClientSideRefresh = false
 		}
-		applyNamespaceSubscribeOptions(&r.Options, chOpts, e.Channel, e.Type)
+		// Only stream subscriptions: the namespace's subscription type is checked
+		// at config validation.
+		applyNamespaceSubscribeOptions(&r.Options, chOpts, e.Channel, centrifuge.SubscriptionTypeStream)
 		return r, SubscribeExtra{}, err
 	} else if chOpts.SubscribeForClient && (c.UserID() != "" || chOpts.SubscribeForAnonymous) && !isUserLimitedChannel {
 		allowed = true

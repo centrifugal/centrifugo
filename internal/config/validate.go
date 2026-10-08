@@ -342,6 +342,9 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 	if c.SubscriptionType != "" && !slices.Contains([]string{"stream", "map", "map_clients", "map_users", "shared_poll"}, c.SubscriptionType) {
 		return fmt.Errorf("unknown subscription_type: %q", c.SubscriptionType)
 	}
+	if c.SubscribeStreamProxyEnabled && c.SubscriptionType != "" && c.SubscriptionType != "stream" {
+		return fmt.Errorf("subscribe stream proxy can only be used with subscription_type \"stream\", got %q", c.SubscriptionType)
+	}
 	if c.SubscriptionType == "shared_poll" {
 		if cfg.SharedPoll.HMACSecretKey == "" {
 			return fmt.Errorf("shared_poll.hmac_secret_key is required when subscription_type is \"shared_poll\"")
