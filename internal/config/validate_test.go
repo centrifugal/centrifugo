@@ -469,6 +469,22 @@ func TestValidateMapNamespace_SubscriptionType(t *testing.T) {
 		require.NoError(t, cfg.Validate())
 	})
 
+	t.Run("subscribe_stream_proxy_rejected", func(t *testing.T) {
+		for _, subscriptionType := range []string{"map", "map_clients", "map_users", "shared_poll"} {
+			cfg := mapDefaultConfig()
+			cfg.SharedPoll.HMACSecretKey = "secret"
+			cfg.Channel.Proxy.SubscribeStream.Endpoint = "grpc://localhost:12000"
+			ns := mapNamespace("ns", "ephemeral")
+			ns.Map.KeyTTL = configtypes.Duration(60 * time.Second)
+			ns.SubscriptionType = subscriptionType
+			ns.SubscribeStreamProxyEnabled = true
+			cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
+			err := cfg.Validate()
+			require.Error(t, err, subscriptionType)
+			require.Contains(t, err.Error(), "subscribe stream proxy can only be used with subscription_type", subscriptionType)
+		}
+	})
+
 	t.Run("map_clients_persistent_rejected", func(t *testing.T) {
 		cfg := mapDefaultConfig()
 		ns := mapNamespace("ns", "persistent")

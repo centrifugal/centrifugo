@@ -837,7 +837,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		if chOpts.SubRefreshProxyEnabled {
 			r.ClientSideRefresh = false
 		}
-		applyNamespaceSubscribeOptions(&r.Options, chOpts, e.Channel)
+		applyNamespaceSubscribeOptions(&r.Options, chOpts, e.Channel, e.Type)
 		return r, SubscribeExtra{}, err
 	} else if (chOpts.SubscribeStreamProxyEnabled) && !isUserLimitedChannel {
 		if subscribeStreamHandlerFunc == nil {
@@ -859,7 +859,9 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		if chOpts.SubRefreshProxyEnabled {
 			r.ClientSideRefresh = false
 		}
-		applyNamespaceSubscribeOptions(&r.Options, chOpts, e.Channel)
+		// Only stream subscriptions: the namespace's subscription type is checked
+		// at config validation.
+		applyNamespaceSubscribeOptions(&r.Options, chOpts, e.Channel, centrifuge.SubscriptionTypeStream)
 		return r, SubscribeExtra{}, err
 	} else if chOpts.SubscribeForClient && (c.UserID() != "" || chOpts.SubscribeForAnonymous) && !isUserLimitedChannel {
 		allowed = true
@@ -874,7 +876,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorPermissionDenied
 	}
 
-	applyNamespaceSubscribeOptions(&options, chOpts, e.Channel)
+	applyNamespaceSubscribeOptions(&options, chOpts, e.Channel, e.Type)
 
 	// Note, using forceSubscribed here because all checks are passed but connection is not yet
 	// subscribed in Centrifuge registry.
@@ -886,11 +888,6 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	}
 	if e.JoinLeave && chOpts.JoinLeave && h.hasAccessToPresence(c, e.Channel, chOpts, true) {
 		options.PushJoinLeave = true
-	}
-
-	// Set subscription type for map subscriptions.
-	if e.Type != centrifuge.SubscriptionTypeStream {
-		options.Type = e.Type
 	}
 
 	// In cache recovery mode auto_cache_recover makes Centrifugo deliver the latest

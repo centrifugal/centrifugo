@@ -1388,6 +1388,44 @@ func TestClientOnSubscribe_StreamProxyStoresCancelFunc(t *testing.T) {
 	}
 }
 
+// A map subscription authorized by a subscribe proxy gets the map subscription
+// type: the proxy reply does not carry it, and without it Centrifuge rejects the
+// map subscribe as a bad request. (A subscribe stream proxy only serves stream
+// subscriptions, see config validation.)
+func TestClientOnSubscribe_ProxySetsMapSubscriptionType(t *testing.T) {
+	node := tools.NodeWithMemoryEngineNoHandlers()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	cfg.Channel.WithoutNamespace.SubscriptionType = "map"
+	cfg.Channel.WithoutNamespace.Map.Mode = "ephemeral"
+	cfg.Channel.WithoutNamespace.Map.KeyTTL = configtypes.Duration(time.Minute)
+	cfg.Channel.WithoutNamespace.SubscribeProxyEnabled = true
+	cfg.Channel.Proxy.Subscribe.Endpoint = "http://localhost:12000"
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	h := NewHandler(node, cfgContainer, nil, nil, &ProxyMap{})
+	subscribeHandlerFunc := func(
+		c proxy.Client, e centrifuge.SubscribeEvent,
+		chOpts configtypes.ChannelOptions, pcd proxy.PerCallData,
+	) (centrifuge.SubscribeReply, proxy.SubscribeExtra, error) {
+		return centrifuge.SubscribeReply{}, proxy.SubscribeExtra{}, nil
+	}
+	client := &tools.TestClientMock{
+		IDFunc:      func() string { return "42" },
+		UserIDFunc:  func() string { return "42" },
+		ContextFunc: func() context.Context { return context.Background() },
+	}
+
+	reply, _, err := h.OnSubscribe(client, centrifuge.SubscribeEvent{
+		Channel: "room",
+		Type:    centrifuge.SubscriptionTypeMap,
+	}, subscribeHandlerFunc, nil)
+	require.NoError(t, err)
+	require.Equal(t, centrifuge.SubscriptionTypeMap, reply.Options.Type)
+}
+
 // buildSharedPollDispatch builds the dispatch closure identical to handler.go's Setup(),
 // using plain SharedPollHandler functions instead of proxy.SharedPollRefreshHandler
 // (avoids prometheus dependency in tests).
