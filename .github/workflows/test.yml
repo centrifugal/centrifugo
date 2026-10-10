@@ -56,7 +56,7 @@ jobs:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     strategy:
       matrix:
-        go-version: [1.26.8]
+        go-version: [1.27.2]
     env:
       # Race-enabled test binaries sleep 1s at exit waiting for late race
       # reports by default; races during tests still fail them.
