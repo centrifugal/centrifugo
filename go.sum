@@ -73,8 +73,8 @@ github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6r
 github.com/cenkalti/backoff/v5 v5.0.3 h1:ZN+IMa753KfX5hd8vVaMixjnqRZ3y8CuJKRKj1xcsSM=
 github.com/cenkalti/backoff/v5 v5.0.3/go.mod h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F97BxZthm/crw=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
-github.com/centrifugal/centrifuge v0.39.4-0.20261005160521-70e564b23615 h1:m1NqHWJvzkuyLMVhfSCzMsHJLDe36+KXSwiFYZx/aTE=
-github.com/centrifugal/centrifuge v0.39.4-0.20261005160521-70e564b23615/go.mod h1:I4R1OMa8XNYyIbzXsSWYHBS8mYah/ZJVN4z5UAhLKVY=
+github.com/centrifugal/centrifuge v0.39.4-0.20261010083301-35f9f3f3c0d0 h1:/WPNLofxPkml3oAxSl89qtd2pji7nDTl2uAjtEOgKq4=
+github.com/centrifugal/centrifuge v0.39.4-0.20261010083301-35f9f3f3c0d0/go.mod h1:I4R1OMa8XNYyIbzXsSWYHBS8mYah/ZJVN4z5UAhLKVY=
 github.com/centrifugal/fdelta v0.0.3 h1:sYD/zCXH2xYDcELPPztXsF7VCZb6vtiRBEVCYjgzHj4=
 github.com/centrifugal/fdelta v0.0.3/go.mod h1:9coq4YBCDBGhScGS9KcKeGSW9xQ+Kzq3tcFiK0n5OcE=
 github.com/centrifugal/protocol v0.23.1 h1:UUawQRfk6w8vovblEgx27vUfPE40KO3CHdzhhu4Sg58=
