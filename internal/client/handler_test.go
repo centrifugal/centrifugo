@@ -1372,6 +1372,51 @@ func TestClientOnSubscribe_SubscribeProxyJoinLeave(t *testing.T) {
 	require.False(t, subscribe(true).Options.PushJoinLeave)
 }
 
+func TestClientOnSubscribe_SubscribeProxyPositioningRecovery(t *testing.T) {
+	node := tools.NodeWithMemoryEngineNoHandlers()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	cfg.Channel.Proxy.Subscribe.Endpoint = "http://localhost:8080"
+	cfg.Channel.WithoutNamespace.SubscribeProxyEnabled = true
+	cfg.Channel.WithoutNamespace.HistorySize = 10
+	cfg.Channel.WithoutNamespace.HistoryTTL = configtypes.Duration(time.Hour)
+	cfg.Channel.WithoutNamespace.AllowPositioning = true
+	cfg.Channel.WithoutNamespace.AllowRecovery = true
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	h := NewHandler(node, cfgContainer, nil, nil, &ProxyMap{})
+
+	proxyFunc := func(c proxy.Client, e centrifuge.SubscribeEvent, chOpts configtypes.ChannelOptions, pcd proxy.PerCallData) (centrifuge.SubscribeReply, proxy.SubscribeExtra, error) {
+		return centrifuge.SubscribeReply{}, proxy.SubscribeExtra{}, nil
+	}
+	subscribe := func(positioned bool, recoverable bool) centrifuge.SubscribeOptions {
+		reply, _, err := h.OnSubscribe(&tools.TestClientMock{
+			UserIDFunc: func() string {
+				return "42"
+			},
+		}, centrifuge.SubscribeEvent{
+			Channel:     "room",
+			Positioned:  positioned,
+			Recoverable: recoverable,
+		}, proxyFunc, nil)
+		require.NoError(t, err)
+		return reply.Options
+	}
+
+	require.True(t, subscribe(true, false).EnablePositioning)
+	require.False(t, subscribe(true, false).EnableRecovery)
+	require.True(t, subscribe(false, true).EnableRecovery)
+	require.False(t, subscribe(false, true).EnablePositioning)
+
+	cfg.Channel.WithoutNamespace.AllowPositioning = false
+	cfg.Channel.WithoutNamespace.AllowRecovery = false
+	require.NoError(t, cfgContainer.Reload(cfg))
+	require.False(t, subscribe(true, true).EnablePositioning)
+	require.False(t, subscribe(true, true).EnableRecovery)
+}
+
 // TestClientOnSubscribe_StreamProxyStoresCancelFunc is a regression test for
 // https://github.com/centrifugal/centrifugo/issues/1147 – the cancel function of a
 // subscribe stream proxy must be stored in client storage for BOTH unidirectional and
