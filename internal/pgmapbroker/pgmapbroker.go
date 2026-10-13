@@ -2075,10 +2075,13 @@ func (e *PostgresMapBroker) runTTLExpirationWorker() {
 func (e *PostgresMapBroker) expireKeys(ctx context.Context) {
 	numShards := e.conf.NumShards
 
-	// Find distinct channels with expired keys to resolve per-channel options.
+	// Find channels with expired keys to resolve per-channel options, the ones
+	// waiting longest first so that every channel is reached.
 	channelRows, err := e.pool.Query(ctx, fmt.Sprintf(`
-		SELECT DISTINCT channel FROM %s
+		SELECT channel FROM %s
 		WHERE expires_at IS NOT NULL AND expires_at <= NOW()
+		GROUP BY channel
+		ORDER BY MIN(expires_at)
 		LIMIT 100
 	`, e.names.state))
 	if err != nil {
@@ -2104,14 +2107,15 @@ func (e *PostgresMapBroker) expireKeys(ctx context.Context) {
 
 	// Process each channel with its own resolved options.
 	for _, ch := range channels {
+		// Keys still expire when the channel's options don't resolve (its
+		// namespace was removed, say): their deadlines are stored with them,
+		// and a channel left behind would hold a slot of every batch.
+		var metaTTL *string
 		chOpts, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().Map.GetMapChannelOptions, ch)
 		if err != nil {
 			e.logEvent().Err(err).Str("channel", ch).Msg("error resolving channel options for key expiration")
 			e.node.IncMapBrokerCleanupErrors(e.conf.Name)
-			continue
-		}
-		var metaTTL *string
-		if chOpts.MetaTTL > 0 {
+		} else if chOpts.MetaTTL > 0 {
 			s := durationToIntervalString(chOpts.MetaTTL)
 			metaTTL = &s
 		}

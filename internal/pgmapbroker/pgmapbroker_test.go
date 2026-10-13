@@ -6,7 +6,9 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -651,6 +653,51 @@ func TestPostgresMapBroker_KeyTTL(t *testing.T) {
 		return err == nil && len(res.Publications) == 0
 	}, 10*time.Second, 50*time.Millisecond, "key should expire")
 	require.GreaterOrEqual(t, time.Since(publishedAt), keyTTL/2, "key expired before its TTL")
+}
+
+// TestPostgresMapBroker_KeyTTLUnresolvedChannels verifies that keys expire in
+// channels whose options no longer resolve, so that a full batch of such
+// channels does not keep the worker from reaching the others.
+func TestPostgresMapBroker_KeyTTLUnresolvedChannels(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skipping TTL test in short mode")
+	}
+
+	var removed atomic.Bool
+	node, _ := centrifuge.New(centrifuge.Config{
+		Map: centrifuge.MapConfig{
+			GetMapChannelOptions: func(channel string) centrifuge.MapChannelOptions {
+				if removed.Load() && strings.HasPrefix(channel, "removed_") {
+					return centrifuge.MapChannelOptions{}
+				}
+				return centrifuge.MapChannelOptions{
+					Mode:   centrifuge.MapModeRecoverable,
+					KeyTTL: time.Second,
+				}
+			},
+		},
+	})
+	broker := newTestPostgresMapBroker(t, node)
+	ctx := context.Background()
+
+	// More channels than one expiration pass takes, expiring first.
+	for i := 0; i < 100; i++ {
+		_, err := broker.Publish(ctx, fmt.Sprintf("removed_%d", i), "key", centrifuge.MapPublishOptions{
+			Data: []byte("v"),
+		})
+		require.NoError(t, err)
+	}
+	_, err := broker.Publish(ctx, "live", "key", centrifuge.MapPublishOptions{Data: []byte("v")})
+	require.NoError(t, err)
+	removed.Store(true)
+
+	var remaining int
+	require.Eventually(t, func() bool {
+		broker.expireKeys(ctx)
+		err := broker.pool.QueryRow(ctx, fmt.Sprintf(`SELECT COUNT(*) FROM %s`, broker.names.state)).Scan(&remaining)
+		return err == nil && remaining == 0
+	}, 10*time.Second, 50*time.Millisecond, "all keys should expire")
 }
 
 // TestPostgresMapBroker_Version tests version-based ordering.
