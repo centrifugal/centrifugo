@@ -36,3 +36,127 @@ func TestApplyNamespaceSubscribeOptions(t *testing.T) {
 	require.Empty(t, options.MapClientPresenceChannel)
 	require.Empty(t, options.MapUserPresenceChannel)
 }
+
+func TestApplyRequestedPositioningRecovery(t *testing.T) {
+	allowed := func() bool { return true }
+	denied := func() bool { return false }
+
+	testCases := []struct {
+		name        string
+		event       centrifuge.SubscribeEvent
+		chOpts      configtypes.ChannelOptions
+		options     centrifuge.SubscribeOptions
+		history     func() bool
+		positioning bool
+		recovery    bool
+		autoCache   bool
+	}{
+		{
+			name:    "not requested",
+			history: allowed,
+		},
+		{
+			name:        "allowed by namespace",
+			event:       centrifuge.SubscribeEvent{Positioned: true, Recoverable: true},
+			chOpts:      configtypes.ChannelOptions{AllowPositioning: true, AllowRecovery: true},
+			history:     denied,
+			positioning: true,
+			recovery:    true,
+		},
+		{
+			name:        "allowed by history access",
+			event:       centrifuge.SubscribeEvent{Positioned: true, Recoverable: true},
+			history:     allowed,
+			positioning: true,
+			recovery:    true,
+		},
+		{
+			name:    "not allowed",
+			event:   centrifuge.SubscribeEvent{Positioned: true, Recoverable: true},
+			history: denied,
+		},
+		{
+			name:        "forced kept",
+			options:     centrifuge.SubscribeOptions{EnablePositioning: true, EnableRecovery: true},
+			history:     denied,
+			positioning: true,
+			recovery:    true,
+		},
+		{
+			name:      "auto cache recover",
+			event:     centrifuge.SubscribeEvent{Recoverable: true},
+			chOpts:    configtypes.ChannelOptions{AllowRecovery: true, AutoCacheRecover: true},
+			options:   centrifuge.SubscribeOptions{RecoveryMode: centrifuge.RecoveryModeCache},
+			history:   denied,
+			recovery:  true,
+			autoCache: true,
+		},
+		{
+			name:     "no auto cache recover in stream recovery mode",
+			event:    centrifuge.SubscribeEvent{Recoverable: true},
+			chOpts:   configtypes.ChannelOptions{AllowRecovery: true, AutoCacheRecover: true},
+			options:  centrifuge.SubscribeOptions{RecoveryMode: centrifuge.RecoveryModeStream},
+			history:  denied,
+			recovery: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			options := tc.options
+			applyRequestedPositioningRecovery(&options, tc.event, tc.chOpts, tc.history)
+			require.Equal(t, tc.positioning, options.EnablePositioning)
+			require.Equal(t, tc.recovery, options.EnableRecovery)
+			require.Equal(t, tc.autoCache, options.AutoCacheRecover)
+		})
+	}
+}
+
+func TestApplyRequestedJoinLeave(t *testing.T) {
+	allowed := func() bool { return true }
+	denied := func() bool { return false }
+
+	testCases := []struct {
+		name     string
+		event    centrifuge.SubscribeEvent
+		options  centrifuge.SubscribeOptions
+		presence func() bool
+		push     bool
+	}{
+		{
+			name:     "not requested",
+			options:  centrifuge.SubscribeOptions{EmitJoinLeave: true},
+			presence: allowed,
+		},
+		{
+			name:     "requested",
+			event:    centrifuge.SubscribeEvent{JoinLeave: true},
+			options:  centrifuge.SubscribeOptions{EmitJoinLeave: true},
+			presence: allowed,
+			push:     true,
+		},
+		{
+			name:     "not emitted",
+			event:    centrifuge.SubscribeEvent{JoinLeave: true},
+			presence: allowed,
+		},
+		{
+			name:     "no presence access",
+			event:    centrifuge.SubscribeEvent{JoinLeave: true},
+			options:  centrifuge.SubscribeOptions{EmitJoinLeave: true},
+			presence: denied,
+		},
+		{
+			name:     "forced kept",
+			options:  centrifuge.SubscribeOptions{EmitJoinLeave: true, PushJoinLeave: true},
+			presence: denied,
+			push:     true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			options := tc.options
+			applyRequestedJoinLeave(&options, tc.event, tc.presence)
+			require.Equal(t, tc.push, options.PushJoinLeave)
+		})
+	}
+}

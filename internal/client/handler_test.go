@@ -1366,7 +1366,12 @@ func TestClientOnSubscribe_SubscribeProxyJoinLeave(t *testing.T) {
 	emitJoinLeave = false
 	require.False(t, subscribe(true).Options.PushJoinLeave)
 
+	// Join/leave emitted by proxy override in a namespace where it's off.
 	emitJoinLeave = true
+	cfg.Channel.WithoutNamespace.JoinLeave = false
+	require.NoError(t, cfgContainer.Reload(cfg))
+	require.True(t, subscribe(true).Options.PushJoinLeave)
+
 	cfg.Channel.WithoutNamespace.PresenceForSubscriber = false
 	require.NoError(t, cfgContainer.Reload(cfg))
 	require.False(t, subscribe(true).Options.PushJoinLeave)
@@ -1415,6 +1420,109 @@ func TestClientOnSubscribe_SubscribeProxyPositioningRecovery(t *testing.T) {
 	require.NoError(t, cfgContainer.Reload(cfg))
 	require.False(t, subscribe(true, true).EnablePositioning)
 	require.False(t, subscribe(true, true).EnableRecovery)
+}
+
+// A client asking for join/leave gets it when a subscription token override
+// emits join/leave in a namespace where it's off.
+func TestClientOnSubscribe_TokenJoinLeaveOverride(t *testing.T) {
+	node := tools.NodeWithMemoryEngineNoHandlers()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	cfg.Channel.WithoutNamespace.Presence = true
+	cfg.Channel.WithoutNamespace.PresenceForSubscriber = true
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	h := NewHandler(node, cfgContainer, hmacJWTVerifier(t, cfgContainer), nil, &ProxyMap{})
+
+	getToken := func(joinLeave bool) string {
+		claims := &jwtverify.SubscribeTokenClaims{
+			SubscribeOptions: jwtverify.SubscribeOptions{
+				Override: &jwtverify.SubscribeOptionOverride{
+					JoinLeave: &jwtverify.BoolValue{Value: joinLeave},
+				},
+			},
+			Channel: "$room",
+			RegisteredClaims: jwt.RegisteredClaims{
+				Subject: "42",
+			},
+		}
+		token, err := getTokenBuilder(nil, "secret").Build(claims)
+		require.NoError(t, err)
+		return token.String()
+	}
+	subscribe := func(token string, joinLeave bool) centrifuge.SubscribeOptions {
+		reply, _, err := h.OnSubscribe(&tools.TestClientMock{
+			UserIDFunc: func() string {
+				return "42"
+			},
+		}, centrifuge.SubscribeEvent{
+			Channel:   "$room",
+			Token:     token,
+			JoinLeave: joinLeave,
+		}, nil, nil)
+		require.NoError(t, err)
+		return reply.Options
+	}
+
+	options := subscribe(getToken(true), true)
+	require.True(t, options.EmitJoinLeave)
+	require.True(t, options.PushJoinLeave)
+	require.False(t, subscribe(getToken(true), false).PushJoinLeave)
+
+	cfg.Channel.WithoutNamespace.JoinLeave = true
+	require.NoError(t, cfgContainer.Reload(cfg))
+	options = subscribe(getToken(false), true)
+	require.False(t, options.EmitJoinLeave)
+	require.False(t, options.PushJoinLeave)
+}
+
+// A subscribe stream proxy subscription gets join/leave a client asked for,
+// but never positioning and recovery, which are not used for it.
+func TestClientOnSubscribe_StreamProxyRequestedOptions(t *testing.T) {
+	node := tools.NodeWithMemoryEngineNoHandlers()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	cfg.Channel.Proxy.SubscribeStream.Endpoint = "grpc://localhost:12000"
+	cfg.Channel.WithoutNamespace.SubscribeStreamProxyEnabled = true
+	cfg.Channel.WithoutNamespace.Presence = true
+	cfg.Channel.WithoutNamespace.JoinLeave = true
+	cfg.Channel.WithoutNamespace.PresenceForSubscriber = true
+	cfg.Channel.WithoutNamespace.HistorySize = 10
+	cfg.Channel.WithoutNamespace.HistoryTTL = configtypes.Duration(time.Hour)
+	cfg.Channel.WithoutNamespace.AllowPositioning = true
+	cfg.Channel.WithoutNamespace.AllowRecovery = true
+	cfg.Channel.WithoutNamespace.HistoryForSubscriber = true
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	h := NewHandler(node, cfgContainer, nil, nil, &ProxyMap{})
+
+	streamHandlerFunc := func(
+		c proxy.Client, bidi bool, e centrifuge.SubscribeEvent,
+		chOpts configtypes.ChannelOptions, pcd proxy.PerCallData,
+	) (centrifuge.SubscribeReply, proxy.StreamPublishFunc, func(), error) {
+		return centrifuge.SubscribeReply{
+			Options: centrifuge.SubscribeOptions{EmitPresence: true, EmitJoinLeave: true},
+		}, nil, nil, nil
+	}
+
+	reply, _, err := h.OnSubscribe(&tools.TestClientMock{
+		UserIDFunc: func() string {
+			return "42"
+		},
+	}, centrifuge.SubscribeEvent{
+		Channel:     "room",
+		JoinLeave:   true,
+		Positioned:  true,
+		Recoverable: true,
+	}, nil, streamHandlerFunc)
+	require.NoError(t, err)
+	require.True(t, reply.Options.PushJoinLeave)
+	require.False(t, reply.Options.EnablePositioning)
+	require.False(t, reply.Options.EnableRecovery)
 }
 
 // TestClientOnSubscribe_StreamProxyStoresCancelFunc is a regression test for
