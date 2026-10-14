@@ -788,6 +788,12 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	isPrivateChannel := h.cfgContainer.IsPrivateChannel(e.Channel)
 	isUserLimitedChannel := chOpts.UserLimitedChannels && h.cfgContainer.IsUserLimited(e.Channel)
 
+	// Access checks for the options a client may ask for on subscribe. Note, using
+	// forceSubscribed here because all checks are passed when they are called but
+	// connection is not yet subscribed in Centrifuge registry.
+	historyAllowed := func() bool { return h.hasAccessToHistory(c, e.Channel, chOpts, true) }
+	presenceAllowed := func() bool { return h.hasAccessToPresence(c, e.Channel, chOpts, true) }
+
 	if isPrivateChannel && e.Token == "" {
 		log.Warn().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("attempt to subscribe on private channel without token")
 		return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorPermissionDenied
@@ -837,8 +843,8 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		if chOpts.SubRefreshProxyEnabled {
 			r.ClientSideRefresh = false
 		}
-		h.applyRequestedPositioningRecovery(c, e, chOpts, &r.Options)
-		h.applyRequestedJoinLeave(c, e, chOpts, &r.Options)
+		applyRequestedPositioningRecovery(&r.Options, e, chOpts, historyAllowed)
+		applyRequestedJoinLeave(&r.Options, e, presenceAllowed)
 		applyNamespaceSubscribeOptions(&r.Options, chOpts, e.Channel, e.Type)
 		return r, SubscribeExtra{}, err
 	} else if (chOpts.SubscribeStreamProxyEnabled) && !isUserLimitedChannel {
@@ -861,7 +867,8 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		if chOpts.SubRefreshProxyEnabled {
 			r.ClientSideRefresh = false
 		}
-		h.applyRequestedJoinLeave(c, e, chOpts, &r.Options)
+		// Positioning and recovery are not used for subscribe stream proxy.
+		applyRequestedJoinLeave(&r.Options, e, presenceAllowed)
 		// Only stream subscriptions: the namespace's subscription type is checked
 		// at config validation.
 		applyNamespaceSubscribeOptions(&r.Options, chOpts, e.Channel, centrifuge.SubscriptionTypeStream)
@@ -881,37 +888,13 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 
 	applyNamespaceSubscribeOptions(&options, chOpts, e.Channel, e.Type)
 
-	// Note, using forceSubscribed here because all checks are passed but connection is not yet
-	// subscribed in Centrifuge registry.
-	h.applyRequestedPositioningRecovery(c, e, chOpts, &options)
-	if e.JoinLeave && chOpts.JoinLeave && h.hasAccessToPresence(c, e.Channel, chOpts, true) {
-		options.PushJoinLeave = true
-	}
+	applyRequestedPositioningRecovery(&options, e, chOpts, historyAllowed)
+	applyRequestedJoinLeave(&options, e, presenceAllowed)
 
 	return centrifuge.SubscribeReply{
 		Options:           options,
 		ClientSideRefresh: !chOpts.SubRefreshProxyEnabled,
 	}, SubscribeExtra{}, nil
-}
-
-func (h *Handler) applyRequestedPositioningRecovery(c Client, e centrifuge.SubscribeEvent, chOpts configtypes.ChannelOptions, options *centrifuge.SubscribeOptions) {
-	if e.Positioned && (chOpts.AllowPositioning || h.hasAccessToHistory(c, e.Channel, chOpts, true)) {
-		options.EnablePositioning = true
-	}
-	if e.Recoverable && (chOpts.AllowRecovery || h.hasAccessToHistory(c, e.Channel, chOpts, true)) {
-		options.EnableRecovery = true
-	}
-	// In cache recovery mode auto_cache_recover makes Centrifugo deliver the latest
-	// publication on subscribe without the client providing an empty "since" itself.
-	if chOpts.AutoCacheRecover && options.EnableRecovery && options.RecoveryMode == centrifuge.RecoveryModeCache {
-		options.AutoCacheRecover = true
-	}
-}
-
-func (h *Handler) applyRequestedJoinLeave(c Client, e centrifuge.SubscribeEvent, chOpts configtypes.ChannelOptions, options *centrifuge.SubscribeOptions) {
-	if e.JoinLeave && options.EmitJoinLeave && h.hasAccessToPresence(c, e.Channel, chOpts, true) {
-		options.PushJoinLeave = true
-	}
 }
 
 // OnPublish ...
