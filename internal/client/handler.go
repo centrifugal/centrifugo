@@ -837,6 +837,8 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		if chOpts.SubRefreshProxyEnabled {
 			r.ClientSideRefresh = false
 		}
+		h.applyRequestedPositioningRecovery(c, e, chOpts, &r.Options)
+		h.applyRequestedJoinLeave(c, e, chOpts, &r.Options)
 		applyNamespaceSubscribeOptions(&r.Options, chOpts, e.Channel, e.Type)
 		return r, SubscribeExtra{}, err
 	} else if (chOpts.SubscribeStreamProxyEnabled) && !isUserLimitedChannel {
@@ -859,6 +861,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		if chOpts.SubRefreshProxyEnabled {
 			r.ClientSideRefresh = false
 		}
+		h.applyRequestedJoinLeave(c, e, chOpts, &r.Options)
 		// Only stream subscriptions: the namespace's subscription type is checked
 		// at config validation.
 		applyNamespaceSubscribeOptions(&r.Options, chOpts, e.Channel, centrifuge.SubscriptionTypeStream)
@@ -880,26 +883,35 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 
 	// Note, using forceSubscribed here because all checks are passed but connection is not yet
 	// subscribed in Centrifuge registry.
-	if e.Positioned && (chOpts.AllowPositioning || h.hasAccessToHistory(c, e.Channel, chOpts, true)) {
-		options.EnablePositioning = true
-	}
-	if e.Recoverable && (chOpts.AllowRecovery || h.hasAccessToHistory(c, e.Channel, chOpts, true)) {
-		options.EnableRecovery = true
-	}
+	h.applyRequestedPositioningRecovery(c, e, chOpts, &options)
 	if e.JoinLeave && chOpts.JoinLeave && h.hasAccessToPresence(c, e.Channel, chOpts, true) {
 		options.PushJoinLeave = true
-	}
-
-	// In cache recovery mode auto_cache_recover makes Centrifugo deliver the latest
-	// publication on subscribe without the client providing an empty "since" itself.
-	if chOpts.AutoCacheRecover && options.EnableRecovery && options.RecoveryMode == centrifuge.RecoveryModeCache {
-		options.AutoCacheRecover = true
 	}
 
 	return centrifuge.SubscribeReply{
 		Options:           options,
 		ClientSideRefresh: !chOpts.SubRefreshProxyEnabled,
 	}, SubscribeExtra{}, nil
+}
+
+func (h *Handler) applyRequestedPositioningRecovery(c Client, e centrifuge.SubscribeEvent, chOpts configtypes.ChannelOptions, options *centrifuge.SubscribeOptions) {
+	if e.Positioned && (chOpts.AllowPositioning || h.hasAccessToHistory(c, e.Channel, chOpts, true)) {
+		options.EnablePositioning = true
+	}
+	if e.Recoverable && (chOpts.AllowRecovery || h.hasAccessToHistory(c, e.Channel, chOpts, true)) {
+		options.EnableRecovery = true
+	}
+	// In cache recovery mode auto_cache_recover makes Centrifugo deliver the latest
+	// publication on subscribe without the client providing an empty "since" itself.
+	if chOpts.AutoCacheRecover && options.EnableRecovery && options.RecoveryMode == centrifuge.RecoveryModeCache {
+		options.AutoCacheRecover = true
+	}
+}
+
+func (h *Handler) applyRequestedJoinLeave(c Client, e centrifuge.SubscribeEvent, chOpts configtypes.ChannelOptions, options *centrifuge.SubscribeOptions) {
+	if e.JoinLeave && options.EmitJoinLeave && h.hasAccessToPresence(c, e.Channel, chOpts, true) {
+		options.PushJoinLeave = true
+	}
 }
 
 // OnPublish ...
