@@ -512,7 +512,9 @@ func (h *Handler) OnClientConnecting(
 				return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
 			}
 
-			if !isPrivateChannel && !chOpts.SubscribeProxyEnabled && validChannelName {
+			// Channels authorized by a subscribe proxy or a subscribe stream proxy are
+			// never subscribed here: only the proxy decides on them.
+			if !isPrivateChannel && !chOpts.SubscribeProxyEnabled && !chOpts.SubscribeStreamProxyEnabled && validChannelName {
 				if isUserLimitedChannel && (userID != "" && h.cfgContainer.UserAllowed(ch, userID)) {
 					channelOk = true
 				} else if chOpts.SubscribeForClient && (userID != "" || chOpts.SubscribeForAnonymous) && !isUserLimitedChannel {
@@ -831,7 +833,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 		options = token.Options
 		allowed = true
 		options.Source = subsource.SubscriptionToken
-	} else if isUserLimitedChannel && h.cfgContainer.UserAllowed(e.Channel, c.UserID()) {
+	} else if isUserLimitedChannel && c.UserID() != "" && h.cfgContainer.UserAllowed(e.Channel, c.UserID()) {
 		allowed = true
 		options.Source = subsource.UserLimited
 	} else if (chOpts.SubscribeProxyEnabled) && !isUserLimitedChannel {
