@@ -229,6 +229,37 @@ func TestClientConnectNoCredentialsNoTokenAnonymous(t *testing.T) {
 	require.Equal(t, "", reply.Credentials.UserID)
 }
 
+// Channels a client asks for on connect are not subscribed in a namespace with
+// a subscribe stream proxy, even when allow_subscribe_for_client is on: only the
+// subscribe stream proxy decides on them.
+func TestClientConnectingChannelsSubscribeStreamProxy(t *testing.T) {
+	node := tools.NodeWithMemoryEngine()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	cfg.Client.AllowAnonymousConnectWithoutToken = true
+	cfg.Channel.WithoutNamespace.SubscribeForClient = true
+	cfg.Channel.WithoutNamespace.SubscribeForAnonymous = true
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+	h := NewHandler(node, cfgContainer, emptyJWTVerifier(t, cfgContainer), nil, &ProxyMap{})
+
+	connect := func() centrifuge.ConnectReply {
+		reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
+			Channels: []string{"room"},
+		}, nil, false)
+		require.NoError(t, err)
+		return reply
+	}
+
+	require.Contains(t, connect().Subscriptions, "room")
+
+	cfg.Channel.Proxy.SubscribeStream.Endpoint = "grpc://localhost:12000"
+	cfg.Channel.WithoutNamespace.SubscribeStreamProxyEnabled = true
+	require.NoError(t, cfgContainer.Reload(cfg))
+	require.NotContains(t, connect().Subscriptions, "room")
+}
+
 func TestClientConnectWithMalformedToken(t *testing.T) {
 	node := tools.NodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()
@@ -1232,6 +1263,34 @@ func TestClientOnSubscribe_UserLimitedChannelDoesNotCallProxy(t *testing.T) {
 	}, proxyFunc, nil)
 	require.NoError(t, err)
 	require.Equal(t, 1, numProxyCalls)
+}
+
+// An anonymous connection is not allowed to subscribe to a user-limited
+// channel which lists an empty user.
+func TestClientOnSubscribe_UserLimitedChannelNotAllowedForAnonymous(t *testing.T) {
+	node := tools.NodeWithMemoryEngineNoHandlers()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	cfg.Channel.WithoutNamespace.UserLimitedChannels = true
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+
+	h := NewHandler(node, cfgContainer, nil, nil, &ProxyMap{})
+
+	for _, ch := range []string{"user#", "user#42,"} {
+		_, _, err = h.OnSubscribe(&tools.TestClientMock{
+			IDFunc: func() string {
+				return "1"
+			},
+			UserIDFunc: func() string {
+				return ""
+			},
+		}, centrifuge.SubscribeEvent{
+			Channel: ch,
+		}, nil, nil)
+		require.ErrorIs(t, err, centrifuge.ErrorPermissionDenied, ch)
+	}
 }
 
 func TestClientOnSubscribe_UserLimitedChannelNotAllowedForAnotherUser(t *testing.T) {
