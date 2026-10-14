@@ -513,8 +513,11 @@ func (h *Handler) OnClientConnecting(
 			}
 
 			// Channels authorized by a subscribe proxy or a subscribe stream proxy are
-			// never subscribed here: only the proxy decides on them.
-			if !isPrivateChannel && !chOpts.SubscribeProxyEnabled && !chOpts.SubscribeStreamProxyEnabled && validChannelName {
+			// never subscribed here: only the proxy decides on them. Subscriptions
+			// created here are stream subscriptions, so channels of a namespace with
+			// another subscription type are skipped, like in OnSubscribe.
+			if !isPrivateChannel && !chOpts.SubscribeProxyEnabled && !chOpts.SubscribeStreamProxyEnabled && validChannelName &&
+				isSubscriptionTypeAllowed(centrifuge.SubscriptionTypeStream, chOpts.SubscriptionType) {
 				if isUserLimitedChannel && (userID != "" && h.cfgContainer.UserAllowed(ch, userID)) {
 					channelOk = true
 				} else if chOpts.SubscribeForClient && (userID != "" || chOpts.SubscribeForAnonymous) && !isUserLimitedChannel {
@@ -914,6 +917,13 @@ func (h *Handler) OnPublish(c Client, e centrifuge.PublishEvent, publishProxyHan
 	}
 	if err = h.validateChannelName(c, rest, chOpts, e.Channel); err != nil {
 		return centrifuge.PublishReply{}, err
+	}
+
+	// A publish goes into a stream: map channels are published into with a map
+	// publish, the same way they are subscribed to with a map subscription.
+	if !isSubscriptionTypeAllowed(centrifuge.SubscriptionTypeStream, chOpts.SubscriptionType) {
+		log.Info().Str("channel", e.Channel).Str("client", c.ID()).Str("user", c.UserID()).Msg("publish not allowed for namespace subscription type")
+		return centrifuge.PublishReply{}, centrifuge.ErrorPermissionDenied
 	}
 
 	// Data format validation

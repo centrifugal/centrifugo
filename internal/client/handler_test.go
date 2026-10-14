@@ -260,6 +260,38 @@ func TestClientConnectingChannelsSubscribeStreamProxy(t *testing.T) {
 	require.NotContains(t, connect().Subscriptions, "room")
 }
 
+// Channels a client asks for on connect get stream subscriptions, so they are
+// not subscribed in a namespace with another subscription type, like a client
+// subscribe of a stream type is refused there.
+func TestClientConnectingChannelsSubscriptionType(t *testing.T) {
+	node := tools.NodeWithMemoryEngine()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	cfg.Client.AllowAnonymousConnectWithoutToken = true
+	cfg.Channel.WithoutNamespace.SubscribeForClient = true
+	cfg.Channel.WithoutNamespace.SubscribeForAnonymous = true
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+	h := NewHandler(node, cfgContainer, emptyJWTVerifier(t, cfgContainer), nil, &ProxyMap{})
+
+	connect := func() centrifuge.ConnectReply {
+		reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
+			Channels: []string{"room"},
+		}, nil, false)
+		require.NoError(t, err)
+		return reply
+	}
+
+	require.Contains(t, connect().Subscriptions, "room")
+
+	cfg.Channel.WithoutNamespace.SubscriptionType = "map"
+	cfg.Channel.WithoutNamespace.Map.Mode = "ephemeral"
+	cfg.Channel.WithoutNamespace.Map.KeyTTL = configtypes.Duration(time.Minute)
+	require.NoError(t, cfgContainer.Reload(cfg))
+	require.NotContains(t, connect().Subscriptions, "room")
+}
+
 func TestClientConnectWithMalformedToken(t *testing.T) {
 	node := tools.NodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()
@@ -1016,6 +1048,36 @@ func TestClientPublishAllowed(t *testing.T) {
 		Data:    []byte(`{}`),
 	}, nil)
 	require.NoError(t, err)
+}
+
+// A client publish goes into a stream, so it's refused in a namespace with
+// another subscription type: map channels are published into with a map publish.
+func TestClientPublishSubscriptionType(t *testing.T) {
+	node := tools.NodeWithMemoryEngineNoHandlers()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	cfg := config.DefaultConfig()
+	cfg.Channel.WithoutNamespace.PublishForClient = true
+	cfg.Channel.WithoutNamespace.PublishForAnonymous = true
+	cfgContainer, err := config.NewContainer(cfg)
+	require.NoError(t, err)
+	h := NewHandler(node, cfgContainer, hmacJWTVerifier(t, cfgContainer), nil, &ProxyMap{})
+
+	publish := func() error {
+		_, err := h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
+			Channel: "test1",
+			Data:    []byte(`{}`),
+		}, nil)
+		return err
+	}
+
+	require.NoError(t, publish())
+
+	cfg.Channel.WithoutNamespace.SubscriptionType = "map"
+	cfg.Channel.WithoutNamespace.Map.Mode = "ephemeral"
+	cfg.Channel.WithoutNamespace.Map.KeyTTL = configtypes.Duration(time.Minute)
+	require.NoError(t, cfgContainer.Reload(cfg))
+	require.ErrorIs(t, publish(), centrifuge.ErrorPermissionDenied)
 }
 
 func TestClientPublishForSubscriber(t *testing.T) {
