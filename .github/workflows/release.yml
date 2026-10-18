@@ -2,7 +2,7 @@ name: release
 on:
   push:
     tags:
-      - '*'
+      - 'v*'
 # Publishing uses dedicated secrets, the default token only needs to read the repository.
 # id-token is required for keyless signing of release artifacts with cosign. Every step
 # can request it, so actions from outside GitHub and Docker are pinned by commit SHA.
@@ -135,6 +135,7 @@ jobs:
 
       # Check signatures the same way users verify them.
       - name: Verify signatures
+        id: verify
         env:
           ISSUER: https://token.actions.githubusercontent.com
         run: |
@@ -142,13 +143,13 @@ jobs:
             --bundle dist/*_checksums.txt.sigstore.json dist/*_checksums.txt
           misc/scripts/cosign_images.sh verify --certificate-identity "$SIGNING_IDENTITY" --certificate-oidc-issuer "$ISSUER"
 
-      # The steps below publish to other services. Each runs when the GitHub
-      # release succeeded, independently of the others.
+      # The steps below publish to other services. Each runs when the release was
+      # published and its signatures verified, independently of the others.
 
       # Every release is labeled with its version. The main label, which documentation
       # links to, is moved by stable releases only.
       - name: Push Protobuf definitions to Buf Schema Registry
-        if: ${{ !cancelled() && steps.release.outcome == 'success' && env.PUBLISH_PROTOBUF == 'true' }}
+        if: ${{ !cancelled() && steps.verify.outcome == 'success' && env.PUBLISH_PROTOBUF == 'true' }}
         env:
           BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
           TAG: ${{ github.ref_name }}
@@ -161,7 +162,7 @@ jobs:
 
       # Pre-releases (tags with a suffix, e.g. v6.11.0-rc.1) are not published to package repositories.
       - name: Release on Packagecloud
-        if: ${{ !cancelled() && steps.release.outcome == 'success' && env.PACKAGECLOUD_REPO != '' && !contains(github.ref_name, '-') }}
+        if: ${{ !cancelled() && steps.verify.outcome == 'success' && env.PACKAGECLOUD_REPO != '' && !contains(github.ref_name, '-') }}
         env:
           PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN }}
         run: misc/scripts/release_packagecloud.sh

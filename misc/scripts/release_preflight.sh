@@ -27,7 +27,14 @@ echo "GitHub access"
 for repo in $PUBLISH_REPOS; do
   info=$(curl -fsS -H "Authorization: Bearer $GITHUB_TOKEN" "https://api.github.com/repos/$repo") ||
     fail "can not access $repo with the release token"
-  [ "$(echo "$info" | jq -r .permissions.push)" = true ] || fail "release token has no push access to $repo"
+  # Generating release notes requires the same Contents write permission as
+  # publishing a release or a Homebrew formula, and saves nothing. Unlike repository
+  # permissions of the user, it checks the token itself (PAT or GitHub App token).
+  jq -nc --arg tag "$TAG" --arg branch "$(echo "$info" | jq -r .default_branch)" \
+    '{tag_name: $tag, target_commitish: $branch}' |
+    curl -fsS -o /dev/null -X POST -H "Authorization: Bearer $GITHUB_TOKEN" --data @- \
+      "https://api.github.com/repos/$repo/releases/generate-notes" ||
+    fail "release token has no write access to $repo"
 done
 # Only published releases are returned by tag, a draft from a previous attempt is replaced.
 status=$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $GITHUB_TOKEN" \
