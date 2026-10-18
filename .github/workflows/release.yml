@@ -9,11 +9,16 @@ on:
 permissions:
   contents: read
   id-token: write
+# One release run per tag at a time, a running release is never cancelled.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   release:
     name: Release with Go ${{ matrix.go-version }}
     environment: release
     runs-on: ubuntu-24.04
+    timeout-minutes: 90
     strategy:
       matrix:
         go-version: [1.27.2]
