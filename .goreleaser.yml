@@ -8,12 +8,16 @@ release:
   name_template: '{{.Tag}}'
   prerelease: auto
   draft: true
+  # A draft left by a failed release attempt is replaced when the job is re-run.
+  replace_existing_draft: true
   extra_files:
     - glob: ./PACKAGES/*.deb
     - glob: ./PACKAGES/*.rpm
     - glob: ./PACKAGES/*.txt
 brews:
   -
+    # Pre-releases are not published to the Homebrew tap.
+    skip_upload: auto
     repository:
       owner: centrifugal
       name: homebrew-centrifugo
@@ -46,7 +50,7 @@ builds:
     - goos: freebsd
       goarch: arm64
   main: .
-  ldflags: -s -w -X github.com/centrifugal/centrifugo/v6/internal/build.Version={{.Version}} -X github.com/centrifugal/centrifugo/v6/internal/build.UsageStatsEndpoint={{ .Env.STATS_ENDPOINT }} -X github.com/centrifugal/centrifugo/v6/internal/build.UsageStatsToken={{ .Env.STATS_TOKEN }}
+  ldflags: -s -w -X github.com/centrifugal/centrifugo/v6/internal/build.Version={{.Version}} -X github.com/centrifugal/centrifugo/v6/internal/build.UsageStatsEndpoint={{ .Env.STATS_ENDPOINT }} -X github.com/centrifugal/centrifugo/v6/internal/build.UsageStatsToken={{ .Env.STATS_TOKEN }} -X github.com/centrifugal/centrifugo/v6/internal/build.ReleaseTime={{ .Env.UNIX_NOW }}
   binary: centrifugo
   env:
     # https://github.com/goreleaser/goreleaser/issues/225
@@ -64,17 +68,17 @@ archives:
         formats: [zip]
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
+  extra_files:
+    - glob: ./PACKAGES/*.deb
+    - glob: ./PACKAGES/*.rpm
 dist: dist
+sboms:
+  - artifacts: archive
 signs:
-  -
-    cmd: gpg
-    args:
-    - --output
-    - $signature
-    - --detach-sig
-    - $artifact
-    signature: ${artifact}.sig
-    artifacts: none
+  - cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args: ["sign-blob", "--bundle=${signature}", "${artifact}", "--yes"]
+    artifacts: checksum
 dockers:
   - ids:
       - centrifugo
@@ -82,9 +86,9 @@ dockers:
     goarch: amd64
     image_templates:
     - "centrifugo/centrifugo:{{ .Tag }}-amd64"
-    - "centrifugo/centrifugo:v{{ .Major }}-amd64"
-    - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-amd64"
-    - "centrifugo/centrifugo:latest-amd64"
+    - "{{ if not .Prerelease }}centrifugo/centrifugo:v{{ .Major }}-amd64{{ end }}"
+    - "{{ if not .Prerelease }}centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-amd64{{ end }}"
+    - "{{ if not .Prerelease }}centrifugo/centrifugo:latest-amd64{{ end }}"
     use: buildx
     build_flag_templates:
     - "--pull"
@@ -93,6 +97,10 @@ dockers:
     - "--label=org.opencontainers.image.revision={{.FullCommit}}"
     - "--label=org.opencontainers.image.version={{.Version}}"
     - "--label=org.opencontainers.image.source={{.GitURL}}"
+    - "--label=org.opencontainers.image.title=Centrifugo"
+    - "--label=org.opencontainers.image.description=Scalable real-time messaging server"
+    - "--label=org.opencontainers.image.url=https://centrifugal.dev"
+    - "--label=org.opencontainers.image.licenses=Apache-2.0"
     - "--platform=linux/amd64"
   - ids:
       - centrifugo
@@ -100,9 +108,9 @@ dockers:
     goarch: arm64
     image_templates:
     - "centrifugo/centrifugo:{{ .Tag }}-arm64v8"
-    - "centrifugo/centrifugo:v{{ .Major }}-arm64v8"
-    - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-arm64v8"
-    - "centrifugo/centrifugo:latest-arm64v8"
+    - "{{ if not .Prerelease }}centrifugo/centrifugo:v{{ .Major }}-arm64v8{{ end }}"
+    - "{{ if not .Prerelease }}centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-arm64v8{{ end }}"
+    - "{{ if not .Prerelease }}centrifugo/centrifugo:latest-arm64v8{{ end }}"
     use: buildx
     build_flag_templates:
     - "--pull"
@@ -111,21 +119,29 @@ dockers:
     - "--label=org.opencontainers.image.revision={{.FullCommit}}"
     - "--label=org.opencontainers.image.version={{.Version}}"
     - "--label=org.opencontainers.image.source={{.GitURL}}"
+    - "--label=org.opencontainers.image.title=Centrifugo"
+    - "--label=org.opencontainers.image.description=Scalable real-time messaging server"
+    - "--label=org.opencontainers.image.url=https://centrifugal.dev"
+    - "--label=org.opencontainers.image.licenses=Apache-2.0"
     - "--platform=linux/arm64/v8"
 docker_manifests:
+  # Floating tags (latest, vX, vX.Y) are not pushed for pre-releases (skip_push: auto).
   - name_template: centrifugo/centrifugo:{{ .Tag }}
     image_templates:
       - centrifugo/centrifugo:{{ .Tag }}-arm64v8
       - centrifugo/centrifugo:{{ .Tag }}-amd64
   - name_template: centrifugo/centrifugo:v{{ .Major }}
+    skip_push: auto
     image_templates:
       - centrifugo/centrifugo:{{ .Tag }}-arm64v8
       - centrifugo/centrifugo:{{ .Tag }}-amd64
   - name_template: centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}
+    skip_push: auto
     image_templates:
       - centrifugo/centrifugo:{{ .Tag }}-arm64v8
       - centrifugo/centrifugo:{{ .Tag }}-amd64
   - name_template: centrifugo/centrifugo:latest
+    skip_push: auto
     image_templates:
       - centrifugo/centrifugo:{{ .Tag }}-arm64v8
       - centrifugo/centrifugo:{{ .Tag }}-amd64

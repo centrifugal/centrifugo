@@ -3,6 +3,9 @@ package build
 // Version of server. Set to tag in CI during release.
 var Version = "0.0.0"
 
+// ReleaseTime will be set to current UNIX timestamp string on build.
+var ReleaseTime string
+
 // UsageStatsEndpoint is where we send stats. Set in CI during release.
 var UsageStatsEndpoint string
 

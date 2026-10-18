@@ -36,17 +36,17 @@ packagecloud:
 
 packagecloud-deb:
 	# PACKAGECLOUD_TOKEN env must be set
-	package_cloud push FZambia/centrifugo/debian/buster PACKAGES/*.deb
-	package_cloud push FZambia/centrifugo/debian/bullseye PACKAGES/*.deb
-	package_cloud push FZambia/centrifugo/debian/bookworm PACKAGES/*.deb
+	package_cloud push --skip-duplicates FZambia/centrifugo/debian/buster PACKAGES/*.deb
+	package_cloud push --skip-duplicates FZambia/centrifugo/debian/bullseye PACKAGES/*.deb
+	package_cloud push --skip-duplicates FZambia/centrifugo/debian/bookworm PACKAGES/*.deb
 
-	package_cloud push FZambia/centrifugo/ubuntu/focal PACKAGES/*.deb
-	package_cloud push FZambia/centrifugo/ubuntu/jammy PACKAGES/*.deb
-	package_cloud push FZambia/centrifugo/ubuntu/noble PACKAGES/*.deb
+	package_cloud push --skip-duplicates FZambia/centrifugo/ubuntu/focal PACKAGES/*.deb
+	package_cloud push --skip-duplicates FZambia/centrifugo/ubuntu/jammy PACKAGES/*.deb
+	package_cloud push --skip-duplicates FZambia/centrifugo/ubuntu/noble PACKAGES/*.deb
 
 packagecloud-rpm:
 	# PACKAGECLOUD_TOKEN env must be set
-	package_cloud push FZambia/centrifugo/el/7 PACKAGES/*.rpm
+	package_cloud push --skip-duplicates FZambia/centrifugo/el/7 PACKAGES/*.rpm
 
 update-deps:
 	./misc/scripts/update-deps.sh

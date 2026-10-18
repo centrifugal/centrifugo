@@ -8,6 +8,7 @@ centrifugo
 /config.*.toml
 BUILDS
 PACKAGES
+/dist/
 FlameGraph
 torch.svg
 protoc-3*
