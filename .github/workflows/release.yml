@@ -102,6 +102,8 @@ jobs:
         with:
           image: tonistiigi/binfmt:qemu-v10.2.3
           platforms: all
+          # The image runs privileged in a job which can sign releases, don't restore it from cache.
+          cache-image: false
 
       - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v4
