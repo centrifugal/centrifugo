@@ -2,9 +2,7 @@ package redisiam
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/base64"
-	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -102,13 +100,6 @@ func azureReauthTime(expiresOn time.Time, now time.Time) time.Time {
 	ratio := azureReauthRatioMin + randFloat64()*(azureReauthRatioMax-azureReauthRatioMin)
 	reauthAt := now.Add(time.Duration(float64(expiresOn.Sub(now)) * ratio))
 	return clampReauthTime(reauthAt, expiresOn, now)
-}
-
-// randFloat64 returns a random float64 in [0, 1).
-func randFloat64() float64 {
-	var b [8]byte
-	_, _ = rand.Read(b[:]) // Never returns an error.
-	return float64(binary.LittleEndian.Uint64(b[:])>>11) / (1 << 53)
 }
 
 // clampReauthTime makes sure re-authentication happens before the expiry deadline,

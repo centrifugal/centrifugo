@@ -4,6 +4,8 @@ package redisiam
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"net/http"
@@ -37,13 +39,20 @@ const (
 	// awsTokenExpiry is the validity of ElastiCache IAM auth token, ElastiCache
 	// does not accept tokens valid for longer than 15 minutes.
 	awsTokenExpiry = 15 * time.Minute
-	// awsReauthInterval must be less than 12 hours – ElastiCache disconnects IAM
-	// authenticated connections after 12 hours unless they re-authenticate.
-	awsReauthInterval = time.Hour
+	// Re-authentication interval must be less than 12 hours – ElastiCache disconnects
+	// IAM authenticated connections after 12 hours unless they re-authenticate. Random
+	// interval in range staggers AUTH commands of connections established together.
+	awsReauthIntervalMin = 50 * time.Minute
+	awsReauthIntervalMax = time.Hour
 	// emptyPayloadHash is hex encoded SHA256 of an empty payload.
 	emptyPayloadHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
 	gcpAuthScope = "https://www.googleapis.com/auth/cloud-platform"
+
+	// credentialsTimeout bounds getting cloud credentials and tokens. Not Redis connect_timeout:
+	// getting credentials for the first time (e.g. from instance metadata or an identity
+	// endpoint) may take longer than establishing a Redis connection.
+	credentialsTimeout = 10 * time.Second
 )
 
 // NewProvider returns Provider for the IAM auth configured in redisConf, or nil
@@ -67,20 +76,16 @@ func NewProvider(ctx context.Context, redisConf configtypes.Redis) (Provider, er
 	if redisConf.Password != "" {
 		return nil, errors.New("password must not be set when Redis IAM auth is enabled")
 	}
-	timeout := redisConf.ConnectTimeout.ToDuration()
-	if timeout <= 0 {
-		timeout = time.Second
-	}
 	if awsConf.Enabled {
-		return newAWSProvider(ctx, redisConf.User, awsConf, timeout)
+		return newAWSProvider(ctx, redisConf.User, awsConf)
 	}
 	if azureConf.Enabled {
-		return newAzureProvider(redisConf.User, timeout)
+		return newAzureProvider(redisConf.User, credentialsTimeout)
 	}
 	return newGCPProvider(redisConf.User)
 }
 
-func newAWSProvider(ctx context.Context, user string, conf configtypes.RedisAWSIAMAuth, timeout time.Duration) (Provider, error) {
+func newAWSProvider(ctx context.Context, user string, conf configtypes.RedisAWSIAMAuth) (Provider, error) {
 	if user == "" {
 		return nil, errors.New("aws_iam_auth requires user to be set to the ElastiCache IAM-enabled user ID")
 	}
@@ -102,8 +107,11 @@ func newAWSProvider(ctx context.Context, user string, conf configtypes.RedisAWSI
 	if awsCfg.Region == "" {
 		return nil, errors.New("aws_iam_auth: AWS region not set, configure region or AWS_REGION")
 	}
-	if awsCfg.Credentials == nil {
-		return nil, errors.New("aws_iam_auth: no AWS credentials found")
+	// Fail fast if no AWS credentials available.
+	retrieveCtx, cancel := context.WithTimeout(ctx, credentialsTimeout)
+	defer cancel()
+	if _, err := awsCfg.Credentials.Retrieve(retrieveCtx); err != nil {
+		return nil, fmt.Errorf("aws_iam_auth: retrieve AWS credentials: %w", err)
 	}
 	tokenGenerator := &awsTokenGenerator{
 		credentials: awsCfg.Credentials,
@@ -115,7 +123,7 @@ func newAWSProvider(ctx context.Context, user string, conf configtypes.RedisAWSI
 		serverless: serverless,
 	}
 	return func() (Credentials, error) {
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := context.WithTimeout(context.Background(), credentialsTimeout)
 		defer cancel()
 		token, err := tokenGenerator.token(ctx, time.Now())
 		if err != nil {
@@ -124,9 +132,13 @@ func newAWSProvider(ctx context.Context, user string, conf configtypes.RedisAWSI
 		return Credentials{
 			Username:     user,
 			Password:     token,
-			RefreshAfter: time.Now().Add(awsReauthInterval),
+			RefreshAfter: time.Now().Add(awsReauthInterval()),
 		}, nil
 	}, nil
+}
+
+func awsReauthInterval() time.Duration {
+	return awsReauthIntervalMin + time.Duration(randFloat64()*float64(awsReauthIntervalMax-awsReauthIntervalMin))
 }
 
 type awsTokenGenerator struct {
@@ -172,13 +184,15 @@ func (g *awsTokenGenerator) token(ctx context.Context, now time.Time) (string, e
 
 func newGCPProvider(user string) (Provider, error) {
 	// Token source context is used for all future token refreshes, so it must not be canceled.
-	ts, err := google.DefaultTokenSource(context.Background(), gcpAuthScope)
+	// Token requests are bounded by the HTTP client timeout instead.
+	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, &http.Client{Timeout: credentialsTimeout})
+	ts, err := google.DefaultTokenSource(ctx, gcpAuthScope)
 	if err != nil {
 		return nil, fmt.Errorf("find Google Cloud default credentials for Redis IAM auth: %w", err)
 	}
 	// Memorystore validates the token only when a connection authenticates, established
 	// connections keep working after the token expires – so no re-authentication is scheduled.
-	return newGCPTokenSourceProvider(user, oauth2.ReuseTokenSource(nil, ts)), nil
+	return newGCPTokenSourceProvider(user, ts), nil
 }
 
 func newGCPTokenSourceProvider(user string, ts oauth2.TokenSource) Provider {
@@ -189,4 +203,11 @@ func newGCPTokenSourceProvider(user string, ts oauth2.TokenSource) Provider {
 		}
 		return Credentials{Username: user, Password: token.AccessToken}, nil
 	}
+}
+
+// randFloat64 returns a random float64 in [0, 1).
+func randFloat64() float64 {
+	var b [8]byte
+	_, _ = rand.Read(b[:]) // Never returns an error.
+	return float64(binary.LittleEndian.Uint64(b[:])>>11) / (1 << 53)
 }

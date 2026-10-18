@@ -125,8 +125,34 @@ func TestAWSProvider(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "iam-user-01", creds.Username)
 	require.True(t, strings.HasPrefix(creds.Password, "my-cache/?"), creds.Password)
-	require.False(t, creds.RefreshAfter.Before(before.Add(awsReauthInterval)))
+	require.False(t, creds.RefreshAfter.Before(before.Add(awsReauthIntervalMin)))
 	require.True(t, creds.RefreshAfter.Before(before.Add(12*time.Hour)))
+}
+
+func TestAWSProviderNoCredentials(t *testing.T) {
+	t.Setenv("AWS_ACCESS_KEY_ID", "")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "")
+	t.Setenv("AWS_PROFILE", "")
+	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", t.TempDir()+"/credentials")
+	t.Setenv("AWS_CONFIG_FILE", t.TempDir()+"/config")
+	t.Setenv("AWS_EC2_METADATA_DISABLED", "true")
+	t.Setenv("AWS_CONTAINER_CREDENTIALS_FULL_URI", "")
+	t.Setenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI", "")
+	t.Setenv("AWS_WEB_IDENTITY_TOKEN_FILE", "")
+
+	_, err := NewProvider(context.Background(), configtypes.Redis{
+		User:       "iam-user-01",
+		AWSIAMAuth: configtypes.RedisAWSIAMAuth{Enabled: true, ReplicationGroupID: "group", Region: "us-east-1"},
+	})
+	require.ErrorContains(t, err, "retrieve AWS credentials")
+}
+
+func TestAWSReauthInterval(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		interval := awsReauthInterval()
+		require.GreaterOrEqual(t, interval, awsReauthIntervalMin)
+		require.Less(t, interval, awsReauthIntervalMax)
+	}
 }
 
 func TestAWSTokenGenerator(t *testing.T) {
