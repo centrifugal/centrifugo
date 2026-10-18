@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/redisiam"
+
 	"github.com/redis/rueidis"
 )
 
@@ -87,6 +89,20 @@ func NewRedisShard(conf RedisShardConfig) (*RedisShard, error) {
 			// bound against a blackholed connection.
 			KeepAlive: 400 * time.Millisecond,
 		},
+	}
+
+	if conf.CredentialsProvider != nil {
+		options.AuthCredentialsFn = func(_ rueidis.AuthCredentialsContext) (rueidis.AuthCredentials, error) {
+			creds, err := conf.CredentialsProvider()
+			if err != nil {
+				return rueidis.AuthCredentials{}, err
+			}
+			return rueidis.AuthCredentials{
+				Username:     creds.Username,
+				Password:     creds.Password,
+				RefreshAfter: creds.RefreshAfter,
+			}, nil
+		}
 	}
 
 	var isCluster bool
@@ -394,6 +410,10 @@ type RedisShardConfig struct {
 	// be initialized with the same options as the main client but with ReplicaOnly option
 	// set to true.
 	ReplicaClientEnabled bool
+
+	// CredentialsProvider is an optional function to dynamically provide auth credentials
+	// for each new connection (used for cloud IAM auth). Overrides User and Password.
+	CredentialsProvider redisiam.Provider
 }
 
 func (s *RedisShard) Close() {

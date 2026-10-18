@@ -1,11 +1,13 @@
 package confighelpers
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strings"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/redisiam"
 
 	"github.com/centrifugal/centrifuge"
 )
@@ -34,7 +36,7 @@ func CentrifugeRedisPresenceManager(n *centrifuge.Node, prefix string, shards []
 	return centrifuge.NewRedisPresenceManager(n, presenceManagerConfig)
 }
 
-func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig, redisConf configtypes.Redis) error {
+func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig, redisConf configtypes.Redis, credentialsProvider redisiam.Provider) error {
 	shardConf.DB = redisConf.DB
 	shardConf.User = redisConf.User
 	shardConf.Password = redisConf.Password
@@ -50,11 +52,29 @@ func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig, redisCo
 	shardConf.ConnectTimeout = redisConf.ConnectTimeout.ToDuration()
 	shardConf.IOTimeout = redisConf.IOTimeout.ToDuration()
 	shardConf.ForceRESP2 = redisConf.ForceResp2
+	if credentialsProvider != nil {
+		shardConf.AuthCredentialsFn = func(_ centrifuge.RedisAuthCredentialsContext) (centrifuge.RedisAuthCredentials, error) {
+			creds, err := credentialsProvider()
+			if err != nil {
+				return centrifuge.RedisAuthCredentials{}, err
+			}
+			return centrifuge.RedisAuthCredentials{
+				Username:     creds.Username,
+				Password:     creds.Password,
+				RefreshAfter: creds.RefreshAfter,
+			}, nil
+		}
+	}
 	return nil
 }
 
 func getRedisShardConfigs(redisConf configtypes.Redis) ([]centrifuge.RedisShardConfig, error) {
 	var shardConfigs []centrifuge.RedisShardConfig
+
+	credentialsProvider, err := redisiam.NewProvider(context.Background(), redisConf)
+	if err != nil {
+		return nil, fmt.Errorf("error configuring Redis IAM auth: %w", err)
+	}
 
 	clusterShards := redisConf.ClusterAddress
 	var useCluster bool
@@ -73,7 +93,7 @@ func getRedisShardConfigs(redisConf configtypes.Redis) ([]centrifuge.RedisShardC
 			conf := &centrifuge.RedisShardConfig{
 				ClusterAddresses: clusterAddresses,
 			}
-			if err := addRedisShardCommonSettings(conf, redisConf); err != nil {
+			if err := addRedisShardCommonSettings(conf, redisConf, credentialsProvider); err != nil {
 				return nil, err
 			}
 			shardConfigs = append(shardConfigs, *conf)
@@ -98,7 +118,7 @@ func getRedisShardConfigs(redisConf configtypes.Redis) ([]centrifuge.RedisShardC
 			conf := &centrifuge.RedisShardConfig{
 				SentinelAddresses: sentinelAddresses,
 			}
-			if err := addRedisShardCommonSettings(conf, redisConf); err != nil {
+			if err := addRedisShardCommonSettings(conf, redisConf, credentialsProvider); err != nil {
 				return nil, err
 			}
 			conf.SentinelUser = redisConf.SentinelUser
@@ -128,7 +148,7 @@ func getRedisShardConfigs(redisConf configtypes.Redis) ([]centrifuge.RedisShardC
 		conf := &centrifuge.RedisShardConfig{
 			Address: redisAddress,
 		}
-		if err := addRedisShardCommonSettings(conf, redisConf); err != nil {
+		if err := addRedisShardCommonSettings(conf, redisConf, credentialsProvider); err != nil {
 			return nil, err
 		}
 		shardConfigs = append(shardConfigs, *conf)

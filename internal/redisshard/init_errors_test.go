@@ -31,3 +31,12 @@ func TestGetRedisShardConfigs_BadTLS(t *testing.T) {
 	_, err = getRedisShardConfigs(conf)
 	require.Error(t, err)
 }
+
+// Invalid IAM auth configuration is an error.
+func TestGetRedisShardConfigs_BadIAMAuth(t *testing.T) {
+	_, err := getRedisShardConfigs(configtypes.Redis{
+		Address:    []string{"127.0.0.1:6379"},
+		AWSIAMAuth: configtypes.RedisAWSIAMAuth{Enabled: true, ReplicationGroupID: "cache", Region: "us-east-1"},
+	})
+	require.ErrorContains(t, err, "requires user")
+}
