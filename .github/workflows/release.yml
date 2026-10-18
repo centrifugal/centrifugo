@@ -2,35 +2,114 @@ name: release
 on:
   push:
     tags:
-      - '*'
+      - 'v*'
+# Publishing uses dedicated secrets, the default token only needs to read the repository.
+# id-token is required for keyless signing of release artifacts with cosign. Every step
+# can request it, so actions from outside GitHub and Docker are pinned by commit SHA.
+permissions:
+  contents: read
+  id-token: write
+# One release run per tag at a time, a running release is never cancelled.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   release:
     name: Release with Go ${{ matrix.go-version }}
     environment: release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
     strategy:
       matrix:
         go-version: [1.27.2]
+    env:
+      # Fail instead of silently downloading another Go toolchain.
+      GOTOOLCHAIN: local
+      # Certificate identity of keyless signatures, users verify against it.
+      SIGNING_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/release.yml@${{ github.ref }}
     steps:
+      # Release builds need more disk space than the runner has free. Remove large
+      # preinstalled toolchains which are not used here.
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup
+          df -h /
+
       - name: Install Go
         uses: actions/setup-go@v7
         with:
           go-version: ${{ matrix.go-version }}
-
-      - uses: bufbuild/buf-setup-action@v1
-        with:
-          version: "1.34.0"
+          # No dependency cache in the release job to avoid cache poisoning.
+          cache: false
 
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # Repository-specific release settings.
+      - name: Load release settings
+        run: grep -E '^[A-Z_]+=' misc/release/release.env >> "$GITHUB_ENV"
+
+      - name: Set the current date env
+        id: set_current_date
+        run: |
+          echo "UNIX_NOW=$( date +%s )" >> $GITHUB_ENV
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v3.1.3
+
+      - name: Install syft
+        uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          syft-version: v1.54.1
+
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
+        with:
+          version: v2.18.3
+          install-only: true
+
+      - name: Install buf
+        if: env.PUBLISH_PROTOBUF == 'true'
+        uses: bufbuild/buf-action@85aebf73123b5c15fd5528aaecbf9129cddf7fa7 # v1.6.0
+        with:
+          version: 1.74.0
+          setup_only: true
+
+      # Exit code 2 means a valid configuration that uses deprecated properties.
+      - name: Check GoReleaser configuration
+        run: goreleaser check || [ $? -eq 2 ]
+
+      # docker manifest create (used for multi-arch manifests) does not work with
+      # the containerd image store, which is the default since Docker 29.
+      - name: Use classic Docker image store
+        run: |
+          if docker info -f '{{range .DriverStatus}}{{.}}{{end}}' | grep -q io.containerd.snapshotter; then
+            cfg=/etc/docker/daemon.json
+            [ -s "$cfg" ] || echo '{}' | sudo tee "$cfg" > /dev/null
+            sudo jq '.features["containerd-snapshotter"] = false' "$cfg" > /tmp/daemon.json
+            sudo mv /tmp/daemon.json "$cfg"
+            sudo systemctl restart docker
+          fi
+          docker info -f 'Docker {{.ServerVersion}}, storage driver {{.Driver}}'
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
         with:
+          image: tonistiigi/binfmt:qemu-v10.2.3
           platforms: all
+          # The image runs privileged in a job which can sign releases, don't restore it from cache.
+          cache-image: false
 
       - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v4
+        with:
+          version: v0.38.0
+          driver-opts: image=moby/buildkit:v0.34.0
 
       - name: Login to Docker Hub
         uses: docker/login-action@v4
@@ -38,28 +117,67 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # Check everything needed for publishing before building, so that a
+      # release does not stop half-way.
+      - name: Preflight checks
+        env:
+          TAG: ${{ github.ref_name }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          PACKAGECLOUD_TOKEN: ${{ env.PACKAGECLOUD_REPO != '' && secrets.PACKAGECLOUD_TOKEN || '' }}
+          BUF_TOKEN: ${{ env.PUBLISH_PROTOBUF == 'true' && secrets.BUF_TOKEN || '' }}
+        run: misc/scripts/release_preflight.sh
+
       - name: Build DEB and RPM packages
         run: misc/scripts/release_package.sh
         env:
           STATS_ENDPOINT: ${{ secrets.STATS_ENDPOINT }}
           STATS_TOKEN: ${{ secrets.STATS_TOKEN }}
 
+      # GitHub release is created as a draft. If a later step fails, the job can
+      # be re-run: the draft is replaced and the other publishing steps are idempotent.
       - name: Release on Github
-        uses: goreleaser/goreleaser-action@v5
-        with:
-          version: latest
-          args: release --rm-dist --release-notes=misc/release/notes.md
+        id: release
+        run: goreleaser release --timeout 60m --clean --release-notes="$RELEASE_NOTES"
         env:
           # note custom secret here since we need access to Centrifugo Homebrew repo.
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          UNIX_NOW: ${{ env.UNIX_NOW }}
           STATS_ENDPOINT: ${{ secrets.STATS_ENDPOINT }}
           STATS_TOKEN: ${{ secrets.STATS_TOKEN }}
 
+      - name: Sign Docker images
+        run: misc/scripts/cosign_images.sh sign
+
+      # Check signatures the same way users verify them.
+      - name: Verify signatures
+        id: verify
+        env:
+          ISSUER: https://token.actions.githubusercontent.com
+        run: |
+          cosign verify-blob --certificate-identity "$SIGNING_IDENTITY" --certificate-oidc-issuer "$ISSUER" \
+            --bundle dist/*_checksums.txt.sigstore.json dist/*_checksums.txt
+          misc/scripts/cosign_images.sh verify --certificate-identity "$SIGNING_IDENTITY" --certificate-oidc-issuer "$ISSUER"
+
+      # The steps below publish to other services. Each runs when the release was
+      # published and its signatures verified, independently of the others.
+
+      # Every release is labeled with its version. The main label, which documentation
+      # links to, is moved by stable releases only.
+      - name: Push Protobuf definitions to Buf Schema Registry
+        if: ${{ !cancelled() && steps.verify.outcome == 'success' && env.PUBLISH_PROTOBUF == 'true' }}
+        env:
+          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          SOURCE_URL: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
+          STABLE: ${{ !contains(github.ref_name, '-') }}
+        run: |
+          set -- --label "$TAG"
+          if [ "$STABLE" = true ]; then set -- "$@" --label main; fi
+          buf push --error-format github-actions --source-control-url "$SOURCE_URL" "$@"
+
+      # Pre-releases (tags with a suffix, e.g. v6.11.0-rc.1) are not published to package repositories.
       - name: Release on Packagecloud
+        if: ${{ !cancelled() && steps.verify.outcome == 'success' && env.PACKAGECLOUD_REPO != '' && !contains(github.ref_name, '-') }}
         env:
           PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN }}
         run: misc/scripts/release_packagecloud.sh
-
-      - uses: bufbuild/buf-push-action@v1
-        with:
-          buf_token: ${{ secrets.BUF_TOKEN }}

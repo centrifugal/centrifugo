@@ -55,5 +55,7 @@ Most setups need no changes. Please check this list before upgrading:
 ### Miscellaneous
 
 * This release is built with Go 1.27.2.
+* Signed releases and SBOMs. Release artifacts are signed with Sigstore cosign keyless signing in the GitHub Actions release workflow. The checksums file covers release archives, DEB and RPM packages and SBOMs, its signature is published next to it as `centrifugo_<version>_checksums.txt.sigstore.json`. Docker images are signed too. Every release archive comes with an SPDX SBOM (`<archive>.sbom.json`). See [how to verify release artifacts](https://centrifugal.dev/docs/getting-started/installation#verifying-release-artifacts).
+* Protobuf definitions in Buf Schema Registry are now also labeled with the release version, e.g. `buf.build/centrifugo/apiproto:v6.10.0`.
 * Dependency updates.
 * See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.10.0).
