@@ -45,10 +45,10 @@ jobs:
           STATS_TOKEN: ${{ secrets.STATS_TOKEN }}
 
       - name: Release on Github
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v7
         with:
-          version: latest
-          args: release --rm-dist --release-notes=misc/release/notes.md
+          version: v2.18.3
+          args: release --clean --release-notes=misc/release/notes.md
         env:
           # note custom secret here since we need access to Centrifugo Homebrew repo.
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}

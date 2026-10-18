@@ -1,3 +1,5 @@
+version: 2
+
 project_name: centrifugo
 release:
   github:
@@ -12,10 +14,10 @@ release:
     - glob: ./PACKAGES/*.txt
 brews:
   -
-    tap:
+    repository:
       owner: centrifugal
       name: homebrew-centrifugo
-    folder: Formula
+    directory: Formula
     description: "Scalable real-time messaging server in a language-agnostic way"
     commit_author:
       name: Alexander Emelin
@@ -52,14 +54,14 @@ builds:
 archives:
   - id: centrifugo
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
-    format: tar.gz
+    formats: [tar.gz]
     files:
     - LICENSE*
     - README*
     - CHANGELOG*
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
 dist: dist
