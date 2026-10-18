@@ -1,0 +1,79 @@
+name: release-check
+# Builds a snapshot release with the same tools as the release workflow, without
+# publishing or signing anything. Run it by pushing a release-check/* branch, or manually.
+on:
+  push:
+    branches:
+      - 'release-check/**'
+  workflow_dispatch:
+# No secrets and no id-token: this workflow can not publish or sign.
+permissions:
+  contents: read
+concurrency:
+  group: release-check-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    name: Snapshot release build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      GOTOOLCHAIN: local
+      # Release builds require these, real values are only used in the release workflow.
+      STATS_ENDPOINT: https://stats.invalid
+      STATS_TOKEN: dummy
+    steps:
+      # Keep tool versions in sync with release.yml.
+      - name: Install Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: 1.27.2
+          cache: false
+
+      # Full history with tags, packages are versioned with git describe.
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set the current date env
+        run: |
+          echo "UNIX_NOW=$( date +%s )" >> $GITHUB_ENV
+
+      - name: Install syft
+        uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          syft-version: v1.54.1
+
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
+        with:
+          version: v2.18.3
+          install-only: true
+
+      # Exit code 2 means a valid configuration that uses deprecated properties.
+      - name: Check GoReleaser configuration
+        run: goreleaser check || [ $? -eq 2 ]
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+        with:
+          image: tonistiigi/binfmt:qemu-v10.2.3
+          platforms: all
+
+      - name: Set up Docker buildx
+        uses: docker/setup-buildx-action@v4
+        with:
+          version: v0.38.0
+          driver-opts: image=moby/buildkit:v0.34.0
+
+      - name: Build DEB and RPM packages
+        run: misc/scripts/release_package.sh
+
+      # Snapshot mode never publishes: no GitHub release, no image push, no Homebrew.
+      - name: Snapshot release build
+        run: goreleaser release --snapshot --clean --skip=publish,announce,sign
+
+      - name: Check release output
+        run: misc/scripts/release_check.sh
