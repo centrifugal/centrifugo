@@ -1,11 +1,13 @@
 package redisshard
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strings"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/redisiam"
 )
 
 func BuildRedisShards(redisConf configtypes.Redis) ([]*RedisShard, error) {
@@ -25,7 +27,7 @@ func BuildRedisShards(redisConf configtypes.Redis) ([]*RedisShard, error) {
 	return redisShards, nil
 }
 
-func addRedisShardCommonSettings(shardConf *RedisShardConfig, redisConf configtypes.Redis) error {
+func addRedisShardCommonSettings(shardConf *RedisShardConfig, redisConf configtypes.Redis, credentialsProvider redisiam.Provider) error {
 	shardConf.DB = redisConf.DB
 	shardConf.User = redisConf.User
 	shardConf.Password = redisConf.Password
@@ -40,12 +42,18 @@ func addRedisShardCommonSettings(shardConf *RedisShardConfig, redisConf configty
 	shardConf.ConnectTimeout = redisConf.ConnectTimeout.ToDuration()
 	shardConf.IOTimeout = redisConf.IOTimeout.ToDuration()
 	shardConf.ForceRESP2 = redisConf.ForceResp2
+	shardConf.CredentialsProvider = credentialsProvider
 	shardConf.ReplicaClientEnabled = redisConf.ReplicaClient.Enabled
 	return nil
 }
 
 func getRedisShardConfigs(redisConf configtypes.Redis) ([]RedisShardConfig, error) {
 	var shardConfigs []RedisShardConfig
+
+	credentialsProvider, err := redisiam.NewProvider(context.Background(), redisConf)
+	if err != nil {
+		return nil, fmt.Errorf("error configuring Redis IAM auth: %w", err)
+	}
 
 	clusterShards := redisConf.ClusterAddress
 	var useCluster bool
@@ -64,7 +72,7 @@ func getRedisShardConfigs(redisConf configtypes.Redis) ([]RedisShardConfig, erro
 			conf := &RedisShardConfig{
 				ClusterAddresses: clusterAddresses,
 			}
-			if err := addRedisShardCommonSettings(conf, redisConf); err != nil {
+			if err := addRedisShardCommonSettings(conf, redisConf, credentialsProvider); err != nil {
 				return nil, err
 			}
 			shardConfigs = append(shardConfigs, *conf)
@@ -89,7 +97,7 @@ func getRedisShardConfigs(redisConf configtypes.Redis) ([]RedisShardConfig, erro
 			conf := &RedisShardConfig{
 				SentinelAddresses: sentinelAddresses,
 			}
-			if err := addRedisShardCommonSettings(conf, redisConf); err != nil {
+			if err := addRedisShardCommonSettings(conf, redisConf, credentialsProvider); err != nil {
 				return nil, err
 			}
 			conf.SentinelUser = redisConf.SentinelUser
@@ -121,7 +129,7 @@ func getRedisShardConfigs(redisConf configtypes.Redis) ([]RedisShardConfig, erro
 		conf := &RedisShardConfig{
 			Address: redisAddress,
 		}
-		if err := addRedisShardCommonSettings(conf, redisConf); err != nil {
+		if err := addRedisShardCommonSettings(conf, redisConf, credentialsProvider); err != nil {
 			return nil, err
 		}
 		shardConfigs = append(shardConfigs, *conf)

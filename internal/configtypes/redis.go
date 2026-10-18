@@ -42,6 +42,12 @@ type Redis struct {
 	SentinelTLS TLSConfig `mapstructure:"sentinel_tls" json:"sentinel_tls" envconfig:"sentinel_tls" yaml:"sentinel_tls" toml:"sentinel_tls" doc:"TLS configuration for connections to Redis Sentinel."`
 	// ReplicaClient is a configuration for Redis replica client.
 	ReplicaClient RedisReplicaClient `mapstructure:"replica_client" json:"replica_client" envconfig:"replica_client" yaml:"replica_client" toml:"replica_client" doc:"Configuration of a Redis replica client to offload read operations to replicas."`
+	// AWSIAMAuth enables AWS IAM authentication for Amazon ElastiCache (Valkey or Redis OSS).
+	AWSIAMAuth RedisAWSIAMAuth `mapstructure:"aws_iam_auth" json:"aws_iam_auth" envconfig:"aws_iam_auth" yaml:"aws_iam_auth" toml:"aws_iam_auth" doc:"AWS IAM authentication for Amazon ElastiCache (Valkey or Redis OSS)."`
+	// GCPIAMAuth enables Google Cloud IAM authentication for Memorystore (Valkey or Redis Cluster).
+	GCPIAMAuth RedisGCPIAMAuth `mapstructure:"gcp_iam_auth" json:"gcp_iam_auth" envconfig:"gcp_iam_auth" yaml:"gcp_iam_auth" toml:"gcp_iam_auth" doc:"Google Cloud IAM authentication for Memorystore (Valkey or Redis Cluster)."`
+	// AzureEntraAuth enables Microsoft Entra ID authentication for Azure Managed Redis and Azure Cache for Redis.
+	AzureEntraAuth RedisAzureEntraAuth `mapstructure:"azure_entra_auth" json:"azure_entra_auth" envconfig:"azure_entra_auth" yaml:"azure_entra_auth" toml:"azure_entra_auth" doc:"Microsoft Entra ID authentication for Azure Managed Redis and Azure Cache for Redis."`
 }
 
 type RedisPrefixed struct {
@@ -61,4 +67,38 @@ type RedisEmptyPrefixed struct {
 type RedisReplicaClient struct {
 	// Enabled enables replica client.
 	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled" doc:"Enables a separate Redis replica client so read operations can be served from replicas."`
+}
+
+// RedisAWSIAMAuth configures AWS IAM authentication for Amazon ElastiCache. Centrifugo generates
+// short-lived IAM auth tokens using AWS credentials from the default AWS SDK chain (environment,
+// shared config, ECS task role, EC2 instance metadata, etc.) and uses them as a Redis password.
+// The Redis user must be set to the ElastiCache IAM-enabled user ID.
+type RedisAWSIAMAuth struct {
+	// Enabled enables AWS IAM authentication.
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled" doc:"Enables AWS IAM authentication for Amazon ElastiCache. Requires <<user>> to be set to the IAM-enabled ElastiCache user ID, TLS must be enabled on the cache."`
+	// ReplicationGroupID of a node-based ElastiCache cache. Exactly one of ReplicationGroupID
+	// and ServerlessCacheName must be set.
+	ReplicationGroupID string `mapstructure:"replication_group_id" json:"replication_group_id" envconfig:"replication_group_id" yaml:"replication_group_id" toml:"replication_group_id" expose:"full" doc:"Replication group ID of a node-based ElastiCache cache. Set either this or <<serverless_cache_name>>."`
+	// ServerlessCacheName of an ElastiCache Serverless cache. Exactly one of ReplicationGroupID
+	// and ServerlessCacheName must be set.
+	ServerlessCacheName string `mapstructure:"serverless_cache_name" json:"serverless_cache_name" envconfig:"serverless_cache_name" yaml:"serverless_cache_name" toml:"serverless_cache_name" expose:"full" doc:"Name of an ElastiCache Serverless cache. Set either this or <<replication_group_id>>."`
+	// Region is the AWS region of the cache. If empty, the region from the default AWS SDK chain is used.
+	Region string `mapstructure:"region" json:"region" envconfig:"region" yaml:"region" toml:"region" expose:"full" doc:"AWS region of the cache. If empty, the region is resolved from the default AWS SDK chain (e.g. <<AWS_REGION>>)."`
+}
+
+// RedisGCPIAMAuth configures Google Cloud IAM authentication for Memorystore. Centrifugo obtains
+// OAuth2 access tokens using Google Cloud Application Default Credentials (ADC) and uses them
+// as a Redis password.
+type RedisGCPIAMAuth struct {
+	// Enabled enables Google Cloud IAM authentication.
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled" doc:"Enables Google Cloud IAM authentication for Memorystore using Application Default Credentials (ADC)."`
+}
+
+// RedisAzureEntraAuth configures Microsoft Entra ID authentication for Azure Managed Redis and
+// Azure Cache for Redis. Centrifugo obtains access tokens using DefaultAzureCredential (environment,
+// workload identity, managed identity, etc.), uses them as a Redis password and re-authenticates
+// established connections before the token expires.
+type RedisAzureEntraAuth struct {
+	// Enabled enables Microsoft Entra ID authentication.
+	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled" doc:"Enables Microsoft Entra ID authentication using DefaultAzureCredential. If <<user>> is empty, the object ID from the access token is used as a username."`
 }

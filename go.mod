@@ -4,6 +4,7 @@ go 1.27.0
 
 require (
 	cloud.google.com/go/pubsub/v2 v2.7.0
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.23.3
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.15.0
 	github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus v1.11.0
 	github.com/FZambia/eagle v0.2.0
@@ -14,7 +15,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.52.4
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.4
 	github.com/aws/smithy-go v1.28.5
-	github.com/centrifugal/centrifuge v0.39.4-0.20261017124940-ff1b06d69a75
+	github.com/centrifugal/centrifuge v0.40.1-0.20261018141521-7ac037196c95
 	github.com/centrifugal/protocol v0.23.1
 	github.com/cristalhq/jwt/v5 v5.4.0
 	github.com/go-viper/mapstructure/v2 v2.5.0
@@ -73,7 +74,6 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.3.0 // indirect
 	cloud.google.com/go/compute/metadata v0.10.0 // indirect
 	cloud.google.com/go/iam v1.14.0 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.23.3 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.13.0 // indirect
 	github.com/Azure/go-amqp v1.7.0 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.10.1 // indirect

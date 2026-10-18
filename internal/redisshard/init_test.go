@@ -1,6 +1,7 @@
 package redisshard
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
@@ -46,5 +47,26 @@ func TestGetRedisShardConfigsCommonSettings(t *testing.T) {
 			require.Equal(t, "centrifugo-consumer", conf.ClientName)
 			require.True(t, conf.ForceRESP2)
 		})
+	}
+}
+
+func TestGetRedisShardConfigsAWSIAMAuth(t *testing.T) {
+	t.Setenv("AWS_ACCESS_KEY_ID", "AKIDEXAMPLE")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "secret")
+
+	shardConfigs, err := getRedisShardConfigs(configtypes.Redis{
+		Address:    []string{"127.0.0.1:6379", "127.0.0.1:6380"},
+		User:       "iam-user-01",
+		AWSIAMAuth: configtypes.RedisAWSIAMAuth{Enabled: true, ReplicationGroupID: "cache-01", Region: "us-east-1"},
+	})
+	require.NoError(t, err)
+	require.Len(t, shardConfigs, 2)
+	for _, conf := range shardConfigs {
+		require.NotNil(t, conf.CredentialsProvider)
+		creds, err := conf.CredentialsProvider()
+		require.NoError(t, err)
+		require.Equal(t, "iam-user-01", creds.Username)
+		require.True(t, strings.HasPrefix(creds.Password, "cache-01/?Action=connect&User=iam-user-01&"))
+		require.False(t, creds.RefreshAfter.IsZero())
 	}
 }
