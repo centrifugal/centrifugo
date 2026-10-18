@@ -23,6 +23,14 @@ jobs:
       STATS_ENDPOINT: https://stats.invalid
       STATS_TOKEN: dummy
     steps:
+      # Release builds need more disk space than the runner has free. Remove large
+      # preinstalled toolchains which are not used here.
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup
+          df -h /
+
       # Keep tool versions in sync with release.yml.
       - name: Install Go
         uses: actions/setup-go@v7
