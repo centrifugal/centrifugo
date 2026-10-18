@@ -50,6 +50,9 @@ builds:
     - goos: freebsd
       goarch: arm64
   main: .
+  # Module paths instead of build machine paths in stack traces and profiles.
+  flags:
+    - -trimpath
   ldflags: -s -w -X github.com/centrifugal/centrifugo/v6/internal/build.Version={{.Version}} -X github.com/centrifugal/centrifugo/v6/internal/build.UsageStatsEndpoint={{ .Env.STATS_ENDPOINT }} -X github.com/centrifugal/centrifugo/v6/internal/build.UsageStatsToken={{ .Env.STATS_TOKEN }} -X github.com/centrifugal/centrifugo/v6/internal/build.ReleaseTime={{ .Env.UNIX_NOW }}
   binary: centrifugo
   env:
