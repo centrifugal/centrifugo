@@ -23,7 +23,14 @@ images=$(jq -r '.[] | select(.type == "Published Docker Image" or .type == "Dock
 for image in $images; do
   echo "$mode $image"
   if [ "$mode" = sign ]; then
-    cosign sign --yes "$@" "$image"
+    # Fetching the OIDC token for keyless signing fails occasionally, retry a few times.
+    attempt=1
+    until cosign sign --yes "$@" "$image"; do
+      [ "$attempt" -lt 3 ] || exit 1
+      attempt=$((attempt + 1))
+      echo "retrying sign $image (attempt $attempt)" >&2
+      sleep 10
+    done
   else
     cosign verify "$@" "$image" > /dev/null
   fi
