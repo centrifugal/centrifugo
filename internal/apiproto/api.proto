@@ -314,9 +314,11 @@ message PublishRequest {
     // tags is a map of arbitrary string keys and values attached to the
     // publication and delivered to clients.
     map<string, string> tags = 5;
-    // idempotency_key drops duplicate publications upon retries. It acts per
-    // channel; results are cached for 5 minutes. Supported only by Memory and
-    // Redis engines.
+    // idempotency_key drops duplicate publications upon retries: a
+    // publication with a key already used in the channel is not published
+    // again, and the first one's result is returned. It acts per channel;
+    // results are kept for 5 minutes by default. The memory, Redis and
+    // PostgreSQL brokers keep keys; the NATS broker ignores them.
     string idempotency_key = 6;
     // delta tells Centrifugo to construct a delta update, if possible, when
     // broadcasting the publication to subscribers.
@@ -363,7 +365,10 @@ message BroadcastRequest {
     // publication and delivered to clients.
     map<string, string> tags = 5;
     // idempotency_key drops duplicate publications upon retries. It acts per
-    // channel; results are cached for 5 minutes.
+    // channel: a broadcast retried with the same key is not published again
+    // into the channels which already have it. Results are kept for 5 minutes
+    // by default. The memory, Redis and PostgreSQL brokers keep keys; the
+    // NATS broker ignores them.
     string idempotency_key = 6;
     // delta tells Centrifugo to construct a delta update, if possible, when
     // broadcasting the publications to subscribers.
@@ -1784,8 +1789,12 @@ message MapPublishRequest {
     string b64stream_data = 6;
     // tags are key-value metadata attached to the publication.
     map<string, string> tags = 7;
-    // idempotency_key is a duplicate detection key for safe retries.
-    // Duplicates are suppressed in the result.
+    // idempotency_key drops duplicate publications upon retries: a
+    // publication with a key already used in the channel is not applied
+    // again, and its result has the first one's position, with suppressed
+    // set and suppress_reason "idempotency". It acts per channel; keys are
+    // kept for 5 minutes by default. Every map broker - memory, Redis and
+    // PostgreSQL - keeps keys.
     string idempotency_key = 8;
     // delta enables delta compression for this publication.
     bool delta = 9;
@@ -1831,7 +1840,10 @@ message MapRemoveRequest {
     string channel = 1;
     // key is the key to remove. Required.
     string key = 2;
-    // idempotency_key is a duplicate detection key for safe retries.
+    // idempotency_key drops duplicate removals upon retries, as it does for
+    // MapPublishRequest: a removal with a key already used in the channel is
+    // not applied again, and its result is suppressed with suppress_reason
+    // "idempotency". Keys are kept for 5 minutes by default.
     string idempotency_key = 3;
 }
 

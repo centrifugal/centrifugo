@@ -1041,9 +1041,11 @@ type PublishRequest struct {
 	// tags is a map of arbitrary string keys and values attached to the
 	// publication and delivered to clients.
 	Tags map[string]string `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// idempotency_key drops duplicate publications upon retries. It acts per
-	// channel; results are cached for 5 minutes. Supported only by Memory and
-	// Redis engines.
+	// idempotency_key drops duplicate publications upon retries: a
+	// publication with a key already used in the channel is not published
+	// again, and the first one's result is returned. It acts per channel;
+	// results are kept for 5 minutes by default. The memory, Redis and
+	// PostgreSQL brokers keep keys; the NATS broker ignores them.
 	IdempotencyKey string `protobuf:"bytes,6,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
 	// delta tells Centrifugo to construct a delta update, if possible, when
 	// broadcasting the publication to subscribers.
@@ -1280,7 +1282,10 @@ type BroadcastRequest struct {
 	// publication and delivered to clients.
 	Tags map[string]string `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// idempotency_key drops duplicate publications upon retries. It acts per
-	// channel; results are cached for 5 minutes.
+	// channel: a broadcast retried with the same key is not published again
+	// into the channels which already have it. Results are kept for 5 minutes
+	// by default. The memory, Redis and PostgreSQL brokers keep keys; the
+	// NATS broker ignores them.
 	IdempotencyKey string `protobuf:"bytes,6,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
 	// delta tells Centrifugo to construct a delta update, if possible, when
 	// broadcasting the publications to subscribers.
@@ -9471,8 +9476,12 @@ type MapPublishRequest struct {
 	B64StreamData string `protobuf:"bytes,6,opt,name=b64stream_data,json=b64streamData,proto3" json:"b64stream_data,omitempty"`
 	// tags are key-value metadata attached to the publication.
 	Tags map[string]string `protobuf:"bytes,7,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// idempotency_key is a duplicate detection key for safe retries.
-	// Duplicates are suppressed in the result.
+	// idempotency_key drops duplicate publications upon retries: a
+	// publication with a key already used in the channel is not applied
+	// again, and its result has the first one's position, with suppressed
+	// set and suppress_reason "idempotency". It acts per channel; keys are
+	// kept for 5 minutes by default. Every map broker - memory, Redis and
+	// PostgreSQL - keeps keys.
 	IdempotencyKey string `protobuf:"bytes,8,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
 	// delta enables delta compression for this publication.
 	Delta bool `protobuf:"varint,9,opt,name=delta,proto3" json:"delta,omitempty"`
@@ -9750,7 +9759,10 @@ type MapRemoveRequest struct {
 	Channel string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
 	// key is the key to remove. Required.
 	Key string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	// idempotency_key is a duplicate detection key for safe retries.
+	// idempotency_key drops duplicate removals upon retries, as it does for
+	// MapPublishRequest: a removal with a key already used in the channel is
+	// not applied again, and its result is suppressed with suppress_reason
+	// "idempotency". Keys are kept for 5 minutes by default.
 	IdempotencyKey string `protobuf:"bytes,3,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
