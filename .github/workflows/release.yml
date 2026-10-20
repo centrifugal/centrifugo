@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 90
     strategy:
       matrix:
-        go-version: [1.27.2]
+        go-version: [1.27.3]
     env:
       # Fail instead of silently downloading another Go toolchain.
       GOTOOLCHAIN: local
