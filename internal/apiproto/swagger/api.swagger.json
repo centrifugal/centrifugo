@@ -1777,7 +1777,7 @@
         },
         "idempotency_key": {
           "type": "string",
-          "description": "idempotency_key drops duplicate publications upon retries. It acts per\nchannel; results are cached for 5 minutes."
+          "description": "idempotency_key drops duplicate publications upon retries. It acts per\nchannel: a broadcast retried with the same key is not published again\ninto the channels which already have it. Results are kept for 5 minutes\nby default. The memory, Redis and PostgreSQL brokers keep keys; the\nNATS broker ignores them."
         },
         "delta": {
           "type": "boolean",
@@ -3760,7 +3760,7 @@
         },
         "idempotency_key": {
           "type": "string",
-          "description": "idempotency_key drops duplicate publications upon retries. It acts per\nchannel; results are cached for 5 minutes. Supported only by Memory and\nRedis engines."
+          "description": "idempotency_key drops duplicate publications upon retries: a\npublication with a key already used in the channel is not published\nagain, and the first one's result is returned. It acts per channel;\nresults are kept for 5 minutes by default. The memory, Redis and\nPostgreSQL brokers keep keys; the NATS broker ignores them."
         },
         "delta": {
           "type": "boolean",

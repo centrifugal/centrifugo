@@ -1041,9 +1041,11 @@ type PublishRequest struct {
 	// tags is a map of arbitrary string keys and values attached to the
 	// publication and delivered to clients.
 	Tags map[string]string `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// idempotency_key drops duplicate publications upon retries. It acts per
-	// channel; results are cached for 5 minutes. Supported only by Memory and
-	// Redis engines.
+	// idempotency_key drops duplicate publications upon retries: a
+	// publication with a key already used in the channel is not published
+	// again, and the first one's result is returned. It acts per channel;
+	// results are kept for 5 minutes by default. The memory, Redis and
+	// PostgreSQL brokers keep keys; the NATS broker ignores them.
 	IdempotencyKey string `protobuf:"bytes,6,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
 	// delta tells Centrifugo to construct a delta update, if possible, when
 	// broadcasting the publication to subscribers.
@@ -1280,7 +1282,10 @@ type BroadcastRequest struct {
 	// publication and delivered to clients.
 	Tags map[string]string `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// idempotency_key drops duplicate publications upon retries. It acts per
-	// channel; results are cached for 5 minutes.
+	// channel: a broadcast retried with the same key is not published again
+	// into the channels which already have it. Results are kept for 5 minutes
+	// by default. The memory, Redis and PostgreSQL brokers keep keys; the
+	// NATS broker ignores them.
 	IdempotencyKey string `protobuf:"bytes,6,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
 	// delta tells Centrifugo to construct a delta update, if possible, when
 	// broadcasting the publications to subscribers.

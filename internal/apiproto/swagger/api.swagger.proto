@@ -767,9 +767,11 @@ message PublishRequest {
     // tags is a map of arbitrary string keys and values attached to the
     // publication and delivered to clients.
     map<string, string> tags = 5;
-    // idempotency_key drops duplicate publications upon retries. It acts per
-    // channel; results are cached for 5 minutes. Supported only by Memory and
-    // Redis engines.
+    // idempotency_key drops duplicate publications upon retries: a
+    // publication with a key already used in the channel is not published
+    // again, and the first one's result is returned. It acts per channel;
+    // results are kept for 5 minutes by default. The memory, Redis and
+    // PostgreSQL brokers keep keys; the NATS broker ignores them.
     string idempotency_key = 6;
     // delta tells Centrifugo to construct a delta update, if possible, when
     // broadcasting the publication to subscribers.
@@ -816,7 +818,10 @@ message BroadcastRequest {
     // publication and delivered to clients.
     map<string, string> tags = 5;
     // idempotency_key drops duplicate publications upon retries. It acts per
-    // channel; results are cached for 5 minutes.
+    // channel: a broadcast retried with the same key is not published again
+    // into the channels which already have it. Results are kept for 5 minutes
+    // by default. The memory, Redis and PostgreSQL brokers keep keys; the
+    // NATS broker ignores them.
     string idempotency_key = 6;
     // delta tells Centrifugo to construct a delta update, if possible, when
     // broadcasting the publications to subscribers.
