@@ -4,83 +4,157 @@ package centrifugal.centrifugo.proxy;
 
 option go_package = "./;proxyproto";
 
+// CentrifugoProxy is the service an application backend implements to receive
+// proxy requests from Centrifugo over GRPC. Over HTTP, Centrifugo sends the same
+// requests as JSON POST bodies to the endpoint configured for each proxy type,
+// and expects the corresponding response as a JSON body with HTTP status 200.
+//
+// Payload fields typed bytes (data, info, meta and the like) carry JSON as is
+// over HTTP. When a proxy has binary_encoding enabled, Centrifugo sends payloads
+// in the b64 fields (b64data, b64info) instead, encoded in base64; a backend may
+// answer with either field, and Centrifugo decodes the b64 one.
 service CentrifugoProxy {
-  // Connect to proxy connection authentication and communicate initial state.
+  // Connect authenticates a connection and returns its initial state: the user,
+  // connection info, server-side subscriptions and the like.
   rpc Connect(ConnectRequest) returns (ConnectResponse);
-  // Refresh to proxy decision about connection expiration to the app backend.
+  // Refresh is called when a connection is about to expire, to decide whether
+  // it may live on, and until when.
   rpc Refresh(RefreshRequest) returns (RefreshResponse);
-  // Subscribe to proxy subscription attempts to channels.
+  // Subscribe decides whether a client may subscribe to a channel.
   rpc Subscribe(SubscribeRequest) returns (SubscribeResponse);
-  // Publish to proxy publication attempts to channels.
+  // Publish decides whether a client may publish into a channel, and may
+  // change the publication.
   rpc Publish(PublishRequest) returns (PublishResponse);
-  // RPC to execute custom logic on the backend over request through the real-time connection.
+  // RPC handles a custom call a client makes over its real-time connection.
   rpc RPC(RPCRequest) returns (RPCResponse);
-  // SubRefresh to proxy decision about subscription expiration to the app backend.
+  // SubRefresh is called when a subscription is about to expire, to decide
+  // whether it may live on, and until when.
   rpc SubRefresh(SubRefreshRequest) returns (SubRefreshResponse);
   // SubscribeUnidirectional is an EXPERIMENTAL method which allows handling unidirectional
   // subscription streams. Stream starts with SubscribeRequest similar to Subscribe rpc,
   // then expects StreamSubscribeResponse with SubscribeResponse as first message, and
-  // StreamSubscribeResponse with Publication afterwards.
+  // StreamSubscribeResponse with Publication afterwards. GRPC only.
   rpc SubscribeUnidirectional(SubscribeRequest) returns (stream StreamSubscribeResponse);
   // SubscribeBidirectional is an EXPERIMENTAL method which allows handling bidirectional
   // subscription streams. Stream receives StreamSubscribeRequest. First StreamSubscribeRequest
   // always contains SubscribeRequest, then StreamSubscribeRequest will contain data published
-  // by client. Reverse direction works the same way as in SubscribeUnidirectional.
+  // by client. Reverse direction works the same way as in SubscribeUnidirectional. GRPC only.
   rpc SubscribeBidirectional(stream StreamSubscribeRequest) returns (stream StreamSubscribeResponse);
-  // NotifyCacheEmpty is an EXPERIMENTAL method which allows to load documents from the backend.
+  // NotifyCacheEmpty tells the backend that a client subscribed to a channel in
+  // cache recovery mode which has no publication to recover from, so that the
+  // backend may publish the current state. Centrifugo PRO only.
   rpc NotifyCacheEmpty(NotifyCacheEmptyRequest) returns (NotifyCacheEmptyResponse);
   // NotifyChannelState can be used to receive channel events such as channel "occupied" and "vacated".
   // This is a feature in a preview state and is only available in Centrifugo PRO.
   rpc NotifyChannelState(NotifyChannelStateRequest) returns (NotifyChannelStateResponse);
-  // MapPublish to proxy map publish attempts to channels.
+  // MapPublish decides whether a client may publish a key into a map channel,
+  // and may change the publication.
   rpc MapPublish(MapPublishRequest) returns (MapPublishResponse);
-  // MapRemove to proxy map remove attempts from channels.
+  // MapRemove decides whether a client may remove a key from a map channel.
   rpc MapRemove(MapRemoveRequest) returns (MapRemoveResponse);
-  // SharedPollRefresh to proxy shared poll refresh requests to the app backend.
+  // SharedPollRefresh returns the current data of the items tracked in a shared
+  // poll channel.
   rpc SharedPollRefresh(SharedPollRefreshRequest) returns (SharedPollRefreshResponse);
 }
 
+// FilterNode is a node of a publication tags filter expression. A leaf node
+// compares one tag: it sets key, cmp and val or vals, and leaves op empty. A
+// logical node combines its nodes: it sets op and nodes only.
 message FilterNode {
+  // op is the logical operation: "and", "or" or "not". Empty for a leaf node.
   string op = 1;
+  // key is the tag a leaf node compares.
   string key = 2;
+  // cmp is the comparison of a leaf node: "eq", "neq", "in", "nin", "ex"
+  // (exists), "nex" (does not exist), "sw" (starts with), "ew" (ends with), "ct"
+  // (contains), "gt", "gte", "lt" or "lte".
   string cmp = 3;
+  // val is the value most comparisons compare the tag with.
   string val = 4;
+  // vals are the values "in" and "nin" compare the tag with.
   repeated string vals = 5;
+  // nodes are the operands of a logical node.
   repeated FilterNode nodes = 6;
 }
 
+// Disconnect, returned instead of a result, disconnects the client. Only
+// Connect, Subscribe, Publish, RPC, MapPublish and MapRemove honour it.
 message Disconnect {
   reserved 3;
+  // code must be in the range [4000, 4999], which Centrifugo leaves to
+  // applications: [4000, 4499] tells the client to reconnect, [4500, 4999] not
+  // to. Other codes are reserved by Centrifugo.
   uint32 code = 1;
+  // reason is a short description: at most 32 bytes, a limit WebSocket close
+  // frames impose.
   string reason = 2;
 }
 
+// Error, returned instead of a result, rejects the client's request with this
+// error. Only Connect, Subscribe, Publish, RPC, MapPublish and MapRemove pass
+// it to the client; SharedPollRefresh and NotifyChannelState take it as a
+// failed request.
 message Error {
+  // code must be in the range [400, 1999], which Centrifugo leaves to
+  // applications.
   uint32 code = 1;
+  // message describes the error to the client.
   string message = 2;
+  // temporary tells the client that retrying may succeed: a subscription
+  // which failed with a temporary error is retried by client SDKs, one which
+  // failed with a permanent error is not.
   bool temporary = 3;
 }
 
+// ConnectRequest is sent when a client connects.
 message ConnectRequest {
+  // client is the unique ID Centrifugo gave the connection.
   string client = 1;
+  // transport is the connection's transport: "websocket", "sse", "uni_sse" and
+  // the like.
   string transport = 2;
+  // protocol is the client protocol: "json" or "protobuf".
   string protocol = 3;
+  // encoding is "binary" when the proxy has binary_encoding enabled, so that
+  // payloads come in the b64 fields, and "json" otherwise.
   string encoding = 4;
 
+  // data is the custom data the client sent with its connect command, if any.
   bytes data = 10;
+  // b64data is data in base64, sent instead of data in binary encoding mode.
   string b64data = 11;
+  // name is the client's name, if it sent one.
   string name = 12;
+  // version is the client's version, if it sent one.
   string version = 13;
+  // channels are the server-side channels the client asks to be subscribed
+  // to. The backend checks its permissions and returns the allowed ones in
+  // ConnectResult.channels or ConnectResult.subs.
   repeated string channels = 14;
 }
 
+// SubscribeOptions are the options of a server-side subscription returned in
+// ConnectResult.subs.
 message SubscribeOptions {
+  // expire_at is when the subscription expires, in Unix seconds. Zero means it
+  // does not expire.
   int64 expire_at = 1;
+  // info is channel-specific information about the connection, as JSON: it is
+  // part of presence data, join and leave events and the client's
+  // publications in the channel.
   bytes info = 2;
+  // b64info is info in base64, for binary info.
   string b64info = 3;
+  // data is custom data sent to the client with the subscription in the
+  // connect reply.
   bytes data = 4;
+  // b64data is data in base64, for binary data.
   string b64data = 5;
+  // override overrides channel options of the namespace for this
+  // subscription.
   SubscribeOptionOverride override = 6;
+  // server_tags_filter makes the subscription receive only publications
+  // whose tags match it. Centrifugo PRO only.
   FilterNode server_tags_filter = 7;
   // cache_recover, when set, makes Centrifugo initiate cache recovery for the
   // server-side subscription without requiring the client to provide a recover
@@ -92,261 +166,472 @@ message SubscribeOptions {
   bool cache_recover = 8;
 }
 
+// ConnectResult accepts the connection.
 message ConnectResult {
+  // user is the ID of the user the connection belongs to. Empty accepts an
+  // anonymous connection.
   string user = 1;
+  // expire_at is when the connection expires, in Unix seconds, unless
+  // refreshed - by the refresh proxy, when one is configured. Zero means it
+  // does not expire.
   int64 expire_at = 2;
+  // info is information about the connection, as JSON: it is part of presence
+  // data, join and leave events and the client's publications.
   bytes info = 3;
+  // b64info is info in base64, for binary info.
   string b64info = 4;
+  // data is custom data sent to the client in the connect reply.
   bytes data = 5;
+  // b64data is data in base64, for binary data.
   string b64data = 6;
+  // channels are server-side channels to subscribe the connection to.
   repeated string channels = 7;
+  // subs are server-side channels to subscribe the connection to, each with
+  // its options.
   map<string, SubscribeOptions> subs = 8;
+  // meta is custom data attached to the connection, as JSON. It is never sent
+  // to the client; proxies with include_connection_meta receive it.
   bytes meta = 9;
+  // caps are capabilities granting the connection operations in channels.
+  // Centrifugo PRO only.
   repeated ChannelsCapability caps = 10;
   // PRO only — client labels attached to the centrifuge.Client by Centrifugo PRO.
   // Parsed by OSS but not used (OSS does not populate centrifuge.ConnectReply.Labels).
   map<string, string> labels = 11;
 }
 
+// ChannelsCapability grants operations in channels. A connection may do an
+// operation in a channel when any of its capabilities both allows the
+// operation and matches the channel. Centrifugo PRO only.
 message ChannelsCapability {
+  // channels are the channels, or channel patterns, it applies to.
   repeated string channels = 1;
+  // allow are the operations it grants: "sub" (subscribe), "pub" (publish),
+  // "hst" (history) and "prs" (presence).
   repeated string allow = 2;
+  // match is how channels are matched: empty for exact names, "wildcard" or
+  // "regex".
   string match = 3;
 }
 
+// ConnectResponse answers a ConnectRequest with one of its fields: result
+// accepts the connection, error rejects it, disconnect closes it.
 message ConnectResponse {
   ConnectResult result = 1;
   Error error = 2;
   Disconnect disconnect = 3;
 }
 
+// RefreshRequest is sent when a connection is about to expire.
 message RefreshRequest {
+  // client is the unique ID Centrifugo gave the connection.
   string client = 1;
+  // transport is the connection's transport.
   string transport = 2;
+  // protocol is the client protocol: "json" or "protobuf".
   string protocol = 3;
+  // encoding is "binary" when the proxy has binary_encoding enabled, so that
+  // payloads come in the b64 fields, and "json" otherwise.
   string encoding = 4;
 
+  // user is the connection's user ID.
   string user = 10;
+  // meta is the connection's meta, when the proxy has include_connection_meta.
   bytes meta = 11;
   // PRO only — connection labels attached to the originating centrifuge.Client.
   // Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
   map<string, string> labels = 12;
 }
 
+// RefreshResult extends the connection, or ends it.
 message RefreshResult {
+  // expired disconnects the client: its connection has expired.
   bool expired = 1;
+  // expire_at is when the connection expires next, in Unix seconds.
   int64 expire_at = 2;
+  // info replaces the connection's info, as JSON.
   bytes info = 3;
+  // b64info is info in base64, for binary info.
   string b64info = 4;
+  // meta replaces the connection's meta, as JSON.
   bytes meta = 5;
+  // caps replace the connection's capabilities. Centrifugo PRO only.
   repeated ChannelsCapability caps = 6;
 }
 
+// RefreshResponse answers a RefreshRequest. Only result is used: a response
+// without one expires the connection, and error and disconnect are ignored.
+// When the request itself fails, Centrifugo keeps the connection for another
+// minute and asks again.
 message RefreshResponse {
   RefreshResult result = 1;
   Error error = 2;
   Disconnect disconnect = 3;
 }
 
+// SubscribeRequest is sent when a client subscribes to a channel.
 message SubscribeRequest {
+  // client is the unique ID Centrifugo gave the connection.
   string client = 1;
+  // transport is the connection's transport.
   string transport = 2;
+  // protocol is the client protocol: "json" or "protobuf".
   string protocol = 3;
+  // encoding is "binary" when the proxy has binary_encoding enabled, so that
+  // payloads come in the b64 fields, and "json" otherwise.
   string encoding = 4;
 
+  // user is the connection's user ID.
   string user = 10;
+  // channel is the channel the client subscribes to.
   string channel = 11;
+  // token is the subscription token the client sent for the channel, if any.
   string token = 12;
+  // meta is the connection's meta, when the proxy has include_connection_meta.
   bytes meta = 13;
+  // data is the custom data the client sent with its subscribe command, if any.
   bytes data = 14;
+  // b64data is data in base64, sent instead of data in binary encoding mode.
   string b64data = 15;
   // PRO only — connection labels attached to the originating centrifuge.Client.
   // Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
   map<string, string> labels = 16;
 }
 
+// BoolValue is a bool which can be left unset: an option it overrides keeps
+// its configured value when it is not set.
 message BoolValue {
   bool value = 1;
 }
 
+// Int32Value is an int32 which can be left unset.
 message Int32Value {
   int32 value = 1;
 }
 
+// SubscribeOptionOverride overrides channel options of the namespace for one
+// subscription. An unset field keeps the namespace's value.
 message SubscribeOptionOverride {
+  // presence overrides the namespace's presence option.
   BoolValue presence = 1;
+  // join_leave overrides the namespace's join_leave option.
   BoolValue join_leave = 2;
+  // force_recovery overrides the namespace's force_recovery option.
   BoolValue force_recovery = 3;
+  // force_positioning overrides the namespace's force_positioning option.
   BoolValue force_positioning = 4;
+  // force_push_join_leave overrides the namespace's force_push_join_leave
+  // option.
   BoolValue force_push_join_leave = 5;
 }
 
+// SubscribeResult accepts the subscription.
 message SubscribeResult {
+  // expire_at is when the subscription expires, in Unix seconds, unless
+  // refreshed - by the sub refresh proxy, when one is configured. Zero means
+  // it does not expire.
   int64 expire_at = 1;
+  // info is channel-specific information about the connection, as JSON: it is
+  // part of presence data, join and leave events and the client's
+  // publications in the channel.
   bytes info = 2;
+  // b64info is info in base64, for binary info.
   string b64info = 3;
+  // data is custom data sent to the client in the subscribe reply.
   bytes data = 4;
+  // b64data is data in base64, for binary data.
   string b64data = 5;
+  // override overrides channel options of the namespace for this
+  // subscription.
   SubscribeOptionOverride override = 6;
+  // allow are capabilities granted in the channel for this subscription:
+  // "sub", "pub", "hst" and "prs". Centrifugo PRO only.
   repeated string allow = 7;
+  // server_tags_filter makes the subscription receive only publications
+  // whose tags match it. Centrifugo PRO only.
   FilterNode server_tags_filter = 8;
 }
 
+// SubscribeResponse answers a SubscribeRequest with one of its fields: result
+// accepts the subscription, error rejects it, disconnect closes the
+// connection. A response with none of them accepts the subscription.
 message SubscribeResponse {
   SubscribeResult result = 1;
   Error error = 2;
   Disconnect disconnect = 3;
 }
 
+// PublishRequest is sent when a client publishes into a channel.
 message PublishRequest {
+  // client is the unique ID Centrifugo gave the connection.
   string client = 1;
+  // transport is the connection's transport.
   string transport = 2;
+  // protocol is the client protocol: "json" or "protobuf".
   string protocol = 3;
+  // encoding is "binary" when the proxy has binary_encoding enabled, so that
+  // payloads come in the b64 fields, and "json" otherwise.
   string encoding = 4;
 
+  // user is the connection's user ID.
   string user = 10;
+  // channel is the channel the client publishes into.
   string channel = 11;
+  // data is the data the client publishes.
   bytes data = 12;
+  // b64data is data in base64, sent instead of data in binary encoding mode.
   string b64data = 13;
+  // meta is the connection's meta, when the proxy has include_connection_meta.
   bytes meta = 14;
   // PRO only — connection labels attached to the originating centrifuge.Client.
   // Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
   map<string, string> labels = 15;
 }
 
+// PublishResult accepts the publication. Fields left unset keep what the
+// client sent, or the defaults.
 message PublishResult {
+  // data replaces the data the client sent.
   bytes data = 1;
+  // b64data is data in base64, for binary data.
   string b64data = 2;
+  // skip_history publishes without saving the publication to the channel's
+  // history. Not allowed in channels with delta compression.
   bool skip_history = 3;
+  // tags are attached to the publication: clients cannot send tags, so this
+  // is where server-side tag filters get their tags from.
   map<string, string> tags = 4;
+  // idempotency_key makes the publication idempotent: another one with the
+  // same key in the channel within the broker's idempotency window is not
+  // published.
   string idempotency_key = 5;
+  // delta enables delta compression for the publication.
   bool delta = 6;
+  // version is the publication's version, for channels whose publications
+  // each carry the whole state: Centrifugo drops one older than the latest.
   uint64 version = 7;
+  // version_epoch scopes version, for versions which may start over - when
+  // they come from a system which can lose its state, say.
   string version_epoch = 8;
 }
 
+// PublishResponse answers a PublishRequest with one of its fields: result
+// accepts the publication, error rejects it, disconnect closes the
+// connection. A response with none of them accepts the publication as the
+// client sent it.
 message PublishResponse {
   PublishResult result = 1;
   Error error = 2;
   Disconnect disconnect = 3;
 }
 
+// MapPublishRequest is sent when a client publishes a key into a map channel.
 message MapPublishRequest {
+  // client is the unique ID Centrifugo gave the connection.
   string client = 1;
+  // transport is the connection's transport.
   string transport = 2;
+  // protocol is the client protocol: "json" or "protobuf".
   string protocol = 3;
+  // encoding is "binary" when the proxy has binary_encoding enabled, so that
+  // payloads come in the b64 fields, and "json" otherwise.
   string encoding = 4;
 
+  // user is the connection's user ID.
   string user = 10;
+  // channel is the map channel the client publishes into.
   string channel = 11;
+  // key is the key the client publishes, empty if it sent none.
   string key = 12;
+  // data is the data the client publishes.
   bytes data = 13;
+  // b64data is data in base64, sent instead of data in binary encoding mode.
   string b64data = 14;
+  // meta is the connection's meta, when the proxy has include_connection_meta.
   bytes meta = 15;
   // PRO only — connection labels attached to the originating centrifuge.Client.
   // Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
   map<string, string> labels = 16;
 }
 
+// MapPublishResult accepts the publication, even when empty. Fields left
+// unset keep what the client sent, or the defaults.
 message MapPublishResult {
+  // key replaces the key the client sent: to force a key the server derives,
+  // such as the user ID.
   string key = 1;
+  // data replaces the data the client sent.
   bytes data = 2;
+  // b64data is data in base64, for binary data.
   string b64data = 3;
+  // tags are attached to the publication: clients cannot send tags, so this
+  // is where server-side tag filters get their tags from.
   map<string, string> tags = 4;
+  // score is not used by Centrifugo yet.
   int64 score = 5;
+  // key_mode makes the publication conditional: "if_new" publishes only a key
+  // which does not exist yet, "if_exists" only one which does.
   string key_mode = 6;
+  // stream_data is not used by Centrifugo yet.
   bytes stream_data = 7;
+  // b64stream_data is not used by Centrifugo yet.
   string b64stream_data = 8;
+  // idempotency_key makes the publication idempotent: another one with the
+  // same key within the broker's idempotency window is not published.
   string idempotency_key = 9;
+  // delta enables delta compression for the publication.
   bool delta = 10;
+  // version is the key's version: Centrifugo drops a publication older than
+  // the key's latest.
   uint64 version = 11;
+  // version_epoch scopes version, for versions which may start over.
   string version_epoch = 12;
 }
 
+// MapPublishResponse answers a MapPublishRequest with one of its fields:
+// result accepts the publication, error rejects it, disconnect closes the
+// connection. A response with none of them accepts the publication as the
+// client sent it.
 message MapPublishResponse {
   MapPublishResult result = 1;
   Error error = 2;
   Disconnect disconnect = 3;
 }
 
+// MapRemoveRequest is sent when a client removes a key from a map channel.
 message MapRemoveRequest {
+  // client is the unique ID Centrifugo gave the connection.
   string client = 1;
+  // transport is the connection's transport.
   string transport = 2;
+  // protocol is the client protocol: "json" or "protobuf".
   string protocol = 3;
+  // encoding is "binary" when the proxy has binary_encoding enabled, so that
+  // payloads come in the b64 fields, and "json" otherwise.
   string encoding = 4;
 
+  // user is the connection's user ID.
   string user = 10;
+  // channel is the map channel the client removes the key from.
   string channel = 11;
+  // key is the key the client removes.
   string key = 12;
+  // meta is the connection's meta, when the proxy has include_connection_meta.
   bytes meta = 13;
   // PRO only — connection labels attached to the originating centrifuge.Client.
   // Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
   map<string, string> labels = 14;
 }
 
+// MapRemoveResult accepts the removal, even when empty. Fields left unset
+// keep what the client sent, or the defaults.
 message MapRemoveResult {
+  // key replaces the key the client sent.
   string key = 1;
+  // tags are attached to the removal publication. When unset, the removed
+  // entry's own tags are.
   map<string, string> tags = 2;
+  // idempotency_key makes the removal idempotent within the broker's
+  // idempotency window.
   string idempotency_key = 3;
 }
 
+// MapRemoveResponse answers a MapRemoveRequest with one of its fields: result
+// accepts the removal, error rejects it, disconnect closes the connection. A
+// response with none of them accepts the removal as the client asked.
 message MapRemoveResponse {
   MapRemoveResult result = 1;
   Error error = 2;
   Disconnect disconnect = 3;
 }
 
+// RPCRequest is sent when a client makes an RPC call.
 message RPCRequest {
+  // client is the unique ID Centrifugo gave the connection.
   string client = 1;
+  // transport is the connection's transport.
   string transport = 2;
+  // protocol is the client protocol: "json" or "protobuf".
   string protocol = 3;
+  // encoding is "binary" when the proxy has binary_encoding enabled, so that
+  // payloads come in the b64 fields, and "json" otherwise.
   string encoding = 4;
 
+  // user is the connection's user ID.
   string user = 10;
+  // method is the method the client calls, empty if it named none.
   string method = 11;
+  // data is the data the client sent with the call.
   bytes data = 12;
+  // b64data is data in base64, sent instead of data in binary encoding mode.
   string b64data = 13;
+  // meta is the connection's meta, when the proxy has include_connection_meta.
   bytes meta = 14;
   // PRO only — connection labels attached to the originating centrifuge.Client.
   // Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
   map<string, string> labels = 15;
 }
 
+// RPCResult is the call's result.
 message RPCResult {
+  // data is the result sent to the client: any JSON.
   bytes data = 1;
+  // b64data is data in base64, for binary data.
   string b64data = 2;
 }
 
+// RPCResponse answers an RPCRequest with one of its fields: result answers
+// the call, error fails it, disconnect closes the connection. A response with
+// none of them answers the call with no data.
 message RPCResponse {
   RPCResult result = 1;
   Error error = 2;
   Disconnect disconnect = 3;
 }
 
+// SubRefreshRequest is sent when a subscription is about to expire.
 message SubRefreshRequest {
+  // client is the unique ID Centrifugo gave the connection.
   string client = 1;
+  // transport is the connection's transport.
   string transport = 2;
+  // protocol is the client protocol: "json" or "protobuf".
   string protocol = 3;
+  // encoding is "binary" when the proxy has binary_encoding enabled, so that
+  // payloads come in the b64 fields, and "json" otherwise.
   string encoding = 4;
 
+  // user is the connection's user ID.
   string user = 10;
+  // channel is the channel whose subscription is about to expire.
   string channel = 11;
+  // meta is the connection's meta, when the proxy has include_connection_meta.
   bytes meta = 12;
   // PRO only — connection labels attached to the originating centrifuge.Client.
   // Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
   map<string, string> labels = 13;
 }
 
+// SubRefreshResult extends the subscription, or ends it.
 message SubRefreshResult {
+  // expired ends the subscription: it has expired.
   bool expired = 1;
+  // expire_at is when the subscription expires next, in Unix seconds.
   int64 expire_at = 2;
+  // info replaces the channel-specific information about the connection, as
+  // JSON.
   bytes info = 3;
+  // b64info is info in base64, for binary info.
   string b64info = 4;
   // server_tags_filter, when set, replaces the server-side tags filter of the
   // subscription (Centrifugo PRO). When not set the filter is kept as it is.
   FilterNode server_tags_filter = 5;
 }
 
+// SubRefreshResponse answers a SubRefreshRequest. Only result is used: a
+// response without one expires the subscription, and error and disconnect
+// are ignored. When the request itself fails, Centrifugo keeps the
+// subscription for another minute and asks again.
 message SubRefreshResponse {
   SubRefreshResult result = 1;
   Error error = 2;
@@ -378,28 +663,47 @@ message StreamSubscribeResponse {
   Publication publication = 2;
 }
 
+// NotifyCacheEmptyRequest is sent when a client subscribed to a channel in
+// cache recovery mode which has no publication to recover from. Centrifugo
+// PRO only.
 message NotifyCacheEmptyRequest {
+  // channel is the channel whose cache is empty.
   string channel = 1;
 }
 
+// NotifyCacheEmptyResponse answers a NotifyCacheEmptyRequest. When the
+// request fails, the client which subscribed is disconnected to reconnect.
 message NotifyCacheEmptyResponse {
   NotifyCacheEmptyResult result = 1;
 }
 
 message NotifyCacheEmptyResult {
+  // populated tells Centrifugo that the backend published into the channel,
+  // so that it tries to recover the state once more.
   bool populated = 1;
 }
 
+// NotifyChannelStateRequest carries channel state events. Centrifugo PRO
+// only, in preview.
 message NotifyChannelStateRequest {
+  // events are the events which happened, in channels with presence.
   repeated ChannelEvent events = 1;
 }
 
+// ChannelEvent is a change of a channel's state.
 message ChannelEvent {
+  // time_ms is when it happened, in Unix milliseconds.
   int64 time_ms = 1;
+  // channel is the channel it happened in.
   string channel = 2;
-  string type = 3;  // "occupied" | "vacated" | could be more in the future. Not using enums for better JSON interop.
+  // type is "occupied" when the channel got its first subscriber, "vacated"
+  // when it lost its last one. More types may come; the field is a string,
+  // not an enum, for JSON interoperability.
+  string type = 3;
 }
 
+// NotifyChannelStateResponse answers a NotifyChannelStateRequest: an empty
+// result acknowledges the events.
 message NotifyChannelStateResponse {
   NotifyChannelStateResult result = 1;
   Error error = 2;
@@ -407,29 +711,57 @@ message NotifyChannelStateResponse {
 
 message NotifyChannelStateResult {}
 
+// SharedPollRefreshRequest asks for the current data of items tracked in a
+// shared poll channel.
 message SharedPollRefreshRequest {
+  // channel is the shared poll channel.
   string channel = 1;
+  // items are the tracked items to refresh.
   repeated SharedPollRefreshItem items = 2;
 }
 
+// SharedPollRefreshItem is an item to refresh.
 message SharedPollRefreshItem {
+  // key is the item's key.
   string key = 1;
+  // version is the latest version of the item Centrifugo has, in versioned
+  // mode: zero when it has none. Not set in versionless mode.
   uint64 version = 2;
 }
 
+// SharedPollRefreshResult carries the items' current data. An item left out
+// is unchanged.
 message SharedPollRefreshResult {
+  // items are the items' current data.
   repeated SharedPollRefreshResultItem items = 1;
+  // epoch identifies the publisher's version space: when it differs from
+  // the channel's, Centrifugo drops the versions and data it keeps and
+  // resubscribes the channel's subscribers. Generate one per process start, and
+  // send the same one with direct publishes. Empty means versions are never
+  // reset.
   string epoch = 2;
 }
 
+// SharedPollRefreshResultItem is an item's current data.
 message SharedPollRefreshResultItem {
+  // key is the item's key.
   string key = 1;
+  // data is the item's data. In versioned mode it may be left out for an
+  // item which has not changed.
   bytes data = 2;
+  // version is the item's version: required in versioned mode, optional in
+  // versionless mode. It must grow when the item changes.
   uint64 version = 3;
+  // removed removes the item: subscribers are told so, and it is no longer
+  // tracked.
   bool removed = 4;
+  // prev_data is the item's previous data, the base for delta compression
+  // when the namespace uses it, so that Centrifugo need not keep it.
   bytes prev_data = 5;
 }
 
+// SharedPollRefreshResponse answers a SharedPollRefreshRequest. On error,
+// Centrifugo skips this refresh and tries again at the next interval.
 message SharedPollRefreshResponse {
   SharedPollRefreshResult result = 1;
   Error error = 2;
