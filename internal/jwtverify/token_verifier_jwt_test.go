@@ -2,6 +2,7 @@ package jwtverify
 
 import (
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
@@ -317,7 +318,9 @@ func getJWKServer(pubKey *rsa.PublicKey, kty, use, kid string) *httptest.Server 
 func Test_tokenVerifierJWT_Signer(t *testing.T) {
 	_, rsaPubKey := testRSAKey(t, 0)
 	_, ecdsaPubKey := generateTestECDSAKeys(t)
-	signer, err := newAlgorithms("secret", rsaPubKey, ecdsaPubKey)
+	edPubKey, _, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+	signer, err := newAlgorithms("secret", rsaPubKey, ecdsaPubKey, edPubKey)
 	require.NoError(t, err)
 	require.NotNil(t, signer)
 }

@@ -33,6 +33,15 @@ func MakeVerifierConfig(tokenConf configtypes.Token) (jwtverify.VerifierConfig, 
 		cfg.ECDSAPublicKey = pubKey
 	}
 
+	ed25519PublicKey := tokenConf.Ed25519PublicKey
+	if ed25519PublicKey != "" {
+		pubKey, err := jwtutils.ParseEd25519PublicKeyFromPEM([]byte(ed25519PublicKey))
+		if err != nil {
+			return jwtverify.VerifierConfig{}, fmt.Errorf("error parsing Ed25519 public key: %w", err)
+		}
+		cfg.Ed25519PublicKey = pubKey
+	}
+
 	cfg.JWKSPublicEndpoint = tokenConf.JWKSPublicEndpoint
 	cfg.Audience = tokenConf.Audience
 	cfg.AudienceRegex = tokenConf.AudienceRegex
