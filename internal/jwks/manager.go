@@ -22,7 +22,11 @@ const (
 	_defaultRetries            = 2
 	_defaultTimeout            = 1 * time.Second
 	_defaultMaxIdleConnPerHost = 255
-	_defaultTTL                = 1 * time.Hour
+	// _defaultTTL is how long fetched keys are kept: a key removed from the
+	// JWKS endpoint - retired, or compromised - stops being accepted at most
+	// this long after. A fetch per TTL is cheap; an endpoint which can't be
+	// reached does not expire keys, see _defaultStaleRetryInterval.
+	_defaultTTL = 5 * time.Minute
 	// _defaultStaleRetryInterval is how often an expired key is fetched again
 	// while the JWKS endpoint can't be reached and the key keeps being used.
 	_defaultStaleRetryInterval = 1 * time.Minute
@@ -51,6 +55,10 @@ var (
 	ErrKeyIDNotProvided = errors.New("jwks: kid is not provided")
 	// ErrPublicKeyNotFound returned when no public key is found.
 	ErrPublicKeyNotFound = errors.New("jwks: public key not found")
+	// ErrUnavailable wraps a failure to fetch keys from the JWKS endpoint:
+	// the endpoint can't be reached, or its answer can't be used. Unlike a
+	// key the endpoint does not have, it says nothing about the token.
+	ErrUnavailable = errors.New("jwks: endpoint unavailable")
 
 	errUnexpectedStatusCode = errors.New("jwks: unexpected status code")
 	errUnmarshal            = errors.New("jwks: unmarshal error")
@@ -181,7 +189,7 @@ func (m *Manager) FetchKey(ctx context.Context, kid string, tokenVars map[string
 			return key, nil
 		}
 	}
-	return nil, err
+	return nil, fmt.Errorf("%w: %w", ErrUnavailable, err)
 }
 
 // fetchedRecently reports whether the endpoint was fetched successfully within
