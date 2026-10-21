@@ -21,14 +21,25 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// FilterNode is a node of a publication tags filter expression. A leaf node
+// compares one tag: it sets key, cmp and val or vals, and leaves op empty. A
+// logical node combines its nodes: it sets op and nodes only.
 type FilterNode struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Op            string                 `protobuf:"bytes,1,opt,name=op,proto3" json:"op,omitempty"`
-	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	Cmp           string                 `protobuf:"bytes,3,opt,name=cmp,proto3" json:"cmp,omitempty"`
-	Val           string                 `protobuf:"bytes,4,opt,name=val,proto3" json:"val,omitempty"`
-	Vals          []string               `protobuf:"bytes,5,rep,name=vals,proto3" json:"vals,omitempty"`
-	Nodes         []*FilterNode          `protobuf:"bytes,6,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// op is the logical operation: "and", "or" or "not". Empty for a leaf node.
+	Op string `protobuf:"bytes,1,opt,name=op,proto3" json:"op,omitempty"`
+	// key is the tag a leaf node compares.
+	Key string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	// cmp is the comparison of a leaf node: "eq", "neq", "in", "nin", "ex"
+	// (exists), "nex" (does not exist), "sw" (starts with), "ew" (ends with), "ct"
+	// (contains), "gt", "gte", "lt" or "lte".
+	Cmp string `protobuf:"bytes,3,opt,name=cmp,proto3" json:"cmp,omitempty"`
+	// val is the value most comparisons compare the tag with.
+	Val string `protobuf:"bytes,4,opt,name=val,proto3" json:"val,omitempty"`
+	// vals are the values "in" and "nin" compare the tag with.
+	Vals []string `protobuf:"bytes,5,rep,name=vals,proto3" json:"vals,omitempty"`
+	// nodes are the operands of a logical node.
+	Nodes         []*FilterNode `protobuf:"bytes,6,rep,name=nodes,proto3" json:"nodes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -105,10 +116,17 @@ func (x *FilterNode) GetNodes() []*FilterNode {
 	return nil
 }
 
+// Disconnect, returned instead of a result, disconnects the client. Only
+// Connect, Subscribe, Publish, RPC, MapPublish and MapRemove honour it.
 type Disconnect struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          uint32                 `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
-	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// code must be in the range [4000, 4999], which Centrifugo leaves to
+	// applications: [4000, 4499] tells the client to reconnect, [4500, 4999] not
+	// to. Other codes are reserved by Centrifugo.
+	Code uint32 `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	// reason is a short description: at most 32 bytes, a limit WebSocket close
+	// frames impose.
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -157,11 +175,21 @@ func (x *Disconnect) GetReason() string {
 	return ""
 }
 
+// Error, returned instead of a result, rejects the client's request with this
+// error. Only Connect, Subscribe, Publish, RPC, MapPublish and MapRemove pass
+// it to the client; SharedPollRefresh and NotifyChannelState take it as a
+// failed request.
 type Error struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          uint32                 `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
-	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	Temporary     bool                   `protobuf:"varint,3,opt,name=temporary,proto3" json:"temporary,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// code must be in the range [400, 1999], which Centrifugo leaves to
+	// applications.
+	Code uint32 `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	// message describes the error to the client.
+	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	// temporary tells the client that retrying may succeed: a subscription
+	// which failed with a temporary error is retried by client SDKs, one which
+	// failed with a permanent error is not.
+	Temporary     bool `protobuf:"varint,3,opt,name=temporary,proto3" json:"temporary,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -217,17 +245,31 @@ func (x *Error) GetTemporary() bool {
 	return false
 }
 
+// ConnectRequest is sent when a client connects.
 type ConnectRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Client        string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
-	Transport     string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
-	Protocol      string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	Encoding      string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
-	Data          Raw                    `protobuf:"bytes,10,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data       string                 `protobuf:"bytes,11,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	Name          string                 `protobuf:"bytes,12,opt,name=name,proto3" json:"name,omitempty"`
-	Version       string                 `protobuf:"bytes,13,opt,name=version,proto3" json:"version,omitempty"`
-	Channels      []string               `protobuf:"bytes,14,rep,name=channels,proto3" json:"channels,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// client is the unique ID Centrifugo gave the connection.
+	Client string `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	// transport is the connection's transport: "websocket", "sse", "uni_sse" and
+	// the like.
+	Transport string `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
+	// protocol is the client protocol: "json" or "protobuf".
+	Protocol string `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	// encoding is "binary" when the proxy has binary_encoding enabled, so that
+	// payloads come in the b64 fields, and "json" otherwise.
+	Encoding string `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
+	// data is the custom data the client sent with its connect command, if any.
+	Data Raw `protobuf:"bytes,10,opt,name=data,proto3" json:"data,omitempty"`
+	// b64data is data in base64, sent instead of data in binary encoding mode.
+	B64Data string `protobuf:"bytes,11,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	// name is the client's name, if it sent one.
+	Name string `protobuf:"bytes,12,opt,name=name,proto3" json:"name,omitempty"`
+	// version is the client's version, if it sent one.
+	Version string `protobuf:"bytes,13,opt,name=version,proto3" json:"version,omitempty"`
+	// channels are the server-side channels the client asks to be subscribed
+	// to. The backend checks its permissions and returns the allowed ones in
+	// ConnectResult.channels or ConnectResult.subs.
+	Channels      []string `protobuf:"bytes,14,rep,name=channels,proto3" json:"channels,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -325,15 +367,30 @@ func (x *ConnectRequest) GetChannels() []string {
 	return nil
 }
 
+// SubscribeOptions are the options of a server-side subscription returned in
+// ConnectResult.subs.
 type SubscribeOptions struct {
-	state            protoimpl.MessageState   `protogen:"open.v1"`
-	ExpireAt         int64                    `protobuf:"varint,1,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	Info             Raw                      `protobuf:"bytes,2,opt,name=info,proto3" json:"info,omitempty"`
-	B64Info          string                   `protobuf:"bytes,3,opt,name=b64info,proto3" json:"b64info,omitempty"`
-	Data             Raw                      `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data          string                   `protobuf:"bytes,5,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	Override         *SubscribeOptionOverride `protobuf:"bytes,6,opt,name=override,proto3" json:"override,omitempty"`
-	ServerTagsFilter *FilterNode              `protobuf:"bytes,7,opt,name=server_tags_filter,json=serverTagsFilter,proto3" json:"server_tags_filter,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// expire_at is when the subscription expires, in Unix seconds. Zero means it
+	// does not expire.
+	ExpireAt int64 `protobuf:"varint,1,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	// info is channel-specific information about the connection, as JSON: it is
+	// part of presence data, join and leave events and the client's
+	// publications in the channel.
+	Info Raw `protobuf:"bytes,2,opt,name=info,proto3" json:"info,omitempty"`
+	// b64info is info in base64, for binary info.
+	B64Info string `protobuf:"bytes,3,opt,name=b64info,proto3" json:"b64info,omitempty"`
+	// data is custom data sent to the client with the subscription in the
+	// connect reply.
+	Data Raw `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
+	// b64data is data in base64, for binary data.
+	B64Data string `protobuf:"bytes,5,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	// override overrides channel options of the namespace for this
+	// subscription.
+	Override *SubscribeOptionOverride `protobuf:"bytes,6,opt,name=override,proto3" json:"override,omitempty"`
+	// server_tags_filter makes the subscription receive only publications
+	// whose tags match it. Centrifugo PRO only.
+	ServerTagsFilter *FilterNode `protobuf:"bytes,7,opt,name=server_tags_filter,json=serverTagsFilter,proto3" json:"server_tags_filter,omitempty"`
 	// cache_recover, when set, makes Centrifugo initiate cache recovery for the
 	// server-side subscription without requiring the client to provide a recover
 	// flag/position itself. This is the server-side equivalent of subscribing with an
@@ -432,18 +489,36 @@ func (x *SubscribeOptions) GetCacheRecover() bool {
 	return false
 }
 
+// ConnectResult accepts the connection.
 type ConnectResult struct {
-	state    protoimpl.MessageState       `protogen:"open.v1"`
-	User     string                       `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	ExpireAt int64                        `protobuf:"varint,2,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	Info     Raw                          `protobuf:"bytes,3,opt,name=info,proto3" json:"info,omitempty"`
-	B64Info  string                       `protobuf:"bytes,4,opt,name=b64info,proto3" json:"b64info,omitempty"`
-	Data     Raw                          `protobuf:"bytes,5,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data  string                       `protobuf:"bytes,6,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	Channels []string                     `protobuf:"bytes,7,rep,name=channels,proto3" json:"channels,omitempty"`
-	Subs     map[string]*SubscribeOptions `protobuf:"bytes,8,rep,name=subs,proto3" json:"subs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Meta     Raw                          `protobuf:"bytes,9,opt,name=meta,proto3" json:"meta,omitempty"`
-	Caps     []*ChannelsCapability        `protobuf:"bytes,10,rep,name=caps,proto3" json:"caps,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// user is the ID of the user the connection belongs to. Empty accepts an
+	// anonymous connection.
+	User string `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	// expire_at is when the connection expires, in Unix seconds, unless
+	// refreshed - by the refresh proxy, when one is configured. Zero means it
+	// does not expire.
+	ExpireAt int64 `protobuf:"varint,2,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	// info is information about the connection, as JSON: it is part of presence
+	// data, join and leave events and the client's publications.
+	Info Raw `protobuf:"bytes,3,opt,name=info,proto3" json:"info,omitempty"`
+	// b64info is info in base64, for binary info.
+	B64Info string `protobuf:"bytes,4,opt,name=b64info,proto3" json:"b64info,omitempty"`
+	// data is custom data sent to the client in the connect reply.
+	Data Raw `protobuf:"bytes,5,opt,name=data,proto3" json:"data,omitempty"`
+	// b64data is data in base64, for binary data.
+	B64Data string `protobuf:"bytes,6,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	// channels are server-side channels to subscribe the connection to.
+	Channels []string `protobuf:"bytes,7,rep,name=channels,proto3" json:"channels,omitempty"`
+	// subs are server-side channels to subscribe the connection to, each with
+	// its options.
+	Subs map[string]*SubscribeOptions `protobuf:"bytes,8,rep,name=subs,proto3" json:"subs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// meta is custom data attached to the connection, as JSON. It is never sent
+	// to the client; proxies with include_connection_meta receive it.
+	Meta Raw `protobuf:"bytes,9,opt,name=meta,proto3" json:"meta,omitempty"`
+	// caps are capabilities granting the connection operations in channels.
+	// Centrifugo PRO only.
+	Caps []*ChannelsCapability `protobuf:"bytes,10,rep,name=caps,proto3" json:"caps,omitempty"`
 	// PRO only — client labels attached to the centrifuge.Client by Centrifugo PRO.
 	// Parsed by OSS but not used (OSS does not populate centrifuge.ConnectReply.Labels).
 	Labels        map[string]string `protobuf:"bytes,11,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -558,11 +633,19 @@ func (x *ConnectResult) GetLabels() map[string]string {
 	return nil
 }
 
+// ChannelsCapability grants operations in channels. A connection may do an
+// operation in a channel when any of its capabilities both allows the
+// operation and matches the channel. Centrifugo PRO only.
 type ChannelsCapability struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channels      []string               `protobuf:"bytes,1,rep,name=channels,proto3" json:"channels,omitempty"`
-	Allow         []string               `protobuf:"bytes,2,rep,name=allow,proto3" json:"allow,omitempty"`
-	Match         string                 `protobuf:"bytes,3,opt,name=match,proto3" json:"match,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channels are the channels, or channel patterns, it applies to.
+	Channels []string `protobuf:"bytes,1,rep,name=channels,proto3" json:"channels,omitempty"`
+	// allow are the operations it grants: "sub" (subscribe), "pub" (publish),
+	// "hst" (history) and "prs" (presence).
+	Allow []string `protobuf:"bytes,2,rep,name=allow,proto3" json:"allow,omitempty"`
+	// match is how channels are matched: empty for exact names, "wildcard" or
+	// "regex".
+	Match         string `protobuf:"bytes,3,opt,name=match,proto3" json:"match,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -618,6 +701,8 @@ func (x *ChannelsCapability) GetMatch() string {
 	return ""
 }
 
+// ConnectResponse answers a ConnectRequest with one of its fields: result
+// accepts the connection, error rejects it, disconnect closes it.
 type ConnectResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Result        *ConnectResult         `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
@@ -678,14 +763,22 @@ func (x *ConnectResponse) GetDisconnect() *Disconnect {
 	return nil
 }
 
+// RefreshRequest is sent when a connection is about to expire.
 type RefreshRequest struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	Client    string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
-	Transport string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
-	Protocol  string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	Encoding  string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
-	User      string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
-	Meta      Raw                    `protobuf:"bytes,11,opt,name=meta,proto3" json:"meta,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// client is the unique ID Centrifugo gave the connection.
+	Client string `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	// transport is the connection's transport.
+	Transport string `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
+	// protocol is the client protocol: "json" or "protobuf".
+	Protocol string `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	// encoding is "binary" when the proxy has binary_encoding enabled, so that
+	// payloads come in the b64 fields, and "json" otherwise.
+	Encoding string `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
+	// user is the connection's user ID.
+	User string `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
+	// meta is the connection's meta, when the proxy has include_connection_meta.
+	Meta Raw `protobuf:"bytes,11,opt,name=meta,proto3" json:"meta,omitempty"`
 	// PRO only — connection labels attached to the originating centrifuge.Client.
 	// Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
 	Labels        map[string]string `protobuf:"bytes,12,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -772,14 +865,21 @@ func (x *RefreshRequest) GetLabels() map[string]string {
 	return nil
 }
 
+// RefreshResult extends the connection, or ends it.
 type RefreshResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Expired       bool                   `protobuf:"varint,1,opt,name=expired,proto3" json:"expired,omitempty"`
-	ExpireAt      int64                  `protobuf:"varint,2,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	Info          Raw                    `protobuf:"bytes,3,opt,name=info,proto3" json:"info,omitempty"`
-	B64Info       string                 `protobuf:"bytes,4,opt,name=b64info,proto3" json:"b64info,omitempty"`
-	Meta          Raw                    `protobuf:"bytes,5,opt,name=meta,proto3" json:"meta,omitempty"`
-	Caps          []*ChannelsCapability  `protobuf:"bytes,6,rep,name=caps,proto3" json:"caps,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// expired disconnects the client: its connection has expired.
+	Expired bool `protobuf:"varint,1,opt,name=expired,proto3" json:"expired,omitempty"`
+	// expire_at is when the connection expires next, in Unix seconds.
+	ExpireAt int64 `protobuf:"varint,2,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	// info replaces the connection's info, as JSON.
+	Info Raw `protobuf:"bytes,3,opt,name=info,proto3" json:"info,omitempty"`
+	// b64info is info in base64, for binary info.
+	B64Info string `protobuf:"bytes,4,opt,name=b64info,proto3" json:"b64info,omitempty"`
+	// meta replaces the connection's meta, as JSON.
+	Meta Raw `protobuf:"bytes,5,opt,name=meta,proto3" json:"meta,omitempty"`
+	// caps replace the connection's capabilities. Centrifugo PRO only.
+	Caps          []*ChannelsCapability `protobuf:"bytes,6,rep,name=caps,proto3" json:"caps,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -856,6 +956,10 @@ func (x *RefreshResult) GetCaps() []*ChannelsCapability {
 	return nil
 }
 
+// RefreshResponse answers a RefreshRequest. Only result is used: a response
+// without one expires the connection, and error and disconnect are ignored.
+// When the request itself fails, Centrifugo keeps the connection for another
+// minute and asks again.
 type RefreshResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Result        *RefreshResult         `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
@@ -916,18 +1020,30 @@ func (x *RefreshResponse) GetDisconnect() *Disconnect {
 	return nil
 }
 
+// SubscribeRequest is sent when a client subscribes to a channel.
 type SubscribeRequest struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	Client    string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
-	Transport string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
-	Protocol  string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	Encoding  string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
-	User      string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
-	Channel   string                 `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
-	Token     string                 `protobuf:"bytes,12,opt,name=token,proto3" json:"token,omitempty"`
-	Meta      Raw                    `protobuf:"bytes,13,opt,name=meta,proto3" json:"meta,omitempty"`
-	Data      Raw                    `protobuf:"bytes,14,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data   string                 `protobuf:"bytes,15,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// client is the unique ID Centrifugo gave the connection.
+	Client string `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	// transport is the connection's transport.
+	Transport string `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
+	// protocol is the client protocol: "json" or "protobuf".
+	Protocol string `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	// encoding is "binary" when the proxy has binary_encoding enabled, so that
+	// payloads come in the b64 fields, and "json" otherwise.
+	Encoding string `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
+	// user is the connection's user ID.
+	User string `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
+	// channel is the channel the client subscribes to.
+	Channel string `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
+	// token is the subscription token the client sent for the channel, if any.
+	Token string `protobuf:"bytes,12,opt,name=token,proto3" json:"token,omitempty"`
+	// meta is the connection's meta, when the proxy has include_connection_meta.
+	Meta Raw `protobuf:"bytes,13,opt,name=meta,proto3" json:"meta,omitempty"`
+	// data is the custom data the client sent with its subscribe command, if any.
+	Data Raw `protobuf:"bytes,14,opt,name=data,proto3" json:"data,omitempty"`
+	// b64data is data in base64, sent instead of data in binary encoding mode.
+	B64Data string `protobuf:"bytes,15,opt,name=b64data,proto3" json:"b64data,omitempty"`
 	// PRO only — connection labels attached to the originating centrifuge.Client.
 	// Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
 	Labels        map[string]string `protobuf:"bytes,16,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -1042,6 +1158,8 @@ func (x *SubscribeRequest) GetLabels() map[string]string {
 	return nil
 }
 
+// BoolValue is a bool which can be left unset: an option it overrides keeps
+// its configured value when it is not set.
 type BoolValue struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Value         bool                   `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
@@ -1086,6 +1204,7 @@ func (x *BoolValue) GetValue() bool {
 	return false
 }
 
+// Int32Value is an int32 which can be left unset.
 type Int32Value struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Value         int32                  `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
@@ -1130,13 +1249,21 @@ func (x *Int32Value) GetValue() int32 {
 	return 0
 }
 
+// SubscribeOptionOverride overrides channel options of the namespace for one
+// subscription. An unset field keeps the namespace's value.
 type SubscribeOptionOverride struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Presence           *BoolValue             `protobuf:"bytes,1,opt,name=presence,proto3" json:"presence,omitempty"`
-	JoinLeave          *BoolValue             `protobuf:"bytes,2,opt,name=join_leave,json=joinLeave,proto3" json:"join_leave,omitempty"`
-	ForceRecovery      *BoolValue             `protobuf:"bytes,3,opt,name=force_recovery,json=forceRecovery,proto3" json:"force_recovery,omitempty"`
-	ForcePositioning   *BoolValue             `protobuf:"bytes,4,opt,name=force_positioning,json=forcePositioning,proto3" json:"force_positioning,omitempty"`
-	ForcePushJoinLeave *BoolValue             `protobuf:"bytes,5,opt,name=force_push_join_leave,json=forcePushJoinLeave,proto3" json:"force_push_join_leave,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// presence overrides the namespace's presence option.
+	Presence *BoolValue `protobuf:"bytes,1,opt,name=presence,proto3" json:"presence,omitempty"`
+	// join_leave overrides the namespace's join_leave option.
+	JoinLeave *BoolValue `protobuf:"bytes,2,opt,name=join_leave,json=joinLeave,proto3" json:"join_leave,omitempty"`
+	// force_recovery overrides the namespace's force_recovery option.
+	ForceRecovery *BoolValue `protobuf:"bytes,3,opt,name=force_recovery,json=forceRecovery,proto3" json:"force_recovery,omitempty"`
+	// force_positioning overrides the namespace's force_positioning option.
+	ForcePositioning *BoolValue `protobuf:"bytes,4,opt,name=force_positioning,json=forcePositioning,proto3" json:"force_positioning,omitempty"`
+	// force_push_join_leave overrides the namespace's force_push_join_leave
+	// option.
+	ForcePushJoinLeave *BoolValue `protobuf:"bytes,5,opt,name=force_push_join_leave,json=forcePushJoinLeave,proto3" json:"force_push_join_leave,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -1206,16 +1333,32 @@ func (x *SubscribeOptionOverride) GetForcePushJoinLeave() *BoolValue {
 	return nil
 }
 
+// SubscribeResult accepts the subscription.
 type SubscribeResult struct {
-	state            protoimpl.MessageState   `protogen:"open.v1"`
-	ExpireAt         int64                    `protobuf:"varint,1,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	Info             Raw                      `protobuf:"bytes,2,opt,name=info,proto3" json:"info,omitempty"`
-	B64Info          string                   `protobuf:"bytes,3,opt,name=b64info,proto3" json:"b64info,omitempty"`
-	Data             Raw                      `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data          string                   `protobuf:"bytes,5,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	Override         *SubscribeOptionOverride `protobuf:"bytes,6,opt,name=override,proto3" json:"override,omitempty"`
-	Allow            []string                 `protobuf:"bytes,7,rep,name=allow,proto3" json:"allow,omitempty"`
-	ServerTagsFilter *FilterNode              `protobuf:"bytes,8,opt,name=server_tags_filter,json=serverTagsFilter,proto3" json:"server_tags_filter,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// expire_at is when the subscription expires, in Unix seconds, unless
+	// refreshed - by the sub refresh proxy, when one is configured. Zero means
+	// it does not expire.
+	ExpireAt int64 `protobuf:"varint,1,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	// info is channel-specific information about the connection, as JSON: it is
+	// part of presence data, join and leave events and the client's
+	// publications in the channel.
+	Info Raw `protobuf:"bytes,2,opt,name=info,proto3" json:"info,omitempty"`
+	// b64info is info in base64, for binary info.
+	B64Info string `protobuf:"bytes,3,opt,name=b64info,proto3" json:"b64info,omitempty"`
+	// data is custom data sent to the client in the subscribe reply.
+	Data Raw `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
+	// b64data is data in base64, for binary data.
+	B64Data string `protobuf:"bytes,5,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	// override overrides channel options of the namespace for this
+	// subscription.
+	Override *SubscribeOptionOverride `protobuf:"bytes,6,opt,name=override,proto3" json:"override,omitempty"`
+	// allow are capabilities granted in the channel for this subscription:
+	// "sub", "pub", "hst" and "prs". Centrifugo PRO only.
+	Allow []string `protobuf:"bytes,7,rep,name=allow,proto3" json:"allow,omitempty"`
+	// server_tags_filter makes the subscription receive only publications
+	// whose tags match it. Centrifugo PRO only.
+	ServerTagsFilter *FilterNode `protobuf:"bytes,8,opt,name=server_tags_filter,json=serverTagsFilter,proto3" json:"server_tags_filter,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -1306,6 +1449,9 @@ func (x *SubscribeResult) GetServerTagsFilter() *FilterNode {
 	return nil
 }
 
+// SubscribeResponse answers a SubscribeRequest with one of its fields: result
+// accepts the subscription, error rejects it, disconnect closes the
+// connection. A response with none of them accepts the subscription.
 type SubscribeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Result        *SubscribeResult       `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
@@ -1366,17 +1512,28 @@ func (x *SubscribeResponse) GetDisconnect() *Disconnect {
 	return nil
 }
 
+// PublishRequest is sent when a client publishes into a channel.
 type PublishRequest struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	Client    string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
-	Transport string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
-	Protocol  string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	Encoding  string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
-	User      string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
-	Channel   string                 `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
-	Data      Raw                    `protobuf:"bytes,12,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data   string                 `protobuf:"bytes,13,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	Meta      Raw                    `protobuf:"bytes,14,opt,name=meta,proto3" json:"meta,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// client is the unique ID Centrifugo gave the connection.
+	Client string `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	// transport is the connection's transport.
+	Transport string `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
+	// protocol is the client protocol: "json" or "protobuf".
+	Protocol string `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	// encoding is "binary" when the proxy has binary_encoding enabled, so that
+	// payloads come in the b64 fields, and "json" otherwise.
+	Encoding string `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
+	// user is the connection's user ID.
+	User string `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
+	// channel is the channel the client publishes into.
+	Channel string `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
+	// data is the data the client publishes.
+	Data Raw `protobuf:"bytes,12,opt,name=data,proto3" json:"data,omitempty"`
+	// b64data is data in base64, sent instead of data in binary encoding mode.
+	B64Data string `protobuf:"bytes,13,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	// meta is the connection's meta, when the proxy has include_connection_meta.
+	Meta Raw `protobuf:"bytes,14,opt,name=meta,proto3" json:"meta,omitempty"`
 	// PRO only — connection labels attached to the originating centrifuge.Client.
 	// Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
 	Labels        map[string]string `protobuf:"bytes,15,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -1484,18 +1641,34 @@ func (x *PublishRequest) GetLabels() map[string]string {
 	return nil
 }
 
+// PublishResult accepts the publication. Fields left unset keep what the
+// client sent, or the defaults.
 type PublishResult struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Data           Raw                    `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data        string                 `protobuf:"bytes,2,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	SkipHistory    bool                   `protobuf:"varint,3,opt,name=skip_history,json=skipHistory,proto3" json:"skip_history,omitempty"`
-	Tags           map[string]string      `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	IdempotencyKey string                 `protobuf:"bytes,5,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
-	Delta          bool                   `protobuf:"varint,6,opt,name=delta,proto3" json:"delta,omitempty"`
-	Version        uint64                 `protobuf:"varint,7,opt,name=version,proto3" json:"version,omitempty"`
-	VersionEpoch   string                 `protobuf:"bytes,8,opt,name=version_epoch,json=versionEpoch,proto3" json:"version_epoch,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// data replaces the data the client sent.
+	Data Raw `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	// b64data is data in base64, for binary data.
+	B64Data string `protobuf:"bytes,2,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	// skip_history publishes without saving the publication to the channel's
+	// history. Not allowed in channels with delta compression.
+	SkipHistory bool `protobuf:"varint,3,opt,name=skip_history,json=skipHistory,proto3" json:"skip_history,omitempty"`
+	// tags are attached to the publication: clients cannot send tags, so this
+	// is where server-side tag filters get their tags from.
+	Tags map[string]string `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// idempotency_key makes the publication idempotent: another one with the
+	// same key in the channel within the broker's idempotency window is not
+	// published.
+	IdempotencyKey string `protobuf:"bytes,5,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	// delta enables delta compression for the publication.
+	Delta bool `protobuf:"varint,6,opt,name=delta,proto3" json:"delta,omitempty"`
+	// version is the publication's version, for channels whose publications
+	// each carry the whole state: Centrifugo drops one older than the latest.
+	Version uint64 `protobuf:"varint,7,opt,name=version,proto3" json:"version,omitempty"`
+	// version_epoch scopes version, for versions which may start over - when
+	// they come from a system which can lose its state, say.
+	VersionEpoch  string `protobuf:"bytes,8,opt,name=version_epoch,json=versionEpoch,proto3" json:"version_epoch,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PublishResult) Reset() {
@@ -1584,6 +1757,10 @@ func (x *PublishResult) GetVersionEpoch() string {
 	return ""
 }
 
+// PublishResponse answers a PublishRequest with one of its fields: result
+// accepts the publication, error rejects it, disconnect closes the
+// connection. A response with none of them accepts the publication as the
+// client sent it.
 type PublishResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Result        *PublishResult         `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
@@ -1644,18 +1821,30 @@ func (x *PublishResponse) GetDisconnect() *Disconnect {
 	return nil
 }
 
+// MapPublishRequest is sent when a client publishes a key into a map channel.
 type MapPublishRequest struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	Client    string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
-	Transport string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
-	Protocol  string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	Encoding  string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
-	User      string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user,omitempty"`
-	Channel   string                 `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
-	Key       string                 `protobuf:"bytes,12,opt,name=key,proto3" json:"key,omitempty"`
-	Data      Raw                    `protobuf:"bytes,13,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data   string                 `protobuf:"bytes,14,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	Meta      Raw                    `protobuf:"bytes,15,opt,name=meta,proto3" json:"meta,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// client is the unique ID Centrifugo gave the connection.
+	Client string `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	// transport is the connection's transport.
+	Transport string `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
+	// protocol is the client protocol: "json" or "protobuf".
+	Protocol string `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	// encoding is "binary" when the proxy has binary_encoding enabled, so that
+	// payloads come in the b64 fields, and "json" otherwise.
+	Encoding string `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
+	// user is the connection's user ID.
+	User string `protobuf:"bytes,10,opt,name=user,proto3" json:"user,omitempty"`
+	// channel is the map channel the client publishes into.
+	Channel string `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
+	// key is the key the client publishes, empty if it sent none.
+	Key string `protobuf:"bytes,12,opt,name=key,proto3" json:"key,omitempty"`
+	// data is the data the client publishes.
+	Data Raw `protobuf:"bytes,13,opt,name=data,proto3" json:"data,omitempty"`
+	// b64data is data in base64, sent instead of data in binary encoding mode.
+	B64Data string `protobuf:"bytes,14,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	// meta is the connection's meta, when the proxy has include_connection_meta.
+	Meta Raw `protobuf:"bytes,15,opt,name=meta,proto3" json:"meta,omitempty"`
 	// PRO only — connection labels attached to the originating centrifuge.Client.
 	// Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
 	Labels        map[string]string `protobuf:"bytes,16,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -1770,22 +1959,41 @@ func (x *MapPublishRequest) GetLabels() map[string]string {
 	return nil
 }
 
+// MapPublishResult accepts the publication, even when empty. Fields left
+// unset keep what the client sent, or the defaults.
 type MapPublishResult struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Key            string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Data           Raw                    `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data        string                 `protobuf:"bytes,3,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	Tags           map[string]string      `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Score          int64                  `protobuf:"varint,5,opt,name=score,proto3" json:"score,omitempty"`
-	KeyMode        string                 `protobuf:"bytes,6,opt,name=key_mode,json=keyMode,proto3" json:"key_mode,omitempty"`
-	StreamData     Raw                    `protobuf:"bytes,7,opt,name=stream_data,json=streamData,proto3" json:"stream_data,omitempty"`
-	B64StreamData  string                 `protobuf:"bytes,8,opt,name=b64stream_data,json=b64streamData,proto3" json:"b64stream_data,omitempty"`
-	IdempotencyKey string                 `protobuf:"bytes,9,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
-	Delta          bool                   `protobuf:"varint,10,opt,name=delta,proto3" json:"delta,omitempty"`
-	Version        uint64                 `protobuf:"varint,11,opt,name=version,proto3" json:"version,omitempty"`
-	VersionEpoch   string                 `protobuf:"bytes,12,opt,name=version_epoch,json=versionEpoch,proto3" json:"version_epoch,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// key replaces the key the client sent: to force a key the server derives,
+	// such as the user ID.
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// data replaces the data the client sent.
+	Data Raw `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	// b64data is data in base64, for binary data.
+	B64Data string `protobuf:"bytes,3,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	// tags are attached to the publication: clients cannot send tags, so this
+	// is where server-side tag filters get their tags from.
+	Tags map[string]string `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// score is not used by Centrifugo yet.
+	Score int64 `protobuf:"varint,5,opt,name=score,proto3" json:"score,omitempty"`
+	// key_mode makes the publication conditional: "if_new" publishes only a key
+	// which does not exist yet, "if_exists" only one which does.
+	KeyMode string `protobuf:"bytes,6,opt,name=key_mode,json=keyMode,proto3" json:"key_mode,omitempty"`
+	// stream_data is not used by Centrifugo yet.
+	StreamData Raw `protobuf:"bytes,7,opt,name=stream_data,json=streamData,proto3" json:"stream_data,omitempty"`
+	// b64stream_data is not used by Centrifugo yet.
+	B64StreamData string `protobuf:"bytes,8,opt,name=b64stream_data,json=b64streamData,proto3" json:"b64stream_data,omitempty"`
+	// idempotency_key makes the publication idempotent: another one with the
+	// same key within the broker's idempotency window is not published.
+	IdempotencyKey string `protobuf:"bytes,9,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	// delta enables delta compression for the publication.
+	Delta bool `protobuf:"varint,10,opt,name=delta,proto3" json:"delta,omitempty"`
+	// version is the key's version: Centrifugo drops a publication older than
+	// the key's latest.
+	Version uint64 `protobuf:"varint,11,opt,name=version,proto3" json:"version,omitempty"`
+	// version_epoch scopes version, for versions which may start over.
+	VersionEpoch  string `protobuf:"bytes,12,opt,name=version_epoch,json=versionEpoch,proto3" json:"version_epoch,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MapPublishResult) Reset() {
@@ -1902,6 +2110,10 @@ func (x *MapPublishResult) GetVersionEpoch() string {
 	return ""
 }
 
+// MapPublishResponse answers a MapPublishRequest with one of its fields:
+// result accepts the publication, error rejects it, disconnect closes the
+// connection. A response with none of them accepts the publication as the
+// client sent it.
 type MapPublishResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Result        *MapPublishResult      `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
@@ -1962,16 +2174,26 @@ func (x *MapPublishResponse) GetDisconnect() *Disconnect {
 	return nil
 }
 
+// MapRemoveRequest is sent when a client removes a key from a map channel.
 type MapRemoveRequest struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	Client    string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
-	Transport string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
-	Protocol  string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	Encoding  string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
-	User      string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user,omitempty"`
-	Channel   string                 `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
-	Key       string                 `protobuf:"bytes,12,opt,name=key,proto3" json:"key,omitempty"`
-	Meta      Raw                    `protobuf:"bytes,13,opt,name=meta,proto3" json:"meta,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// client is the unique ID Centrifugo gave the connection.
+	Client string `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	// transport is the connection's transport.
+	Transport string `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
+	// protocol is the client protocol: "json" or "protobuf".
+	Protocol string `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	// encoding is "binary" when the proxy has binary_encoding enabled, so that
+	// payloads come in the b64 fields, and "json" otherwise.
+	Encoding string `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
+	// user is the connection's user ID.
+	User string `protobuf:"bytes,10,opt,name=user,proto3" json:"user,omitempty"`
+	// channel is the map channel the client removes the key from.
+	Channel string `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
+	// key is the key the client removes.
+	Key string `protobuf:"bytes,12,opt,name=key,proto3" json:"key,omitempty"`
+	// meta is the connection's meta, when the proxy has include_connection_meta.
+	Meta Raw `protobuf:"bytes,13,opt,name=meta,proto3" json:"meta,omitempty"`
 	// PRO only — connection labels attached to the originating centrifuge.Client.
 	// Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
 	Labels        map[string]string `protobuf:"bytes,14,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -2072,11 +2294,18 @@ func (x *MapRemoveRequest) GetLabels() map[string]string {
 	return nil
 }
 
+// MapRemoveResult accepts the removal, even when empty. Fields left unset
+// keep what the client sent, or the defaults.
 type MapRemoveResult struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Key            string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Tags           map[string]string      `protobuf:"bytes,2,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	IdempotencyKey string                 `protobuf:"bytes,3,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// key replaces the key the client sent.
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// tags are attached to the removal publication. When unset, the removed
+	// entry's own tags are.
+	Tags map[string]string `protobuf:"bytes,2,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// idempotency_key makes the removal idempotent within the broker's
+	// idempotency window.
+	IdempotencyKey string `protobuf:"bytes,3,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -2132,6 +2361,9 @@ func (x *MapRemoveResult) GetIdempotencyKey() string {
 	return ""
 }
 
+// MapRemoveResponse answers a MapRemoveRequest with one of its fields: result
+// accepts the removal, error rejects it, disconnect closes the connection. A
+// response with none of them accepts the removal as the client asked.
 type MapRemoveResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Result        *MapRemoveResult       `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
@@ -2192,17 +2424,28 @@ func (x *MapRemoveResponse) GetDisconnect() *Disconnect {
 	return nil
 }
 
+// RPCRequest is sent when a client makes an RPC call.
 type RPCRequest struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	Client    string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
-	Transport string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
-	Protocol  string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	Encoding  string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
-	User      string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
-	Method    string                 `protobuf:"bytes,11,opt,name=method,proto3" json:"method,omitempty"`
-	Data      Raw                    `protobuf:"bytes,12,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data   string                 `protobuf:"bytes,13,opt,name=b64data,proto3" json:"b64data,omitempty"`
-	Meta      Raw                    `protobuf:"bytes,14,opt,name=meta,proto3" json:"meta,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// client is the unique ID Centrifugo gave the connection.
+	Client string `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	// transport is the connection's transport.
+	Transport string `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
+	// protocol is the client protocol: "json" or "protobuf".
+	Protocol string `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	// encoding is "binary" when the proxy has binary_encoding enabled, so that
+	// payloads come in the b64 fields, and "json" otherwise.
+	Encoding string `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
+	// user is the connection's user ID.
+	User string `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
+	// method is the method the client calls, empty if it named none.
+	Method string `protobuf:"bytes,11,opt,name=method,proto3" json:"method,omitempty"`
+	// data is the data the client sent with the call.
+	Data Raw `protobuf:"bytes,12,opt,name=data,proto3" json:"data,omitempty"`
+	// b64data is data in base64, sent instead of data in binary encoding mode.
+	B64Data string `protobuf:"bytes,13,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	// meta is the connection's meta, when the proxy has include_connection_meta.
+	Meta Raw `protobuf:"bytes,14,opt,name=meta,proto3" json:"meta,omitempty"`
 	// PRO only — connection labels attached to the originating centrifuge.Client.
 	// Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
 	Labels        map[string]string `protobuf:"bytes,15,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -2310,10 +2553,13 @@ func (x *RPCRequest) GetLabels() map[string]string {
 	return nil
 }
 
+// RPCResult is the call's result.
 type RPCResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Data          Raw                    `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-	B64Data       string                 `protobuf:"bytes,2,opt,name=b64data,proto3" json:"b64data,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// data is the result sent to the client: any JSON.
+	Data Raw `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	// b64data is data in base64, for binary data.
+	B64Data       string `protobuf:"bytes,2,opt,name=b64data,proto3" json:"b64data,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2362,6 +2608,9 @@ func (x *RPCResult) GetB64Data() string {
 	return ""
 }
 
+// RPCResponse answers an RPCRequest with one of its fields: result answers
+// the call, error fails it, disconnect closes the connection. A response with
+// none of them answers the call with no data.
 type RPCResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Result        *RPCResult             `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
@@ -2422,15 +2671,24 @@ func (x *RPCResponse) GetDisconnect() *Disconnect {
 	return nil
 }
 
+// SubRefreshRequest is sent when a subscription is about to expire.
 type SubRefreshRequest struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	Client    string                 `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
-	Transport string                 `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
-	Protocol  string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	Encoding  string                 `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
-	User      string                 `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
-	Channel   string                 `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
-	Meta      Raw                    `protobuf:"bytes,12,opt,name=meta,proto3" json:"meta,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// client is the unique ID Centrifugo gave the connection.
+	Client string `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	// transport is the connection's transport.
+	Transport string `protobuf:"bytes,2,opt,name=transport,proto3" json:"transport,omitempty"`
+	// protocol is the client protocol: "json" or "protobuf".
+	Protocol string `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	// encoding is "binary" when the proxy has binary_encoding enabled, so that
+	// payloads come in the b64 fields, and "json" otherwise.
+	Encoding string `protobuf:"bytes,4,opt,name=encoding,proto3" json:"encoding,omitempty"`
+	// user is the connection's user ID.
+	User string `protobuf:"bytes,10,opt,name=user,proto3" json:"user"`
+	// channel is the channel whose subscription is about to expire.
+	Channel string `protobuf:"bytes,11,opt,name=channel,proto3" json:"channel,omitempty"`
+	// meta is the connection's meta, when the proxy has include_connection_meta.
+	Meta Raw `protobuf:"bytes,12,opt,name=meta,proto3" json:"meta,omitempty"`
 	// PRO only — connection labels attached to the originating centrifuge.Client.
 	// Centrifugo PRO always populates this from Client.Labels() (no opt-in toggle).
 	Labels        map[string]string `protobuf:"bytes,13,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -2524,12 +2782,18 @@ func (x *SubRefreshRequest) GetLabels() map[string]string {
 	return nil
 }
 
+// SubRefreshResult extends the subscription, or ends it.
 type SubRefreshResult struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	Expired  bool                   `protobuf:"varint,1,opt,name=expired,proto3" json:"expired,omitempty"`
-	ExpireAt int64                  `protobuf:"varint,2,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	Info     Raw                    `protobuf:"bytes,3,opt,name=info,proto3" json:"info,omitempty"`
-	B64Info  string                 `protobuf:"bytes,4,opt,name=b64info,proto3" json:"b64info,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// expired ends the subscription: it has expired.
+	Expired bool `protobuf:"varint,1,opt,name=expired,proto3" json:"expired,omitempty"`
+	// expire_at is when the subscription expires next, in Unix seconds.
+	ExpireAt int64 `protobuf:"varint,2,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	// info replaces the channel-specific information about the connection, as
+	// JSON.
+	Info Raw `protobuf:"bytes,3,opt,name=info,proto3" json:"info,omitempty"`
+	// b64info is info in base64, for binary info.
+	B64Info string `protobuf:"bytes,4,opt,name=b64info,proto3" json:"b64info,omitempty"`
 	// server_tags_filter, when set, replaces the server-side tags filter of the
 	// subscription (Centrifugo PRO). When not set the filter is kept as it is.
 	ServerTagsFilter *FilterNode `protobuf:"bytes,5,opt,name=server_tags_filter,json=serverTagsFilter,proto3" json:"server_tags_filter,omitempty"`
@@ -2602,6 +2866,10 @@ func (x *SubRefreshResult) GetServerTagsFilter() *FilterNode {
 	return nil
 }
 
+// SubRefreshResponse answers a SubRefreshRequest. Only result is used: a
+// response without one expires the subscription, and error and disconnect
+// are ignored. When the request itself fails, Centrifugo keeps the
+// subscription for another minute and asks again.
 type SubRefreshResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Result        *SubRefreshResult      `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
@@ -2827,9 +3095,13 @@ func (x *StreamSubscribeResponse) GetPublication() *Publication {
 	return nil
 }
 
+// NotifyCacheEmptyRequest is sent when a client subscribed to a channel in
+// cache recovery mode which has no publication to recover from. Centrifugo
+// PRO only.
 type NotifyCacheEmptyRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channel       string                 `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channel is the channel whose cache is empty.
+	Channel       string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2871,6 +3143,8 @@ func (x *NotifyCacheEmptyRequest) GetChannel() string {
 	return ""
 }
 
+// NotifyCacheEmptyResponse answers a NotifyCacheEmptyRequest. When the
+// request fails, the client which subscribed is disconnected to reconnect.
 type NotifyCacheEmptyResponse struct {
 	state         protoimpl.MessageState  `protogen:"open.v1"`
 	Result        *NotifyCacheEmptyResult `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
@@ -2916,8 +3190,10 @@ func (x *NotifyCacheEmptyResponse) GetResult() *NotifyCacheEmptyResult {
 }
 
 type NotifyCacheEmptyResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Populated     bool                   `protobuf:"varint,1,opt,name=populated,proto3" json:"populated,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// populated tells Centrifugo that the backend published into the channel,
+	// so that it tries to recover the state once more.
+	Populated     bool `protobuf:"varint,1,opt,name=populated,proto3" json:"populated,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2959,9 +3235,12 @@ func (x *NotifyCacheEmptyResult) GetPopulated() bool {
 	return false
 }
 
+// NotifyChannelStateRequest carries channel state events. Centrifugo PRO
+// only, in preview.
 type NotifyChannelStateRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Events        []*ChannelEvent        `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// events are the events which happened, in channels with presence.
+	Events        []*ChannelEvent `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3003,11 +3282,17 @@ func (x *NotifyChannelStateRequest) GetEvents() []*ChannelEvent {
 	return nil
 }
 
+// ChannelEvent is a change of a channel's state.
 type ChannelEvent struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TimeMs        int64                  `protobuf:"varint,1,opt,name=time_ms,json=timeMs,proto3" json:"time_ms,omitempty"`
-	Channel       string                 `protobuf:"bytes,2,opt,name=channel,proto3" json:"channel,omitempty"`
-	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"` // "occupied" | "vacated" | could be more in the future. Not using enums for better JSON interop.
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// time_ms is when it happened, in Unix milliseconds.
+	TimeMs int64 `protobuf:"varint,1,opt,name=time_ms,json=timeMs,proto3" json:"time_ms,omitempty"`
+	// channel is the channel it happened in.
+	Channel string `protobuf:"bytes,2,opt,name=channel,proto3" json:"channel,omitempty"`
+	// type is "occupied" when the channel got its first subscriber, "vacated"
+	// when it lost its last one. More types may come; the field is a string,
+	// not an enum, for JSON interoperability.
+	Type          string `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3063,6 +3348,8 @@ func (x *ChannelEvent) GetType() string {
 	return ""
 }
 
+// NotifyChannelStateResponse answers a NotifyChannelStateRequest: an empty
+// result acknowledges the events.
 type NotifyChannelStateResponse struct {
 	state         protoimpl.MessageState    `protogen:"open.v1"`
 	Result        *NotifyChannelStateResult `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
@@ -3151,9 +3438,13 @@ func (*NotifyChannelStateResult) Descriptor() ([]byte, []int) {
 	return file_proxy_proto_rawDescGZIP(), []int{41}
 }
 
+// SharedPollRefreshRequest asks for the current data of items tracked in a
+// shared poll channel.
 type SharedPollRefreshRequest struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Channel       string                   `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// channel is the shared poll channel.
+	Channel string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	// items are the tracked items to refresh.
 	Items         []*SharedPollRefreshItem `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -3203,10 +3494,14 @@ func (x *SharedPollRefreshRequest) GetItems() []*SharedPollRefreshItem {
 	return nil
 }
 
+// SharedPollRefreshItem is an item to refresh.
 type SharedPollRefreshItem struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Version       uint64                 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// key is the item's key.
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// version is the latest version of the item Centrifugo has, in versioned
+	// mode: zero when it has none. Not set in versionless mode.
+	Version       uint64 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3255,10 +3550,18 @@ func (x *SharedPollRefreshItem) GetVersion() uint64 {
 	return 0
 }
 
+// SharedPollRefreshResult carries the items' current data. An item left out
+// is unchanged.
 type SharedPollRefreshResult struct {
-	state         protoimpl.MessageState         `protogen:"open.v1"`
-	Items         []*SharedPollRefreshResultItem `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
-	Epoch         string                         `protobuf:"bytes,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// items are the items' current data.
+	Items []*SharedPollRefreshResultItem `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	// epoch identifies the publisher's version space: when it differs from
+	// the channel's, Centrifugo drops the versions and data it keeps and
+	// resubscribes the channel's subscribers. Generate one per process start, and
+	// send the same one with direct publishes. Empty means versions are never
+	// reset.
+	Epoch         string `protobuf:"bytes,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3307,13 +3610,23 @@ func (x *SharedPollRefreshResult) GetEpoch() string {
 	return ""
 }
 
+// SharedPollRefreshResultItem is an item's current data.
 type SharedPollRefreshResultItem struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Data          Raw                    `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	Version       uint64                 `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
-	Removed       bool                   `protobuf:"varint,4,opt,name=removed,proto3" json:"removed,omitempty"`
-	PrevData      Raw                    `protobuf:"bytes,5,opt,name=prev_data,json=prevData,proto3" json:"prev_data,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// key is the item's key.
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// data is the item's data. In versioned mode it may be left out for an
+	// item which has not changed.
+	Data Raw `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	// version is the item's version: required in versioned mode, optional in
+	// versionless mode. It must grow when the item changes.
+	Version uint64 `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
+	// removed removes the item: subscribers are told so, and it is no longer
+	// tracked.
+	Removed bool `protobuf:"varint,4,opt,name=removed,proto3" json:"removed,omitempty"`
+	// prev_data is the item's previous data, the base for delta compression
+	// when the namespace uses it, so that Centrifugo need not keep it.
+	PrevData      Raw `protobuf:"bytes,5,opt,name=prev_data,json=prevData,proto3" json:"prev_data,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3383,6 +3696,8 @@ func (x *SharedPollRefreshResultItem) GetPrevData() []byte {
 	return nil
 }
 
+// SharedPollRefreshResponse answers a SharedPollRefreshRequest. On error,
+// Centrifugo skips this refresh and tries again at the next interval.
 type SharedPollRefreshResponse struct {
 	state         protoimpl.MessageState   `protogen:"open.v1"`
 	Result        *SharedPollRefreshResult `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`

@@ -37,39 +37,57 @@ const (
 // CentrifugoProxyClient is the client API for CentrifugoProxy service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// CentrifugoProxy is the service an application backend implements to receive
+// proxy requests from Centrifugo over GRPC. Over HTTP, Centrifugo sends the same
+// requests as JSON POST bodies to the endpoint configured for each proxy type,
+// and expects the corresponding response as a JSON body with HTTP status 200.
+//
+// Payload fields typed bytes (data, info, meta and the like) carry JSON as is
+// over HTTP. When a proxy has binary_encoding enabled, Centrifugo sends payloads
+// in the b64 fields (b64data, b64info) instead, encoded in base64; a backend may
+// answer with either field, and Centrifugo decodes the b64 one.
 type CentrifugoProxyClient interface {
-	// Connect to proxy connection authentication and communicate initial state.
+	// Connect authenticates a connection and returns its initial state: the user,
+	// connection info, server-side subscriptions and the like.
 	Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (*ConnectResponse, error)
-	// Refresh to proxy decision about connection expiration to the app backend.
+	// Refresh is called when a connection is about to expire, to decide whether
+	// it may live on, and until when.
 	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error)
-	// Subscribe to proxy subscription attempts to channels.
+	// Subscribe decides whether a client may subscribe to a channel.
 	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (*SubscribeResponse, error)
-	// Publish to proxy publication attempts to channels.
+	// Publish decides whether a client may publish into a channel, and may
+	// change the publication.
 	Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error)
-	// RPC to execute custom logic on the backend over request through the real-time connection.
+	// RPC handles a custom call a client makes over its real-time connection.
 	RPC(ctx context.Context, in *RPCRequest, opts ...grpc.CallOption) (*RPCResponse, error)
-	// SubRefresh to proxy decision about subscription expiration to the app backend.
+	// SubRefresh is called when a subscription is about to expire, to decide
+	// whether it may live on, and until when.
 	SubRefresh(ctx context.Context, in *SubRefreshRequest, opts ...grpc.CallOption) (*SubRefreshResponse, error)
 	// SubscribeUnidirectional is an EXPERIMENTAL method which allows handling unidirectional
 	// subscription streams. Stream starts with SubscribeRequest similar to Subscribe rpc,
 	// then expects StreamSubscribeResponse with SubscribeResponse as first message, and
-	// StreamSubscribeResponse with Publication afterwards.
+	// StreamSubscribeResponse with Publication afterwards. GRPC only.
 	SubscribeUnidirectional(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamSubscribeResponse], error)
 	// SubscribeBidirectional is an EXPERIMENTAL method which allows handling bidirectional
 	// subscription streams. Stream receives StreamSubscribeRequest. First StreamSubscribeRequest
 	// always contains SubscribeRequest, then StreamSubscribeRequest will contain data published
-	// by client. Reverse direction works the same way as in SubscribeUnidirectional.
+	// by client. Reverse direction works the same way as in SubscribeUnidirectional. GRPC only.
 	SubscribeBidirectional(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[StreamSubscribeRequest, StreamSubscribeResponse], error)
-	// NotifyCacheEmpty is an EXPERIMENTAL method which allows to load documents from the backend.
+	// NotifyCacheEmpty tells the backend that a client subscribed to a channel in
+	// cache recovery mode which has no publication to recover from, so that the
+	// backend may publish the current state. Centrifugo PRO only.
 	NotifyCacheEmpty(ctx context.Context, in *NotifyCacheEmptyRequest, opts ...grpc.CallOption) (*NotifyCacheEmptyResponse, error)
 	// NotifyChannelState can be used to receive channel events such as channel "occupied" and "vacated".
 	// This is a feature in a preview state and is only available in Centrifugo PRO.
 	NotifyChannelState(ctx context.Context, in *NotifyChannelStateRequest, opts ...grpc.CallOption) (*NotifyChannelStateResponse, error)
-	// MapPublish to proxy map publish attempts to channels.
+	// MapPublish decides whether a client may publish a key into a map channel,
+	// and may change the publication.
 	MapPublish(ctx context.Context, in *MapPublishRequest, opts ...grpc.CallOption) (*MapPublishResponse, error)
-	// MapRemove to proxy map remove attempts from channels.
+	// MapRemove decides whether a client may remove a key from a map channel.
 	MapRemove(ctx context.Context, in *MapRemoveRequest, opts ...grpc.CallOption) (*MapRemoveResponse, error)
-	// SharedPollRefresh to proxy shared poll refresh requests to the app backend.
+	// SharedPollRefresh returns the current data of the items tracked in a shared
+	// poll channel.
 	SharedPollRefresh(ctx context.Context, in *SharedPollRefreshRequest, opts ...grpc.CallOption) (*SharedPollRefreshResponse, error)
 }
 
@@ -226,39 +244,57 @@ func (c *centrifugoProxyClient) SharedPollRefresh(ctx context.Context, in *Share
 // CentrifugoProxyServer is the server API for CentrifugoProxy service.
 // All implementations must embed UnimplementedCentrifugoProxyServer
 // for forward compatibility.
+//
+// CentrifugoProxy is the service an application backend implements to receive
+// proxy requests from Centrifugo over GRPC. Over HTTP, Centrifugo sends the same
+// requests as JSON POST bodies to the endpoint configured for each proxy type,
+// and expects the corresponding response as a JSON body with HTTP status 200.
+//
+// Payload fields typed bytes (data, info, meta and the like) carry JSON as is
+// over HTTP. When a proxy has binary_encoding enabled, Centrifugo sends payloads
+// in the b64 fields (b64data, b64info) instead, encoded in base64; a backend may
+// answer with either field, and Centrifugo decodes the b64 one.
 type CentrifugoProxyServer interface {
-	// Connect to proxy connection authentication and communicate initial state.
+	// Connect authenticates a connection and returns its initial state: the user,
+	// connection info, server-side subscriptions and the like.
 	Connect(context.Context, *ConnectRequest) (*ConnectResponse, error)
-	// Refresh to proxy decision about connection expiration to the app backend.
+	// Refresh is called when a connection is about to expire, to decide whether
+	// it may live on, and until when.
 	Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error)
-	// Subscribe to proxy subscription attempts to channels.
+	// Subscribe decides whether a client may subscribe to a channel.
 	Subscribe(context.Context, *SubscribeRequest) (*SubscribeResponse, error)
-	// Publish to proxy publication attempts to channels.
+	// Publish decides whether a client may publish into a channel, and may
+	// change the publication.
 	Publish(context.Context, *PublishRequest) (*PublishResponse, error)
-	// RPC to execute custom logic on the backend over request through the real-time connection.
+	// RPC handles a custom call a client makes over its real-time connection.
 	RPC(context.Context, *RPCRequest) (*RPCResponse, error)
-	// SubRefresh to proxy decision about subscription expiration to the app backend.
+	// SubRefresh is called when a subscription is about to expire, to decide
+	// whether it may live on, and until when.
 	SubRefresh(context.Context, *SubRefreshRequest) (*SubRefreshResponse, error)
 	// SubscribeUnidirectional is an EXPERIMENTAL method which allows handling unidirectional
 	// subscription streams. Stream starts with SubscribeRequest similar to Subscribe rpc,
 	// then expects StreamSubscribeResponse with SubscribeResponse as first message, and
-	// StreamSubscribeResponse with Publication afterwards.
+	// StreamSubscribeResponse with Publication afterwards. GRPC only.
 	SubscribeUnidirectional(*SubscribeRequest, grpc.ServerStreamingServer[StreamSubscribeResponse]) error
 	// SubscribeBidirectional is an EXPERIMENTAL method which allows handling bidirectional
 	// subscription streams. Stream receives StreamSubscribeRequest. First StreamSubscribeRequest
 	// always contains SubscribeRequest, then StreamSubscribeRequest will contain data published
-	// by client. Reverse direction works the same way as in SubscribeUnidirectional.
+	// by client. Reverse direction works the same way as in SubscribeUnidirectional. GRPC only.
 	SubscribeBidirectional(grpc.BidiStreamingServer[StreamSubscribeRequest, StreamSubscribeResponse]) error
-	// NotifyCacheEmpty is an EXPERIMENTAL method which allows to load documents from the backend.
+	// NotifyCacheEmpty tells the backend that a client subscribed to a channel in
+	// cache recovery mode which has no publication to recover from, so that the
+	// backend may publish the current state. Centrifugo PRO only.
 	NotifyCacheEmpty(context.Context, *NotifyCacheEmptyRequest) (*NotifyCacheEmptyResponse, error)
 	// NotifyChannelState can be used to receive channel events such as channel "occupied" and "vacated".
 	// This is a feature in a preview state and is only available in Centrifugo PRO.
 	NotifyChannelState(context.Context, *NotifyChannelStateRequest) (*NotifyChannelStateResponse, error)
-	// MapPublish to proxy map publish attempts to channels.
+	// MapPublish decides whether a client may publish a key into a map channel,
+	// and may change the publication.
 	MapPublish(context.Context, *MapPublishRequest) (*MapPublishResponse, error)
-	// MapRemove to proxy map remove attempts from channels.
+	// MapRemove decides whether a client may remove a key from a map channel.
 	MapRemove(context.Context, *MapRemoveRequest) (*MapRemoveResponse, error)
-	// SharedPollRefresh to proxy shared poll refresh requests to the app backend.
+	// SharedPollRefresh returns the current data of the items tracked in a shared
+	// poll channel.
 	SharedPollRefresh(context.Context, *SharedPollRefreshRequest) (*SharedPollRefreshResponse, error)
 	mustEmbedUnimplementedCentrifugoProxyServer()
 }

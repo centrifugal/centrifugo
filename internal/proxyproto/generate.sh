@@ -22,4 +22,8 @@ gomodifytype -file proxy.pb.go -all -w -from "[]byte" -to "Raw"
 
 bash generate_tags.sh
 
+# Comments between fields break the alignment protoc-gen-go wrote, which the
+# steps above keep: format, so that regenerating reproduces the files.
+gofmt -w proxy.pb.go proxy_grpc.pb.go
+
 echo "Done! Make sure JSON tags properly replaced for new messages"
