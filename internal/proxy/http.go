@@ -32,6 +32,12 @@ var httpDecoder = &proxyproto.JSONDecoder{}
 // DefaultMaxIdleConnsPerHost is a reasonable value for all HTTP clients.
 const DefaultMaxIdleConnsPerHost = 255
 
+// maxProxyResponseBodySize bounds how much of a proxy backend's HTTP response
+// body we buffer in memory. Without this, a misbehaving or compromised proxy
+// backend can force unbounded memory growth via io.ReadAll on every proxied
+// call (connect/refresh/publish/subscribe/rpc/etc).
+const maxProxyResponseBodySize = 5 << 20 // 5MB
+
 // HTTPCaller is responsible for calling HTTP.
 type HTTPCaller interface {
 	CallHTTP(context.Context, string, http.Header, []byte) ([]byte, error)
@@ -89,9 +95,13 @@ func (c *httpCaller) CallHTTP(ctx context.Context, endpoint string, header http.
 	if resp.StatusCode != http.StatusOK {
 		return nil, &statusCodeError{resp.StatusCode}
 	}
-	respData, err := io.ReadAll(resp.Body)
+	limitedReader := io.LimitReader(resp.Body, maxProxyResponseBodySize+1)
+	respData, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return nil, fmt.Errorf("error reading HTTP body: %w", err)
+	}
+	if len(respData) > maxProxyResponseBodySize {
+		return nil, fmt.Errorf("proxy response exceeds max allowed size of %d bytes", maxProxyResponseBodySize)
 	}
 	return respData, nil
 }
