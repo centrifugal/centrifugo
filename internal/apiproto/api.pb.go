@@ -4551,8 +4551,9 @@ type ConnectionState struct {
 	// subscription_tokens maps channel to information about the subscription
 	// token used to subscribe to it.
 	SubscriptionTokens map[string]*SubscriptionTokenInfo `protobuf:"bytes,3,rep,name=subscription_tokens,json=subscriptionTokens,proto3" json:"subscription_tokens,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// meta is the meta information attached to the connection. It is not
-	// visible to the client.
+	// meta is the meta information attached to the connection. Centrifugo
+	// never sends it to clients, but meta from a connection token is readable
+	// by the client holding the token: it must not hold secrets.
 	Meta          Raw `protobuf:"bytes,4,opt,name=meta,proto3" json:"meta,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
