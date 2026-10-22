@@ -463,6 +463,21 @@ func (verifier *VerifierJWT) verifySignature(token *jwt.Token) error {
 	return err
 }
 
+// signatureError classifies an error verifying a token's signature. A key the
+// JWKS endpoint does not have - a rotation in progress, or a key retired - makes
+// the token expired: clients answer with a new token, signed by a key the
+// endpoint has. An endpoint which can't be used is a temporary failure, and is
+// returned as is: clients retry. Anything else makes the token invalid.
+func signatureError(err error) error {
+	switch {
+	case errors.Is(err, jwks.ErrPublicKeyNotFound):
+		return fmt.Errorf("%w: %v", ErrTokenExpired, err)
+	case errors.Is(err, jwks.ErrUnavailable):
+		return err
+	}
+	return fmt.Errorf("%w: %v", ErrInvalidToken, err)
+}
+
 // verifySignatureByJWK verifies a token against the JWKS manager. The caller
 // must hold verifier.mu (at least RLock); it does not lock, to avoid recursive
 // RLock.
@@ -558,7 +573,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 			err = verifier.verifySignature(token)
 		}
 		if err != nil {
-			return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+			return ConnectToken{}, signatureError(err)
 		}
 	}
 
@@ -735,7 +750,7 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 			err = verifier.verifySignature(token)
 		}
 		if err != nil {
-			return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+			return SubscribeToken{}, signatureError(err)
 		}
 	}
 

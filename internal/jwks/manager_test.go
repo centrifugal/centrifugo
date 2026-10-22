@@ -624,3 +624,52 @@ func TestManagerFetchKey_MissRacingConcurrentFetch(t *testing.T) {
 	require.NoError(t, <-slow)
 	require.Equal(t, int32(1), ts.requests.Load())
 }
+
+// A failure of the endpoint wraps ErrUnavailable - it says nothing about the
+// token - while a key the endpoint does not have does not.
+func TestManagerFetchKey_UnavailableWrapped(t *testing.T) {
+	for name, handler := range map[string]http.HandlerFunc{
+		"status": func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusInternalServerError) },
+		"body":   func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte(`...`)) },
+	} {
+		t.Run(name, func(t *testing.T) {
+			ts := httptest.NewServer(handler)
+			defer ts.Close()
+			manager, err := NewManager(ts.URL)
+			require.NoError(t, err)
+			_, err = manager.FetchKey(context.Background(), "kid", nil)
+			require.ErrorIs(t, err, ErrUnavailable)
+		})
+	}
+	t.Run("unreachable", func(t *testing.T) {
+		ts := httptest.NewServer(http.NotFoundHandler())
+		ts.Close()
+		manager, err := NewManager(ts.URL, WithMaxRetries(1))
+		require.NoError(t, err)
+		_, err = manager.FetchKey(context.Background(), "kid", nil)
+		require.ErrorIs(t, err, ErrUnavailable)
+	})
+	t.Run("key not found", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write([]byte(`{"keys": []}`))
+		}))
+		defer ts.Close()
+		manager, err := NewManager(ts.URL)
+		require.NoError(t, err)
+		_, err = manager.FetchKey(context.Background(), "kid", nil)
+		require.ErrorIs(t, err, ErrPublicKeyNotFound)
+		require.NotErrorIs(t, err, ErrUnavailable)
+	})
+}
+
+// A key removed from the endpoint stops being accepted within minutes, not an
+// hour: the default TTL of fetched keys.
+func TestManagerDefaultTTL(t *testing.T) {
+	require.Equal(t, 5*time.Minute, _defaultTTL)
+	manager, err := NewManager("https://example.com/jwks")
+	require.NoError(t, err)
+	ttlCache, ok := manager.cache.(*TTLCache)
+	require.True(t, ok)
+	defer func() { _ = ttlCache.Stop() }()
+	require.Equal(t, _defaultTTL, ttlCache.ttl)
+}
