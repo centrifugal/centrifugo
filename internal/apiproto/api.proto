@@ -924,8 +924,9 @@ message ConnectionState {
     // subscription_tokens maps channel to information about the subscription
     // token used to subscribe to it.
     map<string, SubscriptionTokenInfo> subscription_tokens = 3;
-    // meta is the meta information attached to the connection. It is not
-    // visible to the client.
+    // meta is the meta information attached to the connection. Centrifugo
+    // never sends it to clients, but meta from a connection token is readable
+    // by the client holding the token: it must not hold secrets.
     bytes meta = 4;
 }
 
