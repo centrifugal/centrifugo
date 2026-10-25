@@ -521,7 +521,11 @@ type ConnectResult struct {
 	Caps []*ChannelsCapability `protobuf:"bytes,10,rep,name=caps,proto3" json:"caps,omitempty"`
 	// PRO only — client labels attached to the centrifuge.Client by Centrifugo PRO.
 	// Parsed by OSS but not used (OSS does not populate centrifuge.ConnectReply.Labels).
-	Labels        map[string]string `protobuf:"bytes,11,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels map[string]string `protobuf:"bytes,11,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// profile assigns the connection to a dictionary compression profile, as the
+	// profile claim of a connection token does: it overrides the profile the
+	// client declared. Centrifugo PRO only.
+	Profile       string `protobuf:"bytes,12,opt,name=profile,proto3" json:"profile,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -631,6 +635,13 @@ func (x *ConnectResult) GetLabels() map[string]string {
 		return x.Labels
 	}
 	return nil
+}
+
+func (x *ConnectResult) GetProfile() string {
+	if x != nil {
+		return x.Profile
+	}
+	return ""
 }
 
 // ChannelsCapability grants operations in channels. A connection may do an
@@ -3790,7 +3801,7 @@ const file_proxy_proto_rawDesc = "" +
 	"\ab64data\x18\x05 \x01(\tR\ab64data\x12Q\n" +
 	"\boverride\x18\x06 \x01(\v25.centrifugal.centrifugo.proxy.SubscribeOptionOverrideR\boverride\x12V\n" +
 	"\x12server_tags_filter\x18\a \x01(\v2(.centrifugal.centrifugo.proxy.FilterNodeR\x10serverTagsFilter\x12#\n" +
-	"\rcache_recover\x18\b \x01(\bR\fcacheRecover\"\xd2\x04\n" +
+	"\rcache_recover\x18\b \x01(\bR\fcacheRecover\"\xec\x04\n" +
 	"\rConnectResult\x12\x12\n" +
 	"\x04user\x18\x01 \x01(\tR\x04user\x12\x1b\n" +
 	"\texpire_at\x18\x02 \x01(\x03R\bexpireAt\x12\x12\n" +
@@ -3803,7 +3814,8 @@ const file_proxy_proto_rawDesc = "" +
 	"\x04meta\x18\t \x01(\fR\x04meta\x12D\n" +
 	"\x04caps\x18\n" +
 	" \x03(\v20.centrifugal.centrifugo.proxy.ChannelsCapabilityR\x04caps\x12O\n" +
-	"\x06labels\x18\v \x03(\v27.centrifugal.centrifugo.proxy.ConnectResult.LabelsEntryR\x06labels\x1ag\n" +
+	"\x06labels\x18\v \x03(\v27.centrifugal.centrifugo.proxy.ConnectResult.LabelsEntryR\x06labels\x12\x18\n" +
+	"\aprofile\x18\f \x01(\tR\aprofile\x1ag\n" +
 	"\tSubsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
 	"\x05value\x18\x02 \x01(\v2..centrifugal.centrifugo.proxy.SubscribeOptionsR\x05value:\x028\x01\x1a9\n" +
