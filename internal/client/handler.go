@@ -469,16 +469,17 @@ func (h *Handler) OnClientConnecting(
 			return centrifuge.ConnectReply{}, centrifuge.ErrorUnknownChannel
 		}
 		subscriptions[personalChannel] = centrifuge.SubscribeOptions{
-			EmitPresence:      chOpts.Presence,
-			EmitJoinLeave:     chOpts.JoinLeave,
-			PushJoinLeave:     chOpts.ForcePushJoinLeave,
-			EnableRecovery:    chOpts.ForceRecovery,
-			EnablePositioning: chOpts.ForcePositioning,
-			RecoveryMode:      chOpts.GetRecoveryMode(),
-			Source:            subsource.UserPersonal,
-			HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
-			AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
-			AllowTagsFilter:   chOpts.AllowTagsFilter,
+			EmitPresence:                chOpts.Presence,
+			EmitJoinLeave:               chOpts.JoinLeave,
+			PushJoinLeave:               chOpts.ForcePushJoinLeave,
+			EnableRecovery:              chOpts.ForceRecovery,
+			EnablePositioning:           chOpts.ForcePositioning,
+			RecoveryMode:                chOpts.GetRecoveryMode(),
+			Source:                      subsource.UserPersonal,
+			HistoryMetaTTL:              chOpts.HistoryMetaTTL.ToDuration(),
+			RecoveryMaxPublicationLimit: chOpts.RecoveryMaxPublicationLimit,
+			AllowedDeltaTypes:           chOpts.AllowedDeltaTypes,
+			AllowTagsFilter:             chOpts.AllowTagsFilter,
 		}
 	}
 
@@ -530,16 +531,17 @@ func (h *Handler) OnClientConnecting(
 			if channelOk {
 				if _, ok := subscriptions[ch]; !ok {
 					subscriptions[ch] = centrifuge.SubscribeOptions{
-						EmitPresence:      chOpts.Presence,
-						EmitJoinLeave:     chOpts.JoinLeave,
-						PushJoinLeave:     chOpts.ForcePushJoinLeave,
-						EnableRecovery:    chOpts.ForceRecovery,
-						EnablePositioning: chOpts.ForcePositioning,
-						RecoveryMode:      chOpts.GetRecoveryMode(),
-						Source:            subsource.UniConnect,
-						HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
-						AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
-						AllowTagsFilter:   chOpts.AllowTagsFilter,
+						EmitPresence:                chOpts.Presence,
+						EmitJoinLeave:               chOpts.JoinLeave,
+						PushJoinLeave:               chOpts.ForcePushJoinLeave,
+						EnableRecovery:              chOpts.ForceRecovery,
+						EnablePositioning:           chOpts.ForcePositioning,
+						RecoveryMode:                chOpts.GetRecoveryMode(),
+						Source:                      subsource.UniConnect,
+						HistoryMetaTTL:              chOpts.HistoryMetaTTL.ToDuration(),
+						RecoveryMaxPublicationLimit: chOpts.RecoveryMaxPublicationLimit,
+						AllowedDeltaTypes:           chOpts.AllowedDeltaTypes,
+						AllowTagsFilter:             chOpts.AllowTagsFilter,
 					}
 				}
 			} else {
@@ -780,6 +782,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	options.EnableRecovery = chOpts.ForceRecovery
 	options.RecoveryMode = chOpts.GetRecoveryMode()
 	options.HistoryMetaTTL = chOpts.HistoryMetaTTL.ToDuration()
+	options.RecoveryMaxPublicationLimit = chOpts.RecoveryMaxPublicationLimit
 	options.AllowedDeltaTypes = chOpts.AllowedDeltaTypes
 	options.AllowTagsFilter = chOpts.AllowTagsFilter
 	options.MapRemoveClientOnUnsubscribe = chOpts.Map.RemoveClientOnUnsubscribe
@@ -1346,5 +1349,5 @@ func (h *Handler) OnHistory(c Client, e centrifuge.HistoryEvent) (centrifuge.His
 		return centrifuge.HistoryReply{}, centrifuge.ErrorPermissionDenied
 	}
 
-	return centrifuge.HistoryReply{}, nil
+	return centrifuge.HistoryReply{MaxPublicationLimit: chOpts.HistoryMaxPublicationLimit}, nil
 }

@@ -15,6 +15,7 @@ import (
 func TestApplyNamespaceSubscribeOptions(t *testing.T) {
 	chOpts := configtypes.ChannelOptions{
 		HistoryMetaTTL:                  configtypes.Duration(48 * time.Hour),
+		RecoveryMaxPublicationLimit:     3000,
 		MapClientsPresenceChannelPrefix: "clients:",
 		MapUsersPresenceChannelPrefix:   "users:",
 	}
@@ -23,6 +24,7 @@ func TestApplyNamespaceSubscribeOptions(t *testing.T) {
 	options := centrifuge.SubscribeOptions{ExpireAt: 42, EnableRecovery: true}
 	applyNamespaceSubscribeOptions(&options, chOpts, "ns:room", centrifuge.SubscriptionTypeMap)
 	require.Equal(t, 48*time.Hour, options.HistoryMetaTTL)
+	require.Equal(t, 3000, options.RecoveryMaxPublicationLimit)
 	require.True(t, options.MapRemoveClientOnUnsubscribe)
 	require.Equal(t, "clients:ns:room", options.MapClientPresenceChannel)
 	require.Equal(t, "users:ns:room", options.MapUserPresenceChannel)

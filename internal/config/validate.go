@@ -240,6 +240,12 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 	if historyMetaTTL < c.HistoryTTL {
 		return fmt.Errorf("history ttl (%s) can not be greater than history meta ttl (%s)", c.HistoryTTL, historyMetaTTL)
 	}
+	if c.HistoryMaxPublicationLimit < 0 {
+		return errors.New("history_max_publication_limit can not be negative")
+	}
+	if c.RecoveryMaxPublicationLimit < 0 {
+		return errors.New("recovery_max_publication_limit can not be negative")
+	}
 	if c.ForceRecovery && (c.HistorySize == 0 || c.HistoryTTL == 0) {
 		return errors.New("both history size and history ttl required for recovery")
 	}

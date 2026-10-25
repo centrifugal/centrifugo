@@ -147,16 +147,17 @@ func (h *ConnectHandler) Handle() ConnectingHandlerFunc {
 					return centrifuge.ConnectReply{}, ConnectExtra{}, centrifuge.ErrorUnknownChannel
 				}
 				reply.Subscriptions[ch] = centrifuge.SubscribeOptions{
-					EmitPresence:      chOpts.Presence,
-					EmitJoinLeave:     chOpts.JoinLeave,
-					PushJoinLeave:     chOpts.ForcePushJoinLeave,
-					EnableRecovery:    chOpts.ForceRecovery,
-					EnablePositioning: chOpts.ForcePositioning,
-					RecoveryMode:      chOpts.GetRecoveryMode(),
-					Source:            subsource.ConnectProxy,
-					HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
-					AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
-					AllowTagsFilter:   chOpts.AllowTagsFilter,
+					EmitPresence:                chOpts.Presence,
+					EmitJoinLeave:               chOpts.JoinLeave,
+					PushJoinLeave:               chOpts.ForcePushJoinLeave,
+					EnableRecovery:              chOpts.ForceRecovery,
+					EnablePositioning:           chOpts.ForcePositioning,
+					RecoveryMode:                chOpts.GetRecoveryMode(),
+					Source:                      subsource.ConnectProxy,
+					HistoryMetaTTL:              chOpts.HistoryMetaTTL.ToDuration(),
+					RecoveryMaxPublicationLimit: chOpts.RecoveryMaxPublicationLimit,
+					AllowedDeltaTypes:           chOpts.AllowedDeltaTypes,
+					AllowTagsFilter:             chOpts.AllowTagsFilter,
 				}
 			}
 		}
@@ -219,19 +220,20 @@ func (h *ConnectHandler) Handle() ConnectingHandlerFunc {
 				}
 				recoveryMode := chOpts.GetRecoveryMode()
 				reply.Subscriptions[ch] = centrifuge.SubscribeOptions{
-					ChannelInfo:       chInfo,
-					EmitPresence:      presence,
-					EmitJoinLeave:     joinLeave,
-					PushJoinLeave:     pushJoinLeave,
-					EnableRecovery:    recovery,
-					EnablePositioning: positioning,
-					RecoveryMode:      recoveryMode,
-					AutoCacheRecover:  options.CacheRecover,
-					Data:              chData,
-					Source:            subsource.ConnectProxy,
-					HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
-					AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
-					AllowTagsFilter:   chOpts.AllowTagsFilter,
+					ChannelInfo:                 chInfo,
+					EmitPresence:                presence,
+					EmitJoinLeave:               joinLeave,
+					PushJoinLeave:               pushJoinLeave,
+					EnableRecovery:              recovery,
+					EnablePositioning:           positioning,
+					RecoveryMode:                recoveryMode,
+					AutoCacheRecover:            options.CacheRecover,
+					Data:                        chData,
+					Source:                      subsource.ConnectProxy,
+					HistoryMetaTTL:              chOpts.HistoryMetaTTL.ToDuration(),
+					RecoveryMaxPublicationLimit: chOpts.RecoveryMaxPublicationLimit,
+					AllowedDeltaTypes:           chOpts.AllowedDeltaTypes,
+					AllowTagsFilter:             chOpts.AllowTagsFilter,
 				}
 			}
 		}

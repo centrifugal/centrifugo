@@ -91,6 +91,16 @@ type ChannelOptions struct {
 	// set over default_history_meta_ttl on configuration top level.
 	HistoryMetaTTL Duration `mapstructure:"history_meta_ttl" json:"history_meta_ttl" envconfig:"history_meta_ttl" yaml:"history_meta_ttl" toml:"history_meta_ttl" doc:"How long history stream meta information (offset, epoch) is retained. Should be much larger than history_ttl. If zero, the global default_history_meta_ttl is used."`
 
+	// HistoryMaxPublicationLimit is the maximum number of publications returned per
+	// client history request in a channel of the namespace. If zero,
+	// client.history_max_publication_limit is used.
+	HistoryMaxPublicationLimit int `mapstructure:"history_max_publication_limit" json:"history_max_publication_limit" envconfig:"history_max_publication_limit" yaml:"history_max_publication_limit" toml:"history_max_publication_limit" doc:"Maximum number of publications returned per client history request in a channel of the namespace. Overrides client.history_max_publication_limit for the namespace. If zero, client.history_max_publication_limit is used."`
+
+	// RecoveryMaxPublicationLimit is the maximum number of publications returned to a
+	// client recovering a channel of the namespace. A client which missed more is not
+	// recovered. If zero, client.recovery_max_publication_limit is used.
+	RecoveryMaxPublicationLimit int `mapstructure:"recovery_max_publication_limit" json:"recovery_max_publication_limit" envconfig:"recovery_max_publication_limit" yaml:"recovery_max_publication_limit" toml:"recovery_max_publication_limit" doc:"Maximum number of publications returned to a client recovering a channel of the namespace: a client which missed more is not recovered. Overrides client.recovery_max_publication_limit for the namespace, e.g. for channels whose history holds many small publications. If zero, client.recovery_max_publication_limit is used."`
+
 	// ForcePositioning enables client positioning. This means that StreamPosition
 	// will be exposed to the client and server will look that no messages from
 	// PUB/SUB layer lost. In the loss found – client is disconnected (or unsubscribed)

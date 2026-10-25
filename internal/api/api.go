@@ -489,6 +489,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 		centrifuge.WithRecoverSince(recoverSince),
 		centrifuge.WithSubscribeSource(subsource.ServerAPI),
 		centrifuge.WithSubscribeHistoryMetaTTL(chOpts.HistoryMetaTTL.ToDuration()),
+		centrifuge.WithSubscribeRecoveryMaxPublicationLimit(chOpts.RecoveryMaxPublicationLimit),
 	)
 	if err != nil {
 		log.Error().Err(err).Str("channel", channel).Str("user", user).Msg("error subscribing user to channel")
