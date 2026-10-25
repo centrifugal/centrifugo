@@ -198,6 +198,10 @@ message ConnectResult {
   // PRO only — client labels attached to the centrifuge.Client by Centrifugo PRO.
   // Parsed by OSS but not used (OSS does not populate centrifuge.ConnectReply.Labels).
   map<string, string> labels = 11;
+  // profile assigns the connection to a dictionary compression profile, as the
+  // profile claim of a connection token does: it overrides the profile the
+  // client declared. Centrifugo PRO only.
+  string profile = 12;
 }
 
 // ChannelsCapability grants operations in channels. A connection may do an
