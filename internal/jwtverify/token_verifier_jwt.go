@@ -663,18 +663,19 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 			}
 			recoveryMode := chOpts.GetRecoveryMode()
 			subs[ch] = centrifuge.SubscribeOptions{
-				ChannelInfo:       info,
-				EmitPresence:      presence,
-				EmitJoinLeave:     joinLeave,
-				PushJoinLeave:     pushJoinLeave,
-				EnableRecovery:    recovery,
-				EnablePositioning: positioning,
-				RecoveryMode:      recoveryMode,
-				Data:              data,
-				Source:            subsource.ConnectionToken,
-				HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
-				AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
-				AllowTagsFilter:   chOpts.AllowTagsFilter,
+				ChannelInfo:                 info,
+				EmitPresence:                presence,
+				EmitJoinLeave:               joinLeave,
+				PushJoinLeave:               pushJoinLeave,
+				EnableRecovery:              recovery,
+				EnablePositioning:           positioning,
+				RecoveryMode:                recoveryMode,
+				Data:                        data,
+				Source:                      subsource.ConnectionToken,
+				HistoryMetaTTL:              chOpts.HistoryMetaTTL.ToDuration(),
+				RecoveryMaxPublicationLimit: chOpts.RecoveryMaxPublicationLimit,
+				AllowedDeltaTypes:           chOpts.AllowedDeltaTypes,
+				AllowTagsFilter:             chOpts.AllowTagsFilter,
 			}
 		}
 	} else if len(claims.Channels) > 0 {
@@ -687,16 +688,17 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string, skipVerify bool) (Conn
 				return ConnectToken{}, centrifuge.ErrorUnknownChannel
 			}
 			subs[ch] = centrifuge.SubscribeOptions{
-				EmitPresence:      chOpts.Presence,
-				EmitJoinLeave:     chOpts.JoinLeave,
-				PushJoinLeave:     chOpts.ForcePushJoinLeave,
-				EnableRecovery:    chOpts.ForceRecovery,
-				EnablePositioning: chOpts.ForcePositioning,
-				RecoveryMode:      chOpts.GetRecoveryMode(),
-				Source:            subsource.ConnectionToken,
-				HistoryMetaTTL:    chOpts.HistoryMetaTTL.ToDuration(),
-				AllowedDeltaTypes: chOpts.AllowedDeltaTypes,
-				AllowTagsFilter:   chOpts.AllowTagsFilter,
+				EmitPresence:                chOpts.Presence,
+				EmitJoinLeave:               chOpts.JoinLeave,
+				PushJoinLeave:               chOpts.ForcePushJoinLeave,
+				EnableRecovery:              chOpts.ForceRecovery,
+				EnablePositioning:           chOpts.ForcePositioning,
+				RecoveryMode:                chOpts.GetRecoveryMode(),
+				Source:                      subsource.ConnectionToken,
+				HistoryMetaTTL:              chOpts.HistoryMetaTTL.ToDuration(),
+				RecoveryMaxPublicationLimit: chOpts.RecoveryMaxPublicationLimit,
+				AllowedDeltaTypes:           chOpts.AllowedDeltaTypes,
+				AllowTagsFilter:             chOpts.AllowTagsFilter,
 			}
 		}
 	}

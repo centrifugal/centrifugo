@@ -109,6 +109,17 @@ func TestConfigValidatePersonalSingleConnectionOK(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestConfigValidateNegativePublicationLimits(t *testing.T) {
+	for _, opts := range []configtypes.ChannelOptions{
+		{HistoryMaxPublicationLimit: -1},
+		{RecoveryMaxPublicationLimit: -1},
+	} {
+		c := defaultConfig(t)
+		c.Channel.Namespaces = []configtypes.ChannelNamespace{{Name: "name1", ChannelOptions: opts}}
+		require.ErrorContains(t, c.Validate(), "max_publication_limit can not be negative")
+	}
+}
+
 func TestConfigValidateHistoryTTL(t *testing.T) {
 	t.Run("in_namespace", func(t *testing.T) {
 		c := defaultConfig(t)
