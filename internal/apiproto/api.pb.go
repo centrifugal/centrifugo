@@ -5744,7 +5744,8 @@ type InvalidateUserTokensRequest struct {
 	// expire_at is the Unix time in seconds when the invalidation expires.
 	// Optional, but a value matching the token expiration is recommended.
 	ExpireAt int64 `protobuf:"varint,1,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	// user is the ID of the user whose tokens to invalidate. Required.
+	// user is the ID of the user whose tokens to invalidate. Required. ""
+	// invalidates the tokens of anonymous users.
 	User string `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
 	// issued_before is the Unix time in seconds: tokens issued before it are
 	// considered revoked. If not set, the current time is used.

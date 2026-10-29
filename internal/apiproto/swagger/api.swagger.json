@@ -3125,7 +3125,7 @@
         },
         "user": {
           "type": "string",
-          "description": "user is the ID of the user whose tokens to invalidate. Required."
+          "description": "user is the ID of the user whose tokens to invalidate. Required. \"\"\ninvalidates the tokens of anonymous users."
         },
         "issued_before": {
           "type": "integer",
