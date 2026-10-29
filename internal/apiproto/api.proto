@@ -1109,7 +1109,8 @@ message InvalidateUserTokensRequest {
     // expire_at is the Unix time in seconds when the invalidation expires.
     // Optional, but a value matching the token expiration is recommended.
     int64 expire_at = 1;
-    // user is the ID of the user whose tokens to invalidate. Required.
+    // user is the ID of the user whose tokens to invalidate. Required. ""
+    // invalidates the tokens of anonymous users.
     string user = 2;
     // issued_before is the Unix time in seconds: tokens issued before it are
     // considered revoked. If not set, the current time is used.
@@ -1195,25 +1196,26 @@ message DeviceRemoveRequest {
 
 // DeviceUserUpdate sets the user of devices. Centrifugo PRO only.
 message DeviceUserUpdate {
-    // user is the user ID to set. Required.
+    // user is the user ID to set. Required. "" detaches the devices from their
+    // user.
     string user = 1;
 }
 
 // DeviceTimezoneUpdate sets the timezone of devices. Centrifugo PRO only.
 message DeviceTimezoneUpdate {
-    // timezone is the IANA time zone to set. Required.
+    // timezone is the IANA time zone to set. Required. "" clears it.
     string timezone = 1;
 }
 
 // DeviceLocaleUpdate sets the locale of devices. Centrifugo PRO only.
 message DeviceLocaleUpdate {
-    // locale is the locale to set. Required.
+    // locale is the locale to set. Required. "" clears it.
     string locale = 1;
 }
 
 // DeviceMetaUpdate sets the meta of devices. Centrifugo PRO only.
 message DeviceMetaUpdate {
-    // meta is the meta to set. Required.
+    // meta is the meta to set. Required. An empty map clears it.
     map<string, string> meta = 1;
 }
 
@@ -1242,7 +1244,7 @@ message DeviceFilter {
 // DeviceListRequest returns a paginated list of registered devices.
 // Centrifugo PRO only.
 message DeviceListRequest {
-    // filter selects the devices to list. Required.
+    // filter selects the devices to list: all of them when unset.
     DeviceFilter filter = 1;
 
     // include_total_count includes the total count for the filter in the
@@ -1344,7 +1346,8 @@ message DeviceTopicUpdateRequest {
 // UserTopicUpdateRequest changes the topics of a user. The change is also
 // applied to the user's registered devices. Centrifugo PRO only.
 message UserTopicUpdateRequest {
-    // user is the user ID. Required.
+    // user is the user ID. Required. "" updates the global binding, which every
+    // device - anonymous ones included - gets on its next device_register.
     string user = 1;
     // op is the operation: add, remove or set. Required.
     string op = 2;

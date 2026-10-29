@@ -5744,7 +5744,8 @@ type InvalidateUserTokensRequest struct {
 	// expire_at is the Unix time in seconds when the invalidation expires.
 	// Optional, but a value matching the token expiration is recommended.
 	ExpireAt int64 `protobuf:"varint,1,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	// user is the ID of the user whose tokens to invalidate. Required.
+	// user is the ID of the user whose tokens to invalidate. Required. ""
+	// invalidates the tokens of anonymous users.
 	User string `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
 	// issued_before is the Unix time in seconds: tokens issued before it are
 	// considered revoked. If not set, the current time is used.
@@ -6196,7 +6197,8 @@ func (x *DeviceRemoveRequest) GetUsers() []string {
 // DeviceUserUpdate sets the user of devices. Centrifugo PRO only.
 type DeviceUserUpdate struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// user is the user ID to set. Required.
+	// user is the user ID to set. Required. "" detaches the devices from their
+	// user.
 	User          string `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -6242,7 +6244,7 @@ func (x *DeviceUserUpdate) GetUser() string {
 // DeviceTimezoneUpdate sets the timezone of devices. Centrifugo PRO only.
 type DeviceTimezoneUpdate struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// timezone is the IANA time zone to set. Required.
+	// timezone is the IANA time zone to set. Required. "" clears it.
 	Timezone      string `protobuf:"bytes,1,opt,name=timezone,proto3" json:"timezone,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -6288,7 +6290,7 @@ func (x *DeviceTimezoneUpdate) GetTimezone() string {
 // DeviceLocaleUpdate sets the locale of devices. Centrifugo PRO only.
 type DeviceLocaleUpdate struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// locale is the locale to set. Required.
+	// locale is the locale to set. Required. "" clears it.
 	Locale        string `protobuf:"bytes,1,opt,name=locale,proto3" json:"locale,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -6334,7 +6336,7 @@ func (x *DeviceLocaleUpdate) GetLocale() string {
 // DeviceMetaUpdate sets the meta of devices. Centrifugo PRO only.
 type DeviceMetaUpdate struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// meta is the meta to set. Required.
+	// meta is the meta to set. Required. An empty map clears it.
 	Meta          map[string]string `protobuf:"bytes,1,rep,name=meta,proto3" json:"meta,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -6518,7 +6520,7 @@ func (x *DeviceFilter) GetPlatforms() []string {
 // Centrifugo PRO only.
 type DeviceListRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// filter selects the devices to list. Required.
+	// filter selects the devices to list: all of them when unset.
 	Filter *DeviceFilter `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
 	// include_total_count includes the total count for the filter in the
 	// result.
@@ -7015,7 +7017,8 @@ func (x *DeviceTopicUpdateRequest) GetUser() string {
 // applied to the user's registered devices. Centrifugo PRO only.
 type UserTopicUpdateRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// user is the user ID. Required.
+	// user is the user ID. Required. "" updates the global binding, which every
+	// device - anonymous ones included - gets on its next device_register.
 	User string `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
 	// op is the operation: add, remove or set. Required.
 	Op string `protobuf:"bytes,2,opt,name=op,proto3" json:"op,omitempty"`
