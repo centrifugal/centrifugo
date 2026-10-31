@@ -531,3 +531,80 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 
 	return proxyMap, keepHeadersInContext, nil
 }
+
+// checkProxiesBuilt returns an error if cfg references a proxy which is not in
+// proxyMap. Proxies are only built on start, so a reloaded config can only use
+// the ones which already exist.
+func checkProxiesBuilt(cfg config.Config, proxyMap *client.ProxyMap) error {
+	if err := checkChannelProxiesBuilt(cfg.Channel.WithoutNamespace, proxyMap); err != nil {
+		return fmt.Errorf("channels without namespace: %w", err)
+	}
+	for _, ns := range cfg.Channel.Namespaces {
+		if err := checkChannelProxiesBuilt(ns.ChannelOptions, proxyMap); err != nil {
+			return fmt.Errorf("channel namespace %s: %w", ns.Name, err)
+		}
+	}
+	if cfg.RPC.WithoutNamespace.ProxyEnabled {
+		if err := checkProxyBuilt("rpc", cfg.RPC.WithoutNamespace.ProxyName, proxyMap.RpcProxies); err != nil {
+			return fmt.Errorf("rpc without namespace: %w", err)
+		}
+	}
+	for _, ns := range cfg.RPC.Namespaces {
+		if ns.ProxyEnabled {
+			if err := checkProxyBuilt("rpc", ns.ProxyName, proxyMap.RpcProxies); err != nil {
+				return fmt.Errorf("rpc namespace %s: %w", ns.Name, err)
+			}
+		}
+	}
+	return nil
+}
+
+func checkChannelProxiesBuilt(opts configtypes.ChannelOptions, proxyMap *client.ProxyMap) error {
+	if opts.SubscribeProxyEnabled {
+		if err := checkProxyBuilt("subscribe", opts.SubscribeProxyName, proxyMap.SubscribeProxies); err != nil {
+			return err
+		}
+	}
+	if opts.PublishProxyEnabled {
+		if err := checkProxyBuilt("publish", opts.PublishProxyName, proxyMap.PublishProxies); err != nil {
+			return err
+		}
+	}
+	if opts.SubRefreshProxyEnabled {
+		if err := checkProxyBuilt("sub refresh", opts.SubRefreshProxyName, proxyMap.SubRefreshProxies); err != nil {
+			return err
+		}
+	}
+	if opts.SubscribeStreamProxyEnabled {
+		if err := checkProxyBuilt("subscribe stream", opts.SubscribeStreamProxyName, proxyMap.SubscribeStreamProxies); err != nil {
+			return err
+		}
+	}
+	if opts.Map.PublishProxyEnabled {
+		if err := checkProxyBuilt("map publish", opts.Map.PublishProxyName, proxyMap.MapPublishProxies); err != nil {
+			return err
+		}
+	}
+	if opts.Map.RemoveProxyEnabled {
+		if err := checkProxyBuilt("map remove", opts.Map.RemoveProxyName, proxyMap.MapRemoveProxies); err != nil {
+			return err
+		}
+	}
+	if opts.SubscriptionType == "shared_poll" {
+		name := opts.SharedPoll.ProxyName
+		if name == "" {
+			name = config.DefaultProxyName
+		}
+		if err := checkProxyBuilt("shared poll refresh", name, proxyMap.SharedPollRefreshProxies); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func checkProxyBuilt[P any](kind string, name string, proxies map[string]P) error {
+	if _, ok := proxies[name]; !ok {
+		return fmt.Errorf("%s proxy %q is not available, restart is required to start using it", kind, name)
+	}
+	return nil
+}

@@ -72,7 +72,11 @@ func (h *SubscribeHandler) Handle() SubscribeHandlerFunc {
 			log.Info().Str("channel", e.Channel).Msg("subscribe proxy not enabled for a channel")
 			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
 		}
-		p = h.config.Proxies[proxyName]
+		p, ok := h.config.Proxies[proxyName]
+		if !ok {
+			log.Error().Str("proxy_name", proxyName).Str("channel", e.Channel).Msg("subscribe proxy not found")
+			return centrifuge.SubscribeReply{}, SubscribeExtra{}, centrifuge.ErrorNotAvailable
+		}
 		summary = h.summary[proxyName]
 		histogram = h.histogram[proxyName]
 		errors = h.errors[proxyName]

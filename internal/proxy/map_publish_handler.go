@@ -69,7 +69,11 @@ func (h *MapPublishHandler) Handle(node *centrifuge.Node) MapPublishHandlerFunc 
 			log.Info().Str("channel", e.Channel).Msg("map publish proxy not enabled for a channel")
 			return centrifuge.MapPublishReply{}, centrifuge.ErrorNotAvailable
 		}
-		p = h.config.Proxies[proxyName]
+		p, ok := h.config.Proxies[proxyName]
+		if !ok {
+			log.Error().Str("proxy_name", proxyName).Str("channel", e.Channel).Msg("map publish proxy not found")
+			return centrifuge.MapPublishReply{}, centrifuge.ErrorNotAvailable
+		}
 		summary = h.summary[proxyName]
 		histogram = h.histogram[proxyName]
 		errors = h.errors[proxyName]

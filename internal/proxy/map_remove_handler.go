@@ -67,7 +67,11 @@ func (h *MapRemoveHandler) Handle(node *centrifuge.Node) MapRemoveHandlerFunc {
 			log.Info().Str("channel", e.Channel).Msg("map remove proxy not enabled for a channel")
 			return centrifuge.MapRemoveReply{}, centrifuge.ErrorNotAvailable
 		}
-		p = h.config.Proxies[proxyName]
+		p, ok := h.config.Proxies[proxyName]
+		if !ok {
+			log.Error().Str("proxy_name", proxyName).Str("channel", e.Channel).Msg("map remove proxy not found")
+			return centrifuge.MapRemoveReply{}, centrifuge.ErrorNotAvailable
+		}
 		summary = h.summary[proxyName]
 		histogram = h.histogram[proxyName]
 		errors = h.errors[proxyName]
