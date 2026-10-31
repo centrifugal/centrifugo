@@ -71,7 +71,15 @@ func (h *SubRefreshHandler) Handle() SubRefreshHandlerFunc {
 			log.Info().Str("channel", e.Channel).Msg("sub refresh proxy not configured for a channel")
 			return centrifuge.SubRefreshReply{}, SubRefreshExtra{}, centrifuge.ErrorNotAvailable
 		}
-		p = h.config.Proxies[proxyName]
+		p, ok := h.config.Proxies[proxyName]
+		if !ok {
+			log.Error().Str("proxy_name", proxyName).Str("channel", e.Channel).Msg("sub refresh proxy not found")
+			// Same as a failed proxy call: keep the subscription for one more minute
+			// and check again, a server-side problem must not disconnect clients.
+			return centrifuge.SubRefreshReply{
+				ExpireAt: time.Now().Unix() + 60,
+			}, SubRefreshExtra{}, nil
+		}
 		summary = h.summary[proxyName]
 		histogram = h.histogram[proxyName]
 		errors = h.errors[proxyName]

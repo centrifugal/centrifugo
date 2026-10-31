@@ -77,7 +77,11 @@ func (h *RPCHandler) Handle() RPCHandlerFunc {
 			log.Info().Str("method", e.Method).Msg("rpc proxy not enabled for a method")
 			return centrifuge.RPCReply{}, centrifuge.ErrorNotAvailable
 		}
-		p = h.config.Proxies[proxyName]
+		p, ok = h.config.Proxies[proxyName]
+		if !ok {
+			log.Error().Str("proxy_name", proxyName).Str("method", e.Method).Msg("rpc proxy not found")
+			return centrifuge.RPCReply{}, centrifuge.ErrorNotAvailable
+		}
 		summary = h.summary[proxyName]
 		histogram = h.histogram[proxyName]
 		errors = h.errors[proxyName]
