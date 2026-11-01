@@ -208,7 +208,10 @@ func TestGooglePubSubConsumer_DrainAcksInFlight(t *testing.T) {
 	go func() { run2Done <- consumer2.Run(run2Ctx) }()
 
 	publish("marker")
-	waitCh(t, markerReceived, 10*time.Second, "timeout waiting for marker")
+	// The emulator may notice the closed streams of the first consumer late and
+	// hand the marker to one of them: it is then delivered again only after its
+	// ack deadline expires, so wait past it.
+	waitCh(t, markerReceived, ackDeadline+10*time.Second, "timeout waiting for marker")
 	// Pub/Sub has no order between the marker and a redelivery, and the ack
 	// deadline can not be shorter than 10s: wait past the deadline for an
 	// unacknowledged first message to be received again.
