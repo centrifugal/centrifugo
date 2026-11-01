@@ -64,6 +64,9 @@ func printSortedEnvVars(knownEnvVars map[string]envconfig.VarInfo, baseNonZeroOn
 			continue
 		}
 		varInfo := knownEnvVars[env]
+		if varInfo.Hidden {
+			continue
+		}
 		if baseNonZeroOnly && !varInfo.NonZeroInFile {
 			continue
 		}
