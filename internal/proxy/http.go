@@ -49,6 +49,20 @@ func NewHTTPCaller(httpClient *http.Client) HTTPCaller {
 	}
 }
 
+// Close closes idle connections of the HTTP client.
+func (c *httpCaller) Close() error {
+	c.HTTPClient.CloseIdleConnections()
+	return nil
+}
+
+// closeHTTPCaller closes c if it is an io.Closer.
+func closeHTTPCaller(c HTTPCaller) error {
+	if closer, ok := c.(io.Closer); ok {
+		return closer.Close()
+	}
+	return nil
+}
+
 func proxyHTTPClient(p configtypes.Proxy, logTraceEntity string) (*http.Client, error) {
 	var tlsConfig *tls.Config
 	if p.HTTP.TLS.Enabled {

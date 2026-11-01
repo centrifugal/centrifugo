@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/metrics"
@@ -26,6 +27,8 @@ type RedisStreamConsumer struct {
 	dispatcher Dispatcher
 	consumers  map[string]*redisqueue.Consumer
 	common     *consumerCommon
+	shard      *redisshard.RedisShard
+	drain      *drain
 }
 
 // NewRedisStreamConsumer creates a new Redis Streams consumer.
@@ -46,6 +49,12 @@ func NewRedisStreamConsumer(
 		return nil, fmt.Errorf("expected a single Redis shard, got %d", len(shards))
 	}
 	shard := shards[0]
+	ok := false
+	defer func() {
+		if !ok {
+			shard.Close()
+		}
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -59,6 +68,8 @@ func NewRedisStreamConsumer(
 		config:     cfg,
 		dispatcher: dispatcher,
 		common:     common,
+		shard:      shard,
+		drain:      newDrain(),
 	}
 	consumers := make(map[string]*redisqueue.Consumer)
 	for _, stream := range cfg.Streams {
@@ -79,6 +90,7 @@ func NewRedisStreamConsumer(
 		consumers[stream] = streamConsumer
 	}
 	consumer.consumers = consumers
+	ok = true
 	return consumer, nil
 }
 
@@ -112,15 +124,24 @@ func (c *RedisStreamConsumer) process(msg *redisqueue.Message) error {
 	return err
 }
 
-// Run starts the consumer loop by starting each underlying consumer in a separate goroutine.
-// It also listens for context cancellation to gracefully shutdown all consumers.
+// Run starts each underlying consumer in a separate goroutine. When ctx is
+// cancelled it tells them to stop and returns once their workers finished
+// the messages in flight.
 func (c *RedisStreamConsumer) Run(ctx context.Context) error {
+	finish, ok := c.drain.runStarted()
+	if !ok {
+		return ctx.Err()
+	}
+	defer finish()
 	shutdownCh := make(chan struct{})
+	var wg sync.WaitGroup
 
 	for stream, consumer := range c.consumers {
 		errCh := make(chan error, 64)
 		consumer.Errors = errCh
+		wg.Add(2)
 		go func() {
+			defer wg.Done()
 			for {
 				select {
 				case err := <-errCh:
@@ -133,19 +154,27 @@ func (c *RedisStreamConsumer) Run(ctx context.Context) error {
 			}
 		}()
 
-		go consumer.Run()
+		go func() {
+			defer wg.Done()
+			consumer.Run()
+		}()
 	}
 
-	go func() {
-		defer close(shutdownCh)
-		<-ctx.Done()
-		for _, consumer := range c.consumers {
-			consumer.Shutdown()
-		}
-	}()
 	<-ctx.Done()
-	<-shutdownCh
+	for _, consumer := range c.consumers {
+		consumer.Shutdown()
+	}
+	close(shutdownCh)
+	wg.Wait()
 	return ctx.Err()
+}
+
+// Close waits until ctx is done for Run to return, then closes the Redis
+// shard. It may be called more than once.
+func (c *RedisStreamConsumer) Close(ctx context.Context) error {
+	_, err := c.drain.wait(ctx)
+	c.shard.Close()
+	return err
 }
 
 // processPublicationDataMessage processes a message in publication data mode.

@@ -31,6 +31,7 @@ type TTLCache struct {
 	ttl      time.Duration
 	stop     chan struct{}
 	stopOnce sync.Once
+	done     chan struct{}
 	items    map[string]*item
 }
 
@@ -40,6 +41,7 @@ func NewTTLCache(ttl time.Duration) *TTLCache {
 		epoch: time.Now(),
 		ttl:   ttl,
 		stop:  make(chan struct{}),
+		done:  make(chan struct{}),
 		items: make(map[string]*item),
 	}
 	cache.run()
@@ -84,6 +86,7 @@ func (tc *TTLCache) run() {
 
 	ticker := time.NewTicker(d)
 	go func() {
+		defer close(tc.done)
 		for {
 			select {
 			case <-ticker.C:
@@ -154,11 +157,12 @@ func (tc *TTLCache) GetStale(cacheKey string, retryAfter time.Duration) (*JWK, e
 	return item.data, nil
 }
 
-// Stop stops TTL cache.
+// Stop stops TTL cache and waits for its cleanup goroutine to return.
 func (tc *TTLCache) Stop() error {
 	tc.stopOnce.Do(func() {
 		close(tc.stop)
 	})
+	<-tc.done
 	return nil
 }
 

@@ -125,6 +125,16 @@ func NewManager(rawURL string, opts ...Option) (*Manager, error) {
 	return mng, nil
 }
 
+// Close stops the cache (when it can be stopped) and closes idle connections
+// to the JWKS endpoint. Keys can still be fetched after Close.
+func (m *Manager) Close() error {
+	if c, ok := m.cache.(interface{ Stop() error }); ok {
+		_ = c.Stop()
+	}
+	m.client.CloseIdleConnections()
+	return nil
+}
+
 // FetchKey fetches JWKS from public source or cache.
 //
 // The cache and singleflight keys are scoped to the resolved JWKS endpoint URL,

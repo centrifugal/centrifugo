@@ -16,7 +16,8 @@ import (
 func TestNewHandler(t *testing.T) {
 	node := &centrifuge.Node{}
 	cfg := Config{HandlerPrefix: "/prefix", WebProxyAddress: "", WebPath: ""}
-	handler := NewHandler(node, nil, cfg)
+	handler, err := NewHandler(node, nil, cfg)
+	require.NoError(t, err)
 	require.NotNil(t, handler)
 	require.NotNil(t, handler.mux)
 
@@ -112,7 +113,8 @@ func TestAuthHandler_InvalidPassword(t *testing.T) {
 func TestAuthHandler_Throttled(t *testing.T) {
 	node := &centrifuge.Node{}
 	cfg := Config{Password: "test-password", Secret: "test-secret"}
-	handler := NewHandler(node, nil, cfg)
+	handler, err := NewHandler(node, nil, cfg)
+	require.NoError(t, err)
 
 	post := func(ip, password string) int {
 		form := url.Values{}

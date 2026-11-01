@@ -382,3 +382,71 @@ func TestPostgresConsumer_DifferentPartitions(t *testing.T) {
 	cancel()
 	waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
 }
+
+// An event dispatched while the consumer is asked to stop is deleted with the
+// drain context, so it is not consumed again.
+func TestPostgresConsumer_DrainDeletesInFlight(t *testing.T) {
+	t.Parallel()
+	testTableName := "centrifugo_consumer_test_" + strings.Replace(uuid.New().String(), "-", "_", -1)
+	testNotificationChannel := "centrifugo_test_channel_" + strings.Replace(uuid.New().String(), "-", "_", -1)
+
+	setupCtx, setupCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer setupCancel()
+	require.NoError(t, setupTestTable(setupCtx, testTableName, testNotificationChannel))
+
+	dispatching := make(chan struct{})
+	release := make(chan struct{})
+	consumer, err := NewPostgresConsumer(PostgresConfig{
+		DSN:                   testPGDSN,
+		OutboxTableName:       testTableName,
+		NumPartitions:         1,
+		PartitionPollInterval: configtypes.Duration(50 * time.Millisecond),
+	}, &MockDispatcher{
+		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
+			close(dispatching)
+			<-release
+			return nil
+		},
+	}, testPostgresCommon(testTableName))
+	require.NoError(t, err)
+
+	pool, err := pgxpool.New(setupCtx, testPGDSN)
+	require.NoError(t, err)
+	defer pool.Close()
+	require.NoError(t, insertEvent(setupCtx, pool, testTableName, "method", []byte(`{}`), 0))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	runDone := make(chan error, 1)
+	go func() { runDone <- consumer.Run(ctx) }()
+
+	waitCh(t, dispatching, 10*time.Second, "timeout waiting for dispatch")
+	cancel()
+	closeDone := make(chan error, 1)
+	go func() {
+		closeCtx, closeCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer closeCancel()
+		closeDone <- consumer.Close(closeCtx)
+	}()
+	close(release)
+	require.NoError(t, <-closeDone)
+	require.ErrorIs(t, <-runDone, context.Canceled)
+
+	count, err := getEventCount(setupCtx, testTableName, 0)
+	require.NoError(t, err)
+	require.Equal(t, 0, count)
+	// Close may be called again.
+	require.NoError(t, consumer.Close(context.Background()))
+}
+
+// Close without Run releases the pools.
+func TestPostgresConsumer_CloseWithoutRun(t *testing.T) {
+	t.Parallel()
+	consumer, err := NewPostgresConsumer(PostgresConfig{
+		DSN:             testPGDSN,
+		OutboxTableName: "unused",
+	}, &MockDispatcher{}, testPostgresCommon("close_without_run"))
+	require.NoError(t, err)
+	require.NoError(t, consumer.Close(context.Background()))
+	require.Error(t, consumer.pool.Ping(context.Background()))
+	require.ErrorIs(t, consumer.Run(context.Background()), nil) // Refused after Close.
+}

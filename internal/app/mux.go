@@ -1,14 +1,17 @@
 package app
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	stdlog "log"
 	"net"
 	"net/http"
 	"net/http/pprof"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/admin"
@@ -102,12 +105,23 @@ func (flags HandlerFlag) String() string {
 	return strings.Join(endpoints, ", ")
 }
 
-// Mux returns a mux including set of default handlers for Centrifugo server.
-func Mux(
-	n *centrifuge.Node, cfgContainer *config.Container, apiExecutor *api.Executor, flags HandlerFlag, keepHeadersInContext bool, wtServer *webtransport.Server,
-) *http.ServeMux {
+// Mux returns a mux including set of default handlers for Centrifugo server
+// and the routes given, and the names of the routes it registered.
+func (a *App) Mux(flags HandlerFlag, routes []Route, wtServer *webtransport.Server) (*http.ServeMux, []string, error) {
+	n := a.node
+	cfgContainer := a.container
+	apiExecutor := a.httpAPIExecutor
+	keepHeadersInContext := a.keepHeadersInContext
+
 	mux := http.NewServeMux()
 	cfg := cfgContainer.Config()
+
+	// patterns registered on the mux, to detect conflicting routes.
+	patterns := map[string]struct{}{}
+	handle := func(pattern string, h http.Handler) {
+		mux.Handle(pattern, h)
+		patterns[pattern] = struct{}{}
+	}
 
 	var commonMiddlewares []alice.Constructor
 
@@ -123,24 +137,28 @@ func Mux(
 	basicChain := alice.New(basicMiddlewares...)
 
 	if flags&HandlerDebug != 0 {
-		mux.Handle(cfg.Debug.HandlerPrefix+"/", basicChain.Then(http.HandlerFunc(pprof.Index)))
-		mux.Handle(cfg.Debug.HandlerPrefix+"/cmdline", basicChain.Then(http.HandlerFunc(pprof.Cmdline)))
-		mux.Handle(cfg.Debug.HandlerPrefix+"/profile", basicChain.Then(http.HandlerFunc(pprof.Profile)))
-		mux.Handle(cfg.Debug.HandlerPrefix+"/symbol", basicChain.Then(http.HandlerFunc(pprof.Symbol)))
-		mux.Handle(cfg.Debug.HandlerPrefix+"/trace", basicChain.Then(http.HandlerFunc(pprof.Trace)))
+		handle(cfg.Debug.HandlerPrefix+"/", basicChain.Then(http.HandlerFunc(pprof.Index)))
+		handle(cfg.Debug.HandlerPrefix+"/cmdline", basicChain.Then(http.HandlerFunc(pprof.Cmdline)))
+		handle(cfg.Debug.HandlerPrefix+"/profile", basicChain.Then(http.HandlerFunc(pprof.Profile)))
+		handle(cfg.Debug.HandlerPrefix+"/symbol", basicChain.Then(http.HandlerFunc(pprof.Symbol)))
+		handle(cfg.Debug.HandlerPrefix+"/trace", basicChain.Then(http.HandlerFunc(pprof.Trace)))
 	}
 
 	if flags&HandlerEmulation != 0 {
 		// register bidirectional emulation endpoint.
+		checkOrigin, err := getCheckOrigin(cfg)
+		if err != nil {
+			return nil, nil, err
+		}
 		emulationMiddlewares := append([]alice.Constructor{}, commonMiddlewares...)
-		emulationMiddlewares = append(emulationMiddlewares, middleware.NewCORS(getCheckOrigin(cfg)).Middleware)
+		emulationMiddlewares = append(emulationMiddlewares, middleware.NewCORS(checkOrigin).Middleware)
 		emulationChain := alice.New(emulationMiddlewares...)
 
 		emulationPrefix := strings.TrimRight(cfg.Emulation.HandlerPrefix, "/")
 		if emulationPrefix == "" {
 			emulationPrefix = "/"
 		}
-		mux.Handle(emulationPrefix, emulationChain.Then(centrifuge.NewEmulationHandler(n, emulationHandlerConfig(cfg))))
+		handle(emulationPrefix, emulationChain.Then(centrifuge.NewEmulationHandler(n, emulationHandlerConfig(cfg))))
 	}
 
 	connMiddlewares := append([]alice.Constructor{}, commonMiddlewares...)
@@ -158,7 +176,11 @@ func Mux(
 	if keepHeadersInContext {
 		connMiddlewares = append(connMiddlewares, middleware.HeadersToContext)
 	}
-	connMiddlewares = append(connMiddlewares, middleware.NewCORS(getCheckOrigin(cfg)).Middleware)
+	connCheckOrigin, err := getCheckOrigin(cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	connMiddlewares = append(connMiddlewares, middleware.NewCORS(connCheckOrigin).Middleware)
 	connChain := alice.New(connMiddlewares...)
 
 	if flags&HandlerWebsocket != 0 {
@@ -167,7 +189,11 @@ func Mux(
 		if wsPrefix == "" {
 			wsPrefix = "/"
 		}
-		mux.Handle(wsPrefix, connChain.Then(centrifuge.NewWebsocketHandler(n, websocketHandlerConfig(cfg))))
+		wsConfig, err := websocketHandlerConfig(cfg)
+		if err != nil {
+			return nil, nil, err
+		}
+		handle(wsPrefix, connChain.Then(centrifuge.NewWebsocketHandler(n, wsConfig)))
 	}
 
 	if flags&HandlerWebtransport != 0 {
@@ -176,7 +202,11 @@ func Mux(
 		if wtPrefix == "" {
 			wtPrefix = "/"
 		}
-		mux.Handle(wtPrefix, connChain.Then(wt.NewHandler(n, wtServer, cfg.WebTransport, getPingPongConfig(cfg))))
+		pingPong, err := getPingPongConfig(cfg)
+		if err != nil {
+			return nil, nil, err
+		}
+		handle(wtPrefix, connChain.Then(wt.NewHandler(n, wtServer, cfg.WebTransport, pingPong)))
 	}
 
 	if flags&HandlerInit != 0 {
@@ -185,7 +215,7 @@ func Mux(
 		if connInitPrefix == "" {
 			connInitPrefix = "/"
 		}
-		mux.Handle(connInitPrefix, middleware.Method(http.MethodGet, connChain.Then(conninit.NewHandler())))
+		handle(connInitPrefix, middleware.Method(http.MethodGet, connChain.Then(conninit.NewHandler())))
 	}
 
 	if flags&HandlerHTTPStream != 0 {
@@ -194,7 +224,11 @@ func Mux(
 		if streamPrefix == "" {
 			streamPrefix = "/"
 		}
-		mux.Handle(streamPrefix, connChain.Then(centrifuge.NewHTTPStreamHandler(n, httpStreamHandlerConfig(cfg))))
+		streamConfig, err := httpStreamHandlerConfig(cfg)
+		if err != nil {
+			return nil, nil, err
+		}
+		handle(streamPrefix, connChain.Then(centrifuge.NewHTTPStreamHandler(n, streamConfig)))
 	}
 	if flags&HandlerSSE != 0 {
 		// register bidirectional SSE connection endpoint.
@@ -202,7 +236,11 @@ func Mux(
 		if ssePrefix == "" {
 			ssePrefix = "/"
 		}
-		mux.Handle(ssePrefix, connChain.Then(centrifuge.NewSSEHandler(n, sseHandlerConfig(cfg))))
+		sseConfig, err := sseHandlerConfig(cfg)
+		if err != nil {
+			return nil, nil, err
+		}
+		handle(ssePrefix, connChain.Then(centrifuge.NewSSEHandler(n, sseConfig)))
 	}
 
 	if flags&HandlerUniWebsocket != 0 {
@@ -211,8 +249,16 @@ func Mux(
 		if wsPrefix == "" {
 			wsPrefix = "/"
 		}
-		mux.Handle(wsPrefix, connChain.Then(
-			uniws.NewHandler(n, cfg.UniWS, getCheckOrigin(cfg), getPingPongConfig(cfg))))
+		checkOrigin, err := getCheckOrigin(cfg)
+		if err != nil {
+			return nil, nil, err
+		}
+		pingPong, err := getPingPongConfig(cfg)
+		if err != nil {
+			return nil, nil, err
+		}
+		handle(wsPrefix, connChain.Then(
+			uniws.NewHandler(n, cfg.UniWS, checkOrigin, pingPong)))
 	}
 
 	if flags&HandlerUniSSE != 0 {
@@ -221,7 +267,11 @@ func Mux(
 		if ssePrefix == "" {
 			ssePrefix = "/"
 		}
-		mux.Handle(ssePrefix, connChain.Then(unisse.NewHandler(n, cfg.UniSSE, getPingPongConfig(cfg))))
+		pingPong, err := getPingPongConfig(cfg)
+		if err != nil {
+			return nil, nil, err
+		}
+		handle(ssePrefix, connChain.Then(unisse.NewHandler(n, cfg.UniSSE, pingPong)))
 	}
 
 	if flags&HandlerUniHTTPStream != 0 {
@@ -230,14 +280,18 @@ func Mux(
 		if streamPrefix == "" {
 			streamPrefix = "/"
 		}
-		mux.Handle(streamPrefix, connChain.Then(unihttpstream.NewHandler(n, cfg.UniHTTPStream, getPingPongConfig(cfg))))
+		pingPong, err := getPingPongConfig(cfg)
+		if err != nil {
+			return nil, nil, err
+		}
+		handle(streamPrefix, connChain.Then(unihttpstream.NewHandler(n, cfg.UniHTTPStream, pingPong)))
 	}
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoints.
 		httpErrorMode, err := tools.OptionalStringChoice(cfg.HttpAPI.ErrorMode, []string{config.TransportErrorMode})
 		if err != nil {
-			log.Fatal().Err(err).Msg("error in config")
+			return nil, nil, logFatal(err, "error in config")
 		}
 		useOpenTelemetry := cfg.OpenTelemetry.Enabled && cfg.OpenTelemetry.API
 		apiHandler := api.NewHandler(n, apiExecutor, api.Config{
@@ -263,15 +317,15 @@ func Mux(
 			return apiChain
 		}
 
-		mux.Handle(apiPrefix, apiChain(apiPrefix).Then(apiHandler.OldRoute()))
+		handle(apiPrefix, apiChain(apiPrefix).Then(apiHandler.OldRoute()))
 		if apiPrefix != "/" {
 			for path, handler := range apiHandler.Routes() {
 				handlePath := apiPrefix + path
-				mux.Handle(handlePath, apiChain(handlePath).Then(handler))
+				handle(handlePath, apiChain(handlePath).Then(handler))
 			}
 		} else {
 			for path, handler := range apiHandler.Routes() {
-				mux.Handle(path, apiChain(path).Then(handler))
+				handle(path, apiChain(path).Then(handler))
 			}
 		}
 	}
@@ -282,7 +336,7 @@ func Mux(
 		if swaggerPrefix == "" {
 			swaggerPrefix = "/"
 		}
-		mux.Handle(swaggerPrefix, basicChain.Then(http.StripPrefix(swaggerPrefix, http.FileServer(swaggerui.FS))))
+		handle(swaggerPrefix, basicChain.Then(http.StripPrefix(swaggerPrefix, http.FileServer(swaggerui.FS))))
 	}
 
 	if flags&HandlerPrometheus != 0 {
@@ -291,12 +345,17 @@ func Mux(
 		if prometheusPrefix == "" {
 			prometheusPrefix = "/"
 		}
-		mux.Handle(prometheusPrefix, basicChain.Then(promhttp.Handler()))
+		metricsHandler := promhttp.InstrumentMetricHandler(a.metricsRegistry, promhttp.HandlerFor(a.metricsRegistry, promhttp.HandlerOpts{}))
+		handle(prometheusPrefix, basicChain.Then(metricsHandler))
 	}
 
 	if flags&HandlerAdmin != 0 {
 		adminPrefix := strings.TrimRight(cfg.Admin.HandlerPrefix, "/")
-		mux.Handle(adminPrefix+"/", basicChain.Then(admin.NewHandler(n, apiExecutor, cfg.Admin)))
+		adminHandler, err := admin.NewHandler(n, apiExecutor, cfg.Admin)
+		if err != nil {
+			return nil, nil, logFatal(err, "error creating admin web reverse proxy")
+		}
+		handle(adminPrefix+"/", basicChain.Then(adminHandler))
 	}
 
 	if flags&HandlerHealth != 0 {
@@ -304,26 +363,78 @@ func Mux(
 		if healthPrefix == "" {
 			healthPrefix = "/"
 		}
-		mux.Handle(healthPrefix, basicChain.Then(health.NewHandler(n, health.Config{})))
+		handle(healthPrefix, basicChain.Then(health.NewHandler(n, health.Config{})))
 	}
 
-	return mux
+	chainHandler := func(r Route) http.Handler {
+		switch r.Chain {
+		case ChainNone:
+			return r.Handler
+		default:
+			return basicChain.Then(r.Handler)
+		}
+	}
+	var names []string
+	for _, r := range routes {
+		if r.IfAbsent {
+			continue
+		}
+		if _, ok := patterns[r.Pattern]; ok {
+			return nil, nil, fmt.Errorf("route %s: pattern %q is already registered", r.Name, r.Pattern)
+		}
+		if err := handleRecover(mux, r.Pattern, chainHandler(r)); err != nil {
+			return nil, nil, fmt.Errorf("route %s: %w", r.Name, err)
+		}
+		patterns[r.Pattern] = struct{}{}
+		names = append(names, r.Name)
+	}
+	for _, r := range routes {
+		if !r.IfAbsent {
+			continue
+		}
+		if _, ok := patterns[r.Pattern]; ok {
+			continue
+		}
+		if err := handleRecover(mux, r.Pattern, chainHandler(r)); err != nil {
+			return nil, nil, fmt.Errorf("route %s: %w", r.Name, err)
+		}
+		patterns[r.Pattern] = struct{}{}
+		names = append(names, r.Name)
+	}
+
+	return mux, names, nil
 }
 
-func getPingPongConfig(cfg config.Config) centrifuge.PingPongConfig {
+// handleRecover registers h on mux, returning the panic of an invalid or
+// conflicting pattern as an error.
+func handleRecover(mux *http.ServeMux, pattern string, h http.Handler) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%v", r)
+		}
+	}()
+	mux.Handle(pattern, h)
+	return nil
+}
+
+// getPingPongConfig returns the ping/pong config of connection endpoints. An
+// error is logged before it is returned.
+func getPingPongConfig(cfg config.Config) (centrifuge.PingPongConfig, error) {
 	pingInterval := cfg.Client.PingInterval
 	pongTimeout := cfg.Client.PongTimeout
 	if pingInterval <= pongTimeout {
-		log.Fatal().Str("ping_interval", pingInterval.String()).Str("pong_timeout", pongTimeout.String()).
-			Msg("ping_interval must be greater than pong_timeout")
+		const msg = "ping_interval must be greater than pong_timeout"
+		log.WithLevel(zerolog.FatalLevel).Str("ping_interval", pingInterval.String()).Str("pong_timeout", pongTimeout.String()).
+			Msg(msg)
+		return centrifuge.PingPongConfig{}, &loggedError{err: errors.New(msg)}
 	}
 	return centrifuge.PingPongConfig{
 		PingInterval: pingInterval.ToDuration(),
 		PongTimeout:  pongTimeout.ToDuration(),
-	}
+	}, nil
 }
 
-func websocketHandlerConfig(appCfg config.Config) centrifuge.WebsocketConfig {
+func websocketHandlerConfig(appCfg config.Config) (centrifuge.WebsocketConfig, error) {
 	cfg := centrifuge.WebsocketConfig{}
 	cfg.Compression = appCfg.WebSocket.Compression
 	cfg.CompressionLevel = appCfg.WebSocket.CompressionLevel
@@ -334,23 +445,38 @@ func websocketHandlerConfig(appCfg config.Config) centrifuge.WebsocketConfig {
 	cfg.WriteTimeout = appCfg.WebSocket.WriteTimeout.ToDuration()
 	cfg.MessageSizeLimit = appCfg.WebSocket.MessageSizeLimit
 	cfg.DecompressedMessageSizeLimit = appCfg.WebSocket.DecompressedMessageSizeLimit
-	cfg.CheckOrigin = getCheckOrigin(appCfg)
-	cfg.PingPongConfig = getPingPongConfig(appCfg)
-	return cfg
+	checkOrigin, err := getCheckOrigin(appCfg)
+	if err != nil {
+		return cfg, err
+	}
+	cfg.CheckOrigin = checkOrigin
+	cfg.PingPongConfig, err = getPingPongConfig(appCfg)
+	if err != nil {
+		return cfg, err
+	}
+	return cfg, nil
 }
 
-func httpStreamHandlerConfig(appCfg config.Config) centrifuge.HTTPStreamConfig {
+func httpStreamHandlerConfig(appCfg config.Config) (centrifuge.HTTPStreamConfig, error) {
+	pingPong, err := getPingPongConfig(appCfg)
+	if err != nil {
+		return centrifuge.HTTPStreamConfig{}, err
+	}
 	return centrifuge.HTTPStreamConfig{
 		MaxRequestBodySize: appCfg.HTTPStream.MaxRequestBodySize,
-		PingPongConfig:     getPingPongConfig(appCfg),
-	}
+		PingPongConfig:     pingPong,
+	}, nil
 }
 
-func sseHandlerConfig(appCfg config.Config) centrifuge.SSEConfig {
+func sseHandlerConfig(appCfg config.Config) (centrifuge.SSEConfig, error) {
+	pingPong, err := getPingPongConfig(appCfg)
+	if err != nil {
+		return centrifuge.SSEConfig{}, err
+	}
 	return centrifuge.SSEConfig{
 		MaxRequestBodySize: appCfg.SSE.MaxRequestBodySize,
-		PingPongConfig:     getPingPongConfig(appCfg),
-	}
+		PingPongConfig:     pingPong,
+	}, nil
 }
 
 func emulationHandlerConfig(cfg config.Config) centrifuge.EmulationConfig {
@@ -359,10 +485,29 @@ func emulationHandlerConfig(cfg config.Config) centrifuge.EmulationConfig {
 	}
 }
 
-func runHTTPServers(
-	n *centrifuge.Node, cfgContainer *config.Container, apiExecutor *api.Executor, keepHeadersInContext bool,
-) ([]*http.Server, error) {
-	cfg := cfgContainer.Config()
+// httpServer is an HTTP server with its bound listeners.
+type httpServer struct {
+	server       *http.Server
+	ln           net.Listener
+	tls          bool
+	logLine      string // logged when it starts serving
+	listenErrMsg string // logged when serving fails
+	// HTTP/3 (with WebTransport when wt is set) on udp, HTTP over TLS on tcp.
+	h3  *http3.Server
+	wt  *webtransport.Server
+	udp *net.UDPConn
+	tcp *net.TCPListener
+}
+
+// buildHTTPServers builds HTTP servers for the external and internal
+// addresses serving the handlers enabled for each, plus routes added by
+// extensions, and binds their listeners.
+func (a *App) buildHTTPServers() error {
+	cfg := a.container.Config()
+	var routes []Route
+	if a.muxCtx != nil {
+		routes = a.muxCtx.routes
+	}
 
 	debug := cfg.Debug.Enabled
 	useAdmin := cfg.Admin.Enabled
@@ -406,7 +551,7 @@ func runHTTPServers(
 	}
 	if cfg.WebTransport.Enabled {
 		if !cfg.HTTP.HTTP3.Enabled {
-			log.Fatal().Msg("can not enable webtransport without experimental HTTP/3")
+			return logFatal(nil, "can not enable webtransport without experimental HTTP/3")
 		}
 		portFlags |= HandlerWebtransport
 	}
@@ -462,17 +607,43 @@ func runHTTPServers(
 	}
 	addrToHandlerFlags[internalAddr] = portFlags
 
-	var servers []*http.Server
+	// Routes of extensions per address. Routes which are not IfAbsent make a
+	// server start on their address.
+	addrToRoutes := map[string][]Route{}
+	for _, r := range routes {
+		addr := externalAddr
+		if r.Port == PortInternal {
+			addr = internalAddr
+		}
+		addrToRoutes[addr] = append(addrToRoutes[addr], r)
+		if _, ok := addrToHandlerFlags[addr]; !ok {
+			addrToHandlerFlags[addr] = 0
+		}
+	}
+	startsServer := func(addr string, flags HandlerFlag) bool {
+		if flags != 0 {
+			return true
+		}
+		for _, r := range addrToRoutes[addr] {
+			if !r.IfAbsent {
+				return true
+			}
+		}
+		return false
+	}
 
-	tlsConfig, err := GetTLSConfig(cfg)
+	tlsConfig, err := a.getTLSConfig(cfg)
 	if err != nil {
-		log.Fatal().Err(err).Msg("can not get TLS config")
+		return logFatal(err, "can not get TLS config")
+	}
+	if err := a.listenACME(); err != nil {
+		return err
 	}
 	var internalTLSConfig *tls.Config
 	if cfg.HTTP.InternalTLS.Enabled {
 		internalTLSConfig, err = cfg.HTTP.InternalTLS.ToGoTLSConfig("internal_tls")
 		if err != nil {
-			log.Fatal().Err(err).Msg("can not get internal TLS config")
+			return logFatal(err, "can not get internal TLS config")
 		}
 	}
 
@@ -480,7 +651,7 @@ func runHTTPServers(
 	// on separate ports serving handlers specified in flags.
 	for addr, handlerFlags := range addrToHandlerFlags {
 		addr := addr
-		if handlerFlags == 0 {
+		if !startsServer(addr, handlerFlags) {
 			continue
 		}
 		var addrTLSConfig *tls.Config
@@ -496,12 +667,19 @@ func runHTTPServers(
 
 		var wtServer *webtransport.Server
 		if useWebtransport {
+			checkOrigin, err := getCheckOrigin(cfg)
+			if err != nil {
+				return err
+			}
 			wtServer = &webtransport.Server{
-				CheckOrigin: getCheckOrigin(cfg),
+				CheckOrigin: checkOrigin,
 			}
 		}
 
-		mux := Mux(n, cfgContainer, apiExecutor, handlerFlags, keepHeadersInContext, wtServer)
+		mux, routeNames, err := a.Mux(handlerFlags, addrToRoutes[addr], wtServer)
+		if err != nil {
+			return err
+		}
 
 		var h3Server *http3.Server
 		if useHTTP3 {
@@ -526,7 +704,14 @@ func runHTTPServers(
 			protoSuffix = " with HTTP/2 cleartext"
 		}
 
-		log.Info().Msgf("serving %s endpoints on %s%s", handlerFlags, addr, protoSuffix)
+		endpoints := handlerFlags.String()
+		if len(routeNames) > 0 {
+			if endpoints != "" {
+				endpoints += ", "
+			}
+			endpoints += strings.Join(routeNames, ", ")
+		}
+		logLine := fmt.Sprintf("serving %s endpoints on %s%s", endpoints, addr, protoSuffix)
 
 		var handler http.Handler = mux
 		if useHTTP3 {
@@ -552,84 +737,146 @@ func runHTTPServers(
 			server.Protocols = protocols
 		}
 
-		servers = append(servers, server)
+		hs := &httpServer{server: server, logLine: logLine}
+		a.httpServers = append(a.httpServers, hs)
 
-		go func() {
-			if useHTTP3 {
-				if addrTLSConfig == nil {
-					log.Fatal().Msg("HTTP/3 requires TLS configured")
-				}
-				if cfg.HTTP.TLSAutocert.Enabled {
-					log.Fatal().Msg("can not use HTTP/3 with autocert")
-				}
-
-				udpAddr, err := net.ResolveUDPAddr("udp", addr)
-				if err != nil {
-					log.Fatal().Err(err).Msg("can not start HTTP/3, resolve UDP")
-				}
-				udpConn, err := net.ListenUDP("udp", udpAddr)
-				if err != nil {
-					log.Fatal().Err(err).Msg("can not start HTTP/3, listen UDP")
-				}
-				defer func() { _ = udpConn.Close() }()
-
-				tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
-				if err != nil {
-					log.Fatal().Err(err).Msg("can not start HTTP/3, resolve TCP")
-				}
-				tcpConn, err := net.ListenTCP("tcp", tcpAddr)
-				if err != nil {
-					log.Fatal().Err(err).Msg("can not start HTTP/3, listen TCP")
-				}
-				defer func() { _ = tcpConn.Close() }()
-
-				tlsConn := tls.NewListener(tcpConn, addrTLSConfig)
-				defer func() { _ = tlsConn.Close() }()
-
-				hErr := make(chan error)
-				qErr := make(chan error)
-				go func() {
-					hErr <- server.Serve(tlsConn)
-				}()
-				go func() {
-					if useWebtransport {
-						qErr <- wtServer.Serve(udpConn)
-					} else {
-						qErr <- h3Server.Serve(udpConn)
-					}
-				}()
-
-				select {
-				case err := <-hErr:
-					if useWebtransport {
-						_ = wtServer.Close()
-					} else {
-						_ = h3Server.Close()
-					}
-					if !errors.Is(err, http.ErrServerClosed) {
-						log.Fatal().Err(err).Msg("error ListenAndServe")
-					}
-				case err := <-qErr:
-					// Cannot close the HTTP server or wait for requests to complete properly.
-					log.Fatal().Err(err).Msg("error ListenAndServe HTTP/3")
-				}
-			} else {
-				if addrTLSConfig != nil {
-					if err := server.ListenAndServeTLS("", ""); err != nil {
-						if !errors.Is(err, http.ErrServerClosed) {
-							log.Fatal().Err(err).Msg("error ListenAndServeTLS")
-						}
-					}
-				} else {
-					if err := server.ListenAndServe(); err != nil {
-						if !errors.Is(err, http.ErrServerClosed) {
-							log.Fatal().Err(err).Msgf("error ListenAndServe")
-						}
-					}
-				}
+		if useHTTP3 {
+			if addrTLSConfig == nil {
+				return logFatal(nil, "HTTP/3 requires TLS configured")
 			}
-		}()
+			if cfg.HTTP.TLSAutocert.Enabled {
+				return logFatal(nil, "can not use HTTP/3 with autocert")
+			}
+			hs.h3 = h3Server
+			hs.wt = wtServer
+			if err := a.listenHTTP3(hs, addr); err != nil {
+				return err
+			}
+			continue
+		}
+
+		// Listen here rather than in ListenAndServe, so that bound addresses
+		// are known when Start returns.
+		hs.listenErrMsg = "error ListenAndServe"
+		if addrTLSConfig != nil {
+			hs.listenErrMsg = "error ListenAndServeTLS"
+			hs.tls = true
+		}
+		ln, err := net.Listen("tcp", addr)
+		if err != nil {
+			return logFatal(err, hs.listenErrMsg)
+		}
+		a.lifecycle.OnStop("HTTP listener "+addr, func(context.Context) error {
+			_ = ln.Close()
+			return nil
+		})
+		a.addAddr(ln.Addr())
+		hs.ln = ln
 	}
 
-	return servers, nil
+	return nil
+}
+
+// listenHTTP3 binds the UDP and TCP listeners of addr for HTTP/3 and HTTP
+// over TLS.
+func (a *App) listenHTTP3(hs *httpServer, addr string) error {
+	udpAddr, err := net.ResolveUDPAddr("udp", addr)
+	if err != nil {
+		return logFatal(err, "can not start HTTP/3, resolve UDP")
+	}
+	udpConn, err := net.ListenUDP("udp", udpAddr)
+	if err != nil {
+		return logFatal(err, "can not start HTTP/3, listen UDP")
+	}
+	a.lifecycle.OnStop("HTTP/3 UDP listener "+addr, func(context.Context) error {
+		_ = udpConn.Close()
+		return nil
+	})
+
+	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
+	if err != nil {
+		return logFatal(err, "can not start HTTP/3, resolve TCP")
+	}
+	tcpConn, err := net.ListenTCP("tcp", tcpAddr)
+	if err != nil {
+		return logFatal(err, "can not start HTTP/3, listen TCP")
+	}
+	a.lifecycle.OnStop("HTTP/3 TCP listener "+addr, func(context.Context) error {
+		_ = tcpConn.Close()
+		return nil
+	})
+	a.addAddr(tcpConn.Addr())
+	a.addAddr(udpConn.LocalAddr())
+	hs.udp = udpConn
+	hs.tcp = tcpConn
+	return nil
+}
+
+// serveHTTP serves hs in goroutines tracked by wg.
+func (a *App) serveHTTP(hs *httpServer, wg *sync.WaitGroup) {
+	log.Info().Msg(hs.logLine)
+	if hs.udp != nil {
+		a.serveHTTP3(hs, wg)
+		return
+	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var err error
+		if hs.tls {
+			err = hs.server.ServeTLS(hs.ln, "", "")
+		} else {
+			err = hs.server.Serve(hs.ln)
+		}
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			a.serveError(err, hs.listenErrMsg)
+		}
+	}()
+}
+
+// serveHTTP3 serves HTTP/3 (with WebTransport when set) and HTTP over TLS on
+// the listeners of hs. When the HTTP server stops, HTTP/3 is closed.
+func (a *App) serveHTTP3(hs *httpServer, wg *sync.WaitGroup) {
+	tlsConn := tls.NewListener(hs.tcp, hs.server.TLSConfig)
+	// Buffered: the goroutine whose result isn't awaited returns too.
+	hErr := make(chan error, 1)
+	qErr := make(chan error, 1)
+	wg.Add(3)
+	go func() {
+		defer wg.Done()
+		hErr <- hs.server.Serve(tlsConn)
+	}()
+	go func() {
+		defer wg.Done()
+		if hs.wt != nil {
+			qErr <- hs.wt.Serve(hs.udp)
+		} else {
+			qErr <- hs.h3.Serve(hs.udp)
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		defer func() { _ = hs.udp.Close() }()
+		defer func() { _ = tlsConn.Close() }()
+
+		select {
+		case err := <-hErr:
+			hs.closeHTTP3()
+			if !errors.Is(err, http.ErrServerClosed) {
+				a.serveError(err, "error ListenAndServe")
+			}
+		case err := <-qErr:
+			// Cannot close the HTTP server or wait for requests to complete properly.
+			a.serveError(err, "error ListenAndServe HTTP/3")
+		}
+	}()
+}
+
+// closeHTTP3 closes the HTTP/3 server of hs, if any.
+func (hs *httpServer) closeHTTP3() {
+	if hs.wt != nil {
+		_ = hs.wt.Close()
+	} else if hs.h3 != nil {
+		_ = hs.h3.Close()
+	}
 }

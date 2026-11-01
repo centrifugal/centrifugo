@@ -13,6 +13,7 @@ import (
 type GRPCMapRemoveProxy struct {
 	config Config
 	client proxyproto.CentrifugoProxyClient
+	conn   *grpc.ClientConn
 }
 
 var _ MapRemoveProxy = (*GRPCMapRemoveProxy)(nil)
@@ -34,6 +35,7 @@ func NewGRPCMapRemoveProxy(name string, p Config) (*GRPCMapRemoveProxy, error) {
 	return &GRPCMapRemoveProxy{
 		config: p,
 		client: proxyproto.NewCentrifugoProxyClient(conn),
+		conn:   conn,
 	}, nil
 }
 
@@ -57,4 +59,9 @@ func (p *GRPCMapRemoveProxy) UseBase64() bool {
 // IncludeMeta ...
 func (p *GRPCMapRemoveProxy) IncludeMeta() bool {
 	return p.config.IncludeConnectionMeta
+}
+
+// Close closes the connection to the proxy server.
+func (p *GRPCMapRemoveProxy) Close() error {
+	return p.conn.Close()
 }

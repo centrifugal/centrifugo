@@ -57,6 +57,7 @@ func NewPostgresConsumer(
 	defer cancel()
 	err = pool.Ping(ctx)
 	if err != nil {
+		pool.Close()
 		return nil, err
 	}
 	c := &PostgresConsumer{
@@ -65,6 +66,7 @@ func NewPostgresConsumer(
 		config:     config,
 		lockPrefix: "centrifugo_partition_lock_" + common.name,
 		common:     common,
+		drain:      newDrain(),
 	}
 
 	if config.PartitionNotificationChannel != "" && config.PartitionNotificationDSN != "" {
@@ -94,6 +96,7 @@ type PostgresConsumer struct {
 	dispatcher Dispatcher
 	lockPrefix string
 	common     *consumerCommon
+	drain      *drain
 }
 
 type PostgresEvent struct {
@@ -222,15 +225,17 @@ func (c *PostgresConsumer) processOnce(ctx context.Context, partition int) (int,
 		}
 	}
 
-	// Delete processed events.
+	// Delete processed events. Events dispatched before Run's context was
+	// cancelled are deleted and committed with the drain context, so they are
+	// not consumed again.
 	if len(idsToDelete) > 0 {
-		_, err = tx.Exec(ctx, fmt.Sprintf("DELETE FROM %s WHERE id = ANY($1)", c.config.OutboxTableName), idsToDelete)
+		_, err = tx.Exec(c.drain.ctx, fmt.Sprintf("DELETE FROM %s WHERE id = ANY($1)", c.config.OutboxTableName), idsToDelete)
 		if err != nil {
 			return 0, fmt.Errorf("error deleting outbox events: %w", err)
 		}
 	}
 
-	err = tx.Commit(ctx)
+	err = tx.Commit(c.drain.ctx)
 	if err != nil {
 		return 0, fmt.Errorf("error committing transaction: %w", err)
 	}
@@ -239,10 +244,12 @@ func (c *PostgresConsumer) processOnce(ctx context.Context, partition int) (int,
 }
 
 func (c *PostgresConsumer) Run(ctx context.Context) error {
-	defer c.pool.Close()
-	if c.notifyPool != nil {
-		defer c.notifyPool.Close()
+	finish, ok := c.drain.runStarted()
+	if !ok {
+		return ctx.Err()
 	}
+	defer finish()
+	defer c.closePools()
 
 	eg, ctx := errgroup.WithContext(ctx)
 
@@ -337,4 +344,20 @@ func (c *PostgresConsumer) Run(ctx context.Context) error {
 	}
 
 	return eg.Wait()
+}
+
+// Close waits until ctx is done for Run to return, then closes the pools. It
+// may be called more than once.
+func (c *PostgresConsumer) Close(ctx context.Context) error {
+	_, err := c.drain.wait(ctx)
+	c.closePools()
+	return err
+}
+
+func (c *PostgresConsumer) closePools() {
+	// pgxpool.Pool.Close may be called more than once.
+	c.pool.Close()
+	if c.notifyPool != nil {
+		c.notifyPool.Close()
+	}
 }

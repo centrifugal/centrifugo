@@ -1,0 +1,39 @@
+{
+  "description": "Postgres outbox consumer: API commands inserted into the outbox table reach subscribers; failing commands.",
+  "requires": ["postgres"],
+  "config": {
+    "consumers": [
+      {
+        "name": "outbox",
+        "enabled": true,
+        "type": "postgresql",
+        "postgresql": {
+          "dsn": "{{.PostgresDSN}}",
+          "outbox_table_name": "{{.Unique}}_outbox",
+          "num_partitions": 1,
+          "partition_select_limit": 10,
+          "partition_poll_interval": "100ms"
+        }
+      }
+    ]
+  },
+  "setup": [
+    {"op": "sql", "exec": "CREATE TABLE {{.Unique}}_outbox (id BIGSERIAL PRIMARY KEY, method text NOT NULL, payload BYTEA NOT NULL, partition INTEGER NOT NULL)"}
+  ],
+  "steps": [
+    {"op": "connect", "client": "c1"},
+    {"op": "send", "client": "c1", "cmd": {"connect": {"token": {"$jwt": {"sub": "u1", "exp": "$now+3600"}}}}},
+    {"op": "send", "client": "c1", "cmd": {"subscribe": {"channel": "news"}}},
+    {"op": "pushes", "client": "c1", "count": 1, "comment": "own join"},
+    {"op": "sql", "exec": "INSERT INTO {{.Unique}}_outbox (method, payload, partition) VALUES ('publish', '{\"channel\":\"news\",\"data\":{\"from\":\"outbox\"}}', 0)"},
+    {"op": "pushes", "client": "c1", "count": 1},
+    {"op": "sql", "exec": "INSERT INTO {{.Unique}}_outbox (method, payload, partition) VALUES ('broadcast', '{\"channels\":[\"news\",\"other\"],\"data\":{\"from\":\"outbox-broadcast\"}}', 0)"},
+    {"op": "pushes", "client": "c1", "count": 1},
+    {"op": "sql", "exec": "INSERT INTO {{.Unique}}_outbox (method, payload, partition) VALUES ('publish', '{\"channel\":\"unknown:x\",\"data\":{}}', 0), ('bogus_method', '{}', 0), ('publish', '{\"channel\":\"news\",\"data\":{\"after\":\"errors\"}}', 0)"},
+    {"op": "pushes", "client": "c1", "count": 1},
+    {"op": "metrics", "filter": "^centrifugo_(consumers|api_command)"}
+  ],
+  "teardown": [
+    {"op": "sql", "exec": "DROP TABLE {{.Unique}}_outbox"}
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "description": "Process lifecycle: startup failures (exit code and log), SIGINT shutdown with connected clients, pid file.",
+  "variants": {
+    "sigint": {
+      "config": {"pid_file": "{{.TmpDir}}/centrifugo.pid"}
+    },
+    "invalid_config": {
+      "config": {"channel": {"namespaces": [{"name": "bad name!"}]}}
+    },
+    "bad_engine": {
+      "config": {"engine": {"type": "bogus"}}
+    },
+    "bad_proxy": {
+      "config": {"channel": {"namespaces": [{"name": "pp", "subscribe_proxy_enabled": true, "subscribe_proxy_name": "missing"}]}}
+    },
+    "unknown_keys": {
+      "config": {"unknown_top_level": true, "client": {"unknown_nested": 1}},
+      "env": {"CENTRIFUGO_UNKNOWN_ENV_VAR": "1", "CENTRIFUGO_CLIENT_INSECURE": "true"}
+    }
+  },
+  "steps": [
+    {"op": "connect", "client": "c1"},
+    {"op": "send", "client": "c1", "cmd": {"connect": {"token": {"$jwt": {"sub": "u1", "exp": "$now+3600"}}}}},
+    {"op": "send", "client": "c1", "cmd": {"subscribe": {"channel": "chat"}}},
+    {"op": "pushes", "client": "c1", "count": 1},
+    {"op": "exec", "args": ["version"], "comment": "the server is still up while a CLI command runs"},
+    {"op": "shutdown", "signal": "SIGINT"}
+  ]
+}

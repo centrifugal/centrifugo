@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 	"github.com/centrifugal/centrifugo/v6/internal/confighelpers"
@@ -17,7 +18,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) error {
+// configureEngines creates the broker, presence manager and controller and
+// sets them on the node.
+func (a *App) configureEngines() error {
+	node := a.node
+	cfgContainer := a.container
 	cfg := cfgContainer.Config()
 
 	var broker centrifuge.Broker
@@ -30,7 +35,11 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) err
 		case "memory":
 			broker, presenceManager, err = createMemoryEngine(node)
 		case "redis":
-			broker, presenceManager, engineMode, err = createRedisEngine(node, cfgContainer)
+			var redisBroker *centrifuge.RedisBroker
+			redisBroker, presenceManager, engineMode, err = a.createRedisEngine(node, cfgContainer)
+			if redisBroker != nil {
+				broker = redisBroker
+			}
 		default:
 			return fmt.Errorf("unknown engine type: %s", cfg.Engine.Type)
 		}
@@ -39,6 +48,8 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) err
 			event.Str("engine_mode", engineMode)
 		}
 		event.Msg("initializing engine")
+		a.closeOnStop("engine broker", broker)
+		a.closeOnStop("engine presence manager", presenceManager)
 		if err != nil {
 			return fmt.Errorf("error creating engine: %v", err)
 		}
@@ -49,13 +60,28 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) err
 	if cfg.Broker.Enabled {
 		var err error
 		var brokerMode string
+		// The engine's broker is replaced: close it.
+		if broker != nil {
+			if c, ok := broker.(centrifuge.Closer); ok {
+				_ = c.Close(context.Background())
+			}
+			broker = nil
+		}
 		switch cfg.Broker.Type {
 		case "memory":
 			broker, err = createMemoryBroker(node)
 		case "redis":
-			broker, brokerMode, err = createRedisBroker(node, cfgContainer)
+			var redisBroker *centrifuge.RedisBroker
+			redisBroker, brokerMode, err = a.createRedisBroker(node, cfgContainer)
+			if redisBroker != nil {
+				broker = redisBroker
+			}
 		case "nats":
-			broker, err = NatsBroker(node, cfgContainer)
+			var natsBroker *natsbroker.NatsBroker
+			natsBroker, err = NatsBroker(node, cfgContainer)
+			if natsBroker != nil {
+				broker = natsBroker
+			}
 			brokerMode = "nats"
 		case "postgres":
 			broker, err = createPostgresStreamBroker(node, cfg.Broker.Postgres)
@@ -65,15 +91,17 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) err
 				return fmt.Errorf("redisnats broker requires enable_unreleased_features on")
 			}
 			log.Warn().Msg("redisnats broker is not released, it may be changed or removed at any point")
-			redisBroker, redisBrokerMode, err := createRedisBroker(node, cfgContainer)
+			redisBroker, redisBrokerMode, err := a.createRedisBroker(node, cfgContainer)
 			if err != nil {
 				return fmt.Errorf("error creating redis broker: %v", err)
 			}
+			a.closeOnStop("redis broker", redisBroker)
 			brokerMode = redisBrokerMode + "+nats"
 			natsBroker, err := NatsBroker(node, cfgContainer)
 			if err != nil {
 				return fmt.Errorf("error creating nats broker: %v", err)
 			}
+			a.closeOnStop("nats broker", natsBroker)
 			broker, err = redisnatsbroker.New(natsBroker, redisBroker)
 			if err != nil {
 				return fmt.Errorf("error creating redisnats broker: %v", err)
@@ -81,6 +109,7 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) err
 		default:
 			return fmt.Errorf("unknown broker type: %s", cfg.Broker.Type)
 		}
+		a.closeOnStop("broker", broker)
 		if err != nil {
 			return fmt.Errorf("error creating broker: %v", err)
 		}
@@ -96,14 +125,21 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) err
 	if cfg.PresenceManager.Enabled {
 		var err error
 		var presenceManagerMode string
+		// The engine's presence manager is replaced: close it.
+		if presenceManager != nil {
+			if c, ok := presenceManager.(centrifuge.Closer); ok {
+				_ = c.Close(context.Background())
+			}
+		}
 		switch cfg.PresenceManager.Type {
 		case "memory":
 			presenceManager, err = createMemoryPresenceManager(node)
 		case "redis":
-			presenceManager, presenceManagerMode, err = createRedisPresenceManager(node, cfgContainer)
+			presenceManager, presenceManagerMode, err = a.createRedisPresenceManager(node, cfgContainer)
 		default:
 			return fmt.Errorf("unknown presence manager type: %s", cfg.PresenceManager.Type)
 		}
+		a.closeOnStop("presence manager", presenceManager)
 		if err != nil {
 			return fmt.Errorf("error creating presence manager: %v", err)
 		}
@@ -121,6 +157,8 @@ func configureEngines(node *centrifuge.Node, cfgContainer *config.Container) err
 		if err != nil {
 			return fmt.Errorf("error creating controller: %v", err)
 		}
+		// The node doesn't close its controller.
+		a.closeOnStop("controller", controller)
 		if controller != nil {
 			node.SetController(controller)
 		}
@@ -145,18 +183,18 @@ func createMemoryBroker(n *centrifuge.Node) (centrifuge.Broker, error) {
 
 func createPostgresStreamBroker(node *centrifuge.Node, pgCfg configtypes.PostgresStreamBroker) (centrifuge.Broker, error) {
 	pgBrokerCfg := pgstreambroker.PostgresStreamBrokerConfig{
-		DSN:                       pgCfg.DSN,
-		TLS:                       pgCfg.TLS,
-		PoolSize:                  pgCfg.PoolSize,
-		NumShards:                 pgCfg.NumShards,
-		CleanupInterval:           pgCfg.CleanupInterval.ToDuration(),
-		IdempotentResultTTL:       pgCfg.IdempotentResultTTL.ToDuration(),
-		BinaryData:                pgCfg.BinaryData,
-		StreamRetention:           pgCfg.StreamRetention.ToDuration(),
-		UseNotify:                 pgCfg.UseNotify,
-		NotifyDSN:                 pgCfg.NotifyDSN,
-		TablePrefix:               pgCfg.TablePrefix,
-		PartitionLookaheadDays:    pgCfg.PartitionLookaheadDays,
+		DSN:                    pgCfg.DSN,
+		TLS:                    pgCfg.TLS,
+		PoolSize:               pgCfg.PoolSize,
+		NumShards:              pgCfg.NumShards,
+		CleanupInterval:        pgCfg.CleanupInterval.ToDuration(),
+		IdempotentResultTTL:    pgCfg.IdempotentResultTTL.ToDuration(),
+		BinaryData:             pgCfg.BinaryData,
+		StreamRetention:        pgCfg.StreamRetention.ToDuration(),
+		UseNotify:              pgCfg.UseNotify,
+		NotifyDSN:              pgCfg.NotifyDSN,
+		TablePrefix:            pgCfg.TablePrefix,
+		PartitionLookaheadDays: pgCfg.PartitionLookaheadDays,
 		PartitionRetentionDays: pgCfg.PartitionRetentionDays,
 		Outbox: pgstreambroker.OutboxConfig{
 			PollInterval: pgCfg.Outbox.PollInterval.ToDuration(),
@@ -169,6 +207,7 @@ func createPostgresStreamBroker(node *centrifuge.Node, pgCfg configtypes.Postgre
 	}
 	if !pgCfg.SkipSchemaInit {
 		if schemaErr := broker.EnsureSchema(context.Background()); schemaErr != nil {
+			_ = broker.Close(context.Background())
 			return nil, fmt.Errorf("error initializing Postgres stream broker schema: %w", schemaErr)
 		}
 	}
@@ -230,9 +269,9 @@ func rawModeDataCheck(cfgContainer *config.Container) func(channel string, data 
 	}
 }
 
-func createRedisEngine(n *centrifuge.Node, cfgContainer *config.Container) (*centrifuge.RedisBroker, centrifuge.PresenceManager, string, error) {
+func (a *App) createRedisEngine(n *centrifuge.Node, cfgContainer *config.Container) (*centrifuge.RedisBroker, centrifuge.PresenceManager, string, error) {
 	cfg := cfgContainer.Config()
-	redisShards, mode, err := confighelpers.CentrifugeRedisShards(n, cfg.Engine.Redis.Redis)
+	redisShards, mode, err := a.redisShards("engine", n, cfg.Engine.Redis.Redis)
 	if err != nil {
 		return nil, nil, mode, fmt.Errorf("error creating Redis shards: %w", err)
 	}
@@ -250,15 +289,15 @@ func createRedisEngine(n *centrifuge.Node, cfgContainer *config.Container) (*cen
 		presenceManager, err = confighelpers.CentrifugeRedisPresenceManager(
 			n, cfg.Engine.Redis.Prefix, redisShards, cfg.Engine.Redis.RedisPresenceManagerCommon)
 		if err != nil {
-			return nil, nil, mode, fmt.Errorf("error creating Redis presence manager: %w", err)
+			return broker, nil, mode, fmt.Errorf("error creating Redis presence manager: %w", err)
 		}
 	}
 	return broker, presenceManager, mode, nil
 }
 
-func createRedisBroker(n *centrifuge.Node, cfgContainer *config.Container) (*centrifuge.RedisBroker, string, error) {
+func (a *App) createRedisBroker(n *centrifuge.Node, cfgContainer *config.Container) (*centrifuge.RedisBroker, string, error) {
 	cfg := cfgContainer.Config()
-	redisShards, mode, err := confighelpers.CentrifugeRedisShards(n, cfg.Broker.Redis.Redis)
+	redisShards, mode, err := a.redisShards("broker", n, cfg.Broker.Redis.Redis)
 	if err != nil {
 		return nil, "", fmt.Errorf("error creating Redis shards: %w", err)
 	}
@@ -270,9 +309,9 @@ func createRedisBroker(n *centrifuge.Node, cfgContainer *config.Container) (*cen
 	return broker, mode, nil
 }
 
-func createRedisPresenceManager(n *centrifuge.Node, cfgContainer *config.Container) (centrifuge.PresenceManager, string, error) {
+func (a *App) createRedisPresenceManager(n *centrifuge.Node, cfgContainer *config.Container) (centrifuge.PresenceManager, string, error) {
 	cfg := cfgContainer.Config()
-	redisShards, mode, err := confighelpers.CentrifugeRedisShards(n, cfg.PresenceManager.Redis.Redis)
+	redisShards, mode, err := a.redisShards("presence manager", n, cfg.PresenceManager.Redis.Redis)
 	if err != nil {
 		return nil, "", fmt.Errorf("error creating Redis shards: %w", err)
 	}
@@ -284,8 +323,10 @@ func createRedisPresenceManager(n *centrifuge.Node, cfgContainer *config.Contain
 	return presenceManager, mode, nil
 }
 
-func configureMapBroker(node *centrifuge.Node, cfgContainer *config.Container) error {
-	cfg := cfgContainer.Config()
+// configureMapBroker creates the map broker and sets it on the node.
+func (a *App) configureMapBroker() error {
+	node := a.node
+	cfg := a.container.Config()
 	var mapBroker centrifuge.MapBroker
 	var mapBrokerMode string
 	var err error
@@ -294,7 +335,7 @@ func configureMapBroker(node *centrifuge.Node, cfgContainer *config.Container) e
 		mapBroker, err = centrifuge.NewMemoryMapBroker(node, centrifuge.MemoryMapBrokerConfig{})
 	case "redis":
 		var redisShards []*centrifuge.RedisShard
-		redisShards, mapBrokerMode, err = confighelpers.CentrifugeRedisShards(node, cfg.MapBroker.Redis.Redis)
+		redisShards, mapBrokerMode, err = a.redisShards("map broker", node, cfg.MapBroker.Redis.Redis)
 		if err != nil {
 			return fmt.Errorf("error creating Redis shards for map broker: %w", err)
 		}
@@ -322,20 +363,22 @@ func configureMapBroker(node *centrifuge.Node, cfgContainer *config.Container) e
 				BatchSize:    pgCfg.Outbox.BatchSize,
 			},
 		}
-		mapBroker, err = pgmapbroker.NewPostgresMapBroker(node, pgBrokerCfg)
+		pgBroker, err := pgmapbroker.NewPostgresMapBroker(node, pgBrokerCfg)
 		if err != nil {
 			return fmt.Errorf("error creating Postgres map broker: %w", err)
 		}
 		if !pgCfg.SkipSchemaInit {
-			pgBroker := mapBroker.(*pgmapbroker.PostgresMapBroker)
 			if schemaErr := pgBroker.EnsureSchema(context.Background()); schemaErr != nil {
+				_ = pgBroker.Close(context.Background())
 				return fmt.Errorf("error initializing Postgres map broker schema: %w", schemaErr)
 			}
 		}
+		mapBroker = pgBroker
 		mapBrokerMode = "postgres"
 	default:
 		return fmt.Errorf("unknown map broker type: %s", cfg.MapBroker.Type)
 	}
+	a.closeOnStop("map broker", mapBroker)
 	if err != nil {
 		return fmt.Errorf("error creating map broker: %v", err)
 	}
@@ -346,4 +389,37 @@ func configureMapBroker(node *centrifuge.Node, cfgContainer *config.Container) e
 	event.Msg("initializing map broker")
 	node.SetMapBroker(mapBroker)
 	return nil
+}
+
+// closeOnStop registers a stop step closing v when it is a centrifuge.Closer.
+// Engines are closed by the node too: their Close may be called twice.
+func (a *App) closeOnStop(name string, v any) {
+	c, ok := v.(centrifuge.Closer)
+	if !ok || isNilPointer(v) {
+		return
+	}
+	a.lifecycle.OnStop(name, c.Close)
+}
+
+// isNilPointer reports whether v holds a nil pointer.
+func isNilPointer(v any) bool {
+	rv := reflect.ValueOf(v)
+	return rv.Kind() == reflect.Pointer && rv.IsNil()
+}
+
+// redisShards creates the Redis shards of an engine section and registers a
+// stop step closing them. They are closed after the engines using them, which
+// register their steps later.
+func (a *App) redisShards(section string, n *centrifuge.Node, conf configtypes.Redis) ([]*centrifuge.RedisShard, string, error) {
+	shards, mode, err := confighelpers.CentrifugeRedisShards(n, conf)
+	if err != nil {
+		return nil, mode, err
+	}
+	a.lifecycle.OnStop(section+" redis shards", func(context.Context) error {
+		for _, s := range shards {
+			s.Close()
+		}
+		return nil
+	})
+	return shards, mode, nil
 }

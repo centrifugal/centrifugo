@@ -1,0 +1,170 @@
+{
+  "log": {
+    "level": "debug"
+  },
+  "usage_stats": {
+    "disabled": true
+  },
+  "shutdown": {
+    "timeout": "10s"
+  },
+  "client": {
+    "token": {
+      "hmac_secret_key": "snapshot-secret"
+    },
+    "allowed_origins": ["http://localhost:3000"],
+    "ping_interval": "60s",
+    "pong_timeout": "20s"
+  },
+  "http_api": {
+    "key": "snapshot-api-key"
+  },
+  "grpc_api": {
+    "enabled": true,
+    "key": "snapshot-grpc-key"
+  },
+  "prometheus": {
+    "enabled": true,
+    "instrument_http_handlers": true
+  },
+  "health": {
+    "enabled": true
+  },
+  "swagger": {
+    "enabled": true
+  },
+  "admin": {
+    "enabled": true,
+    "password": "snapshot-admin-password",
+    "secret": "snapshot-admin-secret"
+  },
+  "debug": {
+    "enabled": true
+  },
+  "init": {
+    "enabled": true
+  },
+  "sse": {
+    "enabled": true
+  },
+  "http_stream": {
+    "enabled": true
+  },
+  "uni_sse": {
+    "enabled": true
+  },
+  "uni_http_stream": {
+    "enabled": true
+  },
+  "uni_websocket": {
+    "enabled": true
+  },
+  "uni_grpc": {
+    "enabled": true
+  },
+  "proxies": [
+    {
+      "name": "grpc",
+      "endpoint": "{{.ProxyGRPC}}",
+      "grpc_metadata": ["x-snapshot-meta"],
+      "http_headers": ["X-Snapshot-Header"],
+      "include_connection_meta": true
+    }
+  ],
+  "channel": {
+    "proxy": {
+      "subscribe": {
+        "endpoint": "{{.ProxyHTTP}}/subscribe",
+        "http_headers": ["X-Snapshot-Header", "Origin"],
+        "include_connection_meta": true
+      },
+      "publish": {
+        "endpoint": "{{.ProxyHTTP}}/publish",
+        "http_headers": ["X-Snapshot-Header"]
+      },
+      "sub_refresh": {
+        "endpoint": "{{.ProxyHTTP}}/sub_refresh",
+        "http_headers": ["X-Snapshot-Header"]
+      }
+    },
+    "without_namespace": {
+      "presence": true,
+      "join_leave": true,
+      "force_push_join_leave": true,
+      "history_size": 10,
+      "history_ttl": "300s",
+      "allow_subscribe_for_client": true,
+      "allow_publish_for_subscriber": true,
+      "allow_presence_for_subscriber": true,
+      "allow_history_for_subscriber": true,
+      "allow_recovery": true
+    },
+    "namespaces": [
+      {
+        "name": "proxied",
+        "presence": true,
+        "history_size": 10,
+        "history_ttl": "300s",
+        "subscribe_proxy_enabled": true,
+        "publish_proxy_enabled": true,
+        "sub_refresh_proxy_enabled": true,
+        "allow_presence_for_subscriber": true,
+        "allow_history_for_subscriber": true
+      },
+      {
+        "name": "grpcproxied",
+        "subscribe_proxy_enabled": true,
+        "subscribe_proxy_name": "grpc",
+        "publish_proxy_enabled": true,
+        "publish_proxy_name": "grpc",
+        "sub_refresh_proxy_enabled": true,
+        "sub_refresh_proxy_name": "grpc"
+      },
+      {
+        "name": "private"
+      },
+      {
+        "name": "pubsub",
+        "allow_subscribe_for_client": true,
+        "allow_publish_for_client": true,
+        "allow_history_for_client": true,
+        "history_size": 5,
+        "history_ttl": "60s",
+        "force_recovery": true,
+        "channel_regex": "^[a-z0-9_]+$"
+      },
+      {
+        "name": "mapns",
+        "subscription_type": "map",
+        "allow_subscribe_for_client": true,
+        "map": {"mode": "recoverable", "key_ttl": "60s", "stream_size": 10, "stream_ttl": "60s"}
+      },
+      {
+        "name": "anon",
+        "allow_subscribe_for_anonymous": true,
+        "allow_subscribe_for_client": true,
+        "allow_presence_for_anonymous": true,
+        "presence": true
+      }
+    ]
+  },
+  "rpc": {
+    "proxy": {
+      "endpoint": "{{.ProxyHTTP}}/rpc",
+      "http_headers": ["X-Snapshot-Header"]
+    },
+    "without_namespace": {
+      "proxy_enabled": true
+    },
+    "namespaces": [
+      {
+        "name": "grpc",
+        "proxy_enabled": true,
+        "proxy_name": "grpc"
+      }
+    ],
+    "ping": {
+      "enabled": true
+    }
+  }
+}

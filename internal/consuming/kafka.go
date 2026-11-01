@@ -74,6 +74,9 @@ type KafkaConsumer struct {
 	doneCh         chan struct{}
 	common         *consumerCommon
 	testOnlyConfig testOnlyConfig
+	drain          *drain
+	// closeClientOnce guards closing the client of a consumer whose Run never ran.
+	closeClientOnce sync.Once
 }
 
 func NewKafkaConsumer(
@@ -106,6 +109,7 @@ func NewKafkaConsumer(
 		consumers:  make(map[topicPartition]*partitionConsumer),
 		doneCh:     make(chan struct{}),
 		common:     common,
+		drain:      newDrain(),
 	}
 	cl, err := consumer.initClient()
 	if err != nil {
@@ -362,6 +366,11 @@ func fetchPartitionErrorRequiresClientReinit(err error) bool {
 }
 
 func (c *KafkaConsumer) Run(ctx context.Context) error {
+	finish, ok := c.drain.runStarted()
+	if !ok {
+		return ctx.Err()
+	}
+	defer finish()
 	started := time.Now()
 	defer func() {
 		c.common.log.Info().Str("was_running_for", time.Since(started).String()).Msg("stopping Kafka consumer")
@@ -419,6 +428,21 @@ func (c *KafkaConsumer) Run(ctx context.Context) error {
 		}
 		c.common.log.Info().Str("elapsed", time.Since(reInitStarted).String()).Msg("Kafka consumer client re-initialized")
 	}
+}
+
+// Close waits until ctx is done for Run to return: Run marks the offsets of
+// the messages in flight and leaves the group before it returns. When Run
+// never ran, Close closes the client. It may be called more than once.
+func (c *KafkaConsumer) Close(ctx context.Context) error {
+	started, err := c.drain.wait(ctx)
+	if !started {
+		c.closeClientOnce.Do(func() {
+			if c.client != nil {
+				c.client.Close()
+			}
+		})
+	}
+	return err
 }
 
 func (c *KafkaConsumer) pollUntilFatal(ctx context.Context) error {

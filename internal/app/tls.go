@@ -1,8 +1,12 @@
 package app
 
 import (
+	"context"
 	"crypto/tls"
+	"errors"
+	"fmt"
 	stdlog "log"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -14,9 +18,54 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 )
 
-var startHTTPChallengeServerOnce sync.Once
+// acmeServer serves the ACME http_01 challenge.
+type acmeServer struct {
+	server *http.Server
+	addr   string
+	ln     net.Listener
+}
 
-func GetTLSConfig(cfg config.Config) (*tls.Config, error) {
+// listenACME binds the listener of the ACME challenge server, if any.
+func (a *App) listenACME() error {
+	s := a.acmeServer
+	if s == nil || s.ln != nil {
+		return nil
+	}
+	addr := s.addr
+	if addr == "" {
+		addr = ":http" // As http.Server.ListenAndServe.
+	}
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return logFatal(err, fmt.Sprintf("can't create server on %s to serve acme http challenge", s.addr))
+	}
+	a.lifecycle.OnStop("ACME challenge listener", func(context.Context) error {
+		_ = ln.Close()
+		return nil
+	})
+	a.addAddr(ln.Addr())
+	s.ln = ln
+	return nil
+}
+
+// serveACME serves the ACME challenge in a goroutine tracked by wg.
+func (a *App) serveACME(wg *sync.WaitGroup) {
+	s := a.acmeServer
+	if s == nil || s.ln == nil {
+		return
+	}
+	log.Info().Msgf("serving ACME http_01 challenge on %s", s.addr)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := s.server.Serve(s.ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			a.serveError(err, fmt.Sprintf("can't create server on %s to serve acme http challenge", s.addr))
+		}
+	}()
+}
+
+// getTLSConfig returns the TLS config of the external HTTP server.
+func (a *App) getTLSConfig(cfg config.Config) (*tls.Config, error) {
 	tlsEnabled := cfg.HTTP.TLS.Enabled
 	tlsAutocertEnabled := cfg.HTTP.TLSAutocert.Enabled
 	tlsAutocertHostWhitelist := cfg.HTTP.TLSAutocert.HostWhitelist
@@ -38,24 +87,18 @@ func GetTLSConfig(cfg config.Config) (*tls.Config, error) {
 			certManager.Cache = autocert.DirCache(tlsAutocertCacheDir)
 		}
 
-		if tlsAutocertHTTP {
-			startHTTPChallengeServerOnce.Do(func() {
-				// getTLSConfig can be called several times.
-				acmeHTTPServer := &http.Server{
+		if tlsAutocertHTTP && a.acmeServer == nil {
+			a.acmeServer = &acmeServer{
+				server: &http.Server{
 					Handler:           certManager.HTTPHandler(nil),
 					Addr:              tlsAutocertHTTPAddr,
 					ErrorLog:          stdlog.New(&httpErrorLogWriter{log.Logger}, "", 0),
 					ReadHeaderTimeout: 10 * time.Second,
 					ReadTimeout:       30 * time.Second,
 					WriteTimeout:      10 * time.Second,
-				}
-				go func() {
-					log.Info().Msgf("serving ACME http_01 challenge on %s", tlsAutocertHTTPAddr)
-					if err := acmeHTTPServer.ListenAndServe(); err != nil {
-						log.Fatal().Err(err).Msgf("can't create server on %s to serve acme http challenge", tlsAutocertHTTPAddr)
-					}
-				}()
-			})
+				},
+				addr: tlsAutocertHTTPAddr,
+			}
 		}
 
 		return &tls.Config{

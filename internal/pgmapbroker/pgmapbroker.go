@@ -205,10 +205,13 @@ type PostgresMapBroker struct {
 	eventHandler centrifuge.BrokerEventHandler
 	closeCh      chan struct{}
 	closeOnce    sync.Once
+	poolsOnce    sync.Once
 	running      atomic.Bool
 	cancelCtx    context.Context
 	cancelFunc   context.CancelFunc
 	notifyCh     chan struct{} // nil when UseNotify is false
+	// wg tracks the goroutines started by RegisterBrokerEventHandler.
+	wg sync.WaitGroup
 
 	// workersInitialized[i] flips true once shard i's outbox worker completes
 	// its first InitCursor (i.e., has snapshotted MAX(id) and is actively
@@ -596,23 +599,23 @@ func (e *PostgresMapBroker) RegisterEventHandler(h centrifuge.BrokerEventHandler
 			return fmt.Errorf("postgres map broker: register inner broker: %w", err)
 		}
 		for i := 0; i < e.conf.NumShards; i++ {
-			go e.runOutboxWorkerWithLock(i, initialCursor)
+			e.goWorker(func() { e.runOutboxWorkerWithLock(i, initialCursor) })
 		}
 	} else {
 		if e.conf.UseNotify {
-			go e.runNotificationListener()
+			e.goWorker(e.runNotificationListener)
 		}
 		// Start outbox workers: one per shard. Per-shard serialization (FOR UPDATE
 		// on shard_lock) + one-shard-per-worker eliminates BIGSERIAL gaps.
 		for i := 0; i < e.conf.NumShards; i++ {
-			go e.runOutboxWorker(i, initialCursor)
+			e.goWorker(func() { e.runOutboxWorker(i, initialCursor) })
 		}
 	}
 
-	go e.runTTLExpirationWorker()
-	go e.runCleanupLagWorker()
-	go e.runCleanupWorker()
-	go e.runPartitionWorker() // unconditional — schema is always partitioned
+	e.goWorker(e.runTTLExpirationWorker)
+	e.goWorker(e.runCleanupLagWorker)
+	e.goWorker(e.runCleanupWorker)
+	e.goWorker(e.runPartitionWorker) // unconditional — schema is always partitioned
 
 	return nil
 }
@@ -626,7 +629,9 @@ func (e *PostgresMapBroker) ReliableDelivery() bool {
 	return e.conf.Broker == nil
 }
 
-// Close shuts down the broker.
+// Close stops the background workers and the inner broker, waits for the
+// workers until ctx is done, then closes the pools. It may be called more
+// than once, also on a broker whose workers never started.
 func (e *PostgresMapBroker) Close(ctx context.Context) error {
 	e.closeOnce.Do(func() {
 		e.cancelFunc() // Cancel context to unblock WaitForNotification
@@ -636,6 +641,19 @@ func (e *PostgresMapBroker) Close(ctx context.Context) error {
 				_ = closer.Close(ctx)
 			}
 		}
+	})
+	done := make(chan struct{})
+	go func() {
+		e.wg.Wait()
+		close(done)
+	}()
+	var err error
+	select {
+	case <-done:
+	case <-ctx.Done():
+		err = ctx.Err()
+	}
+	e.poolsOnce.Do(func() {
 		for _, rp := range e.readPools {
 			rp.Close()
 		}
@@ -644,7 +662,15 @@ func (e *PostgresMapBroker) Close(ctx context.Context) error {
 		}
 		e.pool.Close()
 	})
-	return nil
+	return err
+}
+
+func (e *PostgresMapBroker) goWorker(f func()) {
+	e.wg.Add(1)
+	go func() {
+		defer e.wg.Done()
+		f()
+	}()
 }
 
 // SchemaObject identifies a database object involved in a schema error.

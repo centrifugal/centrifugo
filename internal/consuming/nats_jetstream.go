@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/api"
@@ -35,6 +36,9 @@ type NatsJetStreamConsumer struct {
 	consumeContext jetstream.ConsumeContext
 	// recreateCh signals that the consumer should be re-created (e.g. on heartbeat loss).
 	recreateCh chan struct{}
+	// connClosed is closed when the connection is closed (after a drain too).
+	connClosed chan struct{}
+	drain      *drain
 }
 
 // NewNatsJetStreamConsumer creates a new NatsJetStreamConsumer instance.
@@ -55,7 +59,10 @@ func NewNatsJetStreamConsumer(
 		dispatcher: dispatcher,
 		common:     common,
 		recreateCh: make(chan struct{}, 1), // buffered so duplicate signals are dropped
+		connClosed: make(chan struct{}),
+		drain:      newDrain(),
 	}
+	var connClosedOnce sync.Once
 
 	opts := []nats.Option{
 		nats.MaxReconnects(-1),
@@ -67,6 +74,9 @@ func NewNatsJetStreamConsumer(
 		}),
 		nats.DisconnectErrHandler(func(conn *nats.Conn, err error) {
 			c.common.log.Warn().Err(err).Msg("disconnected")
+		}),
+		nats.ClosedHandler(func(conn *nats.Conn) {
+			connClosedOnce.Do(func() { close(c.connClosed) })
 		}),
 	}
 
@@ -102,6 +112,15 @@ func NewNatsJetStreamConsumer(
 	}
 	c.consumer = jsConsumer
 	return c, nil
+}
+
+// Close waits until ctx is done for Run to return after the messages in
+// flight were handled and acknowledged, then closes the connection. It may be
+// called more than once.
+func (c *NatsJetStreamConsumer) Close(ctx context.Context) error {
+	_, err := c.drain.wait(ctx)
+	c.nc.Close()
+	return err
 }
 
 // createJetStreamConsumer is a helper (used both at startup and runtime)
@@ -327,9 +346,20 @@ func (c *NatsJetStreamConsumer) errorHandler() jetstream.ConsumeErrHandlerFunc {
 // If a heartbeat error occurs then the consumer is re-created
 // and the consumeContext re-established with endless retries.
 func (c *NatsJetStreamConsumer) Run(ctx context.Context) error {
+	finish, ok := c.drain.runStarted()
+	if !ok {
+		return ctx.Err()
+	}
+	defer finish()
 	c.ctx = ctx
 	defer func() {
-		_ = c.nc.Drain()
+		// Wait for the messages in flight to be handled and acknowledged.
+		if err := c.nc.Drain(); err == nil {
+			select {
+			case <-c.connClosed:
+			case <-c.drain.ctx.Done():
+			}
+		}
 	}()
 
 	retries := 0
@@ -384,6 +414,10 @@ func (c *NatsJetStreamConsumer) Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			c.consumeContext.Stop()
+			select {
+			case <-c.consumeContext.Closed():
+			case <-c.drain.ctx.Done():
+			}
 			return ctx.Err()
 		case <-c.recreateCh:
 			c.common.log.Info().Msg("recreating consumer")

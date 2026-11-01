@@ -13,6 +13,7 @@ import (
 type GRPCSubscribeProxy struct {
 	config Config
 	client proxyproto.CentrifugoProxyClient
+	conn   *grpc.ClientConn
 }
 
 var _ SubscribeProxy = (*GRPCSubscribeProxy)(nil)
@@ -34,6 +35,7 @@ func NewGRPCSubscribeProxy(name string, p Config) (*GRPCSubscribeProxy, error) {
 	return &GRPCSubscribeProxy{
 		config: p,
 		client: proxyproto.NewCentrifugoProxyClient(conn),
+		conn:   conn,
 	}, nil
 }
 
@@ -57,4 +59,9 @@ func (p *GRPCSubscribeProxy) UseBase64() bool {
 // IncludeMeta ...
 func (p *GRPCSubscribeProxy) IncludeMeta() bool {
 	return p.config.IncludeConnectionMeta
+}
+
+// Close closes the connection to the proxy server.
+func (p *GRPCSubscribeProxy) Close() error {
+	return p.conn.Close()
 }

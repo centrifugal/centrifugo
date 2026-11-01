@@ -12,10 +12,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-func graphiteExporter(cfg config.Config, nodeCfg centrifuge.Config) *graphite.Exporter {
+func graphiteExporter(cfg config.Config, nodeCfg centrifuge.Config, gatherer prometheus.Gatherer) *graphite.Exporter {
 	return graphite.New(graphite.Config{
 		Address:  net.JoinHostPort(cfg.Graphite.Host, strconv.Itoa(cfg.Graphite.Port)),
-		Gatherer: prometheus.DefaultGatherer,
+		Gatherer: gatherer,
 		Prefix:   strings.TrimSuffix(cfg.Graphite.Prefix, ".") + "." + graphite.PreparePathComponent(nodeCfg.Name),
 		Interval: cfg.Graphite.Interval.ToDuration(),
 		Tags:     cfg.Graphite.Tags,

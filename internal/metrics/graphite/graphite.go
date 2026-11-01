@@ -61,8 +61,9 @@ func New(c Config) *Exporter {
 	return exporter
 }
 
+// Run exports metrics until ctx is cancelled, then closes the exporter.
 func (e *Exporter) Run(ctx context.Context) error {
-	defer func() { _ = e.close() }()
+	defer func() { _ = e.Close() }()
 	for {
 		select {
 		case <-ctx.Done():
@@ -73,8 +74,9 @@ func (e *Exporter) Run(ctx context.Context) error {
 	}
 }
 
-// Close stops exporter.
-func (e *Exporter) close() error {
+// Close stops the exporter, also one which never ran. It may be called more
+// than once.
+func (e *Exporter) Close() error {
 	e.closeOnce.Do(func() {
 		close(e.closeCh)
 		_ = e.eagle.Close()

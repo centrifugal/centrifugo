@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/redis/rueidis"
 	"github.com/stretchr/testify/require"
 )
 
@@ -184,4 +185,66 @@ func TestRedisStreamConsumer_ConcurrentConsumers(t *testing.T) {
 	}
 	time.Sleep(500 * time.Millisecond) // prevent any second dispatch.
 	require.Equal(t, int64(1), receivedNum.Load(), "only one consumer should process the message")
+}
+
+// A message handled while the consumer is asked to stop is acknowledged
+// before Close returns.
+func TestRedisStreamConsumer_DrainAcksInFlight(t *testing.T) {
+	t.Parallel()
+	dispatching := make(chan struct{})
+	release := make(chan struct{})
+	dispatcher := &MockDispatcher{
+		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
+			close(dispatching)
+			<-release
+			return nil
+		},
+	}
+	stream := "TEST_STREAM" + uuid.NewString()
+	group := uuid.NewString()
+	cfg := RedisStreamConsumerConfig{
+		Redis:         configtypes.Redis{Address: []string{"localhost:6379"}},
+		Streams:       []string{stream},
+		ConsumerGroup: group,
+		PayloadValue:  "payload",
+		NumWorkers:    1,
+	}
+	consumer, err := NewRedisStreamConsumer(cfg, dispatcher, testCommon(prometheus.NewRegistry()))
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	runDone := make(chan error, 1)
+	go func() { runDone <- consumer.Run(ctx) }()
+
+	shards, err := redisshard.BuildRedisShards(cfg.Redis)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		for _, s := range shards {
+			s.Close()
+		}
+	})
+	producer, err := redisqueue.NewProducer(shards[0], redisqueue.ProducerOptions{Stream: stream})
+	require.NoError(t, err)
+	require.NoError(t, producer.Enqueue(&redisqueue.Message{Values: map[string]string{"payload": "x"}}))
+
+	waitCh(t, dispatching, 10*time.Second, "timeout waiting for dispatch")
+	cancel()
+	closeDone := make(chan error, 1)
+	go func() {
+		closeCtx, closeCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer closeCancel()
+		closeDone <- consumer.Close(closeCtx)
+	}()
+	close(release)
+	require.NoError(t, <-closeDone)
+	require.ErrorIs(t, <-runDone, context.Canceled)
+
+	summary, err := shards[0].RunOp(func(client rueidis.Client) rueidis.RedisResult {
+		return client.Do(context.Background(), client.B().Xpending().Key(stream).Group(group).Build())
+	}).ToArray()
+	require.NoError(t, err)
+	require.NotEmpty(t, summary)
+	pending, err := summary[0].AsInt64()
+	require.NoError(t, err)
+	require.Zero(t, pending)
 }

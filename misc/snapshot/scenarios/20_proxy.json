@@ -1,0 +1,90 @@
+{
+  "description": "Connect, refresh, subscribe, sub refresh, publish and RPC proxies (HTTP and gRPC): requests the backend receives and how its answers reach clients.",
+  "config": {
+    "client": {
+      "presence_update_interval": "1s",
+      "expired_sub_close_delay": "100ms",
+      "proxy": {
+        "connect": {"enabled": true, "endpoint": "{{.ProxyHTTP}}/connect", "http_headers": ["X-Snapshot-Header", "Cookie"], "grpc_metadata": ["x-snapshot-meta"], "emulated_headers": ["X-Emulated"]},
+        "refresh": {"enabled": true, "endpoint": "{{.ProxyHTTP}}/refresh", "http_headers": ["X-Snapshot-Header"]}
+      }
+    }
+  },
+  "variants": {
+    "http": {},
+    "grpc": {
+      "config": {
+        "client": {
+          "proxy": {
+            "connect": {"endpoint": "{{.ProxyGRPC}}"},
+            "refresh": {"endpoint": "{{.ProxyGRPC}}"}
+          }
+        }
+      }
+    }
+  },
+  "proxy": [
+    {"kind": "connect", "match": {"name": "alice-app"}, "body": {"result": {"user": "alice", "expire_at": "$now+1", "info": {"name": "Alice"}, "data": {"greeting": "hi"}, "channels": ["server-side"], "meta": {"tenant": "t1"}}}, "grpc_body": {"result": {"user": "alice", "expire_at": "$now+1", "info": {"$b64": "{\"name\":\"Alice\"}"}, "data": {"$b64": "{\"greeting\":\"hi\"}"}, "channels": ["server-side"], "meta": {"$b64": "{\"tenant\":\"t1\"}"}}}},
+    {"kind": "connect", "match": {"name": "bob-app"}, "body": {"result": {"user": "bob", "subs": {"server-side2": {"info": {"x": 1}}}}}, "grpc_body": {"result": {"user": "bob", "subs": {"server-side2": {"info": {"$b64": "{\"x\":1}"}}}}}},
+    {"kind": "connect", "match": {"name": "error-app"}, "body": {"error": {"code": 1000, "message": "custom connect error", "temporary": true}}},
+    {"kind": "connect", "match": {"name": "disconnect-app"}, "body": {"disconnect": {"code": 4500, "reason": "custom disconnect"}}},
+    {"kind": "connect", "match": {"name": "http-error-app"}, "status": 500, "body": {}, "grpc_code": 13, "grpc_message": "backend failed"},
+    {"kind": "connect", "match": {"name": "anon-app"}, "body": {"result": {"user": ""}}},
+    {"kind": "refresh", "body": {"result": {"expire_at": "$now+3600", "info": {"name": "Alice refreshed"}}}, "grpc_body": {"result": {"expire_at": "$now+3600", "info": {"$b64": "{\"name\":\"Alice refreshed\"}"}}}},
+    {"kind": "subscribe", "match": {"channel": "proxied:room"}, "body": {"result": {"info": {"role": "member"}, "data": {"welcome": true}, "expire_at": "$now+1"}}},
+    {"kind": "subscribe", "match": {"channel": "proxied:denied"}, "body": {"error": {"code": 403, "message": "forbidden by backend"}}},
+    {"kind": "subscribe", "match": {"channel": "proxied:disconnect"}, "body": {"disconnect": {"code": 4501, "reason": "go away"}}},
+    {"kind": "subscribe", "match": {"channel": "grpcproxied:room"}, "body": {"result": {"info": {"$b64": "{\"role\":\"grpc\"}"}, "expire_at": "$now+1"}}},
+    {"kind": "sub_refresh", "body": {"result": {"expire_at": "$now+3600"}}},
+    {"kind": "publish", "match": {"channel": "proxied:room"}, "body": {"result": {"data": {"modified": true}}}},
+    {"kind": "publish", "match": {"channel": "grpcproxied:room"}, "body": {"result": {"data": {"$b64": "{\"modified\":\"grpc\"}"}}}},
+    {"kind": "publish", "match": {"channel": "proxied:denied"}, "body": {"error": {"code": 1002, "message": "publish rejected"}}},
+    {"kind": "rpc", "match": {"method": "getAnswer"}, "body": {"result": {"data": {"answer": 42}}}},
+    {"kind": "rpc", "match": {"method": "fail"}, "body": {"error": {"code": 1001, "message": "rpc failed"}}},
+    {"kind": "rpc", "match": {"method": "grpc:getAnswer"}, "body": {"result": {"data": {"$b64": "{\"answer\":43}"}}}}
+  ],
+  "steps": [
+    {"op": "connect", "client": "alice", "headers": {"X-Snapshot-Header": "from-alice", "Cookie": "session=abc", "X-Snapshot-Meta": "not-forwarded"}},
+    {"op": "send", "client": "alice", "cmd": {"connect": {"name": "alice-app", "version": "2.0", "data": {"hello": "world"}, "headers": {"X-Emulated": "emulated-value"}}}},
+    {"op": "pushes", "client": "alice", "count": 1, "comment": "own join in the server-side channel"},
+    {"op": "wait_proxy", "kind": "refresh", "count": 1, "comment": "connection expires, server asks the backend"},
+    {"op": "send", "client": "alice", "cmd": {"subscribe": {"channel": "proxied:room", "data": {"want": "in"}}}},
+    {"op": "wait_proxy", "kind": "sub_refresh", "count": 1},
+    {"op": "send", "client": "alice", "cmd": {"subscribe": {"channel": "proxied:denied"}}},
+    {"op": "send", "client": "alice", "cmd": {"subscribe": {"channel": "grpcproxied:room"}}},
+    {"op": "wait_proxy", "kind": "sub_refresh", "count": 1},
+    {"op": "send", "client": "alice", "cmd": {"publish": {"channel": "proxied:room", "data": {"original": true}}}},
+    {"op": "pushes", "client": "alice", "count": 1},
+    {"op": "send", "client": "alice", "cmd": {"publish": {"channel": "grpcproxied:room", "data": {"original": "grpc"}}}},
+    {"op": "pushes", "client": "alice", "count": 1},
+    {"op": "send", "client": "alice", "cmd": {"history": {"channel": "grpcproxied:room", "limit": 5}}, "comment": "history not allowed"},
+    {"op": "send", "client": "alice", "cmd": {"publish": {"channel": "proxied:denied", "data": {}}}},
+    {"op": "send", "client": "alice", "cmd": {"rpc": {"method": "getAnswer", "data": {"q": "?"}}}},
+    {"op": "send", "client": "alice", "cmd": {"rpc": {"method": "fail"}}},
+    {"op": "send", "client": "alice", "cmd": {"rpc": {"method": "unscripted"}}},
+    {"op": "send", "client": "alice", "cmd": {"rpc": {"method": "grpc:getAnswer", "data": {"q": "?"}}}},
+    {"op": "send", "client": "alice", "cmd": {"rpc": {"method": "ping"}}},
+    {"op": "send", "client": "alice", "cmd": {"presence": {"channel": "proxied:room"}}},
+    {"op": "send", "client": "alice", "cmd": {"history": {"channel": "proxied:room", "limit": 5}}},
+    {"op": "connect", "client": "bob"},
+    {"op": "send", "client": "bob", "cmd": {"connect": {"name": "bob-app"}}},
+    {"op": "send", "client": "bob", "cmd": {"subscribe": {"channel": "proxied:disconnect"}}},
+    {"op": "connect", "client": "err"},
+    {"op": "send", "client": "err", "cmd": {"connect": {"name": "error-app"}}},
+    {"op": "close", "client": "err"},
+    {"op": "connect", "client": "disc"},
+    {"op": "send", "client": "disc", "cmd": {"connect": {"name": "disconnect-app"}}},
+    {"op": "connect", "client": "httperr"},
+    {"op": "send", "client": "httperr", "cmd": {"connect": {"name": "http-error-app"}}},
+    {"op": "close", "client": "httperr"},
+    {"op": "connect", "client": "unscripted"},
+    {"op": "send", "client": "unscripted", "cmd": {"connect": {"name": "unknown-app"}}},
+    {"op": "close", "client": "unscripted"},
+    {"op": "connect", "client": "anon"},
+    {"op": "send", "client": "anon", "cmd": {"connect": {"name": "anon-app"}}},
+    {"op": "send", "client": "anon", "cmd": {"subscribe": {"channel": "anon:room"}}},
+    {"op": "connect", "client": "token"},
+    {"op": "send", "client": "token", "cmd": {"connect": {"token": {"$jwt": {"sub": "tokenuser", "exp": "$now+3600"}}, "name": "token-app"}}, "comment": "token takes precedence over the connect proxy"},
+    {"op": "metrics", "filter": "^centrifugo_(proxy|client_num_reply_errors|client_num_server_disconnects)"}
+  ]
+}

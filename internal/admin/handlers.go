@@ -27,8 +27,9 @@ type Handler struct {
 	config configtypes.Admin
 }
 
-// NewHandler creates new Handler.
-func NewHandler(n *centrifuge.Node, apiExecutor *api.Executor, c Config) *Handler {
+// NewHandler creates new Handler. It returns an error when the admin web reverse
+// proxy can not be created.
+func NewHandler(n *centrifuge.Node, apiExecutor *api.Executor, c Config) (*Handler, error) {
 	h := &Handler{
 		node:   n,
 		config: c,
@@ -55,7 +56,7 @@ func NewHandler(n *centrifuge.Node, apiExecutor *api.Executor, c Config) *Handle
 		log.Info().Str("address", c.WebProxyAddress).Msg("using admin web reverse proxy")
 		proxy, err := reverseproxy.New(c.WebProxyAddress)
 		if err != nil {
-			log.Fatal().Err(err).Msg("error creating admin web reverse proxy")
+			return nil, err
 		}
 		mux.HandleFunc(webPrefix, reverseproxy.ProxyRequestHandler(proxy))
 	} else if c.WebPath != "" {
@@ -64,7 +65,7 @@ func NewHandler(n *centrifuge.Node, apiExecutor *api.Executor, c Config) *Handle
 		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(webui.FS)))
 	}
 	h.mux = mux
-	return h
+	return h, nil
 }
 
 func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {

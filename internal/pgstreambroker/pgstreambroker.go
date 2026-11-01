@@ -347,11 +347,14 @@ type PostgresStreamBroker struct {
 	eventHandler centrifuge.BrokerEventHandler
 	closeCh      chan struct{}
 	closeOnce    sync.Once
+	poolsOnce    sync.Once
 	running      atomic.Bool
 	cancelCtx    context.Context
 	cancelFunc   context.CancelFunc
 	notifyCh     chan struct{}
 	sampler      *metricsSampler
+	// wg tracks the goroutines started by RegisterBrokerEventHandler.
+	wg sync.WaitGroup
 
 	// notifyListenerReady flips true after the LISTEN command succeeds on
 	// the notification listener's connection. Used by tests that depend on
@@ -501,7 +504,9 @@ func (e *PostgresStreamBroker) ReliableDelivery() bool {
 	return e.conf.Broker == nil
 }
 
-// Close shuts down the broker.
+// Close stops the background workers and the inner broker, waits for the
+// workers until ctx is done, then closes the pools. It may be called more
+// than once, also on a broker whose workers never started.
 func (e *PostgresStreamBroker) Close(ctx context.Context) error {
 	e.closeOnce.Do(func() {
 		e.cancelFunc()
@@ -511,6 +516,19 @@ func (e *PostgresStreamBroker) Close(ctx context.Context) error {
 				_ = c.Close(ctx)
 			}
 		}
+	})
+	done := make(chan struct{})
+	go func() {
+		e.wg.Wait()
+		close(done)
+	}()
+	var err error
+	select {
+	case <-done:
+	case <-ctx.Done():
+		err = ctx.Err()
+	}
+	e.poolsOnce.Do(func() {
 		for _, rp := range e.readPools {
 			rp.Close()
 		}
@@ -519,7 +537,15 @@ func (e *PostgresStreamBroker) Close(ctx context.Context) error {
 		}
 		e.pool.Close()
 	})
-	return nil
+	return err
+}
+
+func (e *PostgresStreamBroker) goWorker(f func()) {
+	e.wg.Add(1)
+	go func() {
+		defer e.wg.Done()
+		f()
+	}()
 }
 
 // RegisterBrokerEventHandler registers the event handler and starts background workers.
@@ -550,19 +576,19 @@ func (e *PostgresStreamBroker) RegisterBrokerEventHandler(h centrifuge.BrokerEve
 			return fmt.Errorf("postgres stream broker: register inner broker: %w", err)
 		}
 		for i := 0; i < e.conf.NumShards; i++ {
-			go e.runOutboxWorkerWithLock(i, initialCursor)
+			e.goWorker(func() { e.runOutboxWorkerWithLock(i, initialCursor) })
 		}
 	} else {
 		if e.conf.UseNotify {
-			go e.runNotificationListener()
+			e.goWorker(e.runNotificationListener)
 		}
 		for i := 0; i < e.conf.NumShards; i++ {
-			go e.runOutboxWorker(i, initialCursor)
+			e.goWorker(func() { e.runOutboxWorker(i, initialCursor) })
 		}
 	}
 
-	go e.runCleanupWorker()
-	go e.runPartitionWorker() // unconditional — schema is always partitioned
+	e.goWorker(e.runCleanupWorker)
+	e.goWorker(e.runPartitionWorker) // unconditional — schema is always partitioned
 	return nil
 }
 

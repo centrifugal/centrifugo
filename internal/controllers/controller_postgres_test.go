@@ -842,3 +842,21 @@ func TestPostgresController_ReadPool(t *testing.T) {
 	require.ErrorIs(t, c2.Run(ctx), context.Canceled)
 	require.Error(t, readPool.Ping(context.Background()), "the read pool is closed")
 }
+
+func TestPostgresControllerClose(t *testing.T) {
+	c := newTestPostgresController(t, PostgresControllerConfig{}, &testControlEventHandler{})
+	require.NoError(t, c.Close(context.Background()))
+	// Workers returned and pools are closed.
+	c.wg.Wait()
+	require.Error(t, c.pool.Ping(context.Background()))
+	// Idempotent.
+	require.NoError(t, c.Close(context.Background()))
+
+	// A controller whose workers never started closes its pools too.
+	node, err := centrifuge.New(centrifuge.Config{})
+	require.NoError(t, err)
+	c2, err := NewPostgresController(node, PostgresControllerConfig{DSN: getPostgresConnString(t)})
+	require.NoError(t, err)
+	require.NoError(t, c2.Close(context.Background()))
+	require.Error(t, c2.pool.Ping(context.Background()))
+}

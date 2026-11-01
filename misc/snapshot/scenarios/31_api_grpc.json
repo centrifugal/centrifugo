@@ -1,0 +1,53 @@
+{
+  "description": "Server gRPC API: common methods, batch, broadcast, map operations, errors and auth; effects seen by a subscribed client.",
+  "variants": {
+    "default": {},
+    "transport_errors": {
+      "config": {"grpc_api": {"error_mode": "transport"}}
+    }
+  },
+  "steps": [
+    {"op": "connect", "client": "watcher"},
+    {"op": "send", "client": "watcher", "cmd": {"connect": {"token": {"$jwt": {"sub": "watcher", "exp": "$now+3600"}}}}},
+    {"op": "send", "client": "watcher", "cmd": {"subscribe": {"channel": "news"}}},
+    {"op": "pushes", "client": "watcher", "count": 1, "comment": "own join"},
+    {"op": "grpc_api", "method": "Publish", "body": {"channel": "news", "data": "eyJ0ZXh0Ijoib25lIn0=", "tags": {"k": "v"}}},
+    {"op": "pushes", "client": "watcher", "count": 1},
+    {"op": "grpc_api", "method": "Publish", "body": {"channel": "news", "data": "eyJ0ZXh0IjoidHdvIn0=", "idempotency_key": "idem-1"}},
+    {"op": "grpc_api", "method": "Publish", "body": {"channel": "news", "data": "eyJ0ZXh0IjoidHdvIn0=", "idempotency_key": "idem-1"}},
+    {"op": "pushes", "client": "watcher", "count": 1},
+    {"op": "grpc_api", "method": "Broadcast", "body": {"channels": ["news", "other", "unknown:x"], "data": "eyJ0ZXh0IjoiYmMifQ=="}},
+    {"op": "pushes", "client": "watcher", "count": 1},
+    {"op": "grpc_api", "method": "History", "body": {"channel": "news", "limit": 10}},
+    {"op": "grpc_api", "method": "History", "body": {"channel": "news", "limit": 10, "since": {"offset": 1, "epoch": "wrong"}}},
+    {"op": "grpc_api", "method": "HistoryRemove", "body": {"channel": "news"}},
+    {"op": "grpc_api", "method": "Presence", "body": {"channel": "news"}},
+    {"op": "grpc_api", "method": "PresenceStats", "body": {"channel": "news"}},
+    {"op": "grpc_api", "method": "Channels", "body": {}},
+    {"op": "grpc_api", "method": "Subscribe", "body": {"user": "watcher", "channel": "server-sub"}},
+    {"op": "pushes", "client": "watcher", "count": 2, "sort": true},
+    {"op": "grpc_api", "method": "Unsubscribe", "body": {"user": "watcher", "channel": "server-sub"}},
+    {"op": "pushes", "client": "watcher", "count": 1},
+    {"op": "grpc_api", "method": "Refresh", "body": {"user": "watcher", "expire_at": 4102444800}},
+    {"op": "pushes", "client": "watcher", "count": 1},
+    {"op": "grpc_api", "method": "RPC", "body": {"method": "unknown"}},
+    {"op": "grpc_api", "method": "Batch", "body": {"commands": [
+      {"publish": {"channel": "news", "data": "eyJ0ZXh0IjoiYjEifQ=="}},
+      {"publish": {"channel": "unknown:x", "data": "e30="}},
+      {"presence_stats": {"channel": "news"}}
+    ]}},
+    {"op": "pushes", "client": "watcher", "count": 1},
+    {"op": "grpc_api", "method": "MapPublish", "body": {"channel": "mapns:board", "key": "k1", "data": "eyJ2IjoxfQ=="}},
+    {"op": "grpc_api", "method": "MapReadState", "body": {"channel": "mapns:board", "limit": 10}},
+    {"op": "grpc_api", "method": "MapRemove", "body": {"channel": "mapns:board", "key": "k1"}},
+    {"op": "grpc_api", "method": "MapStats", "body": {"channel": "mapns:board"}},
+    {"op": "grpc_api", "method": "Publish", "body": {"channel": "unknown:x", "data": "e30="}, "comment": "unknown namespace"},
+    {"op": "grpc_api", "method": "Publish", "body": {"channel": "", "data": "e30="}, "comment": "empty channel"},
+    {"op": "grpc_api", "method": "Publish", "body": {"channel": "news", "data": "e30="}, "auth": "bad", "comment": "wrong key"},
+    {"op": "grpc_api", "method": "Publish", "body": {"channel": "news", "data": "e30="}, "auth": "none", "comment": "no key"},
+    {"op": "grpc_api", "method": "Info", "body": {}, "comment": "node info"},
+    {"op": "grpc_api", "method": "Disconnect", "body": {"user": "watcher", "disconnect": {"code": 4100, "reason": "kicked"}}},
+    {"op": "wait_close", "client": "watcher"},
+    {"op": "metrics", "filter": "^centrifugo_api"}
+  ]
+}

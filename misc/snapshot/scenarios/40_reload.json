@@ -1,0 +1,24 @@
+{
+  "description": "SIGHUP config reload: successful (channel options, token secret), failing (invalid config, unreadable file, proxy not built on start); behavior before and after.",
+  "steps": [
+    {"op": "connect", "client": "c1"},
+    {"op": "send", "client": "c1", "cmd": {"connect": {"token": {"$jwt": {"sub": "u1", "exp": "$now+3600"}}}}},
+    {"op": "send", "client": "c1", "cmd": {"subscribe": {"channel": "pubsub:room"}}},
+    {"op": "send", "client": "c1", "cmd": {"history": {"channel": "pubsub:room", "limit": 1}}},
+    {"op": "reload", "config": {"channel": {"without_namespace": {"presence": false}, "namespaces": [{"name": "pubsub", "allow_subscribe_for_client": true}, {"name": "added", "allow_subscribe_for_client": true}]}, "client": {"token": {"hmac_secret_key": "rotated-secret"}}}, "comment": "valid change"},
+    {"op": "send", "client": "c1", "cmd": {"history": {"channel": "pubsub:room", "limit": 1}}, "comment": "history no longer allowed"},
+    {"op": "send", "client": "c1", "cmd": {"subscribe": {"channel": "added:room"}}},
+    {"op": "send", "client": "c1", "cmd": {"subscribe": {"channel": "proxied:room"}}, "comment": "namespace removed"},
+    {"op": "connect", "client": "old"},
+    {"op": "send", "client": "old", "cmd": {"connect": {"token": {"$jwt": {"sub": "u2", "exp": "$now+3600"}}}}, "comment": "token signed with the old secret"},
+    {"op": "connect", "client": "new"},
+    {"op": "send", "client": "new", "cmd": {"connect": {"token": {"$jwt": {"sub": "u3", "exp": "$now+3600"}, "secret": "rotated-secret"}}}},
+    {"op": "reload", "config": {"channel": {"namespaces": [{"name": "bad name!"}]}}, "comment": "invalid namespace name"},
+    {"op": "reload", "raw_config": "{not json", "comment": "unreadable config"},
+    {"op": "reload", "config": {"channel": {"namespaces": [{"name": "pubsub", "allow_subscribe_for_client": true}, {"name": "newproxy", "subscribe_proxy_enabled": true, "subscribe_proxy_name": "late"}]}, "proxies": [{"name": "grpc", "endpoint": "{{.ProxyGRPC}}"}, {"name": "late", "endpoint": "{{.ProxyHTTP}}/late"}]}, "comment": "proxy that was not built on start"},
+    {"op": "send", "client": "new", "cmd": {"subscribe": {"channel": "added:room2"}}, "comment": "config from the last successful reload still applies"},
+    {"op": "connect", "client": "new2"},
+    {"op": "send", "client": "new2", "cmd": {"connect": {"token": {"$jwt": {"sub": "u4", "exp": "$now+3600"}, "secret": "rotated-secret"}}}},
+    {"op": "metrics", "filter": "^centrifugo_node_(build|num_)"}
+  ]
+}

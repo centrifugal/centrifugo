@@ -26,6 +26,8 @@ type AzureServiceBusConsumer struct {
 	dispatcher Dispatcher
 	client     *azservicebus.Client
 	common     *consumerCommon
+	drain      *drain
+	closeOnce  sync.Once
 }
 
 // NewAzureServiceBusConsumer creates and initializes a new AzureServiceBusConsumer.
@@ -61,11 +63,17 @@ func NewAzureServiceBusConsumer(
 		dispatcher: dispatcher,
 		client:     client,
 		common:     common,
+		drain:      newDrain(),
 	}, nil
 }
 
 // Run starts the consumer until the context is canceled.
 func (c *AzureServiceBusConsumer) Run(ctx context.Context) error {
+	finish, ok := c.drain.runStarted()
+	if !ok {
+		return ctx.Err()
+	}
+	defer finish()
 	if c.config.UseSessions {
 		return c.runSessionMode(ctx)
 	}
@@ -162,7 +170,7 @@ func (c *AzureServiceBusConsumer) processSession(ctx context.Context, sr *azserv
 
 	// Ensure the session is closed when processing ends.
 	defer func() {
-		if err := sr.Close(sessionCtx); err != nil {
+		if err := sr.Close(c.drain.ctx); err != nil {
 			c.common.log.Error().Err(err).Msgf("failed to close session for queue %s", queueName)
 		}
 	}()
@@ -211,7 +219,7 @@ func (c *AzureServiceBusConsumer) runNonSessionMode(ctx context.Context) error {
 			go func(r *azservicebus.Receiver, queueName string) {
 				defer wg.Done()
 				defer func() {
-					if err := r.Close(ctx); err != nil {
+					if err := r.Close(c.drain.ctx); err != nil {
 						c.common.log.Error().Err(err).Msgf("failed to close receiver for queue %s", queueName)
 					}
 				}()
@@ -248,6 +256,20 @@ func (c *AzureServiceBusConsumer) runNonSessionMode(ctx context.Context) error {
 
 	wg.Wait()
 	return ctx.Err()
+}
+
+// Close waits until ctx is done for Run to return after the messages in
+// flight were completed or abandoned, then closes the client. It may be
+// called more than once.
+func (c *AzureServiceBusConsumer) Close(ctx context.Context) error {
+	_, err := c.drain.wait(ctx)
+	var closeErr error
+	c.closeOnce.Do(func() {
+		closeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
+		defer cancel()
+		closeErr = c.client.Close(closeCtx)
+	})
+	return errors.Join(err, closeErr)
 }
 
 // azureCompleter defines an interface for completing messages.
@@ -295,15 +317,16 @@ func (c *AzureServiceBusConsumer) processMessage(ctx context.Context, msg *azser
 		// Processing failed after retries: abandon the message so the broker
 		// redelivers it (and eventually dead-letters at MaxDeliveryCount) instead
 		// of completing it, which settles it as successful and permanently drops it.
-		if err := completer.AbandonMessage(ctx, msg, nil); err != nil {
+		if err := completer.AbandonMessage(c.drain.ctx, msg, nil); err != nil {
 			c.common.log.Error().Err(err).Msg("failed to abandon message")
 			metrics.ConsumerErrorsTotal.WithLabelValues(c.common.name).Inc()
 		}
 		return
 	}
 
-	// Complete the message (or log an error on failure).
-	if err := completer.CompleteMessage(ctx, msg, nil); err != nil {
+	// Complete the message (or log an error on failure). The drain context:
+	// a message processed before Run's context was cancelled is completed.
+	if err := completer.CompleteMessage(c.drain.ctx, msg, nil); err != nil {
 		c.common.log.Error().Err(err).Msg("failed to complete message")
 		metrics.ConsumerErrorsTotal.WithLabelValues(c.common.name).Inc()
 	} else {

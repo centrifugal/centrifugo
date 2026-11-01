@@ -12,7 +12,9 @@ import (
 
 var warnAllowedOriginsOnce sync.Once
 
-func getCheckOrigin(cfg config.Config) func(r *http.Request) bool {
+// getCheckOrigin returns the origin check of connection endpoints. An error
+// is logged before it is returned.
+func getCheckOrigin(cfg config.Config) (func(r *http.Request) bool, error) {
 	allowedOrigins := cfg.Client.AllowedOrigins
 	if len(allowedOrigins) == 0 {
 		return func(r *http.Request) bool {
@@ -23,11 +25,11 @@ func getCheckOrigin(cfg config.Config) func(r *http.Request) bool {
 			}
 			log.Info().Str("origin", originHeader).Msg("request Origin is not authorized due to empty allowed_origins")
 			return false
-		}
+		}, nil
 	}
 	originChecker, err := origin.NewPatternChecker(allowedOrigins)
 	if err != nil {
-		log.Fatal().Err(err).Msg("error creating origin checker")
+		return nil, logFatal(err, "error creating origin checker")
 	}
 	if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
 		// Fast path for *.
@@ -36,7 +38,7 @@ func getCheckOrigin(cfg config.Config) func(r *http.Request) bool {
 		})
 		return func(r *http.Request) bool {
 			return true
-		}
+		}, nil
 	}
 	return func(r *http.Request) bool {
 		ok := originChecker.Check(r)
@@ -45,5 +47,5 @@ func getCheckOrigin(cfg config.Config) func(r *http.Request) bool {
 			return false
 		}
 		return true
-	}
+	}, nil
 }
