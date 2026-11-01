@@ -62,6 +62,15 @@ jobs:
       # reports by default; races during tests still fail them.
       GORACE: atexit_sleep_ms=0
     steps:
+      # Integration test binaries and service images need more disk space than
+      # the runner has free. Remove large preinstalled toolchains which are not
+      # used here.
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup
+          df -h /
+
       - name: Checkout code
         uses: actions/checkout@v7
 
