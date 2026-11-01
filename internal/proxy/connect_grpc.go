@@ -13,6 +13,7 @@ import (
 type GRPCConnectProxy struct {
 	config Config
 	client proxyproto.CentrifugoProxyClient
+	conn   *grpc.ClientConn
 }
 
 var _ ConnectProxy = (*GRPCConnectProxy)(nil)
@@ -34,6 +35,7 @@ func NewGRPCConnectProxy(name string, p Config) (*GRPCConnectProxy, error) {
 	return &GRPCConnectProxy{
 		config: p,
 		client: proxyproto.NewCentrifugoProxyClient(conn),
+		conn:   conn,
 	}, nil
 }
 
@@ -56,4 +58,9 @@ func (p *GRPCConnectProxy) ProxyConnect(ctx context.Context, req *proxyproto.Con
 	ctx, cancel := context.WithTimeout(ctx, p.config.Timeout.ToDuration())
 	defer cancel()
 	return p.client.Connect(grpcRequestContext(ctx, p.config), req)
+}
+
+// Close closes the connection to the proxy server.
+func (p *GRPCConnectProxy) Close() error {
+	return p.conn.Close()
 }

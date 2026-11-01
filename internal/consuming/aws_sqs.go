@@ -34,6 +34,7 @@ type AwsSqsConsumer struct {
 	dispatcher Dispatcher
 	client     *sqs.Client
 	common     *consumerCommon
+	drain      *drain
 }
 
 type overrideEndpointResolver struct {
@@ -96,12 +97,18 @@ func NewAwsSqsConsumer(
 		dispatcher: dispatcher,
 		client:     client,
 		common:     common,
+		drain:      newDrain(),
 	}
 	return consumer, nil
 }
 
 // Run is the main loop that receives messages from each queue and processes them in batches.
 func (c *AwsSqsConsumer) Run(ctx context.Context) error {
+	finish, ok := c.drain.runStarted()
+	if !ok {
+		return ctx.Err()
+	}
+	defer finish()
 	var wg sync.WaitGroup
 
 	maxConcurrency := c.config.MaxConcurrency
@@ -249,8 +256,17 @@ func (c *AwsSqsConsumer) processMessages(
 		allProcessed = append(allProcessed, groupProcessed...)
 	}
 	if len(allProcessed) > 0 {
-		c.batchDeleteMessages(ctx, allProcessed, queueURL)
+		// The drain context: messages processed before Run's context was
+		// cancelled are still deleted, so they are not consumed again.
+		c.batchDeleteMessages(c.drain.ctx, allProcessed, queueURL)
 	}
+}
+
+// Close waits until ctx is done for Run to return after deleting the
+// messages it processed. It may be called more than once.
+func (c *AwsSqsConsumer) Close(ctx context.Context) error {
+	_, err := c.drain.wait(ctx)
+	return err
 }
 
 // processSingleMessage handles processing of a single message with a maximum number of retries.

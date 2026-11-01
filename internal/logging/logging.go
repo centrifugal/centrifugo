@@ -5,6 +5,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 	"github.com/centrifugal/centrifugo/v6/internal/logutils"
@@ -65,47 +66,78 @@ var logStringToLevel = map[string]centrifuge.LogLevel{
 const centrifugeLogHandlerBufferSize = 1024
 
 type centrifugeLogHandler struct {
+	// entries is never closed: Handle may still be called by goroutines
+	// finishing after the handler was closed, and sending on a closed channel
+	// panics. Entries sent after close are dropped once the buffer is full.
 	entries chan centrifuge.LogEntry
+	quit    chan struct{}
+	done    chan struct{}
 }
 
 func newCentrifugeLogHandler() *centrifugeLogHandler {
 	h := &centrifugeLogHandler{
 		entries: make(chan centrifuge.LogEntry, centrifugeLogHandlerBufferSize),
+		quit:    make(chan struct{}),
+		done:    make(chan struct{}),
 	}
 	go h.readEntries()
 	return h
 }
 
 func (h *centrifugeLogHandler) readEntries() {
-	for entry := range h.entries {
-		var l *zerolog.Event
-		switch entry.Level {
-		case centrifuge.LogLevelTrace:
-			l = log.Trace()
-		case centrifuge.LogLevelDebug:
-			l = log.Debug()
-		case centrifuge.LogLevelInfo:
-			l = log.Info()
-		case centrifuge.LogLevelWarn:
-			l = log.Warn()
-		case centrifuge.LogLevelError:
-			l = log.Error()
-		default:
-			continue
-		}
-		if entry.Fields != nil {
-			if entry.Error != nil {
-				l = l.Err(entry.Error)
-				delete(entry.Fields, "error")
+	defer close(h.done)
+	for {
+		select {
+		case entry := <-h.entries:
+			writeEntry(entry)
+		case <-h.quit:
+			// Write what is buffered, then stop.
+			for {
+				select {
+				case entry := <-h.entries:
+					writeEntry(entry)
+				default:
+					return
+				}
 			}
-			l.Fields(entry.Fields).Msg(entry.Message)
-		} else {
-			if entry.Error != nil {
-				l = l.Err(entry.Error)
-				delete(entry.Fields, "error")
-			}
-			l.Msg(entry.Message)
 		}
+	}
+}
+
+// close stops the goroutine writing entries after it wrote the buffered ones.
+func (h *centrifugeLogHandler) close() {
+	close(h.quit)
+	<-h.done
+}
+
+func writeEntry(entry centrifuge.LogEntry) {
+	var l *zerolog.Event
+	switch entry.Level {
+	case centrifuge.LogLevelTrace:
+		l = log.Trace()
+	case centrifuge.LogLevelDebug:
+		l = log.Debug()
+	case centrifuge.LogLevelInfo:
+		l = log.Info()
+	case centrifuge.LogLevelWarn:
+		l = log.Warn()
+	case centrifuge.LogLevelError:
+		l = log.Error()
+	default:
+		return
+	}
+	if entry.Fields != nil {
+		if entry.Error != nil {
+			l = l.Err(entry.Error)
+			delete(entry.Fields, "error")
+		}
+		l.Fields(entry.Fields).Msg(entry.Message)
+	} else {
+		if entry.Error != nil {
+			l = l.Err(entry.Error)
+			delete(entry.Fields, "error")
+		}
+		l.Msg(entry.Message)
 	}
 }
 
@@ -134,7 +166,18 @@ func isTerminalAttached() bool {
 	return isatty.IsTerminal(os.Stdout.Fd()) && runtime.GOOS != "windows"
 }
 
-func Setup(cfg config.Config) (centrifuge.LogHandler, func()) {
+// Options are additional logging settings not mapped from config.
+type Options struct {
+	// Writers receive every log line in addition to the configured output.
+	Writers []io.Writer
+}
+
+// Setup configures the global logger from config and returns a handler for
+// Centrifuge logs and a function which stops the handler (after writing the
+// entries it buffered), closes the log file and restores the global logger
+// and level as they were before Setup. It returns an error when the
+// configured log file can not be opened.
+func Setup(cfg config.Config, opts Options) (centrifuge.LogHandler, func(), error) {
 	var writers []io.Writer
 
 	var file *os.File
@@ -142,7 +185,7 @@ func Setup(cfg config.Config) (centrifuge.LogHandler, func()) {
 		var err error
 		file, err = os.OpenFile(cfg.Log.File, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644) //nolint:gosec // Common for logging.
 		if err != nil {
-			log.Fatal().Err(err).Msg("error opening log file")
+			return nil, nil, err
 		}
 		writers = append(writers, file)
 	} else {
@@ -153,6 +196,10 @@ func Setup(cfg config.Config) (centrifuge.LogHandler, func()) {
 			writers = append(writers, os.Stderr)
 		}
 	}
+	writers = append(writers, opts.Writers...)
+
+	prevLogger := log.Logger
+	prevLevel := zerolog.GlobalLevel()
 
 	levelFound := true
 	logLevel, ok := logLevelMatches[strings.ToUpper(cfg.Log.Level)]
@@ -171,11 +218,18 @@ func Setup(cfg config.Config) (centrifuge.LogHandler, func()) {
 		log.Warn().Msgf("unknown log level %s, defaulting to INFO", cfg.Log.Level)
 	}
 
-	return newCentrifugeLogHandler().Handle, func() {
-		if file != nil {
-			_ = file.Close()
-		}
-	}
+	handler := newCentrifugeLogHandler()
+	var closeOnce sync.Once
+	return handler.Handle, func() {
+		closeOnce.Do(func() {
+			handler.close()
+			log.Logger = prevLogger
+			zerolog.SetGlobalLevel(prevLevel)
+			if file != nil {
+				_ = file.Close()
+			}
+		})
+	}, nil
 }
 
 // Enabled checks if a specific logging level is enabled

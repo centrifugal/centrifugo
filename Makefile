@@ -84,6 +84,15 @@ vuln:
 	fi
 	govulncheck ./...
 
+# Compares what clients, backends and operators observe between BASE (a git
+# ref) and the current tree. See misc/snapshot/README.md.
+#   make snapshot-diff BASE=master [SNAPSHOT_FLAGS="-with redis,postgres"]
+snapshot-diff:
+	BASE="$(BASE)" SNAPSHOT_FLAGS="$(SNAPSHOT_FLAGS)" bash misc/snapshot/snapshot_diff.sh
+
+snapshot-test:
+	cd misc/snapshot && go vet ./... && go test -count=1 ./...
+
 build:
 	CGO_ENABLED=0 go build
 

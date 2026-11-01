@@ -1,0 +1,41 @@
+name: snapshot
+# Compares what clients, backends and operators observe between the pull
+# request's base and head (misc/snapshot). Runs on pull requests labeled
+# "snapshot" – refactorings that must not change behavior.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+jobs:
+  snapshot:
+    name: Before/after snapshot
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.labels.*.name, 'snapshot')
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Tool tests
+        run: make snapshot-test
+      - name: Snapshot diff
+        run: make snapshot-diff BASE=origin/${{ github.base_ref }} SNAPSHOT_FLAGS="-with redis,postgres"

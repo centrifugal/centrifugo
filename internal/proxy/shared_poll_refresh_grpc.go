@@ -13,6 +13,7 @@ import (
 type GRPCSharedPollRefreshProxy struct {
 	config Config
 	client proxyproto.CentrifugoProxyClient
+	conn   *grpc.ClientConn
 }
 
 var _ SharedPollRefreshProxy = (*GRPCSharedPollRefreshProxy)(nil)
@@ -34,6 +35,7 @@ func NewGRPCSharedPollRefreshProxy(name string, p Config) (*GRPCSharedPollRefres
 	return &GRPCSharedPollRefreshProxy{
 		config: p,
 		client: proxyproto.NewCentrifugoProxyClient(conn),
+		conn:   conn,
 	}, nil
 }
 
@@ -47,4 +49,9 @@ func (p *GRPCSharedPollRefreshProxy) ProxySharedPollRefresh(ctx context.Context,
 // Protocol ...
 func (p *GRPCSharedPollRefreshProxy) Protocol() string {
 	return "grpc"
+}
+
+// Close closes the connection to the proxy server.
+func (p *GRPCSharedPollRefreshProxy) Close() error {
+	return p.conn.Close()
 }

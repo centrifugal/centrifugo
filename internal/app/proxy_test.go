@@ -10,15 +10,16 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/jwtverify"
 	"github.com/centrifugal/centrifugo/v6/internal/metrics"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 )
 
 const testUnbuiltProxy = "unbuilt"
 
+// initTestMetrics initializes metrics in a registry of their own, as New
+// does.
 func initTestMetrics(t *testing.T) {
 	t.Helper()
-	require.NoError(t, metrics.Init(metrics.Config{Registerer: prometheus.NewRegistry()}))
+	require.NoError(t, metrics.Init(metrics.Config{Registerer: newMetricsRegistry()}))
 }
 
 // configWithAllProxies enables every channel and RPC proxy kind which requires

@@ -13,6 +13,7 @@ import (
 type GRPCMapPublishProxy struct {
 	config Config
 	client proxyproto.CentrifugoProxyClient
+	conn   *grpc.ClientConn
 }
 
 var _ MapPublishProxy = (*GRPCMapPublishProxy)(nil)
@@ -34,6 +35,7 @@ func NewGRPCMapPublishProxy(name string, p Config) (*GRPCMapPublishProxy, error)
 	return &GRPCMapPublishProxy{
 		config: p,
 		client: proxyproto.NewCentrifugoProxyClient(conn),
+		conn:   conn,
 	}, nil
 }
 
@@ -57,4 +59,9 @@ func (p *GRPCMapPublishProxy) UseBase64() bool {
 // IncludeMeta ...
 func (p *GRPCMapPublishProxy) IncludeMeta() bool {
 	return p.config.IncludeConnectionMeta
+}
+
+// Close closes the connection to the proxy server.
+func (p *GRPCMapPublishProxy) Close() error {
+	return p.conn.Close()
 }

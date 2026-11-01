@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"errors"
+	"io"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/metrics"
@@ -39,6 +40,14 @@ func NewSharedPollRefreshHandler(c SharedPollRefreshHandlerConfig) *SharedPollRe
 		requestItems:  metrics.SharedPollProxyRequestItems.WithLabelValues(c.Name),
 		responseItems: metrics.SharedPollProxyResponseItems.WithLabelValues(c.Name),
 	}
+}
+
+// Close closes the proxy if it is an io.Closer.
+func (h *SharedPollRefreshHandler) Close() error {
+	if closer, ok := h.proxy.(io.Closer); ok {
+		return closer.Close()
+	}
+	return nil
 }
 
 // Handle returns a centrifuge.SharedPollHandler.

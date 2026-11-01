@@ -115,6 +115,11 @@ type Registry struct {
 // It creates all metrics and registers them with the provided registerer.
 // If registerer is nil, prometheus.DefaultRegisterer is used.
 // Returns an error if metric registration fails.
+//
+// Init points the exported metric variables at the metrics it created. Each
+// App calls it while it is built, with a registry of its own; Apps of a
+// process run one after the other, and nothing updating metrics runs while
+// the variables are set.
 func Init(cfg Config) error {
 	reg, err := newRegistry(cfg)
 	if err != nil {

@@ -1,0 +1,40 @@
+{
+  "description": "Route table: status code and content type of a fixed list of paths on the external and internal ports, for several port layouts.",
+  "variants": {
+    "default": {},
+    "single_port": {
+      "config": {"http_server": {"internal_port": ""}}
+    },
+    "external": {
+      "config": {"http_api": {"external": true}, "admin": {"external": true}}
+    },
+    "minimal": {
+      "config": {
+        "http_api": {"disabled": true}, "admin": {"enabled": false}, "prometheus": {"enabled": false},
+        "health": {"enabled": false}, "swagger": {"enabled": false}, "debug": {"enabled": false},
+        "init": {"enabled": false}, "sse": {"enabled": false}, "http_stream": {"enabled": false},
+        "uni_sse": {"enabled": false}, "uni_http_stream": {"enabled": false}, "uni_websocket": {"enabled": false},
+        "grpc_api": {"enabled": false}, "uni_grpc": {"enabled": false}
+      }
+    },
+    "prefixes": {
+      "config": {
+        "http_api": {"handler_prefix": "/custom/api"}, "admin": {"handler_prefix": "/custom/admin"},
+        "prometheus": {"handler_prefix": "/custom/metrics"}, "health": {"handler_prefix": "/custom/health"},
+        "websocket": {"handler_prefix": "/custom/ws"}, "emulation": {"handler_prefix": "/custom/emulation"},
+        "swagger": {"handler_prefix": "/custom/swagger"}, "debug": {"handler_prefix": "/custom/debug"}
+      }
+    }
+  },
+  "steps": [
+    {"op": "routes"},
+    {"op": "routes", "methods": ["GET"], "paths": ["/custom/api/publish", "/custom/admin/admin/init", "/custom/metrics", "/custom/health", "/custom/ws", "/custom/emulation", "/custom/swagger/", "/custom/debug/"]},
+    {"op": "routes", "methods": ["OPTIONS"], "paths": ["/connection/websocket", "/emulation", "/connection/uni_http_stream", "/api/publish"], "headers": {"Origin": "http://localhost:3000", "Access-Control-Request-Method": "POST"}},
+    {"op": "http", "port": "internal", "path": "/health"},
+    {"op": "http", "port": "internal", "path": "/admin/init"},
+    {"op": "http", "port": "internal", "method": "POST", "path": "/admin/auth", "raw_body": "password=wrong", "headers": {"Content-Type": "application/x-www-form-urlencoded"}},
+    {"op": "http", "port": "internal", "method": "POST", "path": "/admin/auth", "raw_body": "password=snapshot-admin-password", "headers": {"Content-Type": "application/x-www-form-urlencoded"}, "replace": {"\"token\":\"[^\"]+\"": "\"token\":\"<admin-token>\""}},
+    {"op": "http", "port": "internal", "method": "POST", "path": "/admin/api", "raw_body": "{\"method\":\"info\",\"params\":{}}"},
+    {"op": "http", "port": "external", "path": "/connection/init"}
+  ]
+}

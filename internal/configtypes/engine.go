@@ -222,11 +222,11 @@ type PostgresStreamBroker struct {
 }
 
 // Controller is a configuration for custom Centrifugo Controller.
-// In OSS, only "postgres" type is supported.
+// Only "postgres" type is supported.
 type Controller struct {
 	Enabled bool `mapstructure:"enabled" json:"enabled" envconfig:"enabled" yaml:"enabled" toml:"enabled" doc:"Enables the Centrifugo controller used for multi-node cluster coordination."`
-	// Type of controller to use. Can be "postgres" in OSS. PRO also supports "redis" and "nats".
-	Type string `mapstructure:"type" json:"type" envconfig:"type" yaml:"type" toml:"type" expose:"full" doc:"Controller backend type. In OSS only <<postgres>> is supported; PRO also supports <<redis>> and <<nats>>."`
+	// Type of controller to use, for example "postgres".
+	Type string `mapstructure:"type" json:"type" envconfig:"type" yaml:"type" toml:"type" expose:"full" doc:"Controller backend type, for example <<postgres>>."`
 	// Postgres is a configuration for "postgres" controller.
 	Postgres PostgresController `mapstructure:"postgres" json:"postgres" envconfig:"postgres" toml:"postgres" yaml:"postgres" doc:"PostgreSQL controller configuration, used when type is <<postgres>>."`
 }

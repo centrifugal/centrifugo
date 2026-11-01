@@ -155,8 +155,10 @@ func (b *NatsBroker) RegisterBrokerEventHandler(h centrifuge.BrokerEventHandler)
 	return nil
 }
 
-// Close ...
+// Close closes the connection. A broker closed before it connected never
+// connects. It may be called more than once.
 func (b *NatsBroker) Close(_ context.Context) error {
+	b.initConnOnce.Do(func() {})
 	b.nc.Close()
 	return nil
 }

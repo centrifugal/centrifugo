@@ -218,3 +218,114 @@ func TestNatsJetStreamConsumer_RecreateOnConsumerDeleted(t *testing.T) {
 	addStream()
 	publishAndWaitReceived("consume after stream re-creation")
 }
+
+// TestNatsJetStreamConsumer_DrainAcksInFlight verifies that a message in flight
+// when the consumer is stopped is handled and acknowledged, and the next
+// consumer with the same durable does not receive it again.
+func TestNatsJetStreamConsumer_DrainAcksInFlight(t *testing.T) {
+	t.Parallel()
+
+	url := "nats://localhost:4222"
+	subject := "test.drain." + uuid.NewString()
+	durableConsumerName := "test-durable-" + uuid.NewString()
+	streamName := "TEST_STREAM_" + uuid.NewString()
+
+	nc, err := nats.Connect(url)
+	require.NoError(t, err)
+	defer nc.Close()
+
+	js, err := nc.JetStream()
+	require.NoError(t, err)
+	_, err = js.AddStream(&nats.StreamConfig{
+		Name:     streamName,
+		Subjects: []string{subject},
+		Storage:  nats.MemoryStorage,
+	})
+	require.NoError(t, err)
+
+	cfg := NatsJetStreamConsumerConfig{
+		URL:                 url,
+		StreamName:          streamName,
+		Subjects:            []string{subject},
+		DurableConsumerName: durableConsumerName,
+		DeliverPolicy:       "new",
+		MethodHeader:        "test-method",
+	}
+
+	publish := func(data string) {
+		msg := nats.NewMsg(subject)
+		msg.Data = []byte(data)
+		msg.Header.Set("test-method", "publish")
+		_, err := js.PublishMsg(msg)
+		require.NoError(t, err)
+	}
+
+	// requireAcked waits until the server state of the durable has every
+	// delivered message acknowledged up to the stream sequence seq.
+	requireAcked := func(seq uint64) {
+		require.Eventually(t, func() bool {
+			info, err := js.ConsumerInfo(streamName, durableConsumerName)
+			return err == nil && info.NumAckPending == 0 && info.NumRedelivered == 0 &&
+				info.AckFloor.Stream == seq
+		}, 5*time.Second, 10*time.Millisecond, "messages delivered but not acknowledged")
+	}
+
+	dispatching := make(chan struct{})
+	release := make(chan struct{})
+	consumer, err := NewNatsJetStreamConsumer(cfg, &MockDispatcher{
+		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
+			close(dispatching)
+			<-release
+			return nil
+		},
+	}, testCommon(prometheus.NewRegistry()))
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	runDone := make(chan error, 1)
+	go func() { runDone <- consumer.Run(ctx) }()
+
+	publish("first")
+
+	waitCh(t, dispatching, 10*time.Second, "timeout waiting for dispatch")
+	cancel()
+	closeDone := make(chan error, 1)
+	go func() {
+		closeCtx, closeCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer closeCancel()
+		closeDone <- consumer.Close(closeCtx)
+	}()
+	close(release)
+	require.NoError(t, <-closeDone)
+	require.ErrorIs(t, <-runDone, context.Canceled)
+
+	// Not acknowledged, the first message would stay pending on the server
+	// for AckWait (30s) and then be redelivered.
+	requireAcked(1)
+
+	markerReceived := make(chan struct{})
+	var redelivered atomic.Int32
+	consumer2, err := NewNatsJetStreamConsumer(cfg, &MockDispatcher{
+		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
+			if string(data) == "marker" {
+				close(markerReceived)
+			} else {
+				redelivered.Add(1)
+			}
+			return nil
+		},
+	}, testCommon(prometheus.NewRegistry()))
+	require.NoError(t, err)
+	ctx2, cancel2 := context.WithCancel(context.Background())
+	run2Done := make(chan error, 1)
+	go func() { run2Done <- consumer2.Run(ctx2) }()
+
+	publish("marker")
+	waitCh(t, markerReceived, 10*time.Second, "timeout waiting for marker")
+	require.Zero(t, redelivered.Load(), "message acknowledged on shutdown was delivered again")
+
+	cancel2()
+	require.NoError(t, consumer2.Close(context.Background()))
+	require.ErrorIs(t, <-run2Done, context.Canceled)
+	requireAcked(2)
+}

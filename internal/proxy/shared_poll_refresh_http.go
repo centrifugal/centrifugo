@@ -44,3 +44,8 @@ func (p *HTTPSharedPollRefreshProxy) ProxySharedPollRefresh(ctx context.Context,
 func (p *HTTPSharedPollRefreshProxy) Protocol() string {
 	return "http"
 }
+
+// Close closes idle connections to the proxy endpoint.
+func (p *HTTPSharedPollRefreshProxy) Close() error {
+	return closeHTTPCaller(p.httpCaller)
+}

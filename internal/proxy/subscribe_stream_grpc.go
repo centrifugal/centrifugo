@@ -12,6 +12,7 @@ import (
 type SubscribeStreamProxy struct {
 	config Config
 	client proxyproto.CentrifugoProxyClient
+	conn   *grpc.ClientConn
 }
 
 func NewSubscribeStreamProxy(name string, p Config) (*SubscribeStreamProxy, error) {
@@ -31,6 +32,7 @@ func NewSubscribeStreamProxy(name string, p Config) (*SubscribeStreamProxy, erro
 	return &SubscribeStreamProxy{
 		config: p,
 		client: proxyproto.NewCentrifugoProxyClient(conn),
+		conn:   conn,
 	}, nil
 }
 
@@ -42,4 +44,9 @@ func (p *SubscribeStreamProxy) SubscribeUnidirectional(ctx context.Context, req 
 // SubscribeBidirectional ...
 func (p *SubscribeStreamProxy) SubscribeBidirectional(ctx context.Context) (proxyproto.CentrifugoProxy_SubscribeBidirectionalClient, error) {
 	return p.client.SubscribeBidirectional(grpcRequestContext(ctx, p.config))
+}
+
+// Close closes the connection to the proxy server.
+func (p *SubscribeStreamProxy) Close() error {
+	return p.conn.Close()
 }

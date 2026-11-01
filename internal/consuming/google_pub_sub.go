@@ -30,6 +30,8 @@ type GooglePubSubConsumer struct {
 	dispatcher Dispatcher
 	client     *pubsub.Client
 	common     *consumerCommon
+	drain      *drain
+	closeOnce  sync.Once
 }
 
 // NewGooglePubSubConsumer creates a new Google Pub/Sub consumer with the provided auth mechanism.
@@ -65,15 +67,19 @@ func NewGooglePubSubConsumer(
 		dispatcher: dispatcher,
 		client:     client,
 		common:     common,
+		drain:      newDrain(),
 	}
 	return consumer, nil
 }
 
 // Run starts the consumer and blocks until the provided context is canceled or an error occurs.
 func (c *GooglePubSubConsumer) Run(ctx context.Context) error {
-	defer func() {
-		_ = c.client.Close()
-	}()
+	finish, ok := c.drain.runStarted()
+	if !ok {
+		return ctx.Err()
+	}
+	defer finish()
+	defer c.closeClient()
 
 	// For each subscription in the configuration, spawn a separate goroutine.
 	var wg sync.WaitGroup
@@ -132,7 +138,23 @@ func (c *GooglePubSubConsumer) Run(ctx context.Context) error {
 }
 
 func (c *GooglePubSubConsumer) dispatchMessage(ctx context.Context, msg *pubsub.Message) {
-	c.processSingleMessage(ctx, msg)
+	// Messages received before Run's context was cancelled are still handled.
+	c.processSingleMessage(c.drain.handlingContext(ctx), msg)
+}
+
+// Close waits until ctx is done for Run to return after the messages in
+// flight were handled and acknowledged, then closes the client. It may be
+// called more than once.
+func (c *GooglePubSubConsumer) Close(ctx context.Context) error {
+	_, err := c.drain.wait(ctx)
+	c.closeClient()
+	return err
+}
+
+func (c *GooglePubSubConsumer) closeClient() {
+	c.closeOnce.Do(func() {
+		_ = c.client.Close()
+	})
 }
 
 func (c *GooglePubSubConsumer) processSingleMessage(ctx context.Context, msg *pubsub.Message) {

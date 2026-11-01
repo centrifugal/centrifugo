@@ -261,7 +261,7 @@ func convertDocCodes(s string) string {
 
 // getDisplayType returns the base type name and whether it's a complex (object)
 // type. Both the type label and the complex/object classification are shared via
-// configtypes so configdoc and the admin config UI (Pro) stay consistent.
+// configtypes so every tool walking the config structs stays consistent.
 func getDisplayType(t reflect.Type) (string, bool) {
 	return configtypes.TypeLabel(t), configtypes.IsComplexType(t)
 }

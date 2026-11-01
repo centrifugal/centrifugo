@@ -1,0 +1,31 @@
+{
+  "description": "Unidirectional transports (HTTP streaming, SSE, WebSocket, gRPC): connect push, publications, server-side subscribe, disconnect.",
+  "steps": [
+    {"op": "uni", "client": "hs", "transport": "uni_http_stream", "body": {"token": {"$jwt": {"sub": "hs", "exp": "$now+3600", "channels": ["uni"]}}}},
+    {"op": "pushes", "client": "hs", "count": 1, "comment": "connect push"},
+    {"op": "uni", "client": "sse", "transport": "uni_sse", "body": {"token": {"$jwt": {"sub": "sse", "exp": "$now+3600", "channels": ["uni"]}}}},
+    {"op": "pushes", "client": "sse", "count": 1},
+    {"op": "uni", "client": "ws", "transport": "uni_websocket", "body": {"token": {"$jwt": {"sub": "ws", "exp": "$now+3600", "channels": ["uni"]}}}},
+    {"op": "pushes", "client": "ws", "count": 1},
+    {"op": "uni", "client": "grpc", "transport": "uni_grpc", "body": {"token": {"$jwt": {"sub": "grpc", "exp": "$now+3600", "channels": ["uni"]}}}},
+    {"op": "pushes", "client": "grpc", "count": 1},
+    {"op": "api", "method": "presence_stats", "body": {"channel": "uni"}},
+    {"op": "api", "method": "publish", "body": {"channel": "uni", "data": {"to": "all"}}},
+    {"op": "pushes", "client": "hs", "count": 1},
+    {"op": "pushes", "client": "sse", "count": 1},
+    {"op": "pushes", "client": "ws", "count": 1},
+    {"op": "pushes", "client": "grpc", "count": 1},
+    {"op": "api", "method": "subscribe", "body": {"user": "hs", "channel": "extra"}},
+    {"op": "pushes", "client": "hs", "count": 1},
+    {"op": "api", "method": "disconnect", "body": {"user": "sse", "disconnect": {"code": 4100, "reason": "kicked"}}},
+    {"op": "wait_close", "client": "sse"},
+    {"op": "api", "method": "disconnect", "body": {"user": "ws", "disconnect": {"code": 4100, "reason": "kicked"}}},
+    {"op": "wait_close", "client": "ws"},
+    {"op": "uni", "client": "bad", "transport": "uni_http_stream", "body": {"token": "bad-token"}},
+    {"op": "wait_close", "client": "bad"},
+    {"op": "uni", "client": "badsse", "transport": "uni_sse", "body": {"token": "bad-token"}},
+    {"op": "wait_close", "client": "badsse"},
+    {"op": "uni", "client": "badgrpc", "transport": "uni_grpc", "body": {"token": "bad-token"}},
+    {"op": "wait_close", "client": "badgrpc"}
+  ]
+}

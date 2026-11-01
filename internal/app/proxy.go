@@ -10,11 +10,24 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/proxy"
 	"github.com/centrifugal/centrifugo/v6/internal/tools"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
+// buildProxyMap builds the configured proxies. On error it closes the proxies
+// it already built.
 func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
-	proxyMap := &client.ProxyMap{
+	proxyMap := &client.ProxyMap{}
+	keepHeadersInContext, err := fillProxyMap(cfg, proxyMap)
+	if err != nil {
+		_ = proxyMap.Close()
+		return nil, false, err
+	}
+	return proxyMap, keepHeadersInContext, nil
+}
+
+func fillProxyMap(cfg config.Config, proxyMap *client.ProxyMap) (bool, error) {
+	*proxyMap = client.ProxyMap{
 		ConnectProxy:             nil,
 		RefreshProxy:             nil,
 		RpcProxies:               map[string]proxy.RPCProxy{},
@@ -37,7 +50,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		p := cfg.Client.Proxy.Connect
 		proxyMap.ConnectProxy, err = proxy.GetConnectProxy("connect", cfg.Client.Proxy.Connect.Proxy)
 		if err != nil {
-			return nil, false, fmt.Errorf("error creating connect proxy: %w", err)
+			return false, fmt.Errorf("error creating connect proxy: %w", err)
 		}
 		log.Info().Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("connect proxy enabled")
 		if len(p.HttpHeaders) > 0 {
@@ -52,7 +65,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		p := cfg.Client.Proxy.Refresh
 		proxyMap.RefreshProxy, err = proxy.GetRefreshProxy("refresh", cfg.Client.Proxy.Refresh.Proxy)
 		if err != nil {
-			return nil, false, fmt.Errorf("error creating refresh proxy: %w", err)
+			return false, fmt.Errorf("error creating refresh proxy: %w", err)
 		}
 		log.Info().Str("endpoint", tools.RedactedLogURLs(p.Endpoint)[0]).Msg("refresh proxy enabled")
 		if len(p.HttpHeaders) > 0 {
@@ -77,13 +90,13 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		} else {
 			p, proxyFound = namedProxies[subscribeProxyName]
 			if !proxyFound {
-				return nil, false, fmt.Errorf("subscribe proxy not found: %s", subscribeProxyName)
+				return false, fmt.Errorf("subscribe proxy not found: %s", subscribeProxyName)
 			}
 		}
 		if _, ok := proxyMap.SubscribeProxies[subscribeProxyName]; !ok {
 			sp, err := proxy.GetSubscribeProxy(subscribeProxyName, p)
 			if err != nil {
-				return nil, false, fmt.Errorf("error creating subscribe proxy %s: %w", subscribeProxyName, err)
+				return false, fmt.Errorf("error creating subscribe proxy %s: %w", subscribeProxyName, err)
 			}
 			proxyMap.SubscribeProxies[subscribeProxyName] = sp
 		}
@@ -105,13 +118,13 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		} else {
 			p, proxyFound = namedProxies[publishProxyName]
 			if !proxyFound {
-				return nil, false, fmt.Errorf("publish proxy not found: %s", publishProxyName)
+				return false, fmt.Errorf("publish proxy not found: %s", publishProxyName)
 			}
 		}
 		if _, ok := proxyMap.PublishProxies[publishProxyName]; !ok {
 			pp, err := proxy.GetPublishProxy(publishProxyName, p)
 			if err != nil {
-				return nil, false, fmt.Errorf("error creating publish proxy %s: %w", publishProxyName, err)
+				return false, fmt.Errorf("error creating publish proxy %s: %w", publishProxyName, err)
 			}
 			proxyMap.PublishProxies[publishProxyName] = pp
 		}
@@ -133,13 +146,13 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		} else {
 			p, proxyFound = namedProxies[subRefreshProxyName]
 			if !proxyFound {
-				return nil, false, fmt.Errorf("sub refresh proxy not found: %s", subRefreshProxyName)
+				return false, fmt.Errorf("sub refresh proxy not found: %s", subRefreshProxyName)
 			}
 		}
 		if _, ok := proxyMap.SubRefreshProxies[subRefreshProxyName]; !ok {
 			srp, err := proxy.GetSubRefreshProxy(subRefreshProxyName, p)
 			if err != nil {
-				return nil, false, fmt.Errorf("error creating sub refresh proxy %s: %w", subRefreshProxyName, err)
+				return false, fmt.Errorf("error creating sub refresh proxy %s: %w", subRefreshProxyName, err)
 			}
 			proxyMap.SubRefreshProxies[subRefreshProxyName] = srp
 		}
@@ -161,16 +174,18 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		} else {
 			p, proxyFound = namedProxies[subscribeStreamProxyName]
 			if !proxyFound {
-				return nil, false, fmt.Errorf("subscribe stream proxy not found: %s", subscribeStreamProxyName)
+				return false, fmt.Errorf("subscribe stream proxy not found: %s", subscribeStreamProxyName)
 			}
 		}
 		if strings.HasPrefix(p.Endpoint, "http") {
-			log.Fatal().Str("name", subscribeStreamProxyName).Msg("error creating subscribe stream proxy – only GRPC endpoints supported")
+			const msg = "error creating subscribe stream proxy – only GRPC endpoints supported"
+			log.WithLevel(zerolog.FatalLevel).Str("name", subscribeStreamProxyName).Msg(msg)
+			return false, &loggedError{err: fmt.Errorf("%s: %s", msg, subscribeStreamProxyName)}
 		}
 		if _, ok := proxyMap.SubscribeStreamProxies[subscribeStreamProxyName]; !ok {
 			sp, err := proxy.NewSubscribeStreamProxy(subscribeStreamProxyName, p)
 			if err != nil {
-				return nil, false, fmt.Errorf("error creating subscribe stream proxy %s: %w", subscribeStreamProxyName, err)
+				return false, fmt.Errorf("error creating subscribe stream proxy %s: %w", subscribeStreamProxyName, err)
 			}
 			proxyMap.SubscribeStreamProxies[subscribeStreamProxyName] = sp
 		}
@@ -192,13 +207,13 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		} else {
 			p, proxyFound = namedProxies[mapPublishProxyName]
 			if !proxyFound {
-				return nil, false, fmt.Errorf("map publish proxy not found: %s", mapPublishProxyName)
+				return false, fmt.Errorf("map publish proxy not found: %s", mapPublishProxyName)
 			}
 		}
 		if _, ok := proxyMap.MapPublishProxies[mapPublishProxyName]; !ok {
 			mpp, err := proxy.GetMapPublishProxy(mapPublishProxyName, p)
 			if err != nil {
-				return nil, false, fmt.Errorf("error creating map publish proxy %s: %w", mapPublishProxyName, err)
+				return false, fmt.Errorf("error creating map publish proxy %s: %w", mapPublishProxyName, err)
 			}
 			proxyMap.MapPublishProxies[mapPublishProxyName] = mpp
 		}
@@ -220,13 +235,13 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		} else {
 			p, proxyFound = namedProxies[mapRemoveProxyName]
 			if !proxyFound {
-				return nil, false, fmt.Errorf("map remove proxy not found: %s", mapRemoveProxyName)
+				return false, fmt.Errorf("map remove proxy not found: %s", mapRemoveProxyName)
 			}
 		}
 		if _, ok := proxyMap.MapRemoveProxies[mapRemoveProxyName]; !ok {
 			mrp, err := proxy.GetMapRemoveProxy(mapRemoveProxyName, p)
 			if err != nil {
-				return nil, false, fmt.Errorf("error creating map remove proxy %s: %w", mapRemoveProxyName, err)
+				return false, fmt.Errorf("error creating map remove proxy %s: %w", mapRemoveProxyName, err)
 			}
 			proxyMap.MapRemoveProxies[mapRemoveProxyName] = mrp
 		}
@@ -249,13 +264,13 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			} else {
 				p, proxyFound = namedProxies[subscribeProxyName]
 				if !proxyFound {
-					return nil, false, fmt.Errorf("subscribe proxy not found: %s", subscribeProxyName)
+					return false, fmt.Errorf("subscribe proxy not found: %s", subscribeProxyName)
 				}
 			}
 			if _, ok := proxyMap.SubscribeProxies[subscribeProxyName]; !ok {
 				sp, err := proxy.GetSubscribeProxy(subscribeProxyName, p)
 				if err != nil {
-					return nil, false, fmt.Errorf("error creating subscribe proxy %s: %w", subscribeProxyName, err)
+					return false, fmt.Errorf("error creating subscribe proxy %s: %w", subscribeProxyName, err)
 				}
 				proxyMap.SubscribeProxies[subscribeProxyName] = sp
 			}
@@ -277,13 +292,13 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			} else {
 				p, proxyFound = namedProxies[publishProxyName]
 				if !proxyFound {
-					return nil, false, fmt.Errorf("publish proxy not found: %s", publishProxyName)
+					return false, fmt.Errorf("publish proxy not found: %s", publishProxyName)
 				}
 			}
 			if _, ok := proxyMap.PublishProxies[publishProxyName]; !ok {
 				pp, err := proxy.GetPublishProxy(publishProxyName, p)
 				if err != nil {
-					return nil, false, fmt.Errorf("error creating publish proxy %s: %w", publishProxyName, err)
+					return false, fmt.Errorf("error creating publish proxy %s: %w", publishProxyName, err)
 				}
 				proxyMap.PublishProxies[publishProxyName] = pp
 			}
@@ -305,13 +320,13 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			} else {
 				p, proxyFound = namedProxies[subRefreshProxyName]
 				if !proxyFound {
-					return nil, false, fmt.Errorf("sub refresh proxy not found: %s", subRefreshProxyName)
+					return false, fmt.Errorf("sub refresh proxy not found: %s", subRefreshProxyName)
 				}
 			}
 			if _, ok := proxyMap.SubRefreshProxies[subRefreshProxyName]; !ok {
 				srp, err := proxy.GetSubRefreshProxy(subRefreshProxyName, p)
 				if err != nil {
-					return nil, false, fmt.Errorf("error creating sub refresh proxy %s: %w", subRefreshProxyName, err)
+					return false, fmt.Errorf("error creating sub refresh proxy %s: %w", subRefreshProxyName, err)
 				}
 				proxyMap.SubRefreshProxies[subRefreshProxyName] = srp
 			}
@@ -333,16 +348,16 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			} else {
 				p, proxyFound = namedProxies[subscribeStreamProxyName]
 				if !proxyFound {
-					return nil, false, fmt.Errorf("subscribe stream proxy not found: %s", subscribeStreamProxyName)
+					return false, fmt.Errorf("subscribe stream proxy not found: %s", subscribeStreamProxyName)
 				}
 			}
 			if strings.HasPrefix(p.Endpoint, "http") {
-				return nil, false, fmt.Errorf("error creating subscribe stream proxy %s only GRPC endpoints supported", subscribeStreamProxyName)
+				return false, fmt.Errorf("error creating subscribe stream proxy %s only GRPC endpoints supported", subscribeStreamProxyName)
 			}
 			if _, ok := proxyMap.SubscribeStreamProxies[subscribeStreamProxyName]; !ok {
 				sp, err := proxy.NewSubscribeStreamProxy(subscribeStreamProxyName, p)
 				if err != nil {
-					return nil, false, fmt.Errorf("error creating subscribe stream proxy %s: %w", subscribeStreamProxyName, err)
+					return false, fmt.Errorf("error creating subscribe stream proxy %s: %w", subscribeStreamProxyName, err)
 				}
 				proxyMap.SubscribeStreamProxies[subscribeStreamProxyName] = sp
 			}
@@ -364,13 +379,13 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			} else {
 				p, proxyFound = namedProxies[mapPublishProxyName]
 				if !proxyFound {
-					return nil, false, fmt.Errorf("map publish proxy not found: %s", mapPublishProxyName)
+					return false, fmt.Errorf("map publish proxy not found: %s", mapPublishProxyName)
 				}
 			}
 			if _, ok := proxyMap.MapPublishProxies[mapPublishProxyName]; !ok {
 				mpp, err := proxy.GetMapPublishProxy(mapPublishProxyName, p)
 				if err != nil {
-					return nil, false, fmt.Errorf("error creating map publish proxy %s: %w", mapPublishProxyName, err)
+					return false, fmt.Errorf("error creating map publish proxy %s: %w", mapPublishProxyName, err)
 				}
 				proxyMap.MapPublishProxies[mapPublishProxyName] = mpp
 			}
@@ -392,13 +407,13 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			} else {
 				p, proxyFound = namedProxies[mapRemoveProxyName]
 				if !proxyFound {
-					return nil, false, fmt.Errorf("map remove proxy not found: %s", mapRemoveProxyName)
+					return false, fmt.Errorf("map remove proxy not found: %s", mapRemoveProxyName)
 				}
 			}
 			if _, ok := proxyMap.MapRemoveProxies[mapRemoveProxyName]; !ok {
 				mrp, err := proxy.GetMapRemoveProxy(mapRemoveProxyName, p)
 				if err != nil {
-					return nil, false, fmt.Errorf("error creating map remove proxy %s: %w", mapRemoveProxyName, err)
+					return false, fmt.Errorf("error creating map remove proxy %s: %w", mapRemoveProxyName, err)
 				}
 				proxyMap.MapRemoveProxies[mapRemoveProxyName] = mrp
 			}
@@ -422,13 +437,13 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			} else {
 				p, proxyFound = namedProxies[sharedPollProxyName]
 				if !proxyFound {
-					return nil, false, fmt.Errorf("shared poll refresh proxy not found: %s", sharedPollProxyName)
+					return false, fmt.Errorf("shared poll refresh proxy not found: %s", sharedPollProxyName)
 				}
 			}
 			if _, ok := proxyMap.SharedPollRefreshProxies[sharedPollProxyName]; !ok {
 				sp, err := proxy.GetSharedPollRefreshProxy(sharedPollProxyName, p)
 				if err != nil {
-					return nil, false, fmt.Errorf("error creating shared poll refresh proxy %s: %w", sharedPollProxyName, err)
+					return false, fmt.Errorf("error creating shared poll refresh proxy %s: %w", sharedPollProxyName, err)
 				}
 				handler := proxy.NewSharedPollRefreshHandler(proxy.SharedPollRefreshHandlerConfig{
 					Proxy: sp,
@@ -452,13 +467,13 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		} else {
 			p, proxyFound = namedProxies[sharedPollProxyName]
 			if !proxyFound {
-				return nil, false, fmt.Errorf("shared poll refresh proxy not found: %s", sharedPollProxyName)
+				return false, fmt.Errorf("shared poll refresh proxy not found: %s", sharedPollProxyName)
 			}
 		}
 		if _, ok := proxyMap.SharedPollRefreshProxies[sharedPollProxyName]; !ok {
 			sp, err := proxy.GetSharedPollRefreshProxy(sharedPollProxyName, p)
 			if err != nil {
-				return nil, false, fmt.Errorf("error creating shared poll refresh proxy %s: %w", sharedPollProxyName, err)
+				return false, fmt.Errorf("error creating shared poll refresh proxy %s: %w", sharedPollProxyName, err)
 			}
 			handler := proxy.NewSharedPollRefreshHandler(proxy.SharedPollRefreshHandlerConfig{
 				Proxy: sp,
@@ -478,13 +493,13 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 		} else {
 			p, proxyFound = namedProxies[rpcProxyName]
 			if !proxyFound {
-				return nil, false, fmt.Errorf("rpc proxy not found: %s", rpcProxyName)
+				return false, fmt.Errorf("rpc proxy not found: %s", rpcProxyName)
 			}
 		}
 		if _, ok := proxyMap.RpcProxies[rpcProxyName]; !ok {
 			rp, err := proxy.GetRpcProxy(rpcProxyName, p)
 			if err != nil {
-				return nil, false, fmt.Errorf("error creating rpc proxy %s: %w", rpcProxyName, err)
+				return false, fmt.Errorf("error creating rpc proxy %s: %w", rpcProxyName, err)
 			}
 			proxyMap.RpcProxies[rpcProxyName] = rp
 		}
@@ -507,13 +522,13 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 			} else {
 				p, proxyFound = namedProxies[rpcProxyName]
 				if !proxyFound {
-					return nil, false, fmt.Errorf("rpc proxy not found: %s", rpcProxyName)
+					return false, fmt.Errorf("rpc proxy not found: %s", rpcProxyName)
 				}
 			}
 			if _, ok := proxyMap.RpcProxies[rpcProxyName]; !ok {
 				rp, err := proxy.GetRpcProxy(rpcProxyName, p)
 				if err != nil {
-					return nil, false, fmt.Errorf("error creating rpc proxy %s: %w", rpcProxyName, err)
+					return false, fmt.Errorf("error creating rpc proxy %s: %w", rpcProxyName, err)
 				}
 				proxyMap.RpcProxies[rpcProxyName] = rp
 			}
@@ -529,7 +544,7 @@ func buildProxyMap(cfg config.Config) (*client.ProxyMap, bool, error) {
 
 	proxyMap.UsesEmulatedHeaders = keepEmulatedHeadersInContext
 
-	return proxyMap, keepHeadersInContext, nil
+	return keepHeadersInContext, nil
 }
 
 // checkProxiesBuilt returns an error if cfg references a proxy which is not in

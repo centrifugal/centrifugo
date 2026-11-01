@@ -53,3 +53,8 @@ func (p *HTTPConnectProxy) ProxyConnect(ctx context.Context, req *proxyproto.Con
 	}
 	return httpDecoder.DecodeConnectResponse(respData)
 }
+
+// Close closes idle connections to the proxy endpoint.
+func (p *HTTPConnectProxy) Close() error {
+	return closeHTTPCaller(p.httpCaller)
+}

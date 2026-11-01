@@ -171,6 +171,7 @@ type VerifierJWT struct {
 	issuer                          string
 	issuerRe                        *regexp.Regexp
 	userIDClaim                     string
+	closeOnce                       sync.Once
 }
 
 var (
@@ -876,16 +877,18 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string, skipVerify bool) (Su
 }
 
 // PrepareReload builds everything the verifier needs for config without changing
-// the verifier. Calling the returned function applies the new config and can't
-// fail, so several verifiers may be reloaded all or nothing.
-func (verifier *VerifierJWT) PrepareReload(config VerifierConfig) (func(), error) {
+// the verifier. Calling apply swaps the new config in and closes what it
+// replaced; it can't fail, so several verifiers may be reloaded all or nothing.
+// Calling discard instead closes what was built. Exactly one of them must be
+// called.
+func (verifier *VerifierJWT) PrepareReload(config VerifierConfig) (apply func(), discard func(), err error) {
 	next, err := NewTokenVerifierJWT(config, verifier.cfgContainer)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return func() {
+	apply = func() {
 		verifier.mu.Lock()
-		defer verifier.mu.Unlock()
+		prevJWKSManager := verifier.jwksManager
 		verifier.jwksManager = next.jwksManager
 		verifier.algorithms = next.algorithms
 		verifier.previousHMACAlgorithms = next.previousHMACAlgorithms
@@ -895,11 +898,37 @@ func (verifier *VerifierJWT) PrepareReload(config VerifierConfig) (func(), error
 		verifier.issuer = next.issuer
 		verifier.issuerRe = next.issuerRe
 		verifier.userIDClaim = next.userIDClaim
-	}, nil
+		verifier.mu.Unlock()
+		_ = closeJWKSManager(prevJWKSManager)
+	}
+	discard = func() {
+		_ = closeJWKSManager(next.jwksManager)
+	}
+	return apply, discard, nil
+}
+
+// Close stops the JWKS manager. Calls after the first do nothing.
+func (verifier *VerifierJWT) Close() error {
+	var err error
+	verifier.closeOnce.Do(func() {
+		verifier.mu.RLock()
+		m := verifier.jwksManager
+		verifier.mu.RUnlock()
+		err = closeJWKSManager(m)
+	})
+	return err
+}
+
+// closeJWKSManager closes the JWKS manager m.
+func closeJWKSManager(m *jwksManager) error {
+	if m == nil {
+		return nil
+	}
+	return m.Close()
 }
 
 func (verifier *VerifierJWT) Reload(config VerifierConfig) error {
-	apply, err := verifier.PrepareReload(config)
+	apply, _, err := verifier.PrepareReload(config)
 	if err != nil {
 		return err
 	}

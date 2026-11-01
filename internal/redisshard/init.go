@@ -20,6 +20,9 @@ func BuildRedisShards(redisConf configtypes.Redis) ([]*RedisShard, error) {
 	for _, redisCfg := range redisShardConfigs {
 		redisShard, err := NewRedisShard(redisCfg)
 		if err != nil {
+			for _, s := range redisShards {
+				s.Close()
+			}
 			return nil, err
 		}
 		redisShards = append(redisShards, redisShard)

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"reflect"
 	"sync"
 	"time"
 
@@ -42,6 +44,48 @@ type ProxyMap struct {
 	// When false there is no point keeping the client's emulated headers in the
 	// connection context.
 	UsesEmulatedHeaders bool
+}
+
+// Close closes every proxy of the map that holds connections (implements
+// io.Closer), each once, and returns their errors joined.
+func (m *ProxyMap) Close() error {
+	if m == nil {
+		return nil
+	}
+	closed := map[io.Closer]struct{}{}
+	var errs []error
+	closeProxy := func(p any) {
+		c, ok := p.(io.Closer)
+		if !ok || c == nil {
+			return
+		}
+		if reflect.TypeOf(c).Comparable() {
+			if _, ok := closed[c]; ok {
+				return
+			}
+			closed[c] = struct{}{}
+		}
+		if err := c.Close(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	closeProxy(m.ConnectProxy)
+	closeProxy(m.RefreshProxy)
+	closeProxies(m.RpcProxies, closeProxy)
+	closeProxies(m.PublishProxies, closeProxy)
+	closeProxies(m.SubscribeProxies, closeProxy)
+	closeProxies(m.SubRefreshProxies, closeProxy)
+	closeProxies(m.SubscribeStreamProxies, closeProxy)
+	closeProxies(m.MapPublishProxies, closeProxy)
+	closeProxies(m.MapRemoveProxies, closeProxy)
+	closeProxies(m.SharedPollRefreshProxies, closeProxy)
+	return errors.Join(errs...)
+}
+
+func closeProxies[T any](proxies map[string]T, closeProxy func(p any)) {
+	for _, p := range proxies {
+		closeProxy(p)
+	}
 }
 
 // Handler for client connections.

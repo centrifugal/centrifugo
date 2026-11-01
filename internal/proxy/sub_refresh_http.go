@@ -54,3 +54,8 @@ func (p *HTTPSubRefreshProxy) UseBase64() bool {
 func (p *HTTPSubRefreshProxy) IncludeMeta() bool {
 	return p.config.IncludeConnectionMeta
 }
+
+// Close closes idle connections to the proxy endpoint.
+func (p *HTTPSubRefreshProxy) Close() error {
+	return closeHTTPCaller(p.httpCaller)
+}

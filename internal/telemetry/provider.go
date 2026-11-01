@@ -19,6 +19,8 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
+	oteltrace "go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/grpc"
@@ -80,12 +82,14 @@ func SetupTracing(ctx context.Context, cfg configtypes.OpenTelemetry, instanceID
 
 	detectors, err := resourceDetectors(cfg)
 	if err != nil {
+		_ = exporter.Shutdown(ctx)
 		return nil, err
 	}
 
 	// labels/tags/resources that are common to all traces.
 	rs, err := newResource(ctx, instanceID, detectors...)
 	if err != nil {
+		_ = exporter.Shutdown(ctx)
 		return nil, err
 	}
 
@@ -104,6 +108,17 @@ func SetupTracing(ctx context.Context, cfg configtypes.OpenTelemetry, instanceID
 
 	otel.SetErrorHandler(&ErrorHandlerImpl{})
 	return provider, nil
+}
+
+// ShutdownTracing exports the spans provider still holds and shuts it down.
+// When provider is the global tracer provider, the global tracer provider and
+// text map propagator are reset to no-ops.
+func ShutdownTracing(ctx context.Context, provider *trace.TracerProvider) error {
+	if otel.GetTracerProvider() == oteltrace.TracerProvider(provider) {
+		otel.SetTracerProvider(noop.NewTracerProvider())
+		otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator())
+	}
+	return provider.Shutdown(ctx)
 }
 
 type ErrorHandlerImpl struct{}

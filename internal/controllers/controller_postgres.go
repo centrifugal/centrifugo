@@ -146,9 +146,12 @@ type PostgresController struct {
 	myNodeID     string
 	closeCh      chan struct{}
 	closeOnce    sync.Once
+	poolsOnce    sync.Once
 	cancelCtx    context.Context
 	cancelFunc   context.CancelFunc
 	notifyCh     chan struct{}
+	// wg tracks the goroutines started by RegisterControlEventHandler.
+	wg sync.WaitGroup
 
 	// notifyListenerReady flips true after the LISTEN command succeeds. Used
 	// by tests that assert NOTIFY-driven latency — a publish whose NOTIFY
@@ -158,7 +161,10 @@ type PostgresController struct {
 	notifyListenerReady atomic.Bool
 }
 
-var _ centrifuge.Controller = (*PostgresController)(nil)
+var (
+	_ centrifuge.Controller = (*PostgresController)(nil)
+	_ centrifuge.Closer     = (*PostgresController)(nil)
+)
 
 func NewPostgresController(node *centrifuge.Node, conf PostgresControllerConfig) (*PostgresController, error) {
 	conf.setDefaults()
@@ -415,16 +421,17 @@ func (c *PostgresController) RegisterControlEventHandler(h centrifuge.ControlEve
 	// Start one outbox worker per shard. With NumShards=1 (default),
 	// a single worker polls all messages.
 	for i := 0; i < c.conf.NumShards; i++ {
-		go c.runOutboxWorker(i, initialCursor)
+		c.goWorker(func() { c.runOutboxWorker(i, initialCursor) })
 	}
 
 	// Start notification listener if enabled.
 	if c.conf.UseNotify {
-		go c.runNotificationListener()
+		c.goWorker(c.runNotificationListener)
 	}
 
 	// Start partition maintenance.
-	go c.newPartitioner().Run(c.cancelCtx, c.closeCh)
+	partitioner := c.newPartitioner()
+	c.goWorker(func() { partitioner.Run(c.cancelCtx, c.closeCh) })
 
 	log.Info().Str("controller", "postgres").Msg("postgres controller running")
 	return nil
@@ -443,12 +450,41 @@ func (c *PostgresController) PublishControl(data []byte, nodeID, _ string) error
 	return nil
 }
 
-// Run blocks until ctx is cancelled, then closes pools.
+func (c *PostgresController) goWorker(f func()) {
+	c.wg.Add(1)
+	go func() {
+		defer c.wg.Done()
+		f()
+	}()
+}
+
+// Run blocks until ctx is cancelled, then closes the controller.
 func (c *PostgresController) Run(ctx context.Context) error {
 	<-ctx.Done()
+	_ = c.Close(context.Background())
+	return ctx.Err()
+}
+
+// Close stops the background workers, waits for them until ctx is done, then
+// closes the pools. It may be called more than once, also on a controller
+// whose workers never started.
+func (c *PostgresController) Close(ctx context.Context) error {
 	c.closeOnce.Do(func() {
 		close(c.closeCh)
 		c.cancelFunc()
+	})
+	done := make(chan struct{})
+	go func() {
+		c.wg.Wait()
+		close(done)
+	}()
+	var err error
+	select {
+	case <-done:
+	case <-ctx.Done():
+		err = ctx.Err()
+	}
+	c.poolsOnce.Do(func() {
 		if c.notifyPool != nil {
 			c.notifyPool.Close()
 		}
@@ -457,7 +493,7 @@ func (c *PostgresController) Run(ctx context.Context) error {
 			c.readPool.Close()
 		}
 	})
-	return ctx.Err()
+	return err
 }
 
 // initCursor bootstraps the cursor from MAX(id) of the messages table.

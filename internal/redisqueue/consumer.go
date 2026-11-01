@@ -78,12 +78,31 @@ type Consumer struct {
 	stopReclaim chan struct{}
 	stopPoll    chan struct{}
 	stopWorkers chan struct{}
+	// stopCtx is cancelled by Shutdown to end a blocking read early.
+	stopCtx      context.Context
+	stopCancel   context.CancelFunc
+	shutdownOnce sync.Once
 
 	shard *redisshard.RedisShard
 }
 
 // NewConsumer creates a Consumer with custom ConsumerOptions.
 func NewConsumer(shard *redisshard.RedisShard, options ConsumerOptions) (*Consumer, error) {
+	c, err := newConsumer(shard, options)
+	if err != nil {
+		return nil, err
+	}
+	err = CreateConsumerGroup(c.shard, c.options.Stream, c.options.GroupName, "$")
+	if err != nil && !strings.Contains(err.Error(), "BUSYGROUP") {
+		c.stopCancel()
+		return nil, fmt.Errorf("error creating consumer group: %w", err)
+	}
+	return c, nil
+}
+
+// newConsumer checks options, sets their defaults and returns the Consumer,
+// without the consumer group.
+func newConsumer(shard *redisshard.RedisShard, options ConsumerOptions) (*Consumer, error) {
 	if options.Stream == "" {
 		return nil, errors.New("stream required")
 	}
@@ -104,8 +123,12 @@ func NewConsumer(shard *redisshard.RedisShard, options ConsumerOptions) (*Consum
 		options.ReclaimInterval = 5 * time.Second
 	}
 
+	stopCtx, stopCancel := context.WithCancel(context.Background())
 	c := &Consumer{
 		Errors: make(chan error),
+
+		stopCtx:    stopCtx,
+		stopCancel: stopCancel,
 
 		options: options,
 		queue:   make(chan *Message, options.Concurrency),
@@ -116,10 +139,6 @@ func NewConsumer(shard *redisshard.RedisShard, options ConsumerOptions) (*Consum
 		stopWorkers: make(chan struct{}),
 
 		shard: shard,
-	}
-	err := CreateConsumerGroup(c.shard, c.options.Stream, c.options.GroupName, "$")
-	if err != nil && !strings.Contains(err.Error(), "BUSYGROUP") {
-		return nil, fmt.Errorf("error creating consumer group: %w", err)
 	}
 	return c, nil
 }
@@ -178,15 +197,19 @@ func (c *Consumer) InflightJobs() int64 {
 // Shutdown stops new messages from being processed and tells the workers to
 // wait until all in-flight messages have been processed, and then they exit.
 // The order that things stop is 1) the reclaim process (if it's running), 2)
-// the polling process, and 3) the worker processes.
+// the polling process, and 3) the worker processes. A blocking read in
+// progress is interrupted. Calls after the first do nothing.
 func (c *Consumer) Shutdown() {
-	c.stopReclaim <- struct{}{}
-	if c.options.VisibilityTimeout == 0 {
-		c.stopPoll <- struct{}{}
-	}
-	c.cond.L.Lock()
-	c.cond.Broadcast()
-	c.cond.L.Unlock()
+	c.shutdownOnce.Do(func() {
+		c.stopCancel()
+		c.stopReclaim <- struct{}{}
+		if c.options.VisibilityTimeout == 0 {
+			c.stopPoll <- struct{}{}
+		}
+		c.cond.L.Lock()
+		c.cond.Broadcast()
+		c.cond.L.Unlock()
+	})
 }
 
 // reclaim runs in a separate goroutine and checks the list of pending messages
@@ -368,15 +391,57 @@ func incrementMessageID(id string) (string, error) {
 func (c *Consumer) xReadGroup(stream, groupName, name string, count int64, blockingMilliseconds int64) rueidis.RedisResult {
 	return c.shard.RunOp(func(client rueidis.Client) rueidis.RedisResult {
 		cmd := client.B().Xreadgroup().Group(groupName, name).Count(count).Block(blockingMilliseconds).Streams().Key(stream).Id(">").Build()
-		return client.Do(context.Background(), cmd)
+		return client.Do(c.stopCtx, cmd)
 	})
+}
+
+// enqueuePendingAfter enqueues the entries delivered to this consumer, not
+// acknowledged, with IDs after afterID. A read which Shutdown interrupted may
+// have had entries delivered to this consumer by Redis without them being
+// received: they are newer than every entry received, and without reclaim
+// (VisibilityTimeout 0) nothing would deliver them again.
+func (c *Consumer) enqueuePendingAfter(afterID string) {
+	for {
+		count := c.options.Concurrency
+		if count <= 0 {
+			count = 1
+		}
+		res := c.shard.RunOp(func(client rueidis.Client) rueidis.RedisResult {
+			cmd := client.B().Xreadgroup().Group(c.options.GroupName, c.options.Name).Count(int64(count)).Streams().Key(c.options.Stream).Id(afterID).Build()
+			return client.Do(context.Background(), cmd)
+		})
+		xRead, err := res.AsXRead()
+		if err != nil {
+			if !rueidis.IsRedisNil(err) {
+				c.logError(fmt.Errorf("error reading pending messages of redis stream %s: %w", c.options.Stream, err))
+			}
+			return
+		}
+		messages := xRead[c.options.Stream]
+		if len(messages) == 0 {
+			return
+		}
+		c.enqueue(messages)
+		afterID = messages[len(messages)-1].ID
+	}
 }
 
 // poll constantly checks the streams using XREADGROUP to see if there are any
 // messages for this consumer to process. It blocks for up to 5 seconds instead
 // of blocking indefinitely so that it can periodically check to see if Shutdown
-// was called.
+// was called. Without reclaim (VisibilityTimeout 0), once stopped it enqueues
+// the entries delivered to this consumer by a read Shutdown interrupted.
 func (c *Consumer) poll() {
+	lastID := c.pollNew()
+	if c.options.VisibilityTimeout == 0 {
+		c.enqueuePendingAfter(lastID)
+	}
+}
+
+// pollNew reads new entries until stopped and returns the ID of the last one
+// received ("0" when none was).
+func (c *Consumer) pollNew() (lastID string) {
+	lastID = "0"
 	for {
 		select {
 		case <-c.stopPoll:
@@ -395,6 +460,11 @@ func (c *Consumer) poll() {
 			res := c.xReadGroup(c.options.Stream, c.options.GroupName, c.options.Name, int64(count), c.options.BlockingTimeout.Milliseconds())
 			err := res.Error()
 			if err != nil {
+				if c.stopCtx.Err() != nil {
+					// Shutdown interrupted the read, stopPoll follows.
+					<-c.stopPoll
+					return
+				}
 				if err, ok := err.(net.Error); ok && err.Timeout() {
 					continue
 				}
@@ -426,6 +496,9 @@ func (c *Consumer) poll() {
 			}
 
 			for _, messages := range xRead {
+				if len(messages) > 0 {
+					lastID = messages[len(messages)-1].ID
+				}
 				c.enqueue(messages)
 			}
 		}

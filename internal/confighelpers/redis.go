@@ -169,6 +169,9 @@ func CentrifugeRedisShards(n *centrifuge.Node, redisConf configtypes.Redis) ([]*
 	for _, shardConf := range redisShardConfigs {
 		redisShard, err := centrifuge.NewRedisShard(n, shardConf)
 		if err != nil {
+			for _, s := range redisShards {
+				s.Close()
+			}
 			return nil, "", err
 		}
 		modes = append(modes, string(redisShard.Mode()))

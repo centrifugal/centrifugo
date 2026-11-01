@@ -37,6 +37,7 @@ func New(node *centrifuge.Node, config configtypes.Controller) (centrifuge.Contr
 		}
 		if !config.Postgres.SkipSchemaInit {
 			if err := controller.EnsureSchema(context.Background()); err != nil {
+				_ = controller.Close(context.Background())
 				return nil, fmt.Errorf("error initializing Postgres controller schema: %w", err)
 			}
 		}

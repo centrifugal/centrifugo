@@ -68,3 +68,8 @@ func (p *HTTPMapPublishProxy) UseBase64() bool {
 func (p *HTTPMapPublishProxy) IncludeMeta() bool {
 	return p.config.IncludeConnectionMeta
 }
+
+// Close closes idle connections to the proxy endpoint.
+func (p *HTTPMapPublishProxy) Close() error {
+	return closeHTTPCaller(p.httpCaller)
+}

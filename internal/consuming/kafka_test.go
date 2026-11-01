@@ -1432,6 +1432,93 @@ func TestKafkaConsumer_CommitsOffsetsOnShutdown(t *testing.T) {
 		"committed offset should equal number of produced messages")
 }
 
+// TestKafkaConsumer_DrainAcksInFlight verifies that a message in flight when
+// the consumer is stopped is handled, its offset is committed, and the next
+// consumer in the same group does not receive it again.
+func TestKafkaConsumer_DrainAcksInFlight(t *testing.T) {
+	t.Parallel()
+	testKafkaTopic := "centrifugo_consumer_test_" + uuid.New().String()
+	consumerGroup := uuid.New().String()
+	firstMessage := []byte(`{"n":"first"}`)
+	markerMessage := []byte(`{"n":"marker"}`)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	require.NoError(t, createTestTopic(ctx, testKafkaTopic, 1, 1))
+
+	config := KafkaConfig{
+		Brokers:       []string{testKafkaBrokerURL},
+		Topics:        []string{testKafkaTopic},
+		ConsumerGroup: consumerGroup,
+	}
+
+	dispatching := make(chan struct{})
+	release := make(chan struct{})
+	consumer, err := NewKafkaConsumer(config, &MockDispatcher{
+		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
+			close(dispatching)
+			<-release
+			return nil
+		},
+	}, testCommon(prometheus.NewRegistry()))
+	require.NoError(t, err)
+
+	runCtx, runCancel := context.WithCancel(ctx)
+	runDone := runConsumerAsync(t, runCtx, consumer)
+
+	require.NoError(t, produceTestMessage(testKafkaTopic, firstMessage, nil))
+
+	waitCh(t, dispatching, 30*time.Second, "timeout waiting for dispatch")
+	runCancel()
+	closeDone := make(chan error, 1)
+	go func() {
+		closeCtx, closeCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer closeCancel()
+		closeDone <- consumer.Close(closeCtx)
+	}()
+	close(release)
+	require.NoError(t, <-closeDone)
+	require.ErrorIs(t, <-runDone, context.Canceled)
+
+	// The offset after the first message is committed.
+	cl, err := kgo.NewClient(kgo.SeedBrokers(testKafkaBrokerURL))
+	require.NoError(t, err)
+	defer cl.Close()
+	admClient := kadm.NewClient(cl)
+	offsets, err := admClient.FetchOffsets(ctx, consumerGroup)
+	require.NoError(t, err)
+	offset, ok := offsets.Lookup(testKafkaTopic, 0)
+	require.True(t, ok, "committed offset not found")
+	require.Equal(t, int64(1), offset.At)
+
+	// The next consumer of the group starts after the first message: without
+	// the commit it would start from the beginning of the partition and get
+	// the first message before the marker.
+	markerReceived := make(chan struct{})
+	var redelivered atomic.Int32
+	consumer2, err := NewKafkaConsumer(config, &MockDispatcher{
+		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
+			if bytes.Equal(data, markerMessage) {
+				close(markerReceived)
+			} else {
+				redelivered.Add(1)
+			}
+			return nil
+		},
+	}, testCommon(prometheus.NewRegistry()))
+	require.NoError(t, err)
+	run2Ctx, run2Cancel := context.WithCancel(ctx)
+	run2Done := runConsumerAsync(t, run2Ctx, consumer2)
+
+	require.NoError(t, produceTestMessage(testKafkaTopic, markerMessage, nil))
+	waitCh(t, markerReceived, 30*time.Second, "timeout waiting for marker")
+	require.Zero(t, redelivered.Load(), "message acknowledged on shutdown was delivered again")
+
+	run2Cancel()
+	require.ErrorIs(t, <-run2Done, context.Canceled)
+}
+
 // syncBuffer is a concurrency-safe buffer for capturing zerolog output in tests.
 type syncBuffer struct {
 	mu  sync.Mutex

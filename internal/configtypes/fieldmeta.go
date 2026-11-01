@@ -6,10 +6,9 @@ import (
 )
 
 // This file hosts small reflection helpers shared by config tooling that walks
-// the configuration structs — currently the `configdoc` generator and the admin
-// config redaction (Pro). Keeping them here, in OSS, gives both a single source
-// of truth for how config fields are classified, named, and flattened. See also
-// NameForEnv in namespace.go.
+// the configuration structs, such as the `configdoc` generator. Keeping them
+// here gives every such tool a single source of truth for how config fields are
+// classified, named, and flattened. See also NameForEnv in namespace.go.
 
 // JSONKey returns the configured key for a struct field: the first segment of the
 // json tag (falling back to the mapstructure tag), or the Go field name when no
@@ -66,8 +65,8 @@ func isTimeType(t reflect.Type) bool {
 // and slice-of-struct types show their Go type name (e.g. "TLSConfig",
 // "[]Consumer"); every other type shows its Go type string with the internal
 // "configtypes." package qualifier stripped (e.g. "Duration", "PEMData", "int64",
-// "[]string", "map[string]string"). Used by both the configdoc generator and the
-// admin config UI (Pro) so the two surfaces present identical type labels.
+// "[]string", "map[string]string"). Shared by tools that present config fields
+// (such as the configdoc generator) so they all show identical type labels.
 func TypeLabel(t reflect.Type) string {
 	if t.Kind() == reflect.Pointer {
 		if t.Elem().Kind() == reflect.Struct {
