@@ -65,10 +65,14 @@ func defaultConfig(configFile string, baseFile string, dryRun bool) {
 
 	supportedExtensions := []string{"json", "toml", "yaml", "yml"}
 
-	// This is an unreleased feature so we remove RedisNats from generated config.
-	conf.Broker.RedisNats = nil
+	// Fields tagged expose:"-" are not part of the generated config.
+	out, err := withoutHiddenFields(conf)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		os.Exit(1)
+	}
 
-	jsonBytes, err := json.MarshalIndent(conf, "", "  ")
+	jsonBytes, err := json.MarshalIndent(out, "", "  ")
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		os.Exit(1)
@@ -78,9 +82,9 @@ func defaultConfig(configFile string, baseFile string, dryRun bool) {
 	case "json":
 		b = jsonBytes
 	case "toml":
-		b, err = toml.Marshal(conf)
+		b, err = toml.Marshal(out)
 	case "yaml", "yml":
-		b, err = yaml.Marshal(conf)
+		b, err = yaml.Marshal(out)
 	default:
 		err = errors.New("output config file must have one of supported extensions: " + strings.Join(supportedExtensions, ", "))
 	}

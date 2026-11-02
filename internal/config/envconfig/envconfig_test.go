@@ -1098,3 +1098,41 @@ func BenchmarkGatherInfo(b *testing.B) {
 		_, _ = gatherInfo("env_config", &s)
 	}
 }
+
+func TestHiddenVars(t *testing.T) {
+	type section struct {
+		Visible string `envconfig:"visible"`
+		Secret  string `envconfig:"secret" expose:"-"`
+	}
+	type spec struct {
+		Plain  string  `envconfig:"plain"`
+		Hidden section `envconfig:"hidden" expose:"-"`
+		Shown  section `envconfig:"shown"`
+	}
+	var s spec
+	infos, err := Process("env_config", &s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]bool{
+		"ENV_CONFIG_PLAIN":          false,
+		"ENV_CONFIG_HIDDEN_VISIBLE": true,
+		"ENV_CONFIG_HIDDEN_SECRET":  true,
+		"ENV_CONFIG_SHOWN_VISIBLE":  false,
+		"ENV_CONFIG_SHOWN_SECRET":   true,
+	}
+	got := map[string]bool{}
+	for _, info := range infos {
+		got[info.Key] = info.Hidden
+	}
+	for key, hidden := range want {
+		h, ok := got[key]
+		if !ok {
+			t.Errorf("%s: not gathered", key)
+			continue
+		}
+		if h != hidden {
+			t.Errorf("%s: Hidden = %v, want %v", key, h, hidden)
+		}
+	}
+}

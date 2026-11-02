@@ -59,6 +59,9 @@ type VarInfo struct {
 	Tags      reflect.StructTag
 
 	NonZeroInFile bool
+	// Hidden is true when the field or a struct field containing it is
+	// tagged expose:"-": such options are not listed in generated output.
+	Hidden bool
 }
 
 // GatherInfo gathers information about the specified struct
@@ -107,6 +110,7 @@ func gatherInfo(prefix string, spec interface{}) ([]VarInfo, error) {
 			Tags:  ftype.Tag,
 			//Alt:   strings.ToUpper(ftype.Tag.Get("envconfig")),
 			NonZeroInFile: !f.IsZero(),
+			Hidden:        ftype.Tag.Get("expose") == "-",
 		}
 
 		// Default to the field name as the env var name (will be upcased)
@@ -156,6 +160,9 @@ func gatherInfo(prefix string, spec interface{}) ([]VarInfo, error) {
 				}
 				// Update NestedKey for embedded fields.
 				for i := range embeddedInfos {
+					if info.Hidden {
+						embeddedInfos[i].Hidden = true
+					}
 					if !ftype.Anonymous {
 						nestedPrefix := strings.ToLower(info.Name)
 						embeddedInfos[i].NestedKey = nestedPrefix + "." + embeddedInfos[i].NestedKey
