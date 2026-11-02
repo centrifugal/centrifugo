@@ -538,22 +538,36 @@ func (c *Consumer) work() {
 	for {
 		select {
 		case msg := <-c.queue:
-			err := c.process(msg)
-			if err != nil {
-				c.logError(fmt.Errorf("error calling processing func for %q stream and %q message: %w", c.options.Stream, msg.ID, err))
-				continue
-			}
-			err = c.shard.RunOp(func(client rueidis.Client) rueidis.RedisResult {
-				cmd := client.B().Xack().Key(c.options.Stream).Group(c.options.GroupName).Id(msg.ID).Build()
-				return client.Do(context.Background(), cmd)
-			}).Error()
-			if err != nil {
-				c.logError(fmt.Errorf("error acknowledging message for %q stream and %q message: %w", c.options.Stream, msg.ID, err))
-				continue
-			}
+			c.handle(msg)
 		case <-c.stopWorkers:
-			return
+			// Polling has returned, nothing is enqueued anymore: handle the
+			// messages still queued, select picks between ready cases at random.
+			for {
+				select {
+				case msg := <-c.queue:
+					c.handle(msg)
+				default:
+					return
+				}
+			}
 		}
+	}
+}
+
+// handle processes a message and acknowledges it in Redis if processing
+// succeeded.
+func (c *Consumer) handle(msg *Message) {
+	err := c.process(msg)
+	if err != nil {
+		c.logError(fmt.Errorf("error calling processing func for %q stream and %q message: %w", c.options.Stream, msg.ID, err))
+		return
+	}
+	err = c.shard.RunOp(func(client rueidis.Client) rueidis.RedisResult {
+		cmd := client.B().Xack().Key(c.options.Stream).Group(c.options.GroupName).Id(msg.ID).Build()
+		return client.Do(context.Background(), cmd)
+	}).Error()
+	if err != nil {
+		c.logError(fmt.Errorf("error acknowledging message for %q stream and %q message: %w", c.options.Stream, msg.ID, err))
 	}
 }
 
