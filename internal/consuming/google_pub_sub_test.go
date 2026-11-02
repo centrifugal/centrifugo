@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -112,8 +111,8 @@ func TestGooglePubSubConsumer(t *testing.T) {
 }
 
 // TestGooglePubSubConsumer_DrainAcksInFlight verifies that a message in flight
-// when the consumer is stopped is handled and acknowledged, and the next
-// consumer of the subscription does not receive it again.
+// when the consumer is stopped is handled and acknowledged: the subscription
+// does not deliver it again.
 func TestGooglePubSubConsumer_DrainAcksInFlight(t *testing.T) {
 	// Point the Pub/Sub client to the emulator.
 	t.Setenv("PUBSUB_EMULATOR_HOST", "localhost:8085")
@@ -189,34 +188,41 @@ func TestGooglePubSubConsumer_DrainAcksInFlight(t *testing.T) {
 	require.NoError(t, <-closeDone)
 	require.ErrorIs(t, <-runDone, context.Canceled)
 
-	markerReceived := make(chan struct{})
-	var markerOnce sync.Once
-	var redelivered atomic.Int32
-	consumer2, err := NewGooglePubSubConsumer(cfg, &MockDispatcher{
-		onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
-			if string(data) == "marker" {
-				markerOnce.Do(func() { close(markerReceived) })
-			} else {
-				redelivered.Add(1)
-			}
-			return nil
-		},
-	}, testCommon(prometheus.NewRegistry()))
-	require.NoError(t, err)
-	run2Ctx, run2Cancel := context.WithCancel(ctx)
-	run2Done := make(chan error, 1)
-	go func() { run2Done <- consumer2.Run(run2Ctx) }()
-
+	// Pull the subscription directly rather than through a second streaming
+	// consumer: the emulator sometimes doesn't deliver to streaming pulls opened
+	// right after the previous client closed. An unacknowledged first message
+	// becomes available again once its ack deadline expires, so keep pulling
+	// past it. The marker shows the pulls do receive messages.
 	publish("marker")
-	waitCh(t, markerReceived, 10*time.Second, "timeout waiting for marker")
-	// Pub/Sub has no order between the marker and a redelivery, and the ack
-	// deadline can not be shorter than 10s: wait past the deadline for an
-	// unacknowledged first message to be received again.
-	require.Never(t, func() bool {
-		return redelivered.Load() > 0
-	}, ackDeadline+5*time.Second, 100*time.Millisecond, "message acknowledged on shutdown was delivered again")
-
-	run2Cancel()
-	require.NoError(t, consumer2.Close(context.Background()))
-	require.ErrorIs(t, <-run2Done, context.Canceled)
+	subscriptionName := fmt.Sprintf("projects/%s/subscriptions/%s", projectID, subscriptionID)
+	var markerPulled bool
+	var redelivered int
+	started := time.Now()
+	require.Eventually(t, func() bool {
+		pullCtx, pullCancel := context.WithTimeout(ctx, time.Second)
+		defer pullCancel()
+		resp, err := client.SubscriptionAdminClient.Pull(pullCtx, &pubsubpb.PullRequest{
+			Subscription: subscriptionName,
+			MaxMessages:  10,
+		})
+		if err == nil {
+			var ackIDs []string
+			for _, m := range resp.ReceivedMessages {
+				if string(m.Message.Data) == "marker" {
+					markerPulled = true
+				} else {
+					redelivered++
+				}
+				ackIDs = append(ackIDs, m.AckId)
+			}
+			if len(ackIDs) > 0 {
+				_ = client.SubscriptionAdminClient.Acknowledge(ctx, &pubsubpb.AcknowledgeRequest{
+					Subscription: subscriptionName,
+					AckIds:       ackIDs,
+				})
+			}
+		}
+		return markerPulled && time.Since(started) > ackDeadline+5*time.Second
+	}, ackDeadline+30*time.Second, 100*time.Millisecond, "marker not pulled")
+	require.Zero(t, redelivered, "message acknowledged on shutdown was delivered again")
 }
