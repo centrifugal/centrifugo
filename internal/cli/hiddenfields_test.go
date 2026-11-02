@@ -2,6 +2,8 @@ package cli
 
 import (
 	"encoding/json"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -253,44 +255,76 @@ func defaultTestConfig(t *testing.T) config.Config {
 	return conf
 }
 
-// With no hidden field set the output is the same as for the config itself.
+var hiddenTestUnmarshal = map[string]func([]byte, any) error{
+	"json": json.Unmarshal,
+	"toml": toml.Unmarshal,
+	"yaml": yaml.Unmarshal,
+}
+
+// The output holds every option of the config, with its value, except the
+// options tagged expose:"-" – whichever the build defines.
 func TestWithoutHiddenFields_Config(t *testing.T) {
 	conf := defaultTestConfig(t)
-	conf.Broker.RedisNats = nil
+	// Defaults fill in the hidden RedisNats section.
+	require.NotNil(t, conf.Broker.RedisNats)
 	out, err := withoutHiddenFields(conf)
 	require.NoError(t, err)
+	require.NotNil(t, conf.Broker.RedisNats, "the config itself is not changed")
 	for format, marshal := range hiddenTestFormats {
 		t.Run(format, func(t *testing.T) {
+			full, err := marshal(conf)
+			require.NoError(t, err)
+			require.Contains(t, string(full), "redisnats")
 			got, err := marshal(out)
 			require.NoError(t, err)
-			expected, err := marshal(conf)
-			require.NoError(t, err)
-			require.Equal(t, string(expected), string(got))
+			require.NotContains(t, string(got), "redisnats")
+
+			var expected, actual map[string]any
+			require.NoError(t, hiddenTestUnmarshal[format](full, &expected))
+			require.NoError(t, hiddenTestUnmarshal[format](got, &actual))
+			removeHiddenKeys(reflect.TypeOf(conf), expected, format)
+			require.Equal(t, expected, actual)
 		})
 	}
 }
 
-func TestWithoutHiddenFields_ConfigRedisNatsSet(t *testing.T) {
-	conf := defaultTestConfig(t)
-	// Defaults fill in the hidden RedisNats section.
-	require.NotNil(t, conf.Broker.RedisNats)
-	plain := conf
-	plain.Broker.RedisNats = nil
-	out, err := withoutHiddenFields(conf)
-	require.NoError(t, err)
-	require.NotNil(t, conf.Broker.RedisNats)
-	for format, marshal := range hiddenTestFormats {
-		t.Run(format, func(t *testing.T) {
-			withRedisNats, err := marshal(conf)
-			require.NoError(t, err)
-			require.Contains(t, string(withRedisNats), "redisnats")
-
-			got, err := marshal(out)
-			require.NoError(t, err)
-			require.NotContains(t, string(got), "redisnats")
-			expected, err := marshal(plain)
-			require.NoError(t, err)
-			require.Equal(t, string(expected), string(got))
-		})
+// removeHiddenKeys deletes from v – a value of type t, decoded from the given
+// format into maps and slices – the keys of fields tagged expose:"-".
+func removeHiddenKeys(t reflect.Type, v any, format string) {
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	switch t.Kind() {
+	case reflect.Struct:
+		m, ok := v.(map[string]any)
+		if !ok {
+			return // encoded as a scalar, like a duration
+		}
+		for i := 0; i < t.NumField(); i++ {
+			f := t.Field(i)
+			name, _, _ := strings.Cut(f.Tag.Get(format), ",")
+			if f.Anonymous && name == "" {
+				removeHiddenKeys(f.Type, m, format) // inlined into the parent
+				continue
+			}
+			if name == "" {
+				name = f.Name
+			}
+			if f.Tag.Get("expose") == "-" {
+				delete(m, name)
+				continue
+			}
+			removeHiddenKeys(f.Type, m[name], format)
+		}
+	case reflect.Slice, reflect.Array:
+		s, _ := v.([]any)
+		for _, e := range s {
+			removeHiddenKeys(t.Elem(), e, format)
+		}
+	case reflect.Map:
+		m, _ := v.(map[string]any)
+		for _, e := range m {
+			removeHiddenKeys(t.Elem(), e, format)
+		}
 	}
 }
