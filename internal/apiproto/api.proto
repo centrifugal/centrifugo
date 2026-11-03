@@ -1590,6 +1590,7 @@ message PushNotification {
 
     // expire_at is the Unix time in seconds when Centrifugo stops trying to
     // send the notification. Not related to the providers' TTL fields.
+    // Required when the request sets limit_strategy.
     int64 expire_at = 5;
 }
 
@@ -1645,7 +1646,8 @@ message SendPushNotificationRequest {
     bool optimize_for_reliability = 5;
     // limit_strategy sets time constraints and rate limits. Only applies
     // with a filter recipient; devices are then processed one by one
-    // instead of in batches.
+    // instead of in batches. Needs notification.expire_at: a push the limits
+    // hold back is not tried forever.
     PushLimitStrategy limit_strategy = 6;
     // analytics_uid is the identifier for push notification analytics. If
     // not set, uid is used.

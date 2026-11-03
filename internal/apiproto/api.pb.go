@@ -8340,6 +8340,7 @@ type PushNotification struct {
 	Webpush *WebPushPushNotification `protobuf:"bytes,4,opt,name=webpush,proto3" json:"webpush,omitempty"`
 	// expire_at is the Unix time in seconds when Centrifugo stops trying to
 	// send the notification. Not related to the providers' TTL fields.
+	// Required when the request sets limit_strategy.
 	ExpireAt      int64 `protobuf:"varint,5,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -8637,7 +8638,8 @@ type SendPushNotificationRequest struct {
 	OptimizeForReliability bool `protobuf:"varint,5,opt,name=optimize_for_reliability,json=optimizeForReliability,proto3" json:"optimize_for_reliability,omitempty"`
 	// limit_strategy sets time constraints and rate limits. Only applies
 	// with a filter recipient; devices are then processed one by one
-	// instead of in batches.
+	// instead of in batches. Needs notification.expire_at: a push the limits
+	// hold back is not tried forever.
 	LimitStrategy *PushLimitStrategy `protobuf:"bytes,6,opt,name=limit_strategy,json=limitStrategy,proto3" json:"limit_strategy,omitempty"`
 	// analytics_uid is the identifier for push notification analytics. If
 	// not set, uid is used.

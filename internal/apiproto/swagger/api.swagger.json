@@ -3853,7 +3853,7 @@
         },
         "expire_at": {
           "type": "integer",
-          "description": "expire_at is the Unix time in seconds when Centrifugo stops trying to\nsend the notification. Not related to the providers' TTL fields."
+          "description": "expire_at is the Unix time in seconds when Centrifugo stops trying to\nsend the notification. Not related to the providers' TTL fields.\nRequired when the request sets limit_strategy."
         }
       },
       "description": "PushNotification is a push notification in the format of each provider.\nCentrifugo PRO only."
@@ -4284,7 +4284,7 @@
         },
         "limit_strategy": {
           "$ref": "#/definitions/PushLimitStrategy",
-          "description": "limit_strategy sets time constraints and rate limits. Only applies\nwith a filter recipient; devices are then processed one by one\ninstead of in batches."
+          "description": "limit_strategy sets time constraints and rate limits. Only applies\nwith a filter recipient; devices are then processed one by one\ninstead of in batches. Needs notification.expire_at: a push the limits\nhold back is not tried forever."
         },
         "analytics_uid": {
           "type": "string",

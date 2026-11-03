@@ -5,8 +5,9 @@ swagger definitions in `swagger/` and the server SDKs are generated from it.
 Its comments are the documentation of every method, message and field, and
 SDK generators read three phrases in them:
 
-- `Required.` - a field a request must set; `Required unless ...` for a
-  conditional one.
+- `Required.` - a field a request must set. `Required unless ...` and
+  `Required when ...` mark a conditional one, which stays optional: only
+  the word with its period marks a field required.
 - `Centrifugo PRO only` - a method or message only Centrifugo PRO has.
 - `One of: add, remove, set.` - the values of a string field with a fixed
   set, written as one sentence, which SDKs turn into constants. The field
