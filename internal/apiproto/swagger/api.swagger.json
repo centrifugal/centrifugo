@@ -2460,7 +2460,7 @@
         },
         "provider": {
           "type": "string",
-          "description": "provider is the provider of the device token: fcm, hms, apns or\nwebpush. Required."
+          "description": "provider is the provider of the device token. Required. One of: fcm,\nhms, apns, webpush."
         },
         "token": {
           "type": "string",
@@ -2468,7 +2468,7 @@
         },
         "platform": {
           "type": "string",
-          "description": "platform is the device platform: ios, android or web. Required."
+          "description": "platform is the device platform. Required. One of: ios, android, web."
         },
         "user": {
           "type": "string",
@@ -2706,7 +2706,7 @@
         },
         "op": {
           "type": "string",
-          "description": "op is the operation: add, remove or set. Required."
+          "description": "op is the operation. Required. One of: add, remove, set."
         },
         "topics": {
           "type": "array",
@@ -2745,7 +2745,7 @@
       "properties": {
         "op": {
           "type": "string",
-          "description": "op is the operation: add, remove or set. Required."
+          "description": "op is the operation. Required. One of: add, remove, set."
         },
         "topics": {
           "type": "array",
@@ -2914,7 +2914,7 @@
       "properties": {
         "op": {
           "type": "string",
-          "description": "op is the logical operation of a non-leaf node: \"and\", \"or\" or \"not\".\nEmpty for a leaf node."
+          "description": "op is the logical operation of a non-leaf node. Empty for a leaf node.\nOne of: and, or, not."
         },
         "key": {
           "type": "string",
@@ -2922,7 +2922,7 @@
         },
         "cmp": {
           "type": "string",
-          "description": "cmp is the comparison of a leaf node: \"eq\", \"neq\", \"in\", \"nin\", \"ex\",\n\"nex\", \"sw\", \"ew\", \"ct\", \"gt\", \"gte\", \"lt\" or \"lte\"."
+          "description": "cmp is the comparison of a leaf node. One of: eq, neq, in, nin, ex, nex,\nsw, ew, ct, gt, gte, lt, lte."
         },
         "val": {
           "type": "string",
@@ -3277,7 +3277,7 @@
         },
         "key_mode": {
           "type": "string",
-          "description": "key_mode makes the publish conditional: \"if_new\" writes only if the\nkey does not exist, \"if_exists\" only if it exists. Empty always\nwrites."
+          "description": "key_mode makes the publish conditional: if_new writes only if the key\ndoes not exist, if_exists only if it exists. Empty always writes.\nOne of: if_new, if_exists."
         }
       },
       "description": "MapPublishRequest publishes or updates a key in a map channel."
@@ -4595,7 +4595,7 @@
         },
         "status": {
           "type": "string",
-          "description": "status is the status of the push notification: delivered or\ninteracted. Required."
+          "description": "status is the status of the push notification. Required. One of:\ndelivered, interacted."
         },
         "device_id": {
           "type": "string",
@@ -4793,7 +4793,7 @@
         },
         "op": {
           "type": "string",
-          "description": "op is the operation: add, remove or set. Required."
+          "description": "op is the operation. Required. One of: add, remove, set."
         },
         "topics": {
           "type": "array",
