@@ -39,6 +39,8 @@ func checkConfig(t *testing.T, conf Config) {
 	require.Equal(t, []string{"redis:6379"}, conf.Engine.Redis.Address)
 	require.Equal(t, configtypes.MapStringString(map[string]string{"x": "y"}), conf.Client.Proxy.Connect.HTTP.StaticHeaders)
 	require.Equal(t, configtypes.MapStringString(map[string]string{"X": "y"}), conf.Client.Proxy.Refresh.HTTP.StaticHeaders)
+	require.Equal(t, 255, conf.Client.Proxy.Connect.HTTP.MaxIdleConnsPerHost)
+	require.Equal(t, 255, conf.Proxies[0].HTTP.MaxIdleConnsPerHost)
 }
 
 func TestConfigJSON(t *testing.T) {
@@ -68,6 +70,7 @@ func TestConfigEnvVars(t *testing.T) {
 	_ = os.Setenv("CENTRIFUGO_UNKNOWN_ENV", "1")
 	_ = os.Setenv("CENTRIFUGO_CHANNEL_NAMESPACES", `[{"name": "env"}]`)
 	_ = os.Setenv("CENTRIFUGO_CLIENT_PROXY_CONNECT_HTTP_STATIC_HEADERS", `{"key": "value"}`)
+	_ = os.Setenv("CENTRIFUGO_CLIENT_PROXY_CONNECT_HTTP_MAX_IDLE_CONNS_PER_HOST", `1024`)
 	_ = os.Setenv("CENTRIFUGO_WEBSOCKET_WRITE_TIMEOUT", `300ms`)
 	_ = os.Setenv("CENTRIFUGO_PROXIES", `[]`)
 	_ = os.Setenv("CENTRIFUGO_ENABLE_UNRELEASED_FEATURES", ``)   // Empty options should be treated as unset.
@@ -80,6 +83,7 @@ func TestConfigEnvVars(t *testing.T) {
 		_ = os.Unsetenv("CENTRIFUGO_CLIENT_TOKEN_JWKS_PUBLIC_ENDPOINT")
 		_ = os.Unsetenv("CENTRIFUGO_CHANNEL_NAMESPACES")
 		_ = os.Unsetenv("CENTRIFUGO_CLIENT_PROXY_CONNECT_HTTP_STATIC_HEADERS")
+		_ = os.Unsetenv("CENTRIFUGO_CLIENT_PROXY_CONNECT_HTTP_MAX_IDLE_CONNS_PER_HOST")
 		_ = os.Unsetenv("CENTRIFUGO_WEBSOCKET_WRITE_TIMEOUT")
 		_ = os.Unsetenv("CENTRIFUGO_PROXIES")
 		_ = os.Unsetenv("CENTRIFUGO_ENABLE_UNRELEASED_FEATURES")
@@ -97,6 +101,8 @@ func TestConfigEnvVars(t *testing.T) {
 	require.Len(t, meta.UnknownKeys, 0)
 	require.Contains(t, meta.UnknownEnvs, "CENTRIFUGO_UNKNOWN_ENV")
 	require.Equal(t, configtypes.MapStringString(map[string]string{"key": "value"}), conf.Client.Proxy.Connect.HTTP.StaticHeaders)
+	require.Equal(t, 1024, conf.Client.Proxy.Connect.HTTP.MaxIdleConnsPerHost)
+	require.Equal(t, 255, conf.Client.Proxy.Refresh.HTTP.MaxIdleConnsPerHost)
 	require.Equal(t, configtypes.Duration(300*time.Millisecond), conf.WebSocket.WriteTimeout)
 	require.Equal(t, time.Second, time.Duration(conf.Client.Proxy.Connect.Timeout))
 	require.Len(t, conf.RPC.Namespaces, 0)

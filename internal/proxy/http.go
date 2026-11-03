@@ -29,7 +29,8 @@ type baseRequestHTTP struct {
 var httpEncoder = &proxyproto.JSONEncoder{}
 var httpDecoder = &proxyproto.JSONDecoder{}
 
-// DefaultMaxIdleConnsPerHost is a reasonable value for all HTTP clients.
+// DefaultMaxIdleConnsPerHost is used when proxy configuration does not set
+// http.max_idle_conns_per_host.
 const DefaultMaxIdleConnsPerHost = 255
 
 // HTTPCaller is responsible for calling HTTP.
@@ -72,9 +73,13 @@ func proxyHTTPClient(p configtypes.Proxy, logTraceEntity string) (*http.Client, 
 			return nil, fmt.Errorf("error creating TLS config: %w", err)
 		}
 	}
+	maxIdleConnsPerHost := p.HTTP.MaxIdleConnsPerHost
+	if maxIdleConnsPerHost <= 0 {
+		maxIdleConnsPerHost = DefaultMaxIdleConnsPerHost
+	}
 	return &http.Client{
 		Transport: &http.Transport{
-			MaxIdleConnsPerHost: DefaultMaxIdleConnsPerHost,
+			MaxIdleConnsPerHost: maxIdleConnsPerHost,
 			TLSClientConfig:     tlsConfig,
 		},
 		Timeout: p.Timeout.ToDuration(),

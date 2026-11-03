@@ -678,6 +678,11 @@ type ProxyCommonHTTP struct {
 	StaticHeaders MapStringString `mapstructure:"static_headers" default:"{}" json:"static_headers" envconfig:"static_headers" yaml:"static_headers" toml:"static_headers" doc:"Static key-value headers added to every HTTP proxy request. Client request headers take priority over these values."`
 	// StatusToCodeTransforms allow to map HTTP status codes from proxy to Disconnect or Error messages.
 	StatusToCodeTransforms HttpStatusToCodeTransforms `mapstructure:"status_to_code_transforms" default:"[]" json:"status_to_code_transforms" envconfig:"status_to_code_transforms" yaml:"status_to_code_transforms" toml:"status_to_code_transforms" doc:"Rules for mapping HTTP status codes from the proxy backend to Centrifugo protocol errors or disconnects."`
+	// MaxIdleConnsPerHost is the maximum number of idle keep-alive connections the HTTP client of the
+	// proxy keeps per backend host. Connections above it are closed once their request completes,
+	// so a burst of concurrent proxy requests larger than this opens (and closes) a TCP connection
+	// per request beyond it. Zero or unset means the default.
+	MaxIdleConnsPerHost int `mapstructure:"max_idle_conns_per_host" default:"255" json:"max_idle_conns_per_host" envconfig:"max_idle_conns_per_host" yaml:"max_idle_conns_per_host" toml:"max_idle_conns_per_host" doc:"Maximum number of idle keep-alive connections the HTTP proxy client keeps per backend host. Connections above this limit are closed after their request completes, so a burst of concurrent proxy requests larger than the limit opens a new TCP connection for every request beyond it. Raise it when the backend handles more concurrent proxy requests than this. Default <<255>>."`
 }
 
 type ProxyCommonGRPC struct {
