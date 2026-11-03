@@ -404,13 +404,13 @@ message BroadcastResult {
 // Centrifugo PRO only: defined here for protocol-surface consistency,
 // Centrifugo OSS parses it but ignores it.
 message FilterNode {
-    // op is the logical operation of a non-leaf node: "and", "or" or "not".
-    // Empty for a leaf node.
+    // op is the logical operation of a non-leaf node. Empty for a leaf node.
+    // One of: and, or, not.
     string op = 1;
     // key is the label key a leaf node compares.
     string key = 2;
-    // cmp is the comparison of a leaf node: "eq", "neq", "in", "nin", "ex",
-    // "nex", "sw", "ew", "ct", "gt", "gte", "lt" or "lte".
+    // cmp is the comparison of a leaf node. One of: eq, neq, in, nin, ex, nex,
+    // sw, ew, ct, gt, gte, lt, lte.
     string cmp = 3;
     // val is the value to compare with, for single-value comparisons.
     string val = 4;
@@ -1140,13 +1140,13 @@ message DeviceRegisterRequest {
     // generates one and returns it. Pass the stored value to update the
     // device.
     string id = 1;
-    // provider is the provider of the device token: fcm, hms, apns or
-    // webpush. Required.
+    // provider is the provider of the device token. Required. One of: fcm,
+    // hms, apns, webpush.
     string provider = 2;
     // token is the push token of the device. For webpush, it is the browser
     // PushSubscription serialized as a JSON string. Required.
     string token = 3;
-    // platform is the device platform: ios, android or web. Required.
+    // platform is the device platform. Required. One of: ios, android, web.
     string platform = 4;
     // user is the user associated with the device.
     string user = 5;
@@ -1221,7 +1221,7 @@ message DeviceMetaUpdate {
 
 // DeviceTopicsUpdate changes the topics of devices. Centrifugo PRO only.
 message DeviceTopicsUpdate {
-    // op is the operation: add, remove or set. Required.
+    // op is the operation. Required. One of: add, remove, set.
     string op = 1;
     // topics are the topics for the operation.
     repeated string topics = 2;
@@ -1333,7 +1333,7 @@ message UserTopicListRequest {
 message DeviceTopicUpdateRequest {
     // device_id is the ID of the device. Required.
     string device_id = 1;
-    // op is the operation: add, remove or set. Required.
+    // op is the operation. Required. One of: add, remove, set.
     string op = 2;
     // topics are the topics for the operation.
     repeated string topics = 3;
@@ -1349,7 +1349,7 @@ message UserTopicUpdateRequest {
     // user is the user ID. Required. "" updates the global binding, which every
     // device - anonymous ones included - gets on its next device_register.
     string user = 1;
-    // op is the operation: add, remove or set. Required.
+    // op is the operation. Required. One of: add, remove, set.
     string op = 2;
     // topics are the topics for the operation.
     repeated string topics = 3;
@@ -1734,8 +1734,8 @@ message UpdatePushStatusRequest {
     // analytics_uid is the analytics_uid of the push notification (as in
     // SendPushNotificationRequest). Required.
     string analytics_uid = 1;
-    // status is the status of the push notification: delivered or
-    // interacted. Required.
+    // status is the status of the push notification. Required. One of:
+    // delivered, interacted.
     string status = 2;
     // device_id is the Centrifugo device ID. Required.
     string device_id = 3;
@@ -1811,9 +1811,9 @@ message MapPublishRequest {
     string version_epoch = 11;
     // score is currently not used by the server API.
     int64 score = 12;
-    // key_mode makes the publish conditional: "if_new" writes only if the
-    // key does not exist, "if_exists" only if it exists. Empty always
-    // writes.
+    // key_mode makes the publish conditional: if_new writes only if the key
+    // does not exist, if_exists only if it exists. Empty always writes.
+    // One of: if_new, if_exists.
     string key_mode = 13;
 }
 
