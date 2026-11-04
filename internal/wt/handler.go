@@ -39,7 +39,8 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	rw.WriteHeader(http.StatusOK)
+	// Upgrade already sent the 200 response. Writing a header after a successful
+	// upgrade is a no-op in quic-go < v0.65.0 and panics starting from v0.65.0.
 
 	acceptCtx, acceptCtxCancel := context.WithTimeout(r.Context(), bidiStreamAcceptTimeout)
 	stream, err := conn.AcceptStream(acceptCtx)

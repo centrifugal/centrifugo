@@ -58,6 +58,8 @@ func (lrw *statusResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return hijacker.Hijack()
 }
 
+// TODO: once quic-go is upgraded to v0.65.0 or later, HTTPStream must return
+// (*http3.Stream, error) to match the http3.HTTPStreamer interface.
 func (lrw *statusResponseWriter) HTTPStream() *http3.Stream {
 	return lrw.ResponseWriter.(http3.HTTPStreamer).HTTPStream()
 }
