@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	cloud.google.com/go/pubsub/v2 v2.8.0
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.23.3
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.24.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.15.0
 	github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus v1.11.0
 	github.com/FZambia/eagle v0.2.0
@@ -14,7 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.13
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.52.8
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.6
-	github.com/aws/smithy-go v1.28.7
+	github.com/aws/smithy-go v1.28.8
 	github.com/centrifugal/centrifuge v0.40.2-0.20261031074606-ae446d43faf0
 	github.com/centrifugal/protocol v0.23.1
 	github.com/cristalhq/jwt/v5 v5.4.0
@@ -33,10 +33,10 @@ require (
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/prometheus/client_golang v1.25.0
 	github.com/prometheus/client_model v0.6.3
-	github.com/quic-go/quic-go v0.64.1
+	github.com/quic-go/quic-go v0.65.0
 	github.com/quic-go/webtransport-go v0.13.0
 	github.com/rakutentech/jwk-go v1.2.0
-	github.com/redis/rueidis v1.0.79
+	github.com/redis/rueidis v1.0.80-0.20261103053346-e03a107edd31
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
