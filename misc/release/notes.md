@@ -18,7 +18,7 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
   * startup errors such as a port in use or a bad TLS configuration are reported before Centrifugo starts processing messages from async consumers.
 * New `--watch-config-file` flag restarts Centrifugo when the configuration in its config file changes – **for development**. All options apply, unlike with SIGHUP reload. A change which fails validation is logged and ignored, and Centrifugo keeps running. The restart happens in the same process, which keeps its PID. See [restart on config file change](https://centrifugal.dev/docs/server/configuration#restart-on-config-file-change) ([#502](https://github.com/centrifugal/centrifugo/issues/502), [#1302](https://github.com/centrifugal/centrifugo/pull/1302)).
 * New channel options `recovery_max_publication_limit` and `history_max_publication_limit` set the maximum number of publications returned in one recovery and in one history request for a namespace. Before, only `client.recovery_max_publication_limit` and `client.history_max_publication_limit` existed, applying to all channels. A namespace whose history holds many small publications – for example, AI responses streamed in chunks – can now have a higher limit than the rest. Zero, the default, keeps using the `client.*` options. See [channel options](https://centrifugal.dev/docs/server/channels#recovery_max_publication_limit) and [Centrifugo for AI apps](https://centrifugal.dev/docs/getting-started/ai_apps#configuring-a-channel-for-a-stream) ([#1294](https://github.com/centrifugal/centrifugo/pull/1294), [centrifugal/centrifuge#674](https://github.com/centrifugal/centrifuge/pull/674)).
-* `api.proto` documents which fields of push notification API requests are required, and what an empty value means: `device_list` works without `filter` and lists all devices, an empty `user` in `user_topic_update` updates the global binding, an empty `user` in `invalidate_user_tokens` invalidates tokens of anonymous users, and an empty value in device update requests clears the field. SDKs generated from `api.proto` use these comments ([#1298](https://github.com/centrifugal/centrifugo/pull/1298)).
+* Better comments in Protobuf definitions for server API and Proxy.
 
 ### Fixes
 
@@ -29,6 +29,10 @@ For details, go to the [Centrifugo documentation site](https://centrifugal.dev).
 
 ### Miscellaneous
 
+* New [Server SDKs](https://centrifugal.dev/docs/server/server_sdks) page in the docs lists the official server SDKs – `gocent`, `pycent`, `jscent`, `phpcent`, `rubycent`, `rustcent` and `csharpcent` – with install lines, a first publication in each language, notes for AI coding agents, and when to use GRPC instead of the HTTP API. All server SDKs follow a [common SDK spec](https://github.com/centrifugal/gocent/blob/master/spec.md). 
+* [centrifuge-rust](https://github.com/centrifugal/centrifuge-rust) is now listed among the official [client SDKs](https://centrifugal.dev/docs/transports/client_sdk), with Rust examples in the client API docs. The C# SDK is no longer marked as work in progress.
+* [Centrifugo for AI apps](https://centrifugal.dev/docs/getting-started/ai_apps) now covers checkpoints for long responses, loading a conversation with `getState`, and stopping generation from every device. See the new [Vercel AI SDK chat example](https://github.com/centrifugal/examples/tree/master/v6/ai-sdk-chat).
+* Web UI is updated to the latest dependencies ([#1305](https://github.com/centrifugal/centrifugo/pull/1305)).
 * This release is built with Go 1.27.3.
 * Dependency updates.
 * See also the corresponding [Centrifugo PRO release](https://github.com/centrifugal/centrifugo-pro/releases/tag/v6.10.3).
