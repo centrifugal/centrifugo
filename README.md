@@ -33,6 +33,12 @@ Then open http://localhost:8000 to reach the admin UI, where you can watch live 
 
 For native binaries, Homebrew, packages, and production configuration see the [installation instructions](https://centrifugal.dev/docs/getting-started/installation), and follow the [quickstart tutorial](https://centrifugal.dev/docs/getting-started/quickstart) to connect your first client.
 
+## One-Click Deploy
+
+<a href="https://repocloud.io/details/Centrifugo/"><img src="https://d16t0pc4846x52.cloudfront.net/deploylobe.svg" alt="Deploy on RepoCloud" height="42"></a>
+<a href="https://railway.com/deploy/centrifugo"><img src="https://railway.com/button.svg" alt="Deploy on Railway" height="42"></a>
+<a href="https://elest.io/open-source/centrifugo"><img src="https://elest.io/images/logos/deploy-to-elestio-btn.png" alt="Deploy on Elestio" height="42"></a>
+
 ## Why Centrifugo
 
 The hard part is to make the PUB/SUB concept production-ready, efficient, flexible and available from different application environments. Centrifugo is a mature solution that already helped many projects with adding real-time features and scaling towards many concurrent connections. It provides a set of features not available in other open-source solutions in the area:
