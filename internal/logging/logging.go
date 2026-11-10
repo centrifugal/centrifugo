@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 	"github.com/centrifugal/centrifugo/v6/internal/logutils"
@@ -198,7 +199,7 @@ func Setup(cfg config.Config, opts Options) (centrifuge.LogHandler, func(), erro
 	}
 	writers = append(writers, opts.Writers...)
 
-	prevLogger := log.Logger
+	prevOut := globalOut.get()
 	prevLevel := zerolog.GlobalLevel()
 
 	levelFound := true
@@ -210,8 +211,8 @@ func Setup(cfg config.Config, opts Options) (centrifuge.LogHandler, func(), erro
 	zerolog.SetGlobalLevel(logLevel)
 
 	if len(writers) > 0 {
-		mw := io.MultiWriter(writers...)
-		log.Logger = log.Output(mw)
+		globalOut.set(io.MultiWriter(writers...))
+		installGlobalOut()
 	}
 
 	if !levelFound {
@@ -223,7 +224,7 @@ func Setup(cfg config.Config, opts Options) (centrifuge.LogHandler, func(), erro
 	return handler.Handle, func() {
 		closeOnce.Do(func() {
 			handler.close()
-			log.Logger = prevLogger
+			globalOut.set(prevOut)
 			zerolog.SetGlobalLevel(prevLevel)
 			if file != nil {
 				_ = file.Close()
@@ -235,4 +236,40 @@ func Setup(cfg config.Config, opts Options) (centrifuge.LogHandler, func(), erro
 // Enabled checks if a specific logging level is enabled
 func Enabled(level Level) bool {
 	return level >= zerolog.GlobalLevel()
+}
+
+// The global logger writes through globalOut, installed once: a later Setup
+// (another app in the same process, as tests may run several) or a close swaps
+// the writer, and never reassigns log.Logger while goroutines log.
+var (
+	globalOut     = &swapWriter{}
+	installGlobal sync.Once
+)
+
+func installGlobalOut() {
+	installGlobal.Do(func() { log.Logger = log.Output(globalOut) })
+}
+
+type swapWriter struct{ w atomic.Pointer[io.Writer] }
+
+func (s *swapWriter) get() io.Writer {
+	if p := s.w.Load(); p != nil {
+		return *p
+	}
+	return nil
+}
+
+func (s *swapWriter) set(w io.Writer) {
+	if w == nil {
+		w = os.Stderr
+	}
+	s.w.Store(&w)
+}
+
+func (s *swapWriter) Write(p []byte) (int, error) {
+	w := s.get()
+	if w == nil {
+		w = os.Stderr
+	}
+	return w.Write(p)
 }
