@@ -185,12 +185,8 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 				return
 			}
 			_ = conn.SetReadDeadline(time.Now().Add(closeFrameWait))
-			for {
-				if _, _, err := conn.NextReader(); err != nil {
-					close(graceCh)
-					return
-				}
-			}
+			drainUntilClose(conn)
+			close(graceCh)
 		}
 
 		if req == nil {
@@ -222,9 +218,21 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 		c.ProtocolConnect(req)
 
+		// Reading is still needed after connect: it is what processes control
+		// frames - pongs keeping the connection alive, the client's close
+		// frame. The only data message a client may send is a reply to a ping,
+		// one per ping. Bodies are skipped without being read into memory or
+		// decompressed, and a client sending anything more is disconnected.
 		for {
-			_, _, err := conn.ReadMessage()
-			if err != nil {
+			if _, _, err := conn.NextReader(); err != nil {
+				break
+			}
+			if !transport.consumePong() {
+				log.Info().Str("transport", transportName).Str("client", c.ID()).Str("user", c.UserID()).
+					Msg("disconnect client sending data message which is not a reply to ping")
+				// Disconnect closes the transport asynchronously, writing a close
+				// frame and waiting for the client's - which waitClose reads.
+				c.Disconnect(centrifuge.DisconnectBadRequest)
 				break
 			}
 		}
