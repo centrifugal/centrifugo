@@ -1,7 +1,9 @@
 package uniws
 
 import (
+	"bytes"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/timers"
@@ -23,6 +25,9 @@ type websocketTransport struct {
 	opts      websocketTransportOptions
 	pingTimer *time.Timer
 	closed    bool
+	// pongAllowed is set when a ping is written to the client and consumed by
+	// the client's reply to it. See consumePong.
+	pongAllowed atomic.Bool
 }
 
 type websocketTransportOptions struct {
@@ -190,6 +195,14 @@ func (t *websocketTransport) writeMany(messages ...[]byte) error {
 	return t.writeData(encoder.Finish())
 }
 
+// notePing allows the client one reply when message is a ping. Called before
+// the message is written, so that a reply can never arrive first.
+func (t *websocketTransport) notePing(message []byte) {
+	if bytes.Equal(message, jsonPing) {
+		t.pongAllowed.Store(true)
+	}
+}
+
 // Write data to transport.
 func (t *websocketTransport) Write(message []byte) error {
 	return t.WriteMany(message)
@@ -201,6 +214,9 @@ func (t *websocketTransport) WriteMany(messages ...[]byte) error {
 	case <-t.closeCh:
 		return nil
 	default:
+		for i := range messages {
+			t.notePing(messages[i])
+		}
 		var err error
 		if t.opts.joinMessages {
 			if len(messages) == 1 && t.Protocol() == centrifuge.ProtocolTypeJSON {
@@ -224,6 +240,44 @@ func (t *websocketTransport) WriteMany(messages ...[]byte) error {
 }
 
 const closeFrameWait = 5 * time.Second
+
+// closeDrainMaxMessages bounds the data messages read from a connection while
+// waiting for the client's close frame. See drainUntilClose.
+const closeDrainMaxMessages = 32
+
+// jsonPing is the push a ping is sent as: an empty one.
+var jsonPing = []byte("{}")
+
+// consumePong reports whether a data message from the client is allowed: a
+// reply to a ping the client has not replied to yet. After its connect request
+// a unidirectional client has nothing to send but that - clients written
+// against the bidirectional protocol answer pings with an empty command. One
+// reply per ping, as the bidirectional transports allow.
+func (t *websocketTransport) consumePong() bool {
+	return t.pongAllowed.CompareAndSwap(true, false)
+}
+
+// drainUntilClose reads from a connection which is closing until the client's
+// close frame arrives (the websocket library answers it, completing the closing
+// handshake), the read deadline passes, or the client sends more than
+// closeDrainMaxMessages data messages.
+//
+// Waiting for the close frame is what lets a client see the server's close
+// code: some browsers report 1006 instead if the TCP connection is closed
+// before the closing handshake completes. A client which is closing sends no
+// more than what it had in flight when it got the server's close frame, so the
+// bound changes nothing for it. A client which keeps sending is not closing,
+// and without the bound everything it sent would be read until the deadline.
+//
+// The bodies of drained messages are skipped by the websocket library as raw
+// frame data, never decompressed, and each is bounded by the read limit.
+func drainUntilClose(conn *websocket.Conn) {
+	for i := 0; i <= closeDrainMaxMessages; i++ {
+		if _, _, err := conn.NextReader(); err != nil {
+			return
+		}
+	}
+}
 
 // Close closes transport.
 func (t *websocketTransport) Close(disconnect centrifuge.Disconnect) error {
