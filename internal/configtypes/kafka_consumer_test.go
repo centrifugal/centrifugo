@@ -37,3 +37,27 @@ func TestKafkaConsumerConfigValidate_AssumeRoleARN(t *testing.T) {
 		require.Contains(t, err.Error(), "assume_role_arn requires sasl_mechanism aws-msk-iam")
 	})
 }
+
+func TestKafkaConsumerConfigValidate_StartOffset(t *testing.T) {
+	base := KafkaConsumerConfig{
+		Brokers:       []string{"localhost:9092"},
+		Topics:        []string{"t"},
+		ConsumerGroup: "g",
+	}
+
+	for _, v := range []string{"", "earliest", "latest"} {
+		t.Run("valid "+v, func(t *testing.T) {
+			c := base
+			c.StartOffset = v
+			require.NoError(t, c.Validate())
+		})
+	}
+
+	t.Run("unknown value is invalid", func(t *testing.T) {
+		c := base
+		c.StartOffset = "newest"
+		err := c.Validate()
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "start_offset")
+	})
+}
