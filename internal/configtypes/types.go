@@ -888,6 +888,9 @@ type KafkaConsumerConfig struct {
 	// When empty (default), static membership is not used.
 	InstanceID string `mapstructure:"instance_id" json:"instance_id" envconfig:"instance_id" yaml:"instance_id" toml:"instance_id" expose:"full" doc:"Stable Kafka consumer group instance ID for static membership. Prevents group rebalances during rolling restarts (e.g. use the Kubernetes pod name). Empty disables static membership."`
 
+	// StartOffset applies only to partitions without a committed offset in the consumer group.
+	StartOffset string `mapstructure:"start_offset" json:"start_offset" envconfig:"start_offset" default:"earliest" yaml:"start_offset" toml:"start_offset" doc:"Where to start consuming a partition that has no committed offset in the consumer group: <<earliest>> or <<latest>>. Does not affect partitions with committed offsets. Default <<earliest>>."`
+
 	// MethodHeader is a header name to extract method name from Kafka message.
 	// If provided in message, then payload must be just a serialized API request object.
 	MethodHeader string `mapstructure:"method_header" default:"centrifugo-method" json:"method_header" envconfig:"method_header" yaml:"method_header" toml:"method_header" expose:"full" doc:"Kafka message header name that contains the API method name. When present, the message payload is treated as a serialized API request. Default <<centrifugo-method>>."`
@@ -912,6 +915,11 @@ func (c KafkaConsumerConfig) Validate() error {
 	}
 	if c.AssumeRoleARN != "" && c.SASLMechanism != "aws-msk-iam" {
 		return errors.New("assume_role_arn requires sasl_mechanism aws-msk-iam")
+	}
+	switch c.StartOffset {
+	case "", "earliest", "latest":
+	default:
+		return fmt.Errorf("unknown Kafka start_offset %q, must be earliest or latest", c.StartOffset)
 	}
 	return nil
 }
