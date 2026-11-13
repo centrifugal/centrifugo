@@ -210,10 +210,7 @@ func Setup(cfg config.Config, opts Options) (centrifuge.LogHandler, func(), erro
 	}
 	zerolog.SetGlobalLevel(logLevel)
 
-	if len(writers) > 0 {
-		globalOut.set(io.MultiWriter(writers...))
-		installGlobalOut()
-	}
+	globalOut.set(io.MultiWriter(writers...))
 
 	if !levelFound {
 		log.Warn().Msgf("unknown log level %s, defaulting to INFO", cfg.Log.Level)
@@ -238,16 +235,15 @@ func Enabled(level Level) bool {
 	return level >= zerolog.GlobalLevel()
 }
 
-// The global logger writes through globalOut, installed once: a later Setup
-// (another app in the same process, as tests may run several) or a close swaps
-// the writer, and never reassigns log.Logger while goroutines log.
-var (
-	globalOut     = &swapWriter{}
-	installGlobal sync.Once
-)
+// The global logger writes through globalOut, installed before anything logs:
+// Setup (of another app in the same process too, as tests may run several)
+// and its close swap the writer, and never reassign log.Logger while
+// goroutines log. Until the first Setup, lines go to os.Stderr, as with
+// zerolog's default logger.
+var globalOut = &swapWriter{}
 
-func installGlobalOut() {
-	installGlobal.Do(func() { log.Logger = log.Output(globalOut) })
+func init() {
+	log.Logger = log.Output(globalOut)
 }
 
 type swapWriter struct{ w atomic.Pointer[io.Writer] }
@@ -259,10 +255,8 @@ func (s *swapWriter) get() io.Writer {
 	return nil
 }
 
+// set makes w the writer; nil means os.Stderr.
 func (s *swapWriter) set(w io.Writer) {
-	if w == nil {
-		w = os.Stderr
-	}
 	s.w.Store(&w)
 }
 

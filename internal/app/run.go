@@ -126,16 +126,15 @@ func (r *runner) backstopDelay(timeout time.Duration) time.Duration {
 
 // armStartBackstop ends the process with code 1 when the startup of a
 // restarted App, asked to stop before it was built, doesn't end within
-// timeout, the shutdown.timeout of the App before it. It logs with logger,
-// taken before New: New sets up the global logger.
-func (r *runner) armStartBackstop(timeout time.Duration, logger zerolog.Logger) {
+// timeout, the shutdown.timeout of the App before it.
+func (r *runner) armStartBackstop(timeout time.Duration) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.startBackstop != nil {
 		return
 	}
 	r.startBackstop = time.AfterFunc(r.backstopDelay(timeout), func() {
-		logger.WithLevel(zerolog.FatalLevel).Msg("shutdown timeout reached")
+		log.WithLevel(zerolog.FatalLevel).Msg("shutdown timeout reached")
 		r.finish(true, 1)
 	})
 }
@@ -162,8 +161,7 @@ func (r *runner) runApp(restarted bool, timeout time.Duration) (bool, *App) {
 	// are, and those arriving before Start returned are handled here.
 	var starting *startSignals
 	if restarted {
-		logger := log.Logger
-		starting = watchStartSignals(r.signals, func() { r.armStartBackstop(timeout, logger) })
+		starting = watchStartSignals(r.signals, func() { r.armStartBackstop(timeout) })
 	}
 	a, err := New(r.cmd, r.configFile, r.opts)
 	if err != nil {
@@ -220,14 +218,12 @@ func (r *runner) runApp(restarted bool, timeout time.Duration) (bool, *App) {
 		return !a.stopRequestedDuringShutdown() && !a.shutdownTimedOut()
 	}
 
-	// The logger of the App, taken before Close runs: Close restores the
-	// global logger, which a timed out Close may do while timedOut logs.
-	logger := log.Logger
 	// timedOut ends a shutdown which didn't finish within shutdown.timeout.
 	// A Close which didn't return in time is left running: the process exits
-	// instead of building the next App, whose logging setup would race it.
+	// instead of building the next App, whose log writers the late Close
+	// would replace with the ones from before it.
 	timedOut := func() {
-		event := logger.WithLevel(zerolog.FatalLevel)
+		event := log.WithLevel(zerolog.FatalLevel)
 		if step := a.currentShutdownStep(); step != "" {
 			event = event.Str("step", step)
 		}

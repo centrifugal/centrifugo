@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 	"path/filepath"
-	"strings"
 	"sync"
 	"testing"
 
@@ -82,5 +81,5 @@ func TestSetupCloseRestoresWriter(t *testing.T) {
 	require.Contains(t, second.String(), "to second")
 	require.NotContains(t, second.String(), "to first")
 	require.Contains(t, first.String(), "to first")
-	require.False(t, strings.Contains(first.String(), "to second"))
+	require.NotContains(t, first.String(), "to second")
 }
