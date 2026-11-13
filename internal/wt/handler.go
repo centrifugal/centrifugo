@@ -31,6 +31,10 @@ func NewHandler(node *centrifuge.Node, wtServer *webtransport.Server, config Con
 
 const bidiStreamAcceptTimeout = 10 * time.Second
 
+// closeWait bounds how long a connection whose command ended it stays open
+// for the client to receive what was queued for it.
+const closeWait = 5 * time.Second
+
 // ServeHTTP upgrades connection to WebTransport and creates centrifuge.Client from it.
 func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	conn, err := s.server.Upgrade(rw, r)
@@ -101,6 +105,12 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 		ok := c.HandleCommand(cmd, cmdSize)
 		if !ok {
+			// Keep reading until the client, or the close that HandleCommand
+			// started, ends the stream. Returning right away runs closeFn, which
+			// discards what is still queued for the client: the error reply to
+			// a refused connect and the disconnect push.
+			_ = stream.SetReadDeadline(time.Now().Add(closeWait))
+			_, _ = io.Copy(io.Discard, stream)
 			return
 		}
 	}
