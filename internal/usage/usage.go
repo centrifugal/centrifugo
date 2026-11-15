@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -305,6 +306,15 @@ func getHistogramMetric(val int, bounds []int, metricPrefix string) string {
 	return metricPrefix + "le_inf"
 }
 
+// addSubscriptionType records non-default subscription types. Default stream
+// type (also used when subscription_type is empty) is not reported.
+func addSubscriptionType(used map[string]struct{}, subscriptionType string) {
+	if subscriptionType == "" || subscriptionType == "stream" {
+		return
+	}
+	used[subscriptionType] = struct{}{}
+}
+
 // Lock must be held outside.
 func (s *Sender) resetMaxValues() {
 	s.maxNumNodes = 0
@@ -415,6 +425,7 @@ func (s *Sender) prepareMetrics() ([]*metric, error) {
 	var usesHistory bool
 	var usesPresence bool
 	var usesJoinLeave bool
+	usedSubscriptionTypes := map[string]struct{}{}
 
 	namespaces := s.rules.Config().Channel.Namespaces
 	chOpts := s.rules.Config().Channel.WithoutNamespace
@@ -427,6 +438,7 @@ func (s *Sender) prepareMetrics() ([]*metric, error) {
 	if chOpts.JoinLeave {
 		usesJoinLeave = true
 	}
+	addSubscriptionType(usedSubscriptionTypes, chOpts.SubscriptionType)
 	for _, ns := range namespaces {
 		chOpts = ns.ChannelOptions
 		if chOpts.HistoryTTL > 0 && chOpts.HistorySize > 0 {
@@ -438,6 +450,7 @@ func (s *Sender) prepareMetrics() ([]*metric, error) {
 		if chOpts.JoinLeave {
 			usesJoinLeave = true
 		}
+		addSubscriptionType(usedSubscriptionTypes, chOpts.SubscriptionType)
 	}
 
 	if usesHistory {
@@ -448,6 +461,9 @@ func (s *Sender) prepareMetrics() ([]*metric, error) {
 	}
 	if usesJoinLeave {
 		metrics = append(metrics, createPoint("features_enabled.join_leave"))
+	}
+	for _, subscriptionType := range slices.Sorted(maps.Keys(usedSubscriptionTypes)) {
+		metrics = append(metrics, createPoint("subscription_type."+subscriptionType))
 	}
 
 	s.mu.RLock()
