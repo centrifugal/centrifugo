@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/centrifugal/centrifugo/v6/internal/config"
 	"github.com/centrifugal/centrifugo/v6/internal/logutils"
@@ -198,7 +199,7 @@ func Setup(cfg config.Config, opts Options) (centrifuge.LogHandler, func(), erro
 	}
 	writers = append(writers, opts.Writers...)
 
-	prevLogger := log.Logger
+	prevOut := globalOut.get()
 	prevLevel := zerolog.GlobalLevel()
 
 	levelFound := true
@@ -209,10 +210,7 @@ func Setup(cfg config.Config, opts Options) (centrifuge.LogHandler, func(), erro
 	}
 	zerolog.SetGlobalLevel(logLevel)
 
-	if len(writers) > 0 {
-		mw := io.MultiWriter(writers...)
-		log.Logger = log.Output(mw)
-	}
+	globalOut.set(io.MultiWriter(writers...))
 
 	if !levelFound {
 		log.Warn().Msgf("unknown log level %s, defaulting to INFO", cfg.Log.Level)
@@ -223,7 +221,7 @@ func Setup(cfg config.Config, opts Options) (centrifuge.LogHandler, func(), erro
 	return handler.Handle, func() {
 		closeOnce.Do(func() {
 			handler.close()
-			log.Logger = prevLogger
+			globalOut.set(prevOut)
 			zerolog.SetGlobalLevel(prevLevel)
 			if file != nil {
 				_ = file.Close()
@@ -235,4 +233,37 @@ func Setup(cfg config.Config, opts Options) (centrifuge.LogHandler, func(), erro
 // Enabled checks if a specific logging level is enabled
 func Enabled(level Level) bool {
 	return level >= zerolog.GlobalLevel()
+}
+
+// The global logger writes through globalOut, installed before anything logs:
+// Setup (of another app in the same process too, as tests may run several)
+// and its close swap the writer, and never reassign log.Logger while
+// goroutines log. Until the first Setup, lines go to os.Stderr, as with
+// zerolog's default logger.
+var globalOut = &swapWriter{}
+
+func init() {
+	log.Logger = log.Output(globalOut)
+}
+
+type swapWriter struct{ w atomic.Pointer[io.Writer] }
+
+func (s *swapWriter) get() io.Writer {
+	if p := s.w.Load(); p != nil {
+		return *p
+	}
+	return nil
+}
+
+// set makes w the writer; nil means os.Stderr.
+func (s *swapWriter) set(w io.Writer) {
+	s.w.Store(&w)
+}
+
+func (s *swapWriter) Write(p []byte) (int, error) {
+	w := s.get()
+	if w == nil {
+		w = os.Stderr
+	}
+	return w.Write(p)
 }
