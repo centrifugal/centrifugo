@@ -889,7 +889,7 @@ type KafkaConsumerConfig struct {
 	InstanceID string `mapstructure:"instance_id" json:"instance_id" envconfig:"instance_id" yaml:"instance_id" toml:"instance_id" expose:"full" doc:"Stable Kafka consumer group instance ID for static membership. Prevents group rebalances during rolling restarts (e.g. use the Kubernetes pod name). Empty disables static membership."`
 
 	// StartOffset applies only to partitions without a committed offset in the consumer group.
-	StartOffset string `mapstructure:"start_offset" json:"start_offset" envconfig:"start_offset" default:"earliest" yaml:"start_offset" toml:"start_offset" doc:"Where to start consuming a partition that has no committed offset in the consumer group: <<earliest>> or <<latest>>. Does not affect partitions with committed offsets. Default <<earliest>>."`
+	StartOffset string `mapstructure:"start_offset" json:"start_offset" envconfig:"start_offset" default:"earliest" yaml:"start_offset" toml:"start_offset" expose:"full" doc:"Where to start consuming a partition that has no committed offset in the consumer group: <<earliest>> or <<latest>>. Does not affect partitions with committed offsets. Default <<earliest>>."`
 
 	// MethodHeader is a header name to extract method name from Kafka message.
 	// If provided in message, then payload must be just a serialized API request object.
