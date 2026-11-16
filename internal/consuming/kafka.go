@@ -249,6 +249,14 @@ func pingTimeout(dialTimeout time.Duration, numBrokers int) time.Duration {
 	return dialTimeout * time.Duration(numBrokers) * maxAttemptsPerBroker
 }
 
+// kafkaStartOffset maps start_offset config to the offset used for partitions without commits.
+func kafkaStartOffset(startOffset string) kgo.Offset {
+	if startOffset == "latest" {
+		return kgo.NewOffset().AtEnd()
+	}
+	return kgo.NewOffset().AtStart()
+}
+
 func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 	dialTimeout := effectiveDialTimeout(c.config.DialTimeout)
 	opts := []kgo.Opt{
@@ -256,6 +264,7 @@ func (c *KafkaConsumer) initClient() (*kgo.Client, error) {
 		kgo.DialTimeout(dialTimeout),
 		kgo.ConsumeTopics(c.config.Topics...),
 		kgo.ConsumerGroup(c.config.ConsumerGroup),
+		kgo.ConsumeStartOffset(kafkaStartOffset(c.config.StartOffset)),
 		kgo.OnPartitionsAssigned(c.assigned),
 		kgo.OnPartitionsRevoked(c.revoked),
 		kgo.OnPartitionsLost(c.lost),

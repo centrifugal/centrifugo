@@ -2130,3 +2130,81 @@ func TestPingTimeout(t *testing.T) {
 		require.Equal(t, time.Duration(0), pingTimeout(3*time.Second, 0))
 	})
 }
+
+func TestKafkaStartOffset(t *testing.T) {
+	require.Equal(t, kgo.NewOffset().AtStart(), kafkaStartOffset(""))
+	require.Equal(t, kgo.NewOffset().AtStart(), kafkaStartOffset("earliest"))
+	require.Equal(t, kgo.NewOffset().AtEnd(), kafkaStartOffset("latest"))
+}
+
+func TestKafkaConsumer_StartOffset(t *testing.T) {
+	t.Parallel()
+
+	run := func(t *testing.T, startOffset string) (gotOld bool) {
+		testKafkaTopic := "centrifugo_consumer_test_" + uuid.New().String()
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		require.NoError(t, createTestTopic(ctx, testKafkaTopic, 1, 1))
+		// Produced before the group exists, so it has no committed offset.
+		require.NoError(t, produceTestMessage(testKafkaTopic, []byte(`"old"`), nil))
+
+		config := KafkaConfig{
+			Brokers:       []string{testKafkaBrokerURL},
+			Topics:        []string{testKafkaTopic},
+			ConsumerGroup: uuid.New().String(),
+			StartOffset:   startOffset,
+		}
+
+		var oldReceived atomic.Bool
+		newReceived := make(chan struct{})
+		var newOnce sync.Once
+		consumer, err := NewKafkaConsumer(config, &MockDispatcher{
+			onDispatchCommand: func(ctx context.Context, method string, data []byte) error {
+				switch string(data) {
+				case `"old"`:
+					oldReceived.Store(true)
+				case `"new"`:
+					newOnce.Do(func() { close(newReceived) })
+				}
+				return nil
+			},
+		}, testCommon(prometheus.NewRegistry()))
+		require.NoError(t, err)
+
+		consumerClosed := make(chan struct{})
+		go func() {
+			err := consumer.Run(ctx)
+			require.ErrorIs(t, err, context.Canceled)
+			close(consumerClosed)
+		}()
+
+		// With latest the start position is resolved on assignment, so keep producing until one arrives.
+		ticker := time.NewTicker(200 * time.Millisecond)
+		defer ticker.Stop()
+	loop:
+		for {
+			require.NoError(t, produceTestMessage(testKafkaTopic, []byte(`"new"`), nil))
+			select {
+			case <-newReceived:
+				break loop
+			case <-ticker.C:
+			case <-ctx.Done():
+				t.Fatal("timeout waiting for new message")
+			}
+		}
+		cancel()
+		waitCh(t, consumerClosed, 30*time.Second, "timeout waiting for consumer closed")
+		return oldReceived.Load()
+	}
+
+	t.Run("earliest consumes records produced before the group existed", func(t *testing.T) {
+		t.Parallel()
+		require.True(t, run(t, "earliest"))
+	})
+
+	t.Run("latest skips records produced before the group existed", func(t *testing.T) {
+		t.Parallel()
+		require.False(t, run(t, "latest"))
+	})
+}
