@@ -689,6 +689,13 @@ func (a *App) buildHTTPServers() error {
 				Handler:   mux,
 			}
 			if useWebtransport {
+				// webtransport.Server.Serve passes H3.TLSConfig to QUIC as is,
+				// while http3.Server.Serve selects the h3 ALPN first. Without it
+				// the listener negotiates no application protocol, and clients
+				// offering h3 (all browsers) fail the handshake.
+				if addrTLSConfig != nil {
+					h3Server.TLSConfig = http3.ConfigureTLSConfig(addrTLSConfig)
+				}
 				webtransport.ConfigureHTTP3Server(h3Server)
 				wtServer.H3 = h3Server
 			}

@@ -80,11 +80,11 @@ func TestWebTransportWithLogMiddleware(t *testing.T) {
 	})
 
 	// Wrap with LogRequest middleware — this is the key part under test.
+	// The h3 ALPN is selected the way Centrifugo does it (see internal/app/mux.go).
 	server := &http3.Server{
-		TLSConfig: &tls.Config{
+		TLSConfig: http3.ConfigureTLSConfig(&tls.Config{
 			Certificates: []tls.Certificate{cert},
-			NextProtos:   []string{http3.NextProtoH3},
-		},
+		}),
 		Handler: middleware.LogRequest(mux),
 	}
 	webtransport.ConfigureHTTP3Server(server)
