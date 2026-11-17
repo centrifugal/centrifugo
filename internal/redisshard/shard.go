@@ -44,15 +44,12 @@ type RedisShard struct {
 	finalAddress  []string
 }
 
-// NewRedisShard initializes new Redis shard.
-func NewRedisShard(conf RedisShardConfig) (*RedisShard, error) {
-	if conf.ConnectTimeout == 0 {
-		conf.ConnectTimeout = defaultRedisConnectTimeout
-	}
-	if conf.IOTimeout == 0 {
-		conf.IOTimeout = defaultRedisIOTimeout
-	}
-	options := rueidis.ClientOption{
+// redisClientOptions builds the rueidis options of a shard from its config
+// (with ConnectTimeout and IOTimeout already set). It reports whether the
+// shard is a Redis Cluster or a Sentinel setup, and whether a replica client
+// is enabled.
+func redisClientOptions(conf RedisShardConfig) (options rueidis.ClientOption, isCluster bool, isSentinel bool, replicaClientEnabled bool, err error) {
+	options = rueidis.ClientOption{
 		SelectDB:         conf.DB,
 		ConnWriteTimeout: conf.IOTimeout,
 		TLSConfig:        conf.TLSConfig,
@@ -105,9 +102,7 @@ func NewRedisShard(conf RedisShardConfig) (*RedisShard, error) {
 		}
 	}
 
-	var isCluster bool
-	var isSentinel bool
-	replicaClientEnabled := conf.ReplicaClientEnabled
+	replicaClientEnabled = conf.ReplicaClientEnabled
 
 	if len(conf.SentinelAddresses) > 0 {
 		isSentinel = true
@@ -125,7 +120,7 @@ func NewRedisShard(conf RedisShardConfig) (*RedisShard, error) {
 	} else {
 		addressOpts, err := optionsFromAddress(conf.Address, options)
 		if err != nil {
-			return nil, fmt.Errorf("error processing Redis address: %v", err)
+			return rueidis.ClientOption{}, false, false, false, fmt.Errorf("error processing Redis address: %v", err)
 		}
 		options, isCluster, isSentinel, replicaClientEnabled =
 			addressOpts.ClientOption, addressOpts.IsCluster, addressOpts.IsSentinel, addressOpts.ReplicaClientEnabled
@@ -133,9 +128,33 @@ func NewRedisShard(conf RedisShardConfig) (*RedisShard, error) {
 
 	if isSentinel {
 		if options.Sentinel.MasterSet == "" {
-			return nil, errors.New("sentinel master name must be configured for Redis Sentinel setup")
+			return rueidis.ClientOption{}, false, false, false, errors.New("sentinel master name must be configured for Redis Sentinel setup")
 		}
 		options.Sentinel.TopologyRefreshInterval = sentinelTopologyRefreshInterval
+		// Sentinel connections get the connect timeout and keep-alive of the
+		// data connections. rueidis dials Sentinels with Sentinel.Dialer only,
+		// and a zero dialer has no connect timeout and no keep-alive PING. A
+		// Sentinel whose packets are silently dropped then holds the client:
+		// a dial waits for the kernel to give up, a request without an answer
+		// waits for TCP retransmissions, and the topology refresh waits behind
+		// both. Meanwhile the client stays on the old master's address after a
+		// failover (centrifugo#1325). Same change as in centrifuge RedisShard.
+		options.Sentinel.Dialer = options.Dialer
+	}
+	return options, isCluster, isSentinel, replicaClientEnabled, nil
+}
+
+// NewRedisShard initializes new Redis shard.
+func NewRedisShard(conf RedisShardConfig) (*RedisShard, error) {
+	if conf.ConnectTimeout == 0 {
+		conf.ConnectTimeout = defaultRedisConnectTimeout
+	}
+	if conf.IOTimeout == 0 {
+		conf.IOTimeout = defaultRedisIOTimeout
+	}
+	options, isCluster, isSentinel, replicaClientEnabled, err := redisClientOptions(conf)
+	if err != nil {
+		return nil, err
 	}
 
 	client, err := rueidis.NewClient(options)
