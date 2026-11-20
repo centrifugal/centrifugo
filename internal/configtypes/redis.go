@@ -8,6 +8,8 @@ type Redis struct {
 	ConnectTimeout Duration `mapstructure:"connect_timeout" json:"connect_timeout" envconfig:"connect_timeout" default:"1s" yaml:"connect_timeout" toml:"connect_timeout" doc:"Timeout for establishing a connection to Redis. Default <<1s>>."`
 	// IOTimeout is a timeout for all read/write operations against Redis (can be considered as a request timeout).
 	IOTimeout Duration `mapstructure:"io_timeout" json:"io_timeout" envconfig:"io_timeout" default:"4s" yaml:"io_timeout" toml:"io_timeout" doc:"Timeout for read/write operations against Redis (effectively a request timeout). Default <<4s>>."`
+	// StartupWaitTimeout is how long Centrifugo waits on start for Redis which is not available yet.
+	StartupWaitTimeout Duration `mapstructure:"startup_wait_timeout" json:"startup_wait_timeout" envconfig:"startup_wait_timeout" yaml:"startup_wait_timeout" toml:"startup_wait_timeout" doc:"How long to wait on start for Redis which is not available yet: not reachable, or still loading its dataset. Centrifugo retries to connect with a backoff of up to 5 seconds, and exits if Redis is still not available when the timeout passes. Not set by default: Centrifugo exits when the first attempt to connect fails."`
 	// DB is a Redis database to use. Generally it's not recommended to use non-zero DB. Note, that Redis
 	// PUB/SUB is global for all databases in a single Redis instance. So when using non-zero DB make sure
 	// that different Centrifugo setups use different prefixes.

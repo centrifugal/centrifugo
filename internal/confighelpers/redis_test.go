@@ -3,6 +3,7 @@ package confighelpers
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 
@@ -27,6 +28,31 @@ func TestGetRedisShardConfigsAWSIAMAuth(t *testing.T) {
 	require.Equal(t, "iam-user-01", creds.Username)
 	require.True(t, strings.HasPrefix(creds.Password, "cache-01/?Action=connect&ResourceType=ServerlessCache&User=iam-user-01&"))
 	require.False(t, creds.RefreshAfter.IsZero())
+}
+
+func TestGetRedisShardConfigsStartupWaitTimeout(t *testing.T) {
+	standalone := configtypes.Redis{Address: []string{"redis://127.0.0.1:6379"}}
+	cluster := configtypes.Redis{ClusterAddress: []string{"127.0.0.1:7000,127.0.0.1:7001"}}
+	sentinel := configtypes.Redis{SentinelAddress: []string{"127.0.0.1:26379"}, SentinelMasterName: "mymaster"}
+
+	for name, redisConf := range map[string]configtypes.Redis{
+		"standalone": standalone,
+		"cluster":    cluster,
+		"sentinel":   sentinel,
+	} {
+		t.Run(name, func(t *testing.T) {
+			shardConfigs, err := getRedisShardConfigs(redisConf)
+			require.NoError(t, err)
+			require.Len(t, shardConfigs, 1)
+			require.Zero(t, shardConfigs[0].StartupWaitTimeout)
+
+			redisConf.StartupWaitTimeout = configtypes.Duration(30 * time.Second)
+			shardConfigs, err = getRedisShardConfigs(redisConf)
+			require.NoError(t, err)
+			require.Len(t, shardConfigs, 1)
+			require.Equal(t, 30*time.Second, shardConfigs[0].StartupWaitTimeout)
+		})
+	}
 }
 
 func TestGetRedisShardConfigsBadIAMAuth(t *testing.T) {

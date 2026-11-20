@@ -3,6 +3,7 @@ package redisshard
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 
@@ -18,6 +19,8 @@ func TestGetRedisShardConfigsCommonSettings(t *testing.T) {
 		Password:   "pass",
 		ClientName: "centrifugo-consumer",
 		ForceResp2: true,
+
+		StartupWaitTimeout: configtypes.Duration(30 * time.Second),
 	}
 
 	standalone := common
@@ -46,6 +49,7 @@ func TestGetRedisShardConfigsCommonSettings(t *testing.T) {
 			require.Equal(t, "pass", conf.Password)
 			require.Equal(t, "centrifugo-consumer", conf.ClientName)
 			require.True(t, conf.ForceRESP2)
+			require.Equal(t, 30*time.Second, conf.StartupWaitTimeout)
 		})
 	}
 }
