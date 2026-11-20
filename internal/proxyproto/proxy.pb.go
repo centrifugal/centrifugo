@@ -3312,7 +3312,14 @@ type ChannelEvent struct {
 	// type is occupied when the channel got its first subscriber, vacated
 	// when it lost its last one. More types may come; the field is a string,
 	// not an enum, for JSON interoperability. One of: occupied, vacated.
-	Type          string `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	Type string `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	// version orders the events of a channel: an event with a version not
+	// above the version of the last event applied for the channel is a
+	// repeat or older, and may be skipped. Versions grow over time, also
+	// after Redis lost data, unless the clock of a new Redis primary is behind
+	// the old one's by more than the failover took. Zero when unknown (an
+	// event written by a node of an older version): apply it.
+	Version       uint64 `protobuf:"varint,4,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3366,6 +3373,13 @@ func (x *ChannelEvent) GetType() string {
 		return x.Type
 	}
 	return ""
+}
+
+func (x *ChannelEvent) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
 }
 
 // NotifyChannelStateResponse answers a NotifyChannelStateRequest: an empty
@@ -4078,11 +4092,12 @@ const file_proxy_proto_rawDesc = "" +
 	"\x16NotifyCacheEmptyResult\x12\x1c\n" +
 	"\tpopulated\x18\x01 \x01(\bR\tpopulated\"_\n" +
 	"\x19NotifyChannelStateRequest\x12B\n" +
-	"\x06events\x18\x01 \x03(\v2*.centrifugal.centrifugo.proxy.ChannelEventR\x06events\"U\n" +
+	"\x06events\x18\x01 \x03(\v2*.centrifugal.centrifugo.proxy.ChannelEventR\x06events\"o\n" +
 	"\fChannelEvent\x12\x17\n" +
 	"\atime_ms\x18\x01 \x01(\x03R\x06timeMs\x12\x18\n" +
 	"\achannel\x18\x02 \x01(\tR\achannel\x12\x12\n" +
-	"\x04type\x18\x03 \x01(\tR\x04type\"\xa7\x01\n" +
+	"\x04type\x18\x03 \x01(\tR\x04type\x12\x18\n" +
+	"\aversion\x18\x04 \x01(\x04R\aversion\"\xa7\x01\n" +
 	"\x1aNotifyChannelStateResponse\x12N\n" +
 	"\x06result\x18\x01 \x01(\v26.centrifugal.centrifugo.proxy.NotifyChannelStateResultR\x06result\x129\n" +
 	"\x05error\x18\x02 \x01(\v2#.centrifugal.centrifugo.proxy.ErrorR\x05error\"\x1a\n" +

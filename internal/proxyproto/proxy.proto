@@ -713,6 +713,13 @@ message ChannelEvent {
   // when it lost its last one. More types may come; the field is a string,
   // not an enum, for JSON interoperability. One of: occupied, vacated.
   string type = 3;
+  // version orders the events of a channel: an event with a version not
+  // above the version of the last event applied for the channel is a
+  // repeat or older, and may be skipped. Versions grow over time, also
+  // after Redis lost data, unless the clock of a new Redis primary is behind
+  // the old one's by more than the failover took. Zero when unknown (an
+  // event written by a node of an older version): apply it.
+  uint64 version = 4;
 }
 
 // NotifyChannelStateResponse answers a NotifyChannelStateRequest: an empty
