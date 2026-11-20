@@ -14,10 +14,12 @@ import (
 
 func CentrifugeRedisBroker(n *centrifuge.Node, prefix string, shards []*centrifuge.RedisShard, cfg configtypes.RedisBrokerCommon, skipPubSub bool) (*centrifuge.RedisBroker, error) {
 	return centrifuge.NewRedisBroker(n, centrifuge.RedisBrokerConfig{
-		Shards:     shards,
-		Prefix:     prefix,
-		UseLists:   cfg.UseLists,
-		SkipPubSub: skipPubSub,
+		Shards:                   shards,
+		Prefix:                   prefix,
+		UseLists:                 cfg.UseLists,
+		SkipPubSub:               skipPubSub,
+		DetectLostWrites:         cfg.DetectLostWrites,
+		DetectLostWritesWithInfo: cfg.DetectLostWritesWithInfo,
 	})
 }
 
