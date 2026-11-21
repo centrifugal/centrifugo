@@ -97,6 +97,7 @@ func (a *App) centrifugeNodeConfig() centrifuge.Config {
 		}
 	}
 	cfg.HistoryMetaTTL = appCfg.Channel.HistoryMetaTTL.ToDuration()
+	cfg.HistoryMetaTTLUnpublished = appCfg.Channel.HistoryMetaTTLUnpublished.ToDuration()
 	cfg.ClientConnectIncludeServerTime = appCfg.Client.ConnectIncludeServerTime
 	cfg.LogLevel = logging.CentrifugeLogLevel(strings.ToLower(appCfg.Log.Level))
 	cfg.LogHandler = a.logHandler

@@ -721,3 +721,22 @@ func TestValidateDuplicateProxyName(t *testing.T) {
 		require.EqualError(t, cfg.Validate(), "duplicate proxy name in proxies: first")
 	})
 }
+
+func TestValidateHistoryMetaTTLUnpublished(t *testing.T) {
+	cfg := DefaultConfig()
+	require.NoError(t, cfg.Validate(), "zero (default) is valid")
+
+	cfg.Client.ChannelPositionCheckDelay = configtypes.Duration(40 * time.Second)
+	cfg.Channel.HistoryMetaTTLUnpublished = configtypes.Duration(2 * time.Minute)
+	require.NoError(t, cfg.Validate(), "3 × the position check delay is enough")
+
+	cfg.Channel.HistoryMetaTTLUnpublished = configtypes.Duration(time.Minute)
+	err := cfg.Validate()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "channel.history_meta_ttl_unpublished")
+
+	cfg.Channel.HistoryMetaTTLUnpublished = configtypes.Duration(2*time.Minute + 500*time.Millisecond)
+	err = cfg.Validate()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "channel.history_meta_ttl_unpublished")
+}

@@ -11,6 +11,12 @@ type RedisBrokerCommon struct {
 	// UseLists enables usage of Redis Lists for history storage. Lists do not support pagination,
 	// idempotent publish and reverse order history retrieval.
 	UseLists bool `mapstructure:"history_use_lists" json:"history_use_lists" envconfig:"history_use_lists" yaml:"history_use_lists" toml:"history_use_lists" doc:"Use Redis Lists for history storage. Lists do not support history pagination, idempotent publishing or reverse-order history retrieval."`
+	// DetectLostWrites makes the Redis broker detect that a failover or a
+	// restart may have lost writes.
+	DetectLostWrites bool `mapstructure:"detect_lost_writes" json:"detect_lost_writes" envconfig:"detect_lost_writes" yaml:"detect_lost_writes" toml:"detect_lost_writes" doc:"Detect that a Redis failover or restart may have lost writes, so the affected streams start over and clients recover from the current state instead of missing publications. Works on Redis 7+ and Valkey with no extra permissions. On other servers (Redis 6, Dragonfly, ElastiCache Serverless) only lost writes in channels with subscribers are detected. Enable it on every Centrifugo node. A startup log line tells which detection is in use."`
+	// DetectLostWritesWithInfo makes the detection use INFO. It turns on
+	// detection by itself.
+	DetectLostWritesWithInfo bool `mapstructure:"detect_lost_writes_with_info" json:"detect_lost_writes_with_info" envconfig:"detect_lost_writes_with_info" yaml:"detect_lost_writes_with_info" toml:"detect_lost_writes_with_info" doc:"Detect lost writes with the INFO command, on every server, including Redis 6 and Dragonfly. Turns on detection by itself: <<detect_lost_writes>> isn't needed with it. Requires the <<@dangerous>> ACL category. Streams also start over, without any loss, when a Redis primary gets its first replica or has had no replicas for a while, and in Redis Cluster when their slot moves to another node."`
 }
 
 type RedisBroker struct {
@@ -110,6 +116,12 @@ type RedisMapBrokerCommon struct {
 	// with data structures without publishing to channels. Useful when PUB/SUB is handled
 	// by another component.
 	SkipPubSub bool `mapstructure:"skip_pub_sub" json:"skip_pub_sub" envconfig:"skip_pub_sub" yaml:"skip_pub_sub" toml:"skip_pub_sub" doc:"Disable PUB/SUB for the map broker, so it only updates data structures without publishing to channels. Useful when PUB/SUB is handled by another component."`
+	// DetectLostWrites makes the Redis broker detect that a failover or a
+	// restart may have lost writes.
+	DetectLostWrites bool `mapstructure:"detect_lost_writes" json:"detect_lost_writes" envconfig:"detect_lost_writes" yaml:"detect_lost_writes" toml:"detect_lost_writes" doc:"Detect that a Redis failover or restart may have lost writes, so the affected streams start over and clients recover from the current state instead of missing publications. Works on Redis 7+ and Valkey with no extra permissions. On other servers (Redis 6, Dragonfly, ElastiCache Serverless) only lost writes in channels with subscribers are detected. Enable it on every Centrifugo node. A startup log line tells which detection is in use."`
+	// DetectLostWritesWithInfo makes the detection use INFO. It turns on
+	// detection by itself.
+	DetectLostWritesWithInfo bool `mapstructure:"detect_lost_writes_with_info" json:"detect_lost_writes_with_info" envconfig:"detect_lost_writes_with_info" yaml:"detect_lost_writes_with_info" toml:"detect_lost_writes_with_info" doc:"Detect lost writes with the INFO command, on every server, including Redis 6 and Dragonfly. Turns on detection by itself: <<detect_lost_writes>> isn't needed with it. Requires the <<@dangerous>> ACL category. Streams also start over, without any loss, when a Redis primary gets its first replica or has had no replicas for a while, and in Redis Cluster when their slot moves to another node."`
 }
 
 // PostgresMapBroker is a configuration for PostgreSQL-based map broker.

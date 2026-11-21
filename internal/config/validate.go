@@ -48,6 +48,12 @@ func (c Config) Validate() error {
 	if err := validateSecondPrecisionDuration(c.Channel.HistoryMetaTTL); err != nil {
 		return fmt.Errorf("in channel.history_meta_ttl: %v", err)
 	}
+	if err := validateSecondPrecisionDuration(c.Channel.HistoryMetaTTLUnpublished); err != nil {
+		return fmt.Errorf("in channel.history_meta_ttl_unpublished: %v", err)
+	}
+	if ttl, check := c.Channel.HistoryMetaTTLUnpublished.ToDuration(), c.Client.ChannelPositionCheckDelay.ToDuration(); ttl > 0 && ttl < 3*check {
+		return fmt.Errorf("channel.history_meta_ttl_unpublished (%s) must be at least 3 × client.channel_position_check_delay (%s)", ttl, check)
+	}
 
 	if !slices.Contains([]string{"", configtypes.PublicationDataFormatJSON, configtypes.PublicationDataFormatJSONObject, configtypes.PublicationDataFormatBinary}, c.Channel.PublicationDataFormat) {
 		return fmt.Errorf("unknown channel.publication_data_format: \"%s\"", c.Channel.PublicationDataFormat)
