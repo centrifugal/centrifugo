@@ -53,6 +53,7 @@ func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig, redisCo
 	}
 	shardConf.ConnectTimeout = redisConf.ConnectTimeout.ToDuration()
 	shardConf.IOTimeout = redisConf.IOTimeout.ToDuration()
+	shardConf.StartupWaitTimeout = redisConf.StartupWaitTimeout.ToDuration()
 	shardConf.ForceRESP2 = redisConf.ForceResp2
 	if credentialsProvider != nil {
 		shardConf.AuthCredentialsFn = func(_ centrifuge.RedisAuthCredentialsContext) (centrifuge.RedisAuthCredentials, error) {
