@@ -44,6 +44,7 @@ func addRedisShardCommonSettings(shardConf *RedisShardConfig, redisConf configty
 	}
 	shardConf.ConnectTimeout = redisConf.ConnectTimeout.ToDuration()
 	shardConf.IOTimeout = redisConf.IOTimeout.ToDuration()
+	shardConf.StartupWaitTimeout = redisConf.StartupWaitTimeout.ToDuration()
 	shardConf.ForceRESP2 = redisConf.ForceResp2
 	shardConf.CredentialsProvider = credentialsProvider
 	shardConf.ReplicaClientEnabled = redisConf.ReplicaClient.Enabled
