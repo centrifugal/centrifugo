@@ -73,7 +73,7 @@ func (e *PostgresStreamBroker) cleanupSupportTables(ctx context.Context) {
 			SELECT channel FROM %[1]s
 			WHERE expires_at IS NOT NULL AND expires_at < NOW()
 			LIMIT $1
-		)`, e.names.meta))
+		) AND expires_at < NOW()`, e.names.meta)) // again: the row may be refreshed while the DELETE waits for it
 	e.cleanupExpiredBatched(ctx, "idempotency", fmt.Sprintf(
 		`DELETE FROM %[1]s WHERE (channel, idempotency_key) IN (
 			SELECT channel, idempotency_key FROM %[1]s
