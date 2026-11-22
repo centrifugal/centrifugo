@@ -50,7 +50,7 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	stream, err := conn.AcceptStream(acceptCtx)
 	if err != nil {
 		acceptCtxCancel()
-		log.Error().Err(err).Msg("stream accept error")
+		log.Info().Err(err).Str("transport", transportName).Msg("stream accept error")
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -99,7 +99,7 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			var appErr *quic.ApplicationError
 			if !errors.Is(err, io.EOF) && !errors.As(err, &appErr) {
-				log.Error().Err(err).Str("transport", transportName).Str("client", c.ID()).Msg("error decoding command")
+				log.Info().Err(err).Str("transport", transportName).Str("client", c.ID()).Msg("error decoding command")
 			}
 			return
 		}
