@@ -339,15 +339,15 @@ func TestMapEmptyMetaKeeperFollowsSubscription(t *testing.T) {
 	later := time.Now().Add(2 * time.Hour)
 
 	require.NotEmpty(t, mapStatePosition(t, e, ch).Epoch)
-	require.Empty(t, e.emptyMetaKeeper.DueChannels(later), "read without a subscription")
+	require.False(t, e.emptyMetaKeeper.IsDue(ch, later), "read without a subscription")
 
 	require.NoError(t, e.Subscribe(ch))
 	mapStatePosition(t, e, ch)
-	require.Equal(t, []string{ch}, e.emptyMetaKeeper.DueChannels(later))
+	require.True(t, e.emptyMetaKeeper.IsDue(ch, later))
 
 	require.NoError(t, e.Unsubscribe(ch))
 	mapStatePosition(t, e, ch)
-	require.Empty(t, e.emptyMetaKeeper.DueChannels(later), "read after unsubscribe")
+	require.False(t, e.emptyMetaKeeper.IsDue(ch, later), "read after unsubscribe")
 }
 
 // An existing database is at version 1: no ensure_meta, and a publish which

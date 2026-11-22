@@ -54,6 +54,9 @@ func TTL(metaTTL, unpublished, checkDelay time.Duration) time.Duration {
 // to be looked at, and queries only the ones which are due. This is safe as the
 // expiry of such a row never moves back: writes extend it and commit
 // synchronously, and for the same reason reads don't shorten it.
+//
+// Subscribes and reads schedule channels while a run works, so a run applies
+// what it saw only to the schedule it took: what it saw may be older.
 type Keeper struct {
 	// HasSubscribers reports whether a channel has subscribers on this node.
 	HasSubscribers func(ch string) bool
@@ -65,15 +68,26 @@ type Keeper struct {
 }
 
 type shard struct {
-	mu  sync.Mutex
-	due map[string]int64 // Unix nanoseconds
+	mu      sync.Mutex
+	lastGen uint64
+	entries map[string]entry
+}
+
+type entry struct {
+	at  int64 // Unix nanoseconds
+	gen uint64
+}
+
+type dueChannel struct {
+	name string
+	gen  uint64
 }
 
 // New creates a Keeper for the meta table.
 func New(pool *pgxpool.Pool, table string, hasSubscribers func(ch string) bool) *Keeper {
 	k := &Keeper{HasSubscribers: hasSubscribers, pool: pool, table: table, seed: maphash.MakeSeed()}
 	for i := range k.shards {
-		k.shards[i].due = map[string]int64{}
+		k.shards[i].entries = map[string]entry{}
 	}
 	return k
 }
@@ -92,11 +106,32 @@ func (k *Keeper) Watch(ch string, refreshIn float64, now time.Time) {
 
 // Schedule has the channel looked at in refreshIn seconds.
 func (k *Keeper) Schedule(ch string, refreshIn float64, now time.Time) {
-	wait := min(max(refreshIn, 0), maxWait.Seconds())
 	s := k.shard(ch)
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.due[ch] = now.UnixNano() + int64(wait*float64(time.Second))
+	s.set(ch, refreshIn, now)
+}
+
+func (s *shard) set(ch string, refreshIn float64, now time.Time) {
+	wait := min(max(refreshIn, 0), maxWait.Seconds())
+	s.lastGen++
+	s.entries[ch] = entry{at: now.UnixNano() + int64(wait*float64(time.Second)), gen: s.lastGen}
+}
+
+// reschedule applies what a run saw, nil to drop the channel, unless it was
+// scheduled or forgotten since the run took it.
+func (k *Keeper) reschedule(c dueChannel, refreshIn *float64, now time.Time) {
+	s := k.shard(c.name)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if e, ok := s.entries[c.name]; !ok || e.gen != c.gen {
+		return
+	}
+	if refreshIn == nil {
+		delete(s.entries, c.name)
+		return
+	}
+	s.set(c.name, *refreshIn, now)
 }
 
 // Forget drops channels.
@@ -104,21 +139,29 @@ func (k *Keeper) Forget(channels ...string) {
 	for _, ch := range channels {
 		s := k.shard(ch)
 		s.mu.Lock()
-		delete(s.due, ch)
+		delete(s.entries, ch)
 		s.mu.Unlock()
 	}
 }
 
-// DueChannels returns the channels to look at.
-func (k *Keeper) DueChannels(now time.Time) []string {
-	var res []string
+// IsDue reports whether the channel is to be looked at by now.
+func (k *Keeper) IsDue(ch string, now time.Time) bool {
+	s := k.shard(ch)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	e, ok := s.entries[ch]
+	return ok && e.at <= now.UnixNano()
+}
+
+func (k *Keeper) due(now time.Time) []dueChannel {
+	var res []dueChannel
 	ts := now.UnixNano()
 	for i := range k.shards {
 		s := &k.shards[i]
 		s.mu.Lock()
-		for ch, due := range s.due {
-			if due <= ts {
-				res = append(res, ch)
+		for ch, e := range s.entries {
+			if e.at <= ts {
+				res = append(res, dueChannel{name: ch, gen: e.gen})
 			}
 		}
 		s.mu.Unlock()
@@ -148,12 +191,12 @@ func (k *Keeper) Run(ctx context.Context, checkDelay time.Duration, onError func
 // SKIP LOCKED, as several nodes keep the same channels: a row locked by one of
 // them, or by a publish, stays due and is looked at by the next run.
 func (k *Keeper) Keep(ctx context.Context, now time.Time) error {
-	var channels []string
-	for _, ch := range k.DueChannels(now) {
-		if k.HasSubscribers(ch) {
-			channels = append(channels, ch)
+	var channels []dueChannel
+	for _, c := range k.due(now) {
+		if k.HasSubscribers(c.name) {
+			channels = append(channels, c)
 		} else {
-			k.Forget(ch)
+			k.reschedule(c, nil, now)
 		}
 	}
 	if len(channels) == 0 {
@@ -186,33 +229,32 @@ func (k *Keeper) Keep(ctx context.Context, now time.Time) error {
 	return nil
 }
 
-func (k *Keeper) keepBatch(ctx context.Context, query string, batch []string, now time.Time) error {
-	rows, err := k.pool.Query(ctx, query, batch)
+func (k *Keeper) keepBatch(ctx context.Context, query string, batch []dueChannel, now time.Time) error {
+	names := make([]string, len(batch))
+	for i, c := range batch {
+		names[i] = c.name
+	}
+	rows, err := k.pool.Query(ctx, query, names)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
-	empty := make(map[string]float64, len(batch))
+	seen := make(map[string]*float64, len(batch))
 	for rows.Next() {
 		var ch string
 		var refreshIn *float64
 		if err := rows.Scan(&ch, &refreshIn); err != nil {
 			return err
 		}
-		if refreshIn != nil {
-			empty[ch] = *refreshIn
-		}
+		seen[ch] = refreshIn
 	}
 	// Nothing is rescheduled before the commit is known to have succeeded.
 	if err := rows.Err(); err != nil {
 		return err
 	}
-	for _, ch := range batch {
-		if refreshIn, ok := empty[ch]; ok {
-			k.Schedule(ch, refreshIn, now)
-		} else {
-			k.Forget(ch) // has publications, doesn't expire, or has no meta any more
-		}
+	for _, c := range batch {
+		// nil: it has publications, doesn't expire, or has no meta any more.
+		k.reschedule(c, seen[c.name], now)
 	}
 	return nil
 }

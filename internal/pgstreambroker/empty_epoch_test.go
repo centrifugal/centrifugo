@@ -253,21 +253,21 @@ func TestEmptyMetaKeeper(t *testing.T) {
 	t.Run("no subscribers", func(t *testing.T) {
 		t.Parallel()
 		e, _ := newKeeperTest(t, false)
-		require.Empty(t, e.emptyMeta.DueChannels(whenDue()))
+		require.False(t, e.emptyMeta.IsDue(ch, whenDue()))
 	})
 
 	t.Run("queried only when due", func(t *testing.T) {
 		t.Parallel()
 		e, _ := newKeeperTest(t, true)
-		require.Empty(t, e.emptyMeta.DueChannels(time.Now().Add(29*time.Minute)))
-		require.Equal(t, []string{ch}, e.emptyMeta.DueChannels(whenDue()))
+		require.False(t, e.emptyMeta.IsDue(ch, time.Now().Add(29*time.Minute)))
+		require.True(t, e.emptyMeta.IsDue(ch, whenDue()))
 	})
 
 	t.Run("unsubscribed", func(t *testing.T) {
 		t.Parallel()
 		e, _ := newKeeperTest(t, true)
 		require.NoError(t, e.Unsubscribe(ch))
-		require.Empty(t, e.emptyMeta.DueChannels(whenDue()))
+		require.False(t, e.emptyMeta.IsDue(ch, whenDue()))
 	})
 
 	t.Run("extended when less than half is left", func(t *testing.T) {
@@ -277,7 +277,7 @@ func TestEmptyMetaKeeper(t *testing.T) {
 		now := whenDue()
 		require.NoError(t, e.emptyMeta.Keep(ctx, now))
 		require.InDelta(t, time.Hour.Seconds(), metaTTLLeft(t, e, ch).Seconds(), 30)
-		require.Empty(t, e.emptyMeta.DueChannels(now.Add(29*time.Minute)))
+		require.False(t, e.emptyMeta.IsDue(ch, now.Add(29*time.Minute)))
 	})
 
 	t.Run("left alone with more than half left", func(t *testing.T) {
@@ -294,7 +294,7 @@ func TestEmptyMetaKeeper(t *testing.T) {
 		_, err := node.Publish(ch, []byte("x"), emptyEpochPublish)
 		require.NoError(t, err)
 		require.NoError(t, e.emptyMeta.Keep(ctx, whenDue()))
-		require.Empty(t, e.emptyMeta.DueChannels(time.Now().Add(1000*time.Hour)))
+		require.False(t, e.emptyMeta.IsDue(ch, time.Now().Add(1000*time.Hour)))
 	})
 
 	t.Run("locked row is skipped and stays due", func(t *testing.T) {
@@ -311,7 +311,7 @@ func TestEmptyMetaKeeper(t *testing.T) {
 		now := whenDue()
 		require.NoError(t, e.emptyMeta.Keep(waitCtx, now))
 		require.NoError(t, waitCtx.Err(), "waited for a locked row")
-		require.Equal(t, []string{ch}, e.emptyMeta.DueChannels(now))
+		require.True(t, e.emptyMeta.IsDue(ch, now))
 	})
 
 	t.Run("several batches next to a meta which never expires", func(t *testing.T) {
@@ -336,7 +336,8 @@ func TestEmptyMetaKeeper(t *testing.T) {
 		require.NoError(t, e.pool.QueryRow(ctx, fmt.Sprintf(
 			"SELECT count(*) FROM %s WHERE channel LIKE 'batch:%%' AND expires_at > NOW() + interval '55 minutes'", e.names.meta)).Scan(&kept))
 		require.Equal(t, n, kept)
-		require.Empty(t, e.emptyMeta.DueChannels(now))
+		require.False(t, e.emptyMeta.IsDue("batch:1", now))
+		require.False(t, e.emptyMeta.IsDue("forever", now))
 
 		_, sp, err := e.History("forever", centrifuge.HistoryOptions{})
 		require.NoError(t, err)

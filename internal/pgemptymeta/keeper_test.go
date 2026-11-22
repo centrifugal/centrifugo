@@ -33,9 +33,26 @@ func TestKeeperSchedule(t *testing.T) {
 	k.Watch("later", 60, now)
 	k.Watch("capped", (720 * time.Hour).Seconds(), now)
 
-	require.ElementsMatch(t, []string{"soon"}, k.DueChannels(now))
-	require.ElementsMatch(t, []string{"soon", "later"}, k.DueChannels(now.Add(time.Minute)))
-	require.ElementsMatch(t, []string{"soon", "later", "capped"}, k.DueChannels(now.Add(maxWait)))
+	require.False(t, k.IsDue("unwatched", now.Add(maxWait)))
+	require.True(t, k.IsDue("soon", now))
+	require.False(t, k.IsDue("later", now))
+	require.True(t, k.IsDue("later", now.Add(time.Minute)))
+	require.False(t, k.IsDue("capped", now.Add(time.Minute)))
+	require.True(t, k.IsDue("capped", now.Add(maxWait)))
 	k.Forget("soon", "later")
-	require.ElementsMatch(t, []string{"capped"}, k.DueChannels(now.Add(maxWait)))
+	require.False(t, k.IsDue("soon", now))
+	require.False(t, k.IsDue("later", now.Add(time.Minute)))
+}
+
+// A subscriber came back after a run saw none, before the run dropped it.
+func TestKeeperScheduleDuringSubscribersCheck(t *testing.T) {
+	now := time.Now()
+	var k *Keeper
+	k = New(nil, "meta", func(ch string) bool {
+		k.Schedule(ch, 60, now)
+		return false
+	})
+	k.Schedule("ch", 0, now)
+	require.NoError(t, k.Keep(t.Context(), now))
+	require.True(t, k.IsDue("ch", now.Add(time.Minute)), "the run dropped what was scheduled during it")
 }
