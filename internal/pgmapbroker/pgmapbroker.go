@@ -28,6 +28,9 @@ import (
 //go:embed internal/sql/schema.sql
 var postgresSchemaTemplate string
 
+//go:embed internal/sql/migrations/002.sql
+var schemaMigration2 string
+
 // schemaVersion is the current schema version. Bump when adding migrations
 // or when the schema.sql template changes in a way that requires re-running
 // the CREATE OR REPLACE on existing installs.
@@ -54,12 +57,7 @@ var schemaVersion = 2
 // migration chain. Migrations and `schema.sql` must converge on the same
 // end state; CI tests pin this invariant per release.
 var schemaMigrations = map[int]string{
-	2: schemaFunctions(), // ensure_meta, and publish clears the TTL it sets
-}
-
-func schemaFunctions() string {
-	_, funcs := splitSchemaSQL(postgresSchemaTemplate)
-	return funcs
+	2: schemaMigration2,
 }
 
 func init() {
