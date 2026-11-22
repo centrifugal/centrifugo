@@ -7,6 +7,8 @@ import (
 	"math"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v6/internal/pgemptymeta"
+
 	"github.com/centrifugal/centrifuge"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -45,7 +47,7 @@ func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions
 		}
 	}
 	if meta.refreshIn != nil {
-		e.emptyMeta.watch(ch, *meta.refreshIn, time.Now())
+		e.emptyMeta.Watch(ch, *meta.refreshIn, time.Now())
 	}
 	topOffset, epoch := meta.topOffset, meta.epoch
 	historyTTL, historySize := meta.historyTTL, meta.historySize
@@ -199,21 +201,16 @@ type streamMeta struct {
 	// needsWrite is set when the channel has no meta row, or has no
 	// publications and less than half of its TTL left.
 	needsWrite bool
-	// refreshIn is set for a channel without publications, see refreshInSQL.
+	// refreshIn is set for a channel without publications, see pgemptymeta.RefreshInSQL.
 	refreshIn *float64
 }
 
 // emptyMetaTTL is how long the meta of a channel without publications is
-// kept: the history meta TTL, or HistoryMetaTTLUnpublished if that is set and
-// shorter, as in the Redis broker. It is at least 3 position check delays, so
-// that it can be kept while the channel has subscribers, see emptyMetaKeeper.
+// kept, see pgemptymeta.TTL.
 func (e *PostgresStreamBroker) emptyMetaTTL(requested time.Duration) string {
 	c := e.node.Config()
-	ttl := e.historyMetaTTL(requested)
-	if u := c.HistoryMetaTTLUnpublished; u > 0 && u < ttl {
-		ttl = u
-	}
-	return durationToIntervalString(max(ttl, 3*c.ClientChannelPositionCheckDelay))
+	return durationToIntervalString(pgemptymeta.TTL(
+		e.historyMetaTTL(requested), c.HistoryMetaTTLUnpublished, c.ClientChannelPositionCheckDelay))
 }
 
 func (e *PostgresStreamBroker) readMeta(ctx context.Context, pool *pgxpool.Pool, ch, metaTTL string) (streamMeta, error) {
@@ -223,7 +220,7 @@ func (e *PostgresStreamBroker) readMeta(ctx context.Context, pool *pgxpool.Pool,
 		       %s
 		  FROM %s AS m
 		 WHERE channel = $1
-	`, refreshInSQL, e.names.meta)
+	`, pgemptymeta.RefreshInSQL, e.names.meta)
 
 	var m streamMeta
 	err := pool.QueryRow(ctx, query, ch, metaTTL).Scan(&m.topOffset, &m.epoch, &m.historyTTL, &m.historySize, &m.needsWrite, &m.refreshIn)
@@ -245,7 +242,7 @@ func (e *PostgresStreamBroker) readMeta(ctx context.Context, pool *pgxpool.Pool,
 // the row is lost in a crash, the next one gets another epoch and positions in
 // the lost one are unrecoverable, which is safe. A publish on top of the row
 // commits synchronously and so makes it durable too. An extension commits
-// synchronously, see emptyMetaKeeper. The setting is local to this statement's
+// synchronously, see pgemptymeta.Keeper. The setting is local to this statement's
 // transaction.
 func (e *PostgresStreamBroker) writeEmptyMeta(ctx context.Context, ch, metaTTL string, create bool) (streamMeta, error) {
 	query := fmt.Sprintf(`
@@ -263,7 +260,7 @@ func (e *PostgresStreamBroker) writeEmptyMeta(ctx context.Context, ch, metaTTL s
 		       updated_at = CASE WHEN m.top_offset = 0 AND m.expires_at < EXCLUDED.expires_at
 		                         THEN EXCLUDED.updated_at ELSE m.updated_at END
 		RETURNING m.top_offset, m.epoch, m.history_ttl, m.history_size, %s
-	`, e.names.meta, refreshInSQL)
+	`, e.names.meta, pgemptymeta.RefreshInSQL)
 
 	var m streamMeta
 	err := e.pool.QueryRow(ctx, query, ch, metaTTL, create).Scan(&m.topOffset, &m.epoch, &m.historyTTL, &m.historySize, &m.refreshIn)

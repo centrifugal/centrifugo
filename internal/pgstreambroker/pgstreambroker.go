@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/pgemptymeta"
 	"github.com/centrifugal/centrifugo/v6/internal/pgschema"
 	"github.com/centrifugal/centrifugo/v6/internal/pgshard"
 
@@ -353,7 +354,7 @@ type PostgresStreamBroker struct {
 	cancelFunc   context.CancelFunc
 	notifyCh     chan struct{}
 	sampler      *metricsSampler
-	emptyMeta    *emptyMetaKeeper
+	emptyMeta    *pgemptymeta.Keeper
 	// wg tracks the goroutines started by RegisterBrokerEventHandler.
 	wg sync.WaitGroup
 
@@ -456,7 +457,7 @@ func NewPostgresStreamBroker(n *centrifuge.Node, conf PostgresStreamBrokerConfig
 		workersInitialized: make([]atomic.Bool, conf.NumShards),
 	}
 	b.sampler = newMetricsSampler(b)
-	b.emptyMeta = newEmptyMetaKeeper(func(ch string) bool { return n.Hub().NumSubscribers(ch) > 0 })
+	b.emptyMeta = pgemptymeta.New(pool, b.names.meta, func(ch string) bool { return n.Hub().NumSubscribers(ch) > 0 })
 	if conf.UseNotify {
 		b.notifyCh = make(chan struct{}, 1)
 		if conf.NotifyDSN != "" {
@@ -590,7 +591,11 @@ func (e *PostgresStreamBroker) RegisterBrokerEventHandler(h centrifuge.BrokerEve
 	}
 
 	e.goWorker(e.runCleanupWorker)
-	e.goWorker(e.runEmptyMetaKeeper)
+	e.goWorker(func() {
+		e.emptyMeta.Run(e.cancelCtx, e.node.Config().ClientChannelPositionCheckDelay, func(err error) {
+			e.logErrorMsg("error keeping meta of empty channels", err)
+		})
+	})
 	e.goWorker(e.runPartitionWorker) // unconditional — schema is always partitioned
 	return nil
 }
@@ -606,7 +611,7 @@ func (e *PostgresStreamBroker) Subscribe(channels ...string) error {
 
 // Unsubscribe mirrors Subscribe.
 func (e *PostgresStreamBroker) Unsubscribe(channels ...string) error {
-	e.emptyMeta.forget(channels...)
+	e.emptyMeta.Forget(channels...)
 	if e.conf.Broker != nil {
 		return e.conf.Broker.Unsubscribe(channels...)
 	}
