@@ -1684,3 +1684,131 @@ func TestPostgresStreamBroker_DeltaPrev_FiltersDeadEpoch(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, prevData, "prev_data must be NULL on the fresh epoch's first publish — dead-epoch row must not leak in")
 }
+
+type recordingBroker struct {
+	centrifuge.Broker
+	published chan centrifuge.PublishOptions
+}
+
+func (b *recordingBroker) Publish(ch string, data []byte, opts centrifuge.PublishOptions) (centrifuge.PublishResult, error) {
+	if ch == "test_delta_delivery" {
+		// PrevData points into the outbox batch.
+		opts.PrevData = append([]byte(nil), opts.PrevData...)
+		b.published <- opts
+	}
+	return b.Broker.Publish(ch, data, opts)
+}
+
+// TestPostgresStreamBroker_DeltaDelivery verifies that the outbox passes the
+// delta base it reads to subscribers, both directly and through a fan-out
+// broker.
+func TestPostgresStreamBroker_DeltaDelivery(t *testing.T) {
+	t.Parallel()
+	for i, tc := range []struct {
+		name   string
+		binary bool
+		fanout bool
+	}{
+		{name: "binary", binary: true},
+		{name: "jsonb"},
+		{name: "binary_fanout", binary: true, fanout: true},
+		{name: "jsonb_fanout", fanout: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			const channel = "test_delta_delivery"
+			node, err := centrifuge.New(centrifuge.Config{})
+			require.NoError(t, err)
+
+			conf := PostgresStreamBrokerConfig{
+				DSN:                    getPostgresConnString(t),
+				NumShards:              1,
+				BinaryData:             tc.binary,
+				PartitionLookaheadDays: 1,
+				PartitionRetentionDays: 1,
+				Outbox: OutboxConfig{
+					PollInterval:              10 * time.Millisecond,
+					BatchSize:                 100,
+					AdvisoryLockBaseID:        int64(838383800 + i),
+					AdvisoryLockRetryInterval: 50 * time.Millisecond,
+				},
+			}
+			forwarded := make(chan centrifuge.PublishOptions, 16)
+			if tc.fanout {
+				inner, err := centrifuge.NewMemoryBroker(node, centrifuge.MemoryBrokerConfig{})
+				require.NoError(t, err)
+				conf.Broker = &recordingBroker{Broker: inner, published: forwarded}
+			}
+			e, err := NewPostgresStreamBroker(node, conf)
+			require.NoError(t, err)
+			require.NoError(t, e.EnsureSchema(context.Background()))
+
+			type delivery struct {
+				delta bool
+				prev  []byte
+			}
+			delivered := make(chan delivery, 16)
+			var ready atomic.Bool
+			handler := &testBrokerEventHandler{HandlePublicationFunc: func(ch string, _ *centrifuge.Publication, _ centrifuge.StreamPosition, delta bool, prevPub *centrifuge.Publication) error {
+				if ch != channel {
+					ready.Store(true)
+					return nil
+				}
+				d := delivery{delta: delta}
+				if prevPub != nil {
+					d.prev = append([]byte(nil), prevPub.Data...)
+				}
+				delivered <- d
+				return nil
+			}}
+			require.NoError(t, e.RegisterBrokerEventHandler(handler))
+			require.NoError(t, node.Run())
+			t.Cleanup(func() {
+				_ = e.Close(context.Background())
+				_ = node.Shutdown(context.Background())
+			})
+
+			// The outbox starts from the newest row, so wait until it runs.
+			require.Eventually(t, func() bool {
+				_, err := e.Publish("probe", []byte(`{}`), centrifuge.PublishOptions{})
+				return err == nil && ready.Load()
+			}, 10*time.Second, 50*time.Millisecond)
+
+			for _, p := range []struct {
+				data     string
+				useDelta bool
+				prev     string
+			}{
+				{data: `{"v": 1}`, useDelta: true}, // nothing to make a delta from
+				{data: `{"v": 2}`, useDelta: true, prev: `{"v": 1}`},
+				{data: `{"v": 3}`}, // not requested
+				{data: `{"v": 4}`, useDelta: true, prev: `{"v": 3}`},
+			} {
+				_, err := e.Publish(channel, []byte(p.data), centrifuge.PublishOptions{
+					HistoryTTL:  10 * time.Minute,
+					HistorySize: 10,
+					UseDelta:    p.useDelta,
+				})
+				require.NoError(t, err)
+
+				var got delivery
+				if tc.fanout {
+					select {
+					case opts := <-forwarded:
+						got = delivery{delta: opts.UseDelta, prev: opts.PrevData}
+					case <-time.After(10 * time.Second):
+						require.FailNow(t, "publication not forwarded")
+					}
+				} else {
+					select {
+					case got = <-delivered:
+					case <-time.After(10 * time.Second):
+						require.FailNow(t, "publication not delivered")
+					}
+				}
+				require.Equal(t, p.prev != "", got.delta, p.data)
+				require.Equal(t, p.prev, string(got.prev), p.data)
+			}
+		})
+	}
+}
