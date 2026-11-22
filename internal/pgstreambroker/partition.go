@@ -69,11 +69,14 @@ func addCleanupRows(broker, pass string, n int64) {
 // shutting down mid-tick) is treated as normal and not logged.
 func (e *PostgresStreamBroker) cleanupSupportTables(ctx context.Context) {
 	e.cleanupExpiredBatched(ctx, "meta", fmt.Sprintf(
-		`DELETE FROM %[1]s WHERE channel IN (
+		// expires_at again: the row may be refreshed while the DELETE waits for
+		// it. ARRAY, as with IN that condition makes each batch scan all the
+		// expired rows.
+		`DELETE FROM %[1]s WHERE channel = ANY(ARRAY(
 			SELECT channel FROM %[1]s
 			WHERE expires_at IS NOT NULL AND expires_at < NOW()
 			LIMIT $1
-		) AND expires_at < NOW()`, e.names.meta)) // again: the row may be refreshed while the DELETE waits for it
+		)) AND expires_at < NOW()`, e.names.meta))
 	e.cleanupExpiredBatched(ctx, "idempotency", fmt.Sprintf(
 		`DELETE FROM %[1]s WHERE (channel, idempotency_key) IN (
 			SELECT channel, idempotency_key FROM %[1]s

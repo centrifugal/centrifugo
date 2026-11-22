@@ -17,8 +17,12 @@ import (
 var emptyEpochPublish = centrifuge.WithHistory(10, time.Minute, time.Hour)
 
 // newEpochTestNode returns a Node which uses the broker, as recovery does.
-func newEpochTestNode(t *testing.T, conf PostgresStreamBrokerConfig) (*PostgresStreamBroker, *centrifuge.Node) {
-	node, err := centrifuge.New(centrifuge.Config{})
+func newEpochTestNode(t *testing.T, conf PostgresStreamBrokerConfig, nodeConf ...centrifuge.Config) (*PostgresStreamBroker, *centrifuge.Node) {
+	var nc centrifuge.Config
+	if len(nodeConf) > 0 {
+		nc = nodeConf[0]
+	}
+	node, err := centrifuge.New(nc)
 	require.NoError(t, err)
 	if conf.DSN == "" {
 		conf.DSN = getPostgresConnString(t)
@@ -138,17 +142,205 @@ func TestEmptyChannelEpochRefresh(t *testing.T) {
 	require.True(t, extended)
 }
 
-// The epoch of an empty channel outlives a short history meta TTL: otherwise
-// the first publication to an idle subscriber would be an insufficient state.
-func TestEmptyChannelEpochTTLFloor(t *testing.T) {
-	t.Parallel()
-	e, node := newEpochTestNode(t, PostgresStreamBrokerConfig{})
-	_, err := node.History("floor", centrifuge.WithHistoryMetaTTL(time.Second))
-	require.NoError(t, err)
-	var ok bool
+func metaTTLLeft(t *testing.T, e *PostgresStreamBroker, ch string) time.Duration {
+	var seconds float64
 	require.NoError(t, e.pool.QueryRow(context.Background(), fmt.Sprintf(
-		"SELECT expires_at > NOW() + interval '23 hours' FROM %s WHERE channel = 'floor'", e.names.meta)).Scan(&ok))
-	require.True(t, ok)
+		"SELECT EXTRACT(EPOCH FROM expires_at - NOW())::float8 FROM %s WHERE channel = $1", e.names.meta), ch).Scan(&seconds))
+	return time.Duration(seconds * float64(time.Second))
+}
+
+// ageMeta makes the meta of the channels look written that long ago.
+func ageMeta(t *testing.T, e *PostgresStreamBroker, age time.Duration, channels ...string) {
+	_, err := e.pool.Exec(context.Background(), fmt.Sprintf(`
+		UPDATE %s SET expires_at = expires_at - $1::interval, updated_at = updated_at - $1::interval
+		 WHERE channel = ANY($2)`, e.names.meta), durationToIntervalString(age), channels)
+	require.NoError(t, err)
+}
+
+func TestEmptyChannelMetaTTL(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		name        string
+		unpublished time.Duration
+		metaTTL     time.Duration
+		want        time.Duration
+	}{
+		{"option off", 0, 100 * time.Hour, 100 * time.Hour},
+		{"option on", 10 * time.Minute, 100 * time.Hour, 10 * time.Minute},
+		{"option above meta TTL", 10 * time.Hour, time.Hour, time.Hour},
+		// Below this a live subscriber could not keep the meta.
+		{"at least 3 position checks", 0, time.Second, 2 * time.Minute},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			e, node := newEpochTestNode(t, PostgresStreamBrokerConfig{}, centrifuge.Config{HistoryMetaTTLUnpublished: tt.unpublished})
+			_, err := node.History("ttl", centrifuge.WithHistoryMetaTTL(tt.metaTTL))
+			require.NoError(t, err)
+			require.InDelta(t, tt.want.Seconds(), metaTTLLeft(t, e, "ttl").Seconds(), 30)
+		})
+	}
+}
+
+func TestEmptyChannelMetaTTLFirstPublication(t *testing.T) {
+	t.Parallel()
+	e, node := newEpochTestNode(t, PostgresStreamBrokerConfig{}, centrifuge.Config{HistoryMetaTTLUnpublished: 10 * time.Minute})
+	top, err := node.History("first", centrifuge.WithHistoryMetaTTL(100*time.Hour))
+	require.NoError(t, err)
+	require.InDelta(t, (10 * time.Minute).Seconds(), metaTTLLeft(t, e, "first").Seconds(), 30)
+
+	res, err := node.Publish("first", []byte("x"), centrifuge.WithHistory(10, time.Minute, 100*time.Hour))
+	require.NoError(t, err)
+	require.Equal(t, top.Epoch, res.Epoch)
+	require.InDelta(t, (100 * time.Hour).Seconds(), metaTTLLeft(t, e, "first").Seconds(), 30)
+
+	// A read of a channel with publications does not shorten it.
+	_, err = node.History("first", centrifuge.WithHistoryMetaTTL(100*time.Hour))
+	require.NoError(t, err)
+	require.InDelta(t, (100 * time.Hour).Seconds(), metaTTLLeft(t, e, "first").Seconds(), 30)
+}
+
+// Reads never move the expiry back, which emptyMetaKeeper relies on: a node
+// remembers when a meta is due, and another may have a shorter TTL configured.
+func TestEmptyChannelMetaNotShortened(t *testing.T) {
+	t.Parallel()
+	dsn := getPostgresConnString(t)
+	before, node := newEpochTestNode(t, PostgresStreamBrokerConfig{DSN: dsn})
+	_, err := node.History("monotone", centrifuge.WithHistoryMetaTTL(100*time.Hour))
+	require.NoError(t, err)
+
+	_, node = newEpochTestNode(t, PostgresStreamBrokerConfig{DSN: dsn}, centrifuge.Config{HistoryMetaTTLUnpublished: 10 * time.Minute})
+	_, err = node.History("monotone", centrifuge.WithHistoryMetaTTL(100*time.Hour))
+	require.NoError(t, err)
+	require.InDelta(t, (100 * time.Hour).Seconds(), metaTTLLeft(t, before, "monotone").Seconds(), 30)
+}
+
+// Without fan-out centrifuge does no position checks with this broker, so the
+// broker itself keeps the meta of empty channels which have subscribers.
+func TestEmptyChannelMetaKeptWhileSubscribed(t *testing.T) {
+	t.Parallel()
+	e, node := newEpochTestNode(t, PostgresStreamBrokerConfig{}, centrifuge.Config{
+		HistoryMetaTTLUnpublished:       time.Hour,
+		ClientChannelPositionCheckDelay: time.Second,
+	})
+	const ch = "idle"
+	_, err := node.History(ch)
+	require.NoError(t, err)
+	ageMeta(t, e, 40*time.Minute, ch)
+	e.emptyMeta.hasSubscribers = func(string) bool { return true }
+	e.emptyMeta.schedule(ch, 0, time.Now())
+
+	require.Eventually(t, func() bool {
+		return metaTTLLeft(t, e, ch) > 55*time.Minute
+	}, 30*time.Second, 50*time.Millisecond)
+}
+
+func TestEmptyMetaKeeper(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	const ch = "keeper"
+	// The broker's own worker doesn't get to run: its interval is 20s and the
+	// channels aren't due.
+	newKeeperTest := func(t *testing.T, subscribed bool) (*PostgresStreamBroker, *centrifuge.Node) {
+		e, node := newEpochTestNode(t, PostgresStreamBrokerConfig{}, centrifuge.Config{HistoryMetaTTLUnpublished: time.Hour})
+		e.emptyMeta.hasSubscribers = func(string) bool { return subscribed }
+		_, err := node.History(ch)
+		require.NoError(t, err)
+		return e, node
+	}
+	whenDue := func() time.Time { return time.Now().Add(31 * time.Minute) }
+
+	t.Run("no subscribers", func(t *testing.T) {
+		t.Parallel()
+		e, _ := newKeeperTest(t, false)
+		require.Empty(t, e.emptyMeta.dueChannels(whenDue()))
+	})
+
+	t.Run("queried only when due", func(t *testing.T) {
+		t.Parallel()
+		e, _ := newKeeperTest(t, true)
+		require.Empty(t, e.emptyMeta.dueChannels(time.Now().Add(29*time.Minute)))
+		require.Equal(t, []string{ch}, e.emptyMeta.dueChannels(whenDue()))
+	})
+
+	t.Run("unsubscribed", func(t *testing.T) {
+		t.Parallel()
+		e, _ := newKeeperTest(t, true)
+		require.NoError(t, e.Unsubscribe(ch))
+		require.Empty(t, e.emptyMeta.dueChannels(whenDue()))
+	})
+
+	t.Run("extended when less than half is left", func(t *testing.T) {
+		t.Parallel()
+		e, _ := newKeeperTest(t, true)
+		ageMeta(t, e, 40*time.Minute, ch)
+		now := whenDue()
+		e.keepEmptyMeta(ctx, now)
+		require.InDelta(t, time.Hour.Seconds(), metaTTLLeft(t, e, ch).Seconds(), 30)
+		require.Empty(t, e.emptyMeta.dueChannels(now.Add(29*time.Minute)))
+	})
+
+	t.Run("left alone with more than half left", func(t *testing.T) {
+		t.Parallel()
+		e, _ := newKeeperTest(t, true)
+		ageMeta(t, e, 20*time.Minute, ch)
+		e.keepEmptyMeta(ctx, whenDue())
+		require.InDelta(t, (40 * time.Minute).Seconds(), metaTTLLeft(t, e, ch).Seconds(), 30)
+	})
+
+	t.Run("published channel is dropped", func(t *testing.T) {
+		t.Parallel()
+		e, node := newKeeperTest(t, true)
+		_, err := node.Publish(ch, []byte("x"), emptyEpochPublish)
+		require.NoError(t, err)
+		e.keepEmptyMeta(ctx, whenDue())
+		require.Empty(t, e.emptyMeta.dueChannels(time.Now().Add(1000*time.Hour)))
+	})
+
+	t.Run("locked row is skipped and stays due", func(t *testing.T) {
+		t.Parallel()
+		e, _ := newKeeperTest(t, true)
+		ageMeta(t, e, 40*time.Minute, ch)
+		tx, err := e.pool.Begin(ctx)
+		require.NoError(t, err)
+		defer func() { _ = tx.Rollback(ctx) }()
+		_, err = tx.Exec(ctx, fmt.Sprintf("SELECT 1 FROM %s WHERE channel = $1 FOR UPDATE", e.names.meta), ch)
+		require.NoError(t, err)
+		waitCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		now := whenDue()
+		e.keepEmptyMeta(waitCtx, now)
+		require.NoError(t, waitCtx.Err(), "waited for a locked row")
+		require.Equal(t, []string{ch}, e.emptyMeta.dueChannels(now))
+	})
+
+	t.Run("several batches next to a meta which never expires", func(t *testing.T) {
+		t.Parallel()
+		e, _ := newKeeperTest(t, true)
+		const n = 2*emptyMetaBatchSize + 1
+		_, err := e.pool.Exec(ctx, fmt.Sprintf(`
+			INSERT INTO %s (channel, epoch, expires_at, updated_at)
+			SELECT 'batch:' || i, 'e', NOW() + interval '20 minutes', NOW() - interval '40 minutes' FROM generate_series(1, $1::int) i`, e.names.meta), n)
+		require.NoError(t, err)
+		_, err = e.pool.Exec(ctx, fmt.Sprintf(
+			"INSERT INTO %s (channel, epoch, top_offset, expires_at) VALUES ('forever', 'e', 1, 'infinity')", e.names.meta))
+		require.NoError(t, err)
+		now := time.Now()
+		for i := range n {
+			e.emptyMeta.schedule(fmt.Sprintf("batch:%d", i+1), 0, now)
+		}
+		e.emptyMeta.schedule("forever", 0, now)
+
+		e.keepEmptyMeta(ctx, now)
+		var kept int
+		require.NoError(t, e.pool.QueryRow(ctx, fmt.Sprintf(
+			"SELECT count(*) FROM %s WHERE channel LIKE 'batch:%%' AND expires_at > NOW() + interval '55 minutes'", e.names.meta)).Scan(&kept))
+		require.Equal(t, n, kept)
+		require.Empty(t, e.emptyMeta.dueChannels(now))
+
+		_, sp, err := e.History("forever", centrifuge.HistoryOptions{})
+		require.NoError(t, err)
+		require.Equal(t, uint64(1), sp.Offset)
+	})
 }
 
 // A replica which doesn't have the meta row yet must not hand out a position

@@ -700,7 +700,7 @@ func TestPostgresStreamBroker_HistoryTTLExpiry(t *testing.T) {
 
 	channel := "test_history_ttl_expiry"
 	_, err := e.Publish(channel, []byte("x"), centrifuge.PublishOptions{
-		HistoryTTL:  500 * time.Millisecond,
+		HistoryTTL:  time.Minute,
 		HistorySize: 10,
 	})
 	require.NoError(t, err)
@@ -713,7 +713,9 @@ func TestPostgresStreamBroker_HistoryTTLExpiry(t *testing.T) {
 	require.Len(t, pubs, 1)
 
 	// After TTL elapses, the read-time filter should exclude the row.
-	time.Sleep(700 * time.Millisecond)
+	_, err = e.pool.Exec(context.Background(), fmt.Sprintf(
+		"UPDATE %s SET created_at = created_at - interval '61 seconds' WHERE channel = $1", e.names.stream), channel)
+	require.NoError(t, err)
 	pubs, sp, err := e.History(channel, centrifuge.HistoryOptions{
 		Filter: centrifuge.HistoryFilter{Limit: 10},
 	})
