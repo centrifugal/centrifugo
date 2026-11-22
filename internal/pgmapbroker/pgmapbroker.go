@@ -2249,11 +2249,14 @@ func (e *PostgresMapBroker) runCleanupWorker() {
 // chunked DELETE is needed there.
 func (e *PostgresMapBroker) cleanupEntries(ctx context.Context) {
 	e.cleanupExpiredBatched(ctx, fmt.Sprintf(
-		`DELETE FROM %[1]s WHERE channel IN (
+		// expires_at again: the row may be refreshed while the DELETE waits for
+		// it. ARRAY, as with IN that condition makes each batch scan all the
+		// expired rows.
+		`DELETE FROM %[1]s WHERE channel = ANY(ARRAY(
 			SELECT channel FROM %[1]s
 			WHERE expires_at IS NOT NULL AND expires_at < NOW()
 			LIMIT $1
-		)`, e.names.meta))
+		)) AND expires_at < NOW()`, e.names.meta))
 	e.cleanupExpiredBatched(ctx, fmt.Sprintf(
 		`DELETE FROM %[1]s WHERE (channel, idempotency_key) IN (
 			SELECT channel, idempotency_key FROM %[1]s
