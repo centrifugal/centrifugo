@@ -40,6 +40,17 @@ func logNonRetryableConsumingError(err error, method string) {
 	log.Error().Err(err).Str("method", method).Msg("non retryable error during consuming, skip message")
 }
 
+// logSkippedBroadcast logs once if some channels of a consumed broadcast were
+// refused: the message is not retried, so it is lost for these channels.
+func logSkippedBroadcast(responses []*apiproto.PublishResponse) {
+	for _, response := range responses {
+		if response.Error != nil {
+			logNonRetryableConsumingError(response.Error, "broadcast")
+			return
+		}
+	}
+}
+
 // ErrShutdown is returned to consumers for messages received after Node shutdown
 // started. Such messages must not be acknowledged: this node is no longer able to
 // deliver them, and depending on the broker a publish may still return success (a
@@ -113,6 +124,7 @@ func (d *Dispatcher) Broadcast(ctx context.Context, req *apiproto.BroadcastReque
 			return response.Error
 		}
 	}
+	logSkippedBroadcast(resp.Result.Responses)
 	return nil
 }
 
@@ -196,6 +208,7 @@ func (d *Dispatcher) dispatchMethodPayload(ctx context.Context, method string, p
 				return resp.Error
 			}
 		}
+		logSkippedBroadcast(res.Responses)
 		return nil
 	case "subscribe":
 		_, err := d.handler.handleSubscribe(ctx, payload)
