@@ -150,6 +150,8 @@ func (e *PostgresStreamBroker) processOutboxBatch(
 		pub     *centrifuge.Publication
 		info    *centrifuge.ClientInfo
 		epoch   string
+		// prevData is the delta base, stored when published with delta.
+		prevData []byte
 	}
 	var (
 		arena       byteArena
@@ -200,6 +202,7 @@ func (e *PostgresStreamBroker) processOutboxBatch(
 			p.Epoch = epoch
 			p.Data = e.rawDataBytes(&arena, raw[6], fmts[6])
 			p.Tags = pgRawJSONBMap(raw[7])
+			entry.prevData = e.rawDataBytes(&arena, raw[12], fmts[12])
 			if raw[8] != nil {
 				infoBacking = append(infoBacking, centrifuge.ClientInfo{
 					ClientID: pgRawString(&arena, raw[8]),
@@ -237,6 +240,7 @@ func (e *PostgresStreamBroker) processOutboxBatch(
 		switch en.kind {
 		case kindPublication:
 			sp := centrifuge.StreamPosition{Offset: en.pub.Offset, Epoch: en.epoch}
+			useDelta := len(en.prevData) > 0
 			if e.conf.Broker != nil {
 				// Fanout mode: forward to inner broker.
 				_, err := e.conf.Broker.Publish(en.channel, en.pub.Data, centrifuge.PublishOptions{
@@ -244,12 +248,18 @@ func (e *PostgresStreamBroker) processOutboxBatch(
 					Tags:       en.pub.Tags,
 					Offset:     en.pub.Offset,
 					Epoch:      en.epoch,
+					UseDelta:   useDelta,
+					PrevData:   en.prevData,
 				})
 				if err != nil {
 					e.logErrorMsg("outbox forward to inner broker", err)
 				}
 			} else {
-				if err := e.eventHandler.HandlePublication(en.channel, en.pub, sp, false, nil); err != nil {
+				var prevPub *centrifuge.Publication
+				if useDelta {
+					prevPub = &centrifuge.Publication{Data: en.prevData}
+				}
+				if err := e.eventHandler.HandlePublication(en.channel, en.pub, sp, useDelta, prevPub); err != nil {
 					e.logErrorMsg("outbox HandlePublication", err)
 				}
 			}
