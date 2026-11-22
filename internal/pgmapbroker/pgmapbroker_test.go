@@ -1509,6 +1509,7 @@ func dropAllSchemaObjects(ctx context.Context, pool *pgxpool.Pool) {
 		_, _ = pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %sremove CASCADE", prefix))
 		_, _ = pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %sremove_strict CASCADE", prefix))
 		_, _ = pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %sexpire_keys CASCADE", prefix))
+		_, _ = pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %sensure_meta CASCADE", prefix))
 
 		// Drop tables.
 		_, _ = pool.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %sidempotency CASCADE", prefix))
@@ -1554,7 +1555,7 @@ func verifySchemaComplete(t *testing.T, ctx context.Context, pool *pgxpool.Pool,
 	}
 
 	// Check functions exist.
-	for _, suffix := range []string{"publish", "publish_strict", "remove", "remove_strict", "expire_keys"} {
+	for _, suffix := range []string{"publish", "publish_strict", "remove", "remove_strict", "expire_keys", "ensure_meta"} {
 		fn := prefix + suffix
 		var exists bool
 		err := pool.QueryRow(ctx,
@@ -2074,6 +2075,7 @@ func TestPostgresMapBroker_EnsureSchema_BothPrefixesCreated(t *testing.T) {
 
 // TestPostgresMapBroker_EnsureSchema_MigrationExecution tests that migrations run correctly.
 func TestPostgresMapBroker_EnsureSchema_MigrationExecution(t *testing.T) {
+	useBaselineSchema(t)
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -2157,6 +2159,7 @@ func TestPostgresMapBroker_EnsureSchema_MigrationExecution(t *testing.T) {
 
 // TestPostgresMapBroker_EnsureSchema_MigrationIdempotent tests that migrations can run twice.
 func TestPostgresMapBroker_EnsureSchema_MigrationIdempotent(t *testing.T) {
+	useBaselineSchema(t)
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -2222,6 +2225,7 @@ func TestPostgresMapBroker_EnsureSchema_MigrationIdempotent(t *testing.T) {
 
 // TestPostgresMapBroker_EnsureSchema_FreshInstallSkipsMigrations tests that fresh installs skip migrations.
 func TestPostgresMapBroker_EnsureSchema_FreshInstallSkipsMigrations(t *testing.T) {
+	useBaselineSchema(t)
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -2277,6 +2281,7 @@ func TestPostgresMapBroker_EnsureSchema_FreshInstallSkipsMigrations(t *testing.T
 
 // TestPostgresMapBroker_EnsureSchema_VersionPreservedOnDDLRerun tests that DO NOTHING preserves version.
 func TestPostgresMapBroker_EnsureSchema_VersionPreservedOnDDLRerun(t *testing.T) {
+	useBaselineSchema(t)
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -2341,6 +2346,7 @@ func TestPostgresMapBroker_EnsureSchema_VersionPreservedOnDDLRerun(t *testing.T)
 
 // TestPostgresMapBroker_EnsureSchema_FunctionalAfterMigration tests that all operations work after migration.
 func TestPostgresMapBroker_EnsureSchema_FunctionalAfterMigration(t *testing.T) {
+	useBaselineSchema(t)
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -3393,6 +3399,7 @@ func TestPostgresMapBroker_TablePrefix_CustomPrefix(t *testing.T) {
 		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %sremove CASCADE", prefix))
 		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %sremove_strict CASCADE", prefix))
 		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %sexpire_keys CASCADE", prefix))
+		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %sensure_meta CASCADE", prefix))
 		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %sstream_publish CASCADE", prefix))
 		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %sstream_remove CASCADE", prefix))
 		_, _ = e.pool.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %sidempotency CASCADE", prefix))
@@ -4377,6 +4384,7 @@ func TestPostgresMapBroker_EnsureSchema_TransientReadPropagates(t *testing.T) {
 // value AND the partial DDL changes are rolled back. Atomic migration + version
 // bump is the whole point of running them in a single transaction.
 func TestPostgresMapBroker_EnsureSchema_MigrationFailureRollsBackVersion(t *testing.T) {
+	useBaselineSchema(t)
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -4454,6 +4462,7 @@ func TestPostgresMapBroker_EnsureSchema_MigrationFailureRollsBackVersion(t *test
 // We bump schemaVersion by two steps with both migrations registered and
 // confirm both columns were added and schema_version ends at the new top.
 func TestPostgresMapBroker_EnsureSchema_MultiStepMigrationChain(t *testing.T) {
+	useBaselineSchema(t)
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -4532,6 +4541,7 @@ func TestPostgresMapBroker_EnsureSchema_MultiStepMigrationChain(t *testing.T) {
 // run them out of order. This is the realistic "Centrifugo evolved a lot"
 // upgrade path the user explicitly called out.
 func TestPostgresMapBroker_EnsureSchema_LargeVersionJump(t *testing.T) {
+	useBaselineSchema(t)
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -4636,6 +4646,7 @@ func TestPostgresMapBroker_EnsureSchema_LargeVersionJump(t *testing.T) {
 // without ON CONFLICT) so a missing lock would produce two rows and the test
 // would catch it.
 func TestPostgresMapBroker_EnsureSchema_ConcurrentMigratorsLockSerialised(t *testing.T) {
+	useBaselineSchema(t)
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -4735,6 +4746,7 @@ func TestPostgresMapBroker_EnsureSchema_ConcurrentMigratorsLockSerialised(t *tes
 // would have to hardcode `cf_map_` / `cf_binary_map_` in every migration,
 // silently breaking any operator who set `table_prefix: <something else>`.
 func TestPostgresMapBroker_EnsureSchema_MigrationTemplateUsesCustomTablePrefix(t *testing.T) {
+	useBaselineSchema(t)
 	connString := getPostgresConnString(t)
 	ctx := context.Background()
 
@@ -4760,7 +4772,7 @@ func TestPostgresMapBroker_EnsureSchema_MigrationTemplateUsesCustomTablePrefix(t
 	cleanup := func() {
 		// Drop all objects created with the custom prefix.
 		for _, prefix := range []string{customPrefix + "_map_", customPrefix + "_binary_map_"} {
-			for _, fn := range []string{"publish", "publish_strict", "remove", "remove_strict", "expire_keys"} {
+			for _, fn := range []string{"publish", "publish_strict", "remove", "remove_strict", "expire_keys", "ensure_meta"} {
 				_, _ = broker.pool.Exec(ctx, fmt.Sprintf("DROP FUNCTION IF EXISTS %s%s CASCADE", prefix, fn))
 			}
 			for _, tbl := range []string{"idempotency", "stream", "state", "meta", "shard_lock", "schema_version"} {
@@ -4827,4 +4839,12 @@ func TestPostgresMapBroker_EnsureSchema_MigrationTemplateUsesCustomTablePrefix(t
 		require.NoError(t, err)
 		require.Equal(t, baseVersion+1, v)
 	}
+}
+
+// useBaselineSchema lets a test of the migration machinery register migrations
+// of its own from version 1. Not for parallel tests.
+func useBaselineSchema(t *testing.T) {
+	version, migrations := schemaVersion, schemaMigrations
+	schemaVersion, schemaMigrations = 1, map[int]string{}
+	t.Cleanup(func() { schemaVersion, schemaMigrations = version, migrations })
 }

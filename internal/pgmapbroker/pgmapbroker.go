@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
+	"github.com/centrifugal/centrifugo/v6/internal/pgemptymeta"
 	"github.com/centrifugal/centrifugo/v6/internal/pgoutbox"
 	"github.com/centrifugal/centrifugo/v6/internal/pgschema"
 	"github.com/centrifugal/centrifugo/v6/internal/pgshard"
@@ -30,7 +31,7 @@ var postgresSchemaTemplate string
 // schemaVersion is the current schema version. Bump when adding migrations
 // or when the schema.sql template changes in a way that requires re-running
 // the CREATE OR REPLACE on existing installs.
-var schemaVersion = 1
+var schemaVersion = 2
 
 // schemaMigrations maps target version to a migration SQL TEMPLATE. Each
 // template uses the same placeholders as `schema.sql`:
@@ -52,7 +53,14 @@ var schemaVersion = 1
 // reflect the latest shape — fresh installs run only the DDL, not the
 // migration chain. Migrations and `schema.sql` must converge on the same
 // end state; CI tests pin this invariant per release.
-var schemaMigrations = map[int]string{}
+var schemaMigrations = map[int]string{
+	2: schemaFunctions(), // ensure_meta, and publish clears the TTL it sets
+}
+
+func schemaFunctions() string {
+	_, funcs := splitSchemaSQL(postgresSchemaTemplate)
+	return funcs
+}
 
 func init() {
 	pgschema.ValidateMigrationMap("pgmapbroker", schemaVersion, schemaMigrations)
@@ -133,7 +141,7 @@ func splitSchemaSQL(sql string) (ddl, funcs string) {
 // both table sets regardless of the active mode.
 type pgNames struct {
 	stream, state, meta, idempotency, shardLock, schemaVersion string // table names (active variant)
-	publish, remove, expireKeys                                string // function names (active variant)
+	publish, remove, expireKeys, ensureMeta                    string // function names (active variant)
 	notifyChannel                                              string // pg_notify channel name (active variant)
 
 	// jsonbPrefix and binaryPrefix are the two full prefix strings for this
@@ -163,6 +171,7 @@ func newPgNames(userPrefix string, binary bool) pgNames {
 		publish:       p + "publish",
 		remove:        p + "remove",
 		expireKeys:    p + "expire_keys",
+		ensureMeta:    p + "ensure_meta",
 		notifyChannel: p + "stream_notify",
 		jsonbPrefix:   jsonbPrefix,
 		binaryPrefix:  binaryPrefix,
@@ -226,6 +235,12 @@ type PostgresMapBroker struct {
 	// NOTIFY-driven delivery so they publish only after LISTEN is bound.
 	// Production tolerates the race because PollInterval is the fallback.
 	notifyListenerReady atomic.Bool
+
+	emptyMetaKeeper *pgemptymeta.Keeper
+	// subscribed has the channels between Subscribe and Unsubscribe. The hub
+	// can't tell: a wrapper may subscribe to a channel which has no
+	// subscribers of its own, the source of derived channels for example.
+	subscribed sync.Map
 }
 
 var _ centrifuge.MapBroker = (*PostgresMapBroker)(nil)
@@ -552,6 +567,7 @@ func NewPostgresMapBroker(n *centrifuge.Node, conf PostgresMapBrokerConfig) (*Po
 		}
 	}
 
+	e.emptyMetaKeeper = pgemptymeta.New(pool, e.names.meta, e.isSubscribed)
 	return e, nil
 }
 
@@ -615,6 +631,11 @@ func (e *PostgresMapBroker) RegisterEventHandler(h centrifuge.BrokerEventHandler
 	e.goWorker(e.runTTLExpirationWorker)
 	e.goWorker(e.runCleanupLagWorker)
 	e.goWorker(e.runCleanupWorker)
+	e.goWorker(func() {
+		e.emptyMetaKeeper.Run(e.cancelCtx, e.node.Config().ClientChannelPositionCheckDelay, func(err error) {
+			e.logErrorMsg("error keeping meta of empty channels", err)
+		})
+	})
 	e.goWorker(e.runPartitionWorker) // unconditional — schema is always partitioned
 
 	return nil
@@ -932,16 +953,28 @@ func (e *PostgresMapBroker) EnsureSchema(ctx context.Context) error {
 	return pgschema.SetSchemaVersion(ctx, e.pool, label, schemaVersion, e.versionTables())
 }
 
-// Subscribe delegates to inner Broker when configured, otherwise no-op.
+// Subscribe delegates to inner Broker when configured, and has the meta of
+// the channels kept while they are empty.
 func (e *PostgresMapBroker) Subscribe(channels ...string) error {
 	if e.conf.Broker != nil {
-		return e.conf.Broker.Subscribe(channels...)
+		if err := e.conf.Broker.Subscribe(channels...); err != nil {
+			return err
+		}
+	}
+	now := time.Now()
+	for _, ch := range channels {
+		e.subscribed.Store(ch, struct{}{})
+		e.emptyMetaKeeper.Schedule(ch, 0, now)
 	}
 	return nil
 }
 
-// Unsubscribe delegates to inner Broker when configured, otherwise no-op.
+// Unsubscribe delegates to inner Broker when configured.
 func (e *PostgresMapBroker) Unsubscribe(channels ...string) error {
+	for _, ch := range channels {
+		e.subscribed.Delete(ch)
+	}
+	e.emptyMetaKeeper.Forget(channels...)
 	if e.conf.Broker != nil {
 		return e.conf.Broker.Unsubscribe(channels...)
 	}
@@ -1211,22 +1244,29 @@ func (e *PostgresMapBroker) Remove(ctx context.Context, ch string, key string, o
 func (e *PostgresMapBroker) ReadState(ctx context.Context, ch string, opts centrifuge.MapReadStateOptions) (centrifuge.MapStateResult, error) {
 	pool := e.getReadPool(ch, opts.AllowCached)
 
-	_, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().Map.GetMapChannelOptions, ch)
+	chOpts, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().Map.GetMapChannelOptions, ch)
 	if err != nil {
 		return centrifuge.MapStateResult{}, err
 	}
 
-	// Limit=0 with no key: return just stream position, no transaction needed.
-	if opts.Limit == 0 && opts.Key == "" {
-		return e.readStatePosition(ctx, pool, ch, opts)
-	}
-
-	// Single key lookup (CAS read): batch meta + key query.
+	// Single key lookup (CAS read): batch meta + key query. It gives no
+	// position to subscribe from, so it creates no epoch.
 	if opts.Key != "" {
 		return e.readStateKey(ctx, pool, ch, opts)
 	}
 
-	// Full/paginated state read (chOpts already resolved above).
+	em := e.emptyMetaFor(chOpts)
+	return withEmptyMeta(ctx, e, pool, ch, em, func(pool *pgxpool.Pool) (centrifuge.MapStateResult, error) {
+		// Limit=0: return just stream position, no transaction needed.
+		if opts.Limit == 0 {
+			return e.readStatePosition(ctx, pool, ch, opts, em)
+		}
+		return e.readStatePage(ctx, pool, ch, opts, em)
+	})
+}
+
+// readStatePage is the full/paginated state read.
+func (e *PostgresMapBroker) readStatePage(ctx context.Context, pool *pgxpool.Pool, ch string, opts centrifuge.MapReadStateOptions, em emptyMeta) (centrifuge.MapStateResult, error) {
 	limit := opts.Limit
 	if limit < 0 {
 		limit = 100000
@@ -1263,10 +1303,9 @@ func (e *PostgresMapBroker) ReadState(ctx context.Context, ch string, opts centr
 	}
 
 	// Pipelined batch: meta + state in a single round trip with REPEATABLE READ.
-	metaQuery := fmt.Sprintf(`SELECT top_offset, epoch FROM %s WHERE channel = $1`, e.names.meta)
 	batch := &pgx.Batch{}
 	batch.Queue("BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
-	batch.Queue(metaQuery, ch)
+	batch.Queue(e.metaQuery(), ch, em.ttl)
 	batch.Queue(stateQuery, stateArgs...)
 	batch.Queue("COMMIT")
 
@@ -1279,9 +1318,7 @@ func (e *PostgresMapBroker) ReadState(ctx context.Context, ch string, opts centr
 	}
 
 	// Read meta.
-	var topOffset int64
-	var epoch string
-	err = br.QueryRow().Scan(&topOffset, &epoch)
+	streamPos, err := e.scanMeta(br.QueryRow(), ch, em)
 	if errors.Is(err, pgx.ErrNoRows) {
 		_ = br.Close()
 		if opts.Revision != nil && opts.Revision.Epoch != "" {
@@ -1294,9 +1331,7 @@ func (e *PostgresMapBroker) ReadState(ctx context.Context, ch string, opts centr
 		return centrifuge.MapStateResult{}, err
 	}
 
-	streamPos := centrifuge.StreamPosition{Offset: uint64(topOffset), Epoch: epoch}
-
-	if opts.Revision != nil && opts.Revision.Epoch != "" && opts.Revision.Epoch != epoch {
+	if opts.Revision != nil && opts.Revision.Epoch != "" && opts.Revision.Epoch != streamPos.Epoch {
 		_ = br.Close()
 		return centrifuge.MapStateResult{Position: streamPos}, centrifuge.ErrorUnrecoverablePosition
 	}
@@ -1361,12 +1396,8 @@ func (e *PostgresMapBroker) ReadState(ctx context.Context, ch string, opts centr
 
 // readStatePosition returns just the stream position for a channel (no state entries).
 // Used when Limit=0 with no key filter — a single meta query, no transaction needed.
-func (e *PostgresMapBroker) readStatePosition(ctx context.Context, pool *pgxpool.Pool, ch string, opts centrifuge.MapReadStateOptions) (centrifuge.MapStateResult, error) {
-	var topOffset int64
-	var epoch string
-	err := pool.QueryRow(ctx, fmt.Sprintf(
-		`SELECT top_offset, epoch FROM %s WHERE channel = $1`, e.names.meta), ch,
-	).Scan(&topOffset, &epoch)
+func (e *PostgresMapBroker) readStatePosition(ctx context.Context, pool *pgxpool.Pool, ch string, opts centrifuge.MapReadStateOptions, em emptyMeta) (centrifuge.MapStateResult, error) {
+	streamPos, err := e.scanMeta(pool.QueryRow(ctx, e.metaQuery(), ch, em.ttl), ch, em)
 	if errors.Is(err, pgx.ErrNoRows) {
 		if opts.Revision != nil && opts.Revision.Epoch != "" {
 			return centrifuge.MapStateResult{}, centrifuge.ErrorUnrecoverablePosition
@@ -1376,8 +1407,7 @@ func (e *PostgresMapBroker) readStatePosition(ctx context.Context, pool *pgxpool
 	if err != nil {
 		return centrifuge.MapStateResult{}, err
 	}
-	streamPos := centrifuge.StreamPosition{Offset: uint64(topOffset), Epoch: epoch}
-	if opts.Revision != nil && opts.Revision.Epoch != "" && opts.Revision.Epoch != epoch {
+	if opts.Revision != nil && opts.Revision.Epoch != "" && opts.Revision.Epoch != streamPos.Epoch {
 		return centrifuge.MapStateResult{Position: streamPos}, centrifuge.ErrorUnrecoverablePosition
 	}
 	return centrifuge.MapStateResult{Position: streamPos}, nil
@@ -1467,11 +1497,22 @@ func (e *PostgresMapBroker) readStateKey(ctx context.Context, pool *pgxpool.Pool
 func (e *PostgresMapBroker) ReadStream(ctx context.Context, ch string, opts centrifuge.MapReadStreamOptions) (centrifuge.MapStreamResult, error) {
 	pool := e.getReadPool(ch, opts.AllowCached)
 
-	if opts.Filter.Limit == 0 {
-		// Position check only — single meta query, no stream read needed.
-		return e.readStreamPosition(ctx, pool, ch)
+	chOpts, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().Map.GetMapChannelOptions, ch)
+	if err != nil {
+		return centrifuge.MapStreamResult{}, err
 	}
 
+	em := e.emptyMetaFor(chOpts)
+	return withEmptyMeta(ctx, e, pool, ch, em, func(pool *pgxpool.Pool) (centrifuge.MapStreamResult, error) {
+		if opts.Filter.Limit == 0 {
+			// Position check only — single meta query, no stream read needed.
+			return e.readStreamPosition(ctx, pool, ch, em)
+		}
+		return e.readStreamPage(ctx, pool, ch, opts, em)
+	})
+}
+
+func (e *PostgresMapBroker) readStreamPage(ctx context.Context, pool *pgxpool.Pool, ch string, opts centrifuge.MapReadStreamOptions, em emptyMeta) (centrifuge.MapStreamResult, error) {
 	sinceOffset := int64(0)
 	if opts.Filter.Since != nil {
 		sinceOffset = int64(opts.Filter.Since.Offset)
@@ -1536,14 +1577,13 @@ func (e *PostgresMapBroker) ReadStream(ctx context.Context, ch string, opts cent
 	// For reverse without Since, we need topOffset to set sinceOffset.
 	// Fall back to transactional path for this case.
 	if opts.Filter.Reverse && opts.Filter.Since == nil {
-		return e.readStreamTx(ctx, pool, ch, opts, streamQuery, unlimited, limit)
+		return e.readStreamTx(ctx, pool, ch, em, streamQuery, unlimited, limit)
 	}
 
 	// Pipelined batch: meta + stream in a single round trip, with REPEATABLE READ for consistency.
-	metaQuery := fmt.Sprintf(`SELECT top_offset, epoch FROM %s WHERE channel = $1`, e.names.meta)
 	batch := &pgx.Batch{}
 	batch.Queue("BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
-	batch.Queue(metaQuery, ch)
+	batch.Queue(e.metaQuery(), ch, em.ttl)
 	if unlimited {
 		batch.Queue(streamQuery, ch, sinceOffset)
 	} else {
@@ -1560,9 +1600,7 @@ func (e *PostgresMapBroker) ReadStream(ctx context.Context, ch string, opts cent
 	}
 
 	// Read meta.
-	var topOffset int64
-	var epoch string
-	err := br.QueryRow().Scan(&topOffset, &epoch)
+	streamPos, err := e.scanMeta(br.QueryRow(), ch, em)
 	if errors.Is(err, pgx.ErrNoRows) {
 		_ = br.Close()
 		return centrifuge.MapStreamResult{}, nil
@@ -1572,10 +1610,8 @@ func (e *PostgresMapBroker) ReadStream(ctx context.Context, ch string, opts cent
 		return centrifuge.MapStreamResult{}, err
 	}
 
-	streamPos := centrifuge.StreamPosition{Offset: uint64(topOffset), Epoch: epoch}
-
 	// Validate epoch if provided.
-	if opts.Filter.Since != nil && opts.Filter.Since.Epoch != "" && opts.Filter.Since.Epoch != epoch {
+	if opts.Filter.Since != nil && opts.Filter.Since.Epoch != "" && opts.Filter.Since.Epoch != streamPos.Epoch {
 		_ = br.Close()
 		return centrifuge.MapStreamResult{}, centrifuge.ErrorUnrecoverablePosition
 	}
@@ -1634,18 +1670,14 @@ func (e *PostgresMapBroker) ReadStream(ctx context.Context, ch string, opts cent
 
 // readStreamTx is a fallback for ReadStream when we need meta before building the query
 // (e.g., reverse without explicit Since needs topOffset). Uses REPEATABLE READ transaction.
-func (e *PostgresMapBroker) readStreamTx(ctx context.Context, pool *pgxpool.Pool, ch string, _ centrifuge.MapReadStreamOptions, streamQuery string, unlimited bool, limit int) (centrifuge.MapStreamResult, error) {
+func (e *PostgresMapBroker) readStreamTx(ctx context.Context, pool *pgxpool.Pool, ch string, em emptyMeta, streamQuery string, unlimited bool, limit int) (centrifuge.MapStreamResult, error) {
 	tx, err := pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
 	if err != nil {
 		return centrifuge.MapStreamResult{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	var topOffset int64
-	var epoch string
-	err = tx.QueryRow(ctx, fmt.Sprintf(`
-		SELECT top_offset, epoch FROM %s WHERE channel = $1
-	`, e.names.meta), ch).Scan(&topOffset, &epoch)
+	streamPos, err := e.scanMeta(tx.QueryRow(ctx, e.metaQuery(), ch, em.ttl), ch, em)
 	if errors.Is(err, pgx.ErrNoRows) {
 		_ = tx.Rollback(ctx)
 		return centrifuge.MapStreamResult{}, nil
@@ -1654,7 +1686,7 @@ func (e *PostgresMapBroker) readStreamTx(ctx context.Context, pool *pgxpool.Pool
 		return centrifuge.MapStreamResult{}, err
 	}
 
-	sinceOffset := topOffset + 1
+	sinceOffset := int64(streamPos.Offset) + 1
 
 	var rows pgx.Rows
 	if unlimited {
@@ -1701,23 +1733,19 @@ func (e *PostgresMapBroker) readStreamTx(ctx context.Context, pool *pgxpool.Pool
 		return centrifuge.MapStreamResult{}, err
 	}
 
-	return centrifuge.MapStreamResult{Publications: pubs, Position: centrifuge.StreamPosition{Offset: uint64(topOffset), Epoch: epoch}}, nil
+	return centrifuge.MapStreamResult{Publications: pubs, Position: streamPos}, nil
 }
 
 // readStreamPosition returns just the stream position for a channel (Limit=0 case).
-func (e *PostgresMapBroker) readStreamPosition(ctx context.Context, pool *pgxpool.Pool, ch string) (centrifuge.MapStreamResult, error) {
-	var topOffset int64
-	var epoch string
-	err := pool.QueryRow(ctx, fmt.Sprintf(`
-		SELECT top_offset, epoch FROM %s WHERE channel = $1
-	`, e.names.meta), ch).Scan(&topOffset, &epoch)
+func (e *PostgresMapBroker) readStreamPosition(ctx context.Context, pool *pgxpool.Pool, ch string, em emptyMeta) (centrifuge.MapStreamResult, error) {
+	streamPos, err := e.scanMeta(pool.QueryRow(ctx, e.metaQuery(), ch, em.ttl), ch, em)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return centrifuge.MapStreamResult{}, nil
 	}
 	if err != nil {
 		return centrifuge.MapStreamResult{}, err
 	}
-	return centrifuge.MapStreamResult{Position: centrifuge.StreamPosition{Offset: uint64(topOffset), Epoch: epoch}}, nil
+	return centrifuge.MapStreamResult{Position: streamPos}, nil
 }
 
 // Stats returns state statistics.

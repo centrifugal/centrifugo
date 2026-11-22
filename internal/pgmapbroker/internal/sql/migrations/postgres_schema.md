@@ -12,7 +12,7 @@ The PostgreSQL MapBroker lives in Centrifugo at `internal/pgmapbroker/`.
 |---|---|---|
 | New table | `CREATE TABLE IF NOT EXISTS` | No |
 | New index | `CREATE INDEX IF NOT EXISTS` | No |
-| Function body change | `CREATE OR REPLACE FUNCTION` | No |
+| Function body change | `CREATE OR REPLACE FUNCTION` | **Yes** (version bump, functions are not re-created otherwise) |
 | New function param with DEFAULT | `CREATE OR REPLACE FUNCTION` | No |
 | New column on existing table | -- | **Yes** (`ALTER TABLE ADD COLUMN IF NOT EXISTS`) |
 | Column type change | -- | **Yes** (`ALTER TABLE ALTER COLUMN TYPE`) |
@@ -33,7 +33,7 @@ The PostgreSQL MapBroker lives in Centrifugo at `internal/pgmapbroker/`.
 3. **Function signature changes need coordination.** Options: accept brief errors during DROP+CREATE (<1s), or use a new function name (zero-downtime).
 4. **EnsureSchema runs once per startup.** Concurrent runs are safe (idempotent DDL + retry on deadlock).
 5. **NumShards changes require full restart** (not rolling). Concurrent nodes with different NumShards race on shard_lock population.
-6. **Rollback (downgrade) is safe.** EnsureSchema overwrites functions to the older version. Extra columns from newer migrations remain but are ignored by older code. No data loss.
+6. **Rollback (downgrade) across a schema version is not supported.** EnsureSchema of an older binary refuses a newer schema version.
 
 ## Manual migration path
 
