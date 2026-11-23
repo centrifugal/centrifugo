@@ -17,6 +17,9 @@ type RedisBrokerCommon struct {
 	// DetectLostWritesWithInfo makes the detection use INFO. It turns on
 	// detection by itself.
 	DetectLostWritesWithInfo bool `mapstructure:"detect_lost_writes_with_info" json:"detect_lost_writes_with_info" envconfig:"detect_lost_writes_with_info" yaml:"detect_lost_writes_with_info" toml:"detect_lost_writes_with_info" doc:"Detect lost writes with the INFO command, on every server, including Redis 6 and Dragonfly. Turns on detection by itself: <<detect_lost_writes>> isn't needed with it. Requires the <<@dangerous>> ACL category. Streams also start over, without any loss, when a Redis primary gets its first replica or has had no replicas for a while, and in Redis Cluster when their slot moves to another node."`
+	// PubSubQueueMaxSize is the maximum size in bytes of messages received over
+	// Redis PUB/SUB which wait to be processed.
+	PubSubQueueMaxSize int `mapstructure:"pub_sub_queue_max_size" json:"pub_sub_queue_max_size" envconfig:"pub_sub_queue_max_size" default:"67108864" yaml:"pub_sub_queue_max_size" toml:"pub_sub_queue_max_size" doc:"Maximum size in bytes of messages received over Redis PUB/SUB which wait to be processed, for all PUB/SUB connections of the broker together. When it is reached, new messages are dropped, as PUB/SUB delivery is at most once. Memory is only used while messages wait. Default <<67108864>> (64 MB)."`
 }
 
 type RedisBroker struct {
@@ -122,6 +125,9 @@ type RedisMapBrokerCommon struct {
 	// DetectLostWritesWithInfo makes the detection use INFO. It turns on
 	// detection by itself.
 	DetectLostWritesWithInfo bool `mapstructure:"detect_lost_writes_with_info" json:"detect_lost_writes_with_info" envconfig:"detect_lost_writes_with_info" yaml:"detect_lost_writes_with_info" toml:"detect_lost_writes_with_info" doc:"Detect lost writes with the INFO command, on every server, including Redis 6 and Dragonfly. Turns on detection by itself: <<detect_lost_writes>> isn't needed with it. Requires the <<@dangerous>> ACL category. Streams also start over, without any loss, when a Redis primary gets its first replica or has had no replicas for a while, and in Redis Cluster when their slot moves to another node."`
+	// PubSubQueueMaxSize is the maximum size in bytes of messages received over
+	// Redis PUB/SUB which wait to be processed.
+	PubSubQueueMaxSize int `mapstructure:"pub_sub_queue_max_size" json:"pub_sub_queue_max_size" envconfig:"pub_sub_queue_max_size" default:"67108864" yaml:"pub_sub_queue_max_size" toml:"pub_sub_queue_max_size" doc:"Maximum size in bytes of messages received over Redis PUB/SUB which wait to be processed, for all PUB/SUB connections of the broker together. When it is reached, new messages are dropped, as PUB/SUB delivery is at most once. Memory is only used while messages wait. Default <<67108864>> (64 MB)."`
 }
 
 // PostgresMapBroker is a configuration for PostgreSQL-based map broker.
