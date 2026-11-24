@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/centrifugal/centrifugo/v6/internal/pgforward"
 	"github.com/centrifugal/centrifugo/v6/internal/pgoutbox"
 
 	"github.com/centrifugal/centrifuge"
@@ -150,6 +151,8 @@ func (e *PostgresStreamBroker) processOutboxBatch(
 		pub     *centrifuge.Publication
 		info    *centrifuge.ClientInfo
 		epoch   string
+		// prevData is the delta base, stored when published with delta.
+		prevData []byte
 	}
 	var (
 		arena       byteArena
@@ -200,6 +203,7 @@ func (e *PostgresStreamBroker) processOutboxBatch(
 			p.Epoch = epoch
 			p.Data = e.rawDataBytes(&arena, raw[6], fmts[6])
 			p.Tags = pgRawJSONBMap(raw[7])
+			entry.prevData = e.rawDataBytes(&arena, raw[12], fmts[12])
 			if raw[8] != nil {
 				infoBacking = append(infoBacking, centrifuge.ClientInfo{
 					ClientID: pgRawString(&arena, raw[8]),
@@ -232,24 +236,50 @@ func (e *PostgresStreamBroker) processOutboxBatch(
 	}
 	rows.Close()
 
+	var forward []pgforward.Publication
+	flushForward := func() {
+		if len(forward) == 0 {
+			return
+		}
+		pgforward.Forward(e.conf.Broker, forward, func(err error) {
+			e.logErrorMsg("outbox forward to inner broker", err)
+		})
+		forward = forward[:0]
+	}
+
 	// Dispatch entries.
 	for _, en := range entries {
+		if en.kind != kindPublication {
+			// Keep the order of rows: what came before a join or leave goes first.
+			flushForward()
+		}
 		switch en.kind {
 		case kindPublication:
 			sp := centrifuge.StreamPosition{Offset: en.pub.Offset, Epoch: en.epoch}
+			useDelta := len(en.prevData) > 0
 			if e.conf.Broker != nil {
 				// Fanout mode: forward to inner broker.
-				_, err := e.conf.Broker.Publish(en.channel, en.pub.Data, centrifuge.PublishOptions{
-					ClientInfo: en.pub.Info,
-					Tags:       en.pub.Tags,
-					Offset:     en.pub.Offset,
-					Epoch:      en.epoch,
-				})
-				if err != nil {
-					e.logErrorMsg("outbox forward to inner broker", err)
+				if forward == nil {
+					forward = make([]pgforward.Publication, 0, len(entries))
 				}
+				forward = append(forward, pgforward.Publication{
+					Channel: en.channel,
+					Data:    en.pub.Data,
+					Options: centrifuge.PublishOptions{
+						ClientInfo: en.pub.Info,
+						Tags:       en.pub.Tags,
+						Offset:     en.pub.Offset,
+						Epoch:      en.epoch,
+						UseDelta:   useDelta,
+						PrevData:   en.prevData,
+					},
+				})
 			} else {
-				if err := e.eventHandler.HandlePublication(en.channel, en.pub, sp, false, nil); err != nil {
+				var prevPub *centrifuge.Publication
+				if useDelta {
+					prevPub = &centrifuge.Publication{Data: en.prevData}
+				}
+				if err := e.eventHandler.HandlePublication(en.channel, en.pub, sp, useDelta, prevPub); err != nil {
 					e.logErrorMsg("outbox HandlePublication", err)
 				}
 			}
@@ -277,6 +307,8 @@ func (e *PostgresStreamBroker) processOutboxBatch(
 			}
 		}
 	}
+
+	flushForward()
 
 	// Update sampler cursor for the lag metric. With one shard per worker
 	// the shardIDs slice has exactly one element.

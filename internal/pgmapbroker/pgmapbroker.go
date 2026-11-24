@@ -14,6 +14,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/v6/internal/configtypes"
 	"github.com/centrifugal/centrifugo/v6/internal/pgemptymeta"
+	"github.com/centrifugal/centrifugo/v6/internal/pgforward"
 	"github.com/centrifugal/centrifugo/v6/internal/pgoutbox"
 	"github.com/centrifugal/centrifugo/v6/internal/pgschema"
 	"github.com/centrifugal/centrifugo/v6/internal/pgshard"
@@ -1948,13 +1949,16 @@ type outboxMeta struct {
 // allocated fresh each batch because handlers may retain *Publication pointers
 // asynchronously (e.g. cachedEventHandler.BufferPublication, channelMedium queue).
 type outboxBatchBuf struct {
-	metas []outboxMeta
+	metas   []outboxMeta
+	forward []pgforward.Publication // Only with a fan-out broker, which doesn't retain it.
 }
 
 // reset clears metas while retaining capacity.
 func (b *outboxBatchBuf) reset() {
 	clear(b.metas[:cap(b.metas)])
 	b.metas = b.metas[:0]
+	clear(b.forward[:cap(b.forward)])
+	b.forward = b.forward[:0]
 }
 
 // processOutboxBatch fetches and processes a batch of stream entries for the
@@ -2076,12 +2080,16 @@ func (e *PostgresMapBroker) processOutboxBatch(ctx context.Context, pool *pgxpoo
 			if useDelta {
 				pubOpts.PrevData = m.previousData
 			}
-			if _, err := e.conf.Broker.Publish(m.channel, pub.Data, pubOpts); err != nil {
-				e.logErrorMsg("outbox worker: broker publish", err)
-			}
+			buf.forward = append(buf.forward, pgforward.Publication{Channel: m.channel, Data: pub.Data, Options: pubOpts})
 		} else if e.eventHandler != nil {
 			_ = e.eventHandler.HandlePublication(m.channel, pub, streamPos, useDelta, prevPub)
 		}
+	}
+
+	if len(buf.forward) > 0 {
+		pgforward.Forward(e.conf.Broker, buf.forward, func(err error) {
+			e.logErrorMsg("outbox worker: broker publish", err)
+		})
 	}
 
 	return len(buf.metas), maxID, nil

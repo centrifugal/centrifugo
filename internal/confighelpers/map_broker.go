@@ -17,5 +17,6 @@ func CentrifugeRedisMapBroker(n *centrifuge.Node, prefix string, shards []*centr
 		SkipPubSub:               cfg.SkipPubSub,
 		DetectLostWrites:         cfg.DetectLostWrites,
 		DetectLostWritesWithInfo: cfg.DetectLostWritesWithInfo,
+		PubSubQueueMaxSize:       cfg.PubSubQueueMaxSize,
 	})
 }
