@@ -217,12 +217,21 @@ func (k *Keeper) Keep(ctx context.Context, now time.Time) error {
 		return nil
 	}
 
+	// Rows are looked up one channel at a time, by the primary key. With
+	// channel = ANY($1) the planner may scan the table and compare each row
+	// with the whole batch, which made a batch's cost grow with the table.
+	// The locking clause keeps the first lookup from being turned into a join,
+	// OFFSET 0 the second.
 	query := fmt.Sprintf(`
-		WITH due AS MATERIALIZED (
-			SELECT channel FROM %[1]s
-			 WHERE channel = ANY($1)
-			   AND expires_at < NOW() + CASE WHEN top_offset = 0 THEN (expires_at - updated_at) / 2 END
-			   FOR UPDATE SKIP LOCKED
+		WITH names AS MATERIALIZED (
+			SELECT unnest($1::text[]) AS channel
+		), due AS MATERIALIZED (
+			SELECT d.channel FROM names CROSS JOIN LATERAL (
+				SELECT channel FROM %[1]s
+				 WHERE channel = names.channel
+				   AND expires_at < NOW() + CASE WHEN top_offset = 0 THEN (expires_at - updated_at) / 2 END
+				   FOR UPDATE SKIP LOCKED
+			) AS d
 		), kept AS (
 			UPDATE %[1]s AS m
 			   SET expires_at = NOW() + (m.expires_at - m.updated_at), updated_at = NOW()
@@ -230,9 +239,12 @@ func (k *Keeper) Keep(ctx context.Context, now time.Time) error {
 			 WHERE m.channel = due.channel
 			RETURNING m.channel, %[2]s AS refresh_in
 		)
-		SELECT m.channel, COALESCE(kept.refresh_in, %[2]s)
-		  FROM %[1]s AS m LEFT JOIN kept ON kept.channel = m.channel
-		 WHERE m.channel = ANY($1)
+		SELECT names.channel, COALESCE(kept.refresh_in, cur.refresh_in)
+		  FROM names
+		 CROSS JOIN LATERAL (
+			SELECT %[2]s AS refresh_in FROM %[1]s AS m WHERE m.channel = names.channel OFFSET 0
+		 ) AS cur
+		  LEFT JOIN kept ON kept.channel = names.channel
 	`, k.table, RefreshInSQL)
 
 	for batch := range slices.Chunk(channels, BatchSize) {
