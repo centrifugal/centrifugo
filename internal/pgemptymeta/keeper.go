@@ -2,7 +2,7 @@
 // the PostgreSQL brokers.
 //
 // Such a row gives the channel an epoch: a position with an empty epoch would
-// match any later stream. It may have a short TTL (HistoryMetaTTLUnpublished),
+// match any later stream. It may have a short TTL (HistoryMetaTTLInitial),
 // and Keeper extends it while the channel has subscribers on the node. In
 // Redis position checks do that, but centrifuge skips them for brokers with
 // ReliableDelivery. If the row expired under a subscriber, the first
@@ -37,12 +37,16 @@ const RefreshInSQL = `CASE WHEN m.top_offset = 0 THEN
 	EXTRACT(EPOCH FROM (m.expires_at - NOW()) - (m.expires_at - m.updated_at) / 2)::float8 END`
 
 // TTL returns how long the meta of a channel without publications is kept:
-// metaTTL, or unpublished if that is set and shorter. It is at least 3 position
-// check delays, so that Keeper can keep it. Zero means it doesn't expire.
-func TTL(metaTTL, unpublished, checkDelay time.Duration) time.Duration {
+// metaTTL without the initial TTL, otherwise the initial TTL if it is shorter,
+// at least 3 position check delays so that Keeper can keep it. Zero means it
+// doesn't expire.
+func TTL(metaTTL, initial, checkDelay time.Duration) time.Duration {
+	if initial <= 0 {
+		return metaTTL
+	}
 	ttl := metaTTL
-	if unpublished > 0 && (ttl == 0 || unpublished < ttl) {
-		ttl = unpublished
+	if ttl == 0 || initial < ttl {
+		ttl = initial
 	}
 	if ttl == 0 {
 		return 0
@@ -83,7 +87,8 @@ type dueChannel struct {
 	gen  uint64
 }
 
-// New creates a Keeper for the meta table.
+// New creates a Keeper for the meta table. Brokers make it with Lazy. A nil
+// Keeper does nothing.
 func New(pool *pgxpool.Pool, table string, hasSubscribers func(ch string) bool) *Keeper {
 	k := &Keeper{HasSubscribers: hasSubscribers, pool: pool, table: table, seed: maphash.MakeSeed()}
 	for i := range k.shards {
@@ -99,6 +104,9 @@ func (k *Keeper) shard(ch string) *shard {
 // Watch is called for each read of an empty channel. Centrifuge adds a
 // subscriber before it reads the position, so a subscriber's read is seen.
 func (k *Keeper) Watch(ch string, refreshIn float64, now time.Time) {
+	if k == nil {
+		return
+	}
 	if k.HasSubscribers(ch) {
 		k.Schedule(ch, refreshIn, now)
 	}
@@ -106,6 +114,9 @@ func (k *Keeper) Watch(ch string, refreshIn float64, now time.Time) {
 
 // Schedule has the channel looked at in refreshIn seconds.
 func (k *Keeper) Schedule(ch string, refreshIn float64, now time.Time) {
+	if k == nil {
+		return
+	}
 	s := k.shard(ch)
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -136,6 +147,9 @@ func (k *Keeper) reschedule(c dueChannel, refreshIn *float64, now time.Time) {
 
 // Forget drops channels.
 func (k *Keeper) Forget(channels ...string) {
+	if k == nil {
+		return
+	}
 	for _, ch := range channels {
 		s := k.shard(ch)
 		s.mu.Lock()

@@ -521,6 +521,7 @@ func (h *Handler) OnClientConnecting(
 			RecoveryMode:                chOpts.GetRecoveryMode(),
 			Source:                      subsource.UserPersonal,
 			HistoryMetaTTL:              chOpts.HistoryMetaTTL.ToDuration(),
+			HistoryMetaTTLInitial:       chOpts.HistoryMetaTTLInitial.ToDuration(),
 			RecoveryMaxPublicationLimit: chOpts.RecoveryMaxPublicationLimit,
 			AllowedDeltaTypes:           chOpts.AllowedDeltaTypes,
 			AllowTagsFilter:             chOpts.AllowTagsFilter,
@@ -583,6 +584,7 @@ func (h *Handler) OnClientConnecting(
 						RecoveryMode:                chOpts.GetRecoveryMode(),
 						Source:                      subsource.UniConnect,
 						HistoryMetaTTL:              chOpts.HistoryMetaTTL.ToDuration(),
+						HistoryMetaTTLInitial:       chOpts.HistoryMetaTTLInitial.ToDuration(),
 						RecoveryMaxPublicationLimit: chOpts.RecoveryMaxPublicationLimit,
 						AllowedDeltaTypes:           chOpts.AllowedDeltaTypes,
 						AllowTagsFilter:             chOpts.AllowTagsFilter,
@@ -826,6 +828,7 @@ func (h *Handler) OnSubscribe(c Client, e centrifuge.SubscribeEvent, subscribePr
 	options.EnableRecovery = chOpts.ForceRecovery
 	options.RecoveryMode = chOpts.GetRecoveryMode()
 	options.HistoryMetaTTL = chOpts.HistoryMetaTTL.ToDuration()
+	options.HistoryMetaTTLInitial = chOpts.HistoryMetaTTLInitial.ToDuration()
 	options.RecoveryMaxPublicationLimit = chOpts.RecoveryMaxPublicationLimit
 	options.AllowedDeltaTypes = chOpts.AllowedDeltaTypes
 	options.AllowTagsFilter = chOpts.AllowTagsFilter

@@ -10,19 +10,27 @@ import (
 func TestTTL(t *testing.T) {
 	const check = 40 * time.Second
 	for _, tt := range []struct {
-		name                 string
-		metaTTL, unpublished time.Duration
-		want                 time.Duration
+		name             string
+		metaTTL, initial time.Duration
+		want             time.Duration
 	}{
 		{"option off", time.Hour, 0, time.Hour},
 		{"option shorter", time.Hour, 10 * time.Minute, 10 * time.Minute},
 		{"option longer", time.Hour, 2 * time.Hour, time.Hour},
 		{"permanent", 0, 0, 0},
 		{"permanent with option", 0, 10 * time.Minute, 10 * time.Minute},
-		{"floor", time.Second, 0, 2 * time.Minute},
+		{"option off: no floor", time.Second, 0, time.Second},
+		{"floor", time.Second, time.Second, 2 * time.Minute},
 	} {
-		require.Equal(t, tt.want, TTL(tt.metaTTL, tt.unpublished, check), tt.name)
+		require.Equal(t, tt.want, TTL(tt.metaTTL, tt.initial, check), tt.name)
 	}
+}
+
+func TestNilKeeper(t *testing.T) {
+	var k *Keeper
+	k.Watch("ch", 0, time.Now())
+	k.Schedule("ch", 0, time.Now())
+	k.Forget("ch")
 }
 
 func TestKeeperSchedule(t *testing.T) {

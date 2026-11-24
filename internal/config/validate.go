@@ -48,11 +48,8 @@ func (c Config) Validate() error {
 	if err := validateSecondPrecisionDuration(c.Channel.HistoryMetaTTL); err != nil {
 		return fmt.Errorf("in channel.history_meta_ttl: %v", err)
 	}
-	if err := validateSecondPrecisionDuration(c.Channel.HistoryMetaTTLUnpublished); err != nil {
-		return fmt.Errorf("in channel.history_meta_ttl_unpublished: %v", err)
-	}
-	if ttl, check := c.Channel.HistoryMetaTTLUnpublished.ToDuration(), c.Client.ChannelPositionCheckDelay.ToDuration(); ttl > 0 && ttl < 3*check {
-		return fmt.Errorf("channel.history_meta_ttl_unpublished (%s) must be at least 3 × client.channel_position_check_delay (%s)", ttl, check)
+	if err := validateInitialMetaTTL("channel.history_meta_ttl_initial", c.Channel.HistoryMetaTTLInitial, c); err != nil {
+		return err
 	}
 
 	if !slices.Contains([]string{"", configtypes.PublicationDataFormatJSON, configtypes.PublicationDataFormatJSONObject, configtypes.PublicationDataFormatBinary}, c.Channel.PublicationDataFormat) {
@@ -229,12 +226,27 @@ func validateRpcNamespace(ns configtypes.RpcNamespace, rpcProxyNames []string) e
 	return nil
 }
 
+// validateInitialMetaTTL checks an initial meta TTL: live subscribers keep such
+// a meta with position checks, so it must be at least 3 of their delays.
+func validateInitialMetaTTL(name string, d configtypes.Duration, cfg Config) error {
+	if err := validateSecondPrecisionDuration(d); err != nil {
+		return fmt.Errorf("in %s: %v", name, err)
+	}
+	if ttl, check := d.ToDuration(), cfg.Client.ChannelPositionCheckDelay.ToDuration(); ttl < 0 || (ttl > 0 && ttl < 3*check) {
+		return fmt.Errorf("%s (%s) must be at least 3 × client.channel_position_check_delay (%s)", name, ttl, check)
+	}
+	return nil
+}
+
 func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL configtypes.Duration, proxyNames []string, cfg Config) error {
 	if err := validateSecondPrecisionDuration(c.HistoryTTL); err != nil {
 		return fmt.Errorf("in history_ttl: %v", err)
 	}
 	if err := validateSecondPrecisionDuration(c.HistoryMetaTTL); err != nil {
 		return fmt.Errorf("in history_meta_ttl: %v", err)
+	}
+	if err := validateInitialMetaTTL("history_meta_ttl_initial", c.HistoryMetaTTLInitial, cfg); err != nil {
+		return err
 	}
 	if (c.HistorySize != 0 && c.HistoryTTL == 0) || (c.HistorySize == 0 && c.HistoryTTL != 0) {
 		return errors.New("both history size and history ttl required for history")
@@ -419,6 +431,9 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 		if c.Map.MetaTTL != 0 {
 			return fmt.Errorf("map.meta_ttl must be 0 for map.mode \"ephemeral\"")
 		}
+		if c.Map.MetaTTLInitial != 0 {
+			return fmt.Errorf("map.meta_ttl_initial must be 0 for map.mode \"ephemeral\"")
+		}
 	}
 	mapHasStream := c.Map.Mode == "recoverable" || c.Map.Mode == "persistent"
 	if mapHasStream {
@@ -430,6 +445,9 @@ func validateChannelOptions(c configtypes.ChannelOptions, globalHistoryMetaTTL c
 		}
 		if c.Map.MetaTTL.ToDuration() < 0 {
 			return fmt.Errorf("map.meta_ttl must be non-negative")
+		}
+		if err := validateInitialMetaTTL("map.meta_ttl_initial", c.Map.MetaTTLInitial, cfg); err != nil {
+			return err
 		}
 		if c.Map.MetaTTL != 0 {
 			effectiveStreamTTL := c.Map.StreamTTL.ToDuration()

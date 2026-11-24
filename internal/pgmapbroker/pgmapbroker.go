@@ -234,10 +234,11 @@ type PostgresMapBroker struct {
 	// Production tolerates the race because PollInterval is the fallback.
 	notifyListenerReady atomic.Bool
 
-	emptyMetaKeeper *pgemptymeta.Keeper
-	// subscribed has the channels between Subscribe and Unsubscribe. The hub
-	// can't tell: a wrapper may subscribe to a channel which has no
-	// subscribers of its own, the source of derived channels for example.
+	emptyMetaKeeper *pgemptymeta.Lazy
+	// subscribed has the channels with an initial meta TTL between Subscribe
+	// and Unsubscribe, for emptyMetaKeeper. The hub can't tell: a wrapper may
+	// subscribe to a channel which has no subscribers of its own, the source
+	// of derived channels for example.
 	subscribed sync.Map
 }
 
@@ -565,7 +566,16 @@ func NewPostgresMapBroker(n *centrifuge.Node, conf PostgresMapBrokerConfig) (*Po
 		}
 	}
 
-	e.emptyMetaKeeper = pgemptymeta.New(pool, e.names.meta, e.isSubscribed)
+	e.emptyMetaKeeper = pgemptymeta.NewLazy(pool, e.names.meta, e.isSubscribed, func(k *pgemptymeta.Keeper) {
+		if e.cancelCtx.Err() != nil {
+			return
+		}
+		e.goWorker(func() {
+			k.Run(e.cancelCtx, n.Config().ClientChannelPositionCheckDelay, func(err error) {
+				e.logErrorMsg("error keeping meta of empty channels", err)
+			})
+		})
+	})
 	return e, nil
 }
 
@@ -629,11 +639,6 @@ func (e *PostgresMapBroker) RegisterEventHandler(h centrifuge.BrokerEventHandler
 	e.goWorker(e.runTTLExpirationWorker)
 	e.goWorker(e.runCleanupLagWorker)
 	e.goWorker(e.runCleanupWorker)
-	e.goWorker(func() {
-		e.emptyMetaKeeper.Run(e.cancelCtx, e.node.Config().ClientChannelPositionCheckDelay, func(err error) {
-			e.logErrorMsg("error keeping meta of empty channels", err)
-		})
-	})
 	e.goWorker(e.runPartitionWorker) // unconditional — schema is always partitioned
 
 	return nil
@@ -961,8 +966,12 @@ func (e *PostgresMapBroker) Subscribe(channels ...string) error {
 	}
 	now := time.Now()
 	for _, ch := range channels {
+		chOpts, err := centrifuge.ResolveAndValidateMapChannelOptions(e.node.Config().Map.GetMapChannelOptions, ch)
+		if err != nil || !e.emptyMetaFor(chOpts).keep {
+			continue
+		}
 		e.subscribed.Store(ch, struct{}{})
-		e.emptyMetaKeeper.Schedule(ch, 0, now)
+		e.emptyMetaKeeper.Get().Schedule(ch, 0, now)
 	}
 	return nil
 }
@@ -972,7 +981,7 @@ func (e *PostgresMapBroker) Unsubscribe(channels ...string) error {
 	for _, ch := range channels {
 		e.subscribed.Delete(ch)
 	}
-	e.emptyMetaKeeper.Forget(channels...)
+	e.emptyMetaKeeper.Started().Forget(channels...)
 	if e.conf.Broker != nil {
 		return e.conf.Broker.Unsubscribe(channels...)
 	}

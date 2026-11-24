@@ -197,6 +197,7 @@ func (h *SubscribeHandler) Handle() SubscribeHandlerFunc {
 				Data:                        data,
 				Source:                      subsource.SubscribeProxy,
 				HistoryMetaTTL:              time.Duration(chOpts.HistoryMetaTTL),
+				HistoryMetaTTLInitial:       time.Duration(chOpts.HistoryMetaTTLInitial),
 				RecoveryMaxPublicationLimit: chOpts.RecoveryMaxPublicationLimit,
 			},
 			ClientSideRefresh: true,

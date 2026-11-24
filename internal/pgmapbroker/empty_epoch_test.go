@@ -200,21 +200,22 @@ func TestMapEmptyMetaTTL(t *testing.T) {
 	t.Parallel()
 	shortLived := centrifuge.MapChannelOptions{Mode: centrifuge.MapModeRecoverable, KeyTTL: time.Second, StreamTTL: time.Second, MetaTTL: time.Second}
 	for _, tt := range []struct {
-		name        string
-		opts        centrifuge.MapChannelOptions
-		unpublished time.Duration
-		want        time.Duration // zero: never expires
+		name    string
+		opts    centrifuge.MapChannelOptions
+		initial time.Duration
+		want    time.Duration // zero: never expires
 	}{
 		{"recoverable", recoverableMap, 0, 100 * time.Hour},
 		{"recoverable, option", recoverableMap, 10 * time.Minute, 10 * time.Minute},
 		{"option above meta TTL", recoverableMap, 200 * time.Hour, 100 * time.Hour},
 		{"persistent", persistentMap, 0, 0},
 		{"persistent, option", persistentMap, 10 * time.Minute, 10 * time.Minute},
-		{"at least 3 position checks", shortLived, 0, 2 * time.Minute},
+		{"option off: the meta TTL", shortLived, 0, time.Second},
+		{"option on: at least 3 position checks", shortLived, 10 * time.Minute, 2 * time.Minute},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			e := newMapEpochBroker(t, tt.opts, centrifuge.Config{HistoryMetaTTLUnpublished: tt.unpublished})
+			e := newMapEpochBroker(t, tt.opts, centrifuge.Config{HistoryMetaTTLInitial: tt.initial})
 			require.NotEmpty(t, mapStatePosition(t, e, "ttl").Epoch)
 			left := mapMetaTTLLeft(t, e, "ttl")
 			if tt.want == 0 {
@@ -231,7 +232,7 @@ func TestMapEmptyMetaTTL(t *testing.T) {
 // map would lose its meta, and with it its state.
 func TestMapFirstPublicationReplacesEmptyMetaTTL(t *testing.T) {
 	t.Parallel()
-	option := centrifuge.Config{HistoryMetaTTLUnpublished: 10 * time.Minute}
+	option := centrifuge.Config{HistoryMetaTTLInitial: 10 * time.Minute}
 	const ch = "first"
 
 	t.Run("persistent", func(t *testing.T) {
@@ -315,7 +316,7 @@ func TestMapEmptyEpochLaggingReplica(t *testing.T) {
 func TestMapEmptyMetaKeptWhileSubscribed(t *testing.T) {
 	t.Parallel()
 	e := newMapEpochBroker(t, persistentMap, centrifuge.Config{
-		HistoryMetaTTLUnpublished:       time.Hour,
+		HistoryMetaTTLInitial:           time.Hour,
 		ClientChannelPositionCheckDelay: time.Second,
 	})
 	const ch = "idle"
@@ -332,22 +333,47 @@ func TestMapEmptyMetaKeptWhileSubscribed(t *testing.T) {
 	}, 30*time.Second, 50*time.Millisecond)
 }
 
+// Without an initial TTL the keeper never starts and Subscribe tracks nothing.
+func TestMapEmptyMetaNoKeeperWithoutOption(t *testing.T) {
+	t.Parallel()
+	e := newMapEpochBroker(t, persistentMap, centrifuge.Config{})
+	require.NotEmpty(t, mapStatePosition(t, e, "ch").Epoch)
+	require.NoError(t, e.Subscribe("ch"))
+	require.False(t, e.isSubscribed("ch"))
+	require.Nil(t, e.emptyMetaKeeper.Started())
+}
+
+// A map's own initial TTL works without the global option.
+func TestMapEmptyMetaTTLPerChannel(t *testing.T) {
+	t.Parallel()
+	opts := persistentMap
+	opts.MetaTTLInitial = 10 * time.Minute
+	e := newMapEpochBroker(t, opts, centrifuge.Config{})
+	require.NotEmpty(t, mapStatePosition(t, e, "ttl").Epoch)
+	left := mapMetaTTLLeft(t, e, "ttl")
+	require.NotNil(t, left)
+	require.InDelta(t, (10 * time.Minute).Seconds(), *left, 30)
+	require.NoError(t, e.Subscribe("ttl"))
+	require.True(t, e.isSubscribed("ttl"))
+	require.NotNil(t, e.emptyMetaKeeper.Started())
+}
+
 func TestMapEmptyMetaKeeperFollowsSubscription(t *testing.T) {
 	t.Parallel()
-	e := newMapEpochBroker(t, persistentMap, centrifuge.Config{HistoryMetaTTLUnpublished: time.Hour})
+	e := newMapEpochBroker(t, persistentMap, centrifuge.Config{HistoryMetaTTLInitial: time.Hour})
 	const ch = "watched"
 	later := time.Now().Add(2 * time.Hour)
 
 	require.NotEmpty(t, mapStatePosition(t, e, ch).Epoch)
-	require.False(t, e.emptyMetaKeeper.IsDue(ch, later), "read without a subscription")
+	require.False(t, e.emptyMetaKeeper.Get().IsDue(ch, later), "read without a subscription")
 
 	require.NoError(t, e.Subscribe(ch))
 	mapStatePosition(t, e, ch)
-	require.True(t, e.emptyMetaKeeper.IsDue(ch, later))
+	require.True(t, e.emptyMetaKeeper.Get().IsDue(ch, later))
 
 	require.NoError(t, e.Unsubscribe(ch))
 	mapStatePosition(t, e, ch)
-	require.False(t, e.emptyMetaKeeper.IsDue(ch, later), "read after unsubscribe")
+	require.False(t, e.emptyMetaKeeper.Get().IsDue(ch, later), "read after unsubscribe")
 }
 
 // An existing database is at version 1: no ensure_meta, and a publish which
@@ -355,7 +381,7 @@ func TestMapEmptyMetaKeeperFollowsSubscription(t *testing.T) {
 func TestMapSchemaMigrationToV2(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	e := newMapEpochBroker(t, persistentMap, centrifuge.Config{HistoryMetaTTLUnpublished: 10 * time.Minute})
+	e := newMapEpochBroker(t, persistentMap, centrifuge.Config{HistoryMetaTTLInitial: 10 * time.Minute})
 	for _, v := range []struct {
 		prefix string
 		binary bool

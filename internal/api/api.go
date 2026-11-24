@@ -489,6 +489,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 		centrifuge.WithRecoverSince(recoverSince),
 		centrifuge.WithSubscribeSource(subsource.ServerAPI),
 		centrifuge.WithSubscribeHistoryMetaTTL(chOpts.HistoryMetaTTL.ToDuration()),
+		centrifuge.WithSubscribeHistoryMetaTTLInitial(chOpts.HistoryMetaTTLInitial.ToDuration()),
 		centrifuge.WithSubscribeRecoveryMaxPublicationLimit(chOpts.RecoveryMaxPublicationLimit),
 	)
 	if err != nil {
@@ -730,6 +731,7 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 	history, err := h.node.History(
 		ch,
 		centrifuge.WithHistoryMetaTTL(historyMetaTTL.ToDuration()),
+		centrifuge.WithHistoryMetaTTLInitial(chOpts.HistoryMetaTTLInitial.ToDuration()),
 		centrifuge.WithLimit(int(cmd.Limit)),
 		centrifuge.WithSince(sp),
 		centrifuge.WithReverse(cmd.Reverse),

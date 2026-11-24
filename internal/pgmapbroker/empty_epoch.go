@@ -24,15 +24,22 @@ type emptyMeta struct {
 	hasEpoch bool
 	// ttl of the meta, nil if it doesn't expire.
 	ttl *string
+	// keep is set with an initial TTL: subscribed empty maps are kept by
+	// pgemptymeta.Keeper.
+	keep bool
 }
 
 func (e *PostgresMapBroker) emptyMetaFor(chOpts centrifuge.MapChannelOptions) emptyMeta {
 	if !chOpts.Mode.HasStream() {
 		return emptyMeta{}
 	}
-	em := emptyMeta{hasEpoch: true}
 	c := e.node.Config()
-	if ttl := pgemptymeta.TTL(chOpts.MetaTTL, c.HistoryMetaTTLUnpublished, c.ClientChannelPositionCheckDelay); ttl > 0 {
+	initial := chOpts.MetaTTLInitial
+	if initial == 0 {
+		initial = c.HistoryMetaTTLInitial
+	}
+	em := emptyMeta{hasEpoch: true, keep: initial > 0}
+	if ttl := pgemptymeta.TTL(chOpts.MetaTTL, initial, c.ClientChannelPositionCheckDelay); ttl > 0 {
 		s := durationToIntervalString(ttl)
 		em.ttl = &s
 	}
@@ -64,8 +71,8 @@ func (e *PostgresMapBroker) scanMeta(row pgx.Row, ch string, em emptyMeta) (cent
 	if err != nil {
 		return centrifuge.StreamPosition{}, err
 	}
-	if refreshIn != nil {
-		e.emptyMetaKeeper.Watch(ch, *refreshIn, time.Now())
+	if refreshIn != nil && em.keep {
+		e.emptyMetaKeeper.Get().Watch(ch, *refreshIn, time.Now())
 	}
 	return centrifuge.StreamPosition{Offset: uint64(topOffset), Epoch: epoch}, nil
 }

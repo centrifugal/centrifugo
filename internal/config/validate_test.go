@@ -722,21 +722,67 @@ func TestValidateDuplicateProxyName(t *testing.T) {
 	})
 }
 
-func TestValidateHistoryMetaTTLUnpublished(t *testing.T) {
+func TestValidateHistoryMetaTTLInitial(t *testing.T) {
 	cfg := DefaultConfig()
 	require.NoError(t, cfg.Validate(), "zero (default) is valid")
 
 	cfg.Client.ChannelPositionCheckDelay = configtypes.Duration(40 * time.Second)
-	cfg.Channel.HistoryMetaTTLUnpublished = configtypes.Duration(2 * time.Minute)
+	cfg.Channel.HistoryMetaTTLInitial = configtypes.Duration(2 * time.Minute)
 	require.NoError(t, cfg.Validate(), "3 × the position check delay is enough")
 
-	cfg.Channel.HistoryMetaTTLUnpublished = configtypes.Duration(time.Minute)
+	cfg.Channel.HistoryMetaTTLInitial = configtypes.Duration(time.Minute)
 	err := cfg.Validate()
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "channel.history_meta_ttl_unpublished")
+	require.Contains(t, err.Error(), "channel.history_meta_ttl_initial")
 
-	cfg.Channel.HistoryMetaTTLUnpublished = configtypes.Duration(2*time.Minute + 500*time.Millisecond)
+	cfg.Channel.HistoryMetaTTLInitial = configtypes.Duration(2*time.Minute + 500*time.Millisecond)
 	err = cfg.Validate()
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "channel.history_meta_ttl_unpublished")
+	require.Contains(t, err.Error(), "channel.history_meta_ttl_initial")
+}
+
+func TestValidateNamespaceHistoryMetaTTLInitial(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Client.ChannelPositionCheckDelay = configtypes.Duration(40 * time.Second)
+	ns := configtypes.ChannelNamespace{Name: "ns"}
+
+	ns.HistoryMetaTTLInitial = configtypes.Duration(2 * time.Minute)
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
+	require.NoError(t, cfg.Validate())
+
+	ns.HistoryMetaTTLInitial = configtypes.Duration(time.Minute)
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
+	err := cfg.Validate()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "history_meta_ttl_initial")
+
+	cfg.Channel.Namespaces = nil
+	cfg.Channel.WithoutNamespace.HistoryMetaTTLInitial = configtypes.Duration(time.Minute)
+	err = cfg.Validate()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "history_meta_ttl_initial")
+}
+
+func TestValidateMapNamespace_MetaTTLInitial(t *testing.T) {
+	cfg := mapDefaultConfig()
+	cfg.Client.ChannelPositionCheckDelay = configtypes.Duration(40 * time.Second)
+
+	ns := mapNamespace("pe", "persistent")
+	ns.Map.MetaTTLInitial = configtypes.Duration(2 * time.Minute)
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
+	require.NoError(t, cfg.Validate())
+
+	ns.Map.MetaTTLInitial = configtypes.Duration(time.Minute)
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
+	err := cfg.Validate()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "map.meta_ttl_initial")
+
+	ee := mapNamespace("ee", "ephemeral")
+	ee.Map.KeyTTL = configtypes.Duration(60 * time.Second)
+	ee.Map.MetaTTLInitial = configtypes.Duration(2 * time.Minute)
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ee}
+	err = cfg.Validate()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "map.meta_ttl_initial must be 0")
 }

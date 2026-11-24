@@ -26,7 +26,8 @@ import (
 // row sends the read to the primary.
 func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions) ([]*centrifuge.Publication, centrifuge.StreamPosition, error) {
 	ctx := context.Background()
-	metaTTL := e.emptyMetaTTL(opts.MetaTTL)
+	initial := e.initialMetaTTL(opts.MetaTTLInitial)
+	metaTTL := e.emptyMetaTTL(opts.MetaTTL, initial)
 
 	pool := e.getReadPool(ch, true) // can use replicas
 	meta, err := e.readMeta(ctx, pool, ch, metaTTL)
@@ -46,8 +47,8 @@ func (e *PostgresStreamBroker) History(ch string, opts centrifuge.HistoryOptions
 			return nil, centrifuge.StreamPosition{}, err
 		}
 	}
-	if meta.refreshIn != nil {
-		e.emptyMeta.Watch(ch, *meta.refreshIn, time.Now())
+	if meta.refreshIn != nil && initial > 0 {
+		e.emptyMeta.Get().Watch(ch, *meta.refreshIn, time.Now())
 	}
 	topOffset, epoch := meta.topOffset, meta.epoch
 	historyTTL, historySize := meta.historyTTL, meta.historySize
@@ -205,12 +206,23 @@ type streamMeta struct {
 	refreshIn *float64
 }
 
+// initialMetaTTL is the initial meta TTL of a read: the subscription's
+// (HistoryOptions.MetaTTLInitial, from its namespace), or the global one.
+func (e *PostgresStreamBroker) initialMetaTTL(requested time.Duration) time.Duration {
+	if requested > 0 {
+		return requested
+	}
+	return e.node.Config().HistoryMetaTTLInitial
+}
+
 // emptyMetaTTL is how long the meta of a channel without publications is
-// kept, see pgemptymeta.TTL.
-func (e *PostgresStreamBroker) emptyMetaTTL(requested time.Duration) string {
-	c := e.node.Config()
-	return durationToIntervalString(pgemptymeta.TTL(
-		e.historyMetaTTL(requested), c.HistoryMetaTTLUnpublished, c.ClientChannelPositionCheckDelay))
+// kept: at least StreamRetention without an initial TTL, as before the
+// option, see pgemptymeta.TTL with it.
+func (e *PostgresStreamBroker) emptyMetaTTL(requested, initial time.Duration) string {
+	if initial <= 0 {
+		return durationToIntervalString(max(e.historyMetaTTL(requested), e.conf.StreamRetention))
+	}
+	return durationToIntervalString(pgemptymeta.TTL(e.historyMetaTTL(requested), initial, e.node.Config().ClientChannelPositionCheckDelay))
 }
 
 func (e *PostgresStreamBroker) readMeta(ctx context.Context, pool *pgxpool.Pool, ch, metaTTL string) (streamMeta, error) {
