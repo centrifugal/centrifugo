@@ -741,6 +741,33 @@ func TestValidateHistoryMetaTTLInitial(t *testing.T) {
 	require.Contains(t, err.Error(), "channel.history_meta_ttl_initial")
 }
 
+// With client.channel_position_check_delay 0 Centrifuge uses its 40s default:
+// the validation checks against it, so Centrifuge never refuses what passed.
+func TestValidateHistoryMetaTTLInitialZeroCheckDelay(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Client.ChannelPositionCheckDelay = 0
+	cfg.Channel.HistoryMetaTTLInitial = configtypes.Duration(time.Minute)
+	err := cfg.Validate()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "channel.history_meta_ttl_initial (1m0s) must be at least 3 × client.channel_position_check_delay (40s)")
+
+	cfg.Channel.HistoryMetaTTLInitial = configtypes.Duration(2 * time.Minute)
+	require.NoError(t, cfg.Validate())
+
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{{Name: "ns", ChannelOptions: configtypes.ChannelOptions{HistoryMetaTTLInitial: configtypes.Duration(time.Minute)}}}
+	err = cfg.Validate()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "history_meta_ttl_initial")
+}
+
+func TestValidateHistoryMetaTTLInitialNegative(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Channel.HistoryMetaTTLInitial = configtypes.Duration(-2 * time.Minute)
+	err := cfg.Validate()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "channel.history_meta_ttl_initial must be non-negative")
+}
+
 func TestValidateNamespaceHistoryMetaTTLInitial(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.Client.ChannelPositionCheckDelay = configtypes.Duration(40 * time.Second)

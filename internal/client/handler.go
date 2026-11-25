@@ -1396,5 +1396,11 @@ func (h *Handler) OnHistory(c Client, e centrifuge.HistoryEvent) (centrifuge.His
 		return centrifuge.HistoryReply{}, centrifuge.ErrorPermissionDenied
 	}
 
-	return centrifuge.HistoryReply{MaxPublicationLimit: chOpts.HistoryMaxPublicationLimit}, nil
+	return centrifuge.HistoryReply{
+		MaxPublicationLimit: chOpts.HistoryMaxPublicationLimit,
+		// The read creates or extends the channel's meta: with the namespace's
+		// TTLs, as subscriptions to the channel read it.
+		MetaTTL:        chOpts.HistoryMetaTTL.ToDuration(),
+		MetaTTLInitial: chOpts.HistoryMetaTTLInitial.ToDuration(),
+	}, nil
 }

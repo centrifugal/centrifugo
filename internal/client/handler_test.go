@@ -1116,6 +1116,8 @@ func TestClientHistory(t *testing.T) {
 	cfg.Channel.WithoutNamespace.HistoryForClient = true
 	cfg.Channel.WithoutNamespace.HistoryForAnonymous = true
 	cfg.Channel.WithoutNamespace.HistoryMaxPublicationLimit = 3000
+	cfg.Channel.WithoutNamespace.HistoryMetaTTL = configtypes.Duration(time.Hour)
+	cfg.Channel.WithoutNamespace.HistoryMetaTTLInitial = configtypes.Duration(5 * time.Minute)
 	cfgContainer, err := config.NewContainer(cfg)
 	require.NoError(t, err)
 	h := NewHandler(node, cfgContainer, hmacJWTVerifier(t, cfgContainer), nil, &ProxyMap{})
@@ -1133,6 +1135,9 @@ func TestClientHistory(t *testing.T) {
 	require.NoError(t, err)
 	// The namespace's limit, overriding client.history_max_publication_limit.
 	require.Equal(t, 3000, reply.MaxPublicationLimit)
+	// The namespace's meta TTLs, as subscriptions to the channel use.
+	require.Equal(t, time.Hour, reply.MetaTTL)
+	require.Equal(t, 5*time.Minute, reply.MetaTTLInitial)
 }
 
 func TestClientHistoryError(t *testing.T) {
