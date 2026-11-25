@@ -162,3 +162,64 @@ func TestIsKubernetesEnvVar(t *testing.T) {
 		})
 	}
 }
+
+func writeConfigFile(t *testing.T, content string) string {
+	t.Helper()
+	path := t.TempDir() + "/config.yaml"
+	require.NoError(t, os.WriteFile(path, []byte(content), 0o600))
+	return path
+}
+
+func TestHistoryMetaTTLInitialDefault(t *testing.T) {
+	conf, meta := getConfig(t, writeConfigFile(t, "{}"))
+	require.Equal(t, configtypes.Duration(5*time.Minute), conf.Channel.HistoryMetaTTLInitial)
+	require.Empty(t, meta.Warnings)
+	require.NoError(t, conf.Validate())
+
+	// -1 disables it; a bare number is nanoseconds.
+	conf, meta = getConfig(t, writeConfigFile(t, "channel:\n  history_meta_ttl_initial: -1\n"))
+	require.Equal(t, configtypes.Duration(-1), conf.Channel.HistoryMetaTTLInitial)
+	require.Empty(t, meta.Warnings)
+	require.NoError(t, conf.Validate())
+}
+
+// With a position check delay over 100s the default (5m) and shorter values
+// are raised to 3 × the delay with a warning, instead of failing validation.
+func TestHistoryMetaTTLInitialRaised(t *testing.T) {
+	conf, meta := getConfig(t, writeConfigFile(t, `
+client:
+  channel_position_check_delay: 2m
+channel:
+  without_namespace:
+    history_meta_ttl_initial: 1m
+  namespaces:
+    - name: kept
+      history_meta_ttl_initial: 10m
+    - name: off
+      history_meta_ttl_initial: -1
+    - name: map
+      subscription_type: map
+      map:
+        mode: persistent
+        meta_ttl_initial: 3m
+`))
+	require.Equal(t, configtypes.Duration(6*time.Minute), conf.Channel.HistoryMetaTTLInitial, "default raised")
+	require.Equal(t, configtypes.Duration(6*time.Minute), conf.Channel.WithoutNamespace.HistoryMetaTTLInitial)
+	require.Equal(t, configtypes.Duration(10*time.Minute), conf.Channel.Namespaces[0].HistoryMetaTTLInitial)
+	require.Equal(t, configtypes.Duration(-1), conf.Channel.Namespaces[1].HistoryMetaTTLInitial)
+	require.Equal(t, configtypes.Duration(6*time.Minute), conf.Channel.Namespaces[2].Map.MetaTTLInitial)
+	require.Equal(t, []string{
+		"channel.history_meta_ttl_initial (5m0s) is below 3 × client.channel_position_check_delay (2m0s), using 6m0s",
+		"channel.without_namespace.history_meta_ttl_initial (1m0s) is below 3 × client.channel_position_check_delay (2m0s), using 6m0s",
+		"channel.namespaces[map].map.meta_ttl_initial (3m0s) is below 3 × client.channel_position_check_delay (2m0s), using 6m0s",
+	}, meta.Warnings)
+	require.NoError(t, conf.Validate())
+}
+
+// The raised value is whole seconds, as meta TTLs are.
+func TestHistoryMetaTTLInitialRaisedWholeSeconds(t *testing.T) {
+	conf, meta := getConfig(t, writeConfigFile(t, "client:\n  channel_position_check_delay: 100500ms\n"))
+	require.Equal(t, configtypes.Duration(302*time.Second), conf.Channel.HistoryMetaTTLInitial)
+	require.Len(t, meta.Warnings, 1)
+	require.NoError(t, conf.Validate())
+}

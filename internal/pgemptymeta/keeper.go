@@ -36,6 +36,20 @@ const (
 const RefreshInSQL = `CASE WHEN m.top_offset = 0 THEN
 	EXTRACT(EPOCH FROM (m.expires_at - NOW()) - (m.expires_at - m.updated_at) / 2)::float8 END`
 
+// Initial returns the initial meta TTL of a channel as Centrifuge resolves it:
+// its own (from its namespace or map), or global when its own is zero. A
+// negative one turns it off: own for the channel, global for all channels
+// without their own. Zero: off.
+func Initial(own, global time.Duration) time.Duration {
+	if own < 0 {
+		return 0
+	}
+	if own > 0 {
+		return own
+	}
+	return max(global, 0)
+}
+
 // TTL returns how long the meta of a channel without publications is kept:
 // metaTTL without the initial TTL, otherwise the initial TTL if it is shorter,
 // at least 3 position check delays so that Keeper can keep it. Zero means it

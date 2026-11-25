@@ -760,12 +760,18 @@ func TestValidateHistoryMetaTTLInitialZeroCheckDelay(t *testing.T) {
 	require.Contains(t, err.Error(), "history_meta_ttl_initial")
 }
 
+// A negative value turns the option off: globally, for a namespace or a map.
+// A bare -1 in a config file is -1ns, so negatives skip the whole-seconds check.
 func TestValidateHistoryMetaTTLInitialNegative(t *testing.T) {
-	cfg := DefaultConfig()
-	cfg.Channel.HistoryMetaTTLInitial = configtypes.Duration(-2 * time.Minute)
-	err := cfg.Validate()
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "channel.history_meta_ttl_initial must be non-negative")
+	cfg := mapDefaultConfig()
+	cfg.Channel.HistoryMetaTTLInitial = -1
+	require.NoError(t, cfg.Validate())
+
+	ns := mapNamespace("pe", "persistent")
+	ns.HistoryMetaTTLInitial = -1
+	ns.Map.MetaTTLInitial = configtypes.Duration(-time.Second)
+	cfg.Channel.Namespaces = []configtypes.ChannelNamespace{ns}
+	require.NoError(t, cfg.Validate())
 }
 
 func TestValidateNamespaceHistoryMetaTTLInitial(t *testing.T) {

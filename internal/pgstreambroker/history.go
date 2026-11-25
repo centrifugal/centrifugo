@@ -207,12 +207,10 @@ type streamMeta struct {
 }
 
 // initialMetaTTL is the initial meta TTL of a read: the subscription's
-// (HistoryOptions.MetaTTLInitial, from its namespace), or the global one.
+// (HistoryOptions.MetaTTLInitial, from its namespace), or the global one, see
+// pgemptymeta.Initial.
 func (e *PostgresStreamBroker) initialMetaTTL(requested time.Duration) time.Duration {
-	if requested > 0 {
-		return requested
-	}
-	return e.node.Config().HistoryMetaTTLInitial
+	return pgemptymeta.Initial(requested, e.node.Config().HistoryMetaTTLInitial)
 }
 
 // emptyMetaTTL is how long the meta of a channel without publications is

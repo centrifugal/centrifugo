@@ -34,10 +34,7 @@ func (e *PostgresMapBroker) emptyMetaFor(chOpts centrifuge.MapChannelOptions) em
 		return emptyMeta{}
 	}
 	c := e.node.Config()
-	initial := chOpts.MetaTTLInitial
-	if initial == 0 {
-		initial = c.HistoryMetaTTLInitial
-	}
+	initial := pgemptymeta.Initial(chOpts.MetaTTLInitial, c.HistoryMetaTTLInitial)
 	em := emptyMeta{hasEpoch: true, keep: initial > 0}
 	if ttl := pgemptymeta.TTL(chOpts.MetaTTL, initial, c.ClientChannelPositionCheckDelay); ttl > 0 {
 		s := durationToIntervalString(ttl)

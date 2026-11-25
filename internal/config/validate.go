@@ -226,27 +226,20 @@ func validateRpcNamespace(ns configtypes.RpcNamespace, rpcProxyNames []string) e
 	return nil
 }
 
-// defaultChannelPositionCheckDelay is the delay Centrifuge uses when
-// client.channel_position_check_delay is 0.
-const defaultChannelPositionCheckDelay = 40 * time.Second
-
 // validateInitialMetaTTL checks an initial meta TTL: live subscribers keep such
 // a meta with position checks, so it must be at least 3 of their delays. It
 // checks what Centrifuge checks on start and on subscribe, so a value it would
-// refuse fails here.
+// refuse fails here. GetConfig raises shorter ones (raiseInitialMetaTTLs).
+// Negative: off.
 func validateInitialMetaTTL(name string, d configtypes.Duration, cfg Config) error {
+	ttl := d.ToDuration()
+	if ttl < 0 {
+		return nil
+	}
 	if err := validateSecondPrecisionDuration(d); err != nil {
 		return fmt.Errorf("in %s: %v", name, err)
 	}
-	ttl := d.ToDuration()
-	if ttl < 0 {
-		return fmt.Errorf("%s must be non-negative", name)
-	}
-	check := cfg.Client.ChannelPositionCheckDelay.ToDuration()
-	if check == 0 {
-		check = defaultChannelPositionCheckDelay
-	}
-	if ttl > 0 && ttl < 3*check {
+	if check := channelPositionCheckDelay(cfg); ttl > 0 && ttl < 3*check {
 		return fmt.Errorf("%s (%s) must be at least 3 × client.channel_position_check_delay (%s)", name, ttl, check)
 	}
 	return nil

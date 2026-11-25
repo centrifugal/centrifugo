@@ -35,6 +35,9 @@ func logStartWarnings(cfg config.Config, cfgMeta config.Meta) {
 	for _, msg := range cfgMeta.DeprecationWarnings {
 		log.Warn().Msg(msg)
 	}
+	for _, msg := range cfgMeta.Warnings {
+		log.Warn().Msg(msg)
+	}
 }
 
 type httpErrorLogWriter struct {

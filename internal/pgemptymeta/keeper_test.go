@@ -7,6 +7,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestInitial(t *testing.T) {
+	require.Equal(t, time.Duration(0), Initial(0, 0))
+	require.Equal(t, time.Minute, Initial(0, time.Minute))
+	require.Equal(t, 2*time.Minute, Initial(2*time.Minute, time.Minute))
+	require.Equal(t, time.Duration(0), Initial(-1, time.Minute), "off for the channel")
+	require.Equal(t, time.Duration(0), Initial(0, -1), "off globally")
+	require.Equal(t, 2*time.Minute, Initial(2*time.Minute, -1), "a channel's own still applies")
+}
+
 func TestTTL(t *testing.T) {
 	const check = 40 * time.Second
 	for _, tt := range []struct {
