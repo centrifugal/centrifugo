@@ -193,6 +193,10 @@ func (c Config) Validate() error {
 		return fmt.Errorf("in uni_http_stream.connect_code_to_http_response.transforms: %v", err)
 	}
 
+	if c.HttpAPI.MaxRequestBodySize < 0 {
+		return errors.New("http_api.max_request_body_size cannot be negative")
+	}
+
 	// Map broker validation.
 	var knownMapBrokers = []string{"memory", "redis", "postgres"}
 	if !slices.Contains(knownMapBrokers, c.MapBroker.Type) {

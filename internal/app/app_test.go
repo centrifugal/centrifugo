@@ -432,3 +432,28 @@ func TestRegistrationAfterReadFails(t *testing.T) {
 		muxCtx.AddRoute(Route{Pattern: "/late", Handler: http.NotFoundHandler()})
 	})
 }
+
+func TestHTTPAPIMaxRequestBodySize(t *testing.T) {
+	cfg := `{
+		"http_api": {"key": "api-key", "max_request_body_size": 128},
+		"usage_stats": {"disabled": true}
+	}`
+	a, err := newTestApp(t, cfg, nil)
+	require.NoError(t, err)
+	require.NoError(t, a.Start())
+	addr := httpAddr(t, a)
+
+	req, err := http.NewRequest(
+		http.MethodPost,
+		"http://"+addr+"/api/publish",
+		strings.NewReader(`{"channel":"test","data":"`+strings.Repeat("x", 256)+`"}`),
+	)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-API-Key", "api-key")
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+	require.Equal(t, http.StatusRequestEntityTooLarge, resp.StatusCode)
+}

@@ -297,6 +297,7 @@ func (a *App) Mux(flags HandlerFlag, routes []Route, wtServer *webtransport.Serv
 		apiHandler := api.NewHandler(n, apiExecutor, api.Config{
 			UseOpenTelemetry:      useOpenTelemetry,
 			UseTransportErrorMode: httpErrorMode == config.TransportErrorMode,
+			MaxRequestBodySize:    cfg.HttpAPI.MaxRequestBodySize,
 		})
 		apiPrefix := strings.TrimRight(cfg.HttpAPI.HandlerPrefix, "/")
 		if apiPrefix == "" {
