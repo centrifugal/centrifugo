@@ -27,9 +27,8 @@ func minInitialMetaTTL(cfg Config) time.Duration {
 }
 
 // raiseInitialMetaTTLs raises the initial meta TTLs below minInitialMetaTTL to
-// it, with a warning for each: so that the default (5m) works with any
-// client.channel_position_check_delay, and a value set too short doesn't stop
-// Centrifugo from starting. Zero (the global one) and negative (off) are kept.
+// it, with a warning for each: a value set too short doesn't stop Centrifugo
+// from starting, also after client.channel_position_check_delay grew. Zero (the global one) and negative (off) are kept.
 func raiseInitialMetaTTLs(cfg Config) (Config, []string) {
 	minTTL := minInitialMetaTTL(cfg)
 	var warnings []string

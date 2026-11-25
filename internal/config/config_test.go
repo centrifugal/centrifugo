@@ -172,7 +172,7 @@ func writeConfigFile(t *testing.T, content string) string {
 
 func TestHistoryMetaTTLInitialDefault(t *testing.T) {
 	conf, meta := getConfig(t, writeConfigFile(t, "{}"))
-	require.Equal(t, configtypes.Duration(5*time.Minute), conf.Channel.HistoryMetaTTLInitial)
+	require.Zero(t, conf.Channel.HistoryMetaTTLInitial, "off by default")
 	require.Empty(t, meta.Warnings)
 	require.NoError(t, conf.Validate())
 
@@ -183,13 +183,14 @@ func TestHistoryMetaTTLInitialDefault(t *testing.T) {
 	require.NoError(t, conf.Validate())
 }
 
-// With a position check delay over 100s the default (5m) and shorter values
-// are raised to 3 × the delay with a warning, instead of failing validation.
+// Values below 3 × the position check delay are raised to it with a warning,
+// instead of failing validation.
 func TestHistoryMetaTTLInitialRaised(t *testing.T) {
 	conf, meta := getConfig(t, writeConfigFile(t, `
 client:
   channel_position_check_delay: 2m
 channel:
+  history_meta_ttl_initial: 5m
   without_namespace:
     history_meta_ttl_initial: 1m
   namespaces:
@@ -203,7 +204,7 @@ channel:
         mode: persistent
         meta_ttl_initial: 3m
 `))
-	require.Equal(t, configtypes.Duration(6*time.Minute), conf.Channel.HistoryMetaTTLInitial, "default raised")
+	require.Equal(t, configtypes.Duration(6*time.Minute), conf.Channel.HistoryMetaTTLInitial)
 	require.Equal(t, configtypes.Duration(6*time.Minute), conf.Channel.WithoutNamespace.HistoryMetaTTLInitial)
 	require.Equal(t, configtypes.Duration(10*time.Minute), conf.Channel.Namespaces[0].HistoryMetaTTLInitial)
 	require.Equal(t, configtypes.Duration(-1), conf.Channel.Namespaces[1].HistoryMetaTTLInitial)
@@ -218,7 +219,7 @@ channel:
 
 // The raised value is whole seconds, as meta TTLs are.
 func TestHistoryMetaTTLInitialRaisedWholeSeconds(t *testing.T) {
-	conf, meta := getConfig(t, writeConfigFile(t, "client:\n  channel_position_check_delay: 100500ms\n"))
+	conf, meta := getConfig(t, writeConfigFile(t, "client:\n  channel_position_check_delay: 100500ms\nchannel:\n  history_meta_ttl_initial: 5m\n"))
 	require.Equal(t, configtypes.Duration(302*time.Second), conf.Channel.HistoryMetaTTLInitial)
 	require.Len(t, meta.Warnings, 1)
 	require.NoError(t, conf.Validate())
