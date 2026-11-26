@@ -92,14 +92,18 @@ func defaultHTTPClient() *http.Client {
 
 // NewManager returns a new instance of Manager.
 func NewManager(rawURL string, opts ...Option) (*Manager, error) {
-	u, err := url.Parse(rawURL)
+	urlTemplate := fasttemplate.New(rawURL, "{{", "}}")
+	// Braces are not valid in a host name, so validate the URL with placeholders
+	// filled in. A digit is valid wherever a placeholder is expected, a port included.
+	u, err := url.Parse(urlTemplate.ExecuteFuncString(func(w io.Writer, _ string) (int, error) {
+		return io.WriteString(w, "0")
+	}))
 	if err != nil {
 		return nil, ErrInvalidURL
 	}
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return nil, fmt.Errorf("endpoint must have http:// or https:// scheme, got: %s", rawURL)
 	}
-	urlTemplate := fasttemplate.New(rawURL, "{{", "}}")
 
 	mng := &Manager{
 		url: urlTemplate,
