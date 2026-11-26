@@ -79,7 +79,10 @@ type Consumer struct {
 	stopPoll    chan struct{}
 	stopWorkers chan struct{}
 	// stopCtx is cancelled by Shutdown to end a blocking read early.
-	stopCtx      context.Context
+	stopCtx context.Context
+	// readGrace bounds a read past its block (defaultReadGrace; tests
+	// shorten it before Run)
+	readGrace    time.Duration
 	stopCancel   context.CancelFunc
 	shutdownOnce sync.Once
 
@@ -128,6 +131,7 @@ func newConsumer(shard *redisshard.RedisShard, options ConsumerOptions) (*Consum
 		Errors: make(chan error),
 
 		stopCtx:    stopCtx,
+		readGrace:  defaultReadGrace,
 		stopCancel: stopCancel,
 
 		options: options,
@@ -388,16 +392,16 @@ func incrementMessageID(id string) (string, error) {
 	return fmt.Sprintf("%s-%d", parts[0], parsed+1), nil
 }
 
-// readGrace bounds how long past its block a read waits for its answer: a
+// defaultReadGrace (Consumer.readGrace) bounds how long past its block a read waits for its answer: a
 // request or answer lost on a live connection (a black hole without a reset)
 // is never answered, and a read waiting for it for good stopped the consumer
 // for good. Ended, the read fails, rueidis closes its connection (a blocking
 // command's connection on a context error) and the loop reads again on a
-// fresh one. A variable for tests.
-var readGrace = 5 * time.Second
+// fresh one.
+const defaultReadGrace = 5 * time.Second
 
 func (c *Consumer) xReadGroup(stream, groupName, name string, count int64, blockingMilliseconds int64) rueidis.RedisResult {
-	ctx, cancel := context.WithTimeout(c.stopCtx, time.Duration(blockingMilliseconds)*time.Millisecond+readGrace)
+	ctx, cancel := context.WithTimeout(c.stopCtx, time.Duration(blockingMilliseconds)*time.Millisecond+c.readGrace)
 	defer cancel()
 	return c.shard.RunOp(func(client rueidis.Client) rueidis.RedisResult {
 		cmd := client.B().Xreadgroup().Group(groupName, name).Count(count).Block(blockingMilliseconds).Streams().Key(stream).Id(">").Build()
@@ -418,7 +422,7 @@ func (c *Consumer) enqueuePendingAfter(afterID string) (string, bool) {
 		if count <= 0 {
 			count = 1
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), readGrace)
+		ctx, cancel := context.WithTimeout(context.Background(), c.readGrace)
 		res := c.shard.RunOp(func(client rueidis.Client) rueidis.RedisResult {
 			cmd := client.B().Xreadgroup().Group(c.options.GroupName, c.options.Name).Count(int64(count)).Streams().Key(c.options.Stream).Id(afterID).Build()
 			return client.Do(ctx, cmd)

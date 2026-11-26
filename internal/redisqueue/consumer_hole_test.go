@@ -59,14 +59,12 @@ func answerHoleProxy(t *testing.T, target string) (addr string, hole *atomic.Boo
 }
 
 // A blocking read whose answer is lost (the entry delivered to this consumer
-// by Redis, the answer never received) ends past its block plus readGrace,
+// by Redis, the answer never received) ends past its block plus its grace,
 // and without reclaim the entry is enqueued from the consumer's pending
 // entries. Before, the read waited for good (the consumer stopped consuming),
 // and an entry delivered by a lost answer was never processed.
 func TestConsumerLostReadAnswer(t *testing.T) {
-	prev := readGrace
-	readGrace = 300 * time.Millisecond
-	t.Cleanup(func() { readGrace = prev })
+	const readGrace = 300 * time.Millisecond
 
 	addr, hole := answerHoleProxy(t, "127.0.0.1:6379")
 	e, err := redisshard.NewRedisShard(redisshard.RedisShardConfig{Address: addr})
@@ -93,8 +91,10 @@ func TestConsumerLostReadAnswer(t *testing.T) {
 	p, err := NewProducer(direct, ProducerOptions{Stream: stream})
 	require.NoError(t, err)
 
-	go c.Run()
-	t.Cleanup(c.Shutdown)
+	c.readGrace = readGrace
+	runDone := make(chan struct{})
+	go func() { c.Run(); close(runDone) }()
+	t.Cleanup(func() { c.Shutdown(); <-runDone })
 	require.NoError(t, p.Enqueue(&Message{Values: map[string]string{"n": "1"}}))
 	require.Eventually(t, func() bool { return processed.Load() == 1 }, 5*time.Second, 10*time.Millisecond, "works before the hole")
 
