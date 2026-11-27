@@ -79,7 +79,10 @@ type Consumer struct {
 	stopPoll    chan struct{}
 	stopWorkers chan struct{}
 	// stopCtx is cancelled by Shutdown to end a blocking read early.
-	stopCtx      context.Context
+	stopCtx context.Context
+	// readGrace bounds a read past its block (defaultReadGrace; tests
+	// shorten it before Run)
+	readGrace    time.Duration
 	stopCancel   context.CancelFunc
 	shutdownOnce sync.Once
 
@@ -128,6 +131,7 @@ func newConsumer(shard *redisshard.RedisShard, options ConsumerOptions) (*Consum
 		Errors: make(chan error),
 
 		stopCtx:    stopCtx,
+		readGrace:  defaultReadGrace,
 		stopCancel: stopCancel,
 
 		options: options,
@@ -388,10 +392,20 @@ func incrementMessageID(id string) (string, error) {
 	return fmt.Sprintf("%s-%d", parts[0], parsed+1), nil
 }
 
+// defaultReadGrace (Consumer.readGrace) bounds how long past its block a read waits for its answer: a
+// request or answer lost on a live connection (a black hole without a reset)
+// is never answered, and a read waiting for it for good stopped the consumer
+// for good. Ended, the read fails, rueidis closes its connection (a blocking
+// command's connection on a context error) and the loop reads again on a
+// fresh one.
+const defaultReadGrace = 5 * time.Second
+
 func (c *Consumer) xReadGroup(stream, groupName, name string, count int64, blockingMilliseconds int64) rueidis.RedisResult {
+	ctx, cancel := context.WithTimeout(c.stopCtx, time.Duration(blockingMilliseconds)*time.Millisecond+c.readGrace)
+	defer cancel()
 	return c.shard.RunOp(func(client rueidis.Client) rueidis.RedisResult {
 		cmd := client.B().Xreadgroup().Group(groupName, name).Count(count).Block(blockingMilliseconds).Streams().Key(stream).Id(">").Build()
-		return client.Do(c.stopCtx, cmd)
+		return client.Do(ctx, cmd)
 	})
 }
 
@@ -399,27 +413,32 @@ func (c *Consumer) xReadGroup(stream, groupName, name string, count int64, block
 // acknowledged, with IDs after afterID. A read which Shutdown interrupted may
 // have had entries delivered to this consumer by Redis without them being
 // received: they are newer than every entry received, and without reclaim
-// (VisibilityTimeout 0) nothing would deliver them again.
-func (c *Consumer) enqueuePendingAfter(afterID string) {
+// (VisibilityTimeout 0) nothing would deliver them again. It returns the ID
+// of the last entry enqueued (afterID when none was) and whether it read them
+// all (false: a read failed).
+func (c *Consumer) enqueuePendingAfter(afterID string) (string, bool) {
 	for {
 		count := c.options.Concurrency
 		if count <= 0 {
 			count = 1
 		}
+		ctx, cancel := context.WithTimeout(context.Background(), c.readGrace)
 		res := c.shard.RunOp(func(client rueidis.Client) rueidis.RedisResult {
 			cmd := client.B().Xreadgroup().Group(c.options.GroupName, c.options.Name).Count(int64(count)).Streams().Key(c.options.Stream).Id(afterID).Build()
-			return client.Do(context.Background(), cmd)
+			return client.Do(ctx, cmd)
 		})
+		cancel()
 		xRead, err := res.AsXRead()
 		if err != nil {
 			if !rueidis.IsRedisNil(err) {
 				c.logError(fmt.Errorf("error reading pending messages of redis stream %s: %w", c.options.Stream, err))
+				return afterID, false
 			}
-			return
+			return afterID, true
 		}
 		messages := xRead[c.options.Stream]
 		if len(messages) == 0 {
-			return
+			return afterID, true
 		}
 		c.enqueue(messages)
 		afterID = messages[len(messages)-1].ID
@@ -434,7 +453,7 @@ func (c *Consumer) enqueuePendingAfter(afterID string) {
 func (c *Consumer) poll() {
 	lastID := c.pollNew()
 	if c.options.VisibilityTimeout == 0 {
-		c.enqueuePendingAfter(lastID)
+		_, _ = c.enqueuePendingAfter(lastID)
 	}
 }
 
@@ -442,6 +461,10 @@ func (c *Consumer) poll() {
 // received ("0" when none was).
 func (c *Consumer) pollNew() (lastID string) {
 	lastID = "0"
+	// recheck: a read ended without its answer; until this consumer's pending
+	// entries after lastID were read, entries Redis delivered by the lost
+	// answer may be waiting there (without reclaim, nothing else delivers them)
+	recheck := false
 	for {
 		select {
 		case <-c.stopPoll:
@@ -455,6 +478,18 @@ func (c *Consumer) pollNew() (lastID string) {
 				continue
 			}
 			c.cond.L.Unlock()
+			if recheck {
+				var ok bool
+				if lastID, ok = c.enqueuePendingAfter(lastID); !ok {
+					select {
+					case <-c.stopPoll:
+						return
+					case <-time.After(200 * time.Millisecond):
+					}
+					continue
+				}
+				recheck = false
+			}
 			count := c.options.Concurrency - len(c.queue)
 
 			res := c.xReadGroup(c.options.Stream, c.options.GroupName, c.options.Name, int64(count), c.options.BlockingTimeout.Milliseconds())
@@ -464,6 +499,16 @@ func (c *Consumer) pollNew() (lastID string) {
 					// Shutdown interrupted the read, stopPoll follows.
 					<-c.stopPoll
 					return
+				}
+				if errors.Is(err, context.DeadlineExceeded) {
+					// The read ended past its block plus readGrace: its request
+					// or its answer was lost. Redis may have delivered entries to
+					// this consumer that it never received: reclaim delivers them
+					// again after VisibilityTimeout; without reclaim they are
+					// enqueued from this consumer's pending entries before the
+					// next read (else lost for good).
+					recheck = c.options.VisibilityTimeout == 0
+					continue
 				}
 				if err, ok := err.(net.Error); ok && err.Timeout() {
 					continue
