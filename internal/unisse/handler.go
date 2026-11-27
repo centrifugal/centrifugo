@@ -64,7 +64,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytesSize))
 		connectRequestData, err := io.ReadAll(r.Body)
 		if err != nil {
-			log.Error().Err(err).Msg("error reading uni sse request body")
+			log.Info().Err(err).Str("transport", transportName).Msg("error reading uni sse request body")
 			if len(connectRequestData) >= maxBytesSize {
 				w.WriteHeader(http.StatusRequestEntityTooLarge)
 				return

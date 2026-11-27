@@ -14,6 +14,7 @@ import (
 	"github.com/centrifugal/centrifugo/v6/internal/subsource"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -202,7 +203,7 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 	resp := &PublishResponse{}
 
 	if ch == "" {
-		log.Error().Err(errors.New("channel required for publish")).Msg("bad publish request")
+		log.Warn().Err(errors.New("channel required for publish")).Msg("bad publish request")
 		resp.Error = ErrorBadRequest
 		return resp
 	}
@@ -241,7 +242,7 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 
 	// Data format validation
 	if err := config.ValidatePublicationData(data, chOpts.PublicationDataFormat); err != nil {
-		log.Error().Err(err).Str("channel", ch).Msg("bad publish request")
+		log.Warn().Err(err).Str("channel", ch).Msg("bad publish request")
 		resp.Error = ErrorBadRequest
 		return resp
 	}
@@ -268,7 +269,7 @@ func (h *Executor) Publish(ctx context.Context, cmd *PublishRequest) *PublishRes
 		centrifuge.WithVersion(cmd.Version, cmd.VersionEpoch),
 	)
 	if err != nil {
-		log.Error().Err(err).Str("channel", cmd.Channel).Msg("error publishing data to channel")
+		logAPIError(err).Str("channel", cmd.Channel).Msg("error publishing data to channel")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -295,7 +296,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 	}
 
 	if len(channels) == 0 {
-		log.Error().Err(errors.New("channels required for broadcast")).Msg("bad broadcast request")
+		log.Warn().Err(errors.New("channels required for broadcast")).Msg("bad broadcast request")
 		resp.Error = ErrorBadRequest
 		return resp
 	}
@@ -326,7 +327,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 			if ch == "" {
 				respError := ErrorBadRequest
 				metrics.IncAPIError(h.config.Protocol, "broadcast_publish", respError.Code)
-				log.Error().Err(errors.New("channel can not be blank in broadcast")).Msg("bad broadcast request")
+				log.Warn().Err(errors.New("channel can not be blank in broadcast")).Msg("bad broadcast request")
 				responses[i] = &PublishResponse{Error: respError}
 				return
 			}
@@ -342,7 +343,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 			if !found {
 				respError := ErrorUnknownChannel
 				metrics.IncAPIError(h.config.Protocol, "broadcast_publish", respError.Code)
-				log.Error().Err(errors.New("channel not found")).Str("channel", ch).Msg("error getting options for channel")
+				log.Warn().Err(errors.New("channel not found")).Str("channel", ch).Msg("error getting options for channel")
 				responses[i] = &PublishResponse{Error: respError}
 				return
 			}
@@ -351,7 +352,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 			if err := validation.validate(chOpts.PublicationDataFormat); err != nil {
 				respError := ErrorBadRequest
 				metrics.IncAPIError(h.config.Protocol, "broadcast_publish", respError.Code)
-				log.Error().Err(err).Str("channel", ch).Msg("bad broadcast request")
+				log.Warn().Err(err).Str("channel", ch).Msg("bad broadcast request")
 				responses[i] = &PublishResponse{Error: respError}
 				return
 			}
@@ -386,7 +387,7 @@ func (h *Executor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Broadc
 			} else {
 				respError := toAPIErr(err)
 				metrics.IncAPIError(h.config.Protocol, "broadcast_publish", respError.Code)
-				log.Error().Err(err).Str("channel", ch).Msg("error publishing data to channel during broadcast")
+				logAPIError(err).Str("channel", ch).Msg("error publishing data to channel during broadcast")
 				resp.Error = respError
 			}
 			responses[i] = resp
@@ -408,7 +409,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 	channel := cmd.Channel
 
 	if channel == "" {
-		log.Error().Err(errors.New("channel required for subscribe")).Msg("bad subscribe request")
+		log.Warn().Err(errors.New("channel required for subscribe")).Msg("bad subscribe request")
 		resp.Error = ErrorBadRequest
 		return resp
 	}
@@ -492,7 +493,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 		centrifuge.WithSubscribeRecoveryMaxPublicationLimit(chOpts.RecoveryMaxPublicationLimit),
 	)
 	if err != nil {
-		log.Error().Err(err).Str("channel", channel).Str("user", user).Msg("error subscribing user to channel")
+		logAPIError(err).Str("channel", channel).Str("user", user).Msg("error subscribing user to channel")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -528,7 +529,7 @@ func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *Unsu
 
 	err = h.node.Unsubscribe(user, channel, centrifuge.WithUnsubscribeClient(cmd.Client), centrifuge.WithUnsubscribeSession(cmd.Session))
 	if err != nil {
-		log.Error().Err(err).Str("channel", channel).Str("user", user).Msg("error unsubscribing user from channel")
+		logAPIError(err).Str("channel", channel).Str("user", user).Msg("error unsubscribing user from channel")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -560,7 +561,7 @@ func (h *Executor) Disconnect(_ context.Context, cmd *DisconnectRequest) *Discon
 		centrifuge.WithDisconnectSession(cmd.Session),
 		centrifuge.WithDisconnectClientWhitelist(cmd.Whitelist))
 	if err != nil {
-		log.Error().Err(err).Str("user", user).Msg("error disconnecting user")
+		logAPIError(err).Str("user", user).Msg("error disconnecting user")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -584,7 +585,7 @@ func (h *Executor) Refresh(_ context.Context, cmd *RefreshRequest) *RefreshRespo
 		centrifuge.WithRefreshInfo(cmd.Info),
 	)
 	if err != nil {
-		log.Error().Err(err).Str("user", user).Msg("error refreshing user")
+		logAPIError(err).Str("user", user).Msg("error refreshing user")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -623,7 +624,7 @@ func (h *Executor) Presence(_ context.Context, cmd *PresenceRequest) *PresenceRe
 
 	presence, err := h.node.Presence(ch)
 	if err != nil {
-		log.Error().Err(err).Str("channel", ch).Msg("error getting presence for channel")
+		logAPIError(err).Str("channel", ch).Msg("error getting presence for channel")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -675,7 +676,7 @@ func (h *Executor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest) *
 
 	stats, err := h.node.PresenceStats(cmd.Channel)
 	if err != nil {
-		log.Error().Err(err).Str("channel", ch).Msg("error getting presence stats for channel")
+		logAPIError(err).Str("channel", ch).Msg("error getting presence stats for channel")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -735,7 +736,7 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 		centrifuge.WithReverse(cmd.Reverse),
 	)
 	if err != nil {
-		log.Error().Err(err).Str("channel", ch).Msg("error getting history for channel")
+		logAPIError(err).Str("channel", ch).Msg("error getting history for channel")
 		if errors.Is(err, centrifuge.ErrorUnrecoverablePosition) {
 			resp.Error = ErrorUnrecoverablePosition
 			return resp
@@ -802,7 +803,7 @@ func (h *Executor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest) *
 
 	err = h.node.RemoveHistory(ch)
 	if err != nil {
-		log.Error().Err(err).Str("channel", ch).Msg("error removing history for channel")
+		logAPIError(err).Str("channel", ch).Msg("error removing history for channel")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -818,7 +819,7 @@ func (h *Executor) Info(_ context.Context, _ *InfoRequest) *InfoResponse {
 
 	info, err := h.node.Info()
 	if err != nil {
-		log.Error().Err(err).Msg("error calling info")
+		logAPIError(err).Msg("error calling info")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -858,7 +859,7 @@ func (h *Executor) RPC(ctx context.Context, cmd *RPCRequest) *RPCResponse {
 	resp := &RPCResponse{}
 
 	if cmd.Method == "" {
-		log.Error().Err(errors.New("rpc method required")).Msg("bad rpc request")
+		log.Warn().Err(errors.New("rpc method required")).Msg("bad rpc request")
 		resp.Error = ErrorBadRequest
 		return resp
 	}
@@ -873,7 +874,7 @@ func (h *Executor) RPC(ctx context.Context, cmd *RPCRequest) *RPCResponse {
 
 	data, err := handler(ctx, cmd.Params)
 	if err != nil {
-		log.Error().Err(err).Str("method", cmd.Method).Msg("error calling rpc method")
+		logAPIError(err).Str("method", cmd.Method).Msg("error calling rpc method")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -894,7 +895,7 @@ func (h *Executor) Channels(ctx context.Context, cmd *ChannelsRequest) *Channels
 
 	channels, err := h.surveyCaller.Channels(ctx, cmd)
 	if err != nil {
-		log.Error().Err(err).Msg("error calling channels")
+		logAPIError(err).Msg("error calling channels")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -950,7 +951,7 @@ func (h *Executor) MapPublish(ctx context.Context, cmd *MapPublishRequest) *MapP
 	}
 
 	if err := config.ValidatePublicationData(data, chOpts.PublicationDataFormat); err != nil {
-		log.Error().Err(err).Str("channel", ch).Msg("bad map publish request")
+		log.Warn().Err(err).Str("channel", ch).Msg("bad map publish request")
 		resp.Error = ErrorBadRequest
 		return resp
 	}
@@ -981,7 +982,7 @@ func (h *Executor) MapPublish(ctx context.Context, cmd *MapPublishRequest) *MapP
 
 	result, err := h.node.MapPublish(ctx, ch, cmd.Key, opts)
 	if err != nil {
-		log.Error().Err(err).Str("channel", ch).Msg("error in map publish")
+		logAPIError(err).Str("channel", ch).Msg("error in map publish")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -1031,7 +1032,7 @@ func (h *Executor) MapRemove(ctx context.Context, cmd *MapRemoveRequest) *MapRem
 
 	result, err := h.node.MapRemove(ctx, ch, cmd.Key, opts)
 	if err != nil {
-		log.Error().Err(err).Str("channel", ch).Msg("error in map remove")
+		logAPIError(err).Str("channel", ch).Msg("error in map remove")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -1091,7 +1092,7 @@ func (h *Executor) MapReadState(ctx context.Context, cmd *MapReadStateRequest) *
 			resp.Error = ErrorUnrecoverablePosition
 			return resp
 		}
-		log.Error().Err(err).Str("channel", ch).Msg("error in map read state")
+		logAPIError(err).Str("channel", ch).Msg("error in map read state")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -1165,7 +1166,7 @@ func (h *Executor) MapReadStream(ctx context.Context, cmd *MapReadStreamRequest)
 			resp.Error = ErrorUnrecoverablePosition
 			return resp
 		}
-		log.Error().Err(err).Str("channel", ch).Msg("error in map read stream")
+		logAPIError(err).Str("channel", ch).Msg("error in map read stream")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -1224,7 +1225,7 @@ func (h *Executor) MapStats(ctx context.Context, cmd *MapStatsRequest) *MapStats
 
 	result, err := h.node.MapStats(ctx, ch)
 	if err != nil {
-		log.Error().Err(err).Str("channel", ch).Msg("error in map stats")
+		logAPIError(err).Str("channel", ch).Msg("error in map stats")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -1267,7 +1268,7 @@ func (h *Executor) MapClear(ctx context.Context, cmd *MapClearRequest) *MapClear
 
 	err = h.node.MapClear(ctx, ch, centrifuge.MapClearOptions{})
 	if err != nil {
-		log.Error().Err(err).Str("channel", ch).Msg("error in map clear")
+		logAPIError(err).Str("channel", ch).Msg("error in map clear")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -1322,14 +1323,14 @@ func (h *Executor) SharedPollPublish(ctx context.Context, cmd *SharedPollPublish
 	}
 
 	if err := config.ValidatePublicationData(data, chOpts.PublicationDataFormat); err != nil {
-		log.Error().Err(err).Str("channel", ch).Msg("bad shared poll publish request")
+		log.Warn().Err(err).Str("channel", ch).Msg("bad shared poll publish request")
 		resp.Error = ErrorBadRequest
 		return resp
 	}
 
 	err = h.node.SharedPollPublish(ctx, ch, cmd.Key, cmd.Version, cmd.Epoch, data)
 	if err != nil {
-		log.Error().Err(err).Str("channel", ch).Msg("error in shared poll publish")
+		logAPIError(err).Str("channel", ch).Msg("error in shared poll publish")
 		resp.Error = toAPIErr(err)
 		return resp
 	}
@@ -1343,6 +1344,18 @@ func (h *Executor) SharedPollPublish(ctx context.Context, cmd *SharedPollPublish
 // API but concurrent pagination in the client protocol. Without an API
 // equivalent, it keeps being temporary or not. Any other error - a broker
 // failing, say - is an internal error.
+// logAPIError starts a log entry for a failed API call: at warn level when the
+// request was refused because of what the caller sent, at error level when the
+// operator may need to act.
+func logAPIError(err error) *zerolog.Event {
+	switch toAPIErr(err).Code {
+	case ErrorBadRequest.Code, ErrorUnknownChannel.Code, ErrorNotFound.Code,
+		ErrorUnrecoverablePosition.Code, ErrorConflict.Code:
+		return log.Warn().Err(err)
+	}
+	return log.Error().Err(err)
+}
+
 func toAPIErr(err error) *Error {
 	var apiErr *Error
 	if errors.As(err, &apiErr) {

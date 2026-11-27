@@ -204,13 +204,13 @@ func (s *Handler) handleAPI(w http.ResponseWriter, r *http.Request) {
 
 	data, err = io.ReadAll(r.Body)
 	if err != nil {
-		log.Error().Err(err).Msg("error reading API request body")
+		log.Warn().Err(err).Msg("error reading API request body")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	if len(data) == 0 {
-		log.Error().Err(errors.New("no data in API request")).Msg("bad request")
+		log.Warn().Err(errors.New("no data in API request")).Msg("bad request")
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
@@ -224,7 +224,7 @@ func (s *Handler) handleAPI(w http.ResponseWriter, r *http.Request) {
 	for {
 		command, decodeErr := decoder.Decode()
 		if decodeErr != nil && decodeErr != io.EOF {
-			log.Error().Err(decodeErr).Msg("error decoding API data")
+			log.Warn().Err(decodeErr).Msg("error decoding API data")
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
@@ -410,7 +410,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_PUBLISH:
 		cmd, err := decoder.DecodePublish(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding publish params")
+			log.Warn().Err(err).Msg("error decoding publish params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -428,7 +428,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_BROADCAST:
 		cmd, err := decoder.DecodeBroadcast(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding broadcast params")
+			log.Warn().Err(err).Msg("error decoding broadcast params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -446,7 +446,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_SUBSCRIBE:
 		cmd, err := decoder.DecodeSubscribe(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding subscribe params")
+			log.Warn().Err(err).Msg("error decoding subscribe params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -464,7 +464,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_UNSUBSCRIBE:
 		cmd, err := decoder.DecodeUnsubscribe(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding unsubscribe params")
+			log.Warn().Err(err).Msg("error decoding unsubscribe params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -482,7 +482,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_DISCONNECT:
 		cmd, err := decoder.DecodeDisconnect(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding disconnect params")
+			log.Warn().Err(err).Msg("error decoding disconnect params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -500,7 +500,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_PRESENCE:
 		cmd, err := decoder.DecodePresence(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding presence params")
+			log.Warn().Err(err).Msg("error decoding presence params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -518,7 +518,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_PRESENCE_STATS:
 		cmd, err := decoder.DecodePresenceStats(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding presence stats params")
+			log.Warn().Err(err).Msg("error decoding presence stats params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -536,7 +536,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_HISTORY:
 		cmd, err := decoder.DecodeHistory(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding history params")
+			log.Warn().Err(err).Msg("error decoding history params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -554,7 +554,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_HISTORY_REMOVE:
 		cmd, err := decoder.DecodeHistoryRemove(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding history remove params")
+			log.Warn().Err(err).Msg("error decoding history remove params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -585,7 +585,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_RPC:
 		cmd, err := decoder.DecodeRPC(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding rpc params")
+			log.Warn().Err(err).Msg("error decoding rpc params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -603,7 +603,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_REFRESH:
 		cmd, err := decoder.DecodeRefresh(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding refresh params")
+			log.Warn().Err(err).Msg("error decoding refresh params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -621,7 +621,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_CHANNELS:
 		cmd, err := decoder.DecodeChannels(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding channels params")
+			log.Warn().Err(err).Msg("error decoding channels params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -639,7 +639,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_MAP_PUBLISH:
 		cmd, err := decoder.DecodeMapPublish(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding map publish params")
+			log.Warn().Err(err).Msg("error decoding map publish params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -657,7 +657,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_MAP_REMOVE:
 		cmd, err := decoder.DecodeMapRemove(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding map remove params")
+			log.Warn().Err(err).Msg("error decoding map remove params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -675,7 +675,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_MAP_READ_STATE:
 		cmd, err := decoder.DecodeMapReadState(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding map read state params")
+			log.Warn().Err(err).Msg("error decoding map read state params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -693,7 +693,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_MAP_READ_STREAM:
 		cmd, err := decoder.DecodeMapReadStream(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding map read stream params")
+			log.Warn().Err(err).Msg("error decoding map read stream params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -711,7 +711,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_MAP_STATS:
 		cmd, err := decoder.DecodeMapStats(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding map stats params")
+			log.Warn().Err(err).Msg("error decoding map stats params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -729,7 +729,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_MAP_CLEAR:
 		cmd, err := decoder.DecodeMapClear(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding map clear params")
+			log.Warn().Err(err).Msg("error decoding map clear params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
@@ -747,7 +747,7 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *LegacyCommand) (*Le
 	case Command_SHARED_POLL_PUBLISH:
 		cmd, err := decoder.DecodeSharedPollPublish(params)
 		if err != nil {
-			log.Error().Err(err).Msg("error decoding shared poll publish params")
+			log.Warn().Err(err).Msg("error decoding shared poll publish params")
 			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}

@@ -65,12 +65,12 @@ func (s *Handler) Routes() map[string]http.HandlerFunc {
 }
 
 func (s *Handler) handleReadDataError(r *http.Request, w http.ResponseWriter, err error) {
-	log.Error().Err(err).Str("path", r.URL.Path).Msg("error reading API request body")
+	log.Warn().Err(err).Str("path", r.URL.Path).Msg("error reading API request body")
 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
 
 func (s *Handler) handleUnmarshalError(r *http.Request, w http.ResponseWriter, err error) {
-	log.Error().Err(err).Str("path", r.URL.Path).Msg("error decoding API request body")
+	log.Warn().Err(err).Str("path", r.URL.Path).Msg("error decoding API request body")
 	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 }
 

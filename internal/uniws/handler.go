@@ -77,7 +77,7 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	conn, _, err := s.upgrade.Upgrade(rw, r, nil)
 	if err != nil {
-		log.Error().Err(err).Str("transport", transportName).Msg("websocket upgrade error")
+		log.Debug().Err(err).Str("transport", transportName).Msg("websocket upgrade error")
 		return
 	}
 
