@@ -322,7 +322,7 @@ type HttpAPI struct {
 	ErrorMode          string `mapstructure:"error_mode" json:"error_mode" envconfig:"error_mode" yaml:"error_mode" toml:"error_mode" expose:"full" doc:"Set to <<transport>> to return HTTP API errors as HTTP status codes, with the error in the response body. By default errors are returned inside a successful response. A request can also ask for it with the <<X-Centrifugo-Error-Mode: transport>> header."`
 	External           bool   `mapstructure:"external" json:"external" envconfig:"external" yaml:"external" toml:"external" doc:"Runs the HTTP API on the external port instead of the internal port."`
 	Insecure           bool   `mapstructure:"insecure" json:"insecure" envconfig:"insecure" yaml:"insecure" toml:"insecure" doc:"Disables API key authentication for the HTTP API. Use only in trusted network environments."`
-	MaxRequestBodySize int    `mapstructure:"max_request_body_size" json:"max_request_body_size" envconfig:"max_request_body_size" default:"4194304" yaml:"max_request_body_size" toml:"max_request_body_size" doc:"Maximum allowed request body size in bytes for HTTP API requests. Zero disables the limit. Default <<4194304>> (4 MiB)."`
+	MaxRequestBodySize int    `mapstructure:"max_request_body_size" json:"max_request_body_size" envconfig:"max_request_body_size" default:"33554432" yaml:"max_request_body_size" toml:"max_request_body_size" doc:"Maximum allowed request body size in bytes for HTTP API requests. Values <= 0 use the default. Default <<33554432>> (32 MiB)."`
 }
 
 type GrpcAPI struct {

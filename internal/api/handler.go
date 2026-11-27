@@ -11,15 +11,15 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// DefaultMaxRequestBodySize is the default maximum HTTP API request body size (4 MiB).
-const DefaultMaxRequestBodySize = 4 * 1024 * 1024
+// DefaultMaxRequestBodySize is the default maximum HTTP API request body size (32 MiB).
+const DefaultMaxRequestBodySize = 32 * 1024 * 1024
 
 // Config configures Handler.
 type Config struct {
 	UseOpenTelemetry      bool
 	UseTransportErrorMode bool
 	// MaxRequestBodySize limits incoming HTTP API request bodies in bytes.
-	// Zero disables the limit.
+	// Values <= 0 use DefaultMaxRequestBodySize.
 	MaxRequestBodySize int
 }
 
@@ -76,9 +76,11 @@ func (s *Handler) readRequestBody(w http.ResponseWriter, r *http.Request) ([]byt
 	if r.Body == nil {
 		return nil, nil
 	}
-	if s.config.MaxRequestBodySize > 0 {
-		r.Body = http.MaxBytesReader(w, r.Body, int64(s.config.MaxRequestBodySize))
+	limit := s.config.MaxRequestBodySize
+	if limit <= 0 {
+		limit = DefaultMaxRequestBodySize
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, int64(limit))
 	return io.ReadAll(r.Body)
 }
 

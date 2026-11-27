@@ -195,13 +195,21 @@ func TestAPIHandlerMaxRequestBodySize(t *testing.T) {
 		require.LessOrEqual(t, cr.readBytes, maxLimit+1)
 	})
 
-	t.Run("zero limit disables body size cap", func(t *testing.T) {
-		unlimited := NewHandler(n, apiExecutor, Config{MaxRequestBodySize: 0})
-		req := httptest.NewRequest(http.MethodPost, "/api/publish", strings.NewReader(fmt.Sprintf(`{"channel":"test","data":"%s"}`, strings.Repeat("x", 256))))
-		rec := httptest.NewRecorder()
+	for _, maxSize := range []int{0, -1} {
+		t.Run(fmt.Sprintf("non-positive limit %d uses default", maxSize), func(t *testing.T) {
+			withDefault := NewHandler(n, apiExecutor, Config{MaxRequestBodySize: maxSize})
 
-		unlimited.handlePublish(rec, req)
+			okReq := httptest.NewRequest(http.MethodPost, "/api/publish", strings.NewReader(`{"channel":"test","data":{}}`))
+			okRec := httptest.NewRecorder()
+			withDefault.handlePublish(okRec, okReq)
+			require.Equal(t, http.StatusOK, okRec.Code)
 
-		require.Equal(t, http.StatusOK, rec.Code)
-	})
+			cr := &countingReader{remaining: DefaultMaxRequestBodySize + 1024}
+			overReq := httptest.NewRequest(http.MethodPost, "/api/publish", cr)
+			overRec := httptest.NewRecorder()
+			withDefault.handlePublish(overRec, overReq)
+			require.Equal(t, http.StatusRequestEntityTooLarge, overRec.Code)
+			require.LessOrEqual(t, cr.readBytes, DefaultMaxRequestBodySize+1)
+		})
+	}
 }

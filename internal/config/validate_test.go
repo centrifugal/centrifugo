@@ -743,11 +743,11 @@ func TestValidateHistoryMetaTTLUnpublished(t *testing.T) {
 
 func TestValidateHttpAPIMaxRequestBodySize(t *testing.T) {
 	cfg := DefaultConfig()
-	require.Equal(t, 4*1024*1024, cfg.HttpAPI.MaxRequestBodySize)
+	require.Equal(t, 32*1024*1024, cfg.HttpAPI.MaxRequestBodySize)
 	require.NoError(t, cfg.Validate())
 
 	cfg.HttpAPI.MaxRequestBodySize = 0
-	require.NoError(t, cfg.Validate(), "zero disables limit and should be valid")
+	require.NoError(t, cfg.Validate())
 
 	cfg.HttpAPI.MaxRequestBodySize = -1
 	err := cfg.Validate()
