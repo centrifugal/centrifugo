@@ -673,3 +673,21 @@ func TestManagerDefaultTTL(t *testing.T) {
 	defer func() { _ = ttlCache.Stop() }()
 	require.Equal(t, _defaultTTL, ttlCache.ttl)
 }
+
+func TestManagerFetchKey_ResponseTooLarge(t *testing.T) {
+	mux := http.NewServeMux()
+	path := "/.well-known/jwks.json"
+	mux.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+		_, _ = writer.Write(make([]byte, 2<<20))
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	manager, err := NewManager(server.URL + path)
+	require.NoError(t, err)
+
+	_, err = manager.FetchKey(context.Background(), "202101", nil)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "too large")
+}
