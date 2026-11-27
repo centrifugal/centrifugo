@@ -59,6 +59,7 @@ func (a *App) centrifugeNodeConfig() centrifuge.Config {
 			StreamSize:                        chOpts.Map.StreamSize,
 			StreamTTL:                         chOpts.Map.StreamTTL.ToDuration(),
 			MetaTTL:                           chOpts.Map.MetaTTL.ToDuration(),
+			MetaTTLInitial:                    chOpts.Map.MetaTTLInitial.ToDuration(),
 			DefaultPageSize:                   chOpts.Map.DefaultPageSize,
 			MinPageSize:                       chOpts.Map.MinPageSize,
 			MaxPageSize:                       chOpts.Map.MaxPageSize,
@@ -97,7 +98,7 @@ func (a *App) centrifugeNodeConfig() centrifuge.Config {
 		}
 	}
 	cfg.HistoryMetaTTL = appCfg.Channel.HistoryMetaTTL.ToDuration()
-	cfg.HistoryMetaTTLUnpublished = appCfg.Channel.HistoryMetaTTLUnpublished.ToDuration()
+	cfg.HistoryMetaTTLInitial = appCfg.Channel.HistoryMetaTTLInitial.ToDuration()
 	cfg.ClientConnectIncludeServerTime = appCfg.Client.ConnectIncludeServerTime
 	cfg.LogLevel = logging.CentrifugeLogLevel(strings.ToLower(appCfg.Log.Level))
 	cfg.LogHandler = a.logHandler

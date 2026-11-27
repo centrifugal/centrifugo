@@ -70,8 +70,9 @@ CREATE INDEX IF NOT EXISTS __STREAM_TABLE___created_at_idx
 -- read-time TTL filter:
 --
 --   top_offset         — last assigned channel_offset (incremented on publish)
---   epoch              — monotonic epoch string; new on first publish, persists
---                        until the channel is forgotten via expires_at
+--   epoch              — random epoch string; new on first publish or first
+--                        History read, persists until the channel is
+--                        forgotten via expires_at
 --   history_ttl        — from PublishOptions.HistoryTTL; refreshed on each publish.
 --                        Used by History() reads for the read-time TTL filter.
 --   history_size       — from PublishOptions.HistorySize; refreshed on each publish.

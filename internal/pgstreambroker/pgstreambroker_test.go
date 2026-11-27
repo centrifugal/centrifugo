@@ -511,9 +511,8 @@ func TestPostgresStreamBroker_OutboxOrdering(t *testing.T) {
 }
 
 // TestPostgresStreamBroker_HistoryOnNonExistentChannel verifies that
-// History() on a never-published channel returns empty position (no meta
-// UPSERT — History is now a pure read that can use replicas). The first
-// Publish creates the meta and assigns the epoch.
+// History() on a never-published channel creates its epoch, and the first
+// Publish keeps it.
 func TestPostgresStreamBroker_HistoryOnNonExistentChannel(t *testing.T) {
 	t.Parallel()
 	e, _, _ := newTestPostgresStreamBroker(t)
@@ -525,15 +524,16 @@ func TestPostgresStreamBroker_HistoryOnNonExistentChannel(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, pubs)
 	require.Equal(t, uint64(0), sp.Offset)
-	require.Empty(t, sp.Epoch, "no meta row → empty epoch")
+	require.NotEmpty(t, sp.Epoch)
+	emptyEpoch := sp.Epoch
 
-	// First publish creates the meta with a fresh epoch.
+	// First publish keeps the epoch handed out to readers of the empty channel.
 	res, err := e.Publish(channel, []byte("x"), centrifuge.PublishOptions{
 		HistoryTTL:  10 * time.Minute,
 		HistorySize: 10,
 	})
 	require.NoError(t, err)
-	require.NotEmpty(t, res.Epoch)
+	require.Equal(t, emptyEpoch, res.Epoch)
 
 	// Subsequent History returns the epoch from the publish.
 	pubs, sp, err = e.History(channel, centrifuge.HistoryOptions{
@@ -700,7 +700,7 @@ func TestPostgresStreamBroker_HistoryTTLExpiry(t *testing.T) {
 
 	channel := "test_history_ttl_expiry"
 	_, err := e.Publish(channel, []byte("x"), centrifuge.PublishOptions{
-		HistoryTTL:  500 * time.Millisecond,
+		HistoryTTL:  time.Minute,
 		HistorySize: 10,
 	})
 	require.NoError(t, err)
@@ -713,7 +713,9 @@ func TestPostgresStreamBroker_HistoryTTLExpiry(t *testing.T) {
 	require.Len(t, pubs, 1)
 
 	// After TTL elapses, the read-time filter should exclude the row.
-	time.Sleep(700 * time.Millisecond)
+	_, err = e.pool.Exec(context.Background(), fmt.Sprintf(
+		"UPDATE %s SET created_at = created_at - interval '61 seconds' WHERE channel = $1", e.names.stream), channel)
+	require.NoError(t, err)
 	pubs, sp, err := e.History(channel, centrifuge.HistoryOptions{
 		Filter: centrifuge.HistoryFilter{Limit: 10},
 	})

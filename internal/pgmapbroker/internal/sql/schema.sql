@@ -305,10 +305,13 @@ BEGIN
         END IF;
     END IF;
 
-    -- 6. All checks passed - increment offset
+    -- 6. All checks passed - increment offset. Without a meta TTL the first
+    -- publication drops the TTL set by ensure_meta, as if it created the row.
     UPDATE __PREFIX__meta SET
         top_offset = top_offset + 1,
-        expires_at = COALESCE(CASE WHEN p_meta_ttl IS NOT NULL THEN NOW() + p_meta_ttl ELSE NULL END, expires_at),
+        expires_at = CASE WHEN p_meta_ttl IS NOT NULL THEN NOW() + p_meta_ttl
+                          WHEN top_offset = 0 THEN NULL
+                          ELSE expires_at END,
         updated_at = NOW()
     WHERE channel = p_channel
     RETURNING top_offset INTO v_offset;
@@ -594,6 +597,33 @@ BEGIN
     END IF;
 
     RETURN QUERY SELECT v_result.result_id, v_result.channel_offset, v_result.epoch;
+END;
+$$ LANGUAGE plpgsql;
+
+-- __PREFIX__ensure_meta: gives a map without publications an epoch, or extends
+-- the TTL of its meta. Internal, called by reads.
+-- A new epoch deletes state left by a forgotten one, as publish does. Its
+-- commit doesn't wait for the WAL flush: if the row is lost, positions in it
+-- are unrecoverable, which is safe. An extension commits synchronously, as
+-- keepers rely on the expiry not moving back. Lock order: meta → state.
+CREATE OR REPLACE FUNCTION __PREFIX__ensure_meta(
+    p_channel TEXT,
+    p_ttl INTERVAL DEFAULT NULL
+) RETURNS VOID AS $$
+DECLARE
+    v_inserted BOOLEAN;
+BEGIN
+    INSERT INTO __PREFIX__meta AS m (channel, epoch, expires_at, updated_at)
+    VALUES (p_channel, substr(md5(random()::text || random()::text), 1, 8), NOW() + p_ttl, NOW())
+    ON CONFLICT (channel) DO UPDATE
+        SET expires_at = EXCLUDED.expires_at, updated_at = EXCLUDED.updated_at
+        WHERE m.top_offset = 0 AND m.expires_at < EXCLUDED.expires_at
+    RETURNING (m.xmax = 0) INTO v_inserted;
+
+    IF v_inserted THEN
+        DELETE FROM __PREFIX__state WHERE channel = p_channel;
+        PERFORM set_config('synchronous_commit', 'off', true);
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 

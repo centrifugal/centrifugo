@@ -91,6 +91,11 @@ type ChannelOptions struct {
 	// set over default_history_meta_ttl on configuration top level.
 	HistoryMetaTTL Duration `mapstructure:"history_meta_ttl" json:"history_meta_ttl" envconfig:"history_meta_ttl" yaml:"history_meta_ttl" toml:"history_meta_ttl" doc:"How long history stream meta information (offset, epoch) is retained. Should be much larger than history_ttl. If zero, the global default_history_meta_ttl is used."`
 
+	// HistoryMetaTTLInitial is how long the history stream meta of a channel lives
+	// until its first publication. If zero, the global channel.history_meta_ttl_initial
+	// is used; -1 disables it for the namespace.
+	HistoryMetaTTLInitial Duration `mapstructure:"history_meta_ttl_initial" json:"history_meta_ttl_initial" envconfig:"history_meta_ttl_initial" yaml:"history_meta_ttl_initial" toml:"history_meta_ttl_initial" doc:"TTL of the history stream meta of a channel until its first publication, see <<channel.history_meta_ttl_initial>>. At least 3 × <<client.channel_position_check_delay>>: a shorter value is raised to it, with a warning. If zero, the global channel.history_meta_ttl_initial is used. Use <<-1>> to disable it for the namespace."`
+
 	// HistoryMaxPublicationLimit is the maximum number of publications returned per
 	// client history request in a channel of the namespace. If zero,
 	// client.history_max_publication_limit is used.
@@ -232,6 +237,7 @@ type MapConfig struct {
 	StreamSize                        int      `mapstructure:"stream_size" json:"stream_size" envconfig:"stream_size" yaml:"stream_size" toml:"stream_size" doc:"Maximum number of updates kept in the per-channel change stream used to bring subscribers up to date."`
 	StreamTTL                         Duration `mapstructure:"stream_ttl" json:"stream_ttl" envconfig:"stream_ttl" yaml:"stream_ttl" toml:"stream_ttl" doc:"How long the per-channel change stream is retained, e.g. <<60s>>."`
 	MetaTTL                           Duration `mapstructure:"meta_ttl" json:"meta_ttl" envconfig:"meta_ttl" yaml:"meta_ttl" toml:"meta_ttl" doc:"How long map stream meta information is retained. Should be larger than stream_ttl."`
+	MetaTTLInitial                    Duration `mapstructure:"meta_ttl_initial" json:"meta_ttl_initial" envconfig:"meta_ttl_initial" yaml:"meta_ttl_initial" toml:"meta_ttl_initial" doc:"TTL of map stream meta information until the map's first publication, see <<channel.history_meta_ttl_initial>>. At least 3 × <<client.channel_position_check_delay>>: a shorter value is raised to it, with a warning. If zero, the global channel.history_meta_ttl_initial is used. Use <<-1>> to disable it for the map."`
 	RemoveClientOnUnsubscribe         bool     `mapstructure:"remove_client_on_unsubscribe" json:"remove_client_on_unsubscribe" envconfig:"remove_client_on_unsubscribe" yaml:"remove_client_on_unsubscribe" toml:"remove_client_on_unsubscribe" doc:"Removes the client's own key from the map automatically when it unsubscribes."`
 	ClientKey                         string   `mapstructure:"client_key" json:"client_key" envconfig:"client_key" yaml:"client_key" toml:"client_key" doc:"Template for the key a client writes into the map, e.g. based on client or user ID."`
 	AllowPublishForClient             bool     `mapstructure:"allow_publish_for_client" json:"allow_publish_for_client" envconfig:"allow_publish_for_client" yaml:"allow_publish_for_client" toml:"allow_publish_for_client" doc:"Allows authenticated clients to write keys into the map. Client-side writes bypass your backend — use with care."`
