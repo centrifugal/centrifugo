@@ -819,3 +819,16 @@ func TestValidateMapNamespace_MetaTTLInitial(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "map.meta_ttl_initial must be 0")
 }
+
+func TestValidateHttpAPIMaxRequestBodySize(t *testing.T) {
+	cfg := DefaultConfig()
+	require.Equal(t, 32*1024*1024, cfg.HttpAPI.MaxRequestBodySize)
+	require.NoError(t, cfg.Validate())
+
+	cfg.HttpAPI.MaxRequestBodySize = 0
+	require.NoError(t, cfg.Validate())
+
+	cfg.HttpAPI.MaxRequestBodySize = -1
+	err := cfg.Validate()
+	require.EqualError(t, err, "http_api.max_request_body_size cannot be negative")
+}

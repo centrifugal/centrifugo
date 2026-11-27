@@ -202,10 +202,9 @@ func (s *Handler) handleAPI(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 
-	data, err = io.ReadAll(r.Body)
+	data, err = s.readRequestBody(w, r)
 	if err != nil {
-		log.Error().Err(err).Msg("error reading API request body")
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		s.handleReadDataError(r, w, err)
 		return
 	}
 

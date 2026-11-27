@@ -1,6 +1,8 @@
 package api
 
 import (
+	"errors"
+	"io"
 	"net/http"
 
 	. "github.com/centrifugal/centrifugo/v6/internal/apiproto"
@@ -9,10 +11,16 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// DefaultMaxRequestBodySize is the default maximum HTTP API request body size (32 MiB).
+const DefaultMaxRequestBodySize = 32 * 1024 * 1024
+
 // Config configures Handler.
 type Config struct {
 	UseOpenTelemetry      bool
 	UseTransportErrorMode bool
+	// MaxRequestBodySize limits incoming HTTP API request bodies in bytes.
+	// Values <= 0 use DefaultMaxRequestBodySize.
+	MaxRequestBodySize int
 }
 
 // Handler is responsible for processing API commands over HTTP.
@@ -64,7 +72,25 @@ func (s *Handler) Routes() map[string]http.HandlerFunc {
 	}
 }
 
+func (s *Handler) readRequestBody(w http.ResponseWriter, r *http.Request) ([]byte, error) {
+	if r.Body == nil {
+		return nil, nil
+	}
+	limit := s.config.MaxRequestBodySize
+	if limit <= 0 {
+		limit = DefaultMaxRequestBodySize
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, int64(limit))
+	return io.ReadAll(r.Body)
+}
+
 func (s *Handler) handleReadDataError(r *http.Request, w http.ResponseWriter, err error) {
+	var maxBytesErr *http.MaxBytesError
+	if errors.As(err, &maxBytesErr) {
+		log.Warn().Err(err).Str("path", r.URL.Path).Msg("API request body too large")
+		http.Error(w, http.StatusText(http.StatusRequestEntityTooLarge), http.StatusRequestEntityTooLarge)
+		return
+	}
 	log.Error().Err(err).Str("path", r.URL.Path).Msg("error reading API request body")
 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
