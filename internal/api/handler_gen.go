@@ -3,7 +3,6 @@
 package api
 
 import (
-	"io"
 	"net/http"
 
 	. "github.com/centrifugal/centrifugo/v6/internal/apiproto"
@@ -14,7 +13,7 @@ import (
 )
 
 func (s *Handler) handleBatch(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "batch", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -41,7 +40,7 @@ func (s *Handler) handleBatch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handlePublish(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "publish", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -83,7 +82,7 @@ func (s *Handler) handlePublish(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleBroadcast(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "broadcast", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -125,7 +124,7 @@ func (s *Handler) handleBroadcast(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleSubscribe(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "subscribe", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -167,7 +166,7 @@ func (s *Handler) handleSubscribe(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleUnsubscribe(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "unsubscribe", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -209,7 +208,7 @@ func (s *Handler) handleUnsubscribe(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleDisconnect(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "disconnect", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -251,7 +250,7 @@ func (s *Handler) handleDisconnect(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handlePresence(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "presence", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -293,7 +292,7 @@ func (s *Handler) handlePresence(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handlePresenceStats(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "presence_stats", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -335,7 +334,7 @@ func (s *Handler) handlePresenceStats(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleHistory(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "history", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -377,7 +376,7 @@ func (s *Handler) handleHistory(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleHistoryRemove(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "history_remove", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -419,7 +418,7 @@ func (s *Handler) handleHistoryRemove(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleInfo(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "info", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -461,7 +460,7 @@ func (s *Handler) handleInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleRPC(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "rpc", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -503,7 +502,7 @@ func (s *Handler) handleRPC(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "refresh", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -545,7 +544,7 @@ func (s *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleChannels(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "channels", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -587,7 +586,7 @@ func (s *Handler) handleChannels(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleMapPublish(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "map_publish", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -629,7 +628,7 @@ func (s *Handler) handleMapPublish(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleMapRemove(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "map_remove", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -671,7 +670,7 @@ func (s *Handler) handleMapRemove(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleMapReadState(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "map_read_state", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -713,7 +712,7 @@ func (s *Handler) handleMapReadState(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleMapReadStream(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "map_read_stream", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -755,7 +754,7 @@ func (s *Handler) handleMapReadStream(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleMapStats(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "map_stats", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -797,7 +796,7 @@ func (s *Handler) handleMapStats(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleMapClear(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "map_clear", "read_body")
 		s.handleReadDataError(r, w, err)
@@ -839,7 +838,7 @@ func (s *Handler) handleMapClear(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Handler) handleSharedPollPublish(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	data, err := s.readRequestBody(w, r)
 	if err != nil {
 		metrics.IncAPIErrorStringCode(s.api.config.Protocol, "shared_poll_publish", "read_body")
 		s.handleReadDataError(r, w, err)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/centrifugal/centrifuge"
 )
@@ -48,13 +49,7 @@ func (e *PostgresStreamBroker) Publish(ch string, data []byte, opts centrifuge.P
 	// HistoryMetaTTL with 3-tier fallback: opts → node config → StreamRetention.
 	// The third tier guarantees expires_at is always set, so the meta
 	// cleanup pass eventually fires for every channel.
-	historyMetaTTL := opts.HistoryMetaTTL
-	if historyMetaTTL == 0 {
-		historyMetaTTL = e.node.Config().HistoryMetaTTL
-	}
-	if historyMetaTTL == 0 {
-		historyMetaTTL = e.conf.StreamRetention
-	}
+	historyMetaTTL := e.historyMetaTTL(opts.HistoryMetaTTL)
 	metaTTLStr := durationToIntervalString(historyMetaTTL)
 	metaTTL := &metaTTLStr
 
@@ -158,6 +153,16 @@ func (e *PostgresStreamBroker) Publish(ch string, data []byte, opts centrifuge.P
 	}
 
 	return result, nil
+}
+
+func (e *PostgresStreamBroker) historyMetaTTL(requested time.Duration) time.Duration {
+	if requested != 0 {
+		return requested
+	}
+	if ttl := e.node.Config().HistoryMetaTTL; ttl != 0 {
+		return ttl
+	}
+	return e.conf.StreamRetention
 }
 
 // PublishJoin publishes a join event. In fanout mode, short-circuits to the

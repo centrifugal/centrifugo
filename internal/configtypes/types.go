@@ -316,12 +316,13 @@ type OpenTelemetry struct {
 }
 
 type HttpAPI struct {
-	Disabled      bool   `mapstructure:"disabled" json:"disabled" envconfig:"disabled" yaml:"disabled" toml:"disabled" doc:"Disables the HTTP API endpoint."`
-	HandlerPrefix string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/api" yaml:"handler_prefix" toml:"handler_prefix" expose:"full" doc:"URL prefix for the HTTP API handler. Default <</api>>."`
-	Key           string `mapstructure:"key" json:"key" envconfig:"key" yaml:"key" toml:"key" doc:"API key for HTTP API authentication. When set, requests must include this key."`
-	ErrorMode     string `mapstructure:"error_mode" json:"error_mode" envconfig:"error_mode" yaml:"error_mode" toml:"error_mode" expose:"full" doc:"Set to <<transport>> to return HTTP API errors as HTTP status codes, with the error in the response body. By default errors are returned inside a successful response. A request can also ask for it with the <<X-Centrifugo-Error-Mode: transport>> header."`
-	External      bool   `mapstructure:"external" json:"external" envconfig:"external" yaml:"external" toml:"external" doc:"Runs the HTTP API on the external port instead of the internal port."`
-	Insecure      bool   `mapstructure:"insecure" json:"insecure" envconfig:"insecure" yaml:"insecure" toml:"insecure" doc:"Disables API key authentication for the HTTP API. Use only in trusted network environments."`
+	Disabled           bool   `mapstructure:"disabled" json:"disabled" envconfig:"disabled" yaml:"disabled" toml:"disabled" doc:"Disables the HTTP API endpoint."`
+	HandlerPrefix      string `mapstructure:"handler_prefix" json:"handler_prefix" envconfig:"handler_prefix" default:"/api" yaml:"handler_prefix" toml:"handler_prefix" expose:"full" doc:"URL prefix for the HTTP API handler. Default <</api>>."`
+	Key                string `mapstructure:"key" json:"key" envconfig:"key" yaml:"key" toml:"key" doc:"API key for HTTP API authentication. When set, requests must include this key."`
+	ErrorMode          string `mapstructure:"error_mode" json:"error_mode" envconfig:"error_mode" yaml:"error_mode" toml:"error_mode" expose:"full" doc:"Set to <<transport>> to return HTTP API errors as HTTP status codes, with the error in the response body. By default errors are returned inside a successful response. A request can also ask for it with the <<X-Centrifugo-Error-Mode: transport>> header."`
+	External           bool   `mapstructure:"external" json:"external" envconfig:"external" yaml:"external" toml:"external" doc:"Runs the HTTP API on the external port instead of the internal port."`
+	Insecure           bool   `mapstructure:"insecure" json:"insecure" envconfig:"insecure" yaml:"insecure" toml:"insecure" doc:"Disables API key authentication for the HTTP API. Use only in trusted network environments."`
+	MaxRequestBodySize int    `mapstructure:"max_request_body_size" json:"max_request_body_size" envconfig:"max_request_body_size" default:"33554432" yaml:"max_request_body_size" toml:"max_request_body_size" doc:"Maximum allowed request body size in bytes for HTTP API requests. Values <= 0 use the default. Default <<33554432>> (32 MiB)."`
 }
 
 type GrpcAPI struct {
@@ -536,8 +537,8 @@ type Channel struct {
 	// HistoryMetaTTL is a time how long to keep history meta information. This is a global option for all channels,
 	// but it can be overridden in channel namespace.
 	HistoryMetaTTL Duration `mapstructure:"history_meta_ttl" json:"history_meta_ttl" envconfig:"history_meta_ttl" default:"720h" yaml:"history_meta_ttl" toml:"history_meta_ttl" doc:"Global default for how long history stream meta information (offset and epoch) is retained. Default <<720h>> (30 days). Can be overridden per namespace."`
-	// HistoryMetaTTLUnpublished is how long to keep the meta of a channel nobody published to yet.
-	HistoryMetaTTLUnpublished Duration `mapstructure:"history_meta_ttl_unpublished" json:"history_meta_ttl_unpublished" envconfig:"history_meta_ttl_unpublished" yaml:"history_meta_ttl_unpublished" toml:"history_meta_ttl_unpublished" doc:"How long the stream or map meta of a channel nobody published to yet is retained, so that subscribing to such channels leaves no long-lived state in Redis. Live subscribers keep it while they stay subscribed; the first publication switches the meta to <<history_meta_ttl>> (or the map's meta TTL). Must be at least 3 × <<client.channel_position_check_delay>>. Zero (default): such metas are retained as long as any other."`
+	// HistoryMetaTTLInitial is how long the meta of a channel lives until its first publication. Zero (default) or -1: off.
+	HistoryMetaTTLInitial Duration `mapstructure:"history_meta_ttl_initial" json:"history_meta_ttl_initial" envconfig:"history_meta_ttl_initial" yaml:"history_meta_ttl_initial" toml:"history_meta_ttl_initial" doc:"TTL of the stream or map meta of a channel until its first publication. Subscribing to a channel creates its meta: with this option set, a channel nobody published to keeps it only this long after its last subscriber left, so subscriptions to random channels leave no long-lived state. Live subscribers keep the meta. The first publication switches it to <<history_meta_ttl>> (or the map's meta TTL); a meta created again after it expired starts with this TTL too. A client away longer than this from a channel nobody published to can't recover what is published to it meanwhile: the channel starts a new epoch. Recommended where clients can choose channel names (for example public or anonymous namespaces), e.g. <<5m>>. At least 3 × <<client.channel_position_check_delay>>: a shorter value is raised to it, with a warning. Zero (default) or <<-1>>: off, such metas are retained as long as any other. A namespace or map can set its own value, or <<-1>> to disable it for its channels."`
 
 	// PublicationDataFormat is a global publication data format for all channels. Can be overridden in channel namespace.
 	// Empty string means default behavior (reject empty data). Possible values: "", "json", "json_object", "binary".

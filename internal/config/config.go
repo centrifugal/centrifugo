@@ -133,6 +133,8 @@ type Meta struct {
 	UnknownEnvs         []string
 	KnownEnvVars        map[string]envconfig.VarInfo
 	DeprecationWarnings []string
+	// Warnings are about values Centrifugo changed, see raiseInitialMetaTTLs.
+	Warnings []string
 }
 
 func DefineFlags(rootCmd *cobra.Command) {
@@ -277,6 +279,7 @@ func GetConfig(cmd *cobra.Command, configFile string) (Config, Meta, error) {
 	cfg := *conf
 	cfg, deprecationWarnings := applyConfigMigrations(cfg)
 	meta.DeprecationWarnings = deprecationWarnings
+	cfg, meta.Warnings = raiseInitialMetaTTLs(cfg)
 
 	return cfg, meta, nil
 }

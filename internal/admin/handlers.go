@@ -49,7 +49,9 @@ func NewHandler(n *centrifuge.Node, apiExecutor *api.Executor, c Config) (*Handl
 	// protection of the admin endpoint must be done at the infrastructure level.
 	authThrottle := middleware.NewAuthThrottle(10, time.Minute, nil)
 	mux.Handle(prefix+"/admin/auth", middleware.Post(authThrottle.Middleware(http.HandlerFunc(h.authHandler))))
-	mux.Handle(prefix+"/admin/api", middleware.Post(h.adminSecureTokenAuth(api.NewHandler(n, apiExecutor, api.Config{}).OldRoute())))
+	mux.Handle(prefix+"/admin/api", middleware.Post(h.adminSecureTokenAuth(api.NewHandler(n, apiExecutor, api.Config{
+		MaxRequestBodySize: api.DefaultMaxRequestBodySize,
+	}).OldRoute())))
 
 	webPrefix := prefix + "/"
 	if c.WebProxyAddress != "" {

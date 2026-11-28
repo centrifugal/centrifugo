@@ -61,9 +61,15 @@ var (
 	ErrUnavailable = errors.New("jwks: endpoint unavailable")
 
 	errUnexpectedStatusCode = errors.New("jwks: unexpected status code")
+	errResponseTooLarge     = errors.New("jwks: response too large")
 	errUnmarshal            = errors.New("jwks: unmarshal error")
 	errConvert              = errors.New("jwks: convert error")
 )
+
+// maxResponseSizeBytes bounds the JWKS endpoint response body. A JWKS
+// document is a small JSON object; anything larger is rejected instead of
+// being read fully into memory.
+const maxResponseSizeBytes = 1 << 20 // 1 MiB.
 
 // Manager fetches and returns JWK from public source.
 type Manager struct {
@@ -92,14 +98,18 @@ func defaultHTTPClient() *http.Client {
 
 // NewManager returns a new instance of Manager.
 func NewManager(rawURL string, opts ...Option) (*Manager, error) {
-	u, err := url.Parse(rawURL)
+	urlTemplate := fasttemplate.New(rawURL, "{{", "}}")
+	// Braces are not valid in a host name, so validate the URL with placeholders
+	// filled in. A digit is valid wherever a placeholder is expected, a port included.
+	u, err := url.Parse(urlTemplate.ExecuteFuncString(func(w io.Writer, _ string) (int, error) {
+		return io.WriteString(w, "0")
+	}))
 	if err != nil {
 		return nil, ErrInvalidURL
 	}
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return nil, fmt.Errorf("endpoint must have http:// or https:// scheme, got: %s", rawURL)
 	}
-	urlTemplate := fasttemplate.New(rawURL, "{{", "}}")
 
 	mng := &Manager{
 		url: urlTemplate,
@@ -248,7 +258,14 @@ func (m *Manager) loadData(req *http.Request) ([]byte, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("%w: %d", errUnexpectedStatusCode, resp.StatusCode)
 	}
-	return io.ReadAll(resp.Body)
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSizeBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(data) > maxResponseSizeBytes {
+		return nil, errResponseTooLarge
+	}
+	return data, nil
 }
 
 // resolveURL applies tokenVars to the URL template and rejects results with
